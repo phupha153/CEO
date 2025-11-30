@@ -271,12 +271,17 @@ Deno.serve(async (req) => {
             
             message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber} (${bankAccountName})\n\n`;
 
-            // ⭐ สร้างรูปใบแจ้งหนี้ก่อนส่ง
+            // ⭐ ตรวจสอบว่าต้องสร้างรูปใหม่หรือไม่ (ถ้าบิลถูกแก้ไข)
             let invoiceImageUrl = payment.invoice_image_url || null;
-            
-            if (!invoiceImageUrl) {
+            const currentHash = generatePaymentHash(payment);
+            const savedHash = payment.invoice_data_hash || '';
+            const needsRegenerate = !invoiceImageUrl || (savedHash && currentHash !== savedHash);
+
+            if (needsRegenerate) {
+                const reason = !invoiceImageUrl ? 'ยังไม่มีรูป' : 'บิลถูกแก้ไข';
+                console.log(`🖼️ Generating invoice image for payment ${payment.id} (${reason})...`);
+
                 try {
-                    console.log(`🖼️ Generating invoice image for payment ${payment.id}...`);
                     const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
                         paymentId: payment.id
                     });
@@ -290,6 +295,8 @@ Deno.serve(async (req) => {
                     console.error(`❌ Error generating invoice image:`, invoiceError.message);
                     console.error('Full error:', invoiceError);
                 }
+            } else {
+                console.log(`✅ Using existing invoice image for payment ${payment.id} (hash matched)`);
             }
             
             if (invoiceImageUrl) {
