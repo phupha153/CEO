@@ -281,6 +281,38 @@ Deno.serve(async (req) => {
             });
         }
 
+        // ⭐ สร้างรูปใบแจ้งหนี้แบบ sequential (ทีละใบ) ก่อนส่ง LINE
+        console.log(`🖼️ Generating invoice images for ${recipients.length} payments...`);
+        for (let i = 0; i < recipients.length; i++) {
+            const recipient = recipients[i];
+            const payment = allPayments.find(p => p.id === recipient.metadata.paymentId);
+
+            if (payment && !payment.invoice_image_url) {
+                try {
+                    console.log(`[${i + 1}/${recipients.length}] Generating image for room ${recipient.metadata.roomNumber}...`);
+                    const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
+                        paymentId: payment.id
+                    });
+                    if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
+                        // อัปเดต message ให้มีลิงก์รูป
+                        const imageUrl = invoiceResult.data.invoice_image_url;
+                        recipient.message = recipient.message.replace(
+                            '📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ',
+                            `📄 ดูใบแจ้งหนี้: ${imageUrl}\n\n📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ`
+                        );
+                        console.log(`✅ Image generated for room ${recipient.metadata.roomNumber}`);
+                    }
+                } catch (invoiceError) {
+                    console.error(`❌ Error generating image for room ${recipient.metadata.roomNumber}:`, invoiceError.message);
+                }
+
+                // รอ 2 วินาทีก่อนสร้างรูปถัดไป (หลีกเลี่ยง rate limit)
+                if (i < recipients.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+        }
+
         console.log(`📤 Sending payment reminders to ${recipients.length} recipients...`);
 
         // ⭐ อัปเดต bill_sent_date แบบ bulk (ลด API calls)
