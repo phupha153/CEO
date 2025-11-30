@@ -1018,21 +1018,24 @@ export default function Layout({ children, currentPageName }) {
   // Admin items are usually developer-only and have requiredPermission, so the hasFeature check within canAccessMenuItem handles them.
   const visibleAdminItems = currentUser && userRole === 'developer' ? adminOnlyItems.filter(canAccessMenuItem) : [];
 
-  // Don't apply subscription check to these pages (public or critical admin pages)
-  // ⭐ PublicInvoice เป็น public page ไม่ต้อง login
-  if (currentPageName === 'PublicInvoice' ||
-      currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
-      currentPageName === 'PrintReceipts' || currentPageName === 'BranchSelection' || 
-      currentPageName === 'AllBranchesDashboard' || currentPageName === 'BranchManagement' ||
-      currentPageName === 'ActivityLog' || 
-      currentPageName === 'DataLists' || currentPageName === 'PackageSettings' ||
-      currentPageName === 'UserBranchAccess' ||
-      currentPageName === 'RenewalPage' ||
-      currentPageName === 'PackageSelectionPage' ||
-      currentPageName === 'TrialExpiredPage' ||
-      currentPageName === 'PackageExpiredPage') {
-    return children;
-  }
+  // ⭐⭐⭐ PublicInvoice เป็น public page ต้อง return ทันทีก่อนทุกอย่าง (ไม่เช็ค auth, ไม่เช็ค branch)
+    if (currentPageName === 'PublicInvoice') {
+      return children;
+    }
+
+    // Don't apply subscription check to these pages (public or critical admin pages)
+    if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
+        currentPageName === 'PrintReceipts' || currentPageName === 'BranchSelection' || 
+        currentPageName === 'AllBranchesDashboard' || currentPageName === 'BranchManagement' ||
+        currentPageName === 'ActivityLog' || 
+        currentPageName === 'DataLists' || currentPageName === 'PackageSettings' ||
+        currentPageName === 'UserBranchAccess' ||
+        currentPageName === 'RenewalPage' ||
+        currentPageName === 'PackageSelectionPage' ||
+        currentPageName === 'TrialExpiredPage' ||
+        currentPageName === 'PackageExpiredPage') {
+      return children;
+    }
 
   // Settings page - allow render with tutorial
   if (currentPageName === 'Settings') {
