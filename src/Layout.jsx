@@ -349,6 +349,12 @@ const adminOnlyItems = [
 ];
 
 export default function Layout({ children, currentPageName }) {
+    // ⭐⭐⭐ CRITICAL: PublicInvoice ต้อง return ก่อนทุกอย่าง (ก่อน hooks ทั้งหมด)
+    // เพราะ React hooks ต้องรันก่อน conditional return ตาม Rules of Hooks
+    if (currentPageName === 'PublicInvoice') {
+      return <>{children}</>;
+    }
+
     const location = useLocation();
     const navigate = useNavigate();
     const mainContentRef = useRef(null);
@@ -1018,12 +1024,7 @@ export default function Layout({ children, currentPageName }) {
   // Admin items are usually developer-only and have requiredPermission, so the hasFeature check within canAccessMenuItem handles them.
   const visibleAdminItems = currentUser && userRole === 'developer' ? adminOnlyItems.filter(canAccessMenuItem) : [];
 
-  // ⭐⭐⭐ PublicInvoice เป็น public page ต้อง return ทันทีก่อนทุกอย่าง (ไม่เช็ค auth, ไม่เช็ค branch)
-    if (currentPageName === 'PublicInvoice') {
-      return children;
-    }
-
-    // Don't apply subscription check to these pages (public or critical admin pages)
+  // Don't apply subscription check to these pages (public or critical admin pages)
     if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
         currentPageName === 'PrintReceipts' || currentPageName === 'BranchSelection' || 
         currentPageName === 'AllBranchesDashboard' || currentPageName === 'BranchManagement' ||
