@@ -360,7 +360,11 @@ Deno.serve(async (req) => {
             imageGenerated,
             imageFailed,
             lineSent,
-            lineFailed
+            lineFailed,
+            remaining,
+            elapsedMs: totalElapsed,
+            // ⭐ ถ้ายังมีเหลือ = ควรรันอีกรอบ
+            hasMore: remaining > 0
         });
 
     } catch (error) {
