@@ -87,8 +87,55 @@ Deno.serve(async (req) => {
 
         console.log('✅ Invoice data fetched successfully');
 
+        // ⭐ สร้าง invoice object สำหรับ generateInvoiceImage
+        const invoiceObject = {
+            id: payment.id,
+            status: payment.status,
+            due_date: payment.due_date,
+            created_date: payment.created_date,
+            rent_amount: payment.rent_amount,
+            water_amount: payment.water_amount,
+            water_units: payment.water_units,
+            water_rate: payment.water_rate,
+            electricity_amount: payment.electricity_amount,
+            electricity_units: payment.electricity_units,
+            electricity_rate: payment.electricity_rate,
+            internet_amount: payment.internet_amount,
+            common_fee_amount: payment.common_fee_amount,
+            parking_fee_amount: payment.parking_fee_amount,
+            other_amount: payment.other_amount,
+            total_amount: payment.total_amount,
+            // ⭐ รวม room, tenant, bank, recipient ไว้ในตัว invoice
+            room: room ? {
+                room_number: room.room_number,
+                floor: room.floor
+            } : { room_number: 'N/A', floor: 0 },
+            tenant: tenant ? {
+                full_name: tenant.full_name,
+                phone: tenant.phone,
+                address: tenant.address,
+                national_id: tenant.national_id
+            } : { full_name: 'ไม่ระบุ', phone: '' },
+            bank: {
+                name: configData.bank_name || 'กสิกรไทย',
+                account_number: configData.bank_account_number || '',
+                account_name: configData.bank_account_name || ''
+            },
+            recipient: {
+                building_name: configData.building_name || branch?.branch_name || 'W RESIDENTS',
+                building_logo: configData.building_logo || '',
+                building_address: branch?.address || '',
+                building_phone: configData.contact_phone || branch?.phone || '',
+                company_name: getConfigValue('company_name') || '',
+                tax_id: getConfigValue('tax_id') || '',
+                company_registration_number: getConfigValue('company_registration_number') || ''
+            }
+        };
+
         return Response.json({
             success: true,
+            // ⭐ ส่งทั้ง invoice (สำหรับ generateInvoiceImage) และ data (สำหรับ PublicInvoice page)
+            invoice: invoiceObject,
             data: {
                 payment: {
                     id: payment.id,
