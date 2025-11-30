@@ -63,6 +63,26 @@ function escapeHtml(text) {
       .replace(/'/g, '&#039;');
 }
 
+// ⭐ ฟังก์ชันสร้าง hash จากข้อมูลบิล เพื่อตรวจจับการเปลี่ยนแปลง
+function generatePaymentHash(payment) {
+    const dataToHash = {
+        rent_amount: payment.rent_amount || 0,
+        water_units: payment.water_units || 0,
+        water_amount: payment.water_amount || 0,
+        electricity_units: payment.electricity_units || 0,
+        electricity_amount: payment.electricity_amount || 0,
+        internet_amount: payment.internet_amount || 0,
+        common_fee_amount: payment.common_fee_amount || 0,
+        parking_fee_amount: payment.parking_fee_amount || 0,
+        other_amount: payment.other_amount || 0,
+        total_amount: payment.total_amount || 0,
+        due_date: payment.due_date || ''
+    };
+    // Simple hash: JSON string แล้ว encode เป็น base64
+    const jsonStr = JSON.stringify(dataToHash);
+    return btoa(jsonStr).substring(0, 32); // เอาแค่ 32 ตัวแรก
+}
+
 function formatDate(dateString) {
     if (!dateString) return 'ไม่ระบุ';
     
@@ -542,12 +562,14 @@ ${lineItems.map((item, index) => `<tr>
         const { file_url } = await base44.integrations.Core.UploadFile({ file: imageFile });
         console.log('✅ Image uploaded:', file_url);
 
-        // บันทึก URL ลง database
+        // บันทึก URL และ hash ลง database
         console.log('💾 Updating payment...');
+        const newHash = generatePaymentHash(payment);
         await base44.asServiceRole.entities.Payment.update(paymentId, {
-            invoice_image_url: file_url
+            invoice_image_url: file_url,
+            invoice_data_hash: newHash
         });
-        console.log('✅ Payment updated');
+        console.log('✅ Payment updated with hash:', newHash);
 
         const elapsed = Date.now() - startTime;
         console.log(`⏱️ Total time: ${elapsed}ms`);
