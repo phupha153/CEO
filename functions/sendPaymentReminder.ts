@@ -252,23 +252,8 @@ Deno.serve(async (req) => {
             
             message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber} (${bankAccountName})\n\n`;
 
-            // ⭐ สร้างรูปใบแจ้งหนี้ก่อนส่ง
+            // ⭐ ใช้รูปที่มีอยู่แล้ว (ไม่สร้างใหม่ตอนนี้ - จะสร้างแยกทีหลัง)
             let invoiceImageUrl = payment.invoice_image_url || null;
-            
-            if (!invoiceImageUrl) {
-                try {
-                    console.log(`🖼️ Generating invoice image for payment ${payment.id}...`);
-                    const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
-                        paymentId: payment.id
-                    });
-                    if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
-                        invoiceImageUrl = invoiceResult.data.invoice_image_url;
-                        console.log(`✅ Invoice image generated: ${invoiceImageUrl}`);
-                    }
-                } catch (invoiceError) {
-                    console.error(`❌ Error generating invoice image:`, invoiceError.message);
-                }
-            }
             
             if (invoiceImageUrl) {
                 message += `📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}\n\n`;
