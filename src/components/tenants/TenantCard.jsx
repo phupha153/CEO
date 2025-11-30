@@ -10,14 +10,12 @@ const TenantCard = React.memo(({
   activeBookings, 
   hasExpiringSoon, 
   avgRating,
-  paymentScore, // ⭐ รับคะแนนการชำระเงิน
   vehicleCount,
   onClick,
   getRoomInfo,
   isContractExpiringSoon,
   getDaysUntilExpiry,
-  lastRoomNumber,
-  userRole // ⭐ เพิ่ม userRole สำหรับ debug
+  lastRoomNumber
 }) => {
   const prepaidBalance = tenant.prepaid_balance || 0;
   

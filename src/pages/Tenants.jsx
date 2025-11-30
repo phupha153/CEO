@@ -1898,7 +1898,6 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
       const activeBookings = getActiveBookings(tenant.id);
       const hasExpiringSoon = activeBookings.some(b => isContractExpiringSoon(b));
       const avgRating = getTenantAverageRating(tenant.id);
-      const paymentScore = tenant.avg_payment_score; // ⭐ เพิ่มคะแนนการชำระเงิน
       const vehicleCount = getVehicleCount(tenant);
       
       // หาห้องล่าสุดที่เคยเช่า (สำหรับผู้เช่าที่ย้ายออกแล้ว)
@@ -1919,7 +1918,6 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
         activeBookings,
         hasExpiringSoon,
         avgRating,
-        paymentScore, // ⭐ ส่งคะแนนการชำระเงินไปด้วย
         vehicleCount,
         lastRoomNumber
       };
@@ -2671,7 +2669,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                                       })()
           ) : viewMode === 'card' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {tenantCardsData.map(({ tenant, activeBookings, hasExpiringSoon, avgRating, paymentScore, vehicleCount, lastRoomNumber }) => (
+              {tenantCardsData.map(({ tenant, activeBookings, hasExpiringSoon, avgRating, vehicleCount, lastRoomNumber }) => (
                 <div key={tenant.id} className="relative">
                   {isSelectionMode && (
                     <div
@@ -2694,14 +2692,12 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                       activeBookings={activeBookings}
                       hasExpiringSoon={hasExpiringSoon}
                       avgRating={avgRating}
-                      paymentScore={paymentScore}
                       vehicleCount={vehicleCount}
                       onClick={handleTenantClick}
                       getRoomInfo={getRoomInfo}
                       isContractExpiringSoon={isContractExpiringSoon}
                       getDaysUntilExpiry={getDaysUntilExpiry}
                       lastRoomNumber={lastRoomNumber}
-                      userRole={userRole}
                     />
                   </div>
                 </div>
