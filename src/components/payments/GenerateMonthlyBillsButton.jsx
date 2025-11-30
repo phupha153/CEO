@@ -34,7 +34,7 @@ export default function GenerateMonthlyBillsButton({ branchId, onSuccess, compac
 
           // ⭐ ถ้ามีบิลที่ต้องสร้างรูป = ถามว่าจะส่งทันทีไหม
           if (pending > 0) {
-            const shouldSend = confirm(`ต้องการสร้างรูปและส่ง LINE ทันทีไหม?\n(${pending} ใบ - ใช้เวลาประมาณ ${Math.ceil(pending * 5)} วินาที)`);
+            const shouldSend = confirm(`ต้องการสร้างรูปและส่ง LINE ทันทีไหม?\n(${pending} ใบ - ใช้เวลาประมาณ ${Math.ceil(pending * 2)} วินาที)`);
             
             if (shouldSend) {
               setProcessingQueue(true);
