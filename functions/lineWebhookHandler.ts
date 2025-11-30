@@ -1134,30 +1134,6 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
-        // ⭐ พบ QR แต่ธนาคารยังไม่มีข้อมูล (slip not found) = สลิปจริงแต่รอตรวจ → บันทึกรอ Cron
-        const isSlipNotFoundYet = errorCode === '200404' || 
-                                   errorMessage.toLowerCase().includes('slip not found') ||
-                                   errorMessage.toLowerCase().includes('transaction not found');
-
-        if (isSlipNotFoundYet && !verificationSuccess) {
-            console.log('⏳ Valid slip but bank data not ready yet - saving for deferred verification...');
-
-            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
-                payment_slip_url: slipImageUrl,
-                status: 'pending',
-                notes: `${pendingPayment.notes || ''}\n\n⏳ รอตรวจสอบซ้ำ: สลิปถูกต้องแต่ธนาคารยังไม่พบข้อมูล (รอ 30 นาที) - ${new Date().toISOString()}`
-            });
-
-            await sendMessage(base44, lineUserId, 
-                `📸 ได้รับสลิปแล้ว!\n\n⏳ ระบบกำลังตรวจสอบกับธนาคาร\nอาจใช้เวลา 5-30 นาที\n\nหากรอนานเกินไป กรุณาติดต่อเจ้าของหอพักค่ะ`,
-                branchId,
-                replyToken
-            );
-
-            console.log('✅ Saved slip for deferred verification by Cron Job');
-            return;
-        }
-
         const isSlipValid = slip2goResponse.ok && slip2goData.data && verificationSuccess;
         
         if (!isSlipValid) {
