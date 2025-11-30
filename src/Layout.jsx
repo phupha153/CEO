@@ -348,11 +348,15 @@ const adminOnlyItems = [
   }
 ];
 
+// ⭐⭐⭐ Wrapper component สำหรับ public pages (ไม่มี hooks)
+function PublicPageWrapper({ children }) {
+  return <>{children}</>;
+}
+
 export default function Layout({ children, currentPageName }) {
-    // ⭐⭐⭐ CRITICAL: PublicInvoice ต้อง return ก่อนทุกอย่าง (ก่อน hooks ทั้งหมด)
-    // เพราะ React hooks ต้องรันก่อน conditional return ตาม Rules of Hooks
+    // ⭐⭐⭐ CRITICAL: PublicInvoice ต้อง return ก่อน hooks ทั้งหมด
     if (currentPageName === 'PublicInvoice') {
-      return <>{children}</>;
+      return <PublicPageWrapper>{children}</PublicPageWrapper>;
     }
 
     const location = useLocation();
