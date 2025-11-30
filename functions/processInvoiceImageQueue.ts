@@ -315,11 +315,21 @@ Deno.serve(async (req) => {
             // ต้องยังไม่มีรูปหรือสถานะเป็น pending/null
             const needsImage = !p.invoice_image_url || p.invoice_image_status === 'pending' || !p.invoice_image_status;
             
+            // ⭐ เช็คว่าบิลถูกแก้ไขหลังสร้างรูปหรือไม่ (hash ไม่ตรง)
+            let needsRegenerate = false;
+            if (p.invoice_image_url && p.invoice_data_hash) {
+                const currentHash = generatePaymentHash(p);
+                if (currentHash !== p.invoice_data_hash) {
+                    needsRegenerate = true;
+                    console.log(`🔄 Payment ${p.id}: Bill modified, needs image regeneration`);
+                }
+            }
+            
             // ⭐ เช็คว่าสาขานี้เปิดส่งบิลอัตโนมัติหรือไม่
             const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', p.branch_id, 'false') === 'true';
             const needsSend = autoSendEnabled && !p.bill_sent_date;
             
-            return needsImage || needsSend;
+            return needsImage || needsRegenerate || needsSend;
         }).slice(0, batchSize);
 
         console.log(`📊 Found ${paymentsToProcess.length} payments to process (from ${allPayments.length} total)`);
