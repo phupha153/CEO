@@ -109,7 +109,7 @@ export default function TestSlipUploader() {
         notes: `${testPayment.notes || ''}\n\n⚠️ รอตรวจสอบซ้ำ: ห้อง ${selectedRoom?.room_number} - [TEST] ทดสอบระบบตรวจสอบสลิป - ${new Date().toISOString()}`
       });
 
-      toast.success(`✅ บันทึกสลิปทดสอบสำเร็จ\nห้อง ${selectedRoom?.room_number} (${selectedBranch?.branch_name})`, { 
+      toast.success(`✅ บันทึกสลิปทดสอบสำเร็จ\nห้อง ${selectedRoom?.room_number} (${selectedBranch?.branch_name})\n💰 ยอดบิล: ${testPayment.total_amount?.toLocaleString() || 0} บาท`, { 
         id: toastId, 
         duration: 5000 
       });
