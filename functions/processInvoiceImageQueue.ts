@@ -172,8 +172,15 @@ Deno.serve(async (req) => {
         console.log(`📦 Split into ${chunks.length} chunks of max ${concurrentLimit} each`);
 
         for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
+            // ⭐ เช็ค timeout - หยุดก่อนถึง 45 วินาที
+            const elapsed = Date.now() - startTime;
+            if (elapsed > maxRunTime) {
+                console.log(`⏱️ Approaching timeout (${elapsed}ms) - stopping gracefully`);
+                break;
+            }
+            
             const chunk = chunks[chunkIdx];
-            console.log(`\n🔄 Processing chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} payments)`);
+            console.log(`\n🔄 Processing chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} payments) [${elapsed}ms elapsed]`);
 
             // 4.1 สร้างรูปพร้อมกัน (concurrent)
             const imagePromises = chunk.map(async (payment) => {
