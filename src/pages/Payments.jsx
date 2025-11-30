@@ -48,7 +48,7 @@ export default function PaymentsPage() {
   const [slipPreview, setSlipPreview] = useState({ open: false, url: '', title: '' });
 
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
-  const [dateRangeType, setDateRangeType] = useState('all');
+  const [dateRangeType, setDateRangeType] = useState('this_month');
   const [customRange, setCustomRange] = useState({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date())
@@ -56,7 +56,7 @@ export default function PaymentsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('room');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 50;
   const [sortBy, setSortBy] = useState('due_date'); // 'due_date', 'room', 'created_date', 'amount'
   
   // Room View State
