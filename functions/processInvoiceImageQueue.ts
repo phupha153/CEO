@@ -327,7 +327,9 @@ Deno.serve(async (req) => {
         }
 
         // 5. Log และ Return
-        const summaryMessage = `สร้างรูป ${imageGenerated} ใบ (ล้มเหลว ${imageFailed}), ส่ง LINE ${lineSent} ราย (ล้มเหลว ${lineFailed})`;
+        const totalElapsed = Date.now() - startTime;
+        const remaining = paymentsToProcess.length - imageGenerated - imageFailed;
+        const summaryMessage = `สร้างรูป ${imageGenerated} ใบ (ล้มเหลว ${imageFailed}), ส่ง LINE ${lineSent} ราย, เหลืออีก ${remaining} ใบ [${Math.round(totalElapsed/1000)}s]`;
         console.log(`\n✅ ${summaryMessage}`);
 
         try {
