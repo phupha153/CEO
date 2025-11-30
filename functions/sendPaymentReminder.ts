@@ -255,8 +255,27 @@ Deno.serve(async (req) => {
             }
             
             message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber} (${bankAccountName})\n\n`;
+
+            // ⭐ สร้างรูปใบแจ้งหนี้ก่อนส่ง
+            let invoiceImageUrl = payment.invoice_image_url || null;
             
-            // ⭐ สร้าง Public Invoice Link (ไม่ต้องสร้างรูปแล้ว - ใช้ลิงก์แทน)
+            if (!invoiceImageUrl) {
+                try {
+                    console.log(`🖼️ Generating invoice image for payment ${payment.id}...`);
+                    const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
+                        paymentId: payment.id
+                    });
+                    if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
+                        invoiceImageUrl = invoiceResult.data.invoice_image_url;
+                        console.log(`✅ Invoice image generated: ${invoiceImageUrl}`);
+                    }
+                } catch (invoiceError) {
+                    console.error(`❌ Error generating invoice image:`, invoiceError.message);
+                }
+            }
+            
+            // ⭐ สร้าง Public Invoice Link
+            // BASE44_APP_ID = "6904ea5ce861be65483eff6e" → ใช้ 8 หลักสุดท้าย
             const fullAppId = Deno.env.get('BASE44_APP_ID') || '';
             const shortAppId = fullAppId.slice(-8) || '483eff6e';
             const publicInvoiceUrl = `https://app-${shortAppId}.base44.app/PublicInvoice?id=${payment.id}&branch=${payment.branch_id}`;
