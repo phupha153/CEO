@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
             const needsImage = !p.invoice_image_url || p.invoice_image_status === 'pending' || !p.invoice_image_status;
             
             // ⭐ เช็คว่าสาขานี้เปิดส่งบิลอัตโนมัติหรือไม่
-            const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', 'false', p.branch_id) === 'true';
+            const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', p.branch_id, 'false') === 'true';
             const needsSend = autoSendEnabled && !p.bill_sent_date;
             
             return needsImage || needsSend;
