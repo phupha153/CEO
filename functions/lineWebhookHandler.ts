@@ -1022,10 +1022,13 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             
             slip2goData = JSON.parse(responseText);
             
-            if (slip2goResponse.ok && slip2goData.success && slip2goData.data) {
+            // ⭐ ตรวจสอบว่าสลิป valid หรือไม่ (รวมทั้ง code 200200 = Slip is valid)
+            const isValidCode = slip2goData.code === '200200' || slip2goData.code === 200200;
+            
+            if ((slip2goResponse.ok && slip2goData.success && slip2goData.data) || (isValidCode && slip2goData.data)) {
                 verificationMethod = 'qr-image';
                 verificationSuccess = true;
-                console.log('✅ Step 1 SUCCESS: qr-image/info method worked');
+                console.log('✅ Step 1 SUCCESS: qr-image/info method worked (code:', slip2goData.code, ')');
             } else {
                 console.log('⚠️ Step 1 FAILED: qr-image/info -', slip2goData.message || slip2goData.code || 'Unknown error');
                 
