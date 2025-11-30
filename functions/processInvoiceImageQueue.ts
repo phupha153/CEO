@@ -201,11 +201,21 @@ Deno.serve(async (req) => {
 
                     console.log(`🖼️ Generating image for payment ${payment.id} (Room: ${room?.room_number || 'N/A'})...`);
                     
-                    const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
+                    // ⭐ เรียก getPublicInvoice + สร้างรูปเองภายใน function นี้เลย
+                    const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', {
                         paymentId: payment.id
                     });
 
-                    if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
+                    if (!invoiceDataResult.data?.success || !invoiceDataResult.data?.invoice) {
+                        throw new Error(invoiceDataResult.data?.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
+                    }
+
+                    const invoice = invoiceDataResult.data.invoice;
+                    
+                    // สร้าง HTML และ screenshot
+                    const imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoice);
+
+                    if (imageUrl) {
                         // Update payment with image URL
                         await base44.asServiceRole.entities.Payment.update(payment.id, {
                             invoice_image_url: invoiceResult.data.invoice_image_url,
