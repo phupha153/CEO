@@ -13,6 +13,25 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// ⭐ ฟังก์ชันสร้าง hash จากข้อมูลบิล เพื่อตรวจจับการเปลี่ยนแปลง
+function generatePaymentHash(payment) {
+    const dataToHash = {
+        rent_amount: payment.rent_amount || 0,
+        water_units: payment.water_units || 0,
+        water_amount: payment.water_amount || 0,
+        electricity_units: payment.electricity_units || 0,
+        electricity_amount: payment.electricity_amount || 0,
+        internet_amount: payment.internet_amount || 0,
+        common_fee_amount: payment.common_fee_amount || 0,
+        parking_fee_amount: payment.parking_fee_amount || 0,
+        other_amount: payment.other_amount || 0,
+        total_amount: payment.total_amount || 0,
+        due_date: payment.due_date || ''
+    };
+    const jsonStr = JSON.stringify(dataToHash);
+    return btoa(jsonStr).substring(0, 32);
+}
+
 // ⭐ ฟังก์ชันสร้างรูป invoice แบบ inline (ไม่เรียก generateInvoiceImage แยก)
 async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
