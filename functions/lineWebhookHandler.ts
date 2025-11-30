@@ -1115,7 +1115,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             });
             
             await sendMessage(base44, lineUserId, 
-                `❌ ตรวจสอบสลิปไม่ผ่าน\n\nเหตุผล: ${errorMessage || 'ไม่ทราบสาเหตุ'}\n\nกรุณาติดต่อเจ้าของหอพักค่ะ`,
+                `📸 ได้รับสลิปแล้วค่ะ\n\nรอเจ้าของหอพักตรวจสอบสักครู่นะคะ`,
                 branchId,
                 replyToken
             );
