@@ -271,12 +271,29 @@ Deno.serve(async (req) => {
             
             message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber} (${bankAccountName})\n\n`;
 
-            // ⭐ ตรวจสอบว่าต้องสร้างรูปใหม่หรือไม่ (ถ้าบิลถูกแก้ไข)
+            // ⭐ ตรวจสอบว่าต้องสร้างรูปใหม่หรือไม่
             let invoiceImageUrl = payment.invoice_image_url || null;
             const currentHash = generatePaymentHash(payment);
             const savedHash = payment.invoice_data_hash || '';
-            // ⭐ บังคับสร้างใหม่ถ้า: ไม่มีรูป หรือ hash ไม่ตรง (บิลถูกแก้ไข)
-            const needsRegenerate = !invoiceImageUrl || currentHash !== savedHash;
+
+            // ⭐ Logic ใหม่:
+            // 1. ไม่มีรูป = สร้างใหม่
+            // 2. มีรูป + ไม่มี hash = ใช้รูปเดิม + บันทึก hash
+            // 3. มีรูป + hash ไม่ตรง = สร้างใหม่ (บิลถูกแก้ไข)
+            // 4. มีรูป + hash ตรง = ใช้รูปเดิม
+
+            let needsRegenerate = false;
+            let needsHashUpdate = false;
+
+            if (!invoiceImageUrl) {
+                needsRegenerate = true;
+            } else if (!savedHash) {
+                // มีรูปแล้วแต่ไม่มี hash = ใช้รูปเดิม แค่บันทึก hash
+                needsHashUpdate = true;
+                console.log(`📝 Payment ${payment.id}: Has image but no hash - will save hash without regenerating`);
+            } else if (currentHash !== savedHash) {
+                needsRegenerate = true;
+            }
 
             if (needsRegenerate) {
                 const reason = !invoiceImageUrl ? 'ยังไม่มีรูป' : 'บิลถูกแก้ไข (hash mismatch)';
@@ -286,7 +303,7 @@ Deno.serve(async (req) => {
                 try {
                     const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
                         paymentId: payment.id,
-                        forceRegenerate: true // ⭐ บังคับสร้างใหม่
+                        forceRegenerate: true
                     });
                     if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
                         invoiceImageUrl = invoiceResult.data.invoice_image_url;
@@ -296,7 +313,16 @@ Deno.serve(async (req) => {
                     }
                 } catch (invoiceError) {
                     console.error(`❌ Error generating invoice image:`, invoiceError.message);
-                    console.error('Full error:', invoiceError);
+                }
+            } else if (needsHashUpdate) {
+                // บันทึก hash โดยไม่สร้างรูปใหม่
+                try {
+                    await base44.asServiceRole.entities.Payment.update(payment.id, {
+                        invoice_data_hash: currentHash
+                    });
+                    console.log(`✅ Payment ${payment.id}: Hash saved (${currentHash})`);
+                } catch (hashError) {
+                    console.error(`⚠️ Failed to save hash:`, hashError.message);
                 }
             } else {
                 console.log(`✅ Using existing invoice image for payment ${payment.id} (hash matched)`);
