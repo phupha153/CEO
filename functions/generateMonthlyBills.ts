@@ -651,20 +651,15 @@ Deno.serve(async (req) => {
                 await retryOperation(async () => {
                     const created = await base44.asServiceRole.entities.Payment.bulkCreate(batch);
                     
-                    // Map back for image generation (ทุกสาขา) และ LINE notifications (เฉพาะสาขาที่เปิด)
+                    // Map back for LINE notifications
                     for (const payment of created) {
                         const meta = paymentReferenceMap.get(payment.room_id);
-                        if (meta) {
-                            // ⭐ สร้างรูปทุกสาขา แต่ส่ง LINE เฉพาะสาขาที่เปิด auto_send
-                            const shouldSendLine = meta.tenant?.line_user_id && 
-                                getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
-                            
-                            billsToSend.push({ 
-                                payment, 
-                                tenant: meta.tenant, 
-                                room: meta.room,
-                                shouldSendLine // ⭐ flag บอกว่าต้องส่ง LINE หรือไม่
-                            });
+                        if (meta && meta.tenant?.line_user_id) {
+                            const shouldSend = getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
+                            // Don't send line if auto-paid (optional, usually we still notify)
+                            if (shouldSend) {
+                                billsToSend.push({ payment, tenant: meta.tenant, room: meta.room });
+                            }
                         }
                     }
                     createdCount += created.length;
