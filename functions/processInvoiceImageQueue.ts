@@ -218,20 +218,20 @@ Deno.serve(async (req) => {
                     if (imageUrl) {
                         // Update payment with image URL
                         await base44.asServiceRole.entities.Payment.update(payment.id, {
-                            invoice_image_url: invoiceResult.data.invoice_image_url,
+                            invoice_image_url: imageUrl,
                             invoice_image_status: 'completed'
                         });
                         
                         console.log(`✅ Payment ${payment.id}: Image created`);
                         return { 
-                            payment: { ...payment, invoice_image_url: invoiceResult.data.invoice_image_url }, 
+                            payment: { ...payment, invoice_image_url: imageUrl }, 
                             room, 
                             tenant, 
-                            imageUrl: invoiceResult.data.invoice_image_url, 
+                            imageUrl: imageUrl, 
                             success: true 
                         };
                     } else {
-                        throw new Error(invoiceResult.data?.error || 'Unknown error');
+                        throw new Error('Failed to generate invoice image');
                     }
                 } catch (error) {
                     console.error(`❌ Payment ${payment.id}: Image generation failed - ${error.message}`);
