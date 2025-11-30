@@ -1118,43 +1118,25 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
-        // ⭐ ถ้าเป็น 200404 (Slip not found) - บันทึกไว้รอ Cron Job ตรวจสอบใหม่ใน 30 นาที
-        const isSlipNotFound = errorCode === '200404' || errorMessage.toLowerCase().includes('slip not found');
+        // ⭐⭐⭐ ถ้าไม่พบ QR Code หรือไม่ใช่สลิป → ไม่ตอบอะไรเลย (ไม่บันทึก ไม่แจ้ง)
+        const isNotSlip = errorCode === '200404' || 
+                          errorCode === '200400' || 
+                          errorMessage.toLowerCase().includes('slip not found') ||
+                          errorMessage.toLowerCase().includes('qr code not found') ||
+                          errorMessage.toLowerCase().includes('invalid') ||
+                          errorMessage.toLowerCase().includes('not a slip');
 
-        if (isSlipNotFound && !verificationSuccess) {
-            console.log('⏳ Slip not found - saving for deferred verification (30 min)...');
-
-            // บันทึกสลิปและเปลี่ยนสถานะเป็น pending_recheck
-            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
-                payment_slip_url: slipImageUrl,
-                status: 'pending',
-                notes: `${pendingPayment.notes || ''}\n\n⏳ รอตรวจสอบซ้ำ: ธนาคารยังไม่พบข้อมูลสลิป (รอ 30 นาที) - ${new Date().toISOString()}`
-            });
-
-            // แจ้งผู้ใช้ว่าได้รับสลิปแล้ว รอตรวจสอบ
-            await sendMessage(base44, lineUserId, 
-                `📸 ได้รับสลิปแล้ว!\n\n⚠️ รอเจ้าของหอพักตรวจสอบค่ะ`,
-                branchId,
-                replyToken
-            );
-
-            console.log('✅ Saved slip for deferred verification');
+        if (isNotSlip && !verificationSuccess) {
+            console.log(`ℹ️ Image is not a valid slip (code: ${errorCode}, msg: ${errorMessage}) - NOT responding`);
+            // ⭐ ไม่บันทึก ไม่ตอบอะไรเลย เพราะอาจเป็นรูปอื่นที่ไม่ใช่สลิป
             return;
         }
 
         const isSlipValid = slip2goResponse.ok && slip2goData.data && verificationSuccess;
         
         if (!isSlipValid) {
-            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
-                payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ตรวจสอบไม่ผ่าน (${errorMessage})`
-            });
-            
-            await sendMessage(base44, lineUserId, 
-                `📸 ได้รับสลิปแล้วค่ะ\n\nรอเจ้าของหอพักตรวจสอบสักครู่นะคะ`,
-                branchId,
-                replyToken
-            );
+            // ⭐ ถ้าตรวจสอบไม่ผ่านแต่ไม่ใช่ error ข้างบน = อาจเป็นปัญหาอื่น → ไม่ตอบ
+            console.log(`ℹ️ Slip verification failed but not a clear error - NOT responding`);
             return;
         }
 
