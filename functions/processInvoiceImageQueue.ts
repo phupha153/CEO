@@ -319,10 +319,10 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // Delay ระหว่าง chunk (รอ Browserless พร้อม)
+            // Delay ระหว่าง chunk (รอ Browserless พร้อม) - ลดเหลือ 1 วินาที
             if (chunkIdx < chunks.length - 1) {
-                console.log(`⏳ Waiting 3 seconds before next chunk...`);
-                await delay(3000);
+                console.log(`⏳ Waiting 1 second before next chunk...`);
+                await delay(1000);
             }
         }
 
