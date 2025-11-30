@@ -271,10 +271,11 @@ Deno.serve(async (req) => {
 
         // 1. Fetch Configs
         const configs = await base44.asServiceRole.entities.Config.list() || [];
-        const getConfigValue = (key, defaultValue, branchId = null) => {
+        // ⭐ ลำดับ parameter เหมือน sendPaymentReminder: (key, branchId, defaultValue)
+        const getConfigValue = (key, branchId, defaultValue = '') => {
             if (branchId) {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
-                if (branchConfig) return branchConfig.value;
+                if (branchConfig?.value) return branchConfig.value;
             }
             const globalConfig = configs.find(c => c.key === key && !c.branch_id);
             return globalConfig?.value || defaultValue;
