@@ -1,5 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
+function createPageUrl(pageName) {
+    return `/${pageName}`;
+}
+
 function numberToThaiText(number) {
   if (!number || number === 0) return 'ศูนย์บาทถ้วน';
   
@@ -270,9 +274,11 @@ Deno.serve(async (req) => {
                 }
             }
             
-            if (invoiceImageUrl) {
-                message += `📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}\n\n`;
-            }
+            // ⭐ สร้าง Public Invoice Link
+            const appDomain = Deno.env.get('BASE44_APP_DOMAIN') || 'your-app.base44.app';
+            const publicInvoiceUrl = `https://${appDomain}${createPageUrl('PublicInvoice')}?id=${payment.id}&branch=${payment.branch_id}`;
+            
+            message += `📄 ดูใบแจ้งหนี้: ${publicInvoiceUrl}\n\n`;
             message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
             message += `ขอบคุณค่ะ 🙏`;
 
