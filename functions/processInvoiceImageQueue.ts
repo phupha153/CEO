@@ -435,7 +435,7 @@ Deno.serve(async (req) => {
                     const { payment, room, tenant, imageUrl } = result;
                     
                     // ⭐ เช็คว่าสาขานี้เปิดส่งบิลอัตโนมัติหรือไม่
-                    const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
+                    const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', payment.branch_id, 'false') === 'true';
                     if (!autoSendEnabled) {
                         console.log(`⏭️ Payment ${payment.id}: Branch auto_send disabled - skip LINE`);
                         continue;
@@ -454,11 +454,13 @@ Deno.serve(async (req) => {
                     }
 
                     try {
-                    const bankName = getConfigValue('bank_name', 'กสิกร', room?.branch_id);
-                    const bankAcc = getConfigValue('bank_account_number', '-', room?.branch_id);
-                    const bankOwner = getConfigValue('bank_account_name', '-', room?.branch_id);
-                    const buildingName = getConfigValue('building_name', 'W RESIDENTS', room?.branch_id);
-                    const lineToken = getConfigValue('line_channel_access_token', null, room?.branch_id) || Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+                    // ⭐ ลำดับ parameter: (key, branchId, defaultValue) เหมือน sendPaymentReminder
+                    const branchId = payment.branch_id;
+                    const bankName = getConfigValue('bank_name', branchId, 'กสิกร');
+                    const bankAcc = getConfigValue('bank_account_number', branchId, '-');
+                    const bankOwner = getConfigValue('bank_account_name', branchId, '-');
+                    const buildingName = getConfigValue('building_name', branchId, 'W RESIDENTS');
+                    const lineToken = getConfigValue('line_channel_access_token', branchId, '') || Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
 
                     let msg = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
                     msg += `สวัสดีคุณ ${tenant.full_name}\n`;
