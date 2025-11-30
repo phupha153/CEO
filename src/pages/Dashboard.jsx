@@ -140,8 +140,7 @@ export default function Dashboard() {
     queryKey: ['rooms', selectedBranchId, 'v2'],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allRooms = await base44.entities.Room.list('-room_number', 10000);
-      return allRooms.filter(room => room.branch_id === selectedBranchId);
+      return await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 10000);
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
@@ -157,8 +156,7 @@ export default function Dashboard() {
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allBookings = await base44.entities.Booking.list('-created_date', 300);
-      return allBookings.filter(booking => booking.branch_id === selectedBranchId);
+      return await base44.entities.Booking.filter({ branch_id: selectedBranchId }, '-created_date', 5000);
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
@@ -174,13 +172,7 @@ export default function Dashboard() {
     queryKey: ['payments', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // Query เฉพาะ branch และดึงทั้งหมด (10000 รายการ)
-      const payments = await base44.entities.Payment.filter(
-        { branch_id: selectedBranchId },
-        '-created_date',
-        10000
-      );
-      return payments;
+      return await base44.entities.Payment.filter({ branch_id: selectedBranchId }, '-created_date', 10000);
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
@@ -196,8 +188,7 @@ export default function Dashboard() {
     queryKey: ['maintenance', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allMaintenance = await base44.entities.MaintenanceRequest.list('-created_date', 50);
-      return allMaintenance.filter(maintenance => maintenance.branch_id === selectedBranchId);
+      return await base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId }, '-created_date', 500);
     },
     enabled: !!selectedBranchId && showMaintenance,
     ...retryConfig,
@@ -213,13 +204,7 @@ export default function Dashboard() {
     queryKey: ['expenses', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // Query เฉพาะ branch และจำกัด 200 รายการล่าสุด
-      const expenses = await base44.entities.Expense.filter(
-        { branch_id: selectedBranchId },
-        '-date',
-        200
-      );
-      return expenses;
+      return await base44.entities.Expense.filter({ branch_id: selectedBranchId }, '-date', 500);
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
