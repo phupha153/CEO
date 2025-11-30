@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, FileText, Image, Send, CheckCircle2, AlertCircle, Clock, Info, Sparkles, Play, RotateCw, Terminal, ChevronDown, ChevronUp, Trash2, ExternalLink } from "lucide-react";
+import { Loader2, FileText, Image, Send, CheckCircle2, AlertCircle, Clock, Info, Sparkles, Play, RotateCw, Terminal, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "../components/shared/PageHeader";
 import { Badge } from "@/components/ui/badge";
@@ -627,71 +627,6 @@ export default function TestInvoiceGenerationPage() {
               </CardContent>
             </Card>
           </div>
-
-          {/* Invoice Link Viewer */}
-          <Card className="bg-gradient-to-r from-indigo-50 to-blue-50 border-indigo-300 shadow-lg">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <ExternalLink className="w-5 h-5 text-indigo-600" />
-                🔗 ดูตัวอย่างลิงก์ใบแจ้งหนี้ (Public)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              <p className="text-sm text-slate-600">
-                เลือกห้องเพื่อดูตัวอย่างลิงก์ใบแจ้งหนี้ที่จะส่งให้ลูกค้าผ่าน LINE
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs text-slate-600">เลือกห้อง/บิล</Label>
-                  <Select value={selectedPaymentId} onValueChange={setSelectedPaymentId}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="เลือกบิล..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {payments.map(p => {
-                        const room = rooms.find(r => r.id === p.room_id);
-                        const tenant = tenants.find(t => t.id === p.tenant_id);
-                        return (
-                          <SelectItem key={p.id} value={p.id}>
-                            ห้อง {room?.room_number} - {tenant?.full_name || 'N/A'} ({p.total_amount?.toLocaleString()} บ.)
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex items-end">
-                  <Button
-                    onClick={() => {
-                      if (!selectedPaymentId) {
-                        toast.error('กรุณาเลือกบิลก่อน');
-                        return;
-                      }
-                      const payment = payments.find(p => p.id === selectedPaymentId);
-                      const url = `https://app-483eff6e.base44.app/PublicInvoice?id=${selectedPaymentId}&branch=${payment?.branch_id || selectedBranchId}`;
-                      window.open(url, '_blank');
-                    }}
-                    disabled={!selectedPaymentId}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700"
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    เปิดลิงก์ใบแจ้งหนี้
-                  </Button>
-                </div>
-              </div>
-
-              {selectedPaymentId && (
-                <div className="mt-3 p-3 bg-white rounded-lg border">
-                  <p className="text-xs text-slate-500 mb-1">URL ที่จะส่งให้ลูกค้า:</p>
-                  <code className="text-xs text-indigo-600 break-all block bg-indigo-50 p-2 rounded">
-                    {`https://app-483eff6e.base44.app/PublicInvoice?id=${selectedPaymentId}&branch=${payments.find(p => p.id === selectedPaymentId)?.branch_id || selectedBranchId}`}
-                  </code>
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
           {/* Manual LINE Test */}
           <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-300 shadow-lg">
