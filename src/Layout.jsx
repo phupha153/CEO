@@ -348,21 +348,11 @@ const adminOnlyItems = [
   }
 ];
 
-// ⭐⭐⭐ Wrapper component สำหรับ public pages (ไม่มี hooks)
-function PublicPageWrapper({ children }) {
-  return <>{children}</>;
-}
-
 export default function Layout({ children, currentPageName }) {
-    // ⭐⭐⭐ CRITICAL: PublicInvoice ต้อง return ก่อน hooks ทั้งหมด
-    if (currentPageName === 'PublicInvoice') {
-      return <PublicPageWrapper>{children}</PublicPageWrapper>;
-    }
-
-    const location = useLocation();
-    const navigate = useNavigate();
-    const mainContentRef = useRef(null);
-    const queryClient = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const mainContentRef = useRef(null);
+  const queryClient = useQueryClient();
   
   const [selectedBranch, setSelectedBranch] = useState(() => {
     const branchId = localStorage.getItem('selected_branch_id');
@@ -1029,18 +1019,18 @@ export default function Layout({ children, currentPageName }) {
   const visibleAdminItems = currentUser && userRole === 'developer' ? adminOnlyItems.filter(canAccessMenuItem) : [];
 
   // Don't apply subscription check to these pages (public or critical admin pages)
-    if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
-        currentPageName === 'PrintReceipts' || currentPageName === 'BranchSelection' || 
-        currentPageName === 'AllBranchesDashboard' || currentPageName === 'BranchManagement' ||
-        currentPageName === 'ActivityLog' || 
-        currentPageName === 'DataLists' || currentPageName === 'PackageSettings' ||
-        currentPageName === 'UserBranchAccess' ||
-        currentPageName === 'RenewalPage' ||
-        currentPageName === 'PackageSelectionPage' ||
-        currentPageName === 'TrialExpiredPage' ||
-        currentPageName === 'PackageExpiredPage') {
-      return children;
-    }
+  if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
+      currentPageName === 'PrintReceipts' || currentPageName === 'BranchSelection' || 
+      currentPageName === 'AllBranchesDashboard' || currentPageName === 'BranchManagement' ||
+      currentPageName === 'ActivityLog' || 
+      currentPageName === 'DataLists' || currentPageName === 'PackageSettings' ||
+      currentPageName === 'UserBranchAccess' ||
+      currentPageName === 'RenewalPage' ||
+      currentPageName === 'PackageSelectionPage' ||
+      currentPageName === 'TrialExpiredPage' ||
+      currentPageName === 'PackageExpiredPage') {
+    return children;
+  }
 
   // Settings page - allow render with tutorial
   if (currentPageName === 'Settings') {

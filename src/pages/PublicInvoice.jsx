@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { base44 } from "@/api/base44Client";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 import { 
@@ -21,13 +23,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
-// ⭐⭐⭐ PUBLIC PAGE - ไม่ต้องการ authentication
-// ⭐ ใช้ native URLSearchParams แทน useSearchParams เพื่อหลีกเลี่ยง router auth check
 export default function PublicInvoice() {
-  // ⭐ ใช้ window.location.search แทน useSearchParams
-  const urlParams = new URLSearchParams(window.location.search);
-  const paymentId = urlParams.get("id");
-  const branchId = urlParams.get("branch");
+  const [searchParams] = useSearchParams();
+  const paymentId = searchParams.get("id");
+  const branchId = searchParams.get("branch");
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -42,22 +41,15 @@ export default function PublicInvoice() {
       }
 
       try {
-        // ⭐ เรียก API แบบ public โดยไม่ต้อง login - ใช้ fetch ตรงๆ
-        const apiUrl = `https://base44.app/api/apps/6904ea5ce861be65483eff6e/functions/getPublicInvoice`;
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ paymentId, branchId })
+        const response = await base44.functions.invoke("getPublicInvoice", {
+          paymentId,
+          branchId
         });
 
-        const result = await response.json();
-
-        if (result?.success) {
-          setData(result.data);
+        if (response.data?.success) {
+          setData(response.data.data);
         } else {
-          setError(result?.error || "ไม่สามารถโหลดข้อมูลได้");
+          setError(response.data?.error || "ไม่สามารถโหลดข้อมูลได้");
         }
       } catch (err) {
         console.error("Error fetching invoice:", err);
@@ -351,6 +343,3 @@ export default function PublicInvoice() {
     </div>
   );
 }
-
-// ⭐ Export flag to indicate this is a public page (for platform-level check)
-PublicInvoice.isPublicPage = true;
