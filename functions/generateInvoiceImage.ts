@@ -126,6 +126,8 @@ Deno.serve(async (req) => {
                 paymentId: paymentId
             });
             
+            console.log('📥 getPublicInvoice response:', JSON.stringify(invoiceResponse.data).substring(0, 500));
+            
             if (!invoiceResponse.data?.success) {
                 console.error('❌ getPublicInvoice failed:', invoiceResponse.data?.error);
                 return Response.json({ 
@@ -135,8 +137,36 @@ Deno.serve(async (req) => {
                 }, { status: 404 });
             }
             
-            invoiceData = invoiceResponse.data.invoice;
-            console.log('✅ Invoice data fetched successfully');
+            // ⭐ ใช้ invoice object (ถ้ามี) หรือ fallback เป็น data.payment
+            invoiceData = invoiceResponse.data.invoice || invoiceResponse.data.data?.payment;
+            
+            if (!invoiceData) {
+                console.error('❌ No invoice data in response');
+                return Response.json({ 
+                    success: false,
+                    error: 'ไม่พบข้อมูลใบแจ้งหนี้ใน response',
+                    message: 'Invoice data missing'
+                }, { status: 404 });
+            }
+            
+            // ⭐ ถ้าใช้ data.payment ต้องเพิ่ม room, tenant, bank, recipient
+            if (!invoiceData.room && invoiceResponse.data.data) {
+                invoiceData.room = invoiceResponse.data.data.room || { room_number: 'N/A' };
+                invoiceData.tenant = invoiceResponse.data.data.tenant || { full_name: 'ไม่ระบุ' };
+                invoiceData.bank = {
+                    name: invoiceResponse.data.data.configs?.bank_name || 'กสิกรไทย',
+                    account_number: invoiceResponse.data.data.configs?.bank_account_number || '',
+                    account_name: invoiceResponse.data.data.configs?.bank_account_name || ''
+                };
+                invoiceData.recipient = {
+                    building_name: invoiceResponse.data.data.configs?.building_name || invoiceResponse.data.data.branch?.branch_name || 'W RESIDENTS',
+                    building_logo: invoiceResponse.data.data.configs?.building_logo || '',
+                    building_address: invoiceResponse.data.data.branch?.address || '',
+                    building_phone: invoiceResponse.data.data.configs?.contact_phone || invoiceResponse.data.data.branch?.phone || ''
+                };
+            }
+            
+            console.log('✅ Invoice data fetched successfully, room:', invoiceData.room?.room_number);
         } catch (fetchError) {
             console.error('❌ Error calling getPublicInvoice:', fetchError);
             return Response.json({ 
