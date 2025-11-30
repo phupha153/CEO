@@ -741,6 +741,7 @@ Deno.serve(async (req) => {
             message: summaryMessage,
             generatedCount: createdCount,
             skippedDueToExistingBill,
+            pendingImageCount,
             sentCount,
             failedCount,
             summary: {
@@ -748,6 +749,7 @@ Deno.serve(async (req) => {
                 totalRoomsToProcess: roomsToProcess.length,
                 created: createdCount,
                 skipped: skippedDueToExistingBill,
+                pendingImages: pendingImageCount,
                 branchesSkipped: branchesSkipped.map(b => ({ id: b.branchId, genDay: b.genDay })),
             }
         };
