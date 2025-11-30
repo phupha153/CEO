@@ -45,6 +45,16 @@ const CRON_JOBS = [
     apis: ['SLIP2GO_API_KEY', 'LINE_CHANNEL_ACCESS_TOKEN']
   },
   {
+    id: 'processInvoiceImageQueue',
+    name: 'สร้างรูปใบแจ้งหนี้ + ส่ง LINE',
+    description: 'สร้างรูปใบแจ้งหนี้ทีละใบและส่ง LINE ให้ลูกค้า (สำหรับบิลที่สร้างแล้วแต่ยังไม่ส่ง)',
+    icon: FileText,
+    color: 'from-purple-500 to-indigo-500',
+    recommendedInterval: 'ทุก 2-5 นาที',
+    functionName: 'processInvoiceImageQueue',
+    apis: ['LINE_CHANNEL_ACCESS_TOKEN', 'BROWSERLESS_API_KEY']
+  },
+  {
     id: 'sendAdvanceReminders',
     name: 'ส่งบิลแจ้งหนี้ล่วงหน้า (LINE)',
     description: 'ส่งบิลแจ้งหนี้ให้ลูกค้าผ่าน LINE ก่อนถึงกำหนดชำระ',
@@ -67,12 +77,12 @@ const CRON_JOBS = [
   {
     id: 'generateMonthlyBills',
     name: 'สร้างบิลรายเดือน',
-    description: 'สร้างบิลค่าเช่ารายเดือนอัตโนมัติ',
+    description: 'สร้างบิลค่าเช่ารายเดือนอัตโนมัติ (สร้างข้อมูลบิลเท่านั้น ไม่สร้างรูป)',
     icon: FileText,
     color: 'from-green-500 to-emerald-500',
     recommendedInterval: 'เดือนละ 1 ครั้ง (วันที่ตั้งค่า)',
     functionName: 'generateMonthlyBills',
-    apis: ['LINE_CHANNEL_ACCESS_TOKEN', 'BROWSERLESS_API_KEY']
+    apis: []
   }
 ];
 
