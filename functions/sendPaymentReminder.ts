@@ -274,8 +274,9 @@ Deno.serve(async (req) => {
                 }
             }
             
-            // ⭐ สร้าง Public Invoice Link
-            const publicInvoiceUrl = `https://wresidents.base44.app/PublicInvoice?id=${payment.id}&branch=${payment.branch_id}`;
+            // ⭐ สร้าง Public Invoice Link (ใช้ app-{APP_ID}.base44.app)
+            const appId = Deno.env.get('BASE44_APP_ID') || '483eff6e';
+            const publicInvoiceUrl = `https://app-${appId}.base44.app/PublicInvoice?id=${payment.id}&branch=${payment.branch_id}`;
             
             message += `📄 ดูใบแจ้งหนี้: ${publicInvoiceUrl}\n\n`;
             message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
