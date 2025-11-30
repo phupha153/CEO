@@ -241,6 +241,7 @@ Deno.serve(async (req) => {
     let batchSize = 100; // เพิ่มเป็น 100 เพราะจะรันต่อเนื่อง
     let concurrentLimit = 1; // สร้างทีละ 1 รูป (Free tier Browserless)
     let maxRunTime = 40000; // 40 วินาที (เผื่อ buffer ก่อน timeout 45s)
+    let skipLineSend = false; // ⭐ โหมดทดสอบ - สร้างรูปอย่างเดียว ไม่ส่ง LINE
 
     try {
         const clonedReq = req.clone();
@@ -254,6 +255,7 @@ Deno.serve(async (req) => {
                 targetBranchId = body.branch_id || null;
                 batchSize = body.batch_size || 30;
                 concurrentLimit = body.concurrent_limit || 3;
+                skipLineSend = body.skip_line_send === true;
             }
         } catch (e) {
             console.log('⚠️ No valid JSON body');
@@ -263,6 +265,7 @@ Deno.serve(async (req) => {
         console.log(`📦 Batch Size: ${batchSize}`);
         console.log(`🔄 Concurrent Limit: ${concurrentLimit}`);
         console.log(`⏱️ Max Run Time: ${maxRunTime}ms`);
+        console.log(`🧪 Skip LINE Send: ${skipLineSend}`);
         
         const startTime = Date.now();
 
@@ -429,24 +432,26 @@ Deno.serve(async (req) => {
             }
 
             // 4.2 ส่ง LINE สำหรับที่สร้างรูปสำเร็จ (ทีละใบเพื่อหลีกเลี่ยง rate limit)
-            for (const result of imageResults) {
-                if (!result.success && !result.skipped) continue;
-                
-                const { payment, room, tenant, imageUrl } = result;
-                
-                // ข้ามถ้าไม่มี LINE User ID
-                if (!tenant?.line_user_id) {
-                    console.log(`⏭️ Payment ${payment.id}: No LINE User ID - skip LINE notification`);
-                    continue;
-                }
+            // ⭐ ถ้าเป็นโหมดทดสอบ (skip_line_send = true) ข้ามการส่ง LINE
+            if (!skipLineSend) {
+                for (const result of imageResults) {
+                    if (!result.success && !result.skipped) continue;
+                    
+                    const { payment, room, tenant, imageUrl } = result;
+                    
+                    // ข้ามถ้าไม่มี LINE User ID
+                    if (!tenant?.line_user_id) {
+                        console.log(`⏭️ Payment ${payment.id}: No LINE User ID - skip LINE notification`);
+                        continue;
+                    }
 
-                // ข้ามถ้าส่งไปแล้ว
-                if (payment.bill_sent_date) {
-                    console.log(`⏭️ Payment ${payment.id}: Already sent - skip`);
-                    continue;
-                }
+                    // ข้ามถ้าส่งไปแล้ว
+                    if (payment.bill_sent_date) {
+                        console.log(`⏭️ Payment ${payment.id}: Already sent - skip`);
+                        continue;
+                    }
 
-                try {
+                    try {
                     const bankName = getConfigValue('bank_name', 'กสิกร', room?.branch_id);
                     const bankAcc = getConfigValue('bank_account_number', '-', room?.branch_id);
                     const bankOwner = getConfigValue('bank_account_name', '-', room?.branch_id);
@@ -499,6 +504,9 @@ Deno.serve(async (req) => {
                     console.error(`❌ Payment ${payment.id}: LINE error - ${lineError.message}`);
                     lineFailed++;
                 }
+            }
+            } else {
+                console.log('🧪 Test mode - skipping LINE send for all payments in this chunk');
             }
 
             // Delay ระหว่าง chunk (รอ Browserless พร้อม) - ลดเหลือ 1 วินาที

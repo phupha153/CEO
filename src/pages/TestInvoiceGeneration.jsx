@@ -265,63 +265,7 @@ export default function TestInvoiceGenerationPage() {
     toast.success(`สร้างรูปสำเร็จ ${successCount}/${results.length} รายการ`);
   };
 
-  // ===== STEP 3: ส่งแจ้งเตือน LINE =====
-  const handleSendBills = async () => {
-    setSendingBills(true);
-    setSendResult(null);
-
-    addLog('step', '=== เริ่มขั้นตอนที่ 3: ส่งแจ้งเตือน LINE ===');
-    addLog('info', `บิลที่รอส่ง: ${paymentsToSend.length} รายการ`);
-    addLog('info', `ผู้เช่าที่เชื่อมต่อ LINE: ${tenantsWithLine.length} คน`);
-
-    // แสดงรายละเอียดแต่ละบิล
-    paymentsToSend.slice(0, 5).forEach(p => {
-      const room = rooms.find(r => r.id === p.room_id);
-      const tenant = tenants.find(t => t.id === p.tenant_id);
-      addLog('data', `- ห้อง ${room?.room_number}: ${tenant?.full_name} (${p.total_amount?.toLocaleString()} บาท)`, {
-        hasLineUserId: !!tenant?.line_user_id,
-        hasInvoiceImage: !!p.invoice_image_url
-      });
-    });
-    if (paymentsToSend.length > 5) {
-      addLog('info', `... และอีก ${paymentsToSend.length - 5} รายการ`);
-    }
-
-    addLog('api', 'เรียก sendPaymentReminder API...');
-
-    try {
-      const response = await base44.functions.invoke('sendPaymentReminder', {
-        branch_id: selectedBranchId
-      });
-
-      const result = response.data;
-      setSendResult(result);
-      
-      if (result.success) {
-        addLog('success', result.message || `ส่งสำเร็จ ${result.sent}/${result.total}`);
-        addLog('data', 'ผลลัพธ์:', {
-          sent: result.sent,
-          failed: result.failed,
-          skipped: result.skipped
-        });
-        toast.success(`ส่งแจ้งเตือนสำเร็จ ${result.sent}/${result.total} รายการ`);
-        await refetchPayments();
-      } else {
-        addLog('error', result.message || result.error || 'เกิดข้อผิดพลาด');
-        toast.error(result.message || 'เกิดข้อผิดพลาด');
-      }
-    } catch (error) {
-      console.error('Send bills error:', error);
-      addLog('error', `เกิดข้อผิดพลาด: ${error.message}`);
-      toast.error('เกิดข้อผิดพลาด: ' + error.message);
-      setSendResult({ success: false, error: error.message });
-    } finally {
-      setSendingBills(false);
-      addLog('step', '=== จบขั้นตอนที่ 3 ===');
-    }
-  };
-
-  // ===== STEP 3B: ส่งทดสอบโดยใส่ LINE User ID เอง =====
+  // ===== STEP 3: ส่งทดสอบ LINE User ID เดียว หลายรอบ =====
   const handleTestSendLine = async () => {
     if (!testLineUserId.trim()) {
       toast.error('กรุณาใส่ LINE User ID');
@@ -333,7 +277,7 @@ export default function TestInvoiceGenerationPage() {
     }
 
     setSendingTestLine(true);
-    addLog('step', '=== ทดสอบส่ง LINE (Manual User ID) ===');
+    addLog('step', '=== ทดสอบส่ง LINE หลายรอบ (User ID เดียว) ===');
     addLog('info', `LINE User ID: ${testLineUserId}`);
     addLog('info', `Payment ID: ${selectedPaymentId}`);
 
@@ -349,35 +293,39 @@ export default function TestInvoiceGenerationPage() {
     });
 
     try {
-      // สร้างข้อความ
-      const message = `🏠 แจ้งค่าเช่าห้อง ${room?.room_number || 'N/A'}
-      
-📅 รอบบิล: ${payment?.due_date || 'N/A'}
-💰 ยอดรวม: ${payment?.total_amount?.toLocaleString() || 0} บาท
+      // ส่ง 3 รอบ
+      for (let i = 1; i <= 3; i++) {
+        addLog('step', `📤 รอบที่ ${i}/3`);
 
-📝 รายละเอียด:
-- ค่าเช่า: ${payment?.rent_amount?.toLocaleString() || 0} บาท
-- ค่าน้ำ: ${payment?.water_amount?.toLocaleString() || 0} บาท (${payment?.water_units || 0} หน่วย)
-- ค่าไฟ: ${payment?.electricity_amount?.toLocaleString() || 0} บาท (${payment?.electricity_units || 0} หน่วย)
-- ค่าส่วนกลาง: ${payment?.common_fee_amount?.toLocaleString() || 0} บาท
+        const message = `🧪 ทดสอบส่งรอบที่ ${i}
 
-กรุณาชำระภายในวันที่ ${payment?.due_date || 'N/A'}
-ขอบคุณครับ 🙏`;
+  🏠 ห้อง ${room?.room_number || 'N/A'}
+  📅 รอบบิล: ${payment?.due_date || 'N/A'}
+  💰 ยอดรวม: ${payment?.total_amount?.toLocaleString() || 0} บาท
 
-      addLog('api', 'เรียก sendLineMessage API...');
+  ส่งเมื่อ: ${new Date().toLocaleTimeString('th-TH')}`;
 
-      const response = await base44.functions.invoke('sendLineMessage', {
-        to: testLineUserId.trim(),
-        message: message
-      });
+        addLog('api', `เรียก sendLineMessage API รอบที่ ${i}...`);
 
-      if (response.data.success) {
-        addLog('success', 'ส่งสำเร็จ!');
-        toast.success('ส่งทดสอบสำเร็จ!');
-      } else {
-        addLog('error', `ล้มเหลว: ${response.data.error}`);
-        toast.error('ส่งล้มเหลว: ' + response.data.error);
+        const response = await base44.functions.invoke('sendLineMessage', {
+          to: testLineUserId.trim(),
+          message: message
+        });
+
+        if (response.data.success) {
+          addLog('success', `รอบที่ ${i} ส่งสำเร็จ!`);
+        } else {
+          addLog('error', `รอบที่ ${i} ล้มเหลว: ${response.data.error}`);
+        }
+
+        // รอ 2 วินาทีระหว่างรอบ
+        if (i < 3) {
+          addLog('info', 'รอ 2 วินาที...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
       }
+
+      toast.success('ส่งทดสอบครบ 3 รอบแล้ว!');
     } catch (error) {
       addLog('error', `เกิดข้อผิดพลาด: ${error.message}`);
       toast.error('เกิดข้อผิดพลาด: ' + error.message);
@@ -603,91 +551,58 @@ export default function TestInvoiceGenerationPage() {
                 <CardTitle className="text-base flex items-center gap-2">
                   <span className="w-6 h-6 rounded-full bg-orange-600 text-white text-sm flex items-center justify-center">3</span>
                   <Send className="w-4 h-4 text-orange-600" />
-                  ส่งแจ้งเตือน LINE
+                  ทดสอบส่ง LINE
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
                 <div className="text-xs text-slate-600 space-y-1 mb-4">
-                  <p>🔍 ดึง Tenant, Room, Payment</p>
-                  <p>🖼️ สร้างรูปถ้ายังไม่มี</p>
-                  <p>💬 สร้างข้อความพร้อมรายละเอียด</p>
-                  <p>📤 ส่งผ่าน sendBatchLineMessages</p>
+                  <p>🧪 ส่ง LINE User ID เดียว - 3 รอบ</p>
+                  <p>⏱️ ห่างกัน 2 วินาที</p>
+                  <p>💬 ทดสอบ rate limit</p>
                 </div>
-                <Button
-                  onClick={handleSendBills}
-                  disabled={sendingBills || paymentsToSend.length === 0}
-                  className="w-full bg-orange-600 hover:bg-orange-700"
-                >
-                  {sendingBills ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> กำลังส่ง...</>
-                  ) : (
-                    <><Send className="w-4 h-4 mr-2" /> ส่ง LINE ({paymentsToSend.length})</>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Manual LINE Test */}
-          <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-300 shadow-lg">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Send className="w-5 h-5 text-green-600" />
-                🧪 ทดสอบส่ง LINE (ใส่ User ID เอง)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              <p className="text-sm text-slate-600">
-                ใช้สำหรับทดสอบส่งบิลไปยัง LINE User ID ที่ระบุเอง โดยไม่ต้องเชื่อมต่อกับผู้เช่าในระบบ
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div className="mb-3">
                   <Label className="text-xs text-slate-600">LINE User ID</Label>
                   <Input
-                    placeholder="U1234567890abcdef..."
+                    placeholder="U1234567890..."
                     value={testLineUserId}
                     onChange={(e) => setTestLineUserId(e.target.value)}
-                    className="mt-1"
+                    className="mt-1 text-sm"
                   />
-                  <p className="text-xs text-slate-500 mt-1">
-                    หา User ID ได้จาก LINE Official Account Manager
-                  </p>
                 </div>
-                
-                <div>
-                  <Label className="text-xs text-slate-600">เลือกบิลที่จะส่ง</Label>
+                <div className="mb-3">
+                  <Label className="text-xs text-slate-600">เลือกบิล</Label>
                   <Select value={selectedPaymentId} onValueChange={setSelectedPaymentId}>
-                    <SelectTrigger className="mt-1">
+                    <SelectTrigger className="text-sm h-9">
                       <SelectValue placeholder="เลือกบิล..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {payments.slice(0, 30).map(p => {
+                      {payments.slice(0, 20).map(p => {
                         const room = rooms.find(r => r.id === p.room_id);
                         return (
                           <SelectItem key={p.id} value={p.id}>
-                            ห้อง {room?.room_number} - {p.total_amount?.toLocaleString()} บ. {p.invoice_image_url ? '🖼️' : ''}
+                            ห้อง {room?.room_number} - {p.total_amount?.toLocaleString()} บ.
                           </SelectItem>
                         );
                       })}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
+                <Button
+                  onClick={handleTestSendLine}
+                  disabled={sendingTestLine || !testLineUserId.trim() || !selectedPaymentId}
+                  className="w-full bg-orange-600 hover:bg-orange-700"
+                >
+                  {sendingTestLine ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> กำลังส่ง...</>
+                  ) : (
+                    <><Send className="w-4 h-4 mr-2" /> ส่ง 3 รอบ</>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
 
-              <Button
-                onClick={handleTestSendLine}
-                disabled={sendingTestLine || !testLineUserId.trim() || !selectedPaymentId}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                {sendingTestLine ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> กำลังส่ง...</>
-                ) : (
-                  <><Send className="w-4 h-4 mr-2" /> ส่งทดสอบ</>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+
 
           {/* Realtime Logs */}
           <Card className="bg-slate-900 text-white shadow-2xl">
