@@ -26,17 +26,23 @@ export default function PageHeader({
     staleTime: 60 * 60 * 1000,
   });
 
+  const selectedBranchId = localStorage.getItem('selected_branch_id');
+
   const { data: allPayments = [] } = useQuery({
-    queryKey: ['allPayments', 'header'],
-    queryFn: () => base44.entities.Payment.list('-created_date', 1000),
-    enabled: showNotifications,
+    queryKey: ['allPayments', 'header', selectedBranchId],
+    queryFn: () => selectedBranchId 
+      ? base44.entities.Payment.filter({ branch_id: selectedBranchId })
+      : base44.entities.Payment.list('-created_date', 1000),
+    enabled: showNotifications && !!selectedBranchId,
     staleTime: 2 * 60 * 1000,
   });
 
   const { data: allMaintenanceRequests = [] } = useQuery({
-    queryKey: ['allMaintenanceRequests', 'header'],
-    queryFn: () => base44.entities.MaintenanceRequest.list('-created_date', 200),
-    enabled: showNotifications,
+    queryKey: ['allMaintenanceRequests', 'header', selectedBranchId],
+    queryFn: () => selectedBranchId
+      ? base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId })
+      : base44.entities.MaintenanceRequest.list('-created_date', 200),
+    enabled: showNotifications && !!selectedBranchId,
     staleTime: 2 * 60 * 1000,
   });
 

@@ -16,12 +16,13 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'SLIP2GO_API_KEY not configured' });
         }
 
-        // ดึง Payment ที่มี notes มีคำว่า "รอตรวจสอบซ้ำ"
-        const allPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 500);
-        
+        // ⭐ CRITICAL: ดึง Payment แบบมี branch_id เสมอ (ป้องกันข้อมูลปนกัน)
+        const allPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 5000);
+
         const pendingRecheckPayments = allPayments.filter(p => 
             p.status === 'pending' && 
             p.payment_slip_url && 
+            p.branch_id && // ⭐ ต้องมี branch_id
             p.notes && 
             (p.notes.includes('รอตรวจสอบซ้ำ') || p.notes.includes('รอตรวจสอบ'))
         );

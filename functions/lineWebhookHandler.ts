@@ -8,86 +8,73 @@ const messageSentCache = new Map();
 // Cache สำหรับ Config - ป้องกันการ query ซ้ำๆ
 let configCache = null;
 let configCacheTime = 0;
-const CONFIG_CACHE_DURATION = 10 * 1000; // 10 วินาที (ลดลงเพื่อให้ update เร็วขึ้น)
+const CONFIG_CACHE_DURATION = 10 * 1000; // 10 วินาที
+
+// ⭐ Branch-specific Config Cache (แยก cache ตามสาขา)
+const branchConfigCache = new Map();
+const BRANCH_CONFIG_CACHE_DURATION = 30 * 1000; // 30 วินาที
 
 async function getLineToken(base44, branchId = null) {
     try {
-        // ใช้ cache ถ้ายังไม่หมดอายุ
-        const now = Date.now();
-        if (!configCache || (now - configCacheTime) > CONFIG_CACHE_DURATION) {
-            configCache = await base44.asServiceRole.entities.Config.list();
-            configCacheTime = now;
-            console.log('🔄 Refreshed Config cache');
+        const cacheKey = branchId || 'global';
+        const cached = branchConfigCache.get(cacheKey);
+
+        if (cached && (Date.now() - cached.timestamp) < BRANCH_CONFIG_CACHE_DURATION) {
+            console.log(`✅ Using cached token for: ${cacheKey}`);
+            return cached.token;
         }
-        
-        // 1. ถ้ามี branchId ให้หา token เฉพาะสาขา
-        if (branchId && configCache) {
-            const branchToken = configCache.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
+
+        const configs = await base44.asServiceRole.entities.Config.list();
+
+        if (branchId) {
+            const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
             if (branchToken?.value?.trim()) {
-                console.log(`✅ Using branch-specific token for branch: ${branchId.substring(0, 8)}...`);
-                return branchToken.value.trim();
-            }
-            // ถ้าไม่มี token ของสาขา → ไป fallback global/secret
-            console.log(`ℹ️ No branch-specific token for ${branchId.substring(0, 8)}..., trying global/secret`);
-        }
-        
-        // 2. หา global token จาก Config (ที่ไม่มี branch_id)
-        if (configCache) {
-            const globalToken = configCache.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
-            if (globalToken?.value?.trim()) {
-                console.log('✅ Using global token from Config database');
-                return globalToken.value.trim();
+                const token = branchToken.value.trim();
+                branchConfigCache.set(cacheKey, { token, timestamp: Date.now() });
+                return token;
             }
         }
-        
-        // 3. ⭐ Fallback: ใช้ secret LINE_CHANNEL_ACCESS_TOKEN
+
+        const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
+        if (globalToken?.value?.trim()) {
+            const token = globalToken.value.trim();
+            branchConfigCache.set(cacheKey, { token, timestamp: Date.now() });
+            return token;
+        }
+
         const secretToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
         if (secretToken?.trim()) {
-            console.log('✅ Using LINE token from secret (LINE_CHANNEL_ACCESS_TOKEN)');
             return secretToken.trim();
         }
-        
-        // 4. ⭐ ไม่มี token เลย = return null (ไม่ hardcode default แล้ว)
-        console.warn('⚠️ No LINE token found for this branch or globally');
+
+        console.warn('⚠️ No LINE token found');
         return null;
     } catch (error) {
         console.error('❌ Error fetching LINE token:', error);
-        
-        // ⭐ ถ้า error ก็ยัง fallback ไป secret
         const secretToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
-        if (secretToken?.trim()) {
-            console.log('✅ Using LINE token from secret (fallback after error)');
-            return secretToken.trim();
-        }
-        
-        // ไม่มี token = return null
-        console.warn('⚠️ No LINE token available after error');
-        return null;
+        return secretToken?.trim() || null;
     }
 }
 
-// ⭐ ฟังก์ชันหา branch_id จาก destination (LINE OA User ID)
 async function getBranchIdFromDestination(base44, destination) {
     if (!destination) return null;
-    
+
     try {
-        // ใช้ cache ถ้ายังไม่หมดอายุ
         const now = Date.now();
         if (!configCache || (now - configCacheTime) > CONFIG_CACHE_DURATION) {
             configCache = await base44.asServiceRole.entities.Config.list();
             configCacheTime = now;
         }
-        
-        // หา config ที่มี key = 'line_oa_user_id' และ value ตรงกับ destination
+
         const matchingConfig = configCache.find(c => 
             c.key === 'line_oa_user_id' && c.value === destination && c.branch_id
         );
-        
+
         if (matchingConfig) {
             console.log(`✅ Found branch from destination: ${matchingConfig.branch_id.substring(0, 12)}...`);
             return matchingConfig.branch_id;
         }
-        
+
         console.log(`⚠️ No branch found for destination: ${destination.substring(0, 20)}...`);
         return null;
     } catch (error) {
@@ -105,11 +92,23 @@ Deno.serve(async (req) => {
     console.log(`📍 URL: ${req.url}`);
     console.log('========================================');
     
-    // ⭐ ดึง branch_id จาก query parameter
+    // ⭐ CRITICAL: Validate branch_id from query parameter
     const url = new URL(req.url);
     const queryBranchId = url.searchParams.get('branch_id');
     console.log(`📍 Branch ID from URL: ${queryBranchId || 'NOT PROVIDED'}`);
-    
+
+    // ⚠️ ถ้าไม่มี branch_id = reject ทันที (ป้องกันข้อมูลปนกัน)
+    if (!queryBranchId) {
+        console.error('❌ CRITICAL: branch_id is required but not provided in URL');
+        return new Response(JSON.stringify({ 
+            success: false, 
+            error: 'branch_id is required in query parameters' 
+        }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
     // ส่ง 200 OK ทันทีก่อนทำอะไรเพื่อป้องกัน timeout
     if (req.method !== 'POST') {
         console.log('ℹ️ Not a POST request, returning OK');
@@ -190,10 +189,13 @@ Deno.serve(async (req) => {
 
                     // ⭐ บันทึกข้อความลง LineMessage entity สำหรับระบบแชท
                     try {
-                        // ⭐ ใช้ filter แทน list + find เพื่อความแม่นยำ
+                        // ⭐ CRITICAL: Filter by branch_id AND line_user_id
                         let tenant = null;
                         try {
-                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
+                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                                line_user_id: lineUserId,
+                                branch_id: msgBranchId 
+                            });
                             tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
                         } catch (e) {
                             console.log('⚠️ Could not find tenant:', e.message);
@@ -672,11 +674,22 @@ async function fetchAllWithPagination(entity, batchSize = 5000) {
 
 async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, branchCode = null, replyToken = null, destinationBranchId = null) {
     try {
-        
-        // ⭐ ดึงข้อมูลทั้งหมดแล้ว filter ในหน่วยความจำ (เพื่อลด API calls และป้องกัน timeout)
-        const tenants = await fetchAllWithPagination(base44.asServiceRole.entities.Tenant);
+        // ⭐ CRITICAL: ถ้ามี destinationBranchId ให้ดึงเฉพาะสาขานั้นก่อน
+        let tenants;
+        if (destinationBranchId) {
+            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                phone: phoneNumber,
+                branch_id: destinationBranchId 
+            });
+            tenants = Array.isArray(tenantResult) ? tenantResult : (tenantResult ? [tenantResult] : []);
+            console.log(`🎯 Filtered by branch first: ${destinationBranchId.substring(0, 8)}... → Found ${tenants.length}`);
+        } else {
+            tenants = await fetchAllWithPagination(base44.asServiceRole.entities.Tenant);
+            console.log(`📊 Fetched all tenants: ${tenants.length}`);
+        }
+
         const branches = await base44.asServiceRole.entities.Branch.list();
-        
+
         const matchingTenants = tenants.filter(t => t.phone === phoneNumber);
         
         console.log(`📱 Registration: phone=${phoneNumber}, branchCode=${branchCode}, destinationBranchId=${destinationBranchId}`);
@@ -840,41 +853,47 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
     try {
         console.log('=== Starting slip verification ===');
         
-        // ⭐ ใช้ filter แทน list + find เพื่อความแม่นยำ
+        // ⭐ CRITICAL: Must filter by both branch_id AND line_user_id
+        if (!branchId) {
+            console.error(`❌ CRITICAL: No branchId available for slip verification`);
+            await sendMessage(base44, lineUserId, '❌ เกิดข้อผิดพลาดในระบบ กรุณาติดต่อเจ้าของหอพัก', null, replyToken);
+            return;
+        }
+
         let tenant = null;
         try {
-            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
+            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                line_user_id: lineUserId,
+                branch_id: branchId
+            });
             tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
         } catch (e) {
             console.log('⚠️ Could not find tenant:', e.message);
         }
-        
+
         if (!tenant) {
-            console.log(`❌ No tenant for user: ${lineUserId}`);
+            console.log(`❌ No tenant for user: ${lineUserId} in branch: ${branchId.substring(0, 8)}...`);
             await sendMessage(base44, lineUserId, 'กรุณาลงทะเบียนด้วยหมายเลขโทรศัพท์ก่อนใช้งาน\nพิมพ์: ลงทะเบียน 0812345678', branchId, replyToken);
             return;
         }
 
-        console.log(`✅ Found tenant: ${tenant.full_name} (ID: ${tenant.id})`);
+        console.log(`✅ Found tenant: ${tenant.full_name} (ID: ${tenant.id}) in branch: ${branchId.substring(0, 8)}...`);
 
-        // ⭐ ใช้ filter แทน list เพื่อดึงเฉพาะ payment ของ tenant นี้
+        // ⭐ CRITICAL: Filter payments by tenant_id AND branch_id
         let pendingPayments = [];
         try {
             const paymentResult = await base44.asServiceRole.entities.Payment.filter({ 
                 tenant_id: tenant.id,
-                branch_id: tenant.branch_id
+                branch_id: branchId,
+                status: { $in: ['pending', 'overdue'] }
             });
-            const allPayments = Array.isArray(paymentResult) ? paymentResult : (paymentResult ? [paymentResult] : []);
-            pendingPayments = allPayments.filter(p => 
-                p.status === 'pending' || p.status === 'overdue'
-            );
+            pendingPayments = Array.isArray(paymentResult) ? paymentResult : (paymentResult ? [paymentResult] : []);
         } catch (e) {
             console.log('⚠️ Could not filter payments:', e.message);
-            // Fallback
             const allPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 500);
             pendingPayments = allPayments.filter(p => 
                 p.tenant_id === tenant.id && 
-                p.branch_id === tenant.branch_id &&
+                p.branch_id === branchId &&
                 (p.status === 'pending' || p.status === 'overdue')
             );
         }
