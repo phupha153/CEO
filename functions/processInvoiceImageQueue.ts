@@ -464,7 +464,7 @@ Deno.serve(async (req) => {
                     // ⭐ ใช้ token เฉพาะสาขาเท่านั้น (ไม่ fallback ไป env) เหมือน sendPaymentReminder
                     const lineToken = getConfigValue('line_channel_access_token', branchId, '');
                     if (!lineToken) {
-                        console.log(`⏭️ Payment ${payment.id}: No LINE token for branch - skip LINE`);
+                        console.log(`⏭️ Payment ${payment.id}: No LINE token for branch ${branchId?.substring(0, 8)}... - skip LINE`);
                         continue;
                     }
 
