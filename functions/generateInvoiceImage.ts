@@ -126,8 +126,6 @@ Deno.serve(async (req) => {
                 paymentId: paymentId
             });
             
-            console.log('📥 getPublicInvoice response:', JSON.stringify(invoiceResponse.data).substring(0, 500));
-            
             if (!invoiceResponse.data?.success) {
                 console.error('❌ getPublicInvoice failed:', invoiceResponse.data?.error);
                 return Response.json({ 
@@ -137,36 +135,8 @@ Deno.serve(async (req) => {
                 }, { status: 404 });
             }
             
-            // ⭐ ใช้ invoice object (ถ้ามี) หรือ fallback เป็น data.payment
-            invoiceData = invoiceResponse.data.invoice || invoiceResponse.data.data?.payment;
-            
-            if (!invoiceData) {
-                console.error('❌ No invoice data in response');
-                return Response.json({ 
-                    success: false,
-                    error: 'ไม่พบข้อมูลใบแจ้งหนี้ใน response',
-                    message: 'Invoice data missing'
-                }, { status: 404 });
-            }
-            
-            // ⭐ ถ้าใช้ data.payment ต้องเพิ่ม room, tenant, bank, recipient
-            if (!invoiceData.room && invoiceResponse.data.data) {
-                invoiceData.room = invoiceResponse.data.data.room || { room_number: 'N/A' };
-                invoiceData.tenant = invoiceResponse.data.data.tenant || { full_name: 'ไม่ระบุ' };
-                invoiceData.bank = {
-                    name: invoiceResponse.data.data.configs?.bank_name || 'กสิกรไทย',
-                    account_number: invoiceResponse.data.data.configs?.bank_account_number || '',
-                    account_name: invoiceResponse.data.data.configs?.bank_account_name || ''
-                };
-                invoiceData.recipient = {
-                    building_name: invoiceResponse.data.data.configs?.building_name || invoiceResponse.data.data.branch?.branch_name || 'W RESIDENTS',
-                    building_logo: invoiceResponse.data.data.configs?.building_logo || '',
-                    building_address: invoiceResponse.data.data.branch?.address || '',
-                    building_phone: invoiceResponse.data.data.configs?.contact_phone || invoiceResponse.data.data.branch?.phone || ''
-                };
-            }
-            
-            console.log('✅ Invoice data fetched successfully, room:', invoiceData.room?.room_number);
+            invoiceData = invoiceResponse.data.invoice;
+            console.log('✅ Invoice data fetched successfully');
         } catch (fetchError) {
             console.error('❌ Error calling getPublicInvoice:', fetchError);
             return Response.json({ 
@@ -466,7 +436,7 @@ ${lineItems.map((item, index) => `<tr>
         }
         console.log('✅ BROWSERLESS_API_KEY found');
 
-        // เรียก Browserless.io API
+        // เรียก Browserless.io API พร้อม retry logic
         console.log('🖼️ Calling Browserless.io...');
         
         const endpoints = [
@@ -477,50 +447,78 @@ ${lineItems.map((item, index) => `<tr>
         
         let browserlessResponse = null;
         let lastError = null;
+        const maxRetries = 3;
         
         for (const endpoint of endpoints) {
-            try {
-                console.log(`🔄 Trying ${endpoint.name}:`, endpoint.url.split('?')[0]);
-                
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 30000);
-                
-                browserlessResponse = await fetch(endpoint.url, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache'
-                    },
-                    body: JSON.stringify({
-                        html: htmlContent,
-                        options: {
-                            type: 'png',
-                            fullPage: true
+            let retryCount = 0;
+            
+            while (retryCount < maxRetries) {
+                try {
+                    const attemptNum = retryCount + 1;
+                    console.log(`🔄 Trying ${endpoint.name} (Attempt ${attemptNum}/${maxRetries}):`, endpoint.url.split('?')[0]);
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 45000);
+                    
+                    browserlessResponse = await fetch(endpoint.url, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Cache-Control': 'no-cache'
+                        },
+                        body: JSON.stringify({
+                            html: htmlContent,
+                            options: {
+                                type: 'png',
+                                fullPage: true
+                            }
+                        }),
+                        signal: controller.signal
+                    });
+
+                    clearTimeout(timeoutId);
+                    console.log(`📥 ${endpoint.name} response status:`, browserlessResponse.status);
+
+                    if (browserlessResponse.ok) {
+                        console.log(`✅ Success with ${endpoint.name} on attempt ${attemptNum}`);
+                        break;
+                    }
+                    
+                    const errorText = await browserlessResponse.text();
+                    lastError = `${endpoint.name} - Status ${browserlessResponse.status}: ${errorText}`;
+                    console.error(`❌ Attempt ${attemptNum} failed with ${endpoint.name}:`, lastError);
+                    
+                    // ถ้า 404 หรือ 429 = retry
+                    if (browserlessResponse.status === 404 || browserlessResponse.status === 429) {
+                        retryCount++;
+                        if (retryCount < maxRetries) {
+                            const waitTime = Math.pow(2, retryCount) * 1000; // 2s, 4s, 8s
+                            console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+                            await new Promise(resolve => setTimeout(resolve, waitTime));
                         }
-                    }),
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-                console.log(`📥 ${endpoint.name} response status:`, browserlessResponse.status);
-
-                if (browserlessResponse.ok) {
-                    console.log(`✅ Success with ${endpoint.name}`);
-                    break;
+                    } else {
+                        break; // ถ้าไม่ใช่ 404/429 = ข้ามไป endpoint ถัดไป
+                    }
+                    
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        lastError = `${endpoint.name} - Timeout after 45s`;
+                    } else {
+                        lastError = `${endpoint.name} - ${error.message}`;
+                    }
+                    console.error(`❌ Exception with ${endpoint.name} (Attempt ${retryCount + 1}):`, error.message);
+                    
+                    retryCount++;
+                    if (retryCount < maxRetries) {
+                        const waitTime = Math.pow(2, retryCount) * 1000;
+                        console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                    }
                 }
-                
-                const errorText = await browserlessResponse.text();
-                lastError = `${endpoint.name} - Status ${browserlessResponse.status}: ${errorText}`;
-                console.error(`❌ Failed with ${endpoint.name}:`, lastError);
-                
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    lastError = `${endpoint.name} - Timeout after 30s`;
-                } else {
-                    lastError = `${endpoint.name} - ${error.message}`;
-                }
-                console.error(`❌ Exception with ${endpoint.name}:`, error.message);
             }
+            
+            // ถ้าสำเร็จ = break ออกจาก endpoint loop
+            if (browserlessResponse && browserlessResponse.ok) break;
         }
 
         if (!browserlessResponse || !browserlessResponse.ok) {
