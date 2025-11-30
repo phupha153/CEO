@@ -67,14 +67,15 @@ function numberToThaiText(number) {
 
 Deno.serve(async (req) => {
     console.log('========================================');
-    console.log('🖼️ PROCESS INVOICE IMAGE QUEUE');
+    console.log('🖼️ PROCESS INVOICE IMAGE QUEUE (Continuous Mode)');
     console.log(`📅 Timestamp: ${new Date().toISOString()}`);
     console.log('========================================');
 
     let base44 = null;
     let targetBranchId = null;
-    let batchSize = 30; // จำนวนบิลที่จะประมวลผลต่อรอบ (default)
-    let concurrentLimit = 1; // จำนวนรูปที่สร้างพร้อมกัน (โหมดฟรี Browserless = 1)
+    let batchSize = 100; // เพิ่มเป็น 100 เพราะจะรันต่อเนื่อง
+    let concurrentLimit = 3; // สร้าง 3 รูปพร้อมกัน (เร็วขึ้น)
+    let maxRunTime = 40000; // 40 วินาที (เผื่อ buffer ก่อน timeout 45s)
 
     try {
         const clonedReq = req.clone();
