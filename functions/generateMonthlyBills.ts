@@ -729,6 +729,9 @@ Deno.serve(async (req) => {
         if (skippedDueToExistingBill > 0) {
             summaryMessage += `, ข้ามเพราะมีบิลแล้ว ${skippedDueToExistingBill} ห้อง`;
         }
+        if (pendingImageCount > 0) {
+            summaryMessage += `, รอสร้างรูป ${pendingImageCount} ใบ`;
+        }
         if (sentCount > 0 || failedCount > 0) {
             summaryMessage += `, ส่งไลน์ ${sentCount} รายการ (ล้มเหลว ${failedCount})`;
         }
