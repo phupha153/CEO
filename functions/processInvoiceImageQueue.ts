@@ -433,6 +433,13 @@ Deno.serve(async (req) => {
                     
                     const { payment, room, tenant, imageUrl } = result;
                     
+                    // ⭐ เช็คว่าสาขานี้เปิดส่งบิลอัตโนมัติหรือไม่
+                    const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
+                    if (!autoSendEnabled) {
+                        console.log(`⏭️ Payment ${payment.id}: Branch auto_send disabled - skip LINE`);
+                        continue;
+                    }
+                    
                     // ข้ามถ้าไม่มี LINE User ID
                     if (!tenant?.line_user_id) {
                         console.log(`⏭️ Payment ${payment.id}: No LINE User ID - skip LINE notification`);
