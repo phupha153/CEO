@@ -386,9 +386,19 @@ Deno.serve(async (req) => {
                 const room = roomMap.get(payment.room_id);
                 const tenant = tenantMap.get(payment.tenant_id);
 
-                // ถ้ามีรูปแล้ว ข้ามการสร้าง
-                if (payment.invoice_image_url && payment.invoice_image_status === 'completed') {
-                    console.log(`✅ Payment ${payment.id}: Already has image`);
+                // ⭐ เช็คว่าต้องสร้างรูปใหม่หรือไม่ (ถ้าบิลถูกแก้ไข)
+                let needsRegenerate = false;
+                if (payment.invoice_image_url && payment.invoice_data_hash) {
+                    const currentHash = generatePaymentHash(payment);
+                    if (currentHash !== payment.invoice_data_hash) {
+                        needsRegenerate = true;
+                        console.log(`🔄 Payment ${payment.id}: Hash mismatch - regenerating image`);
+                    }
+                }
+                
+                // ถ้ามีรูปแล้วและไม่ต้องสร้างใหม่ ข้ามการสร้าง
+                if (payment.invoice_image_url && payment.invoice_image_status === 'completed' && !needsRegenerate) {
+                    console.log(`✅ Payment ${payment.id}: Already has image (hash matched)`);
                     return { payment, room, tenant, imageUrl: payment.invoice_image_url, success: true, skipped: true };
                 }
 
