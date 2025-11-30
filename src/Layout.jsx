@@ -1019,7 +1019,9 @@ export default function Layout({ children, currentPageName }) {
   const visibleAdminItems = currentUser && userRole === 'developer' ? adminOnlyItems.filter(canAccessMenuItem) : [];
 
   // Don't apply subscription check to these pages (public or critical admin pages)
-  if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
+  // ⭐ PublicInvoice เป็น public page ไม่ต้อง login
+  if (currentPageName === 'PublicInvoice' ||
+      currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
       currentPageName === 'PrintReceipts' || currentPageName === 'BranchSelection' || 
       currentPageName === 'AllBranchesDashboard' || currentPageName === 'BranchManagement' ||
       currentPageName === 'ActivityLog' || 
