@@ -252,11 +252,9 @@ Deno.serve(async (req) => {
             
             message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber} (${bankAccountName})\n\n`;
 
-            // ⭐ ใช้รูปที่มีอยู่แล้ว (ถ้ามี) - การสร้างรูปจะทำแยกก่อนหน้านี้
-            let invoiceImageUrl = payment.invoice_image_url || null;
-            
-            if (invoiceImageUrl) {
-                message += `📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}\n\n`;
+            // ⭐ ใส่ลิงก์รูปใบแจ้งหนี้ (ถ้ามี) - ถ้าไม่มีจะสร้างทีหลังก่อนส่ง LINE
+            if (payment.invoice_image_url) {
+                message += `📄 ดูใบแจ้งหนี้: ${payment.invoice_image_url}\n\n`;
             }
             message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
             message += `ขอบคุณค่ะ 🙏`;
