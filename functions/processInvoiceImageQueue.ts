@@ -3,12 +3,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 /**
  * ฟังก์ชันสำหรับสร้างรูปใบแจ้งหนี้และส่ง LINE แบบ Queue
  * - ดึง Payment ที่ invoice_image_status = 'pending' และยังไม่ส่ง LINE
- * - สร้างรูปทีละ 3 รูปพร้อมกัน (ตามข้อจำกัด Browserless)
+ * - สร้างรูปทีละ 1 รูป (ตามข้อจำกัด Browserless Free tier)
  * - ส่ง LINE หลังสร้างรูปเสร็จ
  * 
  * เรียกใช้งานจาก:
  * 1. Cron Job (ทุก 2 นาที)
  * 2. ปุ่มกดจากหน้า UI
+ * 
+ * @version 2.0 - Fixed deployment issue
  */
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
