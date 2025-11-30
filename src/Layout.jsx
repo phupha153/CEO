@@ -349,11 +349,6 @@ const adminOnlyItems = [
 ];
 
 export default function Layout({ children, currentPageName }) {
-    // ⭐ PublicInvoice เป็น public page - return children ทันทีไม่ต้องเช็คอะไรเลย
-    if (currentPageName === 'PublicInvoice') {
-      return children;
-    }
-
     const location = useLocation();
     const navigate = useNavigate();
     const mainContentRef = useRef(null);
