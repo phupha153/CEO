@@ -696,32 +696,41 @@ Deno.serve(async (req) => {
         // ⭐ ตั้งสถานะให้บิลใหม่ทั้งหมดเป็น "รอสร้างรูป" (invoice_image_status = 'pending')
         // processInvoiceImageQueue จะดึงไปสร้างรูปและส่ง LINE ทีหลัง
         if (billsToSend.length > 0) {
-            console.log(`📝 ${billsToSend.length} bills marked for image generation (will be processed by processInvoiceImageQueue)`);
-            pendingImageCount = billsToSend.length;
+            // ⭐ แยกนับสาขาที่เปิด/ปิด auto_send
+            const billsWithAutoSend = billsToSend.filter(b => b.shouldSendLine);
+            const billsWithoutAutoSend = billsToSend.filter(b => !b.shouldSendLine);
             
-            // ⭐ ถ้าเปิด auto_send และต้องการให้ส่งทันที = เรียก processInvoiceImageQueue
-            const shouldAutoProcess = getConfigValue('auto_process_invoice_queue_after_generation', 'false', targetBranchId) === 'true';
+            console.log(`📝 ${billsToSend.length} bills created total`);
+            console.log(`   - ${billsWithAutoSend.length} bills will auto-send LINE (auto_send=true)`);
+            console.log(`   - ${billsWithoutAutoSend.length} bills will NOT auto-send LINE (auto_send=false)`);
             
-            if (shouldAutoProcess && billsToSend.length <= 30) {
-                console.log(`🚀 Auto-triggering processInvoiceImageQueue for ${billsToSend.length} bills...`);
+            pendingImageCount = billsWithAutoSend.length; // นับเฉพาะที่จะส่ง LINE
+            
+            // ⭐ ถ้ามีบิลที่ต้องส่ง LINE = เรียก processInvoiceImageQueue
+            if (billsWithAutoSend.length > 0) {
+                const shouldAutoProcess = getConfigValue('auto_process_invoice_queue_after_generation', 'false', targetBranchId) === 'true';
                 
-                try {
-                    const queueResult = await base44.asServiceRole.functions.invoke('processInvoiceImageQueue', {
-                        branch_id: targetBranchId,
-                        batch_size: Math.min(billsToSend.length, 30),
-                        concurrent_limit: 3
-                    });
+                if (shouldAutoProcess && billsWithAutoSend.length <= 30) {
+                    console.log(`🚀 Auto-triggering processInvoiceImageQueue for ${billsWithAutoSend.length} bills...`);
                     
-                    if (queueResult.data?.success) {
-                        sentCount = queueResult.data.lineSent || 0;
-                        failedCount = queueResult.data.lineFailed || 0;
-                        console.log(`✅ processInvoiceImageQueue completed: sent ${sentCount}, failed ${failedCount}`);
+                    try {
+                        const queueResult = await base44.asServiceRole.functions.invoke('processInvoiceImageQueue', {
+                            branch_id: targetBranchId,
+                            batch_size: Math.min(billsWithAutoSend.length, 30),
+                            concurrent_limit: 3
+                        });
+                        
+                        if (queueResult.data?.success) {
+                            sentCount = queueResult.data.lineSent || 0;
+                            failedCount = queueResult.data.lineFailed || 0;
+                            console.log(`✅ processInvoiceImageQueue completed: sent ${sentCount}, failed ${failedCount}`);
+                        }
+                    } catch (queueError) {
+                        console.error(`⚠️ processInvoiceImageQueue error (will retry via cron):`, queueError.message);
                     }
-                } catch (queueError) {
-                    console.error(`⚠️ processInvoiceImageQueue error (will retry via cron):`, queueError.message);
+                } else {
+                    console.log(`📋 Bills queued for later processing via Cron Job or manual trigger`);
                 }
-            } else {
-                console.log(`📋 Bills queued for later processing via Cron Job or manual trigger`);
             }
         }
 
