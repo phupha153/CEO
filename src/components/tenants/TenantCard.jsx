@@ -66,40 +66,11 @@ const TenantCard = React.memo(({
           </div>
         </div>
 
-        {/* Debug: แสดงค่าคะแนนทั้งหมด */}
-        {userRole === 'developer' && (
-          <div className="text-[8px] text-slate-400 mb-1">
-            payment: {paymentScore || 'null'} | avg: {avgRating || 'null'}
+        {avgRating !== null && (
+          <div className="mb-3">
+            <RatingDisplay rating={avgRating} size="sm" />
           </div>
         )}
-        
-        {(() => {
-          // ⭐ แสดงคะแนนการชำระเงินเสมอ (ถ้ามี)
-          if (paymentScore !== null && paymentScore !== undefined && paymentScore > 0) {
-            const stars = (paymentScore / 10) * 5;
-            return (
-              <div className="mb-3">
-                <div className="flex items-center gap-2">
-                  <RatingDisplay rating={stars} size="sm" />
-                  <Badge className="bg-green-100 text-green-700 text-xs">
-                    การชำระ: {paymentScore.toFixed(1)}/10
-                  </Badge>
-                </div>
-              </div>
-            );
-          }
-          
-          // ถ้ามีคะแนนจากการให้คะแนนแบบเต็มรูปแบบ (แต่ไม่มีคะแนนชำระเงิน)
-          if (avgRating !== null) {
-            return (
-              <div className="mb-3">
-                <RatingDisplay rating={avgRating} size="sm" />
-              </div>
-            );
-          }
-          
-          return null;
-        })()}
 
         <div className="space-y-2 mb-4">
           <div className="flex items-center gap-2 text-sm text-slate-600">
