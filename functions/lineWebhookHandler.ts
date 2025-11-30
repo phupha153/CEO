@@ -881,12 +881,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         // New condition from outline: If no pending payments, do not respond.
         if (pendingPayments.length === 0) {
-            console.log(`ℹ️ No pending payment for tenant: ${tenant.id}`);
-            await sendMessage(base44, lineUserId, 
-                '✅ คุณไม่มีค่าใช้จ่ายค้างชำระ\n\nขอบคุณที่ชำระเงินตรงเวลาค่ะ 🙏',
-                branchId,
-                replyToken
-            );
+            console.log(`ℹ️ No pending payment for tenant: ${tenant.id} - NOT responding`);
             return;
         }
 
