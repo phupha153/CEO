@@ -681,110 +681,45 @@ Deno.serve(async (req) => {
             }
         }
 
-        // 7. Send LINE Notifications
+        // 7. ⭐⭐⭐ ไม่สร้างรูปและส่ง LINE ที่นี่แล้ว - ใช้ processInvoiceImageQueue แทน
+        // ฟังก์ชันนี้จะแค่สร้างบิล (Payment records) เท่านั้น
+        // การสร้างรูปใบแจ้งหนี้และส่ง LINE จะทำผ่าน processInvoiceImageQueue
+        // ซึ่งจะสร้างรูปทีละ 3 ใบพร้อมกัน และส่ง LINE ทีละใบ
+        
         let sentCount = 0;
         let failedCount = 0;
+        let pendingImageCount = 0;
         
+        // ⭐ ตั้งสถานะให้บิลใหม่ทั้งหมดเป็น "รอสร้างรูป" (invoice_image_status = 'pending')
+        // processInvoiceImageQueue จะดึงไปสร้างรูปและส่ง LINE ทีหลัง
         if (billsToSend.length > 0) {
-            console.log(`📤 Preparing ${billsToSend.length} LINE notifications...`);
-
-            const allRecipients = [];
-
-            for (const data of billsToSend) {
-                try {
-                    const { payment, tenant, room } = data;
-                    
-                    const bankName = getConfigValue('bank_name', 'กสิกร', room.branch_id);
-                    const bankAcc = getConfigValue('bank_account_number', '-', room.branch_id);
-                    const bankOwner = getConfigValue('bank_account_name', '-', room.branch_id);
-                    const buildingName = getConfigValue('building_name', 'W RESIDENTS', room.branch_id);
-
-                    let msg = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
-                    msg += `สวัสดีคุณ ${tenant.full_name}\n`;
-                    msg += `ห้อง ${room?.room_number || 'N/A'}\n\n`;
-                    msg += `💰 ยอดรวม: ${payment.total_amount.toLocaleString()} บาท\n`;
-                    msg += `(${numberToThaiText(payment.total_amount)})\n\n`;
-                    msg += `📅 กำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
-                    
-                    if (payment.status === 'paid') {
-                        msg += `\n✅ ชำระแล้วโดยหักจากเงินล่วงหน้า\n`;
-                    } else {
-                        msg += `\n💳 โอนเงินได้ที่: ${bankName} ${bankAcc} (${bankOwner})\n`;
-                    }
-
-                    // ⭐ สร้างรูปใบแจ้งหนี้ก่อนส่ง
-                    if (payment.status !== 'paid') {
-                        let invoiceImageUrl = payment.invoice_image_url || null;
-
-                        if (!invoiceImageUrl) {
-                            try {
-                                console.log(`🖼️ Generating invoice image for payment ${payment.id}...`);
-                                const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
-                                    paymentId: payment.id
-                                });
-                                if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
-                                    invoiceImageUrl = invoiceResult.data.invoice_image_url;
-                                }
-                            } catch (invoiceError) {
-                                console.error(`❌ Error generating invoice image:`, invoiceError.message);
-                            }
-                        }
-
-                        if (invoiceImageUrl) {
-                            msg += `\n📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}`;
-                        }
-                    }
-
-                    allRecipients.push({
-                        lineUserId: tenant.line_user_id,
-                        branchId: room.branch_id,
-                        message: msg,
-                        metadata: { paymentId: payment.id, roomNumber: room.room_number }
-                    });
-                     await delay(200); // Avoid hitting limits during invoice generation
-                } catch (prepError) {
-                    console.error(`❌ Error preparing message for a bill:`, prepError.message);
-                }
-            }
-
-            console.log(`📤 Sending ${allRecipients.length} LINE notifications in chunks...`);
-            const CHUNK_SIZE = 50;
-            const chunks = [];
-            for (let i = 0; i < allRecipients.length; i += CHUNK_SIZE) {
-                chunks.push(allRecipients.slice(i, i + CHUNK_SIZE));
-            }
-
-            console.log(`📦 Split into ${chunks.length} chunks of max ${CHUNK_SIZE} each`);
-
-            for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
-                const chunk = chunks[chunkIdx];
-                console.log(`📤 Sending chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} messages)`);
-
-                try {
-                    const batchResult = await retryOperation(async () => {
-                        return await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                            recipients: chunk,
-                            options: { 
-                                batchSize: 10,
-                                delayBetweenBatches: 2500,
-                                delayBetweenMessages: 250
-                            }
-                        });
-                    });
-                    
-                    sentCount += batchResult.data?.success || 0;
-                    failedCount += batchResult.data?.failed || 0;
-                } catch (chunkError) {
-                    console.error(`❌ Chunk ${chunkIdx + 1} error:`, chunkError.message);
-                    failedCount += chunk.length;
-                }
-
-                if (chunkIdx < chunks.length - 1) {
-                    await delay(2000);
-                }
-            }
+            console.log(`📝 ${billsToSend.length} bills marked for image generation (will be processed by processInvoiceImageQueue)`);
+            pendingImageCount = billsToSend.length;
             
-            console.log(`✅ LINE notifications: sent ${sentCount}, failed ${failedCount}`);
+            // ⭐ ถ้าเปิด auto_send และต้องการให้ส่งทันที = เรียก processInvoiceImageQueue
+            const shouldAutoProcess = getConfigValue('auto_process_invoice_queue_after_generation', 'false', targetBranchId) === 'true';
+            
+            if (shouldAutoProcess && billsToSend.length <= 30) {
+                console.log(`🚀 Auto-triggering processInvoiceImageQueue for ${billsToSend.length} bills...`);
+                
+                try {
+                    const queueResult = await base44.asServiceRole.functions.invoke('processInvoiceImageQueue', {
+                        branch_id: targetBranchId,
+                        batch_size: Math.min(billsToSend.length, 30),
+                        concurrent_limit: 3
+                    });
+                    
+                    if (queueResult.data?.success) {
+                        sentCount = queueResult.data.lineSent || 0;
+                        failedCount = queueResult.data.lineFailed || 0;
+                        console.log(`✅ processInvoiceImageQueue completed: sent ${sentCount}, failed ${failedCount}`);
+                    }
+                } catch (queueError) {
+                    console.error(`⚠️ processInvoiceImageQueue error (will retry via cron):`, queueError.message);
+                }
+            } else {
+                console.log(`📋 Bills queued for later processing via Cron Job or manual trigger`);
+            }
         }
 
         // สร้างข้อความสรุปผล
