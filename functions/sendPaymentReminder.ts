@@ -264,9 +264,12 @@ Deno.serve(async (req) => {
                     if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
                         invoiceImageUrl = invoiceResult.data.invoice_image_url;
                         console.log(`✅ Invoice image generated: ${invoiceImageUrl}`);
+                    } else {
+                        console.error(`❌ Failed to generate invoice image: ${invoiceResult.data?.error || 'Unknown error'}`);
                     }
                 } catch (invoiceError) {
                     console.error(`❌ Error generating invoice image:`, invoiceError.message);
+                    console.error('Full error:', invoiceError);
                 }
             }
             

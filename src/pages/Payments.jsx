@@ -1235,7 +1235,8 @@ export default function PaymentsPage() {
 
     try {
       const response = await base44.functions.invoke('sendPaymentReminder', {
-        paymentId: paymentId
+        paymentId: paymentId,
+        branch_id: selectedBranchId
       });
 
       if (response.data.success) {
