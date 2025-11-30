@@ -22,17 +22,19 @@ export default function GenerateMonthlyBillsButton({ branchId, onSuccess, compac
       });
 
       if (response.data?.success) {
-        const { generatedCount, skippedDueToExistingBill, sentCount, pendingImageCount } = response.data;
+        const { created, alreadyExists, total } = response.data;
         
-        if (generatedCount > 0) {
-          let msg = `สร้างบิลสำเร็จ ${generatedCount} รายการ`;
-          if (skippedDueToExistingBill > 0) msg += ` (ข้ามที่มีแล้ว ${skippedDueToExistingBill})`;
-          if (sentCount > 0) msg += ` ส่ง LINE ${sentCount} ราย`;
-          else if (pendingImageCount > 0) msg += ` รอส่ง ${pendingImageCount} ราย`;
-          
-          toast.success(msg, { duration: 5000 });
+        if (created > 0) {
+          toast.success(
+            `สร้างบิลสำเร็จ ${created} รายการ` + 
+            (alreadyExists > 0 ? ` (มีบิลอยู่แล้ว ${alreadyExists} รายการ)` : ''),
+            { duration: 5000 }
+          );
         } else {
-          toast.info(`ไม่มีบิลที่ต้องสร้างใหม่ (มีบิลอยู่แล้ว ${skippedDueToExistingBill || 0} รายการ)`, { duration: 4000 });
+          toast.info(
+            `ไม่มีบิลที่ต้องสร้างใหม่ (มีบิลอยู่แล้ว ${alreadyExists} รายการ)`,
+            { duration: 4000 }
+          );
         }
 
         if (onSuccess) onSuccess();

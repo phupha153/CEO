@@ -23,7 +23,6 @@ import AIResultCard from "../components/shared/AIResultCard";
 import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import SendAdvanceReminderButton from "@/components/settings/SendAdvanceReminderButton";
 import GenerateMonthlyBillsButton from "@/components/payments/GenerateMonthlyBillsButton";
-import SendAllBillsButton from "@/components/payments/SendAllBillsButton";
 import SlipPreviewDialog from "@/components/shared/SlipPreviewDialog";
 
 export default function PaymentsPage() {
@@ -840,16 +839,7 @@ export default function PaymentsPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => {
       if (!canEdit) throw new Error('คุณไม่มีสิทธิ์แก้ไขการชำระเงิน');
-      
-      // ⭐ ถ้าแก้ไขบิล ให้รีเซ็ต invoice_image_status เป็น pending เพื่อสร้างรูปใหม่
-      const updatedData = {
-        ...data,
-        invoice_image_status: 'pending',
-        invoice_image_url: null,
-        bill_sent_date: null
-      };
-      
-      return base44.entities.Payment.update(id, updatedData);
+      return base44.entities.Payment.update(id, data);
     },
     onSuccess: async (updatedPayment) => {
       queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
@@ -865,12 +855,12 @@ export default function PaymentsPage() {
         entity_name: `ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`,
         user_email: currentUser?.email,
         user_name: currentUser?.full_name,
-        description: `แก้ไขบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} (รีเซ็ตรูป)`
+        description: `แก้ไขบิลค่าเช่าห้อง ${room?.room_number || 'N/A'}`
       });
       
       setShowDialog(false);
       resetForm();
-      toast.success('อัปเดตบิลสำเร็จ (จะสร้างรูปใหม่เมื่อส่งบิล)', { duration: 4000 });
+      toast.success('อัปเดตการชำระเงินสำเร็จ');
     },
     onError: (error) => toast.error(error.message || 'เกิดข้อผิดพลาด')
   });
@@ -2186,7 +2176,38 @@ Return JSON.`;
                 <GenerateMonthlyBillsButton branchId={selectedBranchId} onSuccess={() => queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] })} compact />
               )}
               {canSendReminder && (
-                <SendAllBillsButton branchId={selectedBranchId} onSuccess={() => queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] })} compact />
+                <Button
+                  onClick={() => {
+                    const confirmMsg = tenantsWithLine > 0 
+                      ? `ต้องการส่งแจ้งเตือนไปยังผู้เช่า ${tenantsWithLine} คนที่มี LINE ใช่หรือไม่?`
+                      : 'ไม่มีบิลรอชำระที่มี LINE';
+                    
+                    if (tenantsWithLine === 0) {
+                      toast.info(confirmMsg);
+                      return;
+                    }
+                    
+                    if (!confirm(confirmMsg)) return;
+                    
+                    handleSendReminder();
+                  }}
+                  disabled={sendingAll || tenantsWithLine === 0}
+                  size="sm"
+                  variant="outline"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap"
+                >
+                  {sendingAll ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      กำลังส่ง...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3 h-3 mr-1" />
+                      ส่งแจ้งเตือน {tenantsWithLine > 0 && `(${tenantsWithLine})`}
+                    </>
+                  )}
+                </Button>
               )}
             </div>
           </div>
