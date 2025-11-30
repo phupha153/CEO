@@ -460,7 +460,13 @@ Deno.serve(async (req) => {
                     const bankAcc = getConfigValue('bank_account_number', branchId, '-');
                     const bankOwner = getConfigValue('bank_account_name', branchId, '-');
                     const buildingName = getConfigValue('building_name', branchId, 'W RESIDENTS');
-                    const lineToken = getConfigValue('line_channel_access_token', branchId, '') || Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+                    
+                    // ⭐ ใช้ token เฉพาะสาขาเท่านั้น (ไม่ fallback ไป env) เหมือน sendPaymentReminder
+                    const lineToken = getConfigValue('line_channel_access_token', branchId, '');
+                    if (!lineToken) {
+                        console.log(`⏭️ Payment ${payment.id}: No LINE token for branch - skip LINE`);
+                        continue;
+                    }
 
                     let msg = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
                     msg += `สวัสดีคุณ ${tenant.full_name}\n`;
