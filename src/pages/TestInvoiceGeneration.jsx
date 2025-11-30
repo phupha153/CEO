@@ -628,6 +628,57 @@ export default function TestInvoiceGenerationPage() {
             </Card>
           </div>
 
+          {/* Preview Invoice Link */}
+          <Card className="bg-gradient-to-r from-cyan-50 to-blue-50 border-cyan-300 shadow-lg">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ExternalLink className="w-5 h-5 text-cyan-600" />
+                🔗 ดูตัวอย่างใบแจ้งหนี้ (ไม่เปลือง Token)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              <p className="text-sm text-slate-600">
+                เลือกห้องเพื่อดูตัวอย่างใบแจ้งหนี้ผ่านลิงก์ Public โดยไม่ต้องส่ง LINE
+              </p>
+              
+              <div>
+                <Label className="text-xs text-slate-600">เลือกบิลที่ต้องการดู</Label>
+                <Select value={selectedPaymentId} onValueChange={setSelectedPaymentId}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="เลือกบิล..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {payments.slice(0, 50).map(p => {
+                      const room = rooms.find(r => r.id === p.room_id);
+                      const tenant = tenants.find(t => t.id === p.tenant_id);
+                      return (
+                        <SelectItem key={p.id} value={p.id}>
+                          ห้อง {room?.room_number} - {tenant?.full_name || 'N/A'} - {p.total_amount?.toLocaleString()} บ.
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedPaymentId && (
+                <div className="p-3 bg-white rounded-lg border space-y-2">
+                  <p className="text-xs text-slate-500">ลิงก์ใบแจ้งหนี้:</p>
+                  <code className="block text-xs bg-slate-100 p-2 rounded break-all">
+                    {`https://app-483eff6e.base44.app/PublicInvoice?id=${selectedPaymentId}&branch=${selectedBranchId}`}
+                  </code>
+                  <Button
+                    onClick={() => window.open(`https://app-483eff6e.base44.app/PublicInvoice?id=${selectedPaymentId}&branch=${selectedBranchId}`, '_blank')}
+                    className="w-full bg-cyan-600 hover:bg-cyan-700"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    เปิดดูใบแจ้งหนี้
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Manual LINE Test */}
           <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-300 shadow-lg">
             <CardHeader className="pb-2">
