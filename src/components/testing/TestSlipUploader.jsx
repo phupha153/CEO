@@ -176,7 +176,10 @@ export default function TestSlipUploader() {
             )}
 
             {selectedRoomId && payments.length > 0 && (
-              <p className="text-xs text-green-600">✅ พบบิลรอชำระ {payments.length} รายการ</p>
+              <div className="text-xs text-green-600">
+                <p>✅ พบบิลรอชำระ {payments.length} รายการ</p>
+                <p className="font-semibold">💰 ยอดบิล: {payments[0]?.total_amount?.toLocaleString() || 0} บาท</p>
+              </div>
             )}
 
             <div className="flex items-center gap-2">
