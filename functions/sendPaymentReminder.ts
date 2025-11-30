@@ -294,13 +294,16 @@ Deno.serve(async (req) => {
                         paymentId: payment.id
                     });
                     if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
-                        // อัปเดต message ให้มีลิงก์รูป
+                        // อัปเดต message ให้มีลิงก์รูป (แทนที่ placeholder)
                         const imageUrl = invoiceResult.data.invoice_image_url;
                         recipient.message = recipient.message.replace(
-                            '📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ',
-                            `📄 ดูใบแจ้งหนี้: ${imageUrl}\n\n📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ`
+                            '{{INVOICE_IMAGE_PLACEHOLDER}}\n',
+                            `📄 ดูใบแจ้งหนี้: ${imageUrl}\n\n`
                         );
                         console.log(`✅ Image generated for room ${recipient.metadata.roomNumber}`);
+                    } else {
+                        // ลบ placeholder ถ้าสร้างรูปไม่สำเร็จ
+                        recipient.message = recipient.message.replace('{{INVOICE_IMAGE_PLACEHOLDER}}\n', '');
                     }
                 } catch (invoiceError) {
                     console.error(`❌ Error generating image for room ${recipient.metadata.roomNumber}:`, invoiceError.message);
