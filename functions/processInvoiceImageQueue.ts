@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
         let allPayments = await base44.asServiceRole.entities.Payment.filter(paymentFilter, '-created_date', 500);
         allPayments = allPayments || [];
 
-        // ⭐ สร้างรูปทุกสาขา (ไม่เกี่ยวกับ auto_send - การส่ง LINE ใช้ sendPaymentReminder แยก)
+        // ⭐ สร้างรูปทุกสาขา แต่ส่ง LINE เฉพาะสาขาที่เปิด auto_send
         const paymentsToProcess = allPayments.filter(p => {
             // ข้ามบิลที่ชำระแล้ว
             if (p.status === 'paid') return false;
@@ -325,7 +325,11 @@ Deno.serve(async (req) => {
                 }
             }
             
-            return needsImage || needsRegenerate;
+            // ⭐ เช็คว่าสาขานี้เปิดส่งบิลอัตโนมัติหรือไม่
+            const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', p.branch_id, 'false') === 'true';
+            const needsSend = autoSendEnabled && !p.bill_sent_date;
+            
+            return needsImage || needsRegenerate || needsSend;
         }).slice(0, batchSize);
 
         console.log(`📊 Found ${paymentsToProcess.length} payments to process (from ${allPayments.length} total)`);
