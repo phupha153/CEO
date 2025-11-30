@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     let base44 = null;
     let targetBranchId = null;
     let batchSize = 30; // จำนวนบิลที่จะประมวลผลต่อรอบ (default)
-    let concurrentLimit = 3; // จำนวนรูปที่สร้างพร้อมกัน (ตามข้อจำกัด Browserless)
+    let concurrentLimit = 1; // จำนวนรูปที่สร้างพร้อมกัน (โหมดฟรี Browserless = 1)
 
     try {
         const clonedReq = req.clone();
