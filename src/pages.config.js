@@ -46,6 +46,7 @@ import CronJobDashboard from './pages/CronJobDashboard';
 import LineConnect from './pages/LineConnect';
 import TestInvoiceGeneration from './pages/TestInvoiceGeneration';
 import CronJobSettings from './pages/CronJobSettings';
+import PublicInvoice from './pages/PublicInvoice';
 import __Layout from './Layout.jsx';
 
 
@@ -98,6 +99,7 @@ export const PAGES = {
     "LineConnect": LineConnect,
     "TestInvoiceGeneration": TestInvoiceGeneration,
     "CronJobSettings": CronJobSettings,
+    "PublicInvoice": PublicInvoice,
 }
 
 export const pagesConfig = {
