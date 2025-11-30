@@ -1898,6 +1898,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
       const activeBookings = getActiveBookings(tenant.id);
       const hasExpiringSoon = activeBookings.some(b => isContractExpiringSoon(b));
       const avgRating = getTenantAverageRating(tenant.id);
+      const paymentScore = tenant.avg_payment_score; // ⭐ เพิ่มคะแนนการชำระเงิน
       const vehicleCount = getVehicleCount(tenant);
       
       // หาห้องล่าสุดที่เคยเช่า (สำหรับผู้เช่าที่ย้ายออกแล้ว)
@@ -1918,6 +1919,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
         activeBookings,
         hasExpiringSoon,
         avgRating,
+        paymentScore, // ⭐ ส่งคะแนนการชำระเงินไปด้วย
         vehicleCount,
         lastRoomNumber
       };
@@ -2669,7 +2671,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                                       })()
           ) : viewMode === 'card' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {tenantCardsData.map(({ tenant, activeBookings, hasExpiringSoon, avgRating, vehicleCount, lastRoomNumber }) => (
+              {tenantCardsData.map(({ tenant, activeBookings, hasExpiringSoon, avgRating, paymentScore, vehicleCount, lastRoomNumber }) => (
                 <div key={tenant.id} className="relative">
                   {isSelectionMode && (
                     <div
@@ -2692,12 +2694,14 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                       activeBookings={activeBookings}
                       hasExpiringSoon={hasExpiringSoon}
                       avgRating={avgRating}
+                      paymentScore={paymentScore}
                       vehicleCount={vehicleCount}
                       onClick={handleTenantClick}
                       getRoomInfo={getRoomInfo}
                       isContractExpiringSoon={isContractExpiringSoon}
                       getDaysUntilExpiry={getDaysUntilExpiry}
                       lastRoomNumber={lastRoomNumber}
+                      userRole={userRole}
                     />
                   </div>
                 </div>
@@ -2841,7 +2845,16 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                           </div>
 
                           {(() => {
-                          // ⭐ แสดงแค่ดาว ไม่มีคะแนนการชำระเงินอัตโนมัติแล้ว
+                          const paymentScore = selectedTenant.avg_payment_score;
+                          const hasPaymentScores = selectedTenant.payment_scores?.length > 0;
+
+                          // 🔍 Debug: ดูค่า paymentScore และ hasPaymentScores
+                          console.log('🔍 [Rating Debug] Tenant:', selectedTenant.full_name);
+                          console.log('  - avg_payment_score:', paymentScore, typeof paymentScore);
+                          console.log('  - payment_scores:', selectedTenant.payment_scores);
+                          console.log('  - hasPaymentScores:', hasPaymentScores);
+                          console.log('  - avgRating (from TenantRating):', avgRating);
+
                           // ถ้ามีคะแนนจากการให้คะแนนแบบเต็มรูปแบบ
                           if (avgRating !== null) {
                           return (
@@ -2884,6 +2897,77 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                              </p>
                            </div>
                           )}
+                          </>
+                          );
+                          }
+
+                          // ถ้ามีคะแนนการชำระเงินอัตโนมัติ แต่ยังไม่มีคะแนนเต็มรูปแบบ
+                          // ⭐ แก้ไข: เช็คว่า paymentScore มีค่า (รวมถึง 0 ด้วย) หรือมี payment_scores
+                          if ((paymentScore !== null && paymentScore !== undefined) || hasPaymentScores) {
+                          // ⭐ แก้ไข: ถ้า paymentScore เป็น null/undefined แต่มี payment_scores ให้คำนวณเอง
+                          const actualPaymentScore = paymentScore ?? (hasPaymentScores 
+                            ? selectedTenant.payment_scores.reduce((sum, p) => sum + (p.score || 0), 0) / selectedTenant.payment_scores.length 
+                            : 0);
+                          const stars = (actualPaymentScore / 10) * 5;
+                          return (
+                          <>
+                          <div className="bg-white rounded-lg p-4">
+                           <p className="text-sm text-slate-600 mb-2">คะแนนการชำระเงิน</p>
+                           <RatingDisplay rating={stars} size="md" />
+                           <div className="flex items-center justify-between mt-3">
+                             <p className="text-xs text-slate-500">
+                               จากประวัติการชำระ {hasPaymentScores ? selectedTenant.payment_scores.length : 0} ครั้ง
+                             </p>
+                             <Badge className="bg-green-100 text-green-700 text-xs">
+                               {actualPaymentScore.toFixed(1)}/10
+                             </Badge>
+                           </div>
+                          </div>
+
+                          {hasPaymentScores && selectedTenant.payment_scores.length > 0 && (
+                           <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                             <p className="text-sm font-semibold text-slate-700 mb-2">ประวัติการชำระเงินล่าสุด:</p>
+                             <div className="space-y-2 max-h-32 overflow-y-auto">
+                               {selectedTenant.payment_scores.slice(-5).reverse().map((scoreRecord, idx) => (
+                                 <div key={idx} className="text-xs bg-white rounded p-2 border border-green-100">
+                                   <div className="flex justify-between items-center">
+                                     <span className="text-slate-600">
+                                       {scoreRecord.days_diff >= 0 ? (
+                                         <span className="text-green-700">ก่อนกำหนด {scoreRecord.days_diff} วัน</span>
+                                       ) : (
+                                         <span className="text-red-700">หลังกำหนด {Math.abs(scoreRecord.days_diff)} วัน</span>
+                                       )}
+                                     </span>
+                                     <Badge className={`text-xs ${
+                                       scoreRecord.score >= 8 ? 'bg-green-100 text-green-700' :
+                                       scoreRecord.score >= 5 ? 'bg-yellow-100 text-yellow-700' :
+                                       'bg-red-100 text-red-700'
+                                     }`}>
+                                       {scoreRecord.score}/10
+                                     </Badge>
+                                   </div>
+                                 </div>
+                               ))}
+                             </div>
+                           </div>
+                          )}
+
+                          <div className="bg-blue-50 rounded-lg p-4 text-center border border-blue-200">
+                           <p className="text-sm text-slate-600 mb-2">💡 เพิ่มคะแนนด้านอื่นๆ</p>
+                           {canEdit && (
+                             <Button
+                               size="sm"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 handleRateGuest(selectedTenant);
+                               }}
+                               className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
+                             >
+                               <Star className="w-4 h-4 mr-1" />
+                               ให้คะแนนครบทุกด้าน
+                             </Button>
+                           )}
+                          </div>
                           </>
                           );
                           }
