@@ -381,23 +381,42 @@ Deno.serve(async (req) => {
                     }
                     
                     if (messageType === 'image' && messageId) {
-                        console.log(`📸 Image received from ${lineUserId}`);
-                        // ⭐ ใช้ filter แทน list + find
-                        let tenant = null;
-                        try {
-                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
-                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
-                        } catch (e) {
-                            console.log('⚠️ Could not find tenant:', e.message);
-                        }
+                                        console.log(`📸 Image received from ${lineUserId}`);
+                                        // ⭐ ใช้ filter แทน list + find
+                                        let tenant = null;
+                                        try {
+                                            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
+                                            tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
+                                        } catch (e) {
+                                            console.log('⚠️ Could not find tenant:', e.message);
+                                        }
 
-                        // ⭐ ถ้าไม่ได้เชื่อมต่อ (ไม่มี tenant) → ไม่ตอบอะไรเลย
-                        if (!tenant) {
-                            console.log(`ℹ️ User ${lineUserId} not connected - ignoring image, no response`);
-                            continue;
-                        }
+                                        // ⭐ ถ้าไม่ได้เชื่อมต่อ (ไม่มี tenant) → ไม่ตอบอะไรเลย
+                                        if (!tenant) {
+                                            console.log(`ℹ️ User ${lineUserId} not connected - ignoring image, no response`);
+                                            continue;
+                                        }
 
-                        const branchId = tenant.branch_id || destinationBranchId;
+                                        const branchId = tenant.branch_id || destinationBranchId;
+
+                                        // ⭐ เช็คว่ามี pending payment หรือไม่ ก่อนประมวลผลรูป
+                                        let hasPendingPayment = false;
+                                        try {
+                                            const paymentResult = await base44.asServiceRole.entities.Payment.filter({ 
+                                                tenant_id: tenant.id,
+                                                branch_id: branchId
+                                            });
+                                            const allPayments = Array.isArray(paymentResult) ? paymentResult : (paymentResult ? [paymentResult] : []);
+                                            hasPendingPayment = allPayments.some(p => p.status === 'pending' || p.status === 'overdue');
+                                        } catch (e) {
+                                            console.log('⚠️ Could not check payments:', e.message);
+                                        }
+
+                                        // ⭐ ถ้าไม่มี pending payment → ไม่ตอบอะไรเลย (ไม่ใช่สลิปที่เกี่ยวข้อง)
+                                        if (!hasPendingPayment) {
+                                            console.log(`ℹ️ User ${lineUserId} has no pending payment - ignoring image, no response`);
+                                            continue;
+                                        }
 
                         // ⭐ บันทึกข้อความประเภทรูปภาพลง LineMessage ก่อนประมวลผล
                         try {
