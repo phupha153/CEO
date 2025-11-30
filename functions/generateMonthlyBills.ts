@@ -655,14 +655,11 @@ Deno.serve(async (req) => {
                     for (const payment of created) {
                         const meta = paymentReferenceMap.get(payment.room_id);
                         if (meta && meta.tenant?.line_user_id) {
-                            // ⭐ เช็คว่าสาขานี้เปิด auto_send หรือไม่
                             const shouldSend = getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
-                            billsToSend.push({ 
-                                payment, 
-                                tenant: meta.tenant, 
-                                room: meta.room,
-                                shouldSendLine: shouldSend // ⭐ เก็บไว้ว่าจะส่ง LINE หรือไม่
-                            });
+                            // Don't send line if auto-paid (optional, usually we still notify)
+                            if (shouldSend) {
+                                billsToSend.push({ payment, tenant: meta.tenant, room: meta.room });
+                            }
                         }
                     }
                     createdCount += created.length;
@@ -696,41 +693,32 @@ Deno.serve(async (req) => {
         // ⭐ ตั้งสถานะให้บิลใหม่ทั้งหมดเป็น "รอสร้างรูป" (invoice_image_status = 'pending')
         // processInvoiceImageQueue จะดึงไปสร้างรูปและส่ง LINE ทีหลัง
         if (billsToSend.length > 0) {
-            // ⭐ แยกนับสาขาที่เปิด/ปิด auto_send
-            const billsWithAutoSend = billsToSend.filter(b => b.shouldSendLine);
-            const billsWithoutAutoSend = billsToSend.filter(b => !b.shouldSendLine);
+            console.log(`📝 ${billsToSend.length} bills marked for image generation (will be processed by processInvoiceImageQueue)`);
+            pendingImageCount = billsToSend.length;
             
-            console.log(`📝 ${billsToSend.length} bills created total`);
-            console.log(`   - ${billsWithAutoSend.length} bills will auto-send LINE (auto_send=true)`);
-            console.log(`   - ${billsWithoutAutoSend.length} bills will NOT auto-send LINE (auto_send=false)`);
+            // ⭐ ถ้าเปิด auto_send และต้องการให้ส่งทันที = เรียก processInvoiceImageQueue
+            const shouldAutoProcess = getConfigValue('auto_process_invoice_queue_after_generation', 'false', targetBranchId) === 'true';
             
-            pendingImageCount = billsWithAutoSend.length; // นับเฉพาะที่จะส่ง LINE
-            
-            // ⭐ ถ้ามีบิลที่ต้องส่ง LINE = เรียก processInvoiceImageQueue
-            if (billsWithAutoSend.length > 0) {
-                const shouldAutoProcess = getConfigValue('auto_process_invoice_queue_after_generation', 'false', targetBranchId) === 'true';
+            if (shouldAutoProcess && billsToSend.length <= 30) {
+                console.log(`🚀 Auto-triggering processInvoiceImageQueue for ${billsToSend.length} bills...`);
                 
-                if (shouldAutoProcess && billsWithAutoSend.length <= 30) {
-                    console.log(`🚀 Auto-triggering processInvoiceImageQueue for ${billsWithAutoSend.length} bills...`);
+                try {
+                    const queueResult = await base44.asServiceRole.functions.invoke('processInvoiceImageQueue', {
+                        branch_id: targetBranchId,
+                        batch_size: Math.min(billsToSend.length, 30),
+                        concurrent_limit: 3
+                    });
                     
-                    try {
-                        const queueResult = await base44.asServiceRole.functions.invoke('processInvoiceImageQueue', {
-                            branch_id: targetBranchId,
-                            batch_size: Math.min(billsWithAutoSend.length, 30),
-                            concurrent_limit: 3
-                        });
-                        
-                        if (queueResult.data?.success) {
-                            sentCount = queueResult.data.lineSent || 0;
-                            failedCount = queueResult.data.lineFailed || 0;
-                            console.log(`✅ processInvoiceImageQueue completed: sent ${sentCount}, failed ${failedCount}`);
-                        }
-                    } catch (queueError) {
-                        console.error(`⚠️ processInvoiceImageQueue error (will retry via cron):`, queueError.message);
+                    if (queueResult.data?.success) {
+                        sentCount = queueResult.data.lineSent || 0;
+                        failedCount = queueResult.data.lineFailed || 0;
+                        console.log(`✅ processInvoiceImageQueue completed: sent ${sentCount}, failed ${failedCount}`);
                     }
-                } else {
-                    console.log(`📋 Bills queued for later processing via Cron Job or manual trigger`);
+                } catch (queueError) {
+                    console.error(`⚠️ processInvoiceImageQueue error (will retry via cron):`, queueError.message);
                 }
+            } else {
+                console.log(`📋 Bills queued for later processing via Cron Job or manual trigger`);
             }
         }
 
