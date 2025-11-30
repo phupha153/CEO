@@ -2183,46 +2183,7 @@ Return JSON.`;
               )}
               {canSendReminder && (
                 <Button
-                  onClick={async () => {
-                    // นับจำนวนบิลที่ยังไม่มีรูป
-                    const pendingImages = pendingOverduePayments.filter(p => {
-                      const tenant = getTenantInfo(p.tenant_id);
-                      return tenant?.line_user_id && !p.invoice_image_url && !p.bill_sent_date;
-                    }).length;
-                    
-                    const confirmMsg = tenantsWithLine > 0 
-                      ? `ต้องการสร้างรูปและส่งแจ้งเตือนไปยัง ${tenantsWithLine} ห้องใช่หรือไม่?${pendingImages > 0 ? `\n(มี ${pendingImages} ใบที่ต้องสร้างรูปก่อน - ใช้เวลา ~${pendingImages * 5} วินาที)` : ''}`
-                      : 'ไม่มีบิลรอชำระที่มี LINE';
-                    
-                    if (tenantsWithLine === 0) {
-                      toast.info(confirmMsg);
-                      return;
-                    }
-                    
-                    if (!confirm(confirmMsg)) return;
-                    
-                    setSendingAll(true);
-                    try {
-                      toast.info('กำลังสร้างรูปและส่งบิล...', { duration: 3000 });
-                      
-                      const response = await base44.functions.invoke('processInvoiceImageQueue', {
-                        branch_id: selectedBranchId,
-                        batch_size: tenantsWithLine,
-                        concurrent_limit: 1
-                      });
-                      
-                      if (response.data?.success) {
-                        const sent = response.data.lineSent || 0;
-                        const failed = response.data.lineFailed || 0;
-                        toast.success(`ส่งสำเร็จ ${sent} ใบ${failed > 0 ? `, ล้มเหลว ${failed}` : ''}`, { duration: 5000 });
-                        queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
-                      }
-                    } catch (error) {
-                      toast.error('เกิดข้อผิดพลาด: ' + error.message);
-                    } finally {
-                      setSendingAll(false);
-                    }
-                  }}
+                  onClick={() => handleSendReminder()}
                   disabled={sendingAll || tenantsWithLine === 0}
                   size="sm"
                   variant="outline"
