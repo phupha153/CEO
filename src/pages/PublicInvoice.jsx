@@ -41,15 +41,22 @@ export default function PublicInvoice() {
       }
 
       try {
-        const response = await base44.functions.invoke("getPublicInvoice", {
-          paymentId,
-          branchId
+        // ⭐ เรียก API แบบ public โดยไม่ต้อง login
+        const apiUrl = `https://base44.app/api/apps/6904ea5ce861be65483eff6e/functions/getPublicInvoice`;
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ paymentId, branchId })
         });
 
-        if (response.data?.success) {
-          setData(response.data.data);
+        const result = await response.json();
+
+        if (result?.success) {
+          setData(result.data);
         } else {
-          setError(response.data?.error || "ไม่สามารถโหลดข้อมูลได้");
+          setError(result?.error || "ไม่สามารถโหลดข้อมูลได้");
         }
       } catch (err) {
         console.error("Error fetching invoice:", err);
