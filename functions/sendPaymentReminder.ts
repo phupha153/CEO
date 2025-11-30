@@ -283,39 +283,70 @@ Deno.serve(async (req) => {
 
         // ⭐ สร้างรูปใบแจ้งหนี้แบบ sequential (ทีละใบ) ก่อนส่ง LINE
         console.log(`🖼️ Generating invoice images for ${recipients.length} payments...`);
+        let imageSuccessCount = 0;
+        let imageFailCount = 0;
+        let imageSkipCount = 0;
+        
         for (let i = 0; i < recipients.length; i++) {
             const recipient = recipients[i];
             const payment = allPayments.find(p => p.id === recipient.metadata.paymentId);
 
-            if (payment && !payment.invoice_image_url) {
-                try {
-                    console.log(`[${i + 1}/${recipients.length}] Generating image for room ${recipient.metadata.roomNumber}...`);
-                    const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
-                        paymentId: payment.id
-                    });
-                    if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
-                        // อัปเดต message ให้มีลิงก์รูป (แทนที่ placeholder)
-                        const imageUrl = invoiceResult.data.invoice_image_url;
-                        recipient.message = recipient.message.replace(
-                            '{{INVOICE_IMAGE_PLACEHOLDER}}\n',
-                            `📄 ดูใบแจ้งหนี้: ${imageUrl}\n\n`
-                        );
-                        console.log(`✅ Image generated for room ${recipient.metadata.roomNumber}`);
-                    } else {
-                        // ลบ placeholder ถ้าสร้างรูปไม่สำเร็จ
-                        recipient.message = recipient.message.replace('{{INVOICE_IMAGE_PLACEHOLDER}}\n', '');
-                    }
-                } catch (invoiceError) {
-                    console.error(`❌ Error generating image for room ${recipient.metadata.roomNumber}:`, invoiceError.message);
-                    // ลบ placeholder ถ้าเกิด error
-                    recipient.message = recipient.message.replace('{{INVOICE_IMAGE_PLACEHOLDER}}\n', '');
-                }
-
-                // รอ 2 วินาทีก่อนสร้างรูปถัดไป (หลีกเลี่ยง rate limit)
-                if (i < recipients.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                }
+            // ถ้ามีรูปอยู่แล้ว = ใส่ลิงก์เลย (แทน placeholder)
+            if (payment?.invoice_image_url) {
+                console.log(`[${i + 1}/${recipients.length}] Room ${recipient.metadata.roomNumber}: มีรูปอยู่แล้ว`);
+                recipient.message = recipient.message.replace(
+                    '{{INVOICE_IMAGE_PLACEHOLDER}}\n',
+                    `📄 ดูใบแจ้งหนี้: ${payment.invoice_image_url}\n\n`
+                );
+                imageSkipCount++;
+                continue;
             }
+
+            // ถ้ายังไม่มีรูป = สร้างใหม่
+            try {
+                console.log(`[${i + 1}/${recipients.length}] Room ${recipient.metadata.roomNumber}: กำลังสร้างรูป...`);
+                const startTime = Date.now();
+                
+                const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
+                    paymentId: payment.id
+                });
+                
+                const elapsed = Date.now() - startTime;
+                console.log(`[${i + 1}/${recipients.length}] generateInvoiceImage took ${elapsed}ms`);
+                
+                if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
+                    // อัปเดต message ให้มีลิงก์รูป (แทนที่ placeholder)
+                    const imageUrl = invoiceResult.data.invoice_image_url;
+                    recipient.message = recipient.message.replace(
+                        '{{INVOICE_IMAGE_PLACEHOLDER}}\n',
+                        `📄 ดูใบแจ้งหนี้: ${imageUrl}\n\n`
+                    );
+                    console.log(`✅ [${i + 1}/${recipients.length}] Room ${recipient.metadata.roomNumber}: สร้างรูปสำเร็จ (${elapsed}ms)`);
+                    imageSuccessCount++;
+                } else {
+                    // ลบ placeholder ถ้าสร้างรูปไม่สำเร็จ
+                    console.error(`❌ [${i + 1}/${recipients.length}] Room ${recipient.metadata.roomNumber}: สร้างรูปล้มเหลว - ${invoiceResult.data?.error || 'Unknown error'}`);
+                    recipient.message = recipient.message.replace('{{INVOICE_IMAGE_PLACEHOLDER}}\n', '');
+                    imageFailCount++;
+                }
+            } catch (invoiceError) {
+                console.error(`❌ [${i + 1}/${recipients.length}] Room ${recipient.metadata.roomNumber}: Exception - ${invoiceError.message}`);
+                // ลบ placeholder ถ้าเกิด error
+                recipient.message = recipient.message.replace('{{INVOICE_IMAGE_PLACEHOLDER}}\n', '');
+                imageFailCount++;
+            }
+
+            // รอ 2 วินาทีก่อนสร้างรูปถัดไป (หลีกเลี่ยง rate limit)
+            if (i < recipients.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
+        
+        console.log(`📊 Image generation summary: สำเร็จ ${imageSuccessCount}, ล้มเหลว ${imageFailCount}, มีอยู่แล้ว ${imageSkipCount}`);
+        
+        // ⭐ ลบ placeholder ที่เหลือทั้งหมด (เผื่อมี edge case)
+        for (const recipient of recipients) {
+            recipient.message = recipient.message.replace('{{INVOICE_IMAGE_PLACEHOLDER}}\n', '');
         }
 
         console.log(`📤 Sending payment reminders to ${recipients.length} recipients...`);
