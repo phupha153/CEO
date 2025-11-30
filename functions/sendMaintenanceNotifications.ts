@@ -1,0 +1,151 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+
+Deno.serve(async (req) => {
+    try {
+        const base44 = createClientFromRequest(req);
+        
+        const { branch_id, test_mode = false } = await req.json().catch(() => ({}));
+
+        const configs = await base44.asServiceRole.entities.Config.list();
+        
+        const getConfig = (key) => {
+            const config = configs.find(c => c.key === key && (!c.branch_id || c.branch_id === branch_id));
+            return config?.value;
+        };
+
+        const enabled = getConfig('maintenance_notifications_enabled') === 'true';
+        if (!enabled && !test_mode) {
+            return Response.json({ 
+                success: false, 
+                message: 'การแจ้งเตือนคำขอซ่อมถูกปิดใช้งาน' 
+            });
+        }
+
+        const priorityThreshold = getConfig('maintenance_priority_threshold') || 'medium';
+        const recipients = getConfig('maintenance_notification_recipients') || '';
+        
+        if (!recipients) {
+            return Response.json({ 
+                success: false, 
+                error: 'ไม่พบผู้รับการแจ้งเตือน' 
+            });
+        }
+
+        const recipientIds = recipients.split(',').map(id => id.trim()).filter(id => id);
+
+        // กำหนดลำดับความสำคัญ
+        const priorityOrder = { 'low': 0, 'medium': 1, 'high': 2, 'urgent': 3 };
+        const minPriority = priorityOrder[priorityThreshold] || 1;
+
+        // ดึงข้อมูลคำขอซ่อมที่รอดำเนินการ
+        const allMaintenance = await base44.asServiceRole.entities.MaintenanceRequest.list();
+        const pendingMaintenance = allMaintenance.filter(request => {
+            if (branch_id && request.branch_id !== branch_id) return false;
+            if (request.status !== 'pending') return false;
+            
+            const requestPriority = priorityOrder[request.priority] || 0;
+            return requestPriority >= minPriority;
+        });
+
+        if (pendingMaintenance.length === 0) {
+            return Response.json({ 
+                success: true, 
+                message: 'ไม่มีคำขอซ่อมที่ต้องแจ้งเตือน',
+                maintenanceCount: 0
+            });
+        }
+
+        // ดึงข้อมูลห้องและผู้เช่า
+        const allRooms = await base44.asServiceRole.entities.Room.list();
+        const allTenants = await base44.asServiceRole.entities.Tenant.list();
+
+        // ส่งข้อความแจ้งเตือน
+        const lineAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+        if (!lineAccessToken) {
+            return Response.json({ 
+                success: false, 
+                error: 'ไม่พบ LINE_CHANNEL_ACCESS_TOKEN' 
+            });
+        }
+
+        let totalSent = 0;
+        const errors = [];
+
+        for (const recipientId of recipientIds) {
+            let message = `🔧 แจ้งเตือนคำขอซ่อม\n\n`;
+            message += `พบคำขอซ่อมที่รอดำเนินการ ${pendingMaintenance.length} รายการ\n\n`;
+
+            // จัดกลุ่มตามความสำคัญ
+            const urgent = pendingMaintenance.filter(m => m.priority === 'urgent');
+            const high = pendingMaintenance.filter(m => m.priority === 'high');
+            const medium = pendingMaintenance.filter(m => m.priority === 'medium');
+            const low = pendingMaintenance.filter(m => m.priority === 'low');
+
+            if (urgent.length > 0) {
+                message += `🔴 เร่งด่วนมาก (${urgent.length} รายการ):\n`;
+                urgent.slice(0, 3).forEach((m, i) => {
+                    const room = allRooms.find(r => r.id === m.room_id);
+                    message += `   ${i + 1}. ${m.title} - ห้อง ${room?.room_number || 'N/A'}\n`;
+                });
+                message += `\n`;
+            }
+
+            if (high.length > 0) {
+                message += `🟠 เร่งด่วน (${high.length} รายการ):\n`;
+                high.slice(0, 3).forEach((m, i) => {
+                    const room = allRooms.find(r => r.id === m.room_id);
+                    message += `   ${i + 1}. ${m.title} - ห้อง ${room?.room_number || 'N/A'}\n`;
+                });
+                message += `\n`;
+            }
+
+            if (medium.length > 0) {
+                message += `🟡 ปานกลาง: ${medium.length} รายการ\n`;
+            }
+
+            if (low.length > 0) {
+                message += `⚪ ต่ำ: ${low.length} รายการ\n`;
+            }
+
+            message += `\n💡 กรุณาตรวจสอบและดำเนินการ`;
+
+            try {
+                const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${lineAccessToken}`
+                    },
+                    body: JSON.stringify({
+                        to: recipientId,
+                        messages: [{ type: 'text', text: message }]
+                    })
+                });
+
+                if (lineResponse.ok) {
+                    totalSent++;
+                } else {
+                    const errorData = await lineResponse.json();
+                    errors.push(`Failed to send to ${recipientId}: ${errorData.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                errors.push(`Error sending to ${recipientId}: ${error.message}`);
+            }
+        }
+
+        return Response.json({
+            success: true,
+            message: `ส่งการแจ้งเตือนสำเร็จ ${totalSent}/${recipientIds.length} ผู้รับ`,
+            maintenanceCount: pendingMaintenance.length,
+            sentTo: totalSent,
+            errors: errors.length > 0 ? errors : undefined
+        });
+
+    } catch (error) {
+        console.error('Error:', error);
+        return Response.json({ 
+            success: false, 
+            error: error.message 
+        }, { status: 500 });
+    }
+});

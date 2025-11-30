@@ -1,0 +1,3913 @@
+import React, { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { Building2, DollarSign, CreditCard, Shield, Users, ChevronDown, ChevronUp, Check, Settings as SettingsIcon, AlertTriangle, Calendar, Globe, MessageSquare, Save, Send, ArrowLeft, Bell, DoorOpen, Wrench, Package, TrendingDown, UserPlus, AlertCircle, RefreshCw, Sparkles, Zap, Crown, Loader2 } from "lucide-react";
+import SignaturePad from "../components/shared/SignaturePad";
+import { Upload, X, Image as ImageIcon, PenTool } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useNavigate } from "react-router-dom";
+import AddEmployeeDialog from "../components/settings/AddEmployeeDialog";
+import PageHeader from "../components/shared/PageHeader";
+
+import { format, parseISO, differenceInDays } from 'date-fns';
+import { th } from 'date-fns/locale';
+import { createPageUrl } from "@/utils";
+
+
+// รายการสิทธิ์ทั้งหมดแบ่งตามหมวดหมู่
+const PERMISSIONS_LIST = [
+  { id: 'dashboard_view', label: 'ดูแดชบอร์ด', category: 'แดชบอร์ด' },
+
+  { id: 'rooms_view', label: 'ดูห้องพัก', category: 'ห้องพัก' },
+  { id: 'rooms_add', label: 'เพิ่มห้องพัก', category: 'ห้องพัก' },
+  { id: 'rooms_edit', label: 'แก้ไขห้องพัก', category: 'ห้องพัก' },
+  { id: 'rooms_delete', label: 'ลบห้องพัก', category: 'ห้องพัก' },
+
+  { id: 'tenants_view', label: 'ดูผู้เช่า', category: 'ผู้เช่า' },
+  { id: 'tenants_add', label: 'เพิ่มผู้เช่า', category: 'ผู้เช่า' },
+  { id: 'tenants_edit', label: 'แก้ไขผู้เช่า', category: 'ผู้เช่า' },
+  { id: 'tenants_delete', label: 'ลบผู้เช่า', category: 'ผู้เช่า' },
+
+  { id: 'bookings_view_daily', label: 'ดูการจองรายวัน', category: 'การจอง' },
+  { id: 'bookings_add_daily', label: 'เพิ่มการจองรายวัน', category: 'การจอง' },
+  { id: 'bookings_edit_daily', label: 'แก้ไขการจองรายวัน', category: 'การจอง' },
+  { id: 'bookings_delete_daily', label: 'ลบการจองรายวัน', category: 'การจอง' },
+
+  { id: 'contracts_view_monthly', label: 'ดูสัญญาเช่ารายเดือน', category: 'สัญญาเช่า' },
+  { id: 'contracts_add_monthly', label: 'เพิ่มสัญญาเช่ารายเดือน', category: 'สัญญาเช่า' },
+  { id: 'contracts_edit_monthly', label: 'แก้ไขสัญญาเช่ารายเดือน', category: 'สัญญาเช่า' },
+  { id: 'contracts_delete_monthly', label: 'ลบสัญญาเช่ารายเดือน', category: 'สัญญาเช่า' },
+
+  { id: 'payments_view', label: 'ดูการชำระเงิน', category: 'การชำระเงิน' },
+  { id: 'payments_add', label: 'เพิ่มรายการชำระเงิน', category: 'การชำระเงิน' },
+  { id: 'payments_edit', label: 'แก้ไขรายการชำระเงิน', category: 'การชำระเงิน' },
+  { id: 'bookings_edit_deposit', label: 'แก้ไขเงินมัดจำ', category: 'การชำระเงิน' },
+  { id: 'payments_delete', label: 'ลบรายการชำระเงิน', category: 'การชำระเงิน' },
+  { id: 'payments_update_status', label: 'อัปเดตสถานะการชำระเงิน', category: 'การชำระเงิน' },
+  { id: 'payments_send_receipt', label: 'ส่งใบเสร็จ', category: 'การชำระเงิน' },
+
+  { id: 'meter_readings_view', label: 'ดูบันทึกมิเตอร์', category: 'บันทึกมิเตอร์' },
+  { id: 'meter_readings_add', label: 'เพิ่มบันทึกมิเตอร์', category: 'บันทึกมิเตอร์' },
+  { id: 'meter_readings_edit', label: 'แก้ไขบันทึกมิเตอร์ (ปัจจุบัน)', category: 'บันทึกมิเตอร์' },
+  { id: 'meter_readings_edit_history', label: 'แก้ไขประวัติมิเตอร์ย้อนหลัง', category: 'บันทึกมิเตอร์' },
+  { id: 'meter_readings_delete', label: 'ลบบันทึกมิเตอร์', category: 'บันทึกมิเตอร์' },
+
+  { id: 'expenses_view', label: 'ดูค่าใช้จ่าย', category: 'ค่าใช้จ่าย' },
+  { id: 'expenses_add', label: 'เพิ่มค่าใช้จ่าย', category: 'ค่าใช้จ่าย' },
+  { id: 'expenses_edit', label: 'แก้ไขค่าใช้จ่าย', category: 'ค่าใช้จ่าย' },
+  { id: 'expenses_delete', label: 'ลบค่าใช้จ่าย', category: 'ค่าใช้จ่าย' },
+
+  { id: 'maintenance_view', label: 'ดูแจ้งซ่อม', category: 'แจ้งซ่อม' },
+  { id: 'maintenance_add', label: 'เพิ่มแจ้งซ่อม', category: 'แจ้งซ่อม' },
+  { id: 'maintenance_edit', label: 'แก้ไขแจ้งซ่อม', category: 'แจ้งซ่อม' },
+  { id: 'maintenance_delete', label: 'ลบแจ้งซ่อม', category: 'แจ้งซ่อม' },
+  { id: 'maintenance_update_status', label: 'อัปเดตสถานะแจ้งซ่อม', category: 'แจ้งซ่อม' },
+
+  { id: 'reports_view_all', label: 'ดูรายงานทั้งหมด', category: 'รายงาน' },
+  { id: 'reports_export', label: 'ส่งออกรายงาน', category: 'รายงาน' },
+
+  { id: 'accounting_view_all', label: 'ดูฐานข้อมูลบัญชี', category: 'ฐานข้อมูลบัญชี' },
+  { id: 'accounting_export', label: 'ส่งออกข้อมูลบัญชี', category: 'ฐานข้อมูลบัญชี' },
+
+  { id: 'announcements_send', label: 'ส่งข้อความประกาศ', category: 'ข้อความประกาศ' },
+
+  { id: 'settings_view', label: 'ดูการตั้งค่า', category: 'การตั้งค่า' },
+  { id: 'settings_edit', label: 'แก้ไขการตั้งค่า', category: 'การตั้งค่า' },
+  { id: 'settings_access_test_mode', label: 'เข้าถึงโหมดทดสอบ (Developer)', category: 'การตั้งค่า' },
+];
+
+const DEFAULT_PERMISSIONS_MAP = {
+  owner: PERMISSIONS_LIST.map(p => p.id).filter(id => id !== "settings_access_test_mode"),
+  manager: [
+    "dashboard_view",
+    "rooms_view", "rooms_add", "rooms_edit",
+    "tenants_view", "tenants_add", "tenants_edit",
+    "bookings_view_daily", "bookings_add_daily", "bookings_edit_daily", "bookings_delete_daily",
+    "contracts_view_monthly", "contracts_add_monthly", "contracts_edit_monthly",
+    "payments_view", "payments_add", "payments_update_status", "payments_send_receipt",
+    "meter_readings_view", "meter_readings_add", "meter_readings_edit", "meter_readings_edit_history",
+    "expenses_view", "expenses_add",
+    "maintenance_view", "maintenance_add", "maintenance_edit", "maintenance_update_status",
+    "reports_view_all", "reports_export",
+    "accounting_view_all",
+    "announcements_send",
+    "settings_view", "settings_edit"
+  ],
+  employee: [
+    "dashboard_view",
+    "rooms_view",
+    "tenants_view",
+    "bookings_view_daily",
+    "contracts_view_monthly",
+    "payments_view", "payments_send_receipt",
+    "meter_readings_view", "meter_readings_add", "meter_readings_edit", "meter_readings_edit_history",
+    "expenses_view",
+    "maintenance_view", "maintenance_add"
+  ],
+};
+
+const CATEGORY_ICONS = {
+  'แดชบอร์ด': '📊',
+  'ห้องพัก': '🚪',
+  'ผู้เช่า': '👤',
+  'การจอง': '📅',
+  'สัญญาเช่า': '📄',
+  'การชำระเงิน': '💰',
+  'บันทึกมิเตอร์': '⚡',
+  'ค่าใช้จ่าย': '💸',
+  'แจ้งซ่อม': '🔧',
+  'รายงาน': '📈',
+  'ฐานข้อมูลบัญชี': '🏦',
+  'ข้อความประกาศ': '📢',
+  'การตั้งค่า': '⚙️',
+};
+
+const PERMISSION_CATEGORIES_DISPLAY = PERMISSIONS_LIST.reduce((acc, permission) => {
+  if (!acc[permission.category]) {
+    acc[permission.category] = {
+      title: permission.category,
+      icon: CATEGORY_ICONS[permission.category] || '📦',
+      permissions: []
+    };
+  }
+  acc[permission.category].permissions.push(permission);
+  return acc;
+}, {});
+
+const BranchToggle = ({ applyToAllBranches, setApplyToAllBranches, selectedBranch, canSetGlobalConfig }) => {
+  if (!canSetGlobalConfig || !selectedBranch) return null;
+
+  return (
+    <div className="flex items-center justify-between gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+      <div className="flex items-center gap-2">
+        <Globe className={`w-5 h-5 ${applyToAllBranches ? 'text-blue-600' : 'text-slate-500'}`} />
+        <div className="text-sm">
+          <p className={`font-semibold ${applyToAllBranches ? 'text-blue-700' : 'text-slate-700'}`}>
+            {applyToAllBranches ? 'ใช้กับทุกสาขาที่คุณดูแล' : `เฉพาะ ${selectedBranch.name}`}
+          </p>
+          <p className="text-xs text-slate-600">
+            {applyToAllBranches ? 'การตั้งค่าจะมีผลกับทุกสาขาที่คุณมีสิทธิ์เข้าถึง' : 'การตั้งค่าจะมีผลเฉพาะสาขานี้'}
+          </p>
+        </div>
+      </div>
+      <Switch
+        checked={applyToAllBranches}
+        onCheckedChange={setApplyToAllBranches}
+        className="data-[state=checked]:bg-blue-600"
+      />
+    </div>
+  );
+};
+
+export default function Settings() {
+  const [activeTab, setActiveTab] = useState('building');
+
+  const [buildingInfo, setBuildingInfo] = useState({
+    building_name: '',
+    address: '',
+    phone: '',
+  });
+
+  const [lessorInfo, setLessorInfo] = useState({
+    lessor_name: '',
+    lessor_id: '',
+    lessor_phone: '',
+    lessor_address: '',
+  });
+
+  const [companyInfo, setCompanyInfo] = useState({
+    company_name: '',
+    company_registration_number: '',
+    company_tax_id: '',
+    company_phone: '',
+    company_address: '',
+    use_building_address: false,
+  });
+  const [hasCompanyInfo, setHasCompanyInfo] = useState(false);
+
+  const [billingRates, setBillingRates] = useState({
+    water_rate: '',
+    electricity_rate: '',
+    internet_fee: '',
+    common_fee: '',
+    car_parking_fee: '',
+    motorcycle_parking_fee: '',
+    // ค่าขั้นต่ำสำหรับการใช้น้ำ/ไฟต่ำ
+    water_minimum_enabled: false,
+    water_minimum_units: '3',
+    water_minimum_charge: '',
+    electricity_minimum_enabled: false,
+    electricity_minimum_units: '3',
+    electricity_minimum_charge: ''
+  });
+
+  const [billSettings, setBillSettings] = useState({
+    bill_generation_day: '27',
+    pay_day: '5',
+    late_fee_per_day: '',
+    auto_send_bills: false,
+    bill_advance_notice_days: '3',
+    send_advance_reminder: false,
+    send_due_date_reminder: false,
+    // ค่าปรับแบบขั้นบันได
+    late_fee_tiers_enabled: false,
+    late_fee_tiers: [
+      { days_from: 1, days_to: 7, fee_per_day: '' },
+      { days_from: 8, days_to: 14, fee_per_day: '' },
+      { days_from: 15, days_to: 30, fee_per_day: '' },
+      { days_from: 31, days_to: 999, fee_per_day: '' }
+    ]
+  });
+
+  const [bankInfo, setBankInfo] = useState({
+    account_name: '',
+    account_number: '',
+    bank_name: '',
+    promptpay: ''
+  });
+
+  const [lineSettings, setLineSettings] = useState({
+    line_channel_access_token: '',
+    line_channel_secret: ''
+  });
+  const [facebookSettings, setFacebookSettings] = useState({
+    facebook_page_access_token: '',
+    facebook_verify_token: ''
+  });
+
+  const [applyToAllBranches_line, setApplyToAllBranches_line] = useState(false);
+  const [applyToAllBranches_facebook, setApplyToAllBranches_facebook] = useState(false);
+
+  const [expandedCategories, setExpandedCategories] = useState({});
+  const [userPermissions, setUserPermissions] = useState({});
+  const [selectedUserForPermissions, setSelectedUserForPermissions] = useState(null);
+  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
+
+  const [signatureImage, setSignatureImage] = useState('');
+  const [stampImage, setStampImage] = useState('');
+  const [showSignatureDialog, setShowSignatureDialog] = useState(false);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [uploadingStamp, setUploadingStamp] = useState(false);
+  const signaturePadRef = React.useRef(null);
+
+  const [buildingLogo, setBuildingLogo] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  // แยก state สำหรับแต่ละหมวด
+  const [applyToAllBranches_building, setApplyToAllBranches_building] = useState(false);
+  const [applyToAllBranches_billing, setApplyToAllBranches_billing] = useState(false);
+  const [applyToAllBranches_billNotif, setApplyToAllBranches_billNotif] = useState(false);
+  const [applyToAllBranches_bank, setApplyToAllBranches_bank] = useState(false);
+  const [applyToAllBranches_signature, setApplyToAllBranches_signature] = useState(false);
+  const [applyToAllBranches_meter, setApplyToAllBranches_meter] = useState(false);
+
+  // ✅ เพิ่ม state สำหรับการแจ้งเตือน (Updated structure)
+  const [notificationSettings, setNotificationSettings] = useState({
+    enabled: true,
+    overdue_payment_days: 1,
+    vacant_room_days: 7,
+    urgent_maintenance_enabled: true,
+    unclaimed_delivery_days: 5,
+    low_daily_revenue_percent: 20
+  });
+
+  // เพิ่ม state สำหรับ Branch Access Dialog
+  const [showBranchAccessDialog, setShowBranchAccessDialog] = useState(false);
+  const [selectedUserForBranches, setSelectedUserForBranches] = useState(null);
+  const [userBranchAccess, setUserBranchAccess] = useState({});
+
+  // NEW: State for AddEmployeeDialog
+  const [showAddEmployeeDialog, setShowAddEmployeeDialog] = useState(false);
+
+  const [meterSettings, setMeterSettings] = useState({
+    allow_editing_history: false
+  });
+  
+  // Debug Console for iPad/Mobile (Developer only)
+  const [debugLogs, setDebugLogs] = useState([]);
+  const [showDebugConsole, setShowDebugConsole] = useState(false);
+  const debugConsoleRef = React.useRef(null);
+  
+  // Loading state for LINE settings
+  const [isSavingLineSettings, setIsSavingLineSettings] = useState(false);
+  const [isSavingFacebookSettings, setIsSavingFacebookSettings] = useState(false);
+  const [isSavingBuildingInfo, setIsSavingBuildingInfo] = useState(false);
+  const [isSavingBillingRates, setIsSavingBillingRates] = useState(false);
+  const [isSavingBillSettings, setIsSavingBillSettings] = useState(false);
+  const [justSavedBillSettings, setJustSavedBillSettings] = useState(false);
+  const [isSavingBankInfo, setIsSavingBankInfo] = useState(false);
+  
+  const addDebugLog = (message, type = 'info') => {
+    const timestamp = new Date().toLocaleTimeString('th-TH');
+    setDebugLogs(prev => [...prev, { timestamp, message, type }]);
+  };
+  
+  const clearDebugLogs = () => {
+    setDebugLogs([]);
+  };
+  
+  // Auto-scroll debug console
+  React.useEffect(() => {
+    if (debugConsoleRef.current && showDebugConsole) {
+      debugConsoleRef.current.scrollTop = debugConsoleRef.current.scrollHeight;
+    }
+  }, [debugLogs, showDebugConsole]);
+
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const { data: configs = [] } = useQuery({
+    queryKey: ['configs'],
+    queryFn: () => base44.entities.Config.list(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => base44.entities.User.list(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn: () => base44.entities.Branch.list(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  const { data: notificationConfigs = [] } = useQuery({
+    queryKey: ['notificationConfigs'],
+    queryFn: () => base44.entities.NotificationConfig.list(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  const { data: appSubscriptions = [] } = useQuery({
+    queryKey: ['appSubscriptions'],
+    queryFn: () => base44.entities.AppSubscription.list('-created_date', 10),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  const { data: branchPackages = [], isLoading: branchPackagesLoading } = useQuery({
+    queryKey: ['branchPackages'],
+    queryFn: () => base44.entities.BranchPackage.list('-created_date', 200),
+    enabled: !!currentUser,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  const [selectedBranch] = useState(() => {
+    const branchId = localStorage.getItem('selected_branch_id');
+    const branchName = localStorage.getItem('selected_branch_name');
+    return (branchId && branchName) ? { id: branchId, name: branchName } : null;
+  });
+
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const canManagePermissions = userRole === 'developer' || userRole === 'owner';
+  const canSetGlobalConfig = userRole === 'developer' || userRole === 'owner';
+
+  const getConfigValue = (key, defaultValue = '') => {
+    // For general configs (like app_mode), we assume they are global (no branch_id)
+    const config = configs.find(c => c.key === key && !c.branch_id);
+    return config?.value || defaultValue;
+  };
+
+  const appMode = getConfigValue('app_mode', 'single_tenant');
+
+  const activeSubscription = (() => {
+    // Wait until branchPackages are loaded, especially in multi_tenant mode
+    if (branchPackagesLoading) return null;
+    
+    if (appMode === 'multi_tenant' && selectedBranch) {
+      const branchPackage = branchPackages.find(bp =>
+        bp.branch_id === selectedBranch.id && bp.status === 'active'
+      );
+
+      if (branchPackage) {
+        const isTrial = branchPackage.package_id === 'trial' || branchPackage.price_per_month === 0;
+
+        return {
+          ...branchPackage,
+          app_name: branchPackage.package_name, // Use package_name as app_name for display
+          status: isTrial ? 'trial' : 'active',
+          subscription_start_date: branchPackage.subscription_start_date,
+          subscription_end_date: branchPackage.subscription_end_date,
+          trial_end_date: isTrial ? branchPackage.subscription_end_date : null,
+          subscription_duration_months: (() => {
+            if (!branchPackage.subscription_start_date || !branchPackage.subscription_end_date) return 0;
+            const start = parseISO(branchPackage.subscription_start_date);
+            const end = parseISO(branchPackage.subscription_end_date);
+            return Math.round(differenceInDays(end, start) / 30);
+          })(),
+          price_per_month: branchPackage.price_per_month || 0,
+          total_price: (() => {
+            if (!branchPackage.subscription_start_date || !branchPackage.subscription_end_date) return 0;
+            const start = parseISO(branchPackage.subscription_start_date);
+            const end = parseISO(branchPackage.subscription_end_date);
+            const months = Math.round(differenceInDays(end, start) / 30);
+            return (branchPackage.price_per_month || 0) * months;
+          })(),
+          payment_status: 'paid', // Assuming an 'active' branch package is paid
+          auto_renew: false, // Default to false, adjust if BranchPackage has this field
+          notes: branchPackage.notes,
+        };
+      }
+
+      return null; // No active branch package found for the selected branch
+    }
+
+    // Existing logic for single_tenant or if no selectedBranch in multi_tenant mode
+    return appSubscriptions.find(s => s.status === 'active') ||
+           appSubscriptions.find(s => s.status === 'trial') ||
+           appSubscriptions[0]; // Fallback to the first subscription if no active/trial
+  })();
+
+
+  const getDaysRemaining = () => {
+    if (!activeSubscription?.subscription_end_date) return null;
+    try {
+      const endDate = parseISO(activeSubscription.subscription_end_date);
+      return differenceInDays(endDate, new Date());
+    } catch (e) {
+      console.error("Error parsing subscription end date:", e);
+      return null;
+    }
+  };
+
+  const daysRemaining = getDaysRemaining();
+
+  useEffect(() => {
+    const getConfigValue = (key, applyToAll = true) => {
+      if (!selectedBranch) {
+        return configs.find(c => c.key === key && !c.branch_id);
+      }
+      
+      // ✅ ดึงค่าจากสาขาที่เลือกอยู่เสมอ (Toggle ควบคุมแค่ว่าจะ "บันทึก" ไปที่ไหน)
+      const branchConfig = configs.find(c => c.key === key && c.branch_id === selectedBranch.id);
+      if (branchConfig) return branchConfig;
+      
+      // Fallback to global config if no branch-specific config exists
+      return configs.find(c => c.key === key && !c.branch_id);
+    };
+
+    const buildingNameConfig = getConfigValue('building_name');
+    const addressConfig = getConfigValue('building_address');
+    const phoneConfig = getConfigValue('building_phone');
+    const buildingLogoConfig = getConfigValue('building_logo');
+    const waterRateConfig = getConfigValue('water_rate');
+    const electricityRateConfig = getConfigValue('electricity_rate');
+    const lateFeeConfig = getConfigValue('late_payment_fee_per_day');
+    const internetFeeConfig = getConfigValue('internet_rate');
+    const commonFeeConfig = getConfigValue('common_fee');
+    const accountNameConfig = getConfigValue('bank_account_name');
+    const accountNumberConfig = getConfigValue('bank_account_number');
+    const bankNameConfig = getConfigValue('bank_name');
+    const promptpayConfig = getConfigValue('promptpay');
+    const lessorNameConfig = getConfigValue('lessor_name');
+    const lessorIdConfig = getConfigValue('lessor_id');
+    const lessorPhoneConfig = getConfigValue('lessor_phone');
+    const lessorAddressConfig = getConfigValue('lessor_address');
+    const companyNameConfig = getConfigValue('company_name');
+    const companyRegistrationConfig = getConfigValue('company_registration_number');
+    const companyTaxIdConfig = getConfigValue('company_tax_id');
+    const companyPhoneConfig = getConfigValue('company_phone');
+    const companyAddressConfig = getConfigValue('company_address');
+    const useCompanyAddressConfig = getConfigValue('use_building_address_for_company');
+    
+    if (companyNameConfig?.value) {
+      setHasCompanyInfo(true);
+    }
+    const billGenerationDayConfig = getConfigValue('bill_generation_day');
+    const payDayConfig = getConfigValue('pay_day');
+    const autoSendBillsConfig = getConfigValue('auto_send_bills_after_generation');
+    const billAdvanceNoticeConfig = getConfigValue('bill_advance_notice_days');
+    const sendAdvanceReminderConfig = getConfigValue('send_advance_reminder');
+    const sendDueDateReminderConfig = getConfigValue('send_due_date_reminder');
+    const lateFeeeTiersEnabledConfig = getConfigValue('late_fee_tiers_enabled');
+    const lateFeeTiersConfig = getConfigValue('late_fee_tiers');
+    const carParkingFeeConfig = getConfigValue('car_parking_fee');
+    const motorcycleParkingFeeConfig = getConfigValue('motorcycle_parking_fee');
+    const waterMinimumEnabledConfig = getConfigValue('water_minimum_enabled');
+    const waterMinimumUnitsConfig = getConfigValue('water_minimum_units');
+    const waterMinimumChargeConfig = getConfigValue('water_minimum_charge');
+    const electricityMinimumEnabledConfig = getConfigValue('electricity_minimum_enabled');
+    const electricityMinimumUnitsConfig = getConfigValue('electricity_minimum_units');
+    const electricityMinimumChargeConfig = getConfigValue('electricity_minimum_charge');
+    const signatureConfig = getConfigValue('receipt_signature');
+    const stampConfig = getConfigValue('receipt_stamp');
+    const lineTokenConfig = getConfigValue('line_channel_access_token');
+    const lineSecretConfig = getConfigValue('line_channel_secret');
+    const facebookTokenConfig = getConfigValue('facebook_page_access_token');
+    const facebookVerifyTokenConfig = getConfigValue('facebook_verify_token');
+    const allowMeterHistoryEditingConfig = getConfigValue('allow_meter_history_editing');
+
+    const allLineTokenConfigs = configs.filter(c => c.key === 'line_channel_access_token');
+    
+    // Log for debugging
+    const logMsg1 = `🔄 กำลังโหลด LINE Config - สาขา: ${selectedBranch?.name || 'null'}`;
+    const logMsg2 = `   พบ Config ทั้งหมด: ${allLineTokenConfigs.length} ตัว`;
+    const logMsg3 = lineTokenConfig 
+      ? `   ✅ โหลด Config จากสาขา: ${lineTokenConfig.branch_id ? (branches.find(b => b.id === lineTokenConfig.branch_id)?.branch_name || 'ไม่พบชื่อ') : 'Global'}`
+      : `   ❌ ไม่พบ Config - ใช้ค่าว่าง`;
+    
+    addDebugLog(logMsg1);
+    addDebugLog(logMsg2);
+    addDebugLog(logMsg3);
+    
+    console.log('');
+    console.log('🔄 ============= กำลังโหลด LINE Config =============');
+    console.log('📍 ข้อมูลสาขา:');
+    console.log('   - selectedBranch.id:', selectedBranch?.id || 'null');
+    console.log('   - selectedBranch.name:', selectedBranch?.name || 'null');
+    console.log('   - Toggle ทุกสาขา:', applyToAllBranches_line ? '✅ เปิด' : '❌ ปิด');
+    console.log('');
+    console.log('🔍 ค้นหา Config จาก Database:');
+    
+    console.log(`   - พบ LINE Token Config ทั้งหมด: ${allLineTokenConfigs.length} ตัว`);
+    allLineTokenConfigs.forEach((cfg, idx) => {
+      const branchName = cfg.branch_id ? (branches.find(b => b.id === cfg.branch_id)?.branch_name || 'ไม่พบชื่อ') : 'Global';
+      console.log(`   ${idx + 1}. ${branchName}`);
+      console.log(`      - Config ID: ${cfg.id}`);
+      console.log(`      - Branch ID: ${cfg.branch_id || 'null'}`);
+      console.log(`      - Token: ${cfg.value ? cfg.value.substring(0, 30) + '...' : '(ว่าง)'}`);
+      console.log(`      - Match กับสาขาที่เลือก: ${cfg.branch_id === selectedBranch?.id ? '✅ ใช่' : '❌ ไม่ใช่'}`);
+    });
+    
+    console.log('');
+    console.log('📥 Config ที่จะโหลดมาในฟอร์ม:');
+    if (lineTokenConfig) {
+      const branchName = lineTokenConfig.branch_id ? (branches.find(b => b.id === lineTokenConfig.branch_id)?.branch_name || 'ไม่พบชื่อ') : 'Global';
+      console.log(`   ✅ พบ Config: ${branchName}`);
+      console.log(`   - Config ID: ${lineTokenConfig.id}`);
+      console.log(`   - Branch ID: ${lineTokenConfig.branch_id || 'null'}`);
+      console.log(`   - Token: ${lineTokenConfig.value ? lineTokenConfig.value.substring(0, 40) + '...' : '(ว่าง)'}`);
+    } else {
+      console.log('   ❌ ไม่พบ Config เลย - จะใช้ค่าว่าง');
+    }
+    
+    if (lineSecretConfig) {
+      console.log(`   ✅ พบ Secret Config`);
+      console.log(`   - Secret: ${lineSecretConfig.value ? lineSecretConfig.value.substring(0, 40) + '...' : '(ว่าง)'}`);
+    } else {
+      console.log('   ❌ ไม่พบ Secret Config');
+    }
+    console.log('');
+
+    setBuildingLogo(buildingLogoConfig?.value || '');
+    setSignatureImage(signatureConfig?.value || '');
+    setStampImage(stampConfig?.value || '');
+    
+    // ✅ อัปเดต LINE settings - อัปเดตทุกครั้งเพื่อให้แน่ใจว่าสอดคล้องกับ config
+    const newTokenValue = lineTokenConfig?.value || '';
+    const newSecretValue = lineSecretConfig?.value || '';
+    
+    console.log('🔄 กำลังอัปเดต State:');
+    console.log(`   - Token ใหม่: ${newTokenValue ? newTokenValue.substring(0, 40) + '...' : '(ว่าง)'}`);
+    console.log(`   - Secret ใหม่: ${newSecretValue ? newSecretValue.substring(0, 40) + '...' : '(ว่าง)'}`);
+    
+    setLineSettings(prev => {
+      const newSettings = {
+        line_channel_access_token: newTokenValue,
+        line_channel_secret: newSecretValue
+      };
+      
+      if (prev.line_channel_access_token === newSettings.line_channel_access_token &&
+          prev.line_channel_secret === newSettings.line_channel_secret) {
+        return prev;
+      }
+      return newSettings;
+    });
+
+    setFacebookSettings({
+        facebook_page_access_token: facebookTokenConfig?.value || '',
+        facebook_verify_token: facebookVerifyTokenConfig?.value || ''
+    });
+
+    setMeterSettings(prev => ({...prev, allow_editing_history: allowMeterHistoryEditingConfig?.value === 'true' }));
+
+    setBuildingInfo({
+      building_name: buildingNameConfig?.value || '',
+      address: addressConfig?.value || '',
+      phone: phoneConfig?.value || '',
+    });
+    setLessorInfo({
+      lessor_name: lessorNameConfig?.value || '',
+      lessor_id: lessorIdConfig?.value || '',
+      lessor_phone: lessorPhoneConfig?.value || '',
+      lessor_address: lessorAddressConfig?.value || '',
+    });
+    setCompanyInfo({
+      company_name: companyNameConfig?.value || '',
+      company_registration_number: companyRegistrationConfig?.value || '',
+      company_tax_id: companyTaxIdConfig?.value || '',
+      company_phone: companyPhoneConfig?.value || '',
+      company_address: companyAddressConfig?.value || '',
+      use_building_address: useCompanyAddressConfig?.value === 'true',
+    });
+    setBillingRates({
+      water_rate: waterRateConfig?.value ?? '',
+      electricity_rate: electricityRateConfig?.value ?? '',
+      internet_fee: internetFeeConfig?.value ?? '',
+      common_fee: commonFeeConfig?.value ?? '',
+      car_parking_fee: carParkingFeeConfig?.value ?? '',
+      motorcycle_parking_fee: motorcycleParkingFeeConfig?.value ?? '',
+      water_minimum_enabled: waterMinimumEnabledConfig?.value === 'true',
+      water_minimum_units: waterMinimumUnitsConfig?.value ?? '3',
+      water_minimum_charge: waterMinimumChargeConfig?.value ?? '',
+      electricity_minimum_enabled: electricityMinimumEnabledConfig?.value === 'true',
+      electricity_minimum_units: electricityMinimumUnitsConfig?.value ?? '3',
+      electricity_minimum_charge: electricityMinimumChargeConfig?.value ?? ''
+    });
+    // Parse late fee tiers
+    let parsedTiers = [
+      { days_from: 1, days_to: 7, fee_per_day: '' },
+      { days_from: 8, days_to: 14, fee_per_day: '' },
+      { days_from: 15, days_to: 30, fee_per_day: '' },
+      { days_from: 31, days_to: 999, fee_per_day: '' }
+    ];
+    if (lateFeeTiersConfig?.value) {
+      try {
+        parsedTiers = JSON.parse(lateFeeTiersConfig.value);
+      } catch (e) {
+        console.error('Error parsing late fee tiers:', e);
+      }
+    }
+
+    setBillSettings({
+      bill_generation_day: billGenerationDayConfig?.value || '27',
+      pay_day: payDayConfig?.value || '5',
+      late_fee_per_day: lateFeeConfig?.value || '',
+      auto_send_bills: autoSendBillsConfig?.value === 'true',
+      bill_advance_notice_days: billAdvanceNoticeConfig?.value || '3',
+      send_advance_reminder: sendAdvanceReminderConfig?.value === 'true',
+      send_due_date_reminder: sendDueDateReminderConfig?.value === 'true',
+      late_fee_tiers_enabled: lateFeeeTiersEnabledConfig?.value === 'true',
+      late_fee_tiers: parsedTiers
+    });
+    setBankInfo({
+      account_name: accountNameConfig?.value || '',
+      account_number: accountNumberConfig?.value || '',
+      bank_name: bankNameConfig?.value || '',
+      promptpay: promptpayConfig?.value || ''
+    });
+  }, [configs, selectedBranch]);
+
+  // NEW useEffect for notificationConfigs
+  useEffect(() => {
+    const targetBranchId = applyToAllBranches_billNotif ? null : selectedBranch?.id;
+    const config = notificationConfigs.find(c =>
+      (applyToAllBranches_billNotif ? !c.branch_id : c.branch_id === targetBranchId)
+    );
+
+    if (config) {
+      setNotificationSettings({
+        enabled: config.enabled ?? true,
+        overdue_payment_days: config.overdue_payment_days ?? 1,
+        vacant_room_days: config.vacant_room_days ?? 7,
+        urgent_maintenance_enabled: config.urgent_maintenance_enabled ?? true,
+        unclaimed_delivery_days: config.unclaimed_delivery_days ?? 5,
+        low_daily_revenue_percent: config.low_daily_revenue_percent ?? 20
+      });
+    } else {
+      // If no config found for the current scope, set to default values
+      setNotificationSettings({
+        enabled: true,
+        overdue_payment_days: 1,
+        vacant_room_days: 7,
+        urgent_maintenance_enabled: true,
+        unclaimed_delivery_days: 5,
+        low_daily_revenue_percent: 20
+      });
+    }
+  }, [notificationConfigs, selectedBranch, applyToAllBranches_billNotif]);
+
+
+  useEffect(() => {
+    const initialPermissions = {};
+    users.forEach(user => {
+      initialPermissions[user.id] = user.permissions || [];
+    });
+    setUserPermissions(initialPermissions);
+  }, [users]);
+
+  const updateConfigMutation = useMutation({
+    mutationFn: async ({ key, value, description, category, value_type = 'string', applyToAllBranches }) => {
+      const userAccessibleBranches = currentUser?.accessible_branches || [];
+      const isDeveloper = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+      
+      // Helper function to process items in chunks to avoid Rate Limits (429 Errors)
+      const processInChunks = async (items, fn, chunkSize = 3) => {
+        const results = [];
+        for (let i = 0; i < items.length; i += chunkSize) {
+          const chunk = items.slice(i, i + chunkSize);
+          const chunkResults = await Promise.all(chunk.map(fn));
+          results.push(...chunkResults);
+          // Small delay between chunks to be nice to the API
+          if (i + chunkSize < items.length) await new Promise(r => setTimeout(r, 300));
+        }
+        return results;
+      };
+
+      // ⭐ Case 1: Owner/Manager saving to ALL accessible branches
+      if (applyToAllBranches && !isDeveloper && userAccessibleBranches.length > 0) {
+        return processInChunks(userAccessibleBranches, async (branchId) => {
+          const existingConfigs = configs.filter(c => c.key === key && c.branch_id === branchId);
+          
+          if (existingConfigs.length > 0) {
+            const first = existingConfigs[0];
+            // Optimization: Skip update if value hasn't changed
+            if (first.value === value.toString()) return first;
+
+            // Update the first match
+            await base44.entities.Config.update(first.id, { 
+              value: value.toString(),
+              value_type,
+              description,
+              category: category || 'billing' 
+            });
+            
+            // Cleanup of duplicates disabled to prevent rate limiting
+            // This was causing 429 errors when many duplicates existed
+            
+            return first;
+          } else {
+            // Create new
+            return base44.entities.Config.create({
+              key,
+              value: value.toString(),
+              value_type,
+              description,
+              category: category || 'billing',
+              branch_id: branchId
+            });
+          }
+        });
+      }
+      
+      // ⭐ Case 2: Developer Global (branch_id = null)
+      if (applyToAllBranches && isDeveloper) {
+          const globalConfigs = configs.filter(c => c.key === key && !c.branch_id);
+          
+          if (globalConfigs.length > 0) {
+              const first = globalConfigs[0];
+              if (first.value !== value.toString()) {
+                  await base44.entities.Config.update(first.id, { value: value.toString() });
+              }
+              
+              // Cleanup of duplicates disabled to prevent rate limiting
+              
+              return first;
+          } else {
+              return base44.entities.Config.create({
+                  key,
+                  value: value.toString(),
+                  value_type,
+                  description,
+                  category: category || 'billing',
+                  branch_id: null
+              });
+          }
+      }
+
+      // ⭐ Case 3: Specific Branch (Single update)
+      const targetBranchId = selectedBranch?.id;
+      // Safety check
+      if (!applyToAllBranches && !targetBranchId) {
+          throw new Error("ไม่พบข้อมูลสาขา กรุณาเลือกสาขาก่อนบันทึก");
+      }
+
+      const branchConfigs = configs.filter(c => c.key === key && c.branch_id === targetBranchId);
+      
+      if (branchConfigs.length > 0) {
+          const first = branchConfigs[0];
+          if (first.value !== value.toString()) {
+              await base44.entities.Config.update(first.id, { 
+                  value: value.toString(),
+                  value_type,
+                  description,
+                  category: category || 'billing'
+              });
+          }
+          
+          // Cleanup of duplicates disabled to prevent rate limiting
+          
+          return first;
+      } else {
+          return base44.entities.Config.create({
+              key,
+              value: value.toString(),
+              value_type,
+              description,
+              category: category || 'billing',
+              branch_id: targetBranchId
+          });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['configs']);
+    },
+    onError: (error) => {
+      toast.error('เกิดข้อผิดพลาด: ' + (error.message || 'ไม่สามารถบันทึกได้'));
+    }
+  });
+
+  const updateUserPermissionsMutation = useMutation({
+    mutationFn: ({ userId, permissions }) => base44.entities.User.update(userId, { permissions }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['users']);
+      toast.success('อัปเดตสิทธิ์สำเร็จ');
+    },
+    onError: () => {
+      toast.error('อัปเดตสิทธิ์ไม่สำเร็จ');
+    }
+  });
+
+  const updateUserRoleMutation = useMutation({
+    mutationFn: ({ userId, custom_role, permissions }) =>
+      base44.entities.User.update(userId, { custom_role, permissions }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['users']);
+      toast.success('เปลี่ยนบทบาทสำเร็จ');
+    },
+    onError: () => {
+      toast.error('เปลี่ยนบทบาทไม่สำเร็จ');
+    }
+  });
+
+  // เพิ่ม mutation สำหรับอัปเดต accessible_branches
+  const updateUserBranchesMutation = useMutation({
+    mutationFn: ({ userId, accessible_branches }) =>
+      base44.entities.User.update(userId, { accessible_branches }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['users']);
+      toast.success('อัปเดตสาขาที่เข้าถึงได้สำเร็จ');
+    },
+    onError: () => {
+      toast.error('อัปเดตสาขาที่เข้าถึงได้ไม่สำเร็จ');
+    }
+  });
+
+  // NEW: Mutation for NotificationConfig
+  const saveNotificationSettingsMutation = useMutation({
+    mutationFn: async (data) => {
+      const userAccessibleBranches = currentUser?.accessible_branches || [];
+      const isDeveloper = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+      
+      // Helper function to process items in chunks (Inline definition to avoid dependency issues)
+      const processInChunks = async (items, fn, chunkSize = 3) => {
+        const results = [];
+        for (let i = 0; i < items.length; i += chunkSize) {
+          const chunk = items.slice(i, i + chunkSize);
+          const chunkResults = await Promise.all(chunk.map(fn));
+          results.push(...chunkResults);
+          if (i + chunkSize < items.length) await new Promise(r => setTimeout(r, 300));
+        }
+        return results;
+      };
+
+      // ⭐ Case 1: Owner/Manager saving to ALL accessible branches (Upsert Pattern)
+      if (applyToAllBranches_billNotif && !isDeveloper && userAccessibleBranches.length > 0) {
+        return processInChunks(userAccessibleBranches, async (branchId) => {
+          const existingConfigs = notificationConfigs.filter(c => c.branch_id === branchId);
+          
+          if (existingConfigs.length > 0) {
+            const first = existingConfigs[0];
+            // Update first match
+            return base44.entities.NotificationConfig.update(first.id, {
+              ...data,
+              branch_id: branchId
+            });
+            // Note: Duplicate cleanup disabled to prevent 429
+          } else {
+            // Create new
+            return base44.entities.NotificationConfig.create({
+              ...data,
+              branch_id: branchId
+            });
+          }
+        });
+      }
+      
+      // ⭐ Case 2 & 3: Developer Global OR Specific Branch
+      const targetBranchId = applyToAllBranches_billNotif ? null : selectedBranch?.id;
+      
+      // For specific branch, we might have existing config for that branch
+      // For global (developer), we look for config with branch_id = null
+      
+      const existingConfigs = notificationConfigs.filter(c => 
+        (applyToAllBranches_billNotif ? !c.branch_id : c.branch_id === targetBranchId)
+      );
+
+      if (existingConfigs.length > 0) {
+        const first = existingConfigs[0];
+        return base44.entities.NotificationConfig.update(first.id, {
+          ...data,
+          branch_id: targetBranchId
+        });
+        // Note: Duplicate cleanup disabled
+      } else {
+        return base44.entities.NotificationConfig.create({
+          ...data,
+          branch_id: targetBranchId
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['notificationConfigs']);
+      toast.success('บันทึกการตั้งค่าการแจ้งเตือนสำเร็จ');
+    },
+    onError: (error) => {
+      toast.error('เกิดข้อผิดพลาดในการบันทึกการตั้งค่า');
+      console.error(error);
+    }
+  });
+
+  // เพิ่ม handler สำหรับจัดการ branch access
+  const handleOpenBranchAccessDialog = (user) => {
+    setSelectedUserForBranches(user);
+    setShowBranchAccessDialog(true);
+    setUserBranchAccess({
+      [user.id]: user.accessible_branches || []
+    });
+  };
+
+  const toggleBranchAccess = (userId, branchId) => {
+    setUserBranchAccess(prev => {
+      const currentBranches = prev[userId] || [];
+      const hasBranch = currentBranches.includes(branchId);
+
+      const newBranches = hasBranch
+        ? currentBranches.filter(b => b !== branchId)
+        : [...currentBranches, branchId];
+
+      return {
+        ...prev,
+        [userId]: newBranches
+      };
+    });
+  };
+
+  const handleSaveUserBranches = (userId) => {
+    updateUserBranchesMutation.mutate({
+      userId,
+      accessible_branches: userBranchAccess[userId] || []
+    });
+    setShowBranchAccessDialog(false); // Close dialog after saving
+  };
+
+  // ฟังก์ชันช่วยเหลือในการแสดงชื่อสาขา
+  const getBranchName = (branchId) => {
+    const branch = branches.find(b => b.id === branchId);
+    return branch?.branch_name || branchId;
+  };
+
+  const handleSaveSignature = async () => {
+    if (signaturePadRef.current?.isEmpty()) {
+      toast.error('กรุณาเซ็นลายเซ็นก่อน');
+      return;
+    }
+
+    setUploadingSignature(true);
+    try {
+      const dataUrl = signaturePadRef.current.toDataURL();
+
+      const blob = await fetch(dataUrl).then(r => r.blob());
+      const file = new File([blob], `signature-${Date.now()}.png`, { type: 'image/png' });
+
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+      await updateConfigMutation.mutateAsync({
+        key: 'receipt_signature',
+        value: file_url,
+        description: 'ลายเซ็นผู้รับเงินสำหรับใบเสร็จ',
+        category: 'general',
+        applyToAllBranches: applyToAllBranches_signature
+      });
+
+      setSignatureImage(file_url);
+      setShowSignatureDialog(false);
+      toast.success('บันทึกลายเซ็นสำเร็จ' + (applyToAllBranches_signature ? ' (ทุกสาขาที่คุณดูแล)' : ` (${selectedBranch?.name})`));
+    } catch (error) {
+      toast.error('บันทึกลายเซ็นไม่สำเร็จ');
+    }
+    setUploadingSignature(false);
+  };
+
+  const handleStampUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingStamp(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+      await updateConfigMutation.mutateAsync({
+        key: 'receipt_stamp',
+        value: file_url,
+        description: 'ตราประทับสำหรับใบเสร็จ',
+        category: 'general',
+        applyToAllBranches: applyToAllBranches_signature
+      });
+
+      setStampImage(file_url);
+      toast.success('อัพโหลดตราประทับสำเร็จ' + (applyToAllBranches_signature ? ' (ทุกสาขาที่คุณดูแล)' : ` (${selectedBranch?.name})`));
+    } catch (error) {
+      toast.error('อัพโหลดตราประทับไม่สำเร็จ');
+    }
+    setUploadingStamp(false);
+    e.target.value = '';
+  };
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('ขนาดไฟล์ต้องไม่เกิน 5MB');
+      e.target.value = '';
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+
+      await updateConfigMutation.mutateAsync({
+        key: 'building_logo',
+        value: file_url,
+        description: 'โลโก้หอพัก',
+        category: 'general',
+        applyToAllBranches: applyToAllBranches_building
+      });
+
+      setBuildingLogo(file_url);
+      toast.success('อัพโหลดโลโก้สำเร็จ' + (applyToAllBranches_building ? ' (ทุกสาขา)' : ` (${selectedBranch?.name})`));
+    } catch (error) {
+      toast.error('อัพโหลดโลโก้ไม่สำเร็จ');
+    }
+    setUploadingLogo(false);
+    e.target.value = '';
+  };
+
+
+  const handleBuildingInfoSubmit = async (e) => {
+    e.preventDefault();
+    setIsSavingBuildingInfo(true);
+    try {
+      const savePromises = [
+        updateConfigMutation.mutateAsync({ key: 'building_name', value: buildingInfo.building_name, description: 'ชื่อหอพัก', category: 'general', applyToAllBranches: applyToAllBranches_building }),
+        updateConfigMutation.mutateAsync({ key: 'building_address', value: buildingInfo.address, description: 'ที่อยู่หอพัก', category: 'general', applyToAllBranches: applyToAllBranches_building }),
+        updateConfigMutation.mutateAsync({ key: 'building_phone', value: buildingInfo.phone, description: 'เบอร์โทรหอพัก', category: 'general', applyToAllBranches: applyToAllBranches_building }),
+        updateConfigMutation.mutateAsync({ key: 'lessor_name', value: lessorInfo.lessor_name, description: 'ชื่อ-นามสกุลผู้ให้เช่า', category: 'general', applyToAllBranches: applyToAllBranches_building }),
+        updateConfigMutation.mutateAsync({ key: 'lessor_id', value: lessorInfo.lessor_id, description: 'เลขบัตรประชาชนผู้ให้เช่า', category: 'general', applyToAllBranches: applyToAllBranches_building }),
+        updateConfigMutation.mutateAsync({ key: 'lessor_phone', value: lessorInfo.lessor_phone, description: 'เบอร์โทรผู้ให้เช่า', category: 'general', applyToAllBranches: applyToAllBranches_building }),
+        updateConfigMutation.mutateAsync({ key: 'lessor_address', value: lessorInfo.lessor_address, description: 'ที่อยู่ผู้ให้เช่า', category: 'general', applyToAllBranches: applyToAllBranches_building }),
+        updateConfigMutation.mutateAsync({ key: 'company_name', value: companyInfo.company_name, description: 'ชื่อบริษัท (ถ้ามี)', category: 'general', applyToAllBranches: applyToAllBranches_building }),
+        updateConfigMutation.mutateAsync({ key: 'company_registration_number', value: companyInfo.company_registration_number, description: 'เลขทะเบียนนิติบุคคล', category: 'general', applyToAllBranches: applyToAllBranches_building }),
+        updateConfigMutation.mutateAsync({ key: 'company_tax_id', value: companyInfo.company_tax_id, description: 'เลขประจำตัวผู้เสียภาษี (13 หลัก)', category: 'general', applyToAllBranches: applyToAllBranches_building }),
+        updateConfigMutation.mutateAsync({ key: 'company_phone', value: companyInfo.company_phone, description: 'เบอร์โทรบริษัท', category: 'general', applyToAllBranches: applyToAllBranches_building }),
+        updateConfigMutation.mutateAsync({ key: 'company_address', value: companyInfo.use_building_address ? buildingInfo.address : companyInfo.company_address, description: 'ที่อยู่บริษัท (ตามทะเบียน)', category: 'general', applyToAllBranches: applyToAllBranches_building }),
+        updateConfigMutation.mutateAsync({ key: 'use_building_address_for_company', value: companyInfo.use_building_address ? 'true' : 'false', description: 'ใช้ที่อยู่เดียวกับหอพัก', category: 'general', applyToAllBranches: applyToAllBranches_building })
+      ];
+      await Promise.all(savePromises);
+      toast.success('บันทึกข้อมูลหอพักสำเร็จ' + (applyToAllBranches_building ? ' (ทุกสาขาที่คุณดูแล)' : ` (${selectedBranch?.name})`));
+    } catch (error) {
+      console.error('Building info save error:', error);
+      toast.error('บันทึกข้อมูลไม่สำเร็จ: ' + (error.message || 'กรุณาลองใหม่อีกครั้ง'));
+    } finally {
+      setIsSavingBuildingInfo(false);
+    }
+  };
+
+  const handleBillingRatesSubmit = async (e) => {
+    e.preventDefault();
+    setIsSavingBillingRates(true);
+    try {
+      await Promise.all([
+        updateConfigMutation.mutateAsync({ key: 'water_rate', value: billingRates.water_rate, description: 'ค่าน้ำต่อหน่วย (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
+        updateConfigMutation.mutateAsync({ key: 'electricity_rate', value: billingRates.electricity_rate, description: 'ค่าไฟต่อหน่วย (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
+        updateConfigMutation.mutateAsync({ key: 'internet_rate', value: billingRates.internet_fee, description: 'ค่าอินเทอร์เน็ต (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
+        updateConfigMutation.mutateAsync({ key: 'common_fee', value: billingRates.common_fee, description: 'ค่าส่วนกลาง (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
+        updateConfigMutation.mutateAsync({ key: 'car_parking_fee', value: billingRates.car_parking_fee, description: 'ค่าจอดรถยนต์ (บาท/คัน)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
+        updateConfigMutation.mutateAsync({ key: 'motorcycle_parking_fee', value: billingRates.motorcycle_parking_fee, description: 'ค่าจอดรถมอเตอร์ไซค์ (บาท/คัน)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
+        // ค่าขั้นต่ำสำหรับน้ำ
+        updateConfigMutation.mutateAsync({ key: 'water_minimum_enabled', value: billingRates.water_minimum_enabled ? 'true' : 'false', description: 'เปิดใช้ค่าน้ำขั้นต่ำ', value_type: 'string', applyToAllBranches: applyToAllBranches_billing }),
+        updateConfigMutation.mutateAsync({ key: 'water_minimum_units', value: billingRates.water_minimum_units, description: 'หน่วยน้ำขั้นต่ำ', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
+        updateConfigMutation.mutateAsync({ key: 'water_minimum_charge', value: billingRates.water_minimum_charge, description: 'ค่าน้ำขั้นต่ำ (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
+        // ค่าขั้นต่ำสำหรับไฟ
+        updateConfigMutation.mutateAsync({ key: 'electricity_minimum_enabled', value: billingRates.electricity_minimum_enabled ? 'true' : 'false', description: 'เปิดใช้ค่าไฟขั้นต่ำ', value_type: 'string', applyToAllBranches: applyToAllBranches_billing }),
+        updateConfigMutation.mutateAsync({ key: 'electricity_minimum_units', value: billingRates.electricity_minimum_units, description: 'หน่วยไฟขั้นต่ำ', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
+        updateConfigMutation.mutateAsync({ key: 'electricity_minimum_charge', value: billingRates.electricity_minimum_charge, description: 'ค่าไฟขั้นต่ำ (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing })
+      ]);
+      toast.success('บันทึกอัตราค่าใช้จ่ายสำเร็จ' + (applyToAllBranches_billing ? ' (ทุกสาขาที่คุณดูแล)' : ` (${selectedBranch?.name})`));
+    } catch (error) {
+      console.error('Billing rates save error:', error);
+      toast.error('บันทึกอัตราค่าใช้จ่ายไม่สำเร็จ: ' + (error.message || 'กรุณาลองใหม่อีกครั้ง'));
+    } finally {
+      setIsSavingBillingRates(false);
+    }
+  };
+
+  const handleBillSettingsSubmit = async (e) => {
+    e.preventDefault();
+    setIsSavingBillSettings(true);
+    try {
+      await Promise.all([
+        updateConfigMutation.mutateAsync({ key: 'bill_generation_day', value: billSettings.bill_generation_day, description: 'วันที่สร้างบิลอัตโนมัติ (วันที่ของเดือน)', category: 'general', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif }),
+        updateConfigMutation.mutateAsync({ key: 'pay_day', value: billSettings.pay_day, description: 'วันครบกำหนดชำระ (วันที่ของเดือน)', category: 'general', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif }),
+        updateConfigMutation.mutateAsync({ key: 'late_payment_fee_per_day', value: billSettings.late_fee_per_day, description: 'ค่าปรับล่าช้าต่อวัน (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif }),
+        updateConfigMutation.mutateAsync({ key: 'auto_send_bills_after_generation', value: billSettings.auto_send_bills ? 'true' : 'false', description: 'ส่งบิลอัตโนมัติหลังจากสร้างบิล', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }),
+        updateConfigMutation.mutateAsync({ key: 'bill_advance_notice_days', value: billSettings.bill_advance_notice_days, description: 'แจ้งบิลล่วงหน้ากี่วัน', category: 'general', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif }),
+        updateConfigMutation.mutateAsync({ key: 'send_advance_reminder', value: billSettings.send_advance_reminder ? 'true' : 'false', description: 'เปิด/ปิดการแจ้งบิลล่วงหน้า', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }),
+        updateConfigMutation.mutateAsync({ key: 'send_due_date_reminder', value: billSettings.send_due_date_reminder ? 'true' : 'false', description: 'ส่งข้อความเตือนในวันครบกำหนดชำระ', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }),
+        updateConfigMutation.mutateAsync({ key: 'late_fee_tiers_enabled', value: billSettings.late_fee_tiers_enabled ? 'true' : 'false', description: 'เปิดใช้ค่าปรับแบบขั้นบันได', category: 'billing', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }),
+        updateConfigMutation.mutateAsync({ key: 'late_fee_tiers', value: JSON.stringify(billSettings.late_fee_tiers), description: 'เงื่อนไขค่าปรับแบบขั้นบันได', category: 'billing', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif })
+      ]);
+      
+      // ✅ Success Message (Requested Feature)
+      toast.success('✅ บันทึกการตั้งค่าบิลสำเร็จแล้ว', {
+        description: applyToAllBranches_billNotif
+          ? 'มีผลกับทุกสาขาที่คุณดูแล'
+          : `มีผลเฉพาะสาขา: ${selectedBranch?.name} (สร้างบิลวันที่ ${billSettings.bill_generation_day})`,
+        duration: 5000,
+      });
+      setJustSavedBillSettings(true);
+      setTimeout(() => setJustSavedBillSettings(false), 3000);
+    } catch (error) {
+      console.error('Bill settings save error:', error);
+      toast.error('บันทึกการตั้งค่าบิลไม่สำเร็จ: ' + (error.message || 'กรุณาลองใหม่อีกครั้ง'));
+    } finally {
+      setIsSavingBillSettings(false);
+    }
+  };
+
+  const handleBankInfoSubmit = async (e) => {
+    e.preventDefault();
+    setIsSavingBankInfo(true);
+    try {
+      await Promise.all([
+        updateConfigMutation.mutateAsync({ key: 'bank_account_name', value: bankInfo.account_name, description: 'ชื่อบัญชีธนาคาร', category: 'general', applyToAllBranches: applyToAllBranches_bank }),
+        updateConfigMutation.mutateAsync({ key: 'bank_account_number', value: bankInfo.account_number, description: 'เลขที่บัญชี', category: 'general', applyToAllBranches: applyToAllBranches_bank }),
+        updateConfigMutation.mutateAsync({ key: 'bank_name', value: bankInfo.bank_name, description: 'ชื่อธนาคาร', category: 'general', applyToAllBranches: applyToAllBranches_bank }),
+        updateConfigMutation.mutateAsync({ key: 'promptpay', value: bankInfo.promptpay, description: 'พร้อมเพย์', category: 'general', applyToAllBranches: applyToAllBranches_bank })
+      ]);
+      toast.success('บันทึกข้อมูลบัญชีธนาคารสำเร็จ' + (applyToAllBranches_bank ? ' (ทุกสาขาที่คุณดูแล)' : ` (${selectedBranch?.name})`));
+    } catch (error) {
+      console.error('Bank info save error:', error);
+      toast.error('บันทึกข้อมูลธนาคารไม่สำเร็จ: ' + (error.message || 'กรุณาลองใหม่อีกครั้ง'));
+    } finally {
+      setIsSavingBankInfo(false);
+    }
+  };
+
+  const handleLineSettingsSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!lineSettings.line_channel_access_token || !lineSettings.line_channel_access_token.trim()) {
+      toast.error('กรุณากรอก LINE Channel Access Token');
+      return;
+    }
+    
+    setIsSavingLineSettings(true);
+    
+    const userAccessibleBranches = currentUser?.accessible_branches || [];
+    let targetBranchIds;
+    
+    if (applyToAllBranches_line) {
+      if (userAccessibleBranches.length > 0) {
+        targetBranchIds = userAccessibleBranches;
+      } else {
+        // กรณีเป็น Owner/Developer ที่เข้าถึงได้ทุกสาขา (ไม่มี list จำกัด)
+        // ให้บันทึกใส่ทุกสาขาที่มีในระบบ
+        targetBranchIds = branches.map(b => b.id);
+      }
+    } else {
+      targetBranchIds = [selectedBranch?.id].filter(Boolean);
+    }
+    
+    addDebugLog('🚀 เริ่มบันทึก LINE Settings', 'info');
+    addDebugLog(`📝 Token: ${lineSettings.line_channel_access_token.substring(0, 40)}...`);
+    addDebugLog(`📝 Toggle: ${applyToAllBranches_line ? '✅ ทุกสาขา' : '❌ เฉพาะสาขา ' + selectedBranch?.name}`);
+    addDebugLog(`📝 Target: ${targetBranchIds.length} สาขา`);
+    
+    console.log('');
+    console.log('🚀 ============= เริ่มบันทึก LINE Settings =============');
+    console.log('📝 ข้อมูลที่กำลังจะบันทึก:');
+    console.log('   - Token:', lineSettings.line_channel_access_token.substring(0, 40) + '...');
+    console.log('   - Secret:', lineSettings.line_channel_secret ? lineSettings.line_channel_secret.substring(0, 40) + '...' : '(ไม่มี)');
+    console.log('   - Toggle ทุกสาขา:', applyToAllBranches_line ? '✅ เปิด' : '❌ ปิด');
+    console.log('   - สาขาที่เลือก:', selectedBranch);
+    console.log('   - User accessible branches:', userAccessibleBranches);
+    console.log('   - Target branch IDs (จะบันทึกไปที่):', targetBranchIds);
+    console.log('');
+    
+    if (targetBranchIds.length === 0) {
+      console.error('❌ ERROR: ไม่มี targetBranchIds - ไม่สามารถบันทึกได้');
+      addDebugLog('❌ ERROR: ไม่มีสาขาที่จะบันทึก', 'error');
+      toast.error('ไม่พบสาขาที่จะบันทึก - กรุณาเลือกสาขาก่อน');
+      return;
+    }
+    
+    try {
+      // ✅ บันทึกให้ทุกสาขาที่กำหนด
+      const savedResults = [];
+      
+      for (let i = 0; i < targetBranchIds.length; i++) {
+        const branchId = targetBranchIds[i];
+        const branchName = branches.find(b => b.id === branchId)?.branch_name || 'ไม่พบชื่อ';
+        
+        addDebugLog(`📍 [${i + 1}/${targetBranchIds.length}] ${branchName}`);
+        
+        console.log(`\n📍 กำลังบันทึกสาขาที่ ${i + 1}/${targetBranchIds.length}:`);
+        console.log(`   - Branch ID: ${branchId}`);
+        console.log(`   - Branch Name: ${branchName}`);
+        
+        // Token
+        const existingTokenConfig = configs.find(c => 
+          c.key === 'line_channel_access_token' && c.branch_id === branchId
+        );
+        
+        console.log(`   - มี Token Config เดิมหรือไม่: ${existingTokenConfig ? `✅ มี (ID: ${existingTokenConfig.id})` : '❌ ไม่มี (จะสร้างใหม่)'}`);
+        
+        let tokenResult;
+        if (existingTokenConfig) {
+          addDebugLog(`   → UPDATE Token (ID: ${existingTokenConfig.id.substring(0, 8)}...)`);
+          console.log(`   - กำลัง UPDATE Token Config ID: ${existingTokenConfig.id}`);
+          tokenResult = await base44.entities.Config.update(existingTokenConfig.id, {
+            value: lineSettings.line_channel_access_token.trim()
+          });
+          console.log(`   - ✅ UPDATE Token สำเร็จ`);
+          addDebugLog(`   ✅ UPDATE Token สำเร็จ`);
+        } else {
+          addDebugLog(`   → CREATE Token ใหม่`);
+          console.log(`   - กำลัง CREATE Token Config ใหม่`);
+          tokenResult = await base44.entities.Config.create({
+            key: 'line_channel_access_token',
+            value: lineSettings.line_channel_access_token.trim(),
+            branch_id: branchId,
+            category: 'notification',
+            description: `LINE Token สำหรับสาขา ${branchName}`
+          });
+          console.log(`   - ✅ CREATE Token สำเร็จ (New ID: ${tokenResult.id})`);
+          addDebugLog(`   ✅ CREATE Token สำเร็จ (ID: ${tokenResult.id.substring(0, 8)}...)`);
+        }
+        
+        savedResults.push({ branchId, branchName, tokenSaved: true });
+
+        // Secret
+        if (lineSettings.line_channel_secret && lineSettings.line_channel_secret.trim()) {
+          const existingSecretConfig = configs.find(c => 
+            c.key === 'line_channel_secret' && c.branch_id === branchId
+          );
+          
+          console.log(`   - มี Secret Config เดิมหรือไม่: ${existingSecretConfig ? `✅ มี (ID: ${existingSecretConfig.id})` : '❌ ไม่มี (จะสร้างใหม่)'}`);
+          
+          if (existingSecretConfig) {
+            console.log(`   - กำลัง UPDATE Secret Config ID: ${existingSecretConfig.id}`);
+            await base44.entities.Config.update(existingSecretConfig.id, {
+              value: lineSettings.line_channel_secret.trim()
+            });
+            console.log(`   - ✅ UPDATE Secret สำเร็จ`);
+          } else {
+            console.log(`   - กำลัง CREATE Secret Config ใหม่`);
+            const secretResult = await base44.entities.Config.create({
+              key: 'line_channel_secret',
+              value: lineSettings.line_channel_secret.trim(),
+              branch_id: branchId,
+              category: 'notification',
+              description: `LINE Secret สำหรับสาขา ${branchName}`
+            });
+            console.log(`   - ✅ CREATE Secret สำเร็จ (New ID: ${secretResult.id})`);
+          }
+        }
+
+
+      }
+      
+      addDebugLog('✅ บันทึกเสร็จทั้งหมด', 'success');
+      savedResults.forEach((result, idx) => {
+        addDebugLog(`   ${idx + 1}. ${result.branchName} - ✅ สำเร็จ`);
+      });
+      
+      console.log('');
+      console.log('✅ ============= บันทึกเสร็จทั้งหมด =============');
+      console.log('📊 สรุปผลลัพธ์:');
+      savedResults.forEach((result, idx) => {
+        console.log(`   ${idx + 1}. ${result.branchName} (ID: ${result.branchId.substring(0, 12)}...) - ✅ บันทึกสำเร็จ`);
+      });
+      console.log('');
+      console.log('🔄 กำลัง invalidate queries เพื่อ refresh ข้อมูล...');
+      
+      addDebugLog('🔄 กำลัง refresh ข้อมูล...');
+      
+      // รอให้ query invalidate เสร็จก่อน
+      await queryClient.invalidateQueries(['configs']);
+      
+      console.log('✅ Invalidate queries เสร็จแล้ว');
+      console.log('🔄 ระบบจะ reload ข้อมูล configs ใหม่อัตโนมัติ...');
+      console.log('');
+      
+      addDebugLog('✅ Refresh ข้อมูลเสร็จแล้ว', 'success');
+      addDebugLog('');
+      addDebugLog('🔍 ===== ตรวจสอบหลังบันทึก =====', 'info');
+      
+      // รอ 1 วินาทีให้ query โหลดเสร็จ
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // ดึงข้อมูล configs ล่าสุดอีกครั้ง
+      const latestConfigs = await base44.entities.Config.list();
+      const verifyResults = [];
+      
+      for (const branchId of targetBranchIds) {
+        const branchName = branches.find(b => b.id === branchId)?.branch_name || 'ไม่พบชื่อ';
+        const savedConfig = latestConfigs.find(c => 
+          c.key === 'line_channel_access_token' && c.branch_id === branchId
+        );
+        
+        if (savedConfig) {
+          const tokenMatch = savedConfig.value === lineSettings.line_channel_access_token.trim();
+          addDebugLog(`   ${tokenMatch ? '✅' : '❌'} ${branchName}: ${tokenMatch ? 'Token ตรงกัน' : 'Token ไม่ตรงกัน!'}`, tokenMatch ? 'success' : 'error');
+          verifyResults.push({ branchName, verified: tokenMatch, configId: savedConfig.id });
+          
+          if (!tokenMatch) {
+            addDebugLog(`      บันทึก: ${lineSettings.line_channel_access_token.substring(0, 20)}...`, 'error');
+            addDebugLog(`      DB มี: ${savedConfig.value.substring(0, 20)}...`, 'error');
+          }
+        } else {
+          addDebugLog(`   ❌ ${branchName}: ไม่พบ Config ใน Database!`, 'error');
+          verifyResults.push({ branchName, verified: false, configId: null });
+        }
+      }
+      
+      const allVerified = verifyResults.every(r => r.verified);
+      addDebugLog('');
+      if (allVerified) {
+        addDebugLog('🎉 ตรวจสอบแล้ว: บันทึกสำเร็จทุกสาขา', 'success');
+      } else {
+        addDebugLog('⚠️ พบปัญหา: บางสาขาบันทึกไม่สำเร็จ', 'error');
+        addDebugLog('📌 แนะนำ: ลอง Refresh หน้า (F5) แล้วเช็คว่า Token ยังอยู่หรือไม่', 'info');
+      }
+      
+      const branchCount = targetBranchIds.length;
+      toast.success(`บันทึก LINE Token สำเร็จ - ${branchCount} สาขา`, {
+        description: savedResults.map(r => `✅ ${r.branchName}`).join('\n')
+      });
+    } catch (error) {
+      addDebugLog('❌ เกิดข้อผิดพลาด: ' + (error?.message || 'Unknown'), 'error');
+      
+      console.error('');
+      console.error('❌ ============= เกิดข้อผิดพลาด =============');
+      console.error('Error:', error);
+      console.error('Error message:', error?.message);
+      console.error('Error response:', error?.response?.data);
+      console.error('');
+      toast.error('ไม่สามารถบันทึกได้: ' + (error?.message || 'กรุณาลองใหม่'));
+    } finally {
+      setIsSavingLineSettings(false);
+    }
+  };
+
+  // NEW: Handler for saving new notification settings
+  const handleSaveNotificationSettings = () => {
+    saveNotificationSettingsMutation.mutate(notificationSettings);
+  };
+
+
+  const handleMeterSettingsSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await updateConfigMutation.mutateAsync({
+        key: 'allow_meter_history_editing',
+        value: meterSettings.allow_editing_history ? 'true' : 'false',
+        description: 'อนุญาตให้แก้ไขประวัติมิเตอร์ย้อนหลัง',
+        category: 'billing',
+        value_type: 'string',
+        applyToAllBranches: applyToAllBranches_meter
+      });
+      toast.success('บันทึกการตั้งค่ามิเตอร์สำเร็จ' + (applyToAllBranches_meter ? ' (ทุกสาขาที่คุณดูแล)' : ` (${selectedBranch?.name})`));
+    } catch (error) {
+      toast.error('บันทึกไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const handleFacebookSettingsSubmit = async (e) => {
+    e.preventDefault();
+    setIsSavingFacebookSettings(true);
+
+    const userAccessibleBranches = currentUser?.accessible_branches || [];
+    let targetBranchIds;
+    
+    if (applyToAllBranches_facebook) {
+      if (userAccessibleBranches.length > 0) {
+        targetBranchIds = userAccessibleBranches;
+      } else {
+        targetBranchIds = branches.map(b => b.id);
+      }
+    } else {
+      targetBranchIds = [selectedBranch?.id].filter(Boolean);
+    }
+
+    try {
+      for (const branchId of targetBranchIds) {
+        // Update Page Access Token
+        const existingToken = configs.find(c => c.key === 'facebook_page_access_token' && c.branch_id === branchId);
+        if (existingToken) {
+          await base44.entities.Config.update(existingToken.id, { value: facebookSettings.facebook_page_access_token.trim() });
+        } else {
+          await base44.entities.Config.create({
+            key: 'facebook_page_access_token',
+            value: facebookSettings.facebook_page_access_token.trim(),
+            branch_id: branchId,
+            category: 'notification',
+            description: 'Facebook Page Access Token'
+          });
+        }
+
+        // Update Verify Token
+        const existingVerify = configs.find(c => c.key === 'facebook_verify_token' && c.branch_id === branchId);
+        if (existingVerify) {
+          await base44.entities.Config.update(existingVerify.id, { value: facebookSettings.facebook_verify_token.trim() });
+        } else {
+          await base44.entities.Config.create({
+            key: 'facebook_verify_token',
+            value: facebookSettings.facebook_verify_token.trim(),
+            branch_id: branchId,
+            category: 'notification',
+            description: 'Facebook Webhook Verify Token'
+          });
+        }
+      }
+      
+      await queryClient.invalidateQueries(['configs']);
+      toast.success('บันทึกการตั้งค่า Facebook สำเร็จ');
+    } catch (error) {
+      toast.error('บันทึกไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsSavingFacebookSettings(false);
+    }
+  };
+
+  const toggleCategory = (categoryKey) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryKey]: !prev[categoryKey]
+    }));
+  };
+
+  const togglePermission = (userId, permissionId) => {
+    setUserPermissions(prev => {
+      const currentPermissions = prev[userId] || [];
+      const hasPermission = currentPermissions.includes(permissionId);
+
+      const newPermissions = hasPermission
+        ? currentPermissions.filter(p => p !== permissionId)
+        : [...currentPermissions, permissionId];
+
+      return {
+        ...prev,
+        [userId]: newPermissions
+      };
+    });
+  };
+
+  const selectAllInCategory = (userId, categoryKey) => {
+    // Use PERMISSION_CATEGORIES_DISPLAY here
+    const categoryPermissions = PERMISSION_CATEGORIES_DISPLAY[categoryKey].permissions.map(p => p.id);
+    setUserPermissions(prev => {
+      const currentPermissions = prev[userId] || [];
+      const allSelected = categoryPermissions.every(p => currentPermissions.includes(p));
+
+      let newPermissions;
+      if (allSelected) {
+        newPermissions = currentPermissions.filter(p => !categoryPermissions.includes(p));
+      } else {
+        const uniquePermissions = new Set([...currentPermissions, ...categoryPermissions]);
+        newPermissions = Array.from(uniquePermissions);
+      }
+
+      return {
+        ...prev,
+        [userId]: newPermissions
+      };
+    });
+  };
+
+  const handleSaveUserPermissions = (userId) => {
+    updateUserPermissionsMutation.mutate({
+      userId,
+      permissions: userPermissions[userId] || []
+    });
+  };
+
+  const handleOpenPermissionsDialog = (user) => {
+    setSelectedUserForPermissions(user);
+    setShowPermissionsDialog(true);
+    setExpandedCategories({});
+
+    // โหลดสิทธิ์เริ่มต้นถ้ายังไม่มีสิทธิ์
+    const currentPermissions = user.permissions || [];
+    if (currentPermissions.length === 0) {
+      const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+      const defaultPerms = DEFAULT_PERMISSIONS_MAP[role] || [];
+
+      setUserPermissions(prev => ({
+        ...prev,
+        [user.id]: defaultPerms
+      }));
+
+      toast.info(`โหลดสิทธิ์เริ่มต้นสำหรับ ${role === 'owner' ? 'เจ้าของหอพัก' : role === 'manager' ? 'ผู้จัดการ' : 'พนักงาน'}`);
+    }
+  };
+
+  const handleRoleChange = (userId, newRole) => {
+    const defaultPerms = DEFAULT_PERMISSIONS_MAP[newRole] || [];
+
+    // Update both role and permissions
+    updateUserRoleMutation.mutate({
+      userId,
+      custom_role: newRole,
+      permissions: defaultPerms
+    });
+
+    // Update local state
+    setUserPermissions(prev => ({
+      ...prev,
+      [userId]: defaultPerms
+    }));
+
+    const roleLabels = {
+      owner: 'เจ้าของหอพัก',
+      manager: 'ผู้จัดการ',
+      employee: 'พนักงาน'
+    };
+
+    toast.success(`เปลี่ยนเป็นบทบาท "${roleLabels[newRole]}" และโหลดสิทธิ์เริ่มต้นแล้ว`);
+  };
+
+  const getRoleBadge = (role) => {
+    const badges = {
+      developer: { label: '👨‍💻 Developer', color: 'from-purple-500 to-pink-500' },
+      owner: { label: '👑 เจ้าของหอพัก', color: 'from-blue-500 to-indigo-500' },
+      manager: { label: '👔 ผู้จัดการ', color: 'from-green-500 to-emerald-500' },
+      employee: { label: '👤 พนักงาน', color: 'from-slate-400 to-slate-500' }
+    };
+    return badges[role] || badges.employee;
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <PageHeader
+        title="ตั้งค่าระบบ"
+        subtitle="ปรับแต่งการทำงานของระบบ"
+        icon={SettingsIcon}
+        showBackButton={true}
+        actions={
+          <>
+            <Button
+              onClick={() => navigate(createPageUrl('SupportTickets'))}
+              variant="outline"
+              className="border-red-600 text-red-600 hover:bg-red-50"
+            >
+              <AlertCircle className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">รายงานปัญหา</span>
+            </Button>
+            {canManagePermissions && (
+              <Button
+                onClick={() => setShowAddEmployeeDialog(true)}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600"
+              >
+                <UserPlus className="w-4 h-4 md:mr-2" />
+                <span className="hidden md:inline">เพิ่มพนักงาน</span>
+              </Button>
+            )}
+          </>
+        }
+      />
+
+      <div className="px-4 md:px-8 py-6">
+        <div className="max-w-6xl mx-auto">
+          <Card className="bg-white/80 backdrop-blur-xl shadow-2xl border-white/60">
+            <CardContent className="p-6">
+              <div className="flex gap-2 mb-6 border-b overflow-x-auto">
+                <Button variant={activeTab === 'package' ? 'default' : 'ghost'} onClick={() => setActiveTab('package')} className={activeTab === 'package' ? 'bg-blue-600' : ''}>
+                  <Crown className="w-4 h-4 mr-2" />
+                  แพ็กเกจ
+                </Button>
+                <Button variant={activeTab === 'building' ? 'default' : 'ghost'} onClick={() => setActiveTab('building')} className={activeTab === 'building' ? 'bg-blue-600' : ''}>อาคาร</Button>
+                <Button variant={activeTab === 'billing' ? 'default' : 'ghost'} onClick={() => setActiveTab('billing')} className={activeTab === 'billing' ? 'bg-blue-600' : ''}>อัตรา</Button>
+                <Button variant={activeTab === 'bill_notifications' ? 'default' : 'ghost'} onClick={() => setActiveTab('bill_notifications')} className={activeTab === 'bill_notifications' ? 'bg-blue-600' : ''}>บิล</Button>
+                <Button variant={activeTab === 'notifications' ? 'default' : 'ghost'} onClick={() => setActiveTab('notifications')} className={activeTab === 'notifications' ? 'bg-blue-600' : ''}>การแจ้งเตือน</Button>
+                <Button variant={activeTab === 'bank' ? 'default' : 'ghost'} onClick={() => setActiveTab('bank')} className={activeTab === 'bank' ? 'bg-blue-600' : ''}>ธนาคาร</Button>
+                <Button variant={activeTab === 'messaging' ? 'default' : 'ghost'} onClick={() => setActiveTab('messaging')} className={activeTab === 'messaging' ? 'bg-blue-600' : ''}>
+                  <MessageSquare className="w-4 h-4 mr-1" />
+                  ช่องทางสื่อสาร
+                </Button>
+                <Button variant={activeTab === 'signature' ? 'default' : 'ghost'} onClick={() => setActiveTab('signature')} className={activeTab === 'signature' ? 'bg-blue-600' : ''}>ลายเซ็น</Button>
+                {canManagePermissions && (
+                  <Button variant={activeTab === 'permissions' ? 'default' : 'ghost'} onClick={() => setActiveTab('permissions')} className={activeTab === 'permissions' ? 'bg-blue-600' : ''}>สิทธิ์</Button>
+                )}
+              </div>
+
+
+
+              {activeTab === 'package' && (
+                <div className="space-y-6">
+                  {activeSubscription ? (
+                    <>
+                      {/* สถานะแพ็กเกจหลัก */}
+                      <Card className={`bg-gradient-to-br ${daysRemaining !== null && daysRemaining < 30 ? 'from-orange-50 to-red-50 border-orange-300' : daysRemaining !== null && daysRemaining < 90 ? 'from-yellow-50 to-orange-50 border-yellow-300' : 'from-blue-50 to-indigo-50 border-blue-200'} shadow-xl`}>
+                        <CardContent className="p-8">
+                          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                            <div className="flex items-start gap-4 flex-1">
+                              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${daysRemaining !== null && daysRemaining < 30 ? 'bg-gradient-to-br from-orange-500 to-red-500' : daysRemaining !== null && daysRemaining < 90 ? 'bg-gradient-to-br from-yellow-500 to-orange-500' : 'bg-gradient-to-br from-blue-500 to-indigo-500'}`}>
+                                <Crown className="w-8 h-8 text-white" />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="text-2xl font-bold text-slate-800 mb-2">
+                                  {activeSubscription?.package_name || activeSubscription?.app_name || 'แพ็กเกจระบบจัดการหอพัก'}
+                                </h3>
+
+                                <div className="space-y-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <Badge className={`text-sm px-3 py-1 ${activeSubscription.status === 'active' ? 'bg-green-600' : activeSubscription.status === 'trial' ? 'bg-amber-600' : activeSubscription.status === 'expired' ? 'bg-red-600' : 'bg-slate-600'} text-white`}>
+                                      {activeSubscription.status === 'active' ? '✅ ใช้งานอยู่' : activeSubscription.status === 'trial' ? '🎉 ทดลองใช้' : activeSubscription.status === 'expired' ? '⚠️ หมดอายุ' : '⏸️ ยกเลิก'}
+                                    </Badge>
+
+                                    {daysRemaining !== null && (
+                                      <Badge className={`text-sm px-3 py-1 ${
+                                        daysRemaining < 0 ? 'bg-red-600 text-white' :
+                                        daysRemaining < 30 ? 'bg-orange-600 text-white' :
+                                        daysRemaining < 90 ? 'bg-yellow-600 text-white' :
+                                        'bg-blue-600 text-white'
+                                      }`}>
+                                        {daysRemaining < 0
+                                          ? `หมดอายุแล้ว ${Math.abs(daysRemaining)} วัน`
+                                          : `เหลืออีก ${daysRemaining} วัน`}
+                                      </Badge>
+                                    )}
+                                  </div>
+
+                                  {activeSubscription.subscription_start_date && activeSubscription.subscription_end_date && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-700 mt-4">
+                                      <div className="flex items-center gap-2">
+                                        <Calendar className="w-4 h-4 text-blue-600" />
+                                        <span className="text-slate-600">เริ่มใช้งาน:</span>
+                                        <span className="font-semibold">
+                                          {format(parseISO(activeSubscription.subscription_start_date), 'd MMM yyyy', { locale: th })}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <Calendar className="w-4 h-4 text-red-600" />
+                                        <span className="text-slate-600">หมดอายุ:</span>
+                                        <span className="font-semibold">
+                                          {format(parseISO(activeSubscription.subscription_end_date), 'd MMM yyyy', { locale: th })}
+                                        </span>
+                                      </div>
+                                      {activeSubscription.price_per_month > 0 && (
+                                        <>
+                                          <div className="flex items-center gap-2">
+                                            <DollarSign className="w-4 h-4 text-green-600" />
+                                            <span className="text-slate-600">ราคา/เดือน:</span>
+                                            <span className="font-semibold">
+                                              {activeSubscription.price_per_month?.toLocaleString() || 'N/A'} บาท
+                                            </span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <DollarSign className="w-4 h-4 text-purple-600" />
+                                            <span className="text-slate-600">ราคารวม:</span>
+                                            <span className="font-semibold">
+                                              {activeSubscription.total_price?.toLocaleString() || 'N/A'} บาท
+                                            </span>
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <Button
+                              onClick={() => navigate(createPageUrl(activeSubscription.status === 'trial' ? 'PackageSelectionPage' : (appMode === 'multi_tenant' ? 'PackageSelectionPage' : 'RenewalPage')))}
+                              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 px-6 py-6 text-base"
+                            >
+                              <RefreshCw className="w-5 h-5 mr-2" />
+                              {activeSubscription.status === 'trial' ? 'อัปเกรดแพ็กเกจ' : (appMode === 'multi_tenant' ? 'ต่ออายุ/อัปเกรดแพ็กเกจ' : 'ต่ออายุแพ็กเกจ')}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* รายละเอียดแพ็กเกจ */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <Card className="bg-white border-slate-200 shadow-lg">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                              <Package className="w-5 h-5 text-blue-600" />
+                              ฟีเจอร์ในแพ็กเกจ
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <Check className="w-5 h-5 text-green-600" />
+                              <span className="text-sm text-slate-700">จัดการห้องพัก (ไม่จำกัด)</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <Check className="w-5 h-5 text-green-600" />
+                              <span className="text-sm text-slate-700">จัดการผู้เช่า (ไม่จำกัด)</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <Check className="w-5 h-5 text-green-600" />
+                              <span className="text-sm text-slate-700">ระบบการชำระเงินอัตโนมัติ</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <Check className="w-5 h-5 text-green-600" />
+                              <span className="text-sm text-slate-700">สร้างสัญญาและใบเสร็จ</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <Check className="w-5 h-5 text-green-600" />
+                              <span className="text-sm text-slate-700">รายงานทางการเงิน</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <Check className="w-5 h-5 text-green-600" />
+                              <span className="text-sm text-slate-700">แจ้งซ่อมและบำรุงรักษา</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <Check className="w-5 h-5 text-green-600" />
+                              <span className="text-sm text-slate-700">แจ้งเตือนอัตโนมัติ</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                              <Check className="w-5 h-5 text-green-600" />
+                              <span className="text-sm text-slate-700">ระบบหลายสาขา</span>
+                            </div>
+                            <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                              <Sparkles className="w-5 h-5 text-purple-600" />
+                              <span className="text-sm text-purple-700 font-semibold">AI ผู้ช่วยอัจฉริยะ</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="bg-white border-slate-200 shadow-lg">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                              <Zap className="w-5 h-5 text-purple-600" />
+                              การใช้งาน AI
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border-2 border-purple-200">
+                              <div className="flex items-center justify-between mb-4">
+                                <span className="text-sm text-purple-700 font-semibold">การใช้งานในเดือนนี้</span>
+                                <Badge className="bg-purple-600 text-white">
+                                  Active
+                                </Badge>
+                              </div>
+
+                              <div className="space-y-4">
+                                <div>
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="text-xs text-slate-600">คำขอ AI (Requests)</span>
+                                    <span className="text-sm font-bold text-purple-700">ไม่จำกัด</span>
+                                  </div>
+                                  <div className="h-2 bg-white/80 rounded-full overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style={{ width: '0%' }}></div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="text-xs text-slate-600">การค้นหาด้วย AI</span>
+                                    <span className="text-sm font-bold text-purple-700">ไม่จำกัด</span>
+                                  </div>
+                                  <div className="h-2 bg-white/80 rounded-full overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" style={{ width: '0%' }}></div>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="text-xs text-slate-600">AI ผู้ช่วยในระบบ</span>
+                                    <span className="text-sm font-bold text-purple-700">ไม่จำกัด</span>
+                                  </div>
+                                  <div className="h-2 bg-white/80 rounded-full overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full" style={{ width: '0%' }}></div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mt-6 pt-4 border-t border-purple-200">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-purple-600 font-semibold">✨ สิทธิพิเศษ</span>
+                                  <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs">
+                                    Unlimited AI
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-slate-600 mt-2">
+                                  แพ็กเกจของคุณมีการใช้งาน AI ไม่จำกัด
+                                </p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* ข้อมูลการชำระเงิน */}
+                      {activeSubscription.status !== 'trial' && (
+                        <Card className="bg-white border-slate-200 shadow-lg">
+                          <CardHeader>
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                              <CreditCard className="w-5 h-5 text-green-600" />
+                              ข้อมูลการชำระเงิน
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                                <p className="text-xs text-slate-600 mb-2">ระยะเวลาสัญญา</p>
+                                <p className="text-2xl font-bold text-slate-800">
+                                  {activeSubscription.subscription_duration_months || 3} <span className="text-lg">เดือน</span>
+                                </p>
+                              </div>
+
+                              <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                                <p className="text-xs text-green-700 mb-2">ราคาต่อเดือน</p>
+                                <p className="text-2xl font-bold text-green-700">
+                                  {activeSubscription.price_per_month?.toLocaleString() || 'N/A'} <span className="text-lg">฿</span>
+                                </p>
+                              </div>
+
+                              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                                <p className="text-xs text-blue-700 mb-2">ราคารวมทั้งหมด</p>
+                                <p className="text-2xl font-bold text-blue-700">
+                                  {activeSubscription.total_price?.toLocaleString() || 'N/A'} <span className="text-lg">฿</span>
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="mt-6 space-y-3">
+                              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+                                <span className="text-sm text-slate-700">สถานะการชำระเงิน:</span>
+                                <Badge className={`${
+                                  activeSubscription.payment_status === 'paid' ? 'bg-green-600' :
+                                  activeSubscription.payment_status === 'pending' ? 'bg-yellow-600' :
+                                  'bg-red-600'
+                                } text-white`}>
+                                  {activeSubscription.payment_status === 'paid' ? 'ชำระแล้ว' :
+                                   activeSubscription.payment_status === 'pending' ? 'รอชำระ' :
+                                   'เกินกำหนด'}
+                                </Badge>
+                              </div>
+
+                              {activeSubscription.auto_renew && (
+                                <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                  <RefreshCw className="w-4 h-4 text-blue-600" />
+                                  <span className="text-sm text-blue-700 font-semibold">เปิดใช้งานต่ออายุอัตโนมัติ</span>
+                                </div>
+                              )}
+
+                              {activeSubscription.notes && (
+                                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                                  <p className="text-xs text-amber-800">
+                                    <strong>หมายเหตุ:</strong> {activeSubscription.notes}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* คำเตือนหมดอายุ */}
+                      {daysRemaining !== null && daysRemaining < 30 && daysRemaining >= 0 && (
+                        <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 shadow-xl">
+                          <CardContent className="p-6">
+                            <div className="flex items-start gap-4">
+                              <AlertTriangle className="w-8 h-8 text-orange-600 flex-shrink-0" />
+                              <div className="flex-1">
+                                <h4 className="font-bold text-orange-900 text-lg mb-2">⚠️ แพ็กเกจใกล้หมดอายุ!</h4>
+                                <p className="text-orange-800 mb-4">
+                                  แพ็กเกจของคุณจะหมดอายุในอีก <strong>{daysRemaining} วัน</strong> ({format(parseISO(activeSubscription.subscription_end_date), 'd MMM yyyy', { locale: th })})
+                                </p>
+                                <p className="text-sm text-orange-700">
+                                  กรุณาต่ออายุแพ็กเกจเพื่อให้ระบบทำงานต่อเนื่องโดยไม่มีการหยุดชะงัก
+                                </p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {daysRemaining !== null && daysRemaining < 0 && (
+                        <Card className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-400 shadow-xl">
+                          <CardContent className="p-6">
+                            <div className="flex items-start gap-4">
+                              <AlertCircle className="w-8 h-8 text-red-600 flex-shrink-0 animate-pulse" />
+                              <div className="flex-1">
+                                <h4 className="font-bold text-red-900 text-lg mb-2">🚨 แพ็กเกจหมดอายุแล้ว!</h4>
+                                <p className="text-red-800 mb-4">
+                                  แพ็กเกจของคุณหมดอายุไปแล้ว <strong>{Math.abs(daysRemaining)} วัน</strong>
+                                </p>
+                                <p className="text-sm text-red-700 mb-4">
+                                  กรุณาต่ออายุทันทีเพื่อใช้งานระบบต่อ ไม่เช่นนั้นคุณจะไม่สามารถเข้าถึงระบบได้
+                                </p>
+                                <Button
+                                  onClick={() => navigate(createPageUrl(appMode === 'multi_tenant' ? 'PackageSelectionPage' : 'RenewalPage'))}
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                >
+                                  <RefreshCw className="w-4 h-4 mr-2" />
+                                  ต่ออายุตอนนี้
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* ข้อมูลการใช้งาน AI รายละเอียด */}
+                      <Card className="bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 border-purple-200 shadow-lg">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2 text-lg">
+                            <Sparkles className="w-5 h-5 text-purple-600" />
+                            รายละเอียดการใช้งาน AI
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-purple-200">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-sm text-slate-700">🔍 AI Search</span>
+                                <Badge variant="outline" className="text-xs">ไม่จำกัด</Badge>
+                              </div>
+                              <p className="text-xs text-slate-600">ค้นหาและวิเคราะห์ข้อมูลด้วย AI ในหน้าต่างๆ</p>
+                            </div>
+
+                            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-purple-200">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-sm text-slate-700">💬 AI Chat Assistant</span>
+                                <Badge variant="outline" className="text-xs">ไม่จำกัด</Badge>
+                              </div>
+                              <p className="text-xs text-slate-600">แชทกับ AI ผู้ช่วยสำหรับจัดการงานต่างๆ</p>
+                            </div>
+
+                            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-purple-200">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-sm text-slate-700">📊 AI Insights</span>
+                                <Badge variant="outline" className="text-xs">ไม่จำกัด</Badge>
+                              </div>
+                              <p className="text-xs text-slate-600">วิเคราะห์ข้อมูลและให้คำแนะนำอัจฉริยะ</p>
+                            </div>
+
+                            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-purple-200">
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="text-sm text-slate-700">🤖 AI Automation</span>
+                                <Badge variant="outline" className="text-xs">ไม่จำกัด</Badge>
+                              </div>
+                              <p className="text-xs text-slate-600">ระบบอัตโนมัติขับเคลื่อนด้วย AI</p>
+                            </div>
+                          </div>
+
+                          <div className="mt-6 p-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl text-white">
+                            <div className="flex items-center gap-3 mb-2">
+                              <Sparkles className="w-5 h-5" />
+                              <span className="font-bold">Premium AI Package</span>
+                            </div>
+                            <p className="text-xs opacity-90">
+                              คุณมีสิทธิ์ใช้งาน AI แบบไม่จำกัดในทุกฟีเจอร์ของระบบ รวมถึงการวิเคราะห์ข้อมูล การค้นหาอัจฉริยะ และการสร้างเอกสารอัตโนมัติ
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </>
+                  ) : (
+                    <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200 shadow-xl">
+                      <CardContent className="p-12 text-center">
+                        <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                          <Crown className="w-10 h-10 text-white" />
+                        </div>
+                        <h3 className="text-2xl font-bold text-slate-800 mb-3">🎉 ยังไม่มีแพ็กเกจ</h3>
+                        <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                          คุณกำลังทดลองใช้งานฟรี กรุณาเลือกแพ็กเกจที่เหมาะสมเพื่อใช้งานต่อ
+                        </p>
+                        <Button
+                          onClick={() => navigate(createPageUrl('PackageSelectionPage'))}
+                          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-8 py-6 text-lg"
+                        >
+                          <Crown className="w-5 h-5 mr-2" />
+                          เลือกแพ็กเกจ
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'building' && (
+                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-blue-600" />
+                      ข้อมูลหอพักและผู้มีอำนาจลงนาม
+                    </CardTitle>
+                    <p className="text-sm text-slate-600 mt-2">
+                      ข้อมูลนี้จะถูกใช้ในสัญญาเช่าและเอกสารต่างๆ
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <BranchToggle
+                      applyToAllBranches={applyToAllBranches_building}
+                      setApplyToAllBranches={setApplyToAllBranches_building}
+                      selectedBranch={selectedBranch}
+                      canSetGlobalConfig={canSetGlobalConfig}
+                    />
+
+                    <form onSubmit={handleBuildingInfoSubmit} className="space-y-6">
+                      {/* โลโก้หอพัก */}
+                      <div className="space-y-4 pb-6 border-b">
+                        <h3 className="text-md font-semibold text-slate-700 flex items-center gap-2">
+                          <ImageIcon className="w-5 h-5 text-indigo-600" />
+                          โลโก้หอพัก
+                        </h3>
+
+                        {buildingLogo ? (
+                          <div className="space-y-3">
+                            <div className="bg-slate-50 rounded-lg p-6 border-2 border-slate-200 flex items-center justify-center">
+                              <img
+                                src={buildingLogo}
+                                alt="โลโก้หอพัก"
+                                className="max-h-32 max-w-full object-contain"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <label className="flex-1 cursor-pointer">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleLogoUpload}
+                                  className="hidden"
+                                />
+                                <div className="flex items-center justify-center gap-2 w-full px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                                  {uploadingLogo ? (
+                                    <>
+                                      <div className="w-4 h-4 border-2 border-slate-600 border-t-transparent rounded-full animate-spin" />
+                                      <span className="text-sm font-medium">กำลังอัพโหลด...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload className="w-4 h-4" />
+                                      <span className="text-sm font-medium">เปลี่ยนโลโก้</span>
+                                    </>
+                                  )}
+                                </div>
+                              </label>
+                              <Button
+                                type="button"
+                                onClick={async () => {
+                                  if (confirm('คุณแน่ใจว่าต้องการลบโลโก้?')) {
+                                    await updateConfigMutation.mutateAsync({
+                                      key: 'building_logo',
+                                      value: '',
+                                      description: 'โลโก้หอพัก',
+                                      category: 'general',
+                                      applyToAllBranches: applyToAllBranches_building
+                                    });
+                                    setBuildingLogo('');
+                                    toast.success('ลบโลโก้สำเร็จ' + (applyToAllBranches_building ? ' (ทุกสาขาที่คุณดูแล)' : ` (${selectedBranch?.name})`));
+                                  }
+                                }}
+                                variant="outline"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="w-4 h-4 mr-2" />
+                                ลบ
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <label className="block cursor-pointer">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleLogoUpload}
+                              className="hidden"
+                            />
+                            <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition-colors">
+                              {uploadingLogo ? (
+                                <div className="text-center">
+                                  <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                                  <p className="text-sm text-slate-600">กำลังอัพโหลด...</p>
+                                </div>
+                              ) : (
+                                <div className="text-center">
+                                  <Upload className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                                  <p className="text-sm font-medium text-slate-700">คลิกเพื่ออัพโหลดโลโก้</p>
+                                  <p className="text-xs text-slate-500 mt-1">PNG, JPG, GIF (ไม่เกิน 5MB)</p>
+                                </div>
+                              )}
+                            </div>
+                          </label>
+                        )}
+                      </div>
+
+                      {/* ข้อมูลหอพัก */}
+                      <div className="space-y-4">
+                        <h3 className="text-md font-semibold text-slate-700 flex items-center gap-2 border-b pb-2">
+                          <Building2 className="w-5 h-5 text-blue-600" />
+                          ข้อมูลหอพัก
+                        </h3>
+                        <div>
+                          <Label>ชื่อหอพัก *</Label>
+                          <Input
+                            value={buildingInfo.building_name}
+                            onChange={(e) => setBuildingInfo({ ...buildingInfo, building_name: e.target.value })}
+                            placeholder="เช่น W RESIDENTS"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label>ที่อยู่ *</Label>
+                          <Input
+                            value={buildingInfo.address}
+                            onChange={(e) => setBuildingInfo({ ...buildingInfo, address: e.target.value })}
+                            placeholder="ที่อยู่เต็มของหอพัก"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label>เบอร์โทรติดต่อ *</Label>
+                          <Input
+                            value={buildingInfo.phone}
+                            onChange={(e) => setBuildingInfo({ ...buildingInfo, phone: e.target.value })}
+                            placeholder="0812345678"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* ข้อมูลผู้มีอำนาจลงนาม */}
+                      <div className="space-y-4 pt-4 border-t">
+                        <h3 className="text-md font-semibold text-slate-700 flex items-center gap-2 border-b pb-2">
+                          <Users className="w-5 h-5 text-purple-600" />
+                          ข้อมูลผู้มีอำนาจลงนาม (ผู้ให้เช่า)
+                        </h3>
+                        <p className="text-sm text-slate-600">
+                          ข้อมูลนี้จะแสดงในสัญญาเช่าฝ่ายผู้ให้เช่า
+                        </p>
+                        <div className="space-y-4">
+                          <div>
+                            <Label>ชื่อ-นามสกุล (ผู้ให้เช่า) *</Label>
+                            <Input
+                              value={lessorInfo.lessor_name}
+                              onChange={(e) => setLessorInfo({ ...lessorInfo, lessor_name: e.target.value })}
+                              placeholder="เช่น นายสมชาย ใจดี"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label>เลขบัตรประชาชน (13 หลัก)</Label>
+                            <Input
+                              value={lessorInfo.lessor_id}
+                              onChange={(e) => setLessorInfo({ ...lessorInfo, lessor_id: e.target.value })}
+                              placeholder="1234567890123"
+                              maxLength={13}
+                            />
+                          </div>
+                          <div>
+                            <Label>เบอร์โทรศัพท์</Label>
+                            <Input
+                              value={lessorInfo.lessor_phone}
+                              onChange={(e) => setLessorInfo({ ...lessorInfo, lessor_phone: e.target.value })}
+                              placeholder="0812345678"
+                            />
+                          </div>
+                          <div>
+                            <Label>ที่อยู่ (ผู้ให้เช่า)</Label>
+                            <Input
+                              value={lessorInfo.lessor_address}
+                              onChange={(e) => setLessorInfo({ ...lessorInfo, lessor_address: e.target.value })}
+                              placeholder="ที่อยู่เต็มของผู้ให้เช่า"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ข้อมูลบริษัท */}
+                      <div className="space-y-4 pt-4 border-t">
+                        <h3 className="text-md font-semibold text-slate-700 flex items-center gap-2 border-b pb-2">
+                          <Building2 className="w-5 h-5 text-blue-600" />
+                          ข้อมูลบริษัท (ถ้ามี)
+                        </h3>
+                        
+                        <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg">
+                          <input
+                            type="checkbox"
+                            id="hasCompanyInfo"
+                            checked={hasCompanyInfo}
+                            onChange={(e) => setHasCompanyInfo(e.target.checked)}
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                          />
+                          <label htmlFor="hasCompanyInfo" className="text-sm font-medium text-slate-700 cursor-pointer">
+                            มีข้อมูลบริษัท/นิติบุคคล (สำหรับออกใบเสร็จอย่างเป็นทางการ)
+                          </label>
+                        </div>
+                        
+                        {hasCompanyInfo && (
+                        <>
+                        <p className="text-sm text-slate-600">
+                          ข้อมูลนี้จะแสดงในใบเสร็จรับเงินและใบแจ้งหนี้
+                        </p>
+                        <div className="space-y-4 pl-4 border-l-2 border-blue-300">
+                          <div>
+                            <Label>ชื่อบริษัท / นิติบุคคล</Label>
+                            <Input
+                              value={companyInfo.company_name}
+                              onChange={(e) => setCompanyInfo({ ...companyInfo, company_name: e.target.value })}
+                              placeholder="เช่น บริษัท ABC จำกัด หรือ ร้าน XYZ"
+                            />
+                          </div>
+                          
+                          <div>
+                            <Label>เลขทะเบียนนิติบุคคล</Label>
+                            <Input
+                              value={companyInfo.company_registration_number}
+                              onChange={(e) => setCompanyInfo({ ...companyInfo, company_registration_number: e.target.value })}
+                              placeholder="0123456789012"
+                              maxLength={13}
+                            />
+                          </div>
+
+                          <div>
+                            <Label>เลขประจำตัวผู้เสียภาษี (Tax ID) *</Label>
+                            <Input
+                              value={companyInfo.company_tax_id}
+                              onChange={(e) => setCompanyInfo({ ...companyInfo, company_tax_id: e.target.value })}
+                              placeholder="0123456789012 (13 หลัก)"
+                              maxLength={13}
+                            />
+                          </div>
+
+                          <div>
+                            <Label>เบอร์โทรศัพท์บริษัท</Label>
+                            <Input
+                              value={companyInfo.company_phone}
+                              onChange={(e) => setCompanyInfo({ ...companyInfo, company_phone: e.target.value })}
+                              placeholder="02-123-4567 หรือ 081-234-5678"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <label className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={companyInfo.use_building_address}
+                              onChange={(e) => setCompanyInfo({ ...companyInfo, use_building_address: e.target.checked })}
+                              className="w-5 h-5 rounded"
+                            />
+                            <p className="text-sm font-medium text-blue-900">ใช้ที่อยู่เดียวกับหอพัก</p>
+                          </label>
+
+                          {!companyInfo.use_building_address && (
+                            <div>
+                              <Label>ที่อยู่บริษัท</Label>
+                              <Input
+                                value={companyInfo.company_address}
+                                onChange={(e) => setCompanyInfo({ ...companyInfo, company_address: e.target.value })}
+                                placeholder="ที่อยู่เต็มตามทะเบียนพาณิชย์"
+                              />
+                            </div>
+                          )}
+
+                          {companyInfo.use_building_address && buildingInfo.address && (
+                            <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                              <p className="text-xs text-green-800">
+                                ✅ ที่อยู่บริษัท: <strong>{buildingInfo.address}</strong>
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        </>
+                        )}
+
+                      </div>
+
+                      <Button type="submit" className="bg-gradient-to-r from-blue-600 to-indigo-600" disabled={isSavingBuildingInfo}>
+                        {isSavingBuildingInfo ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            กำลังบันทึก...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4 mr-2" />
+                            บันทึกทั้งหมด
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              {activeTab === 'billing' && (
+                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-green-600" />
+                      อัตราค่าใช้จ่าย
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <BranchToggle
+                      applyToAllBranches={applyToAllBranches_billing}
+                      setApplyToAllBranches={setApplyToAllBranches_billing}
+                      selectedBranch={selectedBranch}
+                      canSetGlobalConfig={canSetGlobalConfig}
+                    />
+
+                    <form onSubmit={handleBillingRatesSubmit} className="space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label>ค่าน้ำต่อหน่วย (บาท) *</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={billingRates.water_rate}
+                            onChange={(e) => setBillingRates({ ...billingRates, water_rate: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label>ค่าไฟต่อหน่วย (บาท) *</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={billingRates.electricity_rate}
+                            onChange={(e) => setBillingRates({ ...billingRates, electricity_rate: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label>ค่าอินเทอร์เน็ต (บาท) *</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={billingRates.internet_fee}
+                            onChange={(e) => setBillingRates({ ...billingRates, internet_fee: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label>ค่าส่วนกลาง (บาท)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={billingRates.common_fee}
+                            onChange={(e) => setBillingRates({ ...billingRates, common_fee: e.target.value })}
+                            placeholder="0 ถ้าไม่มี"
+                          />
+                        </div>
+                        <div>
+                          <Label>ค่าจอดรถยนต์ (บาท/คัน) *</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={billingRates.car_parking_fee}
+                            onChange={(e) => setBillingRates({ ...billingRates, car_parking_fee: e.target.value })}
+                            placeholder="ค่าจอดรถยนต์ต่อคัน"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label>ค่าจอดรถมอเตอร์ไซค์ (บาท/คัน) *</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={billingRates.motorcycle_parking_fee}
+                            onChange={(e) => setBillingRates({ ...billingRates, motorcycle_parking_fee: e.target.value })}
+                            placeholder="ค่าจอดมอเตอร์ไซค์ต่อคัน"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* ค่าขั้นต่ำสำหรับน้ำและไฟ */}
+                      <div className="space-y-4 pt-4 border-t">
+                        <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                          💧⚡ ค่าขั้นต่ำสำหรับการใช้น้ำ/ไฟต่ำ
+                        </h3>
+                        <p className="text-xs text-slate-600">
+                          กำหนดค่าขั้นต่ำสำหรับกรณีที่ผู้เช่าใช้น้ำ/ไฟต่ำกว่าเกณฑ์ที่กำหนด
+                        </p>
+
+                        {/* ค่าน้ำขั้นต่ำ */}
+                        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 space-y-3">
+                          <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={billingRates.water_minimum_enabled}
+                              onChange={(e) => setBillingRates({ ...billingRates, water_minimum_enabled: e.target.checked })}
+                              className="w-5 h-5 rounded"
+                            />
+                            <div>
+                              <p className="text-sm font-semibold text-blue-800">💧 เปิดใช้ค่าน้ำขั้นต่ำ</p>
+                              <p className="text-xs text-blue-600">คิดค่าน้ำขั้นต่ำถ้าใช้ต่ำกว่าเกณฑ์</p>
+                            </div>
+                          </label>
+
+                          {billingRates.water_minimum_enabled && (
+                            <div className="grid grid-cols-2 gap-3 pl-8">
+                              <div>
+                                <Label className="text-xs text-blue-700">ถ้าใช้ต่ำกว่า (หน่วย)</Label>
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  value={billingRates.water_minimum_units}
+                                  onChange={(e) => setBillingRates({ ...billingRates, water_minimum_units: e.target.value })}
+                                  placeholder="3"
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs text-blue-700">คิดค่าน้ำขั้นต่ำ (บาท)</Label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={billingRates.water_minimum_charge}
+                                  onChange={(e) => setBillingRates({ ...billingRates, water_minimum_charge: e.target.value })}
+                                  placeholder="100"
+                                  className="mt-1"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* ค่าไฟขั้นต่ำ */}
+                        <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200 space-y-3">
+                          <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={billingRates.electricity_minimum_enabled}
+                              onChange={(e) => setBillingRates({ ...billingRates, electricity_minimum_enabled: e.target.checked })}
+                              className="w-5 h-5 rounded"
+                            />
+                            <div>
+                              <p className="text-sm font-semibold text-yellow-800">⚡ เปิดใช้ค่าไฟขั้นต่ำ</p>
+                              <p className="text-xs text-yellow-600">คิดค่าไฟขั้นต่ำถ้าใช้ต่ำกว่าเกณฑ์</p>
+                            </div>
+                          </label>
+
+                          {billingRates.electricity_minimum_enabled && (
+                            <div className="grid grid-cols-2 gap-3 pl-8">
+                              <div>
+                                <Label className="text-xs text-yellow-700">ถ้าใช้ต่ำกว่า (หน่วย)</Label>
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  min="0"
+                                  value={billingRates.electricity_minimum_units}
+                                  onChange={(e) => setBillingRates({ ...billingRates, electricity_minimum_units: e.target.value })}
+                                  placeholder="3"
+                                  className="mt-1"
+                                />
+                              </div>
+                              <div>
+                                <Label className="text-xs text-yellow-700">คิดค่าไฟขั้นต่ำ (บาท)</Label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={billingRates.electricity_minimum_charge}
+                                  onChange={(e) => setBillingRates({ ...billingRates, electricity_minimum_charge: e.target.value })}
+                                  placeholder="100"
+                                  className="mt-1"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <Button type="submit" className="bg-gradient-to-r from-green-600 to-emerald-600" disabled={isSavingBillingRates}>
+                        {isSavingBillingRates ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            กำลังบันทึก...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4 mr-2" />
+                            บันทึก
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              {activeTab === 'bill_notifications' && (
+                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-blue-600" />
+                      การแจ้งบิลและการสร้างบิลอัตโนมัติ
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <BranchToggle
+                      applyToAllBranches={applyToAllBranches_billNotif}
+                      setApplyToAllBranches={setApplyToAllBranches_billNotif}
+                      selectedBranch={selectedBranch}
+                      canSetGlobalConfig={canSetGlobalConfig}
+                    />
+
+                    <form onSubmit={handleBillSettingsSubmit} className="space-y-6">
+                      {/* วันที่สร้างบิลและวันครบกำหนด */}
+                      <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                          📅 กำหนดวันที่และรูปแบบการชำระ
+                        </h3>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                            <Label className="text-xs text-slate-600 mb-2 block">วันที่สร้างบิล</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="31"
+                              value={billSettings.bill_generation_day}
+                              onChange={(e) => setBillSettings({ ...billSettings, bill_generation_day: e.target.value })}
+                              className="text-center text-2xl font-bold"
+                            />
+                            <p className="text-xs text-slate-500 mt-1 text-center">ของทุกเดือน</p>
+                          </div>
+
+                          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                            <Label className="text-xs text-slate-600 mb-2 block">วันครบกำหนดชำระ</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              max="31"
+                              value={billSettings.pay_day}
+                              onChange={(e) => setBillSettings({ ...billSettings, pay_day: e.target.value })}
+                              className="text-center text-2xl font-bold"
+                            />
+                            <p className="text-xs text-slate-500 mt-1 text-center">ของทุกเดือน</p>
+                          </div>
+
+                          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                            <Label className="text-xs text-slate-600 mb-2 block">ค่าปรับล่าช้า (บาท/วัน)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={billSettings.late_fee_per_day}
+                              onChange={(e) => setBillSettings({ ...billSettings, late_fee_per_day: e.target.value })}
+                              className="text-center text-2xl font-bold"
+                              disabled={billSettings.late_fee_tiers_enabled}
+                            />
+                            {billSettings.late_fee_tiers_enabled && (
+                              <p className="text-xs text-amber-600 mt-1 text-center">ใช้ค่าปรับแบบขั้นบันไดแทน</p>
+                            )}
+                          </div>
+                        </div>
+
+                      </div>
+
+                      {/* ค่าปรับแบบขั้นบันได */}
+                      <div className="space-y-4 pt-4 border-t">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                              📊 ค่าปรับแบบขั้นบันได (ยิ่งช้ายิ่งปรับเพิ่ม)
+                            </h3>
+                            <p className="text-xs text-slate-500 mt-1">
+                              กำหนดอัตราค่าปรับที่แตกต่างกันตามจำนวนวันที่เกินกำหนด
+                            </p>
+                          </div>
+                          <Switch
+                            checked={billSettings.late_fee_tiers_enabled}
+                            onCheckedChange={(checked) => setBillSettings({ ...billSettings, late_fee_tiers_enabled: checked })}
+                          />
+                        </div>
+
+                        {billSettings.late_fee_tiers_enabled && (
+                          <div className="space-y-3 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
+                            <p className="text-xs text-amber-700 font-medium mb-3">
+                              💡 ตัวอย่าง: เกิน 1-7 วัน ปรับ 20 บาท/วัน, เกิน 8-14 วัน ปรับ 50 บาท/วัน
+                            </p>
+                            
+                            {billSettings.late_fee_tiers.map((tier, index) => (
+                              <div key={index} className="flex items-center gap-2 bg-white rounded-lg p-3 border border-amber-100">
+                                <span className="text-sm text-slate-600 whitespace-nowrap">เกินกำหนด</span>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={tier.days_from}
+                                  onChange={(e) => {
+                                    const newTiers = [...billSettings.late_fee_tiers];
+                                    newTiers[index].days_from = parseInt(e.target.value) || 1;
+                                    setBillSettings({ ...billSettings, late_fee_tiers: newTiers });
+                                  }}
+                                  className="w-16 text-center text-sm"
+                                />
+                                <span className="text-sm text-slate-600">-</span>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={tier.days_to === 999 ? '' : tier.days_to}
+                                  placeholder="∞"
+                                  onChange={(e) => {
+                                    const newTiers = [...billSettings.late_fee_tiers];
+                                    newTiers[index].days_to = parseInt(e.target.value) || 999;
+                                    setBillSettings({ ...billSettings, late_fee_tiers: newTiers });
+                                  }}
+                                  className="w-16 text-center text-sm"
+                                />
+                                <span className="text-sm text-slate-600 whitespace-nowrap">วัน ปรับ</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={tier.fee_per_day}
+                                  onChange={(e) => {
+                                    const newTiers = [...billSettings.late_fee_tiers];
+                                    newTiers[index].fee_per_day = e.target.value;
+                                    setBillSettings({ ...billSettings, late_fee_tiers: newTiers });
+                                  }}
+                                  placeholder="0"
+                                  className="w-20 text-center text-sm font-semibold"
+                                />
+                                <span className="text-sm text-slate-600">บาท/วัน</span>
+                              </div>
+                            ))}
+
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const lastTier = billSettings.late_fee_tiers[billSettings.late_fee_tiers.length - 1];
+                                  const newTier = {
+                                    days_from: (lastTier?.days_to || 0) + 1,
+                                    days_to: 999,
+                                    fee_per_day: ''
+                                  };
+                                  // อัพเดท days_to ของ tier ก่อนหน้า
+                                  const newTiers = [...billSettings.late_fee_tiers];
+                                  if (newTiers.length > 0) {
+                                    newTiers[newTiers.length - 1].days_to = newTier.days_from - 1;
+                                  }
+                                  newTiers.push(newTier);
+                                  setBillSettings({ ...billSettings, late_fee_tiers: newTiers });
+                                }}
+                                className="text-xs"
+                              >
+                                + เพิ่มช่วง
+                              </Button>
+                              {billSettings.late_fee_tiers.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    const newTiers = billSettings.late_fee_tiers.slice(0, -1);
+                                    if (newTiers.length > 0) {
+                                      newTiers[newTiers.length - 1].days_to = 999;
+                                    }
+                                    setBillSettings({ ...billSettings, late_fee_tiers: newTiers });
+                                  }}
+                                  className="text-xs text-red-600 hover:text-red-700"
+                                >
+                                  ลบช่วงสุดท้าย
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* การแจ้งเตือนอัตโนมัติ */}
+                      <div className="space-y-3 pt-4 border-t">
+                        <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                          🔔 การแจ้งเตือนอัตโนมัติ
+                        </h3>
+
+                        <div className="space-y-3">
+                          <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={billSettings.auto_send_bills}
+                              onChange={(e) => setBillSettings({ ...billSettings, auto_send_bills: e.target.checked })}
+                              className="w-5 h-5 rounded"
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-800">ส่งบิลทาง LINE หลังสร้างบิล</p>
+                              <p className="text-xs text-slate-600">ส่งใบแจ้งหนี้ให้ผู้เช่าทันทีเมื่อสร้างบิล</p>
+                            </div>
+                          </label>
+
+                          <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={billSettings.send_advance_reminder}
+                              onChange={(e) => setBillSettings({ ...billSettings, send_advance_reminder: e.target.checked })}
+                              className="w-5 h-5 rounded"
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-800">แจ้งบิลล่วงหน้า</p>
+                              <p className="text-xs text-slate-600">ส่งแจ้งเตือนก่อนถึงวันครบกำหนด {billSettings.bill_advance_notice_days} วัน</p>
+                            </div>
+                          </label>
+
+                          {billSettings.send_advance_reminder && (
+                            <div className="ml-8 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                              <Label className="text-sm font-medium text-blue-800 mb-2 block">จำนวนวันล่วงหน้า</Label>
+                              <div className="flex items-center gap-3">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max="30"
+                                  value={billSettings.bill_advance_notice_days}
+                                  onChange={(e) => setBillSettings({ ...billSettings, bill_advance_notice_days: e.target.value })}
+                                  className="max-w-xs"
+                                />
+                                <span className="text-xs text-blue-700">
+                                  วันก่อนครบกำหนด
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={billSettings.send_due_date_reminder}
+                              onChange={(e) => setBillSettings({ ...billSettings, send_due_date_reminder: e.target.checked })}
+                              className="w-5 h-5 rounded"
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-800">แจ้งเตือนในวันครบกำหนด</p>
+                              <p className="text-xs text-slate-600">ส่งข้อความเตือนในวันที่ {billSettings.pay_day} (เฉพาะรายการที่รอชำระ)</p>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        className={`w-full transition-all ${
+                          justSavedBillSettings
+                            ? 'bg-green-600 hover:bg-green-700'
+                            : 'bg-gradient-to-r from-blue-600 to-indigo-600'
+                        }`}
+                        disabled={isSavingBillSettings || justSavedBillSettings}
+                      >
+                        {justSavedBillSettings ? (
+                          <>
+                            <Check className="w-4 h-4 mr-2" />
+                            บันทึกสำเร็จ!
+                          </>
+                        ) : isSavingBillSettings ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            กำลังบันทึก...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4 mr-2" />
+                            บันทึกการตั้งค่าบิล
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              {activeTab === 'notifications' && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-800 mb-1">การตั้งค่าการแจ้งเตือน</h3>
+                      <p className="text-sm text-slate-600">ตั้งค่าเกณฑ์การแจ้งเตือนต่างๆ</p>
+                    </div>
+                    {canSetGlobalConfig && (
+                      <BranchToggle
+                        applyToAllBranches={applyToAllBranches_billNotif}
+                        setApplyToAllBranches={setApplyToAllBranches_billNotif}
+                        selectedBranch={selectedBranch}
+                        canSetGlobalConfig={canSetGlobalConfig}
+                      />
+                    )}
+                  </div>
+
+                  <Card className="bg-blue-50/50 border-blue-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <Bell className="w-5 h-5 text-blue-600 mt-0.5" />
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Label className="text-sm font-semibold text-slate-700">เปิดใช้งานการแจ้งเตือน</Label>
+                            <Switch
+                              checked={notificationSettings.enabled}
+                              onCheckedChange={(checked) => setNotificationSettings({...notificationSettings, enabled: checked})}
+                            />
+                          </div>
+                          <p className="text-xs text-slate-600">เปิด/ปิดการแจ้งเตือนทั้งหมดในระบบ</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <DollarSign className="w-5 h-5 text-red-600 mt-0.5" />
+                            <div className="flex-1">
+                              <Label className="text-sm font-semibold text-slate-700">ค้างชำระเกิน (วัน)</Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={notificationSettings.overdue_payment_days}
+                                onChange={(e) => setNotificationSettings({...notificationSettings, overdue_payment_days: parseInt(e.target.value) || 1})}
+                                className="mt-2"
+                              />
+                              <p className="text-xs text-slate-500 mt-1">แจ้งเตือนเมื่อค้างชำระเกินจำนวนวันนี้</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <DoorOpen className="w-5 h-5 text-green-600 mt-0.5" />
+                            <div className="flex-1">
+                              <Label className="text-sm font-semibold text-slate-700">ห้องว่างเกิน (วัน)</Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={notificationSettings.vacant_room_days}
+                                onChange={(e) => setNotificationSettings({...notificationSettings, vacant_room_days: parseInt(e.target.value) || 7})}
+                                className="mt-2"
+                              />
+                              <p className="text-xs text-slate-500 mt-1">แจ้งเตือนเมื่อห้องว่างเกินจำนวนวันนี้</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <Package className="w-5 h-5 text-amber-600 mt-0.5" />
+                            <div className="flex-1">
+                              <Label className="text-sm font-semibold text-slate-700">พัสดุค้างรับเกิน (วัน)</Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                value={notificationSettings.unclaimed_delivery_days}
+                                onChange={(e) => setNotificationSettings({...notificationSettings, unclaimed_delivery_days: parseInt(e.target.value) || 5})}
+                                className="mt-2"
+                              />
+                              <p className="text-xs text-slate-500 mt-1">แจ้งเตือนเมื่อพัสดุค้างรับเกินจำนวนวันนี้</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <TrendingDown className="w-5 h-5 text-orange-600 mt-0.5" />
+                            <div className="flex-1">
+                              <Label className="text-sm font-semibold text-slate-700">รายได้รายวันต่ำกว่าค่าเฉลี่ย (%)</Label>
+                              <Input
+                                type="number"
+                                min="1"
+                                max="100"
+                                value={notificationSettings.low_daily_revenue_percent}
+                                onChange={(e) => setNotificationSettings({...notificationSettings, low_daily_revenue_percent: parseInt(e.target.value) || 20})}
+                                className="mt-2"
+                              />
+                              <p className="text-xs text-slate-500 mt-1">แจ้งเตือนเมื่อรายได้รายวันต่ำกว่าค่าเฉลี่ย (เปอร์เซ็นต์)</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <Wrench className="w-5 h-5 text-purple-600 mt-0.5" />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3">
+                              <Label className="text-sm font-semibold text-slate-700">แจ้งเตือนการซ่อมบำรุงเร่งด่วน</Label>
+                              <Switch
+                                checked={notificationSettings.urgent_maintenance_enabled}
+                                onCheckedChange={(checked) => setNotificationSettings({...notificationSettings, urgent_maintenance_enabled: checked})}
+                              />
+                            </div>
+                            <p className="text-xs text-slate-500 mt-2">แจ้งเตือนเมื่อมีคำขอซ่อมที่มีความเร่งด่วนสูง</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Button
+                    onClick={handleSaveNotificationSettings}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 mt-6"
+                    disabled={saveNotificationSettingsMutation.isPending}
+                  >
+                    {saveNotificationSettingsMutation.isPending ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        กำลังบันทึก...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        บันทึกการตั้งค่า
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {activeTab === 'bank' && (
+                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-purple-600" />
+                      บัญชีธนาคาร
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <BranchToggle
+                      applyToAllBranches={applyToAllBranches_bank}
+                      setApplyToAllBranches={setApplyToAllBranches_bank}
+                      selectedBranch={selectedBranch}
+                      canSetGlobalConfig={canSetGlobalConfig}
+                    />
+
+                    <form onSubmit={handleBankInfoSubmit} className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <Label>ชื่อบัญชี</Label>
+                          <Input
+                            value={bankInfo.account_name}
+                            onChange={(e) => setBankInfo({ ...bankInfo, account_name: e.target.value })}
+                            placeholder="นาย/นาง..."
+                          />
+                        </div>
+                        <div>
+                          <Label>ธนาคาร</Label>
+                          <Input
+                            value={bankInfo.bank_name}
+                            onChange={(e) => setBankInfo({ ...bankInfo, bank_name: e.target.value })}
+                            placeholder="ธนาคารกสิกรไทย"
+                          />
+                        </div>
+                        <div>
+                          <Label>เลขที่บัญชี</Label>
+                          <Input
+                            value={bankInfo.account_number}
+                            onChange={(e) => setBankInfo({ ...bankInfo, account_number: e.target.value })}
+                            placeholder="xxx-x-xxxxx-x"
+                          />
+                        </div>
+                        <div>
+                          <Label>พร้อมเพย์</Label>
+                          <Input
+                            value={bankInfo.promptpay}
+                            onChange={(e) => setBankInfo({ ...bankInfo, promptpay: e.target.value })}
+                            placeholder="0812345678"
+                          />
+                        </div>
+                      </div>
+                      <Button type="submit" className="bg-gradient-to-r from-purple-600 to-pink-600" disabled={isSavingBankInfo}>
+                        {isSavingBankInfo ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            กำลังบันทึก...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4 mr-2" />
+                            บันทึก
+                          </>
+                        )}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              {activeTab === 'messaging' && (
+                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageSquare className="w-5 h-5 text-indigo-600" />
+                      เชื่อมต่อช่องทางสื่อสาร
+                    </CardTitle>
+                    <p className="text-sm text-slate-600 mt-2">
+                      ตั้งค่าการเชื่อมต่อ LINE และ Facebook เพื่อส่งข้อความอัตโนมัติถึงผู้เช่า
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <Tabs defaultValue="line" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 mb-6">
+                        <TabsTrigger value="line" className="flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4" />
+                          LINE
+                        </TabsTrigger>
+                        <TabsTrigger value="facebook" className="flex items-center gap-2">
+                          <Globe className="w-4 h-4" />
+                          Facebook
+                        </TabsTrigger>
+                      </TabsList>
+
+                      <TabsContent value="line" className="space-y-6">
+                        <BranchToggle
+                          applyToAllBranches={applyToAllBranches_line}
+                          setApplyToAllBranches={setApplyToAllBranches_line}
+                          selectedBranch={selectedBranch}
+                          canSetGlobalConfig={canSetGlobalConfig}
+                        />
+
+                        <form onSubmit={handleLineSettingsSubmit} className="space-y-6">
+                          <div className="space-y-4">
+                            <div>
+                              <Label>LINE Channel Access Token *</Label>
+                              <Input
+                                type="password"
+                                value={lineSettings.line_channel_access_token}
+                                onChange={(e) => setLineSettings({ ...lineSettings, line_channel_access_token: e.target.value })}
+                                placeholder="ใส่ Channel Access Token ที่ได้จาก LINE Developers"
+                              />
+                            </div>
+                            <div>
+                              <Label>LINE Channel Secret</Label>
+                              <Input
+                                type="password"
+                                value={lineSettings.line_channel_secret}
+                                onChange={(e) => setLineSettings({ ...lineSettings, line_channel_secret: e.target.value })}
+                                placeholder="ใส่ Channel Secret (สำหรับการยืนยันตัวตน)"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                            <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                              <Zap className="w-5 h-5" />
+                              🔗 Webhook URL สำหรับสาขานี้
+                            </h4>
+                            <div className="space-y-3">
+                              <p className="text-sm text-purple-800 font-semibold">
+                                ⚠️ URL นี้เฉพาะสาขา "{selectedBranch?.name || 'ไม่ระบุ'}" - คัดลอกไปใส่ในหน้า LINE Developers Console:
+                              </p>
+                              <div className="bg-white rounded-lg p-3 border-2 border-purple-300 flex items-center gap-2">
+                                <code className="flex-1 text-sm text-purple-900 font-mono break-all">
+                                  {`https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}`}
+                                </code>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(`https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}`);
+                                    toast.success('คัดลอก Webhook URL แล้ว');
+                                  }}
+                                  className="flex-shrink-0"
+                                >
+                                  คัดลอก
+                                </Button>
+                              </div>
+                              <p className="text-xs text-purple-700">
+                                💡 แต่ละสาขาต้องใช้ Webhook URL คนละอัน เมื่อสร้างสาขาใหม่ ให้นำ URL ใหม่ไปตั้งค่าใน LINE OA ของสาขานั้น
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                            <h4 className="font-semibold text-green-900 mb-2">📱 วิธีตั้งค่า LINE Official Account:</h4>
+                            <ol className="text-sm text-green-700 space-y-2 list-decimal ml-5">
+                              <li>ไปที่ <a href="https://developers.line.biz/console/" target="_blank" className="underline font-semibold">LINE Developers Console</a></li>
+                              <li>สร้าง Provider และ Messaging API Channel</li>
+                              <li>ไปที่ Messaging API → คัดลอก <strong>Channel Access Token</strong></li>
+                              <li>ไปที่ Basic Settings → คัดลอก <strong>Channel Secret</strong></li>
+                              <li>นำมาใส่ในฟอร์มด้านบนและกดบันทึก</li>
+                              <li>ตั้ง Webhook URL (ใช้ URL ด้านบน) ใน LINE Console</li>
+                            </ol>
+                          </div>
+
+                          <Button 
+                            type="submit" 
+                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600"
+                            disabled={isSavingLineSettings}
+                          >
+                            {isSavingLineSettings ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                กำลังบันทึก...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="w-4 h-4 mr-2" />
+                                บันทึกการตั้งค่า LINE
+                              </>
+                            )}
+                          </Button>
+                        </form>
+                      </TabsContent>
+
+                      <TabsContent value="facebook" className="space-y-6">
+                        <BranchToggle
+                          applyToAllBranches={applyToAllBranches_facebook}
+                          setApplyToAllBranches={setApplyToAllBranches_facebook}
+                          selectedBranch={selectedBranch}
+                          canSetGlobalConfig={canSetGlobalConfig}
+                        />
+
+                        <form onSubmit={handleFacebookSettingsSubmit} className="space-y-6">
+                          <div className="space-y-4">
+                            <div>
+                              <Label>Facebook Page Access Token *</Label>
+                              <Input
+                                type="password"
+                                value={facebookSettings.facebook_page_access_token}
+                                onChange={(e) => setFacebookSettings({ ...facebookSettings, facebook_page_access_token: e.target.value })}
+                                placeholder="ใส่ Page Access Token"
+                              />
+                            </div>
+                            <div>
+                              <Label>Verify Token *</Label>
+                              <Input
+                                value={facebookSettings.facebook_verify_token}
+                                onChange={(e) => setFacebookSettings({ ...facebookSettings, facebook_verify_token: e.target.value })}
+                                placeholder="กำหนด Verify Token เอง (เช่น mysecrettoken)"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                            <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                              <Zap className="w-5 h-5" />
+                              🔗 Webhook URL สำหรับ Facebook
+                            </h4>
+                            <div className="space-y-3">
+                              <p className="text-sm text-purple-800 font-semibold">
+                                คัดลอก URL นี้ไปใส่ในหน้า Facebook Developers Console:
+                              </p>
+                              <div className="bg-white rounded-lg p-3 border-2 border-purple-300 flex items-center gap-2">
+                                <code className="flex-1 text-sm text-purple-900 font-mono break-all">
+                                  https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/facebookWebhookHandler
+                                </code>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText('https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/facebookWebhookHandler');
+                                    toast.success('คัดลอก Webhook URL แล้ว');
+                                  }}
+                                  className="flex-shrink-0"
+                                >
+                                  คัดลอก
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                            <h4 className="font-semibold text-blue-900 mb-2">📱 วิธีตั้งค่า Facebook Messenger:</h4>
+                            <ol className="text-sm text-blue-700 space-y-2 list-decimal ml-5">
+                              <li>ไปที่ <a href="https://developers.facebook.com/" target="_blank" className="underline font-semibold">Facebook Developers</a></li>
+                              <li>สร้าง App และเพิ่มผลิตภัณฑ์ Messenger</li>
+                              <li>เลือก Page เพื่อสร้าง <strong>Page Access Token</strong></li>
+                              <li>ตั้งค่า Webhook โดยใช้ URL ด้านบน และ Verify Token ที่คุณกำหนดเอง</li>
+                              <li>เลือก Subscription Fields: <strong>messages</strong></li>
+                            </ol>
+                          </div>
+
+                          <Button 
+                            type="submit" 
+                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600"
+                            disabled={isSavingFacebookSettings}
+                          >
+                            {isSavingFacebookSettings ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                กำลังบันทึก...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="w-4 h-4 mr-2" />
+                                บันทึกการตั้งค่า Facebook
+                              </>
+                            )}
+                          </Button>
+                        </form>
+                      </TabsContent>
+                    </Tabs>
+                  </CardContent>
+                </Card>
+              )}
+
+              {activeTab === 'signature' && (
+                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <PenTool className="w-5 h-5 text-indigo-600" />
+                      ลายเซ็นและตราประทับสำหรับใบเสร็จ
+                    </CardTitle>
+                    <p className="text-sm text-slate-600 mt-2">
+                      ✅ ข้อมูลนี้จำเป็นตามกฎหมาย (ประมวลรัษฎากร มาตรา 105 ทวิ) เพื่อความถูกต้องของใบเสร็จรับเงิน
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <BranchToggle
+                      applyToAllBranches={applyToAllBranches_signature}
+                      setApplyToAllBranches={setApplyToAllBranches_signature}
+                      selectedBranch={selectedBranch}
+                      canSetGlobalConfig={canSetGlobalConfig}
+                    />
+
+                    {/* ลายเซ็นผู้รับเงิน */}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 border-b pb-2">
+                        <PenTool className="w-5 h-5 text-indigo-600" />
+                        <h3 className="text-lg font-semibold text-slate-800">ลายเซ็นผู้รับเงิน *</h3>
+                      </div>
+
+                      {signatureImage ? (
+                        <div className="space-y-3">
+                          <div className="bg-slate-50 rounded-lg p-4 border-2 border-slate-200">
+                            <img
+                              src={signatureImage}
+                              alt="ลายเซ็น"
+                              className="h-32 mx-auto object-contain"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              onClick={() => setShowSignatureDialog(true)}
+                              variant="outline"
+                              className="flex-1"
+                            >
+                              <PenTool className="w-4 h-4 mr-2" />
+                              เซ็นใหม่
+                            </Button>
+                            <Button
+                              type="button"
+                              onClick={async () => {
+                                if (confirm('คุณแน่ใจว่าต้องการลบลายเซ็น?')) {
+                                  await updateConfigMutation.mutateAsync({
+                                    key: 'receipt_signature',
+                                    value: '',
+                                    description: 'ลายเซ็นผู้รับเงินสำหรับใบเสร็จ',
+                                    category: 'general',
+                                    applyToAllBranches: applyToAllBranches_signature
+                                  });
+                                  setSignatureImage('');
+                                  toast.success('ลบลายเซ็นสำเร็จ' + (applyToAllBranches_signature ? ' (ทุกสาขาที่คุณดูแล)' : ` (${selectedBranch?.name})`));
+                                }
+                              }}
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <X className="w-4 h-4 mr-2" />
+                              ลบ
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          onClick={() => setShowSignatureDialog(true)}
+                          className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                        >
+                          <PenTool className="w-4 h-4 mr-2" />
+                          เซ็นลายเซ็น
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* ตราประทับ */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <div className="flex items-center gap-2 border-b pb-2">
+                        <ImageIcon className="w-5 h-5 text-purple-600" />
+                        <h3 className="text-lg font-semibold text-slate-800">ตราประทับ (ถ้ามี)</h3>
+                      </div>
+
+                      {stampImage ? (
+                        <div className="space-y-3">
+                          <div className="bg-slate-50 rounded-lg p-4 border-2 border-slate-200">
+                            <img
+                              src={stampImage}
+                              alt="ตราประทับ"
+                              className="h-32 mx-auto object-contain"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <label className="flex-1">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleStampUpload}
+                                className="hidden"
+                              />
+                              <Button
+                                type="button"
+                                as="div"
+                                variant="outline"
+                                className="w-full cursor-pointer"
+                              >
+                                {uploadingStamp ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-slate-600 border-t-transparent rounded-full animate-spin mr-2" />
+                                    กำลังอัพโหลด...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    เปลี่ยนตราประทับ
+                                  </>
+                                )}
+                              </Button>
+                            </label>
+                            <Button
+                              type="button"
+                              onClick={async () => {
+                                if (confirm('คุณแน่ใจว่าต้องการลบตราประทับ?')) {
+                                  await updateConfigMutation.mutateAsync({
+                                    key: 'receipt_stamp',
+                                    value: '',
+                                    description: 'ตราประทับสำหรับใบเสร็จ',
+                                    category: 'general',
+                                    applyToAllBranches: applyToAllBranches_signature
+                                  });
+                                  setStampImage('');
+                                  toast.success('ลบตราประทับสำเร็จ' + (applyToAllBranches_signature ? ' (ทุกสาขาที่คุณดูแล)' : ` (${selectedBranch?.name})`));
+                                }
+                              }}
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <X className="w-4 h-4 mr-2" />
+                              ลบ
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <label>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleStampUpload}
+                            className="hidden"
+                          />
+                          <Button
+                            type="button"
+                            as="div"
+                            variant="outline"
+                            className="w-full cursor-pointer"
+                          >
+                            {uploadingStamp ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-slate-600 border-t-transparent rounded-full animate-spin mr-2" />
+                                กำลังอัพโหลด...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-4 h-4 mr-2" />
+                                อัพโหลดตราประทับ
+                              </>
+                            )}
+                          </Button>
+                        </label>
+                      )}
+                      <p className="text-xs text-slate-500">
+                        💡 ตราประทับช่วยเพิ่มความน่าเชื่อถือให้กับใบเสร็จ (ไม่บังคับ)
+                      </p>
+                    </div>
+
+                    {/* คำแนะนำ */}
+                    </CardContent>
+                    </Card>
+                    )}
+
+                    {canManagePermissions && activeTab === 'permissions' && (
+                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Shield className="w-5 h-5 text-orange-600" />
+                          จัดการสิทธิ์ผู้ใช้งาน
+                        </CardTitle>
+                        <p className="text-sm text-slate-600 mt-2">
+                          เลือกบทบาท จัดการสิทธิ์การเข้าถึง และกำหนดสาขาที่ผู้ใช้สามารถเข้าถึงได้
+                        </p>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {users
+                        .filter(user => {
+                          const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                          if (userRole === 'owner' && role === 'developer') return false;
+                          if (user.id === currentUser?.id) return false;
+                          
+                          // Filter users by selected branch in multi_tenant mode
+                          if (appMode === 'multi_tenant' && selectedBranch) {
+                            const accessibleBranches = user.accessible_branches || [];
+                            const canAccessAllBranches = role === 'developer' || role === 'owner';
+                            
+                            // Show only users who can access the current branch
+                            if (!canAccessAllBranches && !accessibleBranches.includes(selectedBranch.id)) {
+                              return false;
+                            }
+                          }
+                          
+                          return true;
+                        })
+                        .sort((a, b) => {
+                          // เรียงตามลำดับ: pending users (ไม่มี custom_role) -> owner -> manager -> employee
+                          const getRoleOrder = (user) => {
+                            const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                            if (!user.custom_role) return 0; // pending users first
+                            if (role === 'owner') return 1;
+                            if (role === 'manager') return 2;
+                            return 3; // employee
+                          };
+                          return getRoleOrder(a) - getRoleOrder(b);
+                        })
+                        .map((user) => {
+                          const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                          const badge = getRoleBadge(role);
+                          const currentPermissions = userPermissions[user.id] || [];
+                          const accessibleBranches = user.accessible_branches || [];
+                          const canAccessAllBranches = role === 'developer' || role === 'owner';
+                          const isPending = !user.custom_role; // ถ้าไม่มี custom_role = กำลังรอเข้าใช้
+
+                          return (
+                            <Card key={user.id} className={`border-2 transition-shadow ${isPending ? 'border-amber-400 bg-amber-50/30' : 'border-slate-200 hover:shadow-md'}`}>
+                              <CardContent className="p-4">
+                                <div className="space-y-4">
+                                  {/* ข้อมูลผู้ใช้และบทบาท */}
+                                  <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                                    <div className="flex items-center gap-3 flex-1">
+                                      <div className={`w-12 h-12 bg-gradient-to-br ${badge.color} rounded-full flex items-center justify-center flex-shrink-0 ${isPending ? 'opacity-60' : ''}`}>
+                                        <span className="text-white font-semibold text-lg">
+                                          {user.full_name?.charAt(0) || 'U'}
+                                        </span>
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <p className="font-bold text-slate-800 text-lg truncate">{user.full_name || 'ไม่ระบุชื่อ'}</p>
+                                          {isPending && (
+                                            <Badge className="bg-amber-500 text-white text-xs">
+                                              กำลังรอเข้าใช้
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <p className="text-sm text-slate-500 truncate">{user.email}</p>
+                                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                                          <Badge variant="outline" className="text-xs">
+                                            {currentPermissions.length} สิทธิ์
+                                          </Badge>
+                                          {canAccessAllBranches ? (
+                                            <Badge className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                                              เข้าถึงทุกสาขา
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="outline" className="text-xs">
+                                              {accessibleBranches.length} สาขา
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Role Selector */}
+                                    <div className="flex items-center gap-2 w-full md:w-auto">
+                                      <Label className="text-sm text-slate-600 whitespace-nowrap">บทบาท:</Label>
+                                      <Select
+                                        value={role}
+                                        onValueChange={(newRole) => handleRoleChange(user.id, newRole)}
+                                      >
+                                        <SelectTrigger className="w-full md:w-[180px]">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="owner">👑 เจ้าของหอพัก</SelectItem>
+                                          <SelectItem value="manager">👔 ผู้จัดการ</SelectItem>
+                                          <SelectItem value="employee">👤 พนักงาน</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+
+                                  {/* แสดงรายชื่อสาขาที่เข้าถึงได้ (สำหรับ non-owner/developer) */}
+                                  {!canAccessAllBranches && accessibleBranches.length > 0 && (
+                                    <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                      <p className="text-xs font-semibold text-slate-700 mb-2">🏢 สาขาที่เข้าถึงได้:</p>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {accessibleBranches.map(branchId => (
+                                          <Badge key={branchId} variant="outline" className="text-xs">
+                                            {getBranchName(branchId)}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* ปุ่มจัดการ */}
+                                  <div className="flex flex-wrap gap-2">
+                                    <Button
+                                      type="button"
+                                      onClick={() => handleOpenPermissionsDialog(user)}
+                                      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 flex-1 md:flex-none"
+                                    >
+                                      <SettingsIcon className="w-4 h-4 mr-2" />
+                                      จัดการสิทธิ์ย่อย
+                                    </Button>
+
+                                    {!canAccessAllBranches && (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => handleOpenBranchAccessDialog(user)}
+                                        className="border-blue-600 text-blue-700 hover:bg-blue-50 flex-1 md:flex-none"
+                                      >
+                                        <Globe className="w-4 h-4 mr-2" />
+                                        จัดการสาขา
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+
+                      {users.filter(user => {
+                        const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                        if (userRole === 'owner' && role === 'developer') return false;
+                        if (user.id === currentUser?.id) return false;
+                        return true;
+                      }).length === 0 && (
+                          <div className="text-center py-8 text-slate-500">
+                            <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                            <p>ไม่พบผู้ใช้งานที่สามารถจัดการสิทธิ์ได้</p>
+                          </div>
+                        )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Signature Drawing Dialog */}
+          <Dialog open={showSignatureDialog} onOpenChange={setShowSignatureDialog}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <PenTool className="w-5 h-5 text-indigo-600" />
+                  เซ็นลายเซ็นผู้รับเงิน
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                <div className="bg-slate-50 rounded-lg p-4 border-2 border-slate-300" style={{ height: '300px' }}>
+                  <SignaturePad ref={signaturePadRef} />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => signaturePadRef.current?.clear()}
+                  >
+                    ลบลายเซ็น
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowSignatureDialog(false)}
+                  >
+                    ยกเลิก
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleSaveSignature}
+                    className="bg-gradient-to-r from-indigo-600 to-purple-600"
+                    disabled={uploadingSignature}
+                  >
+                    {uploadingSignature ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                        กำลังบันทึก...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        บันทึกลายเซ็น
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Permissions Dialog */}
+          <Dialog open={showPermissionsDialog} onOpenChange={setShowPermissionsDialog}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3">
+                  <Shield className="w-6 h-6 text-orange-600" />
+                  จัดการสิทธิ์: {selectedUserForPermissions?.full_name}
+                </DialogTitle>
+                <p className="text-sm text-slate-600 mt-2">
+                  เลือกสิทธิ์การเข้าถึงแต่ละฟังก์ชันสำหรับผู้ใช้คนนี้
+                </p>
+              </DialogHeader>
+
+              {selectedUserForPermissions && (
+                <div className="space-y-4">
+                  <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                    <p className="text-sm text-blue-800">
+                      <strong>สิทธิ์ที่เลือก:</strong> {(userPermissions[selectedUserForPermissions.id] || []).length} รายการ
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {Object.entries(PERMISSION_CATEGORIES_DISPLAY).map(([categoryKey, category]) => {
+                      const userId = selectedUserForPermissions.id;
+                      const isExpanded = expandedCategories[categoryKey];
+                      const currentPermissions = userPermissions[userId] || [];
+                      const categoryPermissionIds = category.permissions.map(p => p.id);
+                      const selectedInCategory = categoryPermissionIds.filter(p => currentPermissions.includes(p)).length;
+                      const allSelected = selectedInCategory === categoryPermissionIds.length;
+
+                      return (
+                        <div key={categoryKey} className="border border-slate-200 rounded-lg">
+                          <div
+                            className="flex items-center justify-between p-3 bg-slate-50 cursor-pointer hover:bg-slate-100 rounded-t-lg"
+                            onClick={() => toggleCategory(categoryKey)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">{category.icon}</span>
+                              <span className="font-semibold text-slate-800">{category.title}</span>
+                              <Badge variant="outline" className="text-xs">
+                                {selectedInCategory}/{categoryPermissionIds.length}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={allSelected ? "default" : "outline"}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  selectAllInCategory(userId, categoryKey);
+                                }}
+                                className="text-xs"
+                              >
+                                {allSelected ? '✓ ทั้งหมด' : 'เลือกทั้งหมด'}
+                              </Button>
+                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </div>
+                          </div>
+
+                          {isExpanded && (
+                            <div className="p-3 space-y-2 bg-white rounded-b-lg">
+                              {category.permissions.map(permission => {
+                                const isChecked = currentPermissions.includes(permission.id);
+
+                                return (
+                                  <label
+                                    key={permission.id}
+                                    className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
+                                      isChecked ? 'bg-green-50 border border-green-200' : 'hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => togglePermission(userId, permission.id)}
+                                      className="w-4 h-4 rounded"
+                                    />
+                                    <span className={`text-sm flex-1 ${isChecked ? 'font-semibold text-green-700' : 'text-slate-700'}`}>
+                                      {permission.label}
+                                    </span>
+                                    {isChecked && <Check className="w-4 h-4 text-green-600" />}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-4 border-t">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowPermissionsDialog(false)}
+                    >
+                      ยกเลิก
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        handleSaveUserPermissions(selectedUserForPermissions.id);
+                        setShowPermissionsDialog(false);
+                      }}
+                      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+                      disabled={updateUserPermissionsMutation.isPending}
+                    >
+                      {updateUserPermissionsMutation.isPending ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                          กำลังบันทึก...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          บันทึกสิทธิ์
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          {/* Branch Access Dialog - ใหม่ */}
+          <Dialog open={showBranchAccessDialog} onOpenChange={setShowBranchAccessDialog}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3">
+                  <Globe className="w-6 h-6 text-blue-600" />
+                  จัดการสาขาที่เข้าถึงได้: {selectedUserForBranches?.full_name}
+                </DialogTitle>
+                <p className="text-sm text-slate-600 mt-2">
+                  เลือกสาขาที่ผู้ใช้สามารถเข้าถึงและจัดการได้
+                </p>
+              </DialogHeader>
+
+              {selectedUserForBranches && (
+                <div className="space-y-4">
+                  <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                    <p className="text-sm text-blue-800">
+                      <strong>สาขาที่เลือก:</strong> {(userBranchAccess[selectedUserForBranches.id] || []).length} สาขา
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {branches.map((branch) => {
+                      const userId = selectedUserForBranches.id;
+                      const currentBranches = userBranchAccess[userId] || [];
+                      const isChecked = currentBranches.includes(branch.id);
+
+                      return (
+                        <label
+                          key={branch.id}
+                          className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer transition-colors border-2 ${
+                            isChecked
+                              ? 'bg-blue-50 border-blue-300'
+                              : 'hover:bg-slate-50 border-slate-200'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleBranchAccess(userId, branch.id)}
+                            className="w-5 h-5 rounded"
+                          />
+                          <div className="flex-1">
+                            <p className={`font-semibold ${isChecked ? 'text-blue-700' : 'text-slate-800'}`}>
+                              {branch.branch_name}
+                            </p>
+                            {branch.address && (
+                              <p className="text-xs text-slate-500 mt-1">{branch.address}</p>
+                            )}
+                          </div>
+                          {isChecked && <Check className="w-5 h-5 text-blue-600" />}
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {branches.length === 0 && (
+                    <div className="text-center py-8 text-slate-500">
+                      <Globe className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>ยังไม่มีสาขาในระบบ</p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-4 border-t">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowBranchAccessDialog(false)}
+                    >
+                      ยกเลิก
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        handleSaveUserBranches(selectedUserForBranches.id);
+                        setShowBranchAccessDialog(false);
+                      }}
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                      disabled={updateUserBranchesMutation.isPending}
+                    >
+                      {updateUserBranchesMutation.isPending ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                          กำลังบันทึก...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          บันทึก
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
+          <AddEmployeeDialog
+            isOpen={showAddEmployeeDialog}
+            onClose={() => setShowAddEmployeeDialog(false)}
+            onSuccess={() => {
+              queryClient.invalidateQueries(['users']); // Refresh users list after adding an employee
+              toast.success('เพิ่มพนักงานใหม่สำเร็จ!');
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
