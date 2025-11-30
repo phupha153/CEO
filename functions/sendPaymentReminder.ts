@@ -307,6 +307,8 @@ Deno.serve(async (req) => {
                     }
                 } catch (invoiceError) {
                     console.error(`❌ Error generating image for room ${recipient.metadata.roomNumber}:`, invoiceError.message);
+                    // ลบ placeholder ถ้าเกิด error
+                    recipient.message = recipient.message.replace('{{INVOICE_IMAGE_PLACEHOLDER}}\n', '');
                 }
 
                 // รอ 2 วินาทีก่อนสร้างรูปถัดไป (หลีกเลี่ยง rate limit)
