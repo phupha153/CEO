@@ -97,6 +97,9 @@ Deno.serve(async (req) => {
         console.log(`📋 Target Branch: ${targetBranchId || 'ALL'}`);
         console.log(`📦 Batch Size: ${batchSize}`);
         console.log(`🔄 Concurrent Limit: ${concurrentLimit}`);
+        console.log(`⏱️ Max Run Time: ${maxRunTime}ms`);
+        
+        const startTime = Date.now();
 
         // 1. Fetch Configs
         const configs = await base44.asServiceRole.entities.Config.list() || [];
