@@ -840,7 +840,16 @@ export default function PaymentsPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => {
       if (!canEdit) throw new Error('คุณไม่มีสิทธิ์แก้ไขการชำระเงิน');
-      return base44.entities.Payment.update(id, data);
+      
+      // ⭐ ถ้าแก้ไขบิล ให้รีเซ็ต invoice_image_status เป็น pending เพื่อสร้างรูปใหม่
+      const updatedData = {
+        ...data,
+        invoice_image_status: 'pending',
+        invoice_image_url: null,
+        bill_sent_date: null
+      };
+      
+      return base44.entities.Payment.update(id, updatedData);
     },
     onSuccess: async (updatedPayment) => {
       queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
@@ -856,12 +865,12 @@ export default function PaymentsPage() {
         entity_name: `ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`,
         user_email: currentUser?.email,
         user_name: currentUser?.full_name,
-        description: `แก้ไขบิลค่าเช่าห้อง ${room?.room_number || 'N/A'}`
+        description: `แก้ไขบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} (รีเซ็ตรูป)`
       });
       
       setShowDialog(false);
       resetForm();
-      toast.success('อัปเดตการชำระเงินสำเร็จ');
+      toast.success('อัปเดตบิลสำเร็จ (จะสร้างรูปใหม่เมื่อส่งบิล)', { duration: 4000 });
     },
     onError: (error) => toast.error(error.message || 'เกิดข้อผิดพลาด')
   });
