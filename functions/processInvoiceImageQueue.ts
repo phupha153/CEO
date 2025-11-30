@@ -425,10 +425,12 @@ Deno.serve(async (req) => {
                     const imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoice);
 
                     if (imageUrl) {
-                        // Update payment with image URL
+                        // Update payment with image URL + hash
+                        const newHash = generatePaymentHash(payment);
                         await base44.asServiceRole.entities.Payment.update(payment.id, {
                             invoice_image_url: imageUrl,
-                            invoice_image_status: 'completed'
+                            invoice_image_status: 'completed',
+                            invoice_data_hash: newHash
                         });
                         
                         console.log(`✅ Payment ${payment.id}: Image created`);
