@@ -331,20 +331,11 @@ Deno.serve(async (req) => {
 
         const result = batchResult.data;
         
-        // ⭐ นับจำนวนห้องที่ข้ามเพราะส่งไปแล้ว
-        const totalPendingOverdue = allPayments.filter(p => {
-            const statusMatch = p.status === 'pending' || p.status === 'overdue';
-            const branchMatch = !branch_id || p.branch_id === branch_id;
-            return statusMatch && branchMatch;
-        }).length;
-        const skippedCount = totalPendingOverdue - recipients.length;
-
         return Response.json({ 
             success: true,
             message: `ส่งข้อความสำเร็จ ${result.success}/${result.total} รายการ`,
             sent: result.success,
             failed: result.failed,
-            skipped: skippedCount,
             total: recipients.length,
             errors: result.errors
         });
