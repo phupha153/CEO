@@ -287,23 +287,17 @@ Deno.serve(async (req) => {
         let allPayments = await base44.asServiceRole.entities.Payment.filter(paymentFilter, '-created_date', 500);
         allPayments = allPayments || [];
 
-        // ⭐ กรองเฉพาะสาขาที่เปิดการส่งบิลอัตโนมัติ
+        // ⭐ สร้างรูปทุกสาขา แต่ส่ง LINE เฉพาะสาขาที่เปิด auto_send
         const paymentsToProcess = allPayments.filter(p => {
             // ข้ามบิลที่ชำระแล้ว
             if (p.status === 'paid') return false;
             
-            // ⭐ เช็คว่าสาขานี้เปิดส่งบิลอัตโนมัติหรือไม่
-            const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', 'false', p.branch_id) === 'true';
-            if (!autoSendEnabled) {
-                console.log(`⏭️ Branch ${p.branch_id}: auto_send disabled - skip payment ${p.id}`);
-                return false;
-            }
-            
             // ต้องยังไม่มีรูปหรือสถานะเป็น pending/null
             const needsImage = !p.invoice_image_url || p.invoice_image_status === 'pending' || !p.invoice_image_status;
             
-            // ต้องยังไม่ส่ง LINE
-            const needsSend = !p.bill_sent_date;
+            // ⭐ เช็คว่าสาขานี้เปิดส่งบิลอัตโนมัติหรือไม่
+            const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', 'false', p.branch_id) === 'true';
+            const needsSend = autoSendEnabled && !p.bill_sent_date;
             
             return needsImage || needsSend;
         }).slice(0, batchSize);
