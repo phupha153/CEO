@@ -839,7 +839,13 @@ export default function PaymentsPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => {
       if (!canEdit) throw new Error('คุณไม่มีสิทธิ์แก้ไขการชำระเงิน');
-      return base44.entities.Payment.update(id, data);
+      // ⭐ เมื่อแก้ไขบิล ให้เคลียร์สถานะรูปเพื่อให้สร้างใหม่
+      return base44.entities.Payment.update(id, {
+        ...data,
+        invoice_image_url: null,
+        invoice_image_status: 'pending',
+        bill_sent_date: null
+      });
     },
     onSuccess: async (updatedPayment) => {
       queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
@@ -855,12 +861,12 @@ export default function PaymentsPage() {
         entity_name: `ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`,
         user_email: currentUser?.email,
         user_name: currentUser?.full_name,
-        description: `แก้ไขบิลค่าเช่าห้อง ${room?.room_number || 'N/A'}`
+        description: `แก้ไขบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} (รูปจะถูกสร้างใหม่)`
       });
       
       setShowDialog(false);
       resetForm();
-      toast.success('อัปเดตการชำระเงินสำเร็จ');
+      toast.success('อัปเดตการชำระเงินสำเร็จ - รูปใบแจ้งหนี้จะถูกสร้างใหม่', { duration: 4000 });
     },
     onError: (error) => toast.error(error.message || 'เกิดข้อผิดพลาด')
   });
@@ -2177,9 +2183,15 @@ Return JSON.`;
               )}
               {canSendReminder && (
                 <Button
-                  onClick={() => {
+                  onClick={async () => {
+                    // นับจำนวนบิลที่ยังไม่มีรูป
+                    const pendingImages = pendingOverduePayments.filter(p => {
+                      const tenant = getTenantInfo(p.tenant_id);
+                      return tenant?.line_user_id && !p.invoice_image_url && !p.bill_sent_date;
+                    }).length;
+                    
                     const confirmMsg = tenantsWithLine > 0 
-                      ? `ต้องการส่งแจ้งเตือนไปยังผู้เช่า ${tenantsWithLine} คนที่มี LINE ใช่หรือไม่?`
+                      ? `ต้องการสร้างรูปและส่งแจ้งเตือนไปยัง ${tenantsWithLine} ห้องใช่หรือไม่?${pendingImages > 0 ? `\n(มี ${pendingImages} ใบที่ต้องสร้างรูปก่อน - ใช้เวลา ~${pendingImages * 5} วินาที)` : ''}`
                       : 'ไม่มีบิลรอชำระที่มี LINE';
                     
                     if (tenantsWithLine === 0) {
@@ -2189,7 +2201,27 @@ Return JSON.`;
                     
                     if (!confirm(confirmMsg)) return;
                     
-                    handleSendReminder();
+                    setSendingAll(true);
+                    try {
+                      toast.info('กำลังสร้างรูปและส่งบิล...', { duration: 3000 });
+                      
+                      const response = await base44.functions.invoke('processInvoiceImageQueue', {
+                        branch_id: selectedBranchId,
+                        batch_size: tenantsWithLine,
+                        concurrent_limit: 1
+                      });
+                      
+                      if (response.data?.success) {
+                        const sent = response.data.lineSent || 0;
+                        const failed = response.data.lineFailed || 0;
+                        toast.success(`ส่งสำเร็จ ${sent} ใบ${failed > 0 ? `, ล้มเหลว ${failed}` : ''}`, { duration: 5000 });
+                        queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
+                      }
+                    } catch (error) {
+                      toast.error('เกิดข้อผิดพลาด: ' + error.message);
+                    } finally {
+                      setSendingAll(false);
+                    }
                   }}
                   disabled={sendingAll || tenantsWithLine === 0}
                   size="sm"
@@ -2204,7 +2236,7 @@ Return JSON.`;
                   ) : (
                     <>
                       <Send className="w-3 h-3 mr-1" />
-                      ส่งแจ้งเตือน {tenantsWithLine > 0 && `(${tenantsWithLine})`}
+                      ส่งบิลทุกห้อง {tenantsWithLine > 0 && `(${tenantsWithLine})`}
                     </>
                   )}
                 </Button>

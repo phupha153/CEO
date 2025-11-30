@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 export default function GenerateMonthlyBillsButton({ branchId, onSuccess, compact = false }) {
   const [generating, setGenerating] = useState(false);
+  const [processingQueue, setProcessingQueue] = useState(false);
 
   const handleGenerateBills = async () => {
     if (!confirm('คุณต้องการสร้างบิลประจำเดือนนี้ใช่หรือไม่?')) {
@@ -22,19 +23,44 @@ export default function GenerateMonthlyBillsButton({ branchId, onSuccess, compac
       });
 
       if (response.data?.success) {
-        const { created, alreadyExists, total } = response.data;
+        const created = response.data.generatedCount || response.data.created || 0;
+        const pending = response.data.pendingImageCount || 0;
         
         if (created > 0) {
           toast.success(
-            `สร้างบิลสำเร็จ ${created} รายการ` + 
-            (alreadyExists > 0 ? ` (มีบิลอยู่แล้ว ${alreadyExists} รายการ)` : ''),
+            `สร้างบิลสำเร็จ ${created} รายการ${pending > 0 ? ` (รอสร้างรูป ${pending} ใบ)` : ''}`,
             { duration: 5000 }
           );
+
+          // ⭐ ถ้ามีบิลที่ต้องสร้างรูป = ถามว่าจะส่งทันทีไหม
+          if (pending > 0) {
+            const shouldSend = confirm(`ต้องการสร้างรูปและส่ง LINE ทันทีไหม?\n(${pending} ใบ - ใช้เวลาประมาณ ${Math.ceil(pending * 5)} วินาที)`);
+            
+            if (shouldSend) {
+              setProcessingQueue(true);
+              toast.info('กำลังสร้างรูปและส่ง LINE...', { duration: 3000 });
+              
+              try {
+                const queueResponse = await base44.functions.invoke('processInvoiceImageQueue', {
+                  branch_id: branchId,
+                  batch_size: pending,
+                  concurrent_limit: 1
+                });
+                
+                if (queueResponse.data?.success) {
+                  const sent = queueResponse.data.lineSent || 0;
+                  const failed = queueResponse.data.lineFailed || 0;
+                  toast.success(`ส่งสำเร็จ ${sent} ใบ${failed > 0 ? `, ล้มเหลว ${failed}` : ''}`, { duration: 5000 });
+                }
+              } catch (queueError) {
+                toast.error('เกิดข้อผิดพลาดในการส่งบิล');
+              } finally {
+                setProcessingQueue(false);
+              }
+            }
+          }
         } else {
-          toast.info(
-            `ไม่มีบิลที่ต้องสร้างใหม่ (มีบิลอยู่แล้ว ${alreadyExists} รายการ)`,
-            { duration: 4000 }
-          );
+          toast.info('ไม่มีบิลที่ต้องสร้างใหม่', { duration: 4000 });
         }
 
         if (onSuccess) onSuccess();
@@ -49,20 +75,22 @@ export default function GenerateMonthlyBillsButton({ branchId, onSuccess, compac
     }
   };
 
+  const isLoading = generating || processingQueue;
+
   if (compact) {
     return (
       <Button
         onClick={handleGenerateBills}
-        disabled={generating}
+        disabled={isLoading}
         size="sm"
         className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
       >
-        {generating ? (
+        {isLoading ? (
           <Loader2 className="w-4 h-4 mr-1 animate-spin" />
         ) : (
           <Calendar className="w-4 h-4 mr-1" />
         )}
-        {generating ? 'กำลังสร้าง...' : 'สร้างบิลเดือนนี้'}
+        {processingQueue ? 'กำลังส่ง...' : generating ? 'กำลังสร้าง...' : 'สร้างบิลเดือนนี้'}
       </Button>
     );
   }
@@ -70,13 +98,13 @@ export default function GenerateMonthlyBillsButton({ branchId, onSuccess, compac
   return (
     <Button
       onClick={handleGenerateBills}
-      disabled={generating}
+      disabled={isLoading}
       className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
     >
-      {generating ? (
+      {isLoading ? (
         <>
           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          กำลังสร้างบิล...
+          {processingQueue ? 'กำลังส่งบิล...' : 'กำลังสร้างบิล...'}
         </>
       ) : (
         <>
