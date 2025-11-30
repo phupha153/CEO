@@ -655,8 +655,8 @@ Deno.serve(async (req) => {
                     for (const payment of created) {
                         const meta = paymentReferenceMap.get(payment.room_id);
                         if (meta && meta.tenant?.line_user_id) {
+                            // ⭐⭐⭐ เช็คว่าสาขานี้เปิด auto_send หรือไม่ ก่อนเพิ่มเข้า queue
                             const shouldSend = getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
-                            // Don't send line if auto-paid (optional, usually we still notify)
                             if (shouldSend) {
                                 billsToSend.push({ payment, tenant: meta.tenant, room: meta.room });
                             }
