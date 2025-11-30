@@ -170,10 +170,10 @@ ${lineItems.map((item, idx) => `<tr><td>${idx + 1}</td><td>${escapeHtml(item.nam
         throw new Error(`Browserless error: ${errText}`);
     }
 
-    // Upload image
+    // Upload image - ใช้ asServiceRole
     const imageBlob = await browserlessResponse.blob();
     const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: imageFile });
+    const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file: imageFile });
     
     return file_url;
 }
