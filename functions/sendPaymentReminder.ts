@@ -275,15 +275,18 @@ Deno.serve(async (req) => {
             let invoiceImageUrl = payment.invoice_image_url || null;
             const currentHash = generatePaymentHash(payment);
             const savedHash = payment.invoice_data_hash || '';
-            const needsRegenerate = !invoiceImageUrl || (savedHash && currentHash !== savedHash);
+            // ⭐ บังคับสร้างใหม่ถ้า: ไม่มีรูป หรือ hash ไม่ตรง (บิลถูกแก้ไข)
+            const needsRegenerate = !invoiceImageUrl || currentHash !== savedHash;
 
             if (needsRegenerate) {
-                const reason = !invoiceImageUrl ? 'ยังไม่มีรูป' : 'บิลถูกแก้ไข';
+                const reason = !invoiceImageUrl ? 'ยังไม่มีรูป' : 'บิลถูกแก้ไข (hash mismatch)';
                 console.log(`🖼️ Generating invoice image for payment ${payment.id} (${reason})...`);
+                console.log(`   Current hash: ${currentHash}, Saved hash: ${savedHash || 'none'}`);
 
                 try {
                     const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
-                        paymentId: payment.id
+                        paymentId: payment.id,
+                        forceRegenerate: true // ⭐ บังคับสร้างใหม่
                     });
                     if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
                         invoiceImageUrl = invoiceResult.data.invoice_image_url;
