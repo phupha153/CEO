@@ -393,32 +393,16 @@ Deno.serve(async (req) => {
                 }
                 
                 // ⭐ ตรวจสอบว่ามีบิลของเดือนนี้อยู่แล้วหรือไม่ (ป้องกันสร้างซ้ำ)
-                // ใช้ Map lookup แทน array.find() เพื่อประสิทธิภาพสูงสุด O(1)
+                // ใช้ Set lookup O(1) - เร็วและแม่นยำ
                 const targetDueYearMonth = `${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`; // e.g., "2025-12"
-                const mapKey = `${room.id}|${targetDueYearMonth}`;
+                const checkKey = `${room.id}|${targetDueYearMonth}`;
                 
-                let existingBill = existingPaymentsMap.get(mapKey) || null;
-                
-                // ⭐ FALLBACK: scan จาก normalizedPayments array (ใช้ normalizedPayments ไม่ใช่ recentPayments!)
-                if (!existingBill) {
-                    for (const p of normalizedPayments) {
-                        if (p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
-                            existingBill = p;
-                            break;
-                        }
-                    }
-                }
-                
-                if (existingBill) {
-                    console.log(`✅ Room ${room.room_number}: Found bill ${existingBill.id} for ${targetDueYearMonth}`);
-                } else {
-                    console.log(`📝 Room ${room.room_number}: No bill for ${targetDueYearMonth}, creating...`);
-                }
+                const hasBillAlready = existingBillsSet.has(checkKey);
 
                 // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว = ข้ามไป (ไม่ว่าจะ force หรือไม่ก็ตาม)
                 // เพื่อป้องกันการสร้างบิลซ้ำเมื่อ cron job รันหลายรอบต่อวัน
-                if (existingBill) {
-                    console.log(`⏭️ Room ${room.room_number}: มีบิลเดือน ${roomDueMonth + 1}/${roomDueYear} อยู่แล้ว (ID: ${existingBill.id}) - ข้าม`);
+                if (hasBillAlready) {
+                    console.log(`⏭️ Room ${room.room_number}: มีบิลเดือน ${roomDueMonth + 1}/${roomDueYear} อยู่แล้ว - ข้าม`);
                     skippedDueToExistingBill++;
                     
                     // ถ้าต้องการส่งแจ้งเตือนซ้ำ
