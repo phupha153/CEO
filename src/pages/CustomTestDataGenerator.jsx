@@ -15,7 +15,7 @@ export default function CustomTestDataGenerator() {
   const selectedBranchId = localStorage.getItem('selected_branch_id');
   
   const [config, setConfig] = useState({
-    totalRecords: 1000,
+    totalRecords: 10000,
     dataTypes: {
       rooms: { enabled: true, percentage: 5 },
       tenants: { enabled: true, percentage: 5 },
