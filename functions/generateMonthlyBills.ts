@@ -457,6 +457,9 @@ Deno.serve(async (req) => {
                     }
                 }
                 
+                // ⭐⭐⭐ DEBUG: แสดงการค้นหาบิลเก่า
+                console.log(`🔍 Room ${room.room_number}: Looking for bill with mapKey="${mapKey}", existingPaymentsMap.size=${existingPaymentsMap.size}`);
+                
                 if (existingBill) {
                     console.log(`✅ Room ${room.room_number}: Found bill ${existingBill.id} for ${targetDueYearMonth}`);
                 } else {
@@ -466,6 +469,7 @@ Deno.serve(async (req) => {
                 // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว:
                 // - ถ้า force=true (เรียกจาก TestingAdmin) → สร้างซ้ำได้เลย ไม่ต้องเช็ค
                 // - ถ้า force=false (เรียกจาก Cron Job) → ข้ามไป ป้องกันสร้างซ้ำ
+                console.log(`🔧 forceCreate=${forceCreate}, existingBill=${existingBill ? existingBill.id : 'null'}`);
                 if (existingBill && !forceCreate) {
                     console.log(`⏭️ Room ${room.room_number}: มีบิลเดือน ${roomDueMonth + 1}/${roomDueYear} อยู่แล้ว (ID: ${existingBill.id}) - ข้าม (Cron mode)`);
                     skippedDueToExistingBill++;
