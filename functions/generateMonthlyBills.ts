@@ -199,29 +199,22 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
-        // ⭐⭐⭐ ดึง Payment - ใช้ list() ครั้งเดียวดึงให้มากที่สุด
-        console.log(`🔍 Fetching ALL payments with single list() call...`);
+        // ⭐⭐⭐ ดึง Payment - ใช้ fetchWithPagination เหมือน entities อื่น
+        console.log(`🔍 Fetching ALL payments with fetchWithPagination...`);
 
         let recentPayments = [];
         try {
-            // ⭐ ดึงครั้งเดียว limit สูงสุด - SDK อาจไม่รองรับ skip/pagination จริง
-            const maxLimit = 50000; // ดึงให้มากที่สุดในครั้งเดียว
+            const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
+            recentPayments = await fetchWithPagination(
+                base44.asServiceRole.entities.Payment, 
+                paymentFilter, 
+                '-created_date'
+            );
             
-            if (targetBranchId) {
-                recentPayments = await base44.asServiceRole.entities.Payment.filter(
-                    { branch_id: targetBranchId }, 
-                    '-created_date', 
-                    maxLimit
-                );
-            } else {
-                recentPayments = await base44.asServiceRole.entities.Payment.list('-created_date', maxLimit);
-            }
-            
-            // ⭐ Ensure it's a proper array - SDK might return object with numeric keys
+            // ⭐ Ensure it's a proper array
             if (!Array.isArray(recentPayments)) {
                 console.warn(`⚠️ recentPayments is not an array, converting from object...`, typeof recentPayments);
                 if (recentPayments && typeof recentPayments === 'object') {
-                    // Convert object with numeric keys to array
                     recentPayments = Object.values(recentPayments);
                 } else {
                     recentPayments = [];
@@ -230,10 +223,6 @@ Deno.serve(async (req) => {
             
             console.log(`✅ Total payments fetched: ${recentPayments.length}`);
             
-            // ⭐ Warning ถ้าได้ครบ limit = อาจมีมากกว่านี้
-            if (recentPayments.length >= maxLimit) {
-                console.warn(`⚠️ WARNING: Got exactly ${maxLimit} payments - there may be more!`);
-            }
         } catch (fetchError) {
             console.error(`❌ Error fetching payments: ${fetchError.message}`);
             console.error(`❌ Stack: ${fetchError.stack}`);
