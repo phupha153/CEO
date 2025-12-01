@@ -204,36 +204,54 @@ Deno.serve(async (req) => {
         let recentPayments = [];
         
         console.log('');
-        console.log('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
         console.log('⭐ FETCHING PAYMENTS - START');
-        console.log('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
-        
+
         await retryOperation(async () => {
-            const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
-            console.log(`Payment filter: ${JSON.stringify(paymentFilter)}`);
-            
-            // ⭐ ลองดึงแบบ list ก่อนเพื่อ debug
-            console.log('Calling Payment.list()...');
-            const testPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 10);
-            console.log(`Payment.list() returned: ${testPayments?.length || 0} items`);
-            
-            if (testPayments && testPayments.length > 0) {
-                console.log(`First payment ID: ${testPayments[0].id}`);
-                console.log(`First payment KEYS: ${Object.keys(testPayments[0]).join(', ')}`);
-                console.log(`First payment branch_id: ${testPayments[0].branch_id}`);
-                console.log(`First payment room_id: ${testPayments[0].room_id}`);
-                console.log(`First payment due_date: ${testPayments[0].due_date}`);
+            // ⭐ ใช้ list แทน filter เพราะ filter มีปัญหา
+            if (targetBranchId) {
+                // ดึงทีละ batch แล้วกรองเอง
+                let allPayments = [];
+                let skip = 0;
+                const batchSize = 5000;
+                let hasMore = true;
+
+                while (hasMore) {
+                    const batch = await base44.asServiceRole.entities.Payment.list('-created_date', batchSize, skip);
+                    if (!Array.isArray(batch) || batch.length === 0) {
+                        hasMore = false;
+                    } else {
+                        // กรองเฉพาะสาขาที่ต้องการ
+                        const filtered = batch.filter(p => p.branch_id === targetBranchId);
+                        allPayments = allPayments.concat(filtered);
+                        skip += batch.length;
+                        if (batch.length < batchSize) {
+                            hasMore = false;
+                        }
+                    }
+                }
+                recentPayments = allPayments;
             } else {
-                console.log('❌ Payment.list() returned EMPTY or NULL!');
+                // ดึงทั้งหมด
+                let allPayments = [];
+                let skip = 0;
+                const batchSize = 5000;
+                let hasMore = true;
+
+                while (hasMore) {
+                    const batch = await base44.asServiceRole.entities.Payment.list('-created_date', batchSize, skip);
+                    if (!Array.isArray(batch) || batch.length === 0) {
+                        hasMore = false;
+                    } else {
+                        allPayments = allPayments.concat(batch);
+                        skip += batch.length;
+                        if (batch.length < batchSize) {
+                            hasMore = false;
+                        }
+                    }
+                }
+                recentPayments = allPayments;
             }
-            
-            console.log('Calling fetchWithPagination for Payment...');
-            recentPayments = await fetchWithPagination(
-                base44.asServiceRole.entities.Payment, 
-                paymentFilter, 
-                '-created_date'
-            );
-            console.log(`fetchWithPagination returned: ${recentPayments?.length || 0} payments`);
+            console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments?.length || 0}`);
         });
         
         console.log('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
