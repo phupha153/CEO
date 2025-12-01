@@ -145,23 +145,28 @@ Deno.serve(async (req) => {
                 allRooms = room ? [room] : [];
             }
         } else if (branch_id) {
-            // ดึงเฉพาะ branch นั้น
-            const [paymentResults, tenantResults, roomResults, configResults] = await Promise.all([
-                base44.asServiceRole.entities.Payment.filter({ branch_id, status: 'pending' }),
+            // ดึงเฉพาะ branch นั้น และกรองเฉพาะที่ยังไม่ส่ง
+            const [configResults, tenantResults, roomResults] = await Promise.all([
+                base44.asServiceRole.entities.Config.list(),
                 base44.asServiceRole.entities.Tenant.filter({ branch_id }),
-                base44.asServiceRole.entities.Room.filter({ branch_id }),
-                base44.asServiceRole.entities.Config.list()
+                base44.asServiceRole.entities.Room.filter({ branch_id })
             ]);
             
-            allPayments = Array.isArray(paymentResults) ? paymentResults : [];
+            configs = configResults;
             allTenants = Array.isArray(tenantResults) ? tenantResults : [];
             allRooms = Array.isArray(roomResults) ? roomResults : [];
-            configs = configResults;
             
-            // ⭐ ดึง overdue แยก (เพราะ filter ไม่รองรับ OR condition)
-            const overdueResults = await base44.asServiceRole.entities.Payment.filter({ branch_id, status: 'overdue' });
-            const overduePayments = Array.isArray(overdueResults) ? overdueResults : [];
-            allPayments = [...allPayments, ...overduePayments];
+            // ⭐ ดึง pending และ overdue ที่ยังไม่ส่ง (bill_sent_date = null)
+            const [pendingResults, overdueResults] = await Promise.all([
+                base44.asServiceRole.entities.Payment.filter({ branch_id, status: 'pending' }),
+                base44.asServiceRole.entities.Payment.filter({ branch_id, status: 'overdue' })
+            ]);
+            
+            const pending = Array.isArray(pendingResults) ? pendingResults : [];
+            const overdue = Array.isArray(overdueResults) ? overdueResults : [];
+            
+            // ⭐ กรองเฉพาะที่ยังไม่มี bill_sent_date
+            allPayments = [...pending, ...overdue].filter(p => !p.bill_sent_date);
         } else {
             // ไม่แนะนำ - ส่งทุกสาขา (จะช้ามาก)
             return Response.json({
