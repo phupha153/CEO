@@ -323,8 +323,8 @@ Deno.serve(async (req) => {
                     hasMore = false;
                 }
             }
-            // จำกัดไม่เกิน 5000 รายการเพื่อป้องกัน memory issue
-            if (allPayments.length >= 5000) {
+            // จำกัดไม่เกิน 15000 รายการเพื่อป้องกัน memory issue
+            if (allPayments.length >= 15000) {
                 hasMore = false;
             }
         }
