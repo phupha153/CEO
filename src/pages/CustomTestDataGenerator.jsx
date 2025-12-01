@@ -110,13 +110,13 @@ export default function CustomTestDataGenerator() {
                   id="totalRecords"
                   type="number"
                   min="10"
-                  max="10000"
+                  max="100000"
                   value={config.totalRecords}
                   onChange={(e) => setConfig(prev => ({ ...prev, totalRecords: parseInt(e.target.value) || 100 }))}
                   className="text-lg font-bold"
                 />
                 <p className="text-sm text-slate-500">
-                  จำนวน records ทั้งหมดที่จะสร้าง (แบ่งตามเปอร์เซ็นต์ด้านล่าง)
+                  จำนวน records ทั้งหมดที่จะสร้าง (สูงสุด 100,000 รายการ)
                 </p>
               </div>
 
