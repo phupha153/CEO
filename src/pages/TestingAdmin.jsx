@@ -521,41 +521,32 @@ export default function TestingAdmin() {
         let hasMore = true;
         
         while (hasMore) {
-          // ดึงข้อมูล batch ละ 100
-          const items = await base44.entities[entityName].filter(branchFilter, '-created_date', 100);
+          const items = await base44.entities[entityName].filter(branchFilter, '-created_date', 500);
           
           if (!items || items.length === 0) {
             hasMore = false;
             break;
           }
           
-          // ลบทีละ batch
-          for (const item of items) {
-            try {
-              await base44.entities[entityName].delete(item.id);
-              entityDeleted++;
-              totalDeleted++;
-              
-              // อัปเดต progress ทุก 10 รายการ
-              if (entityDeleted % 10 === 0) {
-                setCustomDeleteProgress(prev => ({
-                  ...prev,
-                  deleted: totalDeleted,
-                  breakdown: { ...prev.breakdown, [entityName]: entityDeleted }
-                }));
-              }
-            } catch (e) {
+          const deletePromises = items.map(item => 
+            base44.entities[entityName].delete(item.id).catch(e => {
               console.warn(`Failed to delete ${entityName} ${item.id}:`, e.message);
-            }
-          }
+            })
+          );
           
-          // ถ้าได้น้อยกว่า 100 แสดงว่าหมดแล้ว
-          if (items.length < 100) {
+          await Promise.all(deletePromises);
+          entityDeleted += items.length;
+          totalDeleted += items.length;
+          
+          setCustomDeleteProgress(prev => ({
+            ...prev,
+            deleted: totalDeleted,
+            breakdown: { ...prev.breakdown, [entityName]: entityDeleted }
+          }));
+          
+          if (items.length < 500) {
             hasMore = false;
           }
-          
-          // หน่วงเวลาเล็กน้อยเพื่อป้องกัน rate limit
-          await new Promise(resolve => setTimeout(resolve, 100));
         }
         
         breakdown[entityName] = entityDeleted;
@@ -907,7 +898,7 @@ export default function TestingAdmin() {
         let hasMore = true;
         
         while (hasMore) {
-          const items = await base44.entities[entity.name].filter(branchFilter, '-created_date', 100);
+          const items = await base44.entities[entity.name].filter(branchFilter, '-created_date', 500);
           
           if (!items || items.length === 0) {
             hasMore = false;
@@ -926,29 +917,25 @@ export default function TestingAdmin() {
             ));
           });
 
-          for (const item of testItems) {
-            try {
-              await base44.entities[entity.name].delete(item.id);
-              entityDeleted++;
-              totalDeleted++;
-              
-              if (entityDeleted % 10 === 0) {
-                setTestDataDeleteProgress(prev => ({
-                  ...prev,
-                  deleted: totalDeleted,
-                  breakdown: { ...prev.breakdown, [entity.name]: entityDeleted }
-                }));
-              }
-            } catch (e) {
+          const deletePromises = testItems.map(item => 
+            base44.entities[entity.name].delete(item.id).catch(e => {
               console.warn(`Failed to delete ${entity.name} ${item.id}:`, e.message);
-            }
-          }
+            })
+          );
           
-          if (items.length < 100) {
+          await Promise.all(deletePromises);
+          entityDeleted += testItems.length;
+          totalDeleted += testItems.length;
+          
+          setTestDataDeleteProgress(prev => ({
+            ...prev,
+            deleted: totalDeleted,
+            breakdown: { ...prev.breakdown, [entity.name]: entityDeleted }
+          }));
+          
+          if (items.length < 500) {
             hasMore = false;
           }
-          
-          await new Promise(resolve => setTimeout(resolve, 100));
         }
         
         breakdown[entity.name] = entityDeleted;
