@@ -250,13 +250,19 @@ Deno.serve(async (req) => {
         // ⭐⭐⭐ DEBUG: ดูโครงสร้างข้อมูล Payment ตัวแรก
         if (recentPayments.length > 0) {
             const samplePayment = recentPayments[0];
+            const allKeys = Object.keys(samplePayment);
+            console.log(`🔍 Sample payment ALL keys: ${allKeys.join(', ')}`);
+            console.log(`🔍 Sample payment.data keys: ${samplePayment.data ? Object.keys(samplePayment.data).join(', ') : 'NO DATA'}`);
             console.log(`🔍 Sample payment structure:`, JSON.stringify({
                 id: samplePayment.id,
                 hasData: !!samplePayment.data,
-                room_id: samplePayment.room_id || samplePayment.data?.room_id,
-                due_date: samplePayment.due_date || samplePayment.data?.due_date,
-                keys: Object.keys(samplePayment).slice(0, 10)
+                room_id_root: samplePayment.room_id,
+                room_id_data: samplePayment.data?.room_id,
+                due_date_root: samplePayment.due_date,
+                due_date_data: samplePayment.data?.due_date
             }));
+        } else {
+            console.log(`⚠️ NO PAYMENTS FETCHED - existingBillsSet will be EMPTY!`);
         }
         
         // ⭐⭐⭐ สร้าง existingBillsSet ที่นี่เลย - ไม่ประกาศข้างบน
@@ -269,23 +275,30 @@ Deno.serve(async (req) => {
         for (const p of recentPayments) {
             if (!p) continue;
             
-            // ดึง room_id และ due_date จากทั้ง p.data และ root level
-            let roomId, dueDate;
+            // ⭐⭐⭐ ดึง room_id และ due_date - ต้องเช็คทั้ง root level และ p.data
+            let roomId = p.room_id;
+            let dueDate = p.due_date;
             
-            if (p.data && typeof p.data === 'object') {
+            // ถ้าไม่เจอใน root level ให้ดูใน p.data
+            if (!roomId && p.data && typeof p.data === 'object') {
                 roomId = p.data.room_id;
+            }
+            if (!dueDate && p.data && typeof p.data === 'object') {
                 dueDate = p.data.due_date;
-            } else {
-                roomId = p.room_id;
-                dueDate = p.due_date;
             }
             
             if (!roomId) {
                 skippedNoRoomId++;
+                if (skippedNoRoomId <= 3) {
+                    console.log(`⚠️ Payment ${p.id} has no room_id (root: ${p.room_id}, data: ${p.data?.room_id})`);
+                }
                 continue;
             }
             if (!dueDate) {
                 skippedNoDueDate++;
+                if (skippedNoDueDate <= 3) {
+                    console.log(`⚠️ Payment ${p.id} has no due_date (root: ${p.due_date}, data: ${p.data?.due_date})`);
+                }
                 continue;
             }
             
