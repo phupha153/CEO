@@ -191,51 +191,17 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
-        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ list() แทน filter() เพราะ filter มีปัญหา
-        console.log(`🔍 Fetching ALL payments with list() + pagination...`);
-        
+        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ filter() เหมือน entities อื่น
+        console.log(`🔍 Fetching ALL payments with filter() + pagination...`);
+
         let recentPayments = [];
         try {
-            // ⭐ ใช้ list() แทน filter() เพราะ filter อาจมีปัญหากับ data structure
-            let allData = [];
-            let skip = 0;
-            let hasMore = true;
-            const batchSize = 5000;
-            
-            while (hasMore) {
-                console.log(`🔍 Fetching payments batch: skip=${skip}, limit=${batchSize}`);
-                const batch = await base44.asServiceRole.entities.Payment.list('-created_date', batchSize, skip);
-                console.log(`🔍 Batch result: ${batch?.length || 0} payments`);
-                
-                if (!Array.isArray(batch) || batch.length === 0) {
-                    hasMore = false;
-                    console.log(`🔍 No more payments to fetch`);
-                } else {
-                    // ⭐ กรองตาม branch เอง (ถ้าระบุ)
-                    let filteredBatch = batch;
-                    if (targetBranchId) {
-                        filteredBatch = batch.filter(p => {
-                            const branchId = p.branch_id || p.data?.branch_id;
-                            return branchId === targetBranchId;
-                        });
-                        console.log(`🔍 After branch filter: ${filteredBatch.length}/${batch.length} payments`);
-                    }
-                    
-                    allData = allData.concat(filteredBatch);
-                    skip += batch.length;
-                    console.log(`📊 Fetched ${allData.length} payments total so far...`);
-                    if (batch.length < batchSize) {
-                        hasMore = false;
-                    }
-                }
-                
-                // จำกัดไม่เกิน 50000 รายการ
-                if (allData.length >= 50000) {
-                    hasMore = false;
-                    console.log(`⚠️ Reached 50000 payment limit`);
-                }
-            }
-            recentPayments = allData;
+            const paymentFilterQuery = targetBranchId ? { branch_id: targetBranchId } : {};
+            recentPayments = await fetchWithPagination(
+                base44.asServiceRole.entities.Payment, 
+                paymentFilterQuery, 
+                '-created_date'
+            );
             console.log(`✅ Total payments fetched: ${recentPayments.length}`);
         } catch (fetchError) {
             console.error(`❌ Error fetching payments: ${fetchError.message}`);
