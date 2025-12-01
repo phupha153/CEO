@@ -353,6 +353,26 @@ export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   const mainContentRef = useRef(null);
   const queryClient = useQueryClient();
+
+  // Initialize Facebook SDK
+  useEffect(() => {
+    window.fbAsyncInit = function() {
+      window.FB.init({
+        appId: '681182991249498',
+        cookie: true,
+        xfbml: true,
+        version: 'v18.0'
+      });
+    };
+
+    // Load Facebook SDK
+    if (!document.getElementById('facebook-jssdk')) {
+      const js = document.createElement('script');
+      js.id = 'facebook-jssdk';
+      js.src = 'https://connect.facebook.net/en_US/sdk.js';
+      document.body.appendChild(js);
+    }
+  }, []);
   
   const [selectedBranch, setSelectedBranch] = useState(() => {
     const branchId = localStorage.getItem('selected_branch_id');
