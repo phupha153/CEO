@@ -356,9 +356,11 @@ export default function Layout({ children, currentPageName }) {
 
   // Initialize Facebook SDK
   useEffect(() => {
+    const FACEBOOK_APP_ID = '1598439514420398'; // ใช้ App ID ที่ถูกต้อง
+    
     window.fbAsyncInit = function() {
       window.FB.init({
-        appId: '681182991249498',
+        appId: FACEBOOK_APP_ID,
         cookie: true,
         xfbml: true,
         version: 'v18.0'
