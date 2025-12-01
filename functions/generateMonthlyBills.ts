@@ -193,9 +193,10 @@ Deno.serve(async (req) => {
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
         // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ pagination เหมือนกัน
-        console.log('');
         console.log('========================================');
-        console.log('📦 FETCHING EXISTING PAYMENTS');
+        console.log('========================================');
+        console.log('📦📦📦 FETCHING EXISTING PAYMENTS 📦📦📦');
+        console.log('========================================');
         console.log('========================================');
         console.log(`Target branch: ${targetBranchId || 'ALL'}`);
         
