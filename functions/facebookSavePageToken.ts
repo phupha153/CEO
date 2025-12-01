@@ -1,18 +1,21 @@
-import { createClient } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
     try {
+        const base44 = createClientFromRequest(req);
+        
+        // Check authentication
+        const user = await base44.auth.me();
+        if (!user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        
         const body = await req.json();
         const { branch_id, page_id, access_token, page_name } = body;
 
         if (!branch_id || !page_id || !access_token) {
             return Response.json({ error: 'Missing required fields' }, { status: 400 });
         }
-
-        const base44 = createClient({
-            appId: Deno.env.get('BASE44_APP_ID'),
-            serviceToken: Deno.env.get('BASE44_SERVICE_TOKEN')
-        });
 
         // บันทึก Page Access Token
         const allConfigs = await base44.asServiceRole.entities.Config.list();
