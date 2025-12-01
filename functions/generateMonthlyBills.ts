@@ -459,35 +459,20 @@ Deno.serve(async (req) => {
                     console.log(`📝 Room ${room.room_number}: No bill for ${targetDueYearMonth}, creating...`);
                 }
 
-                // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว
+                // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว = ข้ามไป (ไม่ว่าจะ force หรือไม่ก็ตาม)
+                // เพื่อป้องกันการสร้างบิลซ้ำเมื่อ cron job รันหลายรอบต่อวัน
                 if (existingBill) {
-                    // ถ้า force = true ในโหมดทดสอบ → ลบบิลเก่าแล้วสร้างใหม่
-                    if (forceCreate) {
-                        console.log(`🔄 Room ${room.room_number}: Force mode - ลบบิลเก่า ${existingBill.id} แล้วสร้างใหม่`);
-                        try {
-                            await base44.asServiceRole.entities.Payment.delete(existingBill.id);
-                            existingPaymentsMap.delete(mapKey); // ลบจาก map
-                            console.log(`✅ ลบบิลเก่าสำเร็จ - จะสร้างใหม่`);
-                        } catch (deleteError) {
-                            console.error(`❌ ไม่สามารถลบบิลเก่า: ${deleteError.message}`);
-                            skippedDueToExistingBill++;
-                            continue;
+                    console.log(`⏭️ Room ${room.room_number}: มีบิลเดือน ${roomDueMonth + 1}/${roomDueYear} อยู่แล้ว (ID: ${existingBill.id}) - ข้าม`);
+                    skippedDueToExistingBill++;
+                    
+                    // ถ้าต้องการส่งแจ้งเตือนซ้ำ
+                    if (resendNotifications) {
+                        const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
+                        if (tenant?.line_user_id) {
+                            billsToSend.push({ payment: existingBill, tenant, room });
                         }
-                        // ให้ continue ไปสร้างบิลใหม่ด้านล่าง
-                    } else {
-                        // ไม่ force = ข้าม
-                        console.log(`⏭️ Room ${room.room_number}: มีบิลเดือน ${roomDueMonth + 1}/${roomDueYear} อยู่แล้ว (ID: ${existingBill.id}) - ข้าม`);
-                        skippedDueToExistingBill++;
-                        
-                        // ถ้าต้องการส่งแจ้งเตือนซ้ำ
-                        if (resendNotifications) {
-                            const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
-                            if (tenant?.line_user_id) {
-                                billsToSend.push({ payment: existingBill, tenant, room });
-                            }
-                        }
-                        continue;
                     }
+                    continue;
                 }
 
                 // Calculate Amounts - ⭐ หามิเตอร์ล่าสุดที่มีค่าหน่วยมากกว่า 0 (ถ้ามี)
@@ -666,20 +651,15 @@ Deno.serve(async (req) => {
                 await retryOperation(async () => {
                     const created = await base44.asServiceRole.entities.Payment.bulkCreate(batch);
                     
-                    // Map back for image generation (ทุกสาขา) และ LINE notifications (เฉพาะสาขาที่เปิด)
+                    // Map back for LINE notifications
                     for (const payment of created) {
                         const meta = paymentReferenceMap.get(payment.room_id);
-                        if (meta) {
-                            // ⭐ สร้างรูปทุกสาขา แต่ส่ง LINE เฉพาะสาขาที่เปิด auto_send
-                            const shouldSendLine = meta.tenant?.line_user_id && 
-                                getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
-                            
-                            billsToSend.push({ 
-                                payment, 
-                                tenant: meta.tenant, 
-                                room: meta.room,
-                                shouldSendLine // ⭐ flag บอกว่าต้องส่ง LINE หรือไม่
-                            });
+                        if (meta && meta.tenant?.line_user_id) {
+                            const shouldSend = getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
+                            // Don't send line if auto-paid (optional, usually we still notify)
+                            if (shouldSend) {
+                                billsToSend.push({ payment, tenant: meta.tenant, room: meta.room });
+                            }
                         }
                     }
                     createdCount += created.length;

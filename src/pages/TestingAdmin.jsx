@@ -3429,7 +3429,7 @@ export default function TestingAdmin() {
                           toast.info(`กำลังสร้างบิลสาขา ${branch?.branch_name || 'ไม่ทราบ'}...`);
                           
                           const response = await base44.functions.invoke('generateMonthlyBills', {
-                            force: true,
+                            force: false,
                             branch_id: branchId
                           });
 
@@ -3447,7 +3447,7 @@ export default function TestingAdmin() {
                       } else {
                         // เดี่ยวสาขา หรือทุกสาขา
                         const response = await base44.functions.invoke('generateMonthlyBills', {
-                          force: true,
+                          force: false,
                           branch_id: targetBranchIds[0]
                         });
 
