@@ -848,15 +848,16 @@ export default function TestInvoiceGenerationPage() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                   {billsByMonth.map(([month, data]) => {
-                    const isCurrentMonth = month === currentYearMonth;
-                    return (
-                      <div 
-                        key={month} 
-                        className={`p-3 rounded-lg border ${isCurrentMonth ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-200'}`}
-                      >
-                        <p className={`text-xs font-semibold ${isCurrentMonth ? 'text-blue-700' : 'text-slate-600'}`}>
-                          {month} {isCurrentMonth && '(เดือนนี้)'}
-                        </p>
+                  const isCurrentMonth = month === currentYearMonth;
+                  const isTargetMonth = month === targetBillYearMonth;
+                  return (
+                    <div 
+                      key={month} 
+                      className={`p-3 rounded-lg border ${isTargetMonth ? 'bg-green-50 border-green-300' : isCurrentMonth ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-200'}`}
+                    >
+                      <p className={`text-xs font-semibold ${isTargetMonth ? 'text-green-700' : isCurrentMonth ? 'text-blue-700' : 'text-slate-600'}`}>
+                        {month} {isTargetMonth ? '(เดือนเป้าหมาย)' : isCurrentMonth ? '(เดือนนี้)' : ''}
+                      </p>
                         <p className="text-lg font-bold text-slate-800">{data.count} บิล</p>
                         <div className="text-xs text-slate-500 mt-1">
                           <p>💰 {data.total.toLocaleString()} บาท</p>
