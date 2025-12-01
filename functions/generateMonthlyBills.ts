@@ -421,6 +421,10 @@ Deno.serve(async (req) => {
         
         // To map back created payments later
         const paymentReferenceMap = new Map(); // key: "room_id", value: metadata
+        
+        // ⭐⭐⭐ CRITICAL: เก็บ room_id ที่เพิ่มเข้า paymentsToCreate แล้วใน session นี้
+        // เพื่อป้องกันการสร้างซ้ำภายใน loop เดียวกัน
+        const roomsAddedThisSession = new Set();
 
         for (const room of roomsToProcess) {
             try {
