@@ -112,35 +112,13 @@ Deno.serve(async (req) => {
 
         const { paymentId, branch_id } = await req.json();
 
-        // ⭐ Helper function สำหรับดึงข้อมูลแบบ pagination (รองรับมากกว่า 10,000 รายการ)
-        async function fetchAllWithPagination(entity, batchSize = 5000) {
-            let allData = [];
-            let skip = 0;
-            let hasMore = true;
-            
-            while (hasMore) {
-                const batch = await entity.list('-created_date', batchSize, skip);
-                if (batch.length === 0) {
-                    hasMore = false;
-                } else {
-                    allData = allData.concat(batch);
-                    skip += batch.length;
-                    if (batch.length < batchSize) {
-                        hasMore = false;
-                    }
-                }
-                console.log(`📊 Fetched ${allData.length} records...`);
-            }
-            return allData;
-        }
-
-        // ⭐ ดึงข้อมูลทั้งหมดแบบ pagination
+        // ⭐ ดึงข้อมูลทั้งหมด - ใช้ filter() เพื่อดึงได้ครบ
         console.log('📊 Fetching all data upfront...');
         const [configs, allTenants, allRooms, allPayments] = await Promise.all([
             base44.asServiceRole.entities.Config.list(),
-            fetchAllWithPagination(base44.asServiceRole.entities.Tenant),
-            fetchAllWithPagination(base44.asServiceRole.entities.Room),
-            fetchAllWithPagination(base44.asServiceRole.entities.Payment)
+            base44.asServiceRole.entities.Tenant.filter({}),
+            base44.asServiceRole.entities.Room.filter({}),
+            base44.asServiceRole.entities.Payment.filter({})
         ]);
         
         console.log(`✅ Loaded: ${allTenants.length} tenants, ${allRooms.length} rooms, ${allPayments.length} payments`);
@@ -167,12 +145,11 @@ Deno.serve(async (req) => {
                 paymentsToSend.push(targetPayment);
             }
         } else {
-            // กรองตาม branch_id ถ้าระบุ และ ⭐ ข้ามห้องที่ส่งไปแล้ว (มี bill_sent_date)
+            // กรองตาม branch_id ถ้าระบุ (ไม่เช็ค bill_sent_date เพื่อให้สามารถส่งซ้ำได้)
             paymentsToSend = allPayments.filter(p => {
                 const statusMatch = p.status === 'pending' || p.status === 'overdue';
                 const branchMatch = !branch_id || p.branch_id === branch_id;
-                const notSentYet = !p.bill_sent_date; // ⭐ ข้ามถ้าส่งไปแล้ว
-                return statusMatch && branchMatch && notSentYet;
+                return statusMatch && branchMatch;
             });
         }
 
