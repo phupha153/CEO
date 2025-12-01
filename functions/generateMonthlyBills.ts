@@ -199,21 +199,32 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
-        // ⭐⭐⭐ ดึง Payment - ใช้ fetchWithPagination เหมือน entities อื่น
-        console.log(`🔍 Fetching ALL payments with fetchWithPagination...`);
+        // ⭐⭐⭐ ดึง Payment - ใช้ .list() ตรงๆ เพราะ .filter() อาจไม่รองรับ pagination
+        console.log(`🔍 Fetching ALL payments...`);
 
         let recentPayments = [];
         try {
-            const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
-            recentPayments = await fetchWithPagination(
-                base44.asServiceRole.entities.Payment, 
-                paymentFilter, 
-                '-created_date'
-            );
+            // ⭐ ใช้ .list() ก่อน แล้วค่อย filter ใน memory ถ้าจำเป็น
+            // เพราะ SDK .filter() อาจไม่รองรับ skip parameter
+            if (targetBranchId) {
+                // ถ้าระบุ branch = ใช้ filter
+                console.log(`🔍 Fetching payments for branch: ${targetBranchId}`);
+                recentPayments = await base44.asServiceRole.entities.Payment.filter(
+                    { branch_id: targetBranchId }, 
+                    '-created_date', 
+                    50000 // ดึงมากที่สุด
+                );
+            } else {
+                // ถ้าไม่ระบุ branch = ใช้ list
+                console.log(`🔍 Fetching ALL payments (no branch filter)`);
+                recentPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 50000);
+            }
+            
+            console.log(`🔍 Raw fetch result type: ${typeof recentPayments}, isArray: ${Array.isArray(recentPayments)}`);
             
             // ⭐ Ensure it's a proper array
             if (!Array.isArray(recentPayments)) {
-                console.warn(`⚠️ recentPayments is not an array, converting from object...`, typeof recentPayments);
+                console.warn(`⚠️ recentPayments is not an array, converting...`, typeof recentPayments);
                 if (recentPayments && typeof recentPayments === 'object') {
                     recentPayments = Object.values(recentPayments);
                 } else {
@@ -222,6 +233,11 @@ Deno.serve(async (req) => {
             }
             
             console.log(`✅ Total payments fetched: ${recentPayments.length}`);
+            
+            // ⭐ ถ้าได้ 0 payments = log warning แต่ยังไม่หยุด (อาจเป็นครั้งแรกที่สร้างบิล)
+            if (recentPayments.length === 0) {
+                console.warn(`⚠️ WARNING: No payments found! This might be first time generating bills, or a fetch issue.`);
+            }
             
         } catch (fetchError) {
             console.error(`❌ Error fetching payments: ${fetchError.message}`);
