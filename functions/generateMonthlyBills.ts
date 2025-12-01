@@ -190,6 +190,17 @@ Deno.serve(async (req) => {
         });
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
+
+        // ⭐⭐⭐ CRITICAL: Normalize ALL entities - data might be inside .data property OR flat
+        const normalizeEntity = (entity) => {
+            if (!entity) return null;
+            // ถ้ามี .data property = ข้อมูลอยู่ใน .data
+            if (entity.data && typeof entity.data === 'object') {
+                return { id: entity.id, created_date: entity.created_date, ...entity.data };
+            }
+            // ถ้าไม่มี .data = ข้อมูลอยู่ใน root level แล้ว
+            return entity;
+        };
         
         // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ filter() เหมือน entities อื่น
         console.log(`🔍 Fetching ALL payments with filter() + pagination...`);
