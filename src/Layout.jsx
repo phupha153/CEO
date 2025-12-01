@@ -356,42 +356,43 @@ export default function Layout({ children, currentPageName }) {
 
   // Initialize Facebook SDK
   useEffect(() => {
-    // Fetch Facebook App ID from environment/secrets
-    const initFacebookSDK = async () => {
-      try {
-        const response = await base44.functions.invoke('getFacebookAppId');
-        const appId = response.data.appId;
-        
-        window.fbAsyncInit = function() {
-          window.FB.init({
-            appId: appId,
-            cookie: true,
-            xfbml: true,
-            version: 'v18.0'
-          });
+    // Hardcode Facebook App ID - ไม่ต้องเรียก API
+    const FACEBOOK_APP_ID = '1148319100103304';
 
-          // Check login status when SDK is ready
-          window.FB.getLoginStatus(function(response) {
-            console.log('Initial Facebook Status:', response);
-          });
-        };
-        
-        // Load Facebook SDK
-        if (!document.getElementById('facebook-jssdk')) {
-          const js = document.createElement('script');
-          js.id = 'facebook-jssdk';
-          js.src = 'https://connect.facebook.net/en_US/sdk.js';
-          js.async = true;
-          js.defer = true;
-          js.crossOrigin = 'anonymous';
-          document.body.appendChild(js);
-        }
-      } catch (error) {
-        console.error('Failed to load Facebook App ID:', error);
-      }
+    window.fbAsyncInit = function() {
+      window.FB.init({
+        appId: FACEBOOK_APP_ID,
+        cookie: true,
+        xfbml: true,
+        version: 'v18.0'
+      });
+
+      console.log('✅ Facebook SDK initialized with App ID:', FACEBOOK_APP_ID);
+
+      // Check login status when SDK is ready
+      window.FB.getLoginStatus(function(response) {
+        console.log('Initial Facebook Status:', response);
+      });
     };
-    
-    initFacebookSDK();
+
+    // Load Facebook SDK
+    if (!document.getElementById('facebook-jssdk')) {
+      const js = document.createElement('script');
+      js.id = 'facebook-jssdk';
+      js.src = 'https://connect.facebook.net/en_US/sdk.js';
+      js.async = true;
+      js.defer = true;
+      js.crossOrigin = 'anonymous';
+      document.body.appendChild(js);
+    } else if (window.FB) {
+      // SDK already loaded, re-init
+      window.FB.init({
+        appId: FACEBOOK_APP_ID,
+        cookie: true,
+        xfbml: true,
+        version: 'v18.0'
+      });
+    }
 
     // Setup Facebook Login Status Callback
     window.checkLoginState = function() {
