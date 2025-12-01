@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
         // ✅ STEP 6: ลบ Rooms
         if (testRooms.length > 0) {
             console.log('🏠 Step 6: Deleting test rooms...');
-            const batchSize = 50;
+            const batchSize = 100;
             for (let i = 0; i < testRooms.length; i += batchSize) {
                 const batch = testRooms.slice(i, i + batchSize);
                 const deletePromises = batch.map(r => 
