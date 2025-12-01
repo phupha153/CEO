@@ -330,32 +330,36 @@ Deno.serve(async (req) => {
         }
         console.log(`📥 Fetched ${allPayments.length} total payments`);
 
-        // ⭐ สร้างรูปทุกสาขา แต่ส่ง LINE เฉพาะสาขาที่เปิด auto_send
-        // ⭐ รวม 'generating' ด้วย เผื่อรอบก่อน timeout ค้างไว้
+        // ⭐ สร้างรูปเฉพาะบิลที่ยังไม่มีรูป หรือต้องสร้างใหม่
         const paymentsToProcess = allPayments.filter(p => {
             // ข้ามบิลที่ชำระแล้ว
             if (p.status === 'paid') return false;
             
-            // ต้องยังไม่มีรูป หรือสถานะเป็น pending/null/generating (ค้างจากรอบก่อน)
-            const needsImage = !p.invoice_image_url || 
-                p.invoice_image_status === 'pending' || 
-                p.invoice_image_status === 'generating' || 
-                !p.invoice_image_status;
-            
-            // ⭐ เช็คว่าบิลถูกแก้ไขหลังสร้างรูปหรือไม่ (hash ไม่ตรง)
-            let needsRegenerate = false;
-            if (p.invoice_image_url && p.invoice_data_hash) {
-                const currentHash = generatePaymentHash(p);
-                if (currentHash !== p.invoice_data_hash) {
-                    needsRegenerate = true;
+            // ⭐⭐⭐ ถ้ามีรูปแล้ว + status = completed = ข้ามเลย (ไม่สร้างซ้ำ)
+            if (p.invoice_image_url && p.invoice_image_status === 'completed') {
+                // เช็ค hash ว่าบิลถูกแก้ไขหรือไม่
+                if (p.invoice_data_hash) {
+                    const currentHash = generatePaymentHash(p);
+                    if (currentHash === p.invoice_data_hash) {
+                        // hash ตรง = ไม่ต้องสร้างใหม่
+                        return false;
+                    }
+                    // hash ไม่ตรง = ต้องสร้างใหม่
+                    console.log(`🔄 Payment ${p.id}: Hash mismatch - will regenerate`);
+                } else {
+                    // มีรูปแล้วแต่ไม่มี hash = ไม่ต้องสร้างใหม่
+                    return false;
                 }
             }
             
-            // ⭐ เช็คว่าสาขานี้เปิดส่งบิลอัตโนมัติหรือไม่
-            const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', p.branch_id, 'false') === 'true';
-            const needsSend = autoSendEnabled && !p.bill_sent_date;
+            // ⭐ ต้องสร้างรูป: ยังไม่มีรูป หรือ status เป็น pending/generating/failed/null
+            const needsImage = !p.invoice_image_url || 
+                p.invoice_image_status === 'pending' || 
+                p.invoice_image_status === 'generating' || 
+                p.invoice_image_status === 'failed' ||
+                !p.invoice_image_status;
             
-            return needsImage || needsRegenerate || needsSend;
+            return needsImage;
         }).slice(0, batchSize);
 
         console.log(`📊 Found ${paymentsToProcess.length} payments to process (from ${allPayments.length} total)`);
