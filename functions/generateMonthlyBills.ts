@@ -287,20 +287,6 @@ Deno.serve(async (req) => {
         
         console.log(`📦 Final payment count for processing: ${recentPayments.length}`);
         
-        // ⭐⭐⭐ DEBUG: แสดง raw payment structure ก่อน normalize
-        if (recentPayments.length > 0) {
-            const rawSample = recentPayments[0];
-            console.log(`🔍 RAW Payment structure:`);
-            console.log(`   - id: ${rawSample?.id}`);
-            console.log(`   - has .data: ${!!rawSample?.data}`);
-            console.log(`   - direct room_id: ${rawSample?.room_id}`);
-            console.log(`   - .data.room_id: ${rawSample?.data?.room_id}`);
-            console.log(`   - direct due_date: ${rawSample?.due_date}`);
-            console.log(`   - .data.due_date: ${rawSample?.data?.due_date}`);
-            console.log(`   - .data.branch_id: ${rawSample?.data?.branch_id}`);
-            console.log(`   - keys: ${Object.keys(rawSample || {}).join(', ')}`);
-        }
-
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
         // ⭐ Ensure recentPayments is array
