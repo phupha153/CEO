@@ -750,7 +750,34 @@ Deno.serve(async (req) => {
             console.log(`📊 existingBillsSet.size = ${existingBillsSet.size}`);
             console.log(`📊 skippedDueToExistingBill = ${skippedDueToExistingBill}`);
             console.log(`📊 recentPayments.length = ${recentPayments.length}`);
+            console.log(`📊 targetBranchId = ${targetBranchId}`);
+            console.log(`📊 roomsToProcess.length = ${roomsToProcess.length}`);
             console.log(`========================================`);
+            
+            // ⭐⭐⭐ CRITICAL SAFETY CHECK - ถ้าจะสร้างมากกว่า 50 บิลและ existingBillsSet ว่าง แต่ recentPayments มี = BUG!
+            if (paymentsToCreate.length > 50 && existingBillsSet.size === 0 && recentPayments.length > 0) {
+                console.error(`🚨🚨🚨 CRITICAL BUG DETECTED!`);
+                console.error(`🚨 existingBillsSet is EMPTY but recentPayments has ${recentPayments.length} records!`);
+                console.error(`🚨 This means payments are NOT being parsed correctly!`);
+                
+                // Log sample payment for debugging
+                if (recentPayments.length > 0) {
+                    const sample = recentPayments[0];
+                    console.error(`🔍 Sample payment structure:`, JSON.stringify(sample, null, 2).substring(0, 500));
+                }
+                
+                return Response.json({
+                    success: false,
+                    error: `CRITICAL BUG: About to create ${paymentsToCreate.length} bills but existingBillsSet is empty while ${recentPayments.length} payments exist!`,
+                    debug: {
+                        paymentsToCreate: paymentsToCreate.length,
+                        existingBillsSetSize: existingBillsSet.size,
+                        recentPaymentsCount: recentPayments.length,
+                        targetBranchId,
+                        skippedDueToExistingBill
+                    }
+                }, { status: 500 });
+            }
             
             // ⭐⭐⭐ SAFETY CHECK - ถ้าจะสร้างมากกว่า 100 บิลและไม่มี existing bills = น่าสงสัย
             if (paymentsToCreate.length > 100 && existingBillsSet.size === 0 && recentPayments.length > 0) {
