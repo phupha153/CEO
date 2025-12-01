@@ -297,14 +297,20 @@ Deno.serve(async (req) => {
             }
         }
         
-        console.log(`⭐⭐⭐ CRITICAL: Added ${filteredPaymentsCount} payments to map (total unique: ${existingPaymentsMap.size})`);
+        console.log('');
+        console.log('========================================');
+        console.log('🗺️ EXISTING PAYMENTS MAP');
+        console.log('========================================');
+        console.log(`Map size: ${existingPaymentsMap.size}`);
         
         if (existingPaymentsMap.size > 0) {
-            const sampleKeys = Array.from(existingPaymentsMap.keys()).slice(0, 10);
-            console.log(`⭐ Sample map keys: ${sampleKeys.join(', ')}`);
+            const sampleKeys = Array.from(existingPaymentsMap.keys()).slice(0, 5);
+            console.log(`Sample keys: ${sampleKeys.join(', ')}`);
         } else {
-            console.log(`❌❌❌ PROBLEM: existingPaymentsMap is EMPTY! This will cause duplicate bills!`);
+            console.log(`❌ MAP IS EMPTY - will create all bills!`);
         }
+        console.log('========================================');
+        console.log('');
         
         // ⭐ DEBUG: แสดง due_date (YYYY-MM) ที่พบ
         if (normalizedPayments.length > 0) {
