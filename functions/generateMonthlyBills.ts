@@ -148,32 +148,41 @@ Deno.serve(async (req) => {
         const targetBillMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
         console.log(`🔍 Will check existing payments for month: ${targetBillMonth}`);
         
+        // ⭐ Helper function สำหรับดึงข้อมูลแบบ pagination (ประกาศนอก retryOperation เพื่อให้ใช้ได้ทั่วไป)
+        async function fetchWithPagination(entity, filter, sortBy, batchSize = 5000) {
+            let allData = [];
+            let skip = 0;
+            let hasMore = true;
+            
+            while (hasMore) {
+                const batch = await entity.filter(filter, sortBy, batchSize, skip);
+                if (!Array.isArray(batch) || batch.length === 0) {
+                    hasMore = false;
+                } else {
+                    allData = allData.concat(batch);
+                    skip += batch.length;
+                    if (batch.length < batchSize) {
+                        hasMore = false;
+                    }
+                }
+            }
+            return allData;
+        }
+
+        // ⭐⭐⭐ CRITICAL: Normalize ALL entities - data might be inside .data property OR flat
+        const normalizeEntity = (entity) => {
+            if (!entity) return null;
+            // ถ้ามี .data property = ข้อมูลอยู่ใน .data
+            if (entity.data && typeof entity.data === 'object') {
+                return { id: entity.id, created_date: entity.created_date, ...entity.data };
+            }
+            // ถ้าไม่มี .data = ข้อมูลอยู่ใน root level แล้ว
+            return entity;
+        };
+
         await retryOperation(async () => {
             const filter = targetBranchId ? { branch_id: targetBranchId } : {};
             const bookingFilter = { ...filter, status: 'active' };
-
-            // Parallel fetching for speed (ไม่ดึง Payment ตรงนี้ เพราะ filter complex ไม่ work)
-            // ⭐ ลด limit เป็น 5000 เพื่อหลีกเลี่ยง "Limit too high" error
-            // ⭐ Helper function สำหรับดึงข้อมูลแบบ pagination
-            async function fetchWithPagination(entity, filter, sortBy, batchSize = 5000) {
-                let allData = [];
-                let skip = 0;
-                let hasMore = true;
-                
-                while (hasMore) {
-                    const batch = await entity.filter(filter, sortBy, batchSize, skip);
-                    if (!Array.isArray(batch) || batch.length === 0) {
-                        hasMore = false;
-                    } else {
-                        allData = allData.concat(batch);
-                        skip += batch.length;
-                        if (batch.length < batchSize) {
-                            hasMore = false;
-                        }
-                    }
-                }
-                return allData;
-            }
 
             const [r, b, m, t] = await Promise.all([
                 fetchWithPagination(base44.asServiceRole.entities.Room, filter, '-room_number'),
@@ -190,17 +199,6 @@ Deno.serve(async (req) => {
         });
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
-
-        // ⭐⭐⭐ CRITICAL: Normalize ALL entities - data might be inside .data property OR flat
-        const normalizeEntity = (entity) => {
-            if (!entity) return null;
-            // ถ้ามี .data property = ข้อมูลอยู่ใน .data
-            if (entity.data && typeof entity.data === 'object') {
-                return { id: entity.id, created_date: entity.created_date, ...entity.data };
-            }
-            // ถ้าไม่มี .data = ข้อมูลอยู่ใน root level แล้ว
-            return entity;
-        };
         
         // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ filter() เหมือน entities อื่น
         console.log(`🔍 Fetching ALL payments with filter() + pagination...`);
