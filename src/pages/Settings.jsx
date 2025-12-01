@@ -3236,15 +3236,20 @@ export default function Settings() {
                             type="button"
                             onClick={() => {
                               if (window.FB) {
+                                console.log('🔵 Facebook SDK ready, starting login...');
                                 window.FB.login(function(response) {
+                                  console.log('🔵 FB Login Response:', response);
                                   if (response.authResponse) {
+                                    console.log('✅ Facebook authorized!');
                                     window.checkLoginState();
                                   } else {
-                                    console.log('User cancelled login or did not fully authorize.');
+                                    console.log('❌ User cancelled login or did not fully authorize.');
+                                    toast.error('การเข้าสู่ระบบถูกยกเลิก');
                                   }
                                 }, {scope: 'pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata'});
                               } else {
-                                toast.error('Facebook SDK ยังไม่พร้อม กรุณารอสักครู่');
+                                console.error('❌ window.FB not available');
+                                toast.error('Facebook SDK ยังไม่พร้อม กรุณารีเฟรชหน้าและลองอีกครั้ง');
                               }
                             }}
                             className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white text-base font-semibold py-6"
