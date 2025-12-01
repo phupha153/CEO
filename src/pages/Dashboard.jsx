@@ -210,11 +210,6 @@ export default function Dashboard() {
 
   const dateRange = getMainDateRange();
 
-  const retryConfig = {
-    retry: 0,
-    retryDelay: 0,
-  };
-
   const { data: rooms = [], isFetching: roomsFetching, error: roomsError } = useQuery({
     queryKey: ['rooms', selectedBranchId, 'v2'],
     queryFn: async () => {
