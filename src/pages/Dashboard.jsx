@@ -112,21 +112,46 @@ export default function Dashboard() {
   });
 
   const getMainDateRange = () => {
-    const now = new Date();
+    const now = getCurrentDate();
     const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
     const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
     
     switch(dateRangeType) {
       case 'this_month': {
-        // งวดบิลเดือนนี้ = วันที่สร้างบิลเดือนนี้ ถึง วันที่สร้างบิลเดือนหน้า (ไม่รวม)
-        const cycleStart = new Date(now.getFullYear(), now.getMonth(), billGenerationDay);
-        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, billGenerationDay);
+        // งวดบิลเดือนนี้ = ถ้าวันนี้ยังไม่ถึงวันสร้างบิล ให้ดูงวดเดือนก่อนหน้า
+        const currentDay = now.getDate();
+        let cycleMonth = now.getMonth();
+        let cycleYear = now.getFullYear();
+        
+        if (currentDay < billGenerationDay) {
+          cycleMonth -= 1;
+          if (cycleMonth < 0) {
+            cycleMonth = 11;
+            cycleYear -= 1;
+          }
+        }
+        
+        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+        const cycleEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
         return { from: cycleStart, to: cycleEnd };
       }
       case 'last_month': {
         // งวดบิลเดือนที่แล้ว
-        const cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, billGenerationDay);
-        const cycleEnd = new Date(now.getFullYear(), now.getMonth(), billGenerationDay);
+        const currentDay = now.getDate();
+        let cycleMonth = now.getMonth() - 1;
+        let cycleYear = now.getFullYear();
+        
+        if (currentDay < billGenerationDay) {
+          cycleMonth -= 1;
+        }
+        
+        if (cycleMonth < 0) {
+          cycleMonth += 12;
+          cycleYear -= 1;
+        }
+        
+        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+        const cycleEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
         return { from: cycleStart, to: cycleEnd };
       }
       case 'this_year':
@@ -136,8 +161,20 @@ export default function Dashboard() {
       case 'custom':
         return customRange;
       default: {
-        const cycleStart = new Date(now.getFullYear(), now.getMonth(), billGenerationDay);
-        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, billGenerationDay);
+        const currentDay = now.getDate();
+        let cycleMonth = now.getMonth();
+        let cycleYear = now.getFullYear();
+        
+        if (currentDay < billGenerationDay) {
+          cycleMonth -= 1;
+          if (cycleMonth < 0) {
+            cycleMonth = 11;
+            cycleYear -= 1;
+          }
+        }
+        
+        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+        const cycleEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
         return { from: cycleStart, to: cycleEnd };
       }
     }
