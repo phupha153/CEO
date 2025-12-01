@@ -200,60 +200,31 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
-        // ⭐⭐⭐ ดึง Payment - ใช้ list() พร้อม pagination ที่ปลอดภัย
-        console.log(`🔍 Fetching ALL payments with list() + safe pagination...`);
+        // ⭐⭐⭐ ดึง Payment - ใช้ list() ครั้งเดียวดึงให้มากที่สุด
+        console.log(`🔍 Fetching ALL payments with single list() call...`);
 
         let recentPayments = [];
         try {
-            let allData = [];
-            let skip = 0;
-            let hasMore = true;
-            const batchSize = 1000; // ลดลงเพื่อความปลอดภัย
-            let iterations = 0;
-            const maxIterations = 100; // ป้องกัน infinite loop
+            // ⭐ ดึงครั้งเดียว limit สูงสุด - SDK อาจไม่รองรับ skip/pagination จริง
+            const maxLimit = 50000; // ดึงให้มากที่สุดในครั้งเดียว
             
-            while (hasMore && iterations < maxIterations) {
-                iterations++;
-                let batch;
-                
-                if (targetBranchId) {
-                    // ใช้ filter สำหรับ branch เฉพาะ
-                    batch = await base44.asServiceRole.entities.Payment.filter(
-                        { branch_id: targetBranchId }, 
-                        '-created_date', 
-                        batchSize, 
-                        skip
-                    );
-                } else {
-                    // ใช้ list สำหรับทั้งหมด
-                    batch = await base44.asServiceRole.entities.Payment.list('-created_date', batchSize, skip);
-                }
-                
-                if (!Array.isArray(batch) || batch.length === 0) {
-                    hasMore = false;
-                    console.log(`   ✅ No more data at skip=${skip}`);
-                } else {
-                    allData = allData.concat(batch);
-                    skip += batch.length;
-                    console.log(`   📦 Batch ${iterations}: fetched ${batch.length}, total=${allData.length}`);
-                    if (batch.length < batchSize) {
-                        hasMore = false;
-                        console.log(`   ✅ Last batch (got ${batch.length} < ${batchSize})`);
-                    }
-                }
-                
-                // ⭐ เพิ่ม delay เล็กน้อยระหว่าง batch เพื่อป้องกัน rate limit
-                if (hasMore) {
-                    await delay(500);
-                }
+            if (targetBranchId) {
+                recentPayments = await base44.asServiceRole.entities.Payment.filter(
+                    { branch_id: targetBranchId }, 
+                    '-created_date', 
+                    maxLimit
+                );
+            } else {
+                recentPayments = await base44.asServiceRole.entities.Payment.list('-created_date', maxLimit);
             }
             
-            if (iterations >= maxIterations) {
-                console.warn(`⚠️ Reached max iterations (${maxIterations}), may have more payments`);
-            }
+            recentPayments = recentPayments || [];
+            console.log(`✅ Total payments fetched: ${recentPayments.length}`);
             
-            recentPayments = allData;
-            console.log(`✅ Total payments fetched: ${recentPayments.length} (in ${iterations} batches)`);
+            // ⭐ Warning ถ้าได้ครบ limit = อาจมีมากกว่านี้
+            if (recentPayments.length >= maxLimit) {
+                console.warn(`⚠️ WARNING: Got exactly ${maxLimit} payments - there may be more!`);
+            }
         } catch (fetchError) {
             console.error(`❌ Error fetching payments: ${fetchError.message}`);
             console.error(`❌ Stack: ${fetchError.stack}`);
