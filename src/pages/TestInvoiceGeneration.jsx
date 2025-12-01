@@ -406,7 +406,7 @@ export default function TestInvoiceGenerationPage() {
       <div className="px-4 md:px-8 py-6 space-y-6">
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Stats Overview */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg">
               <CardContent className="p-3">
                 <div className="text-center">
