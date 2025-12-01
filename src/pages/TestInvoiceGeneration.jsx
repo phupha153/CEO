@@ -816,6 +816,41 @@ export default function TestInvoiceGenerationPage() {
             </Card>
           )}
 
+          {/* ⭐ Bills by Month Summary */}
+          {billsByMonth.length > 0 && (
+            <Card className="bg-white/90 shadow-lg">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  สรุปบิลแยกตามเดือน (6 เดือนล่าสุด)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {billsByMonth.map(([month, data]) => {
+                    const isCurrentMonth = month === currentYearMonth;
+                    return (
+                      <div 
+                        key={month} 
+                        className={`p-3 rounded-lg border ${isCurrentMonth ? 'bg-blue-50 border-blue-300' : 'bg-slate-50 border-slate-200'}`}
+                      >
+                        <p className={`text-xs font-semibold ${isCurrentMonth ? 'text-blue-700' : 'text-slate-600'}`}>
+                          {month} {isCurrentMonth && '(เดือนนี้)'}
+                        </p>
+                        <p className="text-lg font-bold text-slate-800">{data.count} บิล</p>
+                        <div className="text-xs text-slate-500 mt-1">
+                          <p>💰 {data.total.toLocaleString()} บาท</p>
+                          <p>✅ ชำระแล้ว: {data.paid}</p>
+                          <p>⏳ ค้างชำระ: {data.pending}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Config Info */}
           <Card className="bg-slate-50">
             <CardHeader className="pb-2">
