@@ -54,17 +54,17 @@ Deno.serve(async (req) => {
 
         const actualBranchId = payment.branch_id;
 
-        // ดึงข้อมูลที่เกี่ยวข้อง
-        const [tenants, rooms, branches, configs] = await Promise.all([
-            base44.asServiceRole.entities.Tenant.list('-created_date', 5000),
-            base44.asServiceRole.entities.Room.list('-created_date', 5000),
-            base44.asServiceRole.entities.Branch.list(),
+        // ดึงข้อมูลที่เกี่ยวข้องโดยตรงด้วย filter
+        const [tenantResults, roomResults, branchResults, configs] = await Promise.all([
+            payment.tenant_id ? base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id }) : Promise.resolve([]),
+            payment.room_id ? base44.asServiceRole.entities.Room.filter({ id: payment.room_id }) : Promise.resolve([]),
+            actualBranchId ? base44.asServiceRole.entities.Branch.filter({ id: actualBranchId }) : Promise.resolve([]),
             base44.asServiceRole.entities.Config.list()
         ]);
 
-        const tenant = tenants.find(t => t.id === payment.tenant_id);
-        const room = rooms.find(r => r.id === payment.room_id);
-        const branch = branches.find(b => b.id === actualBranchId);
+        const tenant = Array.isArray(tenantResults) ? tenantResults[0] : tenantResults;
+        const room = Array.isArray(roomResults) ? roomResults[0] : roomResults;
+        const branch = Array.isArray(branchResults) ? branchResults[0] : branchResults;
 
         // ดึง config ของสาขา
         const getConfigValue = (key) => {
