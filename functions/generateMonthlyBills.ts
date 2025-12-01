@@ -251,11 +251,13 @@ Deno.serve(async (req) => {
             });
         }
         
-        console.log(`📦 Normalized ${normalizedPayments.length} payments from ${recentPayments.length} raw`);
+        console.log(`⭐⭐⭐ CRITICAL DEBUG: Normalized ${normalizedPayments.length} payments from ${recentPayments.length} raw`);
         
         // Debug: log sample payment
         if (normalizedPayments.length > 0) {
-            console.log(`🔍 Sample payment: room_id=${normalizedPayments[0].room_id}, due_date=${normalizedPayments[0].due_date}`);
+            console.log(`⭐ Sample normalized payment: room_id=${normalizedPayments[0].room_id}, due_date=${normalizedPayments[0].due_date}`);
+        } else {
+            console.log(`❌❌❌ PROBLEM: normalizedPayments is EMPTY! Check RAW data above.`);
         }
         
         // ⭐⭐⭐ สร้าง Map จาก ALL payments (ไม่กรองช่วงเดือน) เพื่อไม่ให้พลาดบิลที่มีอยู่
