@@ -50,6 +50,11 @@ export default function Dashboard() {
     [currentUser]
   );
 
+  const retryConfig = {
+    retry: 0,
+    retryDelay: 0,
+  };
+
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
