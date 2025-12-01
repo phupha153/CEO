@@ -191,13 +191,12 @@ Deno.serve(async (req) => {
             const filter = targetBranchId ? { branch_id: targetBranchId } : {};
             const bookingFilter = { ...filter, status: 'active' };
 
-            // ⭐⭐⭐ ดึง Payment ด้วย pagination เหมือน entities อื่น
-            const [r, b, m, t, p] = await Promise.all([
+            // ⭐⭐⭐ ดึง entities แบบ parallel
+            const [r, b, m, t] = await Promise.all([
                 fetchWithPagination(base44.asServiceRole.entities.Room, filter, '-room_number'),
                 fetchWithPagination(base44.asServiceRole.entities.Booking, bookingFilter, '-created_date'),
                 fetchWithPagination(base44.asServiceRole.entities.MeterReading, filter, '-reading_date'),
-                fetchWithPagination(base44.asServiceRole.entities.Tenant, filter, '-created_date'),
-                fetchWithPagination(base44.asServiceRole.entities.Payment, filter, '-created_date')
+                fetchWithPagination(base44.asServiceRole.entities.Tenant, filter, '-created_date')
             ]);
             
             // ⭐ Ensure arrays even if fetch returns null/undefined
@@ -205,8 +204,25 @@ Deno.serve(async (req) => {
             bookings = b || []; 
             meterReadings = m || []; 
             tenants = t || [];
-            recentPayments = p || [];
         });
+        
+        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ .list() หรือ .filter() ตรงๆ เพราะ pagination อาจมีปัญหากับ Payment entity
+        await retryOperation(async () => {
+            if (targetBranchId) {
+                // ดึงเฉพาะสาขา
+                recentPayments = await base44.asServiceRole.entities.Payment.filter(
+                    { branch_id: targetBranchId }, 
+                    '-created_date', 
+                    50000
+                );
+            } else {
+                // ดึงทั้งหมด
+                recentPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 50000);
+            }
+            recentPayments = recentPayments || [];
+        });
+        
+        console.log(`📦 Fetched payments separately: ${recentPayments.length}`);
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings, ${recentPayments.length} payments`);
         
