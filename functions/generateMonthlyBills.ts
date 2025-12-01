@@ -253,22 +253,27 @@ Deno.serve(async (req) => {
         recentPayments = recentPayments.map(normalizeEntity).filter(Boolean);
         console.log(`📦 After normalize: ${recentPayments.length} payments`);
 
-        // ⭐⭐⭐ DEBUG: ดูโครงสร้างข้อมูล Payment ตัวแรก
+        // ⭐⭐⭐ DEBUG: ดูโครงสร้างข้อมูล Payment ตัวแรก (BEFORE normalize)
         if (recentPayments.length > 0) {
-            const samplePayment = recentPayments[0];
-            // ⭐ ดู raw structure ก่อน normalize
-            console.log(`🔍 Raw payment keys: ${Object.keys(samplePayment || {}).slice(0, 20).join(', ')}`);
-            console.log(`🔍 Sample payment.id: ${samplePayment?.id}`);
-            console.log(`🔍 Sample payment.data: ${samplePayment?.data ? 'EXISTS' : 'undefined'}`);
-            
-            // ถ้ามี .data = ข้อมูลอยู่ใน nested object
-            if (samplePayment?.data) {
-                console.log(`🔍 Sample payment.data.room_id: ${samplePayment.data.room_id}`);
-                console.log(`🔍 Sample payment.data.due_date: ${samplePayment.data.due_date}`);
-            } else {
-                console.log(`🔍 Sample payment.room_id: ${samplePayment?.room_id}`);
-                console.log(`🔍 Sample payment.due_date: ${samplePayment?.due_date}`);
+            const rawSample = recentPayments[0];
+            console.log(`🔍 [BEFORE NORMALIZE] Raw payment keys: ${Object.keys(rawSample || {}).slice(0, 20).join(', ')}`);
+            console.log(`🔍 [BEFORE NORMALIZE] Sample payment.id: ${rawSample?.id}`);
+            console.log(`🔍 [BEFORE NORMALIZE] Sample payment.room_id: ${rawSample?.room_id}`);
+            console.log(`🔍 [BEFORE NORMALIZE] Sample payment.due_date: ${rawSample?.due_date}`);
+            console.log(`🔍 [BEFORE NORMALIZE] Sample payment.data exists: ${rawSample?.data ? 'YES' : 'NO'}`);
+            if (rawSample?.data) {
+                console.log(`🔍 [BEFORE NORMALIZE] Sample payment.data.room_id: ${rawSample.data.room_id}`);
+                console.log(`🔍 [BEFORE NORMALIZE] Sample payment.data.due_date: ${rawSample.data.due_date}`);
             }
+        }
+
+        // ⭐⭐⭐ DEBUG: ดูโครงสร้างข้อมูล Payment ตัวแรก (AFTER normalize)
+        if (recentPayments.length > 0) {
+            const normalizedSample = recentPayments[0];
+            console.log(`🔍 [AFTER NORMALIZE] Sample payment.id: ${normalizedSample?.id}`);
+            console.log(`🔍 [AFTER NORMALIZE] Sample payment.room_id: ${normalizedSample?.room_id}`);
+            console.log(`🔍 [AFTER NORMALIZE] Sample payment.due_date: ${normalizedSample?.due_date}`);
+            console.log(`🔍 [AFTER NORMALIZE] All keys: ${Object.keys(normalizedSample || {}).join(', ')}`);
         }
 
         // ⭐⭐⭐ สร้าง existingBillsSet
@@ -286,10 +291,18 @@ Deno.serve(async (req) => {
 
             if (!roomId) {
                 skippedNoRoomId++;
+                // ⭐ DEBUG: แสดง payment ที่ไม่มี room_id
+                if (skippedNoRoomId <= 3) {
+                    console.log(`⚠️ Payment without room_id: id=${p.id}, keys=${Object.keys(p).join(',')}`);
+                }
                 continue;
             }
             if (!dueDate) {
                 skippedNoDueDate++;
+                // ⭐ DEBUG: แสดง payment ที่ไม่มี due_date
+                if (skippedNoDueDate <= 3) {
+                    console.log(`⚠️ Payment without due_date: id=${p.id}, room_id=${roomId}`);
+                }
                 continue;
             }
 
@@ -298,6 +311,11 @@ Deno.serve(async (req) => {
             const key = `${roomId}|${dueYearMonth}`;
             existingBillsSet.add(key);
             validPaymentCount++;
+            
+            // ⭐ DEBUG: แสดง 5 keys แรกที่เพิ่มเข้า Set
+            if (validPaymentCount <= 5) {
+                console.log(`✅ Added to existingBillsSet: ${key}`);
+            }
         }
 
         console.log(`📊 Payment parsing: valid=${validPaymentCount}, noRoomId=${skippedNoRoomId}, noDueDate=${skippedNoDueDate}`);
@@ -489,12 +507,15 @@ Deno.serve(async (req) => {
                 
                 console.log(`🔍 Room ${room.room_number}: genDay=${roomGenDay}, payDay=${roomPayDay}, currentDay=${currentDay}, targetDue=${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}-${String(roomPayDay).padStart(2, '0')}`);
                 
-                // ⭐ ตรวจสอบว่ามีบิลของเดือนนี้อยู่แล้วหรือไม่ (ป้องกันสร้างซ้ำ)
+                // ⭐⭐⭐ ตรวจสอบว่ามีบิลของเดือนนี้อยู่แล้วหรือไม่ (ป้องกันสร้างซ้ำ)
                 // ใช้ Set lookup O(1) - เร็วและแม่นยำ
                 const targetDueYearMonth = `${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`; // e.g., "2025-12"
                 const checkKey = `${room.id}|${targetDueYearMonth}`;
                 
                 const hasBillAlready = existingBillsSet.has(checkKey);
+                
+                // ⭐ DEBUG: แสดงการเช็คทุกห้อง
+                console.log(`🔎 Room ${room.room_number}: checkKey=${checkKey}, hasBillAlready=${hasBillAlready}, existingBillsSet.size=${existingBillsSet.size}`);
 
                 // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว = ข้ามไป (ไม่ว่าจะ force หรือไม่ก็ตาม)
                 // เพื่อป้องกันการสร้างบิลซ้ำเมื่อ cron job รันหลายรอบต่อวัน
