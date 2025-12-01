@@ -16,8 +16,35 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'SLIP2GO_API_KEY not configured' });
         }
 
-        // ⭐ CRITICAL: ดึง Payment แบบมี branch_id เสมอ (ป้องกันข้อมูลปนกัน)
-        const allPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 5000);
+        // ⭐ CRITICAL: ดึง Payment แบบ batch เพื่อป้องกัน JSON truncation
+        const BATCH_SIZE = 500;
+        let allPayments = [];
+        let skip = 0;
+        let hasMore = true;
+        
+        while (hasMore) {
+            const batch = await base44.asServiceRole.entities.Payment.filter({}, '-created_date', BATCH_SIZE, skip);
+            
+            if (Array.isArray(batch) && batch.length > 0) {
+                allPayments = allPayments.concat(batch);
+                skip += batch.length;
+                console.log(`📦 Fetched batch: ${batch.length} payments, total: ${allPayments.length}`);
+                
+                if (batch.length < BATCH_SIZE) {
+                    hasMore = false;
+                }
+            } else {
+                hasMore = false;
+            }
+            
+            // ป้องกัน infinite loop
+            if (skip > 50000) {
+                console.log('⚠️ Max payments reached, stopping');
+                hasMore = false;
+            }
+        }
+        
+        console.log(`📋 Total payments fetched: ${allPayments.length}`);
 
         const pendingRecheckPayments = allPayments.filter(p => 
             p.status === 'pending' && 
