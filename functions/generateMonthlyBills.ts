@@ -190,10 +190,21 @@ Deno.serve(async (req) => {
         
         // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ pagination เหมือนกัน
         console.log(`🔍 Fetching recent payments with pagination...`);
+        console.log(`🔍 Target branch filter: ${targetBranchId || 'ALL BRANCHES'}`);
         
         let recentPayments = [];
         await retryOperation(async () => {
             const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
+            console.log(`🔍 Payment filter: ${JSON.stringify(paymentFilter)}`);
+            
+            // ⭐ ลองดึงแบบ list ก่อนเพื่อ debug
+            const testPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 10);
+            console.log(`🔍 TEST: Payment.list() returned ${testPayments?.length || 0} items`);
+            if (testPayments && testPayments.length > 0) {
+                console.log(`🔍 TEST: First payment keys: ${Object.keys(testPayments[0]).join(', ')}`);
+                console.log(`🔍 TEST: First payment branch_id: ${testPayments[0].branch_id}`);
+            }
+            
             recentPayments = await fetchWithPagination(
                 base44.asServiceRole.entities.Payment, 
                 paymentFilter, 
