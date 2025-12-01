@@ -113,19 +113,33 @@ export default function Dashboard() {
 
   const getMainDateRange = () => {
     const now = new Date();
+    const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
+    
     switch(dateRangeType) {
-      case 'this_month':
-        return { from: startOfMonth(now), to: endOfMonth(now) };
-      case 'last_month':
-        return { from: startOfMonth(subMonths(now, 1)), to: endOfMonth(subMonths(now, 1)) };
+      case 'this_month': {
+        // งวดบิลเดือนนี้ = วันที่สร้างบิลเดือนนี้ ถึง วันที่สร้างบิลเดือนหน้า (ไม่รวม)
+        const cycleStart = new Date(now.getFullYear(), now.getMonth(), billGenerationDay);
+        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, billGenerationDay);
+        return { from: cycleStart, to: cycleEnd };
+      }
+      case 'last_month': {
+        // งวดบิลเดือนที่แล้ว
+        const cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, billGenerationDay);
+        const cycleEnd = new Date(now.getFullYear(), now.getMonth(), billGenerationDay);
+        return { from: cycleStart, to: cycleEnd };
+      }
       case 'this_year':
         return { from: startOfYear(now), to: endOfYear(now) };
       case 'last_year':
         return { from: startOfYear(subYears(now, 1)), to: endOfYear(subYears(now, 1)) };
       case 'custom':
         return customRange;
-      default:
-        return { from: startOfMonth(now), to: endOfMonth(now) };
+      default: {
+        const cycleStart = new Date(now.getFullYear(), now.getMonth(), billGenerationDay);
+        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, billGenerationDay);
+        return { from: cycleStart, to: cycleEnd };
+      }
     }
   };
 
