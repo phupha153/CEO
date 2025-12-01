@@ -114,6 +114,22 @@ export default function TestInvoiceGenerationPage() {
   const roomsWithBooking = monthlyRooms.filter(r => 
     bookings.some(b => b.room_id === r.id)
   );
+  
+  // ⭐ คำนวณห้องที่ยังไม่มีบิลเดือนปัจจุบัน
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-indexed
+  const currentYearMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`; // e.g., "2025-12"
+  
+  // ดึง room_id ที่มีบิลเดือนนี้แล้ว
+  const roomsWithCurrentBill = new Set(
+    payments
+      .filter(p => p.due_date && p.due_date.startsWith(currentYearMonth))
+      .map(p => p.room_id)
+  );
+  
+  // ห้องที่ยังไม่มีบิลเดือนนี้
+  const roomsWithoutCurrentBill = roomsWithBooking.filter(r => !roomsWithCurrentBill.has(r.id));
   const paymentsToSend = payments.filter(p => 
     (p.status === 'pending' || p.status === 'overdue') && !p.bill_sent_date
   );
