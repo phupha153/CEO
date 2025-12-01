@@ -186,21 +186,8 @@ Deno.serve(async (req) => {
             return globalConfig?.value || defaultValue;
         };
 
-        let paymentsToSend = [];
-        
-        if (paymentId) {
-            const targetPayment = allPayments.find(p => p.id === paymentId);
-            if (targetPayment && (targetPayment.status === 'pending' || targetPayment.status === 'overdue')) {
-                paymentsToSend.push(targetPayment);
-            }
-        } else {
-            // กรองตาม branch_id ถ้าระบุ (ไม่เช็ค bill_sent_date เพื่อให้สามารถส่งซ้ำได้)
-            paymentsToSend = allPayments.filter(p => {
-                const statusMatch = p.status === 'pending' || p.status === 'overdue';
-                const branchMatch = !branch_id || p.branch_id === branch_id;
-                return statusMatch && branchMatch;
-            });
-        }
+        // ใช้ payments ที่ดึงมาแล้ว (กรองตาม branch_id หรือ paymentId ตั้งแต่ตอนดึงแล้ว)
+        let paymentsToSend = allPayments;
 
         if (paymentsToSend.length === 0) {
             return Response.json({ 
