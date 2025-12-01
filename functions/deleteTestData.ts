@@ -151,14 +151,20 @@ Deno.serve(async (req) => {
             }
         }
 
-        // ✅ STEP 5: หา Rooms ที่เป็น TEST
+        // ✅ STEP 5: หา Rooms ที่เป็น TEST (ใช้ pagination)
         console.log('📥 Step 5: Fetching all rooms...');
-        const allRooms = await base44.asServiceRole.entities.Room.list('-created_date', 1000);
+        const allRooms = await fetchAllEntities(base44.asServiceRole.entities.Room);
         
-        const testRooms = allRooms.filter(room => 
+        let testRooms = allRooms.filter(room => 
             room.room_number?.includes('TEST-') || 
-            room.description?.includes('[TEST-')
+            room.description?.includes('[TEST-') ||
+            room.description?.includes('TEST-')
         );
+        
+        // กรองตาม branch ถ้าระบุ
+        if (targetBranchId) {
+            testRooms = testRooms.filter(r => r.branch_id === targetBranchId);
+        }
         
         console.log(`Found ${testRooms.length} test rooms`);
 
