@@ -261,6 +261,7 @@ Deno.serve(async (req) => {
         }
         console.log(`📅 Current date: ${currentDay}/${currentMonth + 1}/${currentYear} (Thailand time)`);
         console.log(`🔧 Force create: ${forceCreate}`);
+        console.log(`📊 existingBillsSet size: ${existingBillsSet.size}`);
 
         // ⭐⭐⭐ CRITICAL: Normalize ALL entities - data might be inside .data property OR flat
         const normalizeEntity = (entity) => {
