@@ -184,18 +184,6 @@ Deno.serve(async (req) => {
             // ถ้าไม่มี .data หรือ .data ว่าง = ข้อมูลอยู่ใน root level แล้ว
             return entity;
         }
-        
-        // ⭐⭐⭐ DEBUG: Test normalizeEntity with first payment
-        if (recentPayments.length > 0) {
-            const testRaw = recentPayments[0];
-            const testNormalized = normalizeEntity(testRaw);
-            console.log(`🧪 [NORMALIZE TEST] Raw keys: ${Object.keys(testRaw || {}).join(', ')}`);
-            console.log(`🧪 [NORMALIZE TEST] Raw.data keys: ${Object.keys(testRaw?.data || {}).join(', ')}`);
-            console.log(`🧪 [NORMALIZE TEST] Normalized keys: ${Object.keys(testNormalized || {}).join(', ')}`);
-            console.log(`🧪 [NORMALIZE TEST] Normalized.room_id: ${testNormalized?.room_id}`);
-            console.log(`🧪 [NORMALIZE TEST] Normalized.due_date: ${testNormalized?.due_date}`);
-            console.log(`🧪 [NORMALIZE TEST] Normalized.branch_id: ${testNormalized?.branch_id}`);
-        }
 
         let recentPayments = [];
         
