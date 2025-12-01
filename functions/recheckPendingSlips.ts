@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
         
         const pendingRecheckPayments = pendingWithSlip;
 
-        console.log(`📋 Found ${pendingRecheckPayments.length} payments pending recheck`);
+        console.log(`📋 Found ${pendingRecheckPayments.length} payments pending recheck (scanned ${skip} pending payments)`);
 
         if (pendingRecheckPayments.length === 0) {
             return Response.json({ 
