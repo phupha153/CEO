@@ -179,15 +179,23 @@ Deno.serve(async (req) => {
             return entity;
         }
 
+        let recentPayments = [];
+        
         await retryOperation(async () => {
             const filter = targetBranchId ? { branch_id: targetBranchId } : {};
             const bookingFilter = { ...filter, status: 'active' };
 
-            const [r, b, m, t] = await Promise.all([
+            // ⭐⭐⭐ ดึง Payment พร้อมกับ entities อื่น - ใช้ .filter() หรือ .list() ตรงๆ (ไม่ใช้ pagination)
+            const paymentPromise = targetBranchId 
+                ? base44.asServiceRole.entities.Payment.filter({ branch_id: targetBranchId }, '-created_date', 50000)
+                : base44.asServiceRole.entities.Payment.list('-created_date', 50000);
+
+            const [r, b, m, t, p] = await Promise.all([
                 fetchWithPagination(base44.asServiceRole.entities.Room, filter, '-room_number'),
                 fetchWithPagination(base44.asServiceRole.entities.Booking, bookingFilter, '-created_date'),
                 fetchWithPagination(base44.asServiceRole.entities.MeterReading, filter, '-reading_date'),
-                fetchWithPagination(base44.asServiceRole.entities.Tenant, filter, '-created_date')
+                fetchWithPagination(base44.asServiceRole.entities.Tenant, filter, '-created_date'),
+                paymentPromise
             ]);
             
             // ⭐ Ensure arrays even if fetch returns null/undefined
@@ -195,9 +203,10 @@ Deno.serve(async (req) => {
             bookings = b || []; 
             meterReadings = m || []; 
             tenants = t || [];
+            recentPayments = p || [];
         });
 
-        console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
+        console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings, ${recentPayments.length} payments`);
         
         // ⭐⭐⭐ ดึง Payment - ดึงพร้อมกับ entities อื่นใน retryOperation
         // ย้ายไปดึงพร้อมกันข้างบนแล้ว - ใช้ตัวแปรจากด้านบน
