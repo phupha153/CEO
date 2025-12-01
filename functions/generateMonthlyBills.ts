@@ -209,27 +209,44 @@ Deno.serve(async (req) => {
         console.log(`Target branch: ${targetBranchId || 'ALL'}`);
         
         let recentPayments = [];
+        
+        console.log('');
+        console.log('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
+        console.log('⭐ FETCHING PAYMENTS - START');
+        console.log('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
+        
         await retryOperation(async () => {
             const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
+            console.log(`Payment filter: ${JSON.stringify(paymentFilter)}`);
             
             // ⭐ ลองดึงแบบ list ก่อนเพื่อ debug
+            console.log('Calling Payment.list()...');
             const testPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 10);
-            console.log(`TEST Payment.list(): ${testPayments?.length || 0} items`);
+            console.log(`Payment.list() returned: ${testPayments?.length || 0} items`);
+            
             if (testPayments && testPayments.length > 0) {
-                console.log(`TEST First payment KEYS: ${Object.keys(testPayments[0]).join(', ')}`);
-                console.log(`TEST First payment branch_id: ${testPayments[0].branch_id}`);
-                console.log(`TEST First payment room_id: ${testPayments[0].room_id}`);
-                console.log(`TEST First payment due_date: ${testPayments[0].due_date}`);
+                console.log(`First payment ID: ${testPayments[0].id}`);
+                console.log(`First payment KEYS: ${Object.keys(testPayments[0]).join(', ')}`);
+                console.log(`First payment branch_id: ${testPayments[0].branch_id}`);
+                console.log(`First payment room_id: ${testPayments[0].room_id}`);
+                console.log(`First payment due_date: ${testPayments[0].due_date}`);
+            } else {
+                console.log('❌ Payment.list() returned EMPTY or NULL!');
             }
             
+            console.log('Calling fetchWithPagination for Payment...');
             recentPayments = await fetchWithPagination(
                 base44.asServiceRole.entities.Payment, 
                 paymentFilter, 
                 '-created_date'
             );
+            console.log(`fetchWithPagination returned: ${recentPayments?.length || 0} payments`);
         });
         
-        console.log(`FETCHED: ${(recentPayments || []).length} payments (raw)`);
+        console.log('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
+        console.log(`⭐ TOTAL PAYMENTS FETCHED: ${(recentPayments || []).length}`);
+        console.log('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
+        console.log('');
         recentPayments = recentPayments || [];
         
         // ⭐⭐⭐ DEBUG: แสดงตัวอย่าง payment แรก (ก่อน normalize)
