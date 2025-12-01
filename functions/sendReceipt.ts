@@ -287,7 +287,7 @@ Deno.serve(async (req) => {
         console.log(`✅ Final result - Tenant: ${!!tenant} (${tenant?.full_name || 'null'}), Room: ${!!room} (${room?.room_number || 'null'})`)
 
         if (!tenant) {
-            console.error('❌ Tenant not found:', payment.tenant_id, 'in', allTenants.length, 'tenants');
+            console.error('❌ Tenant not found:', payment.tenant_id);
             console.error('❌ Debug info - payment:', { 
                 id: payment.id, 
                 tenant_id: payment.tenant_id, 
@@ -298,7 +298,7 @@ Deno.serve(async (req) => {
             return Response.json({ 
                 success: false,
                 error: 'ไม่พบข้อมูลผู้เช่า',
-                message: `Tenant ID ${payment.tenant_id} not found in ${allTenants.length} tenants`
+                message: `Tenant ID ${payment.tenant_id} not found`
             }, { status: 400 });
         }
 
