@@ -130,6 +130,30 @@ export default function TestInvoiceGenerationPage() {
   
   // ห้องที่ยังไม่มีบิลเดือนนี้
   const roomsWithoutCurrentBill = roomsWithBooking.filter(r => !roomsWithCurrentBill.has(r.id));
+  
+  // ⭐ สรุปบิลแยกตามเดือน
+  const billsByMonth = useMemo(() => {
+    const monthMap = {};
+    payments.forEach(p => {
+      if (p.due_date) {
+        const month = p.due_date.substring(0, 7); // e.g., "2025-12"
+        if (!monthMap[month]) {
+          monthMap[month] = { count: 0, total: 0, pending: 0, paid: 0 };
+        }
+        monthMap[month].count++;
+        monthMap[month].total += p.total_amount || 0;
+        if (p.status === 'paid') {
+          monthMap[month].paid++;
+        } else {
+          monthMap[month].pending++;
+        }
+      }
+    });
+    // Sort by month descending
+    return Object.entries(monthMap)
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .slice(0, 6); // แสดง 6 เดือนล่าสุด
+  }, [payments]);
   const paymentsToSend = payments.filter(p => 
     (p.status === 'pending' || p.status === 'overdue') && !p.bill_sent_date
   );
