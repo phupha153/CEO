@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
         }
 
         // ⭐⭐⭐ CRITICAL: Normalize ALL entities - data might be inside .data property OR flat
-        const normalizeEntity = (entity) => {
+        function normalizeEntity(entity) {
             if (!entity) return null;
             // ถ้ามี .data property = ข้อมูลอยู่ใน .data
             if (entity.data && typeof entity.data === 'object') {
@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
             }
             // ถ้าไม่มี .data = ข้อมูลอยู่ใน root level แล้ว
             return entity;
-        };
+        }
 
         await retryOperation(async () => {
             const filter = targetBranchId ? { branch_id: targetBranchId } : {};
