@@ -218,10 +218,15 @@ Deno.serve(async (req) => {
                 recentPayments = await base44.asServiceRole.entities.Payment.list('-created_date', maxLimit);
             }
             
-            // ⭐ Ensure it's an array
+            // ⭐ Ensure it's a proper array - SDK might return object with numeric keys
             if (!Array.isArray(recentPayments)) {
-                console.warn(`⚠️ recentPayments is not an array, converting...`, typeof recentPayments);
-                recentPayments = recentPayments ? [recentPayments] : [];
+                console.warn(`⚠️ recentPayments is not an array, converting from object...`, typeof recentPayments);
+                if (recentPayments && typeof recentPayments === 'object') {
+                    // Convert object with numeric keys to array
+                    recentPayments = Object.values(recentPayments);
+                } else {
+                    recentPayments = [];
+                }
             }
             
             console.log(`✅ Total payments fetched: ${recentPayments.length}`);
