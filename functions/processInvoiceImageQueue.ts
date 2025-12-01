@@ -331,12 +331,16 @@ Deno.serve(async (req) => {
         console.log(`📥 Fetched ${allPayments.length} total payments`);
 
         // ⭐ สร้างรูปทุกสาขา แต่ส่ง LINE เฉพาะสาขาที่เปิด auto_send
+        // ⭐ รวม 'generating' ด้วย เผื่อรอบก่อน timeout ค้างไว้
         const paymentsToProcess = allPayments.filter(p => {
             // ข้ามบิลที่ชำระแล้ว
             if (p.status === 'paid') return false;
             
-            // ต้องยังไม่มีรูปหรือสถานะเป็น pending/null
-            const needsImage = !p.invoice_image_url || p.invoice_image_status === 'pending' || !p.invoice_image_status;
+            // ต้องยังไม่มีรูป หรือสถานะเป็น pending/null/generating (ค้างจากรอบก่อน)
+            const needsImage = !p.invoice_image_url || 
+                p.invoice_image_status === 'pending' || 
+                p.invoice_image_status === 'generating' || 
+                !p.invoice_image_status;
             
             // ⭐ เช็คว่าบิลถูกแก้ไขหลังสร้างรูปหรือไม่ (hash ไม่ตรง)
             let needsRegenerate = false;
@@ -344,7 +348,6 @@ Deno.serve(async (req) => {
                 const currentHash = generatePaymentHash(p);
                 if (currentHash !== p.invoice_data_hash) {
                     needsRegenerate = true;
-                    console.log(`🔄 Payment ${p.id}: Bill modified, needs image regeneration`);
                 }
             }
             
