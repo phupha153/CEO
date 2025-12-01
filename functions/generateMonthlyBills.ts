@@ -204,6 +204,16 @@ Deno.serve(async (req) => {
         console.log(`📦 Fetched ${(recentPayments || []).length} recent payments (raw)`);
         recentPayments = recentPayments || [];
         
+        // ⭐⭐⭐ DEBUG: แสดงตัวอย่าง payment แรก (ก่อน normalize)
+        if (recentPayments.length > 0) {
+            const sample = recentPayments[0];
+            console.log(`🔍 RAW Payment sample KEYS: ${Object.keys(sample).join(', ')}`);
+            console.log(`🔍 RAW Payment sample: id=${sample.id}, room_id=${sample.room_id}, due_date=${sample.due_date}, data=${sample.data ? 'EXISTS' : 'UNDEFINED'}`);
+            if (sample.data) {
+                console.log(`🔍 RAW Payment.data KEYS: ${Object.keys(sample.data).join(', ')}`);
+            }
+        }
+        
         // ⭐⭐⭐ CRITICAL FIX: Normalize payments - เช็ค .data property เหมือนโค้ดเก่าที่เคยทำงานได้
         const normalizedPayments = [];
         
