@@ -48,20 +48,14 @@ Deno.serve(async (req) => {
         const challenge = url.searchParams.get('hub.challenge');
 
         if (mode && token) {
-            // ดึง Verify Token (อาจจะต้องดึงจาก DB หรือ Env ถ้าตั้งค่าไว้)
-            // แต่เนื่องจาก Verification มักจะเกิดก่อนที่เราจะรู้ branch_id 
-            // เราจะลองดึง Global config หรือค้นหาทุก verify token ที่ตรงกัน
+            // อ่าน FACEBOOK_WEBHOOK_VERIFY_TOKEN จาก Environment Variables (Secrets)
+            const expectedVerifyToken = Deno.env.get('FACEBOOK_WEBHOOK_VERIFY_TOKEN');
             
-            // เพื่อความง่ายและเร็ว ลองโหลด config ทั้งหมดมาเช็ค
-            const configs = await base44.asServiceRole.entities.Config.list();
-            const validTokens = configs
-                .filter(c => c.key === 'facebook_verify_token')
-                .map(c => c.value.trim());
-            
-            if (mode === 'subscribe' && validTokens.includes(token)) {
+            if (mode === 'subscribe' && token === expectedVerifyToken) {
                 console.log('✅ WEBHOOK_VERIFIED');
                 return new Response(challenge, { status: 200 });
             } else {
+                console.error('❌ Webhook verification failed. Received token:', token);
                 return new Response('Forbidden', { status: 403 });
             }
         }
