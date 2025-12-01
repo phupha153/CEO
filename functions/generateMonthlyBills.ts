@@ -206,52 +206,80 @@ Deno.serve(async (req) => {
             tenants = t || [];
         });
         
-        // ⭐⭐⭐ ดึง Payment - ต้องใช้ pagination เพราะอาจมีมากกว่า 10000 รายการ
-        // แล้ว filter ด้วย JavaScript เพราะ API filter อาจมีปัญหากับ nested data
+        // ⭐⭐⭐ ดึง Payment - ใช้ .list() แทน .filter() เพราะมีปัญหากับ nested data
         await retryOperation(async () => {
-            console.log(`🔍 Fetching ALL payments then filter by branch...`);
+            console.log(`🔍 Fetching payments using .list() method...`);
             
-            // ดึงทั้งหมดก่อน (ใช้ pagination)
+            // ⭐ ใช้ .list() แทน .filter() เพราะ filter อาจมีปัญหากับ nested data structure
             let allPayments = [];
-            let skip = 0;
-            const batchSize = 5000;
-            let hasMore = true;
             
-            while (hasMore) {
-                try {
-                    const batch = await base44.asServiceRole.entities.Payment.filter(
-                        {}, // ไม่ filter ที่ API เพราะอาจมีปัญหากับ nested data
-                        '-created_date', 
-                        batchSize,
-                        skip
-                    );
-                    
-                    if (!Array.isArray(batch) || batch.length === 0) {
-                        hasMore = false;
-                    } else {
-                        allPayments = allPayments.concat(batch);
-                        skip += batch.length;
-                        console.log(`📦 Fetched batch: ${batch.length} payments (total: ${allPayments.length})`);
-                        
-                        if (batch.length < batchSize) {
-                            hasMore = false;
+            try {
+                // ดึงทั้งหมดด้วย .list() - limit 10000 (max)
+                const batch1 = await base44.asServiceRole.entities.Payment.list('-created_date', 10000);
+                if (Array.isArray(batch1)) {
+                    allPayments = batch1;
+                    console.log(`📦 Fetched first batch: ${batch1.length} payments`);
+                }
+                
+                // ถ้าได้ 10000 พอดี = อาจมีมากกว่านั้น ลองดึงเพิ่ม
+                if (batch1.length === 10000) {
+                    console.log(`📦 Fetching more payments (skip 10000)...`);
+                    try {
+                        const batch2 = await base44.asServiceRole.entities.Payment.list('-created_date', 10000, 10000);
+                        if (Array.isArray(batch2) && batch2.length > 0) {
+                            allPayments = allPayments.concat(batch2);
+                            console.log(`📦 Fetched second batch: ${batch2.length} payments (total: ${allPayments.length})`);
                         }
+                    } catch (e) {
+                        console.log(`⚠️ Second batch failed:`, e.message);
                     }
-                } catch (batchError) {
-                    console.log(`⚠️ Batch fetch error at skip=${skip}:`, batchError.message);
-                    hasMore = false;
+                }
+            } catch (listError) {
+                console.log(`⚠️ Payment list error:`, listError.message);
+                
+                // Fallback: ลอง filter แบบเดิม
+                try {
+                    console.log(`🔄 Fallback: trying .filter() method...`);
+                    allPayments = await base44.asServiceRole.entities.Payment.filter({}, '-created_date', 10000);
+                    console.log(`📦 Fallback fetched: ${allPayments?.length || 0} payments`);
+                } catch (filterError) {
+                    console.log(`⚠️ Filter fallback also failed:`, filterError.message);
+                    allPayments = [];
                 }
             }
             
-            console.log(`📦 Total payments fetched: ${allPayments.length}`);
+            console.log(`📦 Total payments fetched (raw): ${allPayments.length}`);
+            
+            // ⭐⭐⭐ DEBUG: แสดง structure ก่อน normalize
+            if (allPayments.length > 0) {
+                const rawSample = allPayments[0];
+                console.log(`🔍 RAW Payment before normalize:`);
+                console.log(`   - id: ${rawSample?.id}`);
+                console.log(`   - has .data: ${!!rawSample?.data}`);
+                console.log(`   - direct branch_id: ${rawSample?.branch_id}`);
+                console.log(`   - .data?.branch_id: ${rawSample?.data?.branch_id}`);
+                console.log(`   - direct room_id: ${rawSample?.room_id}`);
+                console.log(`   - .data?.room_id: ${rawSample?.data?.room_id}`);
+            }
             
             // Normalize ก่อน filter
             allPayments = allPayments.map(normalizeEntity).filter(Boolean);
+            console.log(`📦 After normalize: ${allPayments.length} payments`);
+            
+            // ⭐⭐⭐ DEBUG: แสดง structure หลัง normalize
+            if (allPayments.length > 0) {
+                const normalizedSample = allPayments[0];
+                console.log(`🔍 Payment AFTER normalize:`);
+                console.log(`   - id: ${normalizedSample?.id}`);
+                console.log(`   - branch_id: ${normalizedSample?.branch_id}`);
+                console.log(`   - room_id: ${normalizedSample?.room_id}`);
+                console.log(`   - due_date: ${normalizedSample?.due_date}`);
+            }
             
             // Filter by branch ด้วย JavaScript (หลัง normalize)
             if (targetBranchId) {
                 recentPayments = allPayments.filter(p => p.branch_id === targetBranchId);
-                console.log(`📦 Payments in branch ${targetBranchId}: ${recentPayments.length} / ${allPayments.length}`);
+                console.log(`📦 Payments in target branch ${targetBranchId}: ${recentPayments.length} / ${allPayments.length}`);
             } else {
                 recentPayments = allPayments;
             }
