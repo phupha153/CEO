@@ -112,14 +112,63 @@ Deno.serve(async (req) => {
 
         const { paymentId, branch_id } = await req.json();
 
-        // ⭐ ดึงข้อมูลทั้งหมด - ใช้ filter() เพื่อดึงได้ครบ
-        console.log('📊 Fetching all data upfront...');
-        const [configs, allTenants, allRooms, allPayments] = await Promise.all([
-            base44.asServiceRole.entities.Config.list(),
-            base44.asServiceRole.entities.Tenant.filter({}),
-            base44.asServiceRole.entities.Room.filter({}),
-            base44.asServiceRole.entities.Payment.filter({})
-        ]);
+        // ⭐ ดึงข้อมูลตาม branch_id หรือ payment_id (ลด API calls)
+        console.log('📊 Fetching data...');
+        
+        let allPayments = [];
+        let allTenants = [];
+        let allRooms = [];
+        let configs = [];
+        
+        if (paymentId) {
+            // ถ้าระบุ paymentId = ดึงเฉพาะ payment นั้น
+            const [paymentResults, configResults] = await Promise.all([
+                base44.asServiceRole.entities.Payment.filter({ id: paymentId }),
+                base44.asServiceRole.entities.Config.list()
+            ]);
+            
+            const payment = Array.isArray(paymentResults) ? paymentResults[0] : paymentResults;
+            allPayments = payment ? [payment] : [];
+            configs = configResults;
+            
+            if (payment) {
+                // ดึงเฉพาะ tenant และ room ที่เกี่ยวข้อง
+                const [tenantResults, roomResults] = await Promise.all([
+                    payment.tenant_id ? base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id }) : Promise.resolve([]),
+                    payment.room_id ? base44.asServiceRole.entities.Room.filter({ id: payment.room_id }) : Promise.resolve([])
+                ]);
+                
+                const tenant = Array.isArray(tenantResults) ? tenantResults[0] : tenantResults;
+                const room = Array.isArray(roomResults) ? roomResults[0] : roomResults;
+                
+                allTenants = tenant ? [tenant] : [];
+                allRooms = room ? [room] : [];
+            }
+        } else if (branch_id) {
+            // ดึงเฉพาะ branch นั้น
+            const [paymentResults, tenantResults, roomResults, configResults] = await Promise.all([
+                base44.asServiceRole.entities.Payment.filter({ branch_id, status: 'pending' }),
+                base44.asServiceRole.entities.Tenant.filter({ branch_id }),
+                base44.asServiceRole.entities.Room.filter({ branch_id }),
+                base44.asServiceRole.entities.Config.list()
+            ]);
+            
+            allPayments = Array.isArray(paymentResults) ? paymentResults : [];
+            allTenants = Array.isArray(tenantResults) ? tenantResults : [];
+            allRooms = Array.isArray(roomResults) ? roomResults : [];
+            configs = configResults;
+            
+            // ⭐ ดึง overdue แยก (เพราะ filter ไม่รองรับ OR condition)
+            const overdueResults = await base44.asServiceRole.entities.Payment.filter({ branch_id, status: 'overdue' });
+            const overduePayments = Array.isArray(overdueResults) ? overdueResults : [];
+            allPayments = [...allPayments, ...overduePayments];
+        } else {
+            // ไม่แนะนำ - ส่งทุกสาขา (จะช้ามาก)
+            return Response.json({
+                success: false,
+                message: 'กรุณาระบุ branch_id หรือ paymentId'
+            }, { status: 400 });
+        }
         
         console.log(`✅ Loaded: ${allTenants.length} tenants, ${allRooms.length} rooms, ${allPayments.length} payments`);
 
