@@ -213,12 +213,13 @@ export default function TestInvoiceGenerationPage() {
       tenants: tenants.length
     });
     
-    addLog('info', `🔍 เดือนปัจจุบัน: ${currentYearMonth}`);
-    addLog('info', `🏠 ห้องที่ยังไม่มีบิลเดือนนี้: ${roomsWithoutCurrentBill.length} ห้อง`);
+    addLog('info', `📅 วันสร้างบิล: ${billGenDay}, วันครบกำหนด: ${payDay}`);
+    addLog('info', `🎯 จะสร้างบิลสำหรับเดือน: ${targetBillYearMonth} (due_date)`);
+    addLog('info', `🏠 ห้องที่ยังไม่มีบิลเดือน ${targetBillYearMonth}: ${roomsWithoutCurrentBill.length} ห้อง`);
     
     if (roomsWithoutCurrentBill.length === 0) {
-      addLog('warning', '⚠️ ไม่มีห้องที่ต้องสร้างบิล - ทุกห้องมีบิลเดือนนี้แล้ว');
-      toast.info('ทุกห้องมีบิลเดือนนี้แล้ว');
+      addLog('warning', `⚠️ ไม่มีห้องที่ต้องสร้างบิล - ทุกห้องมีบิลเดือน ${targetBillYearMonth} แล้ว`);
+      toast.info(`ทุกห้องมีบิลเดือน ${targetBillYearMonth} แล้ว`);
       setGeneratingBills(false);
       return;
     }
