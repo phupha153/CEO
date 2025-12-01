@@ -275,13 +275,13 @@ Deno.serve(async (req) => {
             }
         }
         
-        console.log(`📊 Added ${filteredPaymentsCount} payments to map (total unique: ${existingPaymentsMap.size})`);
+        console.log(`⭐⭐⭐ CRITICAL: Added ${filteredPaymentsCount} payments to map (total unique: ${existingPaymentsMap.size})`);
         
         if (existingPaymentsMap.size > 0) {
             const sampleKeys = Array.from(existingPaymentsMap.keys()).slice(0, 10);
-            console.log(`🔑 Sample map keys: ${sampleKeys.join(', ')}`);
+            console.log(`⭐ Sample map keys: ${sampleKeys.join(', ')}`);
         } else {
-            console.log(`⚠️ WARNING: existingPaymentsMap is EMPTY!`);
+            console.log(`❌❌❌ PROBLEM: existingPaymentsMap is EMPTY! This will cause duplicate bills!`);
         }
         
         // ⭐ DEBUG: แสดง due_date (YYYY-MM) ที่พบ
