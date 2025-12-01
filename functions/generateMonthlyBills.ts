@@ -86,19 +86,6 @@ Deno.serve(async (req) => {
     let resendNotifications = false;
     
     try {
-        console.log('========================================');
-        console.log('========================================');
-        console.log('🚀 STARTING BILL GENERATION');
-        console.log('========================================');
-        console.log('⬇️ SCROLL DOWN TO SEE PAYMENT DEBUG ⬇️');
-        console.log('========================================');
-        console.log('');
-        console.log('========================================');
-        console.log('========================================');
-        console.log('📦📦📦 PAYMENT DEBUG WILL BE HERE 📦📦📦');
-        console.log('========================================');
-        console.log('========================================');
-        console.log('');
 
         // Clone request FIRST before SDK reads the body
         const clonedReq = req.clone();
