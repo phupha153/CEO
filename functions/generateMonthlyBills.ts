@@ -199,60 +199,12 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
-        // ⭐⭐⭐ ดึง Payment - ใช้ .list() ตรงๆ เพราะ .filter() อาจไม่รองรับ pagination
-        console.log(`🔍 Fetching ALL payments...`);
-
-        let recentPayments = [];
-        try {
-            // ⭐ ใช้ .list() ก่อน แล้วค่อย filter ใน memory ถ้าจำเป็น
-            // เพราะ SDK .filter() อาจไม่รองรับ skip parameter
-            if (targetBranchId) {
-                // ถ้าระบุ branch = ใช้ filter
-                console.log(`🔍 Fetching payments for branch: ${targetBranchId}`);
-                recentPayments = await base44.asServiceRole.entities.Payment.filter(
-                    { branch_id: targetBranchId }, 
-                    '-created_date', 
-                    50000 // ดึงมากที่สุด
-                );
-            } else {
-                // ถ้าไม่ระบุ branch = ใช้ list
-                console.log(`🔍 Fetching ALL payments (no branch filter)`);
-                recentPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 50000);
-            }
-            
-            console.log(`🔍 Raw fetch result type: ${typeof recentPayments}, isArray: ${Array.isArray(recentPayments)}`);
-            
-            // ⭐ Ensure it's a proper array
-            if (!Array.isArray(recentPayments)) {
-                console.warn(`⚠️ recentPayments is not an array, converting...`, typeof recentPayments);
-                if (recentPayments && typeof recentPayments === 'object') {
-                    recentPayments = Object.values(recentPayments);
-                } else {
-                    recentPayments = [];
-                }
-            }
-            
-            console.log(`✅ Total payments fetched: ${recentPayments.length}`);
-            
-            // ⭐ ถ้าได้ 0 payments = log warning แต่ยังไม่หยุด (อาจเป็นครั้งแรกที่สร้างบิล)
-            if (recentPayments.length === 0) {
-                console.warn(`⚠️ WARNING: No payments found! This might be first time generating bills, or a fetch issue.`);
-            }
-            
-        } catch (fetchError) {
-            console.error(`❌ Error fetching payments: ${fetchError.message}`);
-            console.error(`❌ Stack: ${fetchError.stack}`);
-            
-            // ⭐ CRITICAL: ถ้าดึง payment ไม่ได้ = หยุดทำงาน ไม่ยอมสร้างบิลซ้ำ
-            return Response.json({
-                success: false,
-                error: `CRITICAL: Cannot fetch existing payments - ${fetchError.message}`,
-                message: 'หยุดการทำงานเพื่อป้องกันการสร้างบิลซ้ำ'
-            }, { status: 500 });
-        }
+        // ⭐⭐⭐ ดึง Payment - ดึงพร้อมกับ entities อื่นใน retryOperation
+        // ย้ายไปดึงพร้อมกันข้างบนแล้ว - ใช้ตัวแปรจากด้านบน
+        console.log(`🔍 Payment fetch was done together with other entities above`);
         
-        console.log(`📦 Fetched ${(recentPayments || []).length} recent payments`);
-        recentPayments = recentPayments || [];
+        let recentPayments = [];
+        // ไม่ต้อง fetch ซ้ำ - ใช้ผลลัพธ์จาก retryOperation ด้านบน
 
         // ⭐⭐⭐ Normalize payments เหมือน entities อื่น
         recentPayments = recentPayments.map(normalizeEntity).filter(Boolean);
