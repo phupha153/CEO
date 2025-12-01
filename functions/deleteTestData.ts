@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
         // ✅ STEP 2: ลบ Payments (ลบทีละ batch เพื่อไม่ให้ timeout)
         if (testPayments.length > 0) {
             console.log('💸 Step 2: Deleting test payments...');
-            const batchSize = 50;
+            const batchSize = 100;
             for (let i = 0; i < testPayments.length; i += batchSize) {
                 const batch = testPayments.slice(i, i + batchSize);
                 const deletePromises = batch.map(p => 
