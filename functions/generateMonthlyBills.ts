@@ -374,15 +374,32 @@ Deno.serve(async (req) => {
         // ⭐ ดึง unique branch IDs และเช็คว่าสาขาไหนตรงวันสร้างบิล
         const branchIds = [...new Set(roomsWithBooking.map(r => r.branch_id).filter(Boolean))];
         const branchGenDayMap = {};
+        const branchPayDayMap = {};
         const branchesToProcess = [];
         const branchesSkipped = [];
         
         for (const branchId of branchIds) {
-            const genDay = parseInt(getConfigValue('bill_generation_day', '27', branchId));
+            const genDay = parseInt(getConfigValue('bill_generation_day', '28', branchId));
+            const payDay = parseInt(getConfigValue('pay_day', '5', branchId));
             branchGenDayMap[branchId] = genDay;
+            branchPayDayMap[branchId] = payDay;
             
-            if (forceCreate || currentDay === genDay) {
-                branchesToProcess.push({ branchId, genDay });
+            // ⭐⭐⭐ Logic ใหม่: สร้างบิลได้เมื่อ
+            // 1. force = true
+            // 2. วันนี้ = วันสร้างบิล (เช่น 28)
+            // 3. วันนี้ >= วันครบกำหนด และ < วันสร้างบิล และยังไม่มีบิลเดือนนี้
+            //    (เช่น วันที่ 1-27 ของเดือน สามารถสร้างบิลเดือนนี้ได้ถ้ายังไม่มี)
+            
+            // ⭐ ถ้า genDay > payDay: บิลสร้างวันที่ 28 สำหรับ due วันที่ 5 เดือนหน้า
+            //    แต่ถ้าอยู่ในช่วง 1-27 = ยังอยู่ในรอบบิลเดือนนี้ (due วันที่ 5 เดือนนี้)
+            
+            const shouldProcess = forceCreate || 
+                                  currentDay === genDay || 
+                                  (genDay > payDay && currentDay < genDay && currentDay >= 1);
+            
+            if (shouldProcess) {
+                branchesToProcess.push({ branchId, genDay, payDay });
+                console.log(`✅ สาขา ${branchId}: จะสร้างบิล (genDay=${genDay}, payDay=${payDay}, currentDay=${currentDay})`);
             } else {
                 branchesSkipped.push({ branchId, genDay, reason: `วันนี้ (${currentDay}) ไม่ตรงกับวันสร้างบิล (${genDay})` });
             }
