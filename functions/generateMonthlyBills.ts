@@ -257,12 +257,19 @@ Deno.serve(async (req) => {
         // ⭐⭐⭐ DEBUG: ดูโครงสร้างข้อมูล Payment ตัวแรก
         if (recentPayments.length > 0) {
             const samplePayment = recentPayments[0];
-            console.log(`🔍 Sample payment structure:`, JSON.stringify({
-                id: samplePayment.id,
-                room_id: samplePayment.room_id,
-                due_date: samplePayment.due_date,
-                branch_id: samplePayment.branch_id
-            }));
+            // ⭐ ดู raw structure ก่อน normalize
+            console.log(`🔍 Raw payment keys: ${Object.keys(samplePayment || {}).slice(0, 20).join(', ')}`);
+            console.log(`🔍 Sample payment.id: ${samplePayment?.id}`);
+            console.log(`🔍 Sample payment.data: ${samplePayment?.data ? 'EXISTS' : 'undefined'}`);
+            
+            // ถ้ามี .data = ข้อมูลอยู่ใน nested object
+            if (samplePayment?.data) {
+                console.log(`🔍 Sample payment.data.room_id: ${samplePayment.data.room_id}`);
+                console.log(`🔍 Sample payment.data.due_date: ${samplePayment.data.due_date}`);
+            } else {
+                console.log(`🔍 Sample payment.room_id: ${samplePayment?.room_id}`);
+                console.log(`🔍 Sample payment.due_date: ${samplePayment?.due_date}`);
+            }
         }
 
         // ⭐⭐⭐ สร้าง existingBillsSet
