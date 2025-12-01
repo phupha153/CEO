@@ -39,28 +39,34 @@ async function getFacebookConfig(base44, branchId = null) {
 
 Deno.serve(async (req) => {
     const url = new URL(req.url);
-    const base44 = createClientFromRequest(req);
-
-    // 1. Verification Request (GET)
+    
+    // 1. Verification Request (GET) - ต้องทำก่อน createClientFromRequest
     if (req.method === 'GET') {
         const mode = url.searchParams.get('hub.mode');
         const token = url.searchParams.get('hub.verify_token');
         const challenge = url.searchParams.get('hub.challenge');
 
-        if (mode && token) {
-            // อ่าน FACEBOOK_WEBHOOK_VERIFY_TOKEN จาก Environment Variables (Secrets)
+        console.log('📥 GET Request received:', { mode, token, challenge });
+
+        if (mode === 'subscribe' && token && challenge) {
             const expectedVerifyToken = Deno.env.get('FACEBOOK_WEBHOOK_VERIFY_TOKEN');
+            console.log('🔑 Expected token:', expectedVerifyToken);
             
-            if (mode === 'subscribe' && token === expectedVerifyToken) {
-                console.log('✅ WEBHOOK_VERIFIED');
-                return new Response(challenge, { status: 200 });
+            if (token === expectedVerifyToken) {
+                console.log('✅ WEBHOOK_VERIFIED - Returning challenge:', challenge);
+                return new Response(challenge, { 
+                    status: 200,
+                    headers: { 'Content-Type': 'text/plain' }
+                });
             } else {
-                console.error('❌ Webhook verification failed. Received token:', token);
+                console.error('❌ Token mismatch. Received:', token, 'Expected:', expectedVerifyToken);
                 return new Response('Forbidden', { status: 403 });
             }
         }
-        return new Response('Bad Request', { status: 400 });
+        return new Response('OK', { status: 200 });
     }
+    
+    const base44 = createClientFromRequest(req);
 
     // 2. Event Notification (POST)
     if (req.method === 'POST') {
