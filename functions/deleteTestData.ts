@@ -278,7 +278,7 @@ Deno.serve(async (req) => {
         // ✅ สรุปผลลัพธ์
         console.log('🎯 Test data deletion completed:', results);
 
-        const totalDeleted = results.deletedPayments + results.deletedBookings + results.deletedRooms + results.deletedTenants;
+        const totalDeleted = results.deletedPayments + results.deletedBookings + results.deletedRooms + results.deletedTenants + results.deletedMeterReadings;
 
         if (totalDeleted === 0) {
             return Response.json({
@@ -293,6 +293,7 @@ Deno.serve(async (req) => {
         message += `📋 การจอง: ${results.deletedBookings} รายการ\n`;
         message += `🏠 ห้องพัก: ${results.deletedRooms} ห้อง\n`;
         message += `👥 ผู้เช่า: ${results.deletedTenants} คน\n`;
+        message += `⚡ มิเตอร์: ${results.deletedMeterReadings} รายการ\n`;
         message += `🔄 ห้องที่อัปเดตสถานะ: ${results.updatedRooms} ห้อง`;
         
         if (results.errors.length > 0) {
