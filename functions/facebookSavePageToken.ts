@@ -15,10 +15,10 @@ Deno.serve(async (req) => {
         });
 
         // บันทึก Page Access Token
-        const existingTokenConfigs = await base44.asServiceRole.entities.Config.filter({
-            branch_id: branch_id,
-            key: 'facebook_page_access_token'
-        });
+        const allConfigs = await base44.asServiceRole.entities.Config.list();
+        const existingTokenConfigs = allConfigs.filter(c => 
+            c.branch_id === branch_id && c.key === 'facebook_page_access_token'
+        );
 
         const tokenData = {
             branch_id: branch_id,
@@ -36,10 +36,9 @@ Deno.serve(async (req) => {
         }
 
         // บันทึก Page ID
-        const existingPageIdConfigs = await base44.asServiceRole.entities.Config.filter({
-            branch_id: branch_id,
-            key: 'facebook_page_id'
-        });
+        const existingPageIdConfigs = allConfigs.filter(c => 
+            c.branch_id === branch_id && c.key === 'facebook_page_id'
+        );
 
         const pageIdData = {
             branch_id: branch_id,
@@ -57,10 +56,9 @@ Deno.serve(async (req) => {
         }
 
         // บันทึก Page Name
-        const existingPageNameConfigs = await base44.asServiceRole.entities.Config.filter({
-            branch_id: branch_id,
-            key: 'facebook_page_name'
-        });
+        const existingPageNameConfigs = allConfigs.filter(c => 
+            c.branch_id === branch_id && c.key === 'facebook_page_name'
+        );
 
         const pageNameData = {
             branch_id: branch_id,
