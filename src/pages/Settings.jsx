@@ -3247,32 +3247,42 @@ export default function Settings() {
 
                         {/* ข้อมูล Facebook Page ที่เชื่อมต่ออยู่ */}
                         {facebookSettings.facebook_page_access_token && (
-                          <div className="bg-green-50 rounded-xl p-6 border-2 border-green-300">
-                            <div className="flex items-start gap-4">
+                          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-8 border-2 border-green-300 shadow-lg">
+                            <div className="flex items-start gap-6">
                               <div className="flex-shrink-0">
-                                <div className="w-16 h-16 rounded-full bg-white border-2 border-green-400 flex items-center justify-center overflow-hidden">
+                                <div className="w-20 h-20 rounded-2xl bg-white border-3 border-green-400 shadow-xl flex items-center justify-center overflow-hidden">
                                   {buildingLogo && buildingLogo.includes('graph.facebook.com') ? (
                                     <img src={buildingLogo} alt="Page Logo" className="w-full h-full object-cover" />
                                   ) : (
-                                    <Globe className="w-8 h-8 text-green-600" />
+                                    <Globe className="w-10 h-10 text-green-600" />
                                   )}
                                 </div>
                               </div>
                               <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Check className="w-5 h-5 text-green-600" />
-                                  <h4 className="font-bold text-green-900">เชื่อมต่อสำเร็จ</h4>
+                                <div className="flex items-center gap-3 mb-3">
+                                  <Check className="w-6 h-6 text-green-600" />
+                                  <h3 className="text-2xl font-bold text-green-900">เชื่อมต่อสำเร็จ!</h3>
                                 </div>
-                                <p className="text-sm text-green-800 mb-1">
-                                  <strong>เพจ:</strong> {configs.find(c => c.key === 'facebook_page_name' && c.branch_id === selectedBranch?.id)?.value || buildingInfo.building_name || 'Facebook Page'}
-                                </p>
-                                <p className="text-xs text-green-700">
-                                  เชื่อมต่อแล้วสำหรับสาขา {selectedBranch?.name}
-                                </p>
+                                <div className="space-y-2 mb-4">
+                                  <p className="text-base text-green-800">
+                                    <strong>เพจ:</strong> {configs.find(c => c.key === 'facebook_page_name' && c.branch_id === selectedBranch?.id)?.value || buildingInfo.building_name || 'Facebook Page'}
+                                  </p>
+                                  <p className="text-sm text-green-700">
+                                    📍 สาขา: {selectedBranch?.name}
+                                  </p>
+                                </div>
+                                <div className="bg-white/60 rounded-lg p-4 border border-green-200">
+                                  <p className="text-sm text-green-900 font-semibold mb-2">✨ คุณสามารถใช้งาน:</p>
+                                  <ul className="text-xs text-green-800 space-y-1.5">
+                                    <li>• รับข้อความจากลูกค้าผ่าน Facebook Messenger</li>
+                                    <li>• ส่งข้อความแจ้งเตือนการชำระเงินอัตโนมัติ</li>
+                                    <li>• ตอบกลับคอมเมนต์ในโพสต์ด้วย AI</li>
+                                    <li>• ลงทะเบียนผู้เช่าผ่าน Facebook Chat</li>
+                                  </ul>
+                                </div>
                               </div>
                               <Button
                                 type="button"
-                                size="sm"
                                 variant="outline"
                                 onClick={async () => {
                                   if (confirm('คุณต้องการยกเลิกการเชื่อมต่อ Facebook หรือไม่?')) {
@@ -3303,9 +3313,9 @@ export default function Settings() {
                                     toast.success('ยกเลิกการเชื่อมต่อสำเร็จ');
                                   }
                                 }}
-                                className="text-red-600 hover:text-red-700"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
                               >
-                                <X className="w-4 h-4 mr-1" />
+                                <X className="w-5 h-5 mr-2" />
                                 ยกเลิกการเชื่อมต่อ
                               </Button>
                             </div>
@@ -3314,15 +3324,7 @@ export default function Settings() {
 
                         {/* ปุ่ม Facebook Login Button */}
                         {!facebookSettings.facebook_page_access_token && (
-                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
-                            <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
-                              <Zap className="w-5 h-5" />
-                              🚀 เชื่อมต่อด้วย Facebook Login (แนะนำ)
-                            </h4>
-                            <p className="text-sm text-blue-800 mb-4">
-                              คลิกปุ่มด้านล่างเพื่อเชื่อมต่อกับ Facebook Page ของคุณแบบอัตโนมัติ
-                            </p>
-                            
+                          <div className="space-y-6">
                             <Button
                               type="button"
                               onClick={() => {
@@ -3343,13 +3345,42 @@ export default function Settings() {
                                   toast.error('Facebook SDK ยังไม่พร้อม กรุณารีเฟรชหน้าและลองอีกครั้ง');
                                 }
                               }}
-                              className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white text-base font-semibold py-6"
+                              className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white text-xl font-bold py-8 shadow-xl hover:shadow-2xl transition-all"
                             >
-                              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                              <svg className="w-7 h-7 mr-3" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                               </svg>
-                              เชื่อมต่อกับ Facebook
+                              🚀 เชื่อมต่อด้วย Facebook Login
                             </Button>
+                            
+                            <div className="bg-blue-50 rounded-xl p-6 border-2 border-blue-200">
+                              <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
+                                <Zap className="w-5 h-5" />
+                                ✨ ประโยชน์ที่คุณจะได้รับ:
+                              </h4>
+                              <ul className="text-sm text-blue-800 space-y-2">
+                                <li className="flex items-start gap-2">
+                                  <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                  <span><strong>รับข้อความอัตโนมัติ:</strong> ลูกค้าส่งข้อความถึงเพจได้ทันที</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                  <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                  <span><strong>แจ้งเตือนการชำระเงิน:</strong> ส่งใบแจ้งหนี้ผ่าน Messenger อัตโนมัติ</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                  <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                  <span><strong>ตอบคอมเมนต์ด้วย AI:</strong> AI ตอบคอมเมนต์ในโพสต์อัตโนมัติ</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                  <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                  <span><strong>ลงทะเบียนผู้เช่า:</strong> ผู้เช่าลงทะเบียนผ่าน Facebook Chat ได้</span>
+                                </li>
+                                <li className="flex items-start gap-2">
+                                  <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                  <span><strong>รับแจ้งซ่อม:</strong> รับแจ้งปัญหาผ่าน Messenger พร้อมบันทึกอัตโนมัติ</span>
+                                </li>
+                              </ul>
+                            </div>
                           </div>
                         )}
 
