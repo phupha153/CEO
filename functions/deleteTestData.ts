@@ -1,5 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
+// Helper function สำหรับ delay
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 // Helper function สำหรับดึงข้อมูลแบบ pagination
 async function fetchAllEntities(entity, batchSize = 1000) {
     let allData = [];
