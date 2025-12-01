@@ -107,13 +107,18 @@ Deno.serve(async (req) => {
             }
         }
 
-        // ✅ STEP 3: หา Bookings ที่เป็น TEST
+        // ✅ STEP 3: หา Bookings ที่เป็น TEST (ใช้ pagination)
         console.log('📥 Step 3: Fetching all bookings...');
-        const allBookings = await base44.asServiceRole.entities.Booking.list('-created_date', 1000);
+        const allBookings = await fetchAllEntities(base44.asServiceRole.entities.Booking);
         
-        const testBookings = allBookings.filter(booking => 
-            booking.notes?.includes('[TEST-')
+        let testBookings = allBookings.filter(booking => 
+            booking.notes?.includes('[TEST-') || booking.notes?.includes('TEST-')
         );
+        
+        // กรองตาม branch ถ้าระบุ
+        if (targetBranchId) {
+            testBookings = testBookings.filter(b => b.branch_id === targetBranchId);
+        }
         
         console.log(`Found ${testBookings.length} test bookings`);
 
