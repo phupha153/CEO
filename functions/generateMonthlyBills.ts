@@ -475,35 +475,16 @@ Deno.serve(async (req) => {
                 const targetDueYearMonth = `${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`; // e.g., "2025-01"
                 const mapKey = `${room.id}|${targetDueYearMonth}`;
                 
-                // ⭐⭐⭐ DEBUG: แสดงการคำนวณ
-                console.log(`🔍 Room ${room.room_number}: genDay=${roomGenDay}, payDay=${roomPayDay}, currentDay=${currentDay}`);
-                console.log(`🔍 Room ${room.room_number}: roomDueYear=${roomDueYear}, roomDueMonth=${roomDueMonth}, targetDueYearMonth=${targetDueYearMonth}`);
-                console.log(`🔍 Room ${room.room_number}: mapKey=${mapKey}, mapHas=${existingPaymentsMap.has(mapKey)}, mapSize=${existingPaymentsMap.size}`);
-                
                 let existingBill = existingPaymentsMap.get(mapKey) || null;
-                
+
                 // ⭐ FALLBACK: scan จาก normalizedPayments array
                 if (!existingBill) {
-                    // ⭐ DEBUG: หาบิลของห้องนี้ทั้งหมด
-                    const roomBills = normalizedPayments.filter(p => p.room_id === room.id);
-                    console.log(`🔍 Room ${room.room_number}: Found ${roomBills.length} total bills in normalizedPayments`);
-                    if (roomBills.length > 0) {
-                        console.log(`🔍 Room ${room.room_number}: Bill due_dates = ${roomBills.map(p => p.due_date).join(', ')}`);
-                    }
-                    
                     for (const p of normalizedPayments) {
                         if (p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
                             existingBill = p;
-                            console.log(`🔍 Room ${room.room_number}: FALLBACK found bill ${p.id} with due_date ${p.due_date}`);
                             break;
                         }
                     }
-                }
-                
-                if (existingBill) {
-                    console.log(`✅ Room ${room.room_number}: Found bill ${existingBill.id} for ${targetDueYearMonth}`);
-                } else {
-                    console.log(`📝 Room ${room.room_number}: No bill for ${targetDueYearMonth}, creating...`);
                 }
 
                 // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว = ข้ามไป (ไม่ว่าจะ force หรือไม่ก็ตาม)
