@@ -33,9 +33,9 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // ดึงข้อมูล Payment
-        const payments = await base44.asServiceRole.entities.Payment.list('-created_date', 5000);
-        const payment = payments.find(p => p.id === paymentId);
+        // ดึงข้อมูล Payment โดยตรงด้วย filter
+        const paymentResults = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
+        const payment = Array.isArray(paymentResults) ? paymentResults[0] : paymentResults;
 
         if (!payment) {
             return Response.json({ 
