@@ -143,9 +143,6 @@ Deno.serve(async (req) => {
 
         // 3. Fetch Data (Retry wrapped)
         let allRooms = [], bookings = [], meterReadings = [], tenants = [];
-        // ⭐ existingBillsSet จะถูกสร้างหลังจาก fetch payments
-        // ใช้ Set เก็บ "room_id|YYYY-MM" เพื่อเช็คซ้ำแบบ O(1)
-        let existingBillsSet = new Set();
         
         // ⭐ Log เดือนที่จะสร้างบิล
         const targetBillMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
