@@ -211,17 +211,44 @@ Deno.serve(async (req) => {
             const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
             console.log(`Using Payment.filter() with: ${JSON.stringify(paymentFilter)}`);
 
-            // ใช้ filter method โดยตรง (ไม่ผ่าน fetchWithPagination)
-            recentPayments = await base44.asServiceRole.entities.Payment.filter(paymentFilter, '-created_date', 10000);
+            let rawResult = await base44.asServiceRole.entities.Payment.filter(paymentFilter, '-created_date', 10000);
 
-            // ถ้าได้ object แทน array ให้แปลง
-            if (recentPayments && !Array.isArray(recentPayments)) {
-                console.log(`Got object instead of array, type: ${typeof recentPayments}`);
-                if (recentPayments.data && Array.isArray(recentPayments.data)) {
-                    recentPayments = recentPayments.data;
-                } else {
+            // ⭐ จัดการ response หลายรูปแบบ
+            if (rawResult === null || rawResult === undefined) {
+                console.log('Got null/undefined');
+                recentPayments = [];
+            } else if (Array.isArray(rawResult)) {
+                console.log('Got array directly');
+                recentPayments = rawResult;
+            } else if (typeof rawResult === 'string') {
+                console.log(`Got string, length: ${rawResult.length}`);
+                try {
+                    const parsed = JSON.parse(rawResult);
+                    if (Array.isArray(parsed)) {
+                        recentPayments = parsed;
+                    } else if (parsed.data && Array.isArray(parsed.data)) {
+                        recentPayments = parsed.data;
+                    } else {
+                        console.log('Parsed but not array:', typeof parsed);
+                        recentPayments = [];
+                    }
+                } catch (e) {
+                    console.log('JSON parse error:', e.message);
                     recentPayments = [];
                 }
+            } else if (typeof rawResult === 'object') {
+                console.log('Got object');
+                if (rawResult.data && Array.isArray(rawResult.data)) {
+                    recentPayments = rawResult.data;
+                } else if (rawResult.items && Array.isArray(rawResult.items)) {
+                    recentPayments = rawResult.items;
+                } else {
+                    console.log('Object keys:', Object.keys(rawResult).slice(0, 5).join(', '));
+                    recentPayments = [];
+                }
+            } else {
+                console.log(`Unknown type: ${typeof rawResult}`);
+                recentPayments = [];
             }
 
             console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments?.length || 0}`);
