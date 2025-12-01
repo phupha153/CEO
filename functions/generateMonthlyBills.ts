@@ -191,31 +191,33 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
-        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ list() แทน filter() เพราะ filter มีปัญหา
-        console.log(`🔍 Fetching ALL payments with list() + pagination...`);
+        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ filter({}) เพื่อรองรับ pagination
+        console.log(`🔍 Fetching ALL payments with filter({}) + pagination...`);
         
         let recentPayments = [];
         try {
-            // ⭐ ใช้ list() แทน filter() เพราะ filter อาจมีปัญหากับ data structure
             let allData = [];
             let skip = 0;
             let hasMore = true;
-            const batchSize = 5000;
+            const batchSize = 500; // ⭐ ลด batch size เป็น 500 เพื่อความปลอดภัย
             
             while (hasMore) {
                 console.log(`🔍 Fetching payments batch: skip=${skip}, limit=${batchSize}`);
-                const batch = await base44.asServiceRole.entities.Payment.list('-created_date', batchSize, skip);
+                
+                // ⭐ ใช้ filter({}) แทน list() เพราะ filter รองรับ skip parameter
+                const batch = await base44.asServiceRole.entities.Payment.filter({}, '-created_date', batchSize, skip);
                 console.log(`🔍 Batch result: ${batch?.length || 0} payments`);
                 
                 if (!Array.isArray(batch) || batch.length === 0) {
                     hasMore = false;
                     console.log(`🔍 No more payments to fetch`);
                 } else {
-                    // ⭐ กรองตาม branch เอง (ถ้าระบุ)
+                    // ⭐ กรองตาม branch เอง (ถ้าระบุ) - ดึงจาก p.data ด้วย
                     let filteredBatch = batch;
                     if (targetBranchId) {
                         filteredBatch = batch.filter(p => {
-                            const branchId = p.branch_id || p.data?.branch_id;
+                            // ⭐ ข้อมูลอาจอยู่ใน p.data หรือ root level
+                            const branchId = p.branch_id || (p.data && p.data.branch_id);
                             return branchId === targetBranchId;
                         });
                         console.log(`🔍 After branch filter: ${filteredBatch.length}/${batch.length} payments`);
