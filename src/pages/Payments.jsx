@@ -900,19 +900,19 @@ export default function PaymentsPage() {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status, payment_date }) => {
+    mutationFn: async ({ id, status, payment_date }) => {
       console.log('🚀 updateStatusMutation.mutationFn CALLED with:', { id, status, payment_date, canConfirmPaid });
       if (!canConfirmPaid) {
         console.error('❌ canConfirmPaid is false!');
         throw new Error('คุณไม่มีสิทธิ์ยืนยันการชำระเงิน');
       }
       console.log('✅ Permission check passed, calling API...');
-      const result = base44.entities.Payment.update(id, { 
+      const result = await base44.entities.Payment.update(id, { 
         status, 
         payment_date,
         notes: '✅ ยืนยันชำระแล้ว (ผ่านการตรวจสอบด้วยตนเอง)'
       });
-      console.log('📤 API call initiated');
+      console.log('📤 API call completed:', result);
       return result;
     },
     onSuccess: async (updatedPayment, variables) => {
