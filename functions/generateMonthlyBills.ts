@@ -312,31 +312,45 @@ Deno.serve(async (req) => {
         console.log(`📊 existingBillsSet size: ${existingBillsSet.size}`);
         
         // ⭐⭐⭐ CRITICAL CHECK: ถ้า Set ว่างเปล่าแต่มี payments = มีปัญหา parsing
+        // แต่ถ้า filter เฉพาะ branch แล้วไม่มี payment ใน branch นี้ = OK (ไม่ใช่ bug)
         if (existingBillsSet.size === 0 && recentPayments.length > 0) {
-            console.error(`🚨 CRITICAL BUG: existingBillsSet is EMPTY but we have ${recentPayments.length} payments!`);
-            console.error(`🚨 This will cause DUPLICATE BILLS!`);
+            // เช็คว่า payment ที่ดึงมาตรงกับ branch ที่เลือกหรือไม่
+            const paymentsInTargetBranch = targetBranchId 
+                ? recentPayments.filter(p => p.branch_id === targetBranchId)
+                : recentPayments;
             
-            // แสดงตัวอย่าง payment เพื่อ debug
-            const sample = recentPayments[0];
-            console.error(`🔍 Sample payment keys: ${Object.keys(sample || {}).join(', ')}`);
-            console.error(`🔍 Sample payment.id: ${sample?.id}`);
-            console.error(`🔍 Sample payment.room_id: ${sample?.room_id}`);
-            console.error(`🔍 Sample payment.due_date: ${sample?.due_date}`);
-            console.error(`🔍 Sample payment.data: ${JSON.stringify(sample?.data || 'undefined')}`);
-            
-            // ⭐ STOP EXECUTION - ไม่ยอมสร้างบิลซ้ำ
-            return Response.json({
-                success: false,
-                error: 'CRITICAL: existingBillsSet is empty but payments exist - potential duplicate bill bug',
-                debug: {
-                    paymentsCount: recentPayments.length,
-                    existingBillsSetSize: existingBillsSet.size,
-                    samplePaymentKeys: Object.keys(sample || {}),
-                    sampleRoomId: sample?.room_id,
-                    sampleDueDate: sample?.due_date,
-                    sampleData: sample?.data
-                }
-            }, { status: 500 });
+            // ถ้ามี payment ใน target branch แต่ Set ว่าง = มีปัญหา parsing
+            if (paymentsInTargetBranch.length > 0) {
+                console.error(`🚨 CRITICAL BUG: existingBillsSet is EMPTY but we have ${paymentsInTargetBranch.length} payments in target branch!`);
+                console.error(`🚨 This will cause DUPLICATE BILLS!`);
+                
+                // แสดงตัวอย่าง payment เพื่อ debug
+                const sample = paymentsInTargetBranch[0];
+                console.error(`🔍 Sample payment keys: ${Object.keys(sample || {}).join(', ')}`);
+                console.error(`🔍 Sample payment.id: ${sample?.id}`);
+                console.error(`🔍 Sample payment.room_id: ${sample?.room_id}`);
+                console.error(`🔍 Sample payment.due_date: ${sample?.due_date}`);
+                console.error(`🔍 Sample payment.data: ${JSON.stringify(sample?.data || 'undefined')}`);
+                
+                // ⭐ STOP EXECUTION - ไม่ยอมสร้างบิลซ้ำ
+                return Response.json({
+                    success: false,
+                    error: 'CRITICAL: existingBillsSet is empty but payments exist - potential duplicate bill bug',
+                    debug: {
+                        paymentsCount: recentPayments.length,
+                        paymentsInTargetBranch: paymentsInTargetBranch.length,
+                        existingBillsSetSize: existingBillsSet.size,
+                        targetBranchId,
+                        samplePaymentKeys: Object.keys(sample || {}),
+                        sampleRoomId: sample?.room_id,
+                        sampleDueDate: sample?.due_date,
+                        sampleBranchId: sample?.branch_id,
+                        sampleData: sample?.data
+                    }
+                }, { status: 500 });
+            } else {
+                console.log(`✅ No existing payments in target branch ${targetBranchId} - this is the first bill generation`);
+            }
         }
 
         // Normalize other entities (normalizeEntity was already defined above)
