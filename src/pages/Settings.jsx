@@ -170,6 +170,9 @@ const BranchToggle = ({ applyToAllBranches, setApplyToAllBranches, selectedBranc
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('building');
+  const [facebookPages, setFacebookPages] = useState([]);
+  const [showPageSelectionDialog, setShowPageSelectionDialog] = useState(false);
+  const [selectedPage, setSelectedPage] = useState(null);
 
   const [buildingInfo, setBuildingInfo] = useState({
     building_name: '',
@@ -324,6 +327,48 @@ export default function Settings() {
 
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  // Listen for Facebook Pages data
+  useEffect(() => {
+    const handleMessage = async (event) => {
+      if (event.data.type === 'facebook_pages_loaded') {
+        const pages = event.data.pages;
+        setFacebookPages(pages);
+        
+        if (pages.length === 1) {
+          // Auto-select if only one page
+          await saveFacebookPageToken(pages[0]);
+        } else {
+          // Show selection dialog
+          setShowPageSelectionDialog(true);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const saveFacebookPageToken = async (page) => {
+    try {
+      const response = await base44.functions.invoke('facebookSavePageToken', {
+        branch_id: selectedBranch?.id,
+        page_id: page.id,
+        access_token: page.access_token,
+        page_name: page.name
+      });
+
+      if (response.data.success) {
+        toast.success(`เชื่อมต่อกับ ${page.name} สำเร็จ!`);
+        queryClient.invalidateQueries(['configs']);
+        setShowPageSelectionDialog(false);
+      } else {
+        toast.error('ไม่สามารถบันทึก Token ได้');
+      }
+    } catch (error) {
+      toast.error('เกิดข้อผิดพลาด: ' + error.message);
+    }
+  };
 
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
@@ -3935,10 +3980,31 @@ export default function Settings() {
             isOpen={showAddEmployeeDialog}
             onClose={() => setShowAddEmployeeDialog(false)}
             onSuccess={() => {
-              queryClient.invalidateQueries(['users']); // Refresh users list after adding an employee
+              queryClient.invalidateQueries(['users']);
               toast.success('เพิ่มพนักงานใหม่สำเร็จ!');
             }}
           />
+
+          {/* Facebook Page Selection Dialog */}
+          <Dialog open={showPageSelectionDialog} onOpenChange={setShowPageSelectionDialog}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>เลือก Facebook Page</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3">
+                {facebookPages.map((page) => (
+                  <button
+                    key={page.id}
+                    onClick={() => saveFacebookPageToken(page)}
+                    className="w-full flex items-center gap-3 p-4 border-2 border-slate-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
+                  >
+                    <Globe className="w-5 h-5 text-blue-600" />
+                    <span className="font-medium text-slate-800">{page.name}</span>
+                  </button>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>

@@ -363,6 +363,11 @@ export default function Layout({ children, currentPageName }) {
         xfbml: true,
         version: 'v18.0'
       });
+
+      // Check login status when SDK is ready
+      window.FB.getLoginStatus(function(response) {
+        console.log('Initial Facebook Status:', response);
+      });
     };
 
     // Facebook Login Status Callback
@@ -370,16 +375,36 @@ export default function Layout({ children, currentPageName }) {
       window.FB.getLoginStatus(function(response) {
         console.log('Facebook Login Response:', response);
         if (response.status === 'connected') {
-          // User is logged into Facebook and has authorized the app
           const accessToken = response.authResponse.accessToken;
           const userID = response.authResponse.userID;
-          console.log('Access Token:', accessToken);
-          console.log('User ID:', userID);
           
-          // TODO: Send this to your backend to get Pages and save tokens
-          alert('เชื่อมต่อสำเร็จ! Access Token: ' + accessToken.substring(0, 20) + '...');
+          // Get user's Facebook Pages
+          window.FB.api('/me/accounts', function(pagesResponse) {
+            if (pagesResponse && pagesResponse.data) {
+              const pages = pagesResponse.data;
+              console.log('Facebook Pages:', pages);
+              
+              if (pages.length === 0) {
+                alert('ไม่พบ Facebook Page ที่คุณเป็นผู้ดูแล');
+                return;
+              }
+              
+              // Send pages info to parent window for processing
+              window.postMessage({
+                type: 'facebook_pages_loaded',
+                pages: pages,
+                userAccessToken: accessToken
+              }, '*');
+              
+              alert(`พบ ${pages.length} Facebook Pages\nกำลังประมวลผล...`);
+            } else {
+              console.error('Error fetching pages:', pagesResponse);
+              alert('ไม่สามารถดึงข้อมูล Pages ได้');
+            }
+          });
         } else {
           console.log('User not authenticated');
+          alert('กรุณาเข้าสู่ระบบ Facebook ก่อน');
         }
       });
     };
@@ -389,6 +414,9 @@ export default function Layout({ children, currentPageName }) {
       const js = document.createElement('script');
       js.id = 'facebook-jssdk';
       js.src = 'https://connect.facebook.net/en_US/sdk.js';
+      js.async = true;
+      js.defer = true;
+      js.crossOrigin = 'anonymous';
       document.body.appendChild(js);
     }
   }, []);
