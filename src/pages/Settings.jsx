@@ -359,9 +359,32 @@ export default function Settings() {
       });
 
       if (response.data.success) {
+        // อัพเดท state ให้แสดงโลโก้และชื่อ Page
+        const pageLogoUrl = `https://graph.facebook.com/${page.id}/picture?type=large&access_token=${page.access_token}`;
+        setBuildingLogo(pageLogoUrl);
+        setBuildingInfo(prev => ({ ...prev, building_name: page.name }));
+        
+        // บันทึกโลโก้และชื่อไปที่ Config ด้วย
+        await updateConfigMutation.mutateAsync({
+          key: 'building_logo',
+          value: pageLogoUrl,
+          description: `โลโก้ Facebook Page: ${page.name}`,
+          category: 'general',
+          applyToAllBranches: false
+        });
+        
+        await updateConfigMutation.mutateAsync({
+          key: 'building_name',
+          value: page.name,
+          description: 'ชื่อหอพักจาก Facebook Page',
+          category: 'general',
+          applyToAllBranches: false
+        });
+        
         toast.success(`เชื่อมต่อกับ ${page.name} สำเร็จ!`);
         queryClient.invalidateQueries(['configs']);
         setShowPageSelectionDialog(false);
+        setActiveTab('building'); // เปลี่ยนไปแท็บอาคารเพื่อแสดงโลโก้
       } else {
         toast.error('ไม่สามารถบันทึก Token ได้');
       }
@@ -3222,56 +3245,127 @@ export default function Settings() {
                           canSetGlobalConfig={canSetGlobalConfig}
                         />
 
-                        {/* ปุ่ม Facebook Login Button */}
-                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
-                          <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
-                            <Zap className="w-5 h-5" />
-                            🚀 เชื่อมต่อด้วย Facebook Login (แนะนำ)
-                          </h4>
-                          <p className="text-sm text-blue-800 mb-4">
-                            คลิกปุ่มด้านล่างเพื่อเชื่อมต่อกับ Facebook Page ของคุณแบบอัตโนมัติ
-                          </p>
-                          
-                          <Button
-                            type="button"
-                            onClick={() => {
-                              if (window.FB) {
-                                console.log('🔵 Facebook SDK ready, starting login...');
-                                window.FB.login(function(response) {
-                                  console.log('🔵 FB Login Response:', response);
-                                  if (response.authResponse) {
-                                    console.log('✅ Facebook authorized!');
-                                    window.checkLoginState();
-                                  } else {
-                                    console.log('❌ User cancelled login or did not fully authorize.');
-                                    toast.error('การเข้าสู่ระบบถูกยกเลิก');
+                        {/* ข้อมูล Facebook Page ที่เชื่อมต่ออยู่ */}
+                        {facebookSettings.facebook_page_access_token && (
+                          <div className="bg-green-50 rounded-xl p-6 border-2 border-green-300">
+                            <div className="flex items-start gap-4">
+                              <div className="flex-shrink-0">
+                                <div className="w-16 h-16 rounded-full bg-white border-2 border-green-400 flex items-center justify-center overflow-hidden">
+                                  {buildingLogo && buildingLogo.includes('graph.facebook.com') ? (
+                                    <img src={buildingLogo} alt="Page Logo" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Globe className="w-8 h-8 text-green-600" />
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Check className="w-5 h-5 text-green-600" />
+                                  <h4 className="font-bold text-green-900">เชื่อมต่อสำเร็จ</h4>
+                                </div>
+                                <p className="text-sm text-green-800 mb-1">
+                                  <strong>เพจ:</strong> {configs.find(c => c.key === 'facebook_page_name' && c.branch_id === selectedBranch?.id)?.value || buildingInfo.building_name || 'Facebook Page'}
+                                </p>
+                                <p className="text-xs text-green-700">
+                                  เชื่อมต่อแล้วสำหรับสาขา {selectedBranch?.name}
+                                </p>
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  if (confirm('คุณต้องการยกเลิกการเชื่อมต่อ Facebook หรือไม่?')) {
+                                    await Promise.all([
+                                      updateConfigMutation.mutateAsync({
+                                        key: 'facebook_page_access_token',
+                                        value: '',
+                                        description: 'Facebook Page Access Token',
+                                        category: 'notification',
+                                        applyToAllBranches: false
+                                      }),
+                                      updateConfigMutation.mutateAsync({
+                                        key: 'facebook_page_id',
+                                        value: '',
+                                        description: 'Facebook Page ID',
+                                        category: 'notification',
+                                        applyToAllBranches: false
+                                      }),
+                                      updateConfigMutation.mutateAsync({
+                                        key: 'facebook_page_name',
+                                        value: '',
+                                        description: 'Facebook Page Name',
+                                        category: 'notification',
+                                        applyToAllBranches: false
+                                      })
+                                    ]);
+                                    setFacebookSettings({ facebook_page_access_token: '', facebook_verify_token: '' });
+                                    toast.success('ยกเลิกการเชื่อมต่อสำเร็จ');
                                   }
-                                }, {scope: 'pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata'});
-                              } else {
-                                console.error('❌ window.FB not available');
-                                toast.error('Facebook SDK ยังไม่พร้อม กรุณารีเฟรชหน้าและลองอีกครั้ง');
-                              }
-                            }}
-                            className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white text-base font-semibold py-6"
-                          >
-                            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                            </svg>
-                            เชื่อมต่อกับ Facebook
-                          </Button>
-                        </div>
-
-                        {/* หรือ */}
-                        <div className="relative">
-                          <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-slate-300"></div>
+                                }}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <X className="w-4 h-4 mr-1" />
+                                ยกเลิกการเชื่อมต่อ
+                              </Button>
+                            </div>
                           </div>
-                          <div className="relative flex justify-center">
-                            <span className="bg-white px-4 text-sm text-slate-500">หรือกรอก Token ด้วยตัวเอง</span>
-                          </div>
-                        </div>
+                        )}
 
-                        <form onSubmit={handleFacebookSettingsSubmit} className="space-y-6">
+                        {/* ปุ่ม Facebook Login Button */}
+                        {!facebookSettings.facebook_page_access_token && (
+                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
+                            <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
+                              <Zap className="w-5 h-5" />
+                              🚀 เชื่อมต่อด้วย Facebook Login (แนะนำ)
+                            </h4>
+                            <p className="text-sm text-blue-800 mb-4">
+                              คลิกปุ่มด้านล่างเพื่อเชื่อมต่อกับ Facebook Page ของคุณแบบอัตโนมัติ
+                            </p>
+                            
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                if (window.FB) {
+                                  console.log('🔵 Facebook SDK ready, starting login...');
+                                  window.FB.login(function(response) {
+                                    console.log('🔵 FB Login Response:', response);
+                                    if (response.authResponse) {
+                                      console.log('✅ Facebook authorized!');
+                                      window.checkLoginState();
+                                    } else {
+                                      console.log('❌ User cancelled login or did not fully authorize.');
+                                      toast.error('การเข้าสู่ระบบถูกยกเลิก');
+                                    }
+                                  }, {scope: 'pages_show_list,pages_messaging,pages_read_engagement,pages_manage_metadata'});
+                                } else {
+                                  console.error('❌ window.FB not available');
+                                  toast.error('Facebook SDK ยังไม่พร้อม กรุณารีเฟรชหน้าและลองอีกครั้ง');
+                                }
+                              }}
+                              className="w-full bg-[#1877f2] hover:bg-[#166fe5] text-white text-base font-semibold py-6"
+                            >
+                              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                              </svg>
+                              เชื่อมต่อกับ Facebook
+                            </Button>
+                          </div>
+                        )}
+
+                        {facebookSettings.facebook_page_access_token && (
+                          <>
+                            {/* หรือ */}
+                            <div className="relative">
+                              <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-slate-300"></div>
+                              </div>
+                              <div className="relative flex justify-center">
+                                <span className="bg-white px-4 text-sm text-slate-500">หรือกรอก Token ด้วยตัวเอง</span>
+                              </div>
+                            </div>
+
+                            <form onSubmit={handleFacebookSettingsSubmit} className="space-y-6">
                           <div className="space-y-4">
                             <div>
                               <Label>Facebook Page Access Token *</Label>
@@ -3332,24 +3426,26 @@ export default function Settings() {
                             </ol>
                           </div>
 
-                          <Button 
-                            type="submit" 
-                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600"
-                            disabled={isSavingFacebookSettings}
-                          >
-                            {isSavingFacebookSettings ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                กำลังบันทึก...
-                              </>
-                            ) : (
-                              <>
-                                <Save className="w-4 h-4 mr-2" />
-                                บันทึกการตั้งค่า Facebook
-                              </>
-                            )}
-                          </Button>
-                        </form>
+                              <Button 
+                                type="submit" 
+                                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600"
+                                disabled={isSavingFacebookSettings}
+                              >
+                                {isSavingFacebookSettings ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    กำลังบันทึก...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Save className="w-4 h-4 mr-2" />
+                                    บันทึกการตั้งค่า Facebook
+                                  </>
+                                )}
+                              </Button>
+                            </form>
+                          </>
+                        )}
                       </TabsContent>
                     </Tabs>
                   </CardContent>
