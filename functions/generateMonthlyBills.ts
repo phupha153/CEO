@@ -191,33 +191,31 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
-        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ filter({}) เพื่อรองรับ pagination
-        console.log(`🔍 Fetching ALL payments with filter({}) + pagination...`);
+        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ list() แทน filter() เพราะ filter มีปัญหา
+        console.log(`🔍 Fetching ALL payments with list() + pagination...`);
         
         let recentPayments = [];
         try {
+            // ⭐ ใช้ list() แทน filter() เพราะ filter อาจมีปัญหากับ data structure
             let allData = [];
             let skip = 0;
             let hasMore = true;
-            const batchSize = 500; // ⭐ ลด batch size เป็น 500 เพื่อความปลอดภัย
+            const batchSize = 5000;
             
             while (hasMore) {
                 console.log(`🔍 Fetching payments batch: skip=${skip}, limit=${batchSize}`);
-                
-                // ⭐ ใช้ filter({}) แทน list() เพราะ filter รองรับ skip parameter
-                const batch = await base44.asServiceRole.entities.Payment.filter({}, '-created_date', batchSize, skip);
+                const batch = await base44.asServiceRole.entities.Payment.list('-created_date', batchSize, skip);
                 console.log(`🔍 Batch result: ${batch?.length || 0} payments`);
                 
                 if (!Array.isArray(batch) || batch.length === 0) {
                     hasMore = false;
                     console.log(`🔍 No more payments to fetch`);
                 } else {
-                    // ⭐ กรองตาม branch เอง (ถ้าระบุ) - ดึงจาก p.data ด้วย
+                    // ⭐ กรองตาม branch เอง (ถ้าระบุ)
                     let filteredBatch = batch;
                     if (targetBranchId) {
                         filteredBatch = batch.filter(p => {
-                            // ⭐ ข้อมูลอาจอยู่ใน p.data หรือ root level
-                            const branchId = p.branch_id || (p.data && p.data.branch_id);
+                            const branchId = p.branch_id || p.data?.branch_id;
                             return branchId === targetBranchId;
                         });
                         console.log(`🔍 After branch filter: ${filteredBatch.length}/${batch.length} payments`);
@@ -250,19 +248,13 @@ Deno.serve(async (req) => {
         // ⭐⭐⭐ DEBUG: ดูโครงสร้างข้อมูล Payment ตัวแรก
         if (recentPayments.length > 0) {
             const samplePayment = recentPayments[0];
-            const allKeys = Object.keys(samplePayment);
-            console.log(`🔍 Sample payment ALL keys: ${allKeys.join(', ')}`);
-            console.log(`🔍 Sample payment.data keys: ${samplePayment.data ? Object.keys(samplePayment.data).join(', ') : 'NO DATA'}`);
             console.log(`🔍 Sample payment structure:`, JSON.stringify({
                 id: samplePayment.id,
                 hasData: !!samplePayment.data,
-                room_id_root: samplePayment.room_id,
-                room_id_data: samplePayment.data?.room_id,
-                due_date_root: samplePayment.due_date,
-                due_date_data: samplePayment.data?.due_date
+                room_id: samplePayment.room_id || samplePayment.data?.room_id,
+                due_date: samplePayment.due_date || samplePayment.data?.due_date,
+                keys: Object.keys(samplePayment).slice(0, 10)
             }));
-        } else {
-            console.log(`⚠️ NO PAYMENTS FETCHED - existingBillsSet will be EMPTY!`);
         }
         
         // ⭐⭐⭐ สร้าง existingBillsSet ที่นี่เลย - ไม่ประกาศข้างบน
@@ -275,30 +267,23 @@ Deno.serve(async (req) => {
         for (const p of recentPayments) {
             if (!p) continue;
             
-            // ⭐⭐⭐ ดึง room_id และ due_date - ต้องเช็คทั้ง root level และ p.data
-            let roomId = p.room_id;
-            let dueDate = p.due_date;
+            // ดึง room_id และ due_date จากทั้ง p.data และ root level
+            let roomId, dueDate;
             
-            // ถ้าไม่เจอใน root level ให้ดูใน p.data
-            if (!roomId && p.data && typeof p.data === 'object') {
+            if (p.data && typeof p.data === 'object') {
                 roomId = p.data.room_id;
-            }
-            if (!dueDate && p.data && typeof p.data === 'object') {
                 dueDate = p.data.due_date;
+            } else {
+                roomId = p.room_id;
+                dueDate = p.due_date;
             }
             
             if (!roomId) {
                 skippedNoRoomId++;
-                if (skippedNoRoomId <= 3) {
-                    console.log(`⚠️ Payment ${p.id} has no room_id (root: ${p.room_id}, data: ${p.data?.room_id})`);
-                }
                 continue;
             }
             if (!dueDate) {
                 skippedNoDueDate++;
-                if (skippedNoDueDate <= 3) {
-                    console.log(`⚠️ Payment ${p.id} has no due_date (root: ${p.due_date}, data: ${p.data?.due_date})`);
-                }
                 continue;
             }
             
@@ -488,7 +473,7 @@ Deno.serve(async (req) => {
                     if (resendNotifications) {
                         const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
                         if (tenant?.line_user_id) {
-                            billsToSend.push({ payment: existingBill, tenant, room });
+                            billsToSend.push({ payment: null, tenant, room });
                         }
                     }
                     continue;
