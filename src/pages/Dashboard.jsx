@@ -50,6 +50,29 @@ export default function Dashboard() {
     [currentUser]
   );
 
+  const { data: configs = [] } = useQuery({
+    queryKey: ['configs'],
+    queryFn: () => base44.entities.Config.list(),
+    ...retryConfig,
+    staleTime: 4 * 60 * 60 * 1000,
+    gcTime: 8 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const getCurrentDate = () => {
+    const testDateConfig = configs.find(c => c.key === 'test_current_date');
+    if (testDateConfig && testDateConfig.value) {
+      try {
+        const date = parseISO(testDateConfig.value);
+        if (isNaN(date.getTime())) return new Date();
+        return date;
+      } catch {
+        return new Date();
+      }
+    }
+    return new Date();
+  };
+
   // Debug: ดูค่า userRole
   console.log('🔍 Dashboard - Current User:', currentUser);
   console.log('🔍 Dashboard - User Role:', userRole);
@@ -267,26 +290,7 @@ export default function Dashboard() {
     placeholderData: (previousData) => previousData,
   });
 
-  const { data: configs = [] } = useQuery({
-    queryKey: ['configs'],
-    queryFn: () => base44.entities.Config.list(),
-    staleTime: 4 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
 
-  const getCurrentDate = () => {
-    const testDateConfig = configs.find(c => c.key === 'test_current_date');
-    if (testDateConfig && testDateConfig.value) {
-      try {
-        const date = parseISO(testDateConfig.value);
-        if (isNaN(date.getTime())) return new Date();
-        return date;
-      } catch {
-        return new Date();
-      }
-    }
-    return new Date();
-  };
 
   const calculateLateFee = useMemo(() => {
     const cache = new Map();
