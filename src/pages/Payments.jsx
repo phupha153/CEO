@@ -1227,6 +1227,12 @@ export default function PaymentsPage() {
       return;
     }
 
+    // ⭐ ถ้าไม่ระบุ paymentId = ต้องยืนยันก่อนส่งทุกห้อง
+    if (!paymentId) {
+      const confirmed = confirm(`ต้องการส่งบิลไปยังทุกห้องที่มี LINE และยังไม่ได้ส่ง (${tenantsWithLine} ห้อง)?`);
+      if (!confirmed) return;
+    }
+
     if (paymentId) {
       setSendingReminder(paymentId);
     } else {
