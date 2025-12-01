@@ -235,7 +235,9 @@ Deno.serve(async (req) => {
             }));
         }
         
-        // ⭐⭐⭐ สร้าง Set เก็บ "room_id|YYYY-MM" ที่มีบิลแล้ว
+        // ⭐⭐⭐ สร้าง existingBillsSet ที่นี่เลย - ไม่ประกาศข้างบน
+        // ใช้ Set เก็บ "room_id|YYYY-MM" เพื่อเช็คซ้ำแบบ O(1)
+        const existingBillsSet = new Set();
         let validPaymentCount = 0;
         let skippedNoRoomId = 0;
         let skippedNoDueDate = 0;
