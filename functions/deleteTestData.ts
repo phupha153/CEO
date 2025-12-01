@@ -1,4 +1,27 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+
+// Helper function สำหรับดึงข้อมูลแบบ pagination
+async function fetchAllEntities(entity, batchSize = 1000) {
+    let allData = [];
+    let skip = 0;
+    let hasMore = true;
+    
+    while (hasMore) {
+        const batch = await entity.filter({}, '-created_date', batchSize, skip);
+        if (!Array.isArray(batch) || batch.length === 0) {
+            hasMore = false;
+        } else {
+            allData = allData.concat(batch);
+            skip += batch.length;
+            if (batch.length < batchSize) {
+                hasMore = false;
+            }
+        }
+        // ป้องกัน infinite loop
+        if (skip > 50000) hasMore = false;
+    }
+    return allData;
+}
 
 Deno.serve(async (req) => {
     try {
@@ -20,24 +43,44 @@ Deno.serve(async (req) => {
             }, { status: 403 });
         }
 
+        // Parse request body สำหรับ branch_id
+        let targetBranchId = null;
+        try {
+            const clonedReq = req.clone();
+            const text = await clonedReq.text();
+            if (text && text.trim()) {
+                const body = JSON.parse(text);
+                targetBranchId = body.branch_id || null;
+            }
+        } catch (e) {
+            console.log('⚠️ No valid JSON body');
+        }
+
         console.log(`🗑️ Starting test data deletion at ${new Date().toISOString()}`);
+        console.log(`📋 Target branch: ${targetBranchId || 'ALL'}`);
 
         const results = {
             deletedPayments: 0,
             deletedBookings: 0,
             deletedRooms: 0,
             deletedTenants: 0,
+            deletedMeterReadings: 0,
             updatedRooms: 0,
             errors: []
         };
 
-        // ✅ STEP 1: หา Payments ที่เป็น TEST
+        // ✅ STEP 1: หา Payments ที่เป็น TEST (ใช้ pagination)
         console.log('📥 Step 1: Fetching all payments...');
-        const allPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 1000);
+        const allPayments = await fetchAllEntities(base44.asServiceRole.entities.Payment);
         
-        const testPayments = allPayments.filter(payment => 
-            payment.notes?.includes('[TEST-')
+        let testPayments = allPayments.filter(payment => 
+            payment.notes?.includes('[TEST-') || payment.notes?.includes('TEST-')
         );
+        
+        // กรองตาม branch ถ้าระบุ
+        if (targetBranchId) {
+            testPayments = testPayments.filter(p => p.branch_id === targetBranchId);
+        }
         
         console.log(`Found ${testPayments.length} test payments out of ${allPayments.length} total`);
 
