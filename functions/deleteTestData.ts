@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
         // ✅ STEP 4: ลบ Bookings และอัปเดตสถานะห้อง
         if (testBookings.length > 0) {
             console.log('📋 Step 4: Deleting test bookings...');
-            const batchSize = 50;
+            const batchSize = 100;
             for (let i = 0; i < testBookings.length; i += batchSize) {
                 const batch = testBookings.slice(i, i + batchSize);
                 
