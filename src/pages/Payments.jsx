@@ -1292,9 +1292,26 @@ export default function PaymentsPage() {
       return;
     }
 
-    // ⭐ ถ้าไม่ระบุ paymentId = ต้องยืนยันก่อนส่งทุกห้อง
+    // ⭐ ถ้าไม่ระบุ paymentId = แสดงรายละเอียดห้องที่จะส่ง
     if (!paymentId) {
-      const confirmed = confirm(`ต้องการส่งบิลไปยังทุกห้องที่มี LINE และยังไม่ได้ส่ง (${tenantsWithLine} ห้อง)?`);
+      const paymentsToSend = pendingOverduePayments.filter(p => {
+        const tenant = getTenantInfo(p.tenant_id);
+        return tenant && tenant.line_user_id && !p.bill_sent_date;
+      });
+      
+      const roomsList = paymentsToSend
+        .map(p => {
+          const room = getRoomInfo(p.room_id);
+          return room?.room_number || 'N/A';
+        })
+        .sort((a, b) => a.localeCompare(b, 'th', { numeric: true }))
+        .join(', ');
+      
+      const confirmed = confirm(
+        `📤 ต้องการส่งบิลไปยัง ${tenantsWithLine} ห้อง?\n\n` +
+        `ห้องที่จะส่ง:\n${roomsList}\n\n` +
+        `(เฉพาะห้องที่มี LINE และยังไม่ได้ส่งบิล)`
+      );
       if (!confirmed) return;
     }
 
