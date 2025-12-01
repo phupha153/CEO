@@ -206,14 +206,30 @@ Deno.serve(async (req) => {
             tenants = t || [];
         });
         
-        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ pagination เพราะ limit max = 10000
+        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ .filter() ตรงๆ เพราะ pagination มีปัญหา
         await retryOperation(async () => {
-            recentPayments = await fetchWithPagination(
-                base44.asServiceRole.entities.Payment, 
-                targetBranchId ? { branch_id: targetBranchId } : {}, 
-                '-created_date',
-                5000 // batch size ต่อครั้ง
-            );
+            const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
+            console.log(`🔍 Fetching payments with filter:`, JSON.stringify(paymentFilter));
+            
+            // ลองใช้ .filter() ตรงๆ ก่อน - ถ้ามีมากกว่า 10000 จะ error
+            try {
+                recentPayments = await base44.asServiceRole.entities.Payment.filter(
+                    paymentFilter, 
+                    '-created_date', 
+                    10000
+                );
+            } catch (filterError) {
+                console.log(`⚠️ Payment filter failed, trying .list():`, filterError.message);
+                // Fallback to list all
+                recentPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 10000);
+                // Filter manually if we have targetBranchId
+                if (targetBranchId && Array.isArray(recentPayments)) {
+                    recentPayments = recentPayments.filter(p => {
+                        const branchId = p.branch_id || p.data?.branch_id;
+                        return branchId === targetBranchId;
+                    });
+                }
+            }
             recentPayments = recentPayments || [];
         });
         
