@@ -259,23 +259,22 @@ Deno.serve(async (req) => {
         // ✅ STEP 10: ลบ MeterReadings
         if (testMeterReadings.length > 0) {
             console.log('⚡ Step 10: Deleting test meter readings...');
-            const batchSize = 100;
+            const batchSize = 20;
             for (let i = 0; i < testMeterReadings.length; i += batchSize) {
                 const batch = testMeterReadings.slice(i, i + batchSize);
-                const deletePromises = batch.map(mr => 
-                    base44.asServiceRole.entities.MeterReading.delete(mr.id)
-                        .then(() => {
-                            results.deletedMeterReadings++;
-                            return { success: true, id: mr.id };
-                        })
-                        .catch(error => {
-                            results.errors.push(`MeterReading ${mr.id}: ${error.message}`);
-                            return { success: false, id: mr.id, error: error.message };
-                        })
-                );
                 
-                await Promise.all(deletePromises);
+                for (const mr of batch) {
+                    try {
+                        await base44.asServiceRole.entities.MeterReading.delete(mr.id);
+                        results.deletedMeterReadings++;
+                    } catch (error) {
+                        results.errors.push(`MeterReading ${mr.id}: ${error.message}`);
+                    }
+                    await delay(100);
+                }
+                
                 console.log(`  ✅ Deleted batch ${Math.floor(i/batchSize) + 1}: ${results.deletedMeterReadings}/${testMeterReadings.length}`);
+                await delay(500);
             }
         }
 
