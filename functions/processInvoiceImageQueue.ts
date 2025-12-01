@@ -330,32 +330,32 @@ Deno.serve(async (req) => {
         }
         console.log(`📥 Fetched ${allPayments.length} total payments`);
 
-        // ⭐ สร้างรูปเฉพาะบิลที่ยังไม่มีรูป และยังไม่ได้กำลังสร้าง
+        // ⭐ สร้างรูปทุกสาขา แต่ส่ง LINE เฉพาะสาขาที่เปิด auto_send
+        // ⭐ รวม 'generating' ด้วย เผื่อรอบก่อน timeout ค้างไว้
         const paymentsToProcess = allPayments.filter(p => {
             // ข้ามบิลที่ชำระแล้ว
             if (p.status === 'paid') return false;
             
-            // ⭐⭐⭐ ข้ามถ้ามีรูปแล้ว (ไม่ว่าจะ status อะไร)
-            if (p.invoice_image_url) {
-                return false;
-            }
-            
-            // ⭐⭐⭐ ข้ามถ้ากำลังสร้างอยู่ (generating) - รอบอื่นกำลังทำอยู่
-            if (p.invoice_image_status === 'generating') {
-                return false;
-            }
-            
-            // ⭐⭐⭐ ข้ามถ้า completed แต่ไม่มี URL (กรณีผิดปกติ)
-            if (p.invoice_image_status === 'completed') {
-                return false;
-            }
-            
-            // ⭐ ต้องสร้างรูป: status เป็น pending/failed/null เท่านั้น
-            const needsImage = p.invoice_image_status === 'pending' || 
-                p.invoice_image_status === 'failed' ||
+            // ต้องยังไม่มีรูป หรือสถานะเป็น pending/null/generating (ค้างจากรอบก่อน)
+            const needsImage = !p.invoice_image_url || 
+                p.invoice_image_status === 'pending' || 
+                p.invoice_image_status === 'generating' || 
                 !p.invoice_image_status;
             
-            return needsImage;
+            // ⭐ เช็คว่าบิลถูกแก้ไขหลังสร้างรูปหรือไม่ (hash ไม่ตรง)
+            let needsRegenerate = false;
+            if (p.invoice_image_url && p.invoice_data_hash) {
+                const currentHash = generatePaymentHash(p);
+                if (currentHash !== p.invoice_data_hash) {
+                    needsRegenerate = true;
+                }
+            }
+            
+            // ⭐ เช็คว่าสาขานี้เปิดส่งบิลอัตโนมัติหรือไม่
+            const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', p.branch_id, 'false') === 'true';
+            const needsSend = autoSendEnabled && !p.bill_sent_date;
+            
+            return needsImage || needsRegenerate || needsSend;
         }).slice(0, batchSize);
 
         console.log(`📊 Found ${paymentsToProcess.length} payments to process (from ${allPayments.length} total)`);
@@ -412,20 +412,20 @@ Deno.serve(async (req) => {
                 const room = roomMap.get(payment.room_id);
                 const tenant = tenantMap.get(payment.tenant_id);
 
-                // ⭐⭐⭐ ดึงข้อมูล Payment ล่าสุดจาก database ก่อนสร้างรูป
-                // เพื่อเช็คว่ารอบอื่นสร้างไปแล้วหรือยัง
-                let latestPayment;
-                try {
-                    const freshPayments = await base44.asServiceRole.entities.Payment.filter({ id: payment.id });
-                    latestPayment = freshPayments?.[0] || payment;
-                } catch (e) {
-                    latestPayment = payment;
+                // ⭐ เช็คว่าต้องสร้างรูปใหม่หรือไม่ (ถ้าบิลถูกแก้ไข)
+                let needsRegenerate = false;
+                if (payment.invoice_image_url && payment.invoice_data_hash) {
+                    const currentHash = generatePaymentHash(payment);
+                    if (currentHash !== payment.invoice_data_hash) {
+                        needsRegenerate = true;
+                        console.log(`🔄 Payment ${payment.id}: Hash mismatch - regenerating image`);
+                    }
                 }
-
-                // ⭐⭐⭐ ถ้ามีรูปแล้ว + status = completed = ข้ามเลย (ไม่สร้างซ้ำ)
-                if (latestPayment.invoice_image_url && latestPayment.invoice_image_status === 'completed') {
-                    console.log(`✅ Payment ${payment.id}: Already has image - SKIP`);
-                    return { payment: latestPayment, room, tenant, imageUrl: latestPayment.invoice_image_url, success: true, skipped: true };
+                
+                // ถ้ามีรูปแล้วและไม่ต้องสร้างใหม่ ข้ามการสร้าง
+                if (payment.invoice_image_url && payment.invoice_image_status === 'completed' && !needsRegenerate) {
+                    console.log(`✅ Payment ${payment.id}: Already has image (hash matched)`);
+                    return { payment, room, tenant, imageUrl: payment.invoice_image_url, success: true, skipped: true };
                 }
 
                 try {
