@@ -622,6 +622,30 @@ Deno.serve(async (req) => {
         // 5. Bulk Create Payments (Batch of 50) - 1 Call per 50 rooms
         let createdCount = 0;
         if (paymentsToCreate.length > 0) {
+            // ⭐⭐⭐ LOG สำคัญ - แสดงก่อนสร้างบิล
+            console.log(`========================================`);
+            console.log(`🚨 ABOUT TO CREATE ${paymentsToCreate.length} NEW BILLS`);
+            console.log(`📊 existingBillsSet.size = ${existingBillsSet.size}`);
+            console.log(`📊 skippedDueToExistingBill = ${skippedDueToExistingBill}`);
+            console.log(`📊 recentPayments.length = ${recentPayments.length}`);
+            console.log(`========================================`);
+            
+            // ⭐⭐⭐ SAFETY CHECK - ถ้าจะสร้างมากกว่า 100 บิลและไม่มี existing bills = น่าสงสัย
+            if (paymentsToCreate.length > 100 && existingBillsSet.size === 0 && recentPayments.length > 0) {
+                console.error(`🚨🚨🚨 STOPPED: About to create ${paymentsToCreate.length} bills but existingBillsSet is EMPTY!`);
+                console.error(`🚨 This looks like a duplicate bill bug!`);
+                return Response.json({
+                    success: false,
+                    error: `SAFETY STOP: About to create ${paymentsToCreate.length} bills but no existing bills detected (${recentPayments.length} payments exist). Possible duplicate bug.`,
+                    debug: {
+                        paymentsToCreate: paymentsToCreate.length,
+                        existingBillsSetSize: existingBillsSet.size,
+                        recentPaymentsCount: recentPayments.length,
+                        skippedDueToExistingBill
+                    }
+                }, { status: 500 });
+            }
+            
             console.log(`🚀 Creating ${paymentsToCreate.length} bills in batches...`);
             
             const batches = [];
