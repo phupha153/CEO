@@ -191,17 +191,13 @@ Deno.serve(async (req) => {
             const filter = targetBranchId ? { branch_id: targetBranchId } : {};
             const bookingFilter = { ...filter, status: 'active' };
 
-            // ⭐⭐⭐ ดึง Payment พร้อมกับ entities อื่น - ใช้ .filter() หรือ .list() ตรงๆ (ไม่ใช้ pagination)
-            const paymentPromise = targetBranchId 
-                ? base44.asServiceRole.entities.Payment.filter({ branch_id: targetBranchId }, '-created_date', 50000)
-                : base44.asServiceRole.entities.Payment.list('-created_date', 50000);
-
+            // ⭐⭐⭐ ดึง Payment ด้วย pagination เหมือน entities อื่น
             const [r, b, m, t, p] = await Promise.all([
                 fetchWithPagination(base44.asServiceRole.entities.Room, filter, '-room_number'),
                 fetchWithPagination(base44.asServiceRole.entities.Booking, bookingFilter, '-created_date'),
                 fetchWithPagination(base44.asServiceRole.entities.MeterReading, filter, '-reading_date'),
                 fetchWithPagination(base44.asServiceRole.entities.Tenant, filter, '-created_date'),
-                paymentPromise
+                fetchWithPagination(base44.asServiceRole.entities.Payment, filter, '-created_date')
             ]);
             
             // ⭐ Ensure arrays even if fetch returns null/undefined
