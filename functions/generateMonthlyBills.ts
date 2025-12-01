@@ -499,7 +499,7 @@ Deno.serve(async (req) => {
                 // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว = ข้ามไป (ไม่ว่าจะ force หรือไม่ก็ตาม)
                 // เพื่อป้องกันการสร้างบิลซ้ำเมื่อ cron job รันหลายรอบต่อวัน
                 if (hasBillAlready) {
-                    console.log(`⏭️ Room ${room.room_number}: มีบิลเดือน ${roomDueMonth + 1}/${roomDueYear} อยู่แล้ว - ข้าม`);
+                    console.log(`⏭️ Room ${room.room_number}: มีบิลเดือน ${roomDueMonth + 1}/${roomDueYear} อยู่แล้ว (from DB) - ข้าม`);
                     skippedDueToExistingBill++;
                     
                     // ถ้าต้องการส่งแจ้งเตือนซ้ำ
@@ -509,6 +509,13 @@ Deno.serve(async (req) => {
                             billsToSend.push({ payment: null, tenant, room });
                         }
                     }
+                    continue;
+                }
+                
+                // ⭐⭐⭐ DEDUPLICATION: เช็คว่าห้องนี้ถูกเพิ่มใน request นี้แล้วหรือยัง
+                if (roomsAddedThisRequest.has(room.id)) {
+                    console.log(`⏭️ Room ${room.room_number}: ถูกเพิ่มแล้วใน request นี้ (duplicate in same request) - ข้าม`);
+                    skippedDueToExistingBill++;
                     continue;
                 }
 
