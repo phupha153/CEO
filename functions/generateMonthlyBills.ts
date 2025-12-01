@@ -208,12 +208,15 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings, ${recentPayments.length} payments`);
         
-        // ⭐⭐⭐ ดึง Payment - ดึงพร้อมกับ entities อื่นใน retryOperation
-        // ย้ายไปดึงพร้อมกันข้างบนแล้ว - ใช้ตัวแปรจากด้านบน
-        console.log(`🔍 Payment fetch was done together with other entities above`);
-        
-        let recentPayments = [];
-        // ไม่ต้อง fetch ซ้ำ - ใช้ผลลัพธ์จาก retryOperation ด้านบน
+        // ⭐ Ensure recentPayments is array
+        if (!Array.isArray(recentPayments)) {
+            console.warn(`⚠️ recentPayments is not an array, converting...`, typeof recentPayments);
+            if (recentPayments && typeof recentPayments === 'object') {
+                recentPayments = Object.values(recentPayments);
+            } else {
+                recentPayments = [];
+            }
+        }
 
         // ⭐⭐⭐ Normalize payments เหมือน entities อื่น
         recentPayments = recentPayments.map(normalizeEntity).filter(Boolean);
