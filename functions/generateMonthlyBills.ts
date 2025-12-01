@@ -675,6 +675,10 @@ Deno.serve(async (req) => {
 
                 paymentsToCreate.push(paymentData);
                 paymentReferenceMap.set(room.id, { tenant, room });
+                
+                // ⭐⭐⭐ DEDUPLICATION: บันทึกว่าห้องนี้ถูกเพิ่มแล้ว
+                roomsAddedThisRequest.add(room.id);
+                existingBillsSet.add(checkKey); // อัพเดท Set ทันทีเพื่อป้องกันซ้ำใน loop เดียวกัน
 
             } catch (err) {
                 console.error(`Skipping room ${room.room_number}:`, err);
