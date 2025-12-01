@@ -3276,39 +3276,84 @@ export default function TestingAdmin() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm font-semibold mb-2 block">เลือกสาขาที่ต้องการสร้างบิล</Label>
+                  <Select
+                    value={testDataForm.branchId}
+                    onValueChange={(value) => setTestDataForm({ ...testDataForm, branchId: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="เลือกสาขา" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="current">
+                        🏢 สาขาปัจจุบัน ({localStorage.getItem('selected_branch_name') || 'ไม่ระบุ'})
+                      </SelectItem>
+                      <SelectItem value="all">
+                        🌐 ทุกสาขา ({branches.length} สาขา)
+                      </SelectItem>
+                      {branches.map(branch => (
+                        <SelectItem key={branch.id} value={branch.id}>
+                          {branch.branch_name} {branchesWithBillsThisMonth.find(b => b.branchId === branch.id) ? '✅' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <Button
-                  onClick={handleGenerateBills}
+                  onClick={async () => {
+                    const targetBranchId = testDataForm.branchId === 'current' 
+                      ? selectedBranchId 
+                      : testDataForm.branchId === 'all' 
+                        ? null 
+                        : testDataForm.branchId;
+                    
+                    const branchName = testDataForm.branchId === 'current'
+                      ? localStorage.getItem('selected_branch_name')
+                      : testDataForm.branchId === 'all'
+                        ? 'ทุกสาขา'
+                        : branches.find(b => b.id === testDataForm.branchId)?.branch_name;
+
+                    if (!confirm(`คุณต้องการสร้างบิลประจำเดือนสำหรับ "${branchName}" ใช่หรือไม่?`)) {
+                      return;
+                    }
+
+                    setGeneratingBills(true);
+                    try {
+                      const response = await base44.functions.invoke('generateMonthlyBills', {
+                        force: false,
+                        branch_id: targetBranchId
+                      });
+
+                      if (response.data.success) {
+                        setLastBillGeneration(response.data);
+                        toast.success(response.data.message);
+                        await queryClient.invalidateQueries(['payments']);
+                        await queryClient.invalidateQueries(['allPaymentsTestingAdmin']);
+                        await refetchBillLogs();
+                      } else {
+                        toast.error(response.data.message || 'เกิดข้อผิดพลาดในการสร้างบิล');
+                      }
+                    } catch (error) {
+                      toast.error('เกิดข้อผิดพลาด: ' + error.message);
+                    } finally {
+                      setGeneratingBills(false);
+                    }
+                  }}
                   disabled={generatingBills}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg h-12"
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg h-12"
                 >
                   {generatingBills ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
                       กำลังสร้างบิล...
                     </>
                   ) : (
                     <>
                       <Zap className="w-5 h-5 mr-2" />
-                      สร้างบิลสาขาปัจจุบัน
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  onClick={handleGenerateAllBranchesBills}
-                  disabled={generatingBills}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg h-12"
-                >
-                  {generatingBills ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      กำลังสร้างบิล...
-                    </>
-                  ) : (
-                    <>
-                      <Building2 className="w-5 h-5 mr-2" />
-                      สร้างบิลทุกสาขา
+                      สร้างบิลสำหรับสาขาที่เลือก
                     </>
                   )}
                 </Button>
