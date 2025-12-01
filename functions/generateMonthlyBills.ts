@@ -269,14 +269,18 @@ Deno.serve(async (req) => {
             });
         }
         
-        console.log(`⭐⭐⭐ CRITICAL DEBUG: Normalized ${normalizedPayments.length} payments from ${recentPayments.length} raw`);
+        console.log('');
+        console.log('========================================');
+        console.log('📊 NORMALIZED PAYMENTS');
+        console.log('========================================');
+        console.log(`Normalized: ${normalizedPayments.length} from ${recentPayments.length} raw`);
         
-        // Debug: log sample payment
         if (normalizedPayments.length > 0) {
-            console.log(`⭐ Sample normalized payment: room_id=${normalizedPayments[0].room_id}, due_date=${normalizedPayments[0].due_date}`);
+            console.log(`Sample: room_id=${normalizedPayments[0].room_id}, due_date=${normalizedPayments[0].due_date}`);
         } else {
-            console.log(`❌❌❌ PROBLEM: normalizedPayments is EMPTY! Check RAW data above.`);
+            console.log(`❌ PROBLEM: normalizedPayments is EMPTY!`);
         }
+        console.log('========================================');
         
         // ⭐⭐⭐ สร้าง Map จาก ALL payments (ไม่กรองช่วงเดือน) เพื่อไม่ให้พลาดบิลที่มีอยู่
         let filteredPaymentsCount = 0;
