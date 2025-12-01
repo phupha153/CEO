@@ -143,8 +143,9 @@ Deno.serve(async (req) => {
 
         // 3. Fetch Data (Retry wrapped)
         let allRooms = [], bookings = [], meterReadings = [], tenants = [];
-        // ⭐ existingPayments จะถูกสร้างเป็น Map หลังจาก fetch เพื่อเพิ่มประสิทธิภาพ
-        let existingPaymentsMap = new Map(); // key: "room_id|YYYY-MM", value: payment object
+        // ⭐ existingBillsSet จะถูกสร้างหลังจาก fetch payments
+        // ใช้ Set เก็บ "room_id|YYYY-MM" เพื่อเช็คซ้ำแบบ O(1)
+        let existingBillsSet = new Set();
         
         // ⭐ คำนวณช่วงเดือนที่จะตรวจสอบบิลที่มีอยู่ (เดือนปัจจุบัน + 2 เดือนถัดไป เผื่อ edge case)
         // ใช้ YYYY-MM format สำหรับเปรียบเทียบ เพื่อความง่ายและถูกต้อง
