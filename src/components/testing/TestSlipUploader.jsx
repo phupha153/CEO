@@ -53,7 +53,7 @@ export default function TestSlipUploader() {
     loadRooms();
   }, [selectedBranchId]);
 
-  // โหลด Payment เมื่อเลือกห้อง
+  // โหลด Payment เมื่อเลือกห้อง - ใช้ filter เพื่อดึงเฉพาะห้องที่เลือก
   useEffect(() => {
     if (!selectedRoomId) {
       setPayments([]);
@@ -62,11 +62,19 @@ export default function TestSlipUploader() {
 
     const loadPayments = async () => {
       try {
-        const allPayments = await base44.entities.Payment.list('-created_date', 500);
-        const roomPayments = allPayments.filter(p => 
-          p.room_id === selectedRoomId && 
-          (p.status === 'pending' || p.status === 'overdue')
+        // ⭐ ใช้ filter แทน list เพื่อดึงเฉพาะบิลของห้องนี้ (ลด payload size)
+        const pendingPayments = await base44.entities.Payment.filter(
+          { room_id: selectedRoomId, status: 'pending' }, 
+          '-created_date', 
+          50
         );
+        const overduePayments = await base44.entities.Payment.filter(
+          { room_id: selectedRoomId, status: 'overdue' }, 
+          '-created_date', 
+          50
+        );
+        
+        const roomPayments = [...pendingPayments, ...overduePayments];
         setPayments(roomPayments);
       } catch (error) {
         console.error('Error loading payments:', error);
