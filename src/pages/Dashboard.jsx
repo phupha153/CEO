@@ -331,22 +331,16 @@ export default function Dashboard() {
           return room && room.room_type === viewMode;
         });
 
-    // รายได้: กรองตาม dateRange
+    // รายได้: กรองตามงวดบิล (due_date) ไม่ใช่วันที่จ่าย
     const paymentsInRange = payments.filter(payment => {
-      const effectiveStatus = getEffectiveStatus(payment);
-      
-      if (effectiveStatus === 'paid') {
-        if (!payment.payment_date) return false;
-        try {
-          const paymentDate = parseISO(payment.payment_date);
-          if (isNaN(paymentDate.getTime())) return false;
-          return isWithinInterval(paymentDate, { start: dateRange.from, end: dateRange.to });
-        } catch {
-          return false;
-        }
+      if (!payment.due_date) return false;
+      try {
+        const dueDate = parseISO(payment.due_date);
+        if (isNaN(dueDate.getTime())) return false;
+        return isWithinInterval(dueDate, { start: dateRange.from, end: dateRange.to });
+      } catch {
+        return false;
       }
-      
-      return false;
     });
 
     const totalRevenue = paymentsInRange
