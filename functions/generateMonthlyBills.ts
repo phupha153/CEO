@@ -285,14 +285,13 @@ Deno.serve(async (req) => {
             }
         }
 
-        // ⭐⭐⭐ Normalize payments เหมือน entities อื่น
-        recentPayments = recentPayments.map(normalizeEntity).filter(Boolean);
-        console.log(`📦 After normalize: ${recentPayments.length} payments`);
-
+        // ⭐ Payments ถูก normalize แล้วใน fetch block ด้านบน
         // Debug: show sample after normalize
         if (recentPayments.length > 0) {
             const sample = recentPayments[0];
-            console.log(`🔍 Sample payment: room_id=${sample?.room_id}, due_date=${sample?.due_date}, branch_id=${sample?.branch_id}`);
+            console.log(`🔍 Sample payment after normalize: id=${sample?.id}, room_id=${sample?.room_id}, due_date=${sample?.due_date}, branch_id=${sample?.branch_id}`);
+        } else {
+            console.log(`⚠️ No payments found for this branch - all rooms will get new bills`);
         }
 
         // ⭐⭐⭐ สร้าง existingBillsSet จาก Payment data ที่ดึงมา
