@@ -260,22 +260,18 @@ Deno.serve(async (req) => {
             console.log(`🔍 Sample payment: room_id=${normalizedPayments[0].room_id}, due_date=${normalizedPayments[0].due_date}`);
         }
         
-        // ⭐ กรองเฉพาะ payments ที่ due_date อยู่ในช่วงที่ต้องการ และสร้าง Map
+        // ⭐⭐⭐ สร้าง Map จาก ALL payments (ไม่กรองช่วงเดือน) เพื่อไม่ให้พลาดบิลที่มีอยู่
         let filteredPaymentsCount = 0;
         
         for (const p of normalizedPayments) {
             if (!p.due_date) continue;
             
-            const dueYearMonth = p.due_date.substring(0, 7); // "2025-12"
+            const dueYearMonth = p.due_date.substring(0, 7); // "2025-01"
+            const mapKey = `${p.room_id}|${dueYearMonth}`;
             
-            // เช็คว่า YYYY-MM อยู่ในช่วงหรือไม่
-            if (dueYearMonth >= paymentCheckStartYearMonth && dueYearMonth <= paymentCheckEndYearMonth) {
-                const mapKey = `${p.room_id}|${dueYearMonth}`;
-                
-                if (!existingPaymentsMap.has(mapKey)) {
-                    existingPaymentsMap.set(mapKey, p);
-                    filteredPaymentsCount++;
-                }
+            if (!existingPaymentsMap.has(mapKey)) {
+                existingPaymentsMap.set(mapKey, p);
+                filteredPaymentsCount++;
             }
         }
         
