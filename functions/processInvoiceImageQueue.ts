@@ -586,11 +586,7 @@ Deno.serve(async (req) => {
                 console.log('🧪 Test mode - skipping LINE send for all payments in this chunk');
             }
 
-            // Delay ระหว่าง chunk (รอ Browserless พร้อม) - ลดเหลือ 1 วินาที
-            if (chunkIdx < chunks.length - 1) {
-                console.log(`⏳ Waiting 1 second before next chunk...`);
-                await delay(1000);
-            }
+            // ⭐ ไม่ต้องรอระหว่าง chunk - ให้ Cron Job รันต่อเนื่องแทน
         }
 
         // 5. Log และ Return
