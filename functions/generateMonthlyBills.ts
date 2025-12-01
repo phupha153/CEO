@@ -446,6 +446,9 @@ Deno.serve(async (req) => {
         
         // To map back created payments later
         const paymentReferenceMap = new Map(); // key: "room_id", value: metadata
+        
+        // ⭐⭐⭐ DEDUPLICATION: ป้องกันการสร้างบิลซ้ำใน request เดียวกัน
+        const roomsAddedThisRequest = new Set(); // เก็บ room_id ที่เพิ่มแล้วใน request นี้
 
         for (const room of roomsToProcess) {
             try {
