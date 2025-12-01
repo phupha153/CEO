@@ -144,9 +144,8 @@ Deno.serve(async (req) => {
         // 3. Fetch Data (Retry wrapped)
         let allRooms = [], bookings = [], meterReadings = [], tenants = [];
         
-        // ⭐ Log เดือนที่จะสร้างบิล
-        const targetBillMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-        console.log(`🔍 Will check existing payments for month: ${targetBillMonth}`);
+        // ⭐ Log เดือนที่จะสร้างบิล - DEBUG
+        console.log(`🔍 DEBUG: currentYear=${currentYear}, currentMonth=${currentMonth} (0-indexed), currentDay=${currentDay}`);
         
         // ⭐ Helper function สำหรับดึงข้อมูลแบบ pagination (ประกาศนอก retryOperation เพื่อให้ใช้ได้ทั่วไป)
         async function fetchWithPagination(entity, filter, sortBy, batchSize = 5000) {
