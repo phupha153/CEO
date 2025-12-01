@@ -356,23 +356,44 @@ export default function Layout({ children, currentPageName }) {
 
   // Initialize Facebook SDK
   useEffect(() => {
-    const FACEBOOK_APP_ID = '1598439514420398'; // ใช้ App ID ที่ถูกต้อง
-    
-    window.fbAsyncInit = function() {
-      window.FB.init({
-        appId: FACEBOOK_APP_ID,
-        cookie: true,
-        xfbml: true,
-        version: 'v18.0'
-      });
+    // Fetch Facebook App ID from environment/secrets
+    const initFacebookSDK = async () => {
+      try {
+        const response = await base44.functions.invoke('getFacebookAppId');
+        const appId = response.data.appId;
+        
+        window.fbAsyncInit = function() {
+          window.FB.init({
+            appId: appId,
+            cookie: true,
+            xfbml: true,
+            version: 'v18.0'
+          });
 
-      // Check login status when SDK is ready
-      window.FB.getLoginStatus(function(response) {
-        console.log('Initial Facebook Status:', response);
-      });
+          // Check login status when SDK is ready
+          window.FB.getLoginStatus(function(response) {
+            console.log('Initial Facebook Status:', response);
+          });
+        };
+        
+        // Load Facebook SDK
+        if (!document.getElementById('facebook-jssdk')) {
+          const js = document.createElement('script');
+          js.id = 'facebook-jssdk';
+          js.src = 'https://connect.facebook.net/en_US/sdk.js';
+          js.async = true;
+          js.defer = true;
+          js.crossOrigin = 'anonymous';
+          document.body.appendChild(js);
+        }
+      } catch (error) {
+        console.error('Failed to load Facebook App ID:', error);
+      }
     };
+    
+    initFacebookSDK();
 
-    // Facebook Login Status Callback
+    // Setup Facebook Login Status Callback
     window.checkLoginState = function() {
       window.FB.getLoginStatus(function(response) {
         console.log('Facebook Login Response:', response);
@@ -410,17 +431,6 @@ export default function Layout({ children, currentPageName }) {
         }
       });
     };
-
-    // Load Facebook SDK
-    if (!document.getElementById('facebook-jssdk')) {
-      const js = document.createElement('script');
-      js.id = 'facebook-jssdk';
-      js.src = 'https://connect.facebook.net/en_US/sdk.js';
-      js.async = true;
-      js.defer = true;
-      js.crossOrigin = 'anonymous';
-      document.body.appendChild(js);
-    }
   }, []);
   
   const [selectedBranch, setSelectedBranch] = useState(() => {
