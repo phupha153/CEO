@@ -446,14 +446,22 @@ Deno.serve(async (req) => {
                 const roomPayDay = parseInt(getConfigValue('pay_day', '5', roomBranchId));
                 const roomGenDay = parseInt(getConfigValue('bill_generation_day', '27', roomBranchId));
                 
-                // ⭐⭐⭐ คำนวณเดือนที่จะสร้างบิล
-                // เดือนปัจจุบัน (currentMonth) เป็น 0-indexed: 0=ม.ค., 11=ธ.ค.
-                // ถ้าวันสร้างบิล > วันครบกำหนด = สร้างบิลสำหรับเดือนหน้า
-                let roomDueYear = currentYear;
-                let roomDueMonth = currentMonth; // 0-indexed
+                // ⭐⭐⭐ คำนวณเดือนที่จะสร้างบิล (due_date)
+                // Logic: ถ้าวันสร้างบิล (27) > วันครบกำหนด (5) 
+                //        และ วันปัจจุบัน >= วันสร้างบิล → สร้างบิลสำหรับเดือนหน้า
+                //        แต่ถ้า วันปัจจุบัน < วันสร้างบิล → สร้างบิลสำหรับเดือนนี้
+                //
+                // ตัวอย่าง: bill_generation_day=27, pay_day=5
+                // - วันที่ 1 ธ.ค. → สร้างบิล due_date = 5 ธ.ค. (เดือนนี้)
+                // - วันที่ 27 ธ.ค. → สร้างบิล due_date = 5 ม.ค. (เดือนหน้า)
                 
-                if (roomGenDay > roomPayDay) {
-                    // ⭐ สร้างบิลสำหรับเดือนหน้า
+                let roomDueYear = currentYear;
+                let roomDueMonth = currentMonth; // 0-indexed (ธันวาคม = 11)
+                
+                // ⭐ เลื่อนไปเดือนหน้าเฉพาะเมื่อ:
+                // 1. วันสร้างบิล > วันครบกำหนด (เช่น 27 > 5)
+                // 2. AND วันปัจจุบัน >= วันสร้างบิล (เช่น วันนี้ >= 27)
+                if (roomGenDay > roomPayDay && currentDay >= roomGenDay) {
                     roomDueMonth = currentMonth + 1;
                     if (roomDueMonth > 11) { 
                         roomDueMonth = 0; // มกราคม
@@ -461,7 +469,7 @@ Deno.serve(async (req) => {
                     }
                 }
                 
-                console.log(`🔍 Room ${room.room_number}: genDay=${roomGenDay}, payDay=${roomPayDay}, target=${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`);
+                console.log(`🔍 Room ${room.room_number}: genDay=${roomGenDay}, payDay=${roomPayDay}, currentDay=${currentDay}, target=${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`);
                 
                 // ⭐ ตรวจสอบว่ามีบิลของเดือนนี้อยู่แล้วหรือไม่ (ป้องกันสร้างซ้ำ)
                 // ใช้ Set lookup O(1) - เร็วและแม่นยำ
