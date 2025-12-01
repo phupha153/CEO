@@ -224,7 +224,7 @@ Deno.serve(async (req) => {
         
         console.log(`📦 Fetched payments separately: ${recentPayments.length}`);
 
-        console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings, ${recentPayments.length} payments`);
+        console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
         // ⭐ Ensure recentPayments is array
         if (!Array.isArray(recentPayments)) {
