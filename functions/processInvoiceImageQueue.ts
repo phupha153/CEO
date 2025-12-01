@@ -416,20 +416,20 @@ Deno.serve(async (req) => {
                 const room = roomMap.get(payment.room_id);
                 const tenant = tenantMap.get(payment.tenant_id);
 
-                // ⭐ เช็คว่าต้องสร้างรูปใหม่หรือไม่ (ถ้าบิลถูกแก้ไข)
-                let needsRegenerate = false;
-                if (payment.invoice_image_url && payment.invoice_data_hash) {
-                    const currentHash = generatePaymentHash(payment);
-                    if (currentHash !== payment.invoice_data_hash) {
-                        needsRegenerate = true;
-                        console.log(`🔄 Payment ${payment.id}: Hash mismatch - regenerating image`);
-                    }
+                // ⭐⭐⭐ ดึงข้อมูล Payment ล่าสุดจาก database ก่อนสร้างรูป
+                // เพื่อเช็คว่ารอบอื่นสร้างไปแล้วหรือยัง
+                let latestPayment;
+                try {
+                    const freshPayments = await base44.asServiceRole.entities.Payment.filter({ id: payment.id });
+                    latestPayment = freshPayments?.[0] || payment;
+                } catch (e) {
+                    latestPayment = payment;
                 }
-                
-                // ถ้ามีรูปแล้วและไม่ต้องสร้างใหม่ ข้ามการสร้าง
-                if (payment.invoice_image_url && payment.invoice_image_status === 'completed' && !needsRegenerate) {
-                    console.log(`✅ Payment ${payment.id}: Already has image (hash matched)`);
-                    return { payment, room, tenant, imageUrl: payment.invoice_image_url, success: true, skipped: true };
+
+                // ⭐⭐⭐ ถ้ามีรูปแล้ว + status = completed = ข้ามเลย (ไม่สร้างซ้ำ)
+                if (latestPayment.invoice_image_url && latestPayment.invoice_image_status === 'completed') {
+                    console.log(`✅ Payment ${payment.id}: Already has image - SKIP`);
+                    return { payment: latestPayment, room, tenant, imageUrl: latestPayment.invoice_image_url, success: true, skipped: true };
                 }
 
                 try {
