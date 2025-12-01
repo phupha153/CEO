@@ -35,13 +35,11 @@ Deno.serve(async (req) => {
             );
             
             if (Array.isArray(batch) && batch.length > 0) {
-                // กรองเฉพาะที่มี slip และ notes รอตรวจสอบ
-                const filtered = batch.filter(p => 
-                    p.payment_slip_url && 
-                    p.branch_id &&
-                    p.notes && 
-                    (p.notes.includes('รอตรวจสอบซ้ำ') || p.notes.includes('รอตรวจสอบ'))
-                );
+                // กรองเฉพาะที่มี slip - ไม่ต้องเช็ค notes เพื่อให้ recheck ทุกสลิปที่ยังไม่ผ่าน
+                    const filtered = batch.filter(p => 
+                        p.payment_slip_url && 
+                        p.branch_id
+                    );
                 pendingWithSlip = pendingWithSlip.concat(filtered);
                 
                 skip += batch.length;
@@ -102,19 +100,19 @@ Deno.serve(async (req) => {
                 console.log(`\n🔍 Processing Payment: ${payment.id}`);
                 console.log(`   Slip URL: ${payment.payment_slip_url}`);
 
-                // เช็คว่าผ่านไป 30 วินาทีแล้วหรือยัง (หา timestamp จาก notes)
-                const noteMatch = payment.notes.match(/(\d{4}-\d{2}-\d{2}T[\d:\.]+Z)/);
+                // เช็คว่าผ่านไป 10 วินาทีแล้วหรือยัง (หา timestamp จาก notes)
+                const noteMatch = payment.notes?.match(/(\d{4}-\d{2}-\d{2}T[\d:\.]+Z)/);
                 if (noteMatch) {
                     const savedTime = new Date(noteMatch[1]);
                     const now = new Date();
-                    const diffMinutes = (now.getTime() - savedTime.getTime()) / (1000 * 60);
-                    
-                    if (diffMinutes < 0.5) {
-                        console.log(`   ⏳ Only ${diffMinutes.toFixed(1)} minutes passed, skipping (wait at least 30 sec)`);
+                    const diffSeconds = (now.getTime() - savedTime.getTime()) / 1000;
+
+                    if (diffSeconds < 10) {
+                        console.log(`   ⏳ Only ${diffSeconds.toFixed(0)} seconds passed, skipping (wait at least 10 sec)`);
                         skippedCount++;
                         continue;
                     }
-                    console.log(`   ⏱️ ${diffMinutes.toFixed(1)} minutes since saved`);
+                    console.log(`   ⏱️ ${diffSeconds.toFixed(0)} seconds since saved`);
                 }
 
                 // ดาวน์โหลดรูปสลิปจาก URL
