@@ -306,8 +306,29 @@ Deno.serve(async (req) => {
         // เงื่อนไข: status != 'paid' AND (invoice_image_status = 'pending' OR invoice_image_status = null) AND bill_sent_date = null
         const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
         
-        let allPayments = await base44.asServiceRole.entities.Payment.filter(paymentFilter, '-created_date', 500);
-        allPayments = allPayments || [];
+        // ⭐ ดึง Payment แบบ pagination เพื่อรองรับมากกว่า 500 รายการ
+        let allPayments = [];
+        let skip = 0;
+        const fetchLimit = 1000;
+        let hasMore = true;
+        
+        while (hasMore) {
+            const batch = await base44.asServiceRole.entities.Payment.filter(paymentFilter, '-created_date', fetchLimit, skip);
+            if (!batch || batch.length === 0) {
+                hasMore = false;
+            } else {
+                allPayments = allPayments.concat(batch);
+                skip += batch.length;
+                if (batch.length < fetchLimit) {
+                    hasMore = false;
+                }
+            }
+            // จำกัดไม่เกิน 5000 รายการเพื่อป้องกัน memory issue
+            if (allPayments.length >= 5000) {
+                hasMore = false;
+            }
+        }
+        console.log(`📥 Fetched ${allPayments.length} total payments`);
 
         // ⭐ สร้างรูปทุกสาขา แต่ส่ง LINE เฉพาะสาขาที่เปิด auto_send
         const paymentsToProcess = allPayments.filter(p => {
