@@ -171,12 +171,30 @@ Deno.serve(async (req) => {
         // ⭐⭐⭐ CRITICAL: Normalize ALL entities - data might be inside .data property OR flat
         function normalizeEntity(entity) {
             if (!entity) return null;
-            // ถ้ามี .data property = ข้อมูลอยู่ใน .data
-            if (entity.data && typeof entity.data === 'object') {
-                return { id: entity.id, created_date: entity.created_date, ...entity.data };
+            // ถ้ามี .data property และ .data เป็น object ที่มี keys = ข้อมูลอยู่ใน .data
+            if (entity.data && typeof entity.data === 'object' && Object.keys(entity.data).length > 0) {
+                // ⭐ Merge id, created_date จาก root + ข้อมูลจาก .data
+                return { 
+                    id: entity.id, 
+                    created_date: entity.created_date,
+                    updated_date: entity.updated_date,
+                    ...entity.data 
+                };
             }
-            // ถ้าไม่มี .data = ข้อมูลอยู่ใน root level แล้ว
+            // ถ้าไม่มี .data หรือ .data ว่าง = ข้อมูลอยู่ใน root level แล้ว
             return entity;
+        }
+        
+        // ⭐⭐⭐ DEBUG: Test normalizeEntity with first payment
+        if (recentPayments.length > 0) {
+            const testRaw = recentPayments[0];
+            const testNormalized = normalizeEntity(testRaw);
+            console.log(`🧪 [NORMALIZE TEST] Raw keys: ${Object.keys(testRaw || {}).join(', ')}`);
+            console.log(`🧪 [NORMALIZE TEST] Raw.data keys: ${Object.keys(testRaw?.data || {}).join(', ')}`);
+            console.log(`🧪 [NORMALIZE TEST] Normalized keys: ${Object.keys(testNormalized || {}).join(', ')}`);
+            console.log(`🧪 [NORMALIZE TEST] Normalized.room_id: ${testNormalized?.room_id}`);
+            console.log(`🧪 [NORMALIZE TEST] Normalized.due_date: ${testNormalized?.due_date}`);
+            console.log(`🧪 [NORMALIZE TEST] Normalized.branch_id: ${testNormalized?.branch_id}`);
         }
 
         let recentPayments = [];
