@@ -207,27 +207,28 @@ Deno.serve(async (req) => {
         console.log('⭐ FETCHING PAYMENTS - START');
 
         await retryOperation(async () => {
-            // ⭐ ทดสอบดึง Payment แบบง่ายที่สุดก่อน
-            console.log('Testing simple Payment.list()...');
-            const simpleTest = await base44.asServiceRole.entities.Payment.list();
-            console.log(`Simple list (no params): ${simpleTest?.length || 0}`);
+            // ⭐ ดึง Payment โดยใช้ filter method ของ SDK
+            const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
+            console.log(`Using Payment.filter() with: ${JSON.stringify(paymentFilter)}`);
 
-            if (simpleTest && simpleTest.length > 0) {
-                console.log(`Sample payment: ${JSON.stringify({
-                    id: simpleTest[0].id,
-                    branch_id: simpleTest[0].branch_id,
-                    room_id: simpleTest[0].room_id,
-                    due_date: simpleTest[0].due_date
-                })}`);
+            // ใช้ filter method โดยตรง (ไม่ผ่าน fetchWithPagination)
+            recentPayments = await base44.asServiceRole.entities.Payment.filter(paymentFilter, '-created_date', 10000);
+
+            // ถ้าได้ object แทน array ให้แปลง
+            if (recentPayments && !Array.isArray(recentPayments)) {
+                console.log(`Got object instead of array, type: ${typeof recentPayments}`);
+                if (recentPayments.data && Array.isArray(recentPayments.data)) {
+                    recentPayments = recentPayments.data;
+                } else {
+                    recentPayments = [];
+                }
             }
 
-            // ใช้ผลจาก simple list เลย
-            if (targetBranchId) {
-                recentPayments = (simpleTest || []).filter(p => p.branch_id === targetBranchId);
-            } else {
-                recentPayments = simpleTest || [];
-            }
             console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments?.length || 0}`);
+
+            if (recentPayments && recentPayments.length > 0) {
+                console.log(`Sample: room_id=${recentPayments[0].room_id}, due=${recentPayments[0].due_date}`);
+            }
         });
         
         console.log('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
