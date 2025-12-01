@@ -218,7 +218,12 @@ Deno.serve(async (req) => {
                 recentPayments = await base44.asServiceRole.entities.Payment.list('-created_date', maxLimit);
             }
             
-            recentPayments = recentPayments || [];
+            // ⭐ Ensure it's an array
+            if (!Array.isArray(recentPayments)) {
+                console.warn(`⚠️ recentPayments is not an array, converting...`, typeof recentPayments);
+                recentPayments = recentPayments ? [recentPayments] : [];
+            }
+            
             console.log(`✅ Total payments fetched: ${recentPayments.length}`);
             
             // ⭐ Warning ถ้าได้ครบ limit = อาจมีมากกว่านี้
