@@ -259,9 +259,9 @@ Deno.serve(async (req) => {
 
     let base44 = null;
     let targetBranchId = null;
-    let batchSize = 100; // เพิ่มเป็น 100 เพราะจะรันต่อเนื่อง
+    let batchSize = 200; // เพิ่มเป็น 200 ต่อรอบ
     let concurrentLimit = 1; // สร้างทีละ 1 รูป (Free tier Browserless)
-    let maxRunTime = 40000; // 40 วินาที (เผื่อ buffer ก่อน timeout 45s)
+    let maxRunTime = 50000; // 50 วินาที (Deno timeout = 60s)
     let skipLineSend = false; // ⭐ โหมดทดสอบ - สร้างรูปอย่างเดียว ไม่ส่ง LINE
 
     try {
