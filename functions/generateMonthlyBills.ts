@@ -200,17 +200,40 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
-        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ filter() เหมือน entities อื่น
-        console.log(`🔍 Fetching ALL payments with filter() + pagination...`);
+        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ list() เพื่อดึงทั้งหมด
+        console.log(`🔍 Fetching ALL payments with list()...`);
 
         let recentPayments = [];
         try {
-            const paymentFilterQuery = targetBranchId ? { branch_id: targetBranchId } : {};
-            recentPayments = await fetchWithPagination(
-                base44.asServiceRole.entities.Payment, 
-                paymentFilterQuery, 
-                '-created_date'
-            );
+            // ⭐ ใช้ list() แทน filter() เพราะ filter({}) อาจไม่ทำงาน
+            if (targetBranchId) {
+                recentPayments = await fetchWithPagination(
+                    base44.asServiceRole.entities.Payment, 
+                    { branch_id: targetBranchId }, 
+                    '-created_date'
+                );
+            } else {
+                // ดึงทั้งหมดด้วย list() แบบ pagination
+                let allData = [];
+                let skip = 0;
+                let hasMore = true;
+                const batchSize = 5000;
+                
+                while (hasMore) {
+                    const batch = await base44.asServiceRole.entities.Payment.list('-created_date', batchSize, skip);
+                    if (!Array.isArray(batch) || batch.length === 0) {
+                        hasMore = false;
+                    } else {
+                        allData = allData.concat(batch);
+                        skip += batch.length;
+                        console.log(`   📦 Fetched ${allData.length} payments so far...`);
+                        if (batch.length < batchSize) {
+                            hasMore = false;
+                        }
+                    }
+                }
+                recentPayments = allData;
+            }
             console.log(`✅ Total payments fetched: ${recentPayments.length}`);
         } catch (fetchError) {
             console.error(`❌ Error fetching payments: ${fetchError.message}`);
