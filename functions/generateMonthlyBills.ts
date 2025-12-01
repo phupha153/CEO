@@ -86,7 +86,10 @@ Deno.serve(async (req) => {
     let resendNotifications = false;
     
     try {
-        console.log('🚀 Starting monthly bill generation (Optimized Batch Mode)...');
+        console.log('');
+        console.log('========================================');
+        console.log('🚀 STARTING BILL GENERATION');
+        console.log('========================================');
 
         // Clone request FIRST before SDK reads the body
         const clonedReq = req.clone();
