@@ -193,10 +193,19 @@ Deno.serve(async (req) => {
         
         // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ Set เก็บ room_id + due_month เพื่อเช็คซ้ำ
         console.log(`🔍 Fetching recent payments with pagination...`);
+        console.log(`🔍 Target branch for payments: ${targetBranchId || 'ALL (no filter)'}`);
         
         let recentPayments = [];
-        await retryOperation(async () => {
+        try {
+            // ⭐ ลองดึงโดยไม่มี filter ก่อน เพื่อเช็คว่ามี payments หรือไม่
+            const testPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 10);
+            console.log(`🔍 TEST: Total payments in DB (first 10): ${testPayments?.length || 0}`);
+            if (testPayments && testPayments.length > 0) {
+                console.log(`🔍 TEST: Sample payment branch_id: ${testPayments[0]?.branch_id || testPayments[0]?.data?.branch_id || 'N/A'}`);
+            }
+            
             const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
+            console.log(`🔍 Payment filter: ${JSON.stringify(paymentFilter)}`);
             
             // ⭐ ใช้ pagination สำหรับ payments ด้วย
             let allData = [];
@@ -205,20 +214,27 @@ Deno.serve(async (req) => {
             const batchSize = 5000;
             
             while (hasMore) {
+                console.log(`🔍 Fetching payments batch: skip=${skip}, limit=${batchSize}`);
                 const batch = await base44.asServiceRole.entities.Payment.filter(paymentFilter, '-created_date', batchSize, skip);
+                console.log(`🔍 Batch result: ${batch?.length || 0} payments`);
+                
                 if (!Array.isArray(batch) || batch.length === 0) {
                     hasMore = false;
+                    console.log(`🔍 No more payments to fetch`);
                 } else {
                     allData = allData.concat(batch);
                     skip += batch.length;
-                    console.log(`📊 Fetched ${allData.length} payments...`);
+                    console.log(`📊 Fetched ${allData.length} payments total so far...`);
                     if (batch.length < batchSize) {
                         hasMore = false;
                     }
                 }
             }
             recentPayments = allData;
-        });
+        } catch (fetchError) {
+            console.error(`❌ Error fetching payments: ${fetchError.message}`);
+            console.error(`❌ Stack: ${fetchError.stack}`);
+        }
         
         console.log(`📦 Fetched ${(recentPayments || []).length} recent payments (raw)`);
         recentPayments = recentPayments || [];
