@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
         // ✅ STEP 4: ลบ Bookings และอัปเดตสถานะห้อง
         if (testBookings.length > 0) {
             console.log('📋 Step 4: Deleting test bookings...');
-            const batchSize = 100;
+            const batchSize = 20;
             for (let i = 0; i < testBookings.length; i += batchSize) {
                 const batch = testBookings.slice(i, i + batchSize);
                 
@@ -140,17 +140,20 @@ Deno.serve(async (req) => {
                                 status: 'available'
                             });
                             results.updatedRooms++;
+                            await delay(100);
                         }
                         
                         // ลบ booking
                         await base44.asServiceRole.entities.Booking.delete(booking.id);
                         results.deletedBookings++;
+                        await delay(100);
                     } catch (error) {
                         results.errors.push(`Booking ${booking.id}: ${error.message}`);
                     }
                 }
                 
                 console.log(`  ✅ Deleted batch ${Math.floor(i/batchSize) + 1}: ${results.deletedBookings}/${testBookings.length}`);
+                await delay(500);
             }
         }
 
