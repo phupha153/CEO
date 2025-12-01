@@ -200,44 +200,70 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
-        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ list() เพื่อดึงทั้งหมด
-        console.log(`🔍 Fetching ALL payments with list()...`);
+        // ⭐⭐⭐ ดึง Payment - ใช้ list() พร้อม pagination ที่ปลอดภัย
+        console.log(`🔍 Fetching ALL payments with list() + safe pagination...`);
 
         let recentPayments = [];
         try {
-            // ⭐ ใช้ list() แทน filter() เพราะ filter({}) อาจไม่ทำงาน
-            if (targetBranchId) {
-                recentPayments = await fetchWithPagination(
-                    base44.asServiceRole.entities.Payment, 
-                    { branch_id: targetBranchId }, 
-                    '-created_date'
-                );
-            } else {
-                // ดึงทั้งหมดด้วย list() แบบ pagination
-                let allData = [];
-                let skip = 0;
-                let hasMore = true;
-                const batchSize = 5000;
+            let allData = [];
+            let skip = 0;
+            let hasMore = true;
+            const batchSize = 1000; // ลดลงเพื่อความปลอดภัย
+            let iterations = 0;
+            const maxIterations = 100; // ป้องกัน infinite loop
+            
+            while (hasMore && iterations < maxIterations) {
+                iterations++;
+                let batch;
                 
-                while (hasMore) {
-                    const batch = await base44.asServiceRole.entities.Payment.list('-created_date', batchSize, skip);
-                    if (!Array.isArray(batch) || batch.length === 0) {
+                if (targetBranchId) {
+                    // ใช้ filter สำหรับ branch เฉพาะ
+                    batch = await base44.asServiceRole.entities.Payment.filter(
+                        { branch_id: targetBranchId }, 
+                        '-created_date', 
+                        batchSize, 
+                        skip
+                    );
+                } else {
+                    // ใช้ list สำหรับทั้งหมด
+                    batch = await base44.asServiceRole.entities.Payment.list('-created_date', batchSize, skip);
+                }
+                
+                if (!Array.isArray(batch) || batch.length === 0) {
+                    hasMore = false;
+                    console.log(`   ✅ No more data at skip=${skip}`);
+                } else {
+                    allData = allData.concat(batch);
+                    skip += batch.length;
+                    console.log(`   📦 Batch ${iterations}: fetched ${batch.length}, total=${allData.length}`);
+                    if (batch.length < batchSize) {
                         hasMore = false;
-                    } else {
-                        allData = allData.concat(batch);
-                        skip += batch.length;
-                        console.log(`   📦 Fetched ${allData.length} payments so far...`);
-                        if (batch.length < batchSize) {
-                            hasMore = false;
-                        }
+                        console.log(`   ✅ Last batch (got ${batch.length} < ${batchSize})`);
                     }
                 }
-                recentPayments = allData;
+                
+                // ⭐ เพิ่ม delay เล็กน้อยระหว่าง batch เพื่อป้องกัน rate limit
+                if (hasMore) {
+                    await delay(500);
+                }
             }
-            console.log(`✅ Total payments fetched: ${recentPayments.length}`);
+            
+            if (iterations >= maxIterations) {
+                console.warn(`⚠️ Reached max iterations (${maxIterations}), may have more payments`);
+            }
+            
+            recentPayments = allData;
+            console.log(`✅ Total payments fetched: ${recentPayments.length} (in ${iterations} batches)`);
         } catch (fetchError) {
             console.error(`❌ Error fetching payments: ${fetchError.message}`);
             console.error(`❌ Stack: ${fetchError.stack}`);
+            
+            // ⭐ CRITICAL: ถ้าดึง payment ไม่ได้ = หยุดทำงาน ไม่ยอมสร้างบิลซ้ำ
+            return Response.json({
+                success: false,
+                error: `CRITICAL: Cannot fetch existing payments - ${fetchError.message}`,
+                message: 'หยุดการทำงานเพื่อป้องกันการสร้างบิลซ้ำ'
+            }, { status: 500 });
         }
         
         console.log(`📦 Fetched ${(recentPayments || []).length} recent payments`);
