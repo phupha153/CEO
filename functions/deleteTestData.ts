@@ -1,8 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-// Helper function สำหรับ delay
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
 // Helper function สำหรับดึงข้อมูลแบบ pagination
 async function fetchAllEntities(entity, batchSize = 1000) {
     let allData = [];
@@ -87,26 +84,26 @@ Deno.serve(async (req) => {
         
         console.log(`Found ${testPayments.length} test payments out of ${allPayments.length} total`);
 
-        // ✅ STEP 2: ลบ Payments (ลบทีละ batch + delay เพื่อไม่ให้โดน rate limit)
+        // ✅ STEP 2: ลบ Payments (ลบทีละ batch เพื่อไม่ให้ timeout)
         if (testPayments.length > 0) {
             console.log('💸 Step 2: Deleting test payments...');
-            const batchSize = 20; // ลด batch size
+            const batchSize = 100;
             for (let i = 0; i < testPayments.length; i += batchSize) {
                 const batch = testPayments.slice(i, i + batchSize);
+                const deletePromises = batch.map(p => 
+                    base44.asServiceRole.entities.Payment.delete(p.id)
+                        .then(() => {
+                            results.deletedPayments++;
+                            return { success: true, id: p.id };
+                        })
+                        .catch(error => {
+                            results.errors.push(`Payment ${p.id}: ${error.message}`);
+                            return { success: false, id: p.id, error: error.message };
+                        })
+                );
                 
-                // ลบทีละตัวแบบ sequential เพื่อลด rate limit
-                for (const p of batch) {
-                    try {
-                        await base44.asServiceRole.entities.Payment.delete(p.id);
-                        results.deletedPayments++;
-                    } catch (error) {
-                        results.errors.push(`Payment ${p.id}: ${error.message}`);
-                    }
-                    await delay(100); // รอ 100ms ระหว่างแต่ละ request
-                }
-                
+                await Promise.all(deletePromises);
                 console.log(`  ✅ Deleted batch ${Math.floor(i/batchSize) + 1}: ${results.deletedPayments}/${testPayments.length}`);
-                await delay(500); // รอ 500ms ระหว่าง batch
             }
         }
 
@@ -128,7 +125,7 @@ Deno.serve(async (req) => {
         // ✅ STEP 4: ลบ Bookings และอัปเดตสถานะห้อง
         if (testBookings.length > 0) {
             console.log('📋 Step 4: Deleting test bookings...');
-            const batchSize = 20;
+            const batchSize = 100;
             for (let i = 0; i < testBookings.length; i += batchSize) {
                 const batch = testBookings.slice(i, i + batchSize);
                 
@@ -140,20 +137,17 @@ Deno.serve(async (req) => {
                                 status: 'available'
                             });
                             results.updatedRooms++;
-                            await delay(100);
                         }
                         
                         // ลบ booking
                         await base44.asServiceRole.entities.Booking.delete(booking.id);
                         results.deletedBookings++;
-                        await delay(100);
                     } catch (error) {
                         results.errors.push(`Booking ${booking.id}: ${error.message}`);
                     }
                 }
                 
                 console.log(`  ✅ Deleted batch ${Math.floor(i/batchSize) + 1}: ${results.deletedBookings}/${testBookings.length}`);
-                await delay(500);
             }
         }
 
@@ -177,22 +171,23 @@ Deno.serve(async (req) => {
         // ✅ STEP 6: ลบ Rooms
         if (testRooms.length > 0) {
             console.log('🏠 Step 6: Deleting test rooms...');
-            const batchSize = 20;
+            const batchSize = 100;
             for (let i = 0; i < testRooms.length; i += batchSize) {
                 const batch = testRooms.slice(i, i + batchSize);
+                const deletePromises = batch.map(r => 
+                    base44.asServiceRole.entities.Room.delete(r.id)
+                        .then(() => {
+                            results.deletedRooms++;
+                            return { success: true, id: r.id };
+                        })
+                        .catch(error => {
+                            results.errors.push(`Room ${r.room_number}: ${error.message}`);
+                            return { success: false, id: r.id, error: error.message };
+                        })
+                );
                 
-                for (const r of batch) {
-                    try {
-                        await base44.asServiceRole.entities.Room.delete(r.id);
-                        results.deletedRooms++;
-                    } catch (error) {
-                        results.errors.push(`Room ${r.room_number}: ${error.message}`);
-                    }
-                    await delay(100);
-                }
-                
+                await Promise.all(deletePromises);
                 console.log(`  ✅ Deleted batch ${Math.floor(i/batchSize) + 1}: ${results.deletedRooms}/${testRooms.length}`);
-                await delay(500);
             }
         }
 
@@ -217,22 +212,23 @@ Deno.serve(async (req) => {
         // ✅ STEP 8: ลบ Tenants
         if (testTenants.length > 0) {
             console.log('👥 Step 8: Deleting test tenants...');
-            const batchSize = 20;
+            const batchSize = 100;
             for (let i = 0; i < testTenants.length; i += batchSize) {
                 const batch = testTenants.slice(i, i + batchSize);
+                const deletePromises = batch.map(t => 
+                    base44.asServiceRole.entities.Tenant.delete(t.id)
+                        .then(() => {
+                            results.deletedTenants++;
+                            return { success: true, id: t.id };
+                        })
+                        .catch(error => {
+                            results.errors.push(`Tenant ${t.full_name}: ${error.message}`);
+                            return { success: false, id: t.id, error: error.message };
+                        })
+                );
                 
-                for (const t of batch) {
-                    try {
-                        await base44.asServiceRole.entities.Tenant.delete(t.id);
-                        results.deletedTenants++;
-                    } catch (error) {
-                        results.errors.push(`Tenant ${t.full_name}: ${error.message}`);
-                    }
-                    await delay(100);
-                }
-                
+                await Promise.all(deletePromises);
                 console.log(`  ✅ Deleted batch ${Math.floor(i/batchSize) + 1}: ${results.deletedTenants}/${testTenants.length}`);
-                await delay(500);
             }
         }
 
@@ -259,22 +255,23 @@ Deno.serve(async (req) => {
         // ✅ STEP 10: ลบ MeterReadings
         if (testMeterReadings.length > 0) {
             console.log('⚡ Step 10: Deleting test meter readings...');
-            const batchSize = 20;
+            const batchSize = 100;
             for (let i = 0; i < testMeterReadings.length; i += batchSize) {
                 const batch = testMeterReadings.slice(i, i + batchSize);
+                const deletePromises = batch.map(mr => 
+                    base44.asServiceRole.entities.MeterReading.delete(mr.id)
+                        .then(() => {
+                            results.deletedMeterReadings++;
+                            return { success: true, id: mr.id };
+                        })
+                        .catch(error => {
+                            results.errors.push(`MeterReading ${mr.id}: ${error.message}`);
+                            return { success: false, id: mr.id, error: error.message };
+                        })
+                );
                 
-                for (const mr of batch) {
-                    try {
-                        await base44.asServiceRole.entities.MeterReading.delete(mr.id);
-                        results.deletedMeterReadings++;
-                    } catch (error) {
-                        results.errors.push(`MeterReading ${mr.id}: ${error.message}`);
-                    }
-                    await delay(100);
-                }
-                
+                await Promise.all(deletePromises);
                 console.log(`  ✅ Deleted batch ${Math.floor(i/batchSize) + 1}: ${results.deletedMeterReadings}/${testMeterReadings.length}`);
-                await delay(500);
             }
         }
 
