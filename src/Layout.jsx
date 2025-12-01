@@ -365,6 +365,25 @@ export default function Layout({ children, currentPageName }) {
       });
     };
 
+    // Facebook Login Status Callback
+    window.checkLoginState = function() {
+      window.FB.getLoginStatus(function(response) {
+        console.log('Facebook Login Response:', response);
+        if (response.status === 'connected') {
+          // User is logged into Facebook and has authorized the app
+          const accessToken = response.authResponse.accessToken;
+          const userID = response.authResponse.userID;
+          console.log('Access Token:', accessToken);
+          console.log('User ID:', userID);
+          
+          // TODO: Send this to your backend to get Pages and save tokens
+          alert('เชื่อมต่อสำเร็จ! Access Token: ' + accessToken.substring(0, 20) + '...');
+        } else {
+          console.log('User not authenticated');
+        }
+      });
+    };
+
     // Load Facebook SDK
     if (!document.getElementById('facebook-jssdk')) {
       const js = document.createElement('script');
