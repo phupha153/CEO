@@ -208,42 +208,37 @@ Deno.serve(async (req) => {
             console.error(`❌ Stack: ${fetchError.stack}`);
         }
         
-        console.log(`📦 Fetched ${(recentPayments || []).length} recent payments (raw)`);
+        console.log(`📦 Fetched ${(recentPayments || []).length} recent payments`);
         recentPayments = recentPayments || [];
-        
+
+        // ⭐⭐⭐ Normalize payments เหมือน entities อื่น
+        recentPayments = recentPayments.map(normalizeEntity).filter(Boolean);
+        console.log(`📦 After normalize: ${recentPayments.length} payments`);
+
         // ⭐⭐⭐ DEBUG: ดูโครงสร้างข้อมูล Payment ตัวแรก
         if (recentPayments.length > 0) {
             const samplePayment = recentPayments[0];
             console.log(`🔍 Sample payment structure:`, JSON.stringify({
                 id: samplePayment.id,
-                hasData: !!samplePayment.data,
-                room_id: samplePayment.room_id || samplePayment.data?.room_id,
-                due_date: samplePayment.due_date || samplePayment.data?.due_date,
-                keys: Object.keys(samplePayment).slice(0, 10)
+                room_id: samplePayment.room_id,
+                due_date: samplePayment.due_date,
+                branch_id: samplePayment.branch_id
             }));
         }
-        
-        // ⭐⭐⭐ สร้าง existingBillsSet ที่นี่เลย - ไม่ประกาศข้างบน
+
+        // ⭐⭐⭐ สร้าง existingBillsSet
         // ใช้ Set เก็บ "room_id|YYYY-MM" เพื่อเช็คซ้ำแบบ O(1)
         const existingBillsSet = new Set();
         let validPaymentCount = 0;
         let skippedNoRoomId = 0;
         let skippedNoDueDate = 0;
-        
+
         for (const p of recentPayments) {
             if (!p) continue;
-            
-            // ดึง room_id และ due_date จากทั้ง p.data และ root level
-            let roomId, dueDate;
-            
-            if (p.data && typeof p.data === 'object') {
-                roomId = p.data.room_id;
-                dueDate = p.data.due_date;
-            } else {
-                roomId = p.room_id;
-                dueDate = p.due_date;
-            }
-            
+
+            const roomId = p.room_id;
+            const dueDate = p.due_date;
+
             if (!roomId) {
                 skippedNoRoomId++;
                 continue;
@@ -252,17 +247,17 @@ Deno.serve(async (req) => {
                 skippedNoDueDate++;
                 continue;
             }
-            
+
             // สร้าง key จาก room_id + YYYY-MM
             const dueYearMonth = dueDate.substring(0, 7); // "2025-12"
             const key = `${roomId}|${dueYearMonth}`;
             existingBillsSet.add(key);
             validPaymentCount++;
         }
-        
+
         console.log(`📊 Payment parsing: valid=${validPaymentCount}, noRoomId=${skippedNoRoomId}, noDueDate=${skippedNoDueDate}`);
         console.log(`📊 Found ${existingBillsSet.size} unique room-month combinations with existing bills`);
-        
+
         // Debug: แสดงตัวอย่าง keys
         if (existingBillsSet.size > 0) {
             const sampleKeys = Array.from(existingBillsSet).slice(0, 5);
