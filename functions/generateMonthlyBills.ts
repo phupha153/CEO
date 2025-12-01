@@ -108,6 +108,10 @@ Deno.serve(async (req) => {
         }
 
         console.log('📋 Target:', targetBranchId || 'ALL');
+        console.log(`🔧 Force mode: ${forceCreate} (${typeof forceCreate})`);
+        
+        // ⭐ ถ้าไม่ใช่ force mode = เป็น Cron Job ต้องเช็คบิลซ้ำอย่างเข้มงวด
+        const isCronMode = !forceCreate;
 
         // 1. Fetch Configs
         const configs = await base44.asServiceRole.entities.Config.list() || [];
