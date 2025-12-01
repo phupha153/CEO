@@ -459,10 +459,11 @@ Deno.serve(async (req) => {
                     console.log(`📝 Room ${room.room_number}: No bill for ${targetDueYearMonth}, creating...`);
                 }
 
-                // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว = ข้ามไป (ไม่ว่าจะ force หรือไม่ก็ตาม)
-                // เพื่อป้องกันการสร้างบิลซ้ำเมื่อ cron job รันหลายรอบต่อวัน
-                if (existingBill) {
-                    console.log(`⏭️ Room ${room.room_number}: มีบิลเดือน ${roomDueMonth + 1}/${roomDueYear} อยู่แล้ว (ID: ${existingBill.id}) - ข้าม`);
+                // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว:
+                // - ถ้า force=true (เรียกจาก TestingAdmin) → สร้างซ้ำได้เลย ไม่ต้องเช็ค
+                // - ถ้า force=false (เรียกจาก Cron Job) → ข้ามไป ป้องกันสร้างซ้ำ
+                if (existingBill && !forceCreate) {
+                    console.log(`⏭️ Room ${room.room_number}: มีบิลเดือน ${roomDueMonth + 1}/${roomDueYear} อยู่แล้ว (ID: ${existingBill.id}) - ข้าม (Cron mode)`);
                     skippedDueToExistingBill++;
                     
                     // ถ้าต้องการส่งแจ้งเตือนซ้ำ
@@ -473,6 +474,11 @@ Deno.serve(async (req) => {
                         }
                     }
                     continue;
+                }
+                
+                // ⭐ ถ้า force=true และมีบิลอยู่แล้ว = สร้างซ้ำ (สำหรับ Testing)
+                if (existingBill && forceCreate) {
+                    console.log(`🔄 Room ${room.room_number}: มีบิลอยู่แล้วแต่ force=true → สร้างซ้ำ (Testing mode)`);
                 }
 
                 // Calculate Amounts - ⭐ หามิเตอร์ล่าสุดที่มีค่าหน่วยมากกว่า 0 (ถ้ามี)
@@ -651,15 +657,20 @@ Deno.serve(async (req) => {
                 await retryOperation(async () => {
                     const created = await base44.asServiceRole.entities.Payment.bulkCreate(batch);
                     
-                    // Map back for LINE notifications
+                    // Map back for image generation (ทุกสาขา) และ LINE notifications (เฉพาะสาขาที่เปิด)
                     for (const payment of created) {
                         const meta = paymentReferenceMap.get(payment.room_id);
-                        if (meta && meta.tenant?.line_user_id) {
-                            const shouldSend = getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
-                            // Don't send line if auto-paid (optional, usually we still notify)
-                            if (shouldSend) {
-                                billsToSend.push({ payment, tenant: meta.tenant, room: meta.room });
-                            }
+                        if (meta) {
+                            // ⭐ สร้างรูปทุกสาขา แต่ส่ง LINE เฉพาะสาขาที่เปิด auto_send
+                            const shouldSendLine = meta.tenant?.line_user_id && 
+                                getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
+                            
+                            billsToSend.push({ 
+                                payment, 
+                                tenant: meta.tenant, 
+                                room: meta.room,
+                                shouldSendLine // ⭐ flag บอกว่าต้องส่ง LINE หรือไม่
+                            });
                         }
                     }
                     createdCount += created.length;
