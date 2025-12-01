@@ -308,17 +308,7 @@ Deno.serve(async (req) => {
             }, { status: 500 });
         }
 
-        // ⭐⭐⭐ CRITICAL: Normalize ALL entities - data might be inside .data property OR flat
-        const normalizeEntity = (entity) => {
-            if (!entity) return null;
-            // ถ้ามี .data property = ข้อมูลอยู่ใน .data
-            if (entity.data && typeof entity.data === 'object') {
-                return { id: entity.id, created_date: entity.created_date, ...entity.data };
-            }
-            // ถ้าไม่มี .data = ข้อมูลอยู่ใน root level แล้ว
-            return entity;
-        };
-
+        // Normalize other entities (normalizeEntity was already defined above)
         allRooms = allRooms.map(normalizeEntity).filter(Boolean);
         bookings = bookings.map(normalizeEntity).filter(Boolean);
         meterReadings = meterReadings.map(normalizeEntity).filter(Boolean);
