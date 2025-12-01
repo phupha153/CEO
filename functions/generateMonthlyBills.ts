@@ -109,8 +109,19 @@ Deno.serve(async (req) => {
 
         console.log('📋 Target:', targetBranchId || 'ALL');
 
-        // 1. Fetch Configs
-        const configs = await base44.asServiceRole.entities.Config.list() || [];
+        // 1. Fetch Configs - ต้อง normalize ด้วย!
+        const rawConfigs = await base44.asServiceRole.entities.Config.list() || [];
+        
+        // ⭐ Normalize configs เหมือนกัน (data อาจอยู่ใน .data)
+        const configs = rawConfigs.map(c => {
+            if (c && c.data && typeof c.data === 'object' && Object.keys(c.data).length > 0) {
+                return { id: c.id, ...c.data };
+            }
+            return c;
+        }).filter(Boolean);
+        
+        console.log(`📦 Fetched ${configs.length} configs (normalized)`);
+        
         const getConfigValue = (key, defaultValue, branchId = null) => {
             if (branchId) {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
