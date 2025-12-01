@@ -357,7 +357,7 @@ export default function Layout({ children, currentPageName }) {
   // Initialize Facebook SDK
   useEffect(() => {
     // Hardcode Facebook App ID - ไม่ต้องเรียก API
-    const FACEBOOK_APP_ID = '1148319100103304';
+    const FACEBOOK_APP_ID = '1140191808185304';
 
     window.fbAsyncInit = function() {
       window.FB.init({
