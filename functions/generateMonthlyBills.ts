@@ -206,57 +206,58 @@ Deno.serve(async (req) => {
         console.log('');
         console.log('⭐ FETCHING PAYMENTS - START');
 
-        await retryOperation(async () => {
-            // ⭐ ดึง Payment โดยใช้ filter method ของ SDK
-            const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
-            console.log(`Using Payment.filter() with: ${JSON.stringify(paymentFilter)}`);
+        // ⭐⭐⭐ FIX: ดึงทีละ batch เล็กๆ เพื่อหลีกเลี่ยง JSON truncation
+        const BATCH_SIZE = 500; // ลดขนาดเพื่อป้องกัน response ถูกตัด
+        let allPayments = [];
+        let skip = 0;
+        let hasMore = true;
+        let batchNum = 0;
 
-            let rawResult = await base44.asServiceRole.entities.Payment.filter(paymentFilter, '-created_date', 10000);
+        while (hasMore) {
+            batchNum++;
+            await retryOperation(async () => {
+                const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
+                console.log(`Batch ${batchNum}: skip=${skip}, limit=${BATCH_SIZE}`);
 
-            // ⭐ จัดการ response หลายรูปแบบ
-            if (rawResult === null || rawResult === undefined) {
-                console.log('Got null/undefined');
-                recentPayments = [];
-            } else if (Array.isArray(rawResult)) {
-                console.log('Got array directly');
-                recentPayments = rawResult;
-            } else if (typeof rawResult === 'string') {
-                console.log(`Got string, length: ${rawResult.length}`);
-                try {
-                    const parsed = JSON.parse(rawResult);
-                    if (Array.isArray(parsed)) {
-                        recentPayments = parsed;
-                    } else if (parsed.data && Array.isArray(parsed.data)) {
-                        recentPayments = parsed.data;
-                    } else {
-                        console.log('Parsed but not array:', typeof parsed);
-                        recentPayments = [];
+                const batch = await base44.asServiceRole.entities.Payment.filter(
+                    paymentFilter, 
+                    '-created_date', 
+                    BATCH_SIZE, 
+                    skip
+                );
+
+                if (Array.isArray(batch) && batch.length > 0) {
+                    allPayments = allPayments.concat(batch);
+                    skip += batch.length;
+                    console.log(`Batch ${batchNum}: got ${batch.length} payments, total: ${allPayments.length}`);
+
+                    if (batch.length < BATCH_SIZE) {
+                        hasMore = false;
                     }
-                } catch (e) {
-                    console.log('JSON parse error:', e.message);
-                    recentPayments = [];
-                }
-            } else if (typeof rawResult === 'object') {
-                console.log('Got object');
-                if (rawResult.data && Array.isArray(rawResult.data)) {
-                    recentPayments = rawResult.data;
-                } else if (rawResult.items && Array.isArray(rawResult.items)) {
-                    recentPayments = rawResult.items;
                 } else {
-                    console.log('Object keys:', Object.keys(rawResult).slice(0, 5).join(', '));
-                    recentPayments = [];
+                    console.log(`Batch ${batchNum}: no more data or invalid response`);
+                    hasMore = false;
                 }
-            } else {
-                console.log(`Unknown type: ${typeof rawResult}`);
-                recentPayments = [];
+            });
+
+            // หยุดถ้าดึงมากเกินไป (ป้องกัน infinite loop)
+            if (batchNum > 50) {
+                console.log('⚠️ Max batches reached, stopping');
+                hasMore = false;
             }
 
-            console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments?.length || 0}`);
-
-            if (recentPayments && recentPayments.length > 0) {
-                console.log(`Sample: room_id=${recentPayments[0].room_id}, due=${recentPayments[0].due_date}`);
+            // รอเล็กน้อยระหว่าง batch
+            if (hasMore) {
+                await delay(500);
             }
-        });
+        }
+
+        recentPayments = allPayments;
+        console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments.length} (${batchNum} batches)`);
+
+        if (recentPayments.length > 0) {
+            console.log(`Sample: room_id=${recentPayments[0].room_id}, due=${recentPayments[0].due_date}`);
+        }
         
         console.log('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
         console.log(`⭐ TOTAL PAYMENTS FETCHED: ${(recentPayments || []).length}`);
