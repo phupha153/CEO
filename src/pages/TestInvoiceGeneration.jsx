@@ -115,21 +115,40 @@ export default function TestInvoiceGenerationPage() {
     bookings.some(b => b.room_id === r.id)
   );
   
-  // ⭐ คำนวณห้องที่ยังไม่มีบิลเดือนปัจจุบัน
+  // ⭐ คำนวณเดือนที่ระบบจะสร้างบิล (ดูจาก bill_generation_day และ pay_day)
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth(); // 0-indexed
+  const currentDay = now.getDate();
+  
+  const billGenDay = parseInt(getConfigValue('bill_generation_day', '27'));
+  const payDay = parseInt(getConfigValue('pay_day', '5'));
+  
+  // ⭐ คำนวณเดือนที่จะสร้างบิล (ตาม logic ใน generateMonthlyBills)
+  let targetBillYear = currentYear;
+  let targetBillMonth = currentMonth;
+  
+  // ถ้าวันสร้างบิล > วันครบกำหนด = สร้างบิลสำหรับเดือนหน้า
+  if (billGenDay > payDay) {
+    targetBillMonth = currentMonth + 1;
+    if (targetBillMonth > 11) {
+      targetBillMonth = 0;
+      targetBillYear = currentYear + 1;
+    }
+  }
+  
+  const targetBillYearMonth = `${targetBillYear}-${String(targetBillMonth + 1).padStart(2, '0')}`; // e.g., "2025-01"
   const currentYearMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`; // e.g., "2025-12"
   
-  // ดึง room_id ที่มีบิลเดือนนี้แล้ว
-  const roomsWithCurrentBill = new Set(
+  // ดึง room_id ที่มีบิลของเดือนเป้าหมายแล้ว
+  const roomsWithTargetBill = new Set(
     payments
-      .filter(p => p.due_date && p.due_date.startsWith(currentYearMonth))
+      .filter(p => p.due_date && p.due_date.startsWith(targetBillYearMonth))
       .map(p => p.room_id)
   );
   
-  // ห้องที่ยังไม่มีบิลเดือนนี้
-  const roomsWithoutCurrentBill = roomsWithBooking.filter(r => !roomsWithCurrentBill.has(r.id));
+  // ห้องที่ยังไม่มีบิลเดือนเป้าหมาย
+  const roomsWithoutCurrentBill = roomsWithBooking.filter(r => !roomsWithTargetBill.has(r.id));
   
   // ⭐ สรุปบิลแยกตามเดือน
   const billsByMonth = useMemo(() => {
