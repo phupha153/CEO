@@ -444,15 +444,24 @@ Deno.serve(async (req) => {
                 // Check existing bill
                 const roomBranchId = room.branch_id;
                 const roomPayDay = parseInt(getConfigValue('pay_day', '5', roomBranchId));
-                
-                let roomDueYear = currentYear;
-                let roomDueMonth = currentMonth;
                 const roomGenDay = parseInt(getConfigValue('bill_generation_day', '27', roomBranchId));
                 
+                // ⭐⭐⭐ คำนวณเดือนที่จะสร้างบิล
+                // เดือนปัจจุบัน (currentMonth) เป็น 0-indexed: 0=ม.ค., 11=ธ.ค.
+                // ถ้าวันสร้างบิล > วันครบกำหนด = สร้างบิลสำหรับเดือนหน้า
+                let roomDueYear = currentYear;
+                let roomDueMonth = currentMonth; // 0-indexed
+                
                 if (roomGenDay > roomPayDay) {
+                    // ⭐ สร้างบิลสำหรับเดือนหน้า
                     roomDueMonth = currentMonth + 1;
-                    if (roomDueMonth > 11) { roomDueMonth = 0; roomDueYear = currentYear + 1; }
+                    if (roomDueMonth > 11) { 
+                        roomDueMonth = 0; // มกราคม
+                        roomDueYear = currentYear + 1; 
+                    }
                 }
+                
+                console.log(`🔍 Room ${room.room_number}: genDay=${roomGenDay}, payDay=${roomPayDay}, target=${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`);
                 
                 // ⭐ ตรวจสอบว่ามีบิลของเดือนนี้อยู่แล้วหรือไม่ (ป้องกันสร้างซ้ำ)
                 // ใช้ Set lookup O(1) - เร็วและแม่นยำ
