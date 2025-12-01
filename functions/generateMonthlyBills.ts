@@ -224,46 +224,14 @@ Deno.serve(async (req) => {
             }
         }
 
-        // ⭐⭐⭐ DEBUG: ดูโครงสร้างข้อมูล Payment ตัวแรก BEFORE normalize
-        if (recentPayments.length > 0) {
-            const rawSample = recentPayments[0];
-            console.log(`🔍 [RAW BEFORE NORMALIZE] typeof: ${typeof rawSample}`);
-            console.log(`🔍 [RAW BEFORE NORMALIZE] keys: ${Object.keys(rawSample || {}).join(', ')}`);
-            console.log(`🔍 [RAW BEFORE NORMALIZE] id: ${rawSample?.id}`);
-            console.log(`🔍 [RAW BEFORE NORMALIZE] room_id: ${rawSample?.room_id}`);
-            console.log(`🔍 [RAW BEFORE NORMALIZE] due_date: ${rawSample?.due_date}`);
-            console.log(`🔍 [RAW BEFORE NORMALIZE] has .data: ${rawSample?.data ? 'YES' : 'NO'}`);
-            if (rawSample?.data) {
-                console.log(`🔍 [RAW BEFORE NORMALIZE] data.room_id: ${rawSample.data.room_id}`);
-                console.log(`🔍 [RAW BEFORE NORMALIZE] data.due_date: ${rawSample.data.due_date}`);
-                console.log(`🔍 [RAW BEFORE NORMALIZE] data.branch_id: ${rawSample.data.branch_id}`);
-            }
-            // ⭐ แสดง JSON ตัวเต็มของ payment แรก
-            console.log(`🔍 [RAW BEFORE NORMALIZE] FULL JSON: ${JSON.stringify(rawSample).substring(0, 500)}`);
-            
-            // ⭐⭐⭐ นับจำนวน payment ที่มี branch_id ตรงกับ targetBranchId
-            const matchingBranchCount = recentPayments.filter(p => {
-                const branchId = p.branch_id || p.data?.branch_id;
-                return branchId === targetBranchId;
-            }).length;
-            console.log(`🔍 [DEBUG] Payments matching targetBranchId (${targetBranchId}): ${matchingBranchCount}/${recentPayments.length}`);
-        } else {
-            console.log(`🚨 recentPayments is EMPTY before normalize!`);
-        }
-
         // ⭐⭐⭐ Normalize payments เหมือน entities อื่น
         recentPayments = recentPayments.map(normalizeEntity).filter(Boolean);
         console.log(`📦 After normalize: ${recentPayments.length} payments`);
 
-        // ⭐⭐⭐ DEBUG: ดูโครงสร้างข้อมูล Payment ตัวแรก AFTER normalize
+        // Debug: show sample after normalize
         if (recentPayments.length > 0) {
-            const normalizedSample = recentPayments[0];
-            console.log(`🔍 [AFTER NORMALIZE] id: ${normalizedSample?.id}`);
-            console.log(`🔍 [AFTER NORMALIZE] room_id: ${normalizedSample?.room_id}`);
-            console.log(`🔍 [AFTER NORMALIZE] due_date: ${normalizedSample?.due_date}`);
-            console.log(`🔍 [AFTER NORMALIZE] keys: ${Object.keys(normalizedSample || {}).join(', ')}`);
-        } else {
-            console.log(`🚨 recentPayments is EMPTY after normalize!`);
+            const sample = recentPayments[0];
+            console.log(`🔍 Sample payment: room_id=${sample?.room_id}, due_date=${sample?.due_date}, branch_id=${sample?.branch_id}`);
         }
 
         // ⭐⭐⭐ สร้าง existingBillsSet
