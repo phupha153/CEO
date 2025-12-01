@@ -87,26 +87,26 @@ Deno.serve(async (req) => {
         
         console.log(`Found ${testPayments.length} test payments out of ${allPayments.length} total`);
 
-        // ✅ STEP 2: ลบ Payments (ลบทีละ batch เพื่อไม่ให้ timeout)
+        // ✅ STEP 2: ลบ Payments (ลบทีละ batch + delay เพื่อไม่ให้โดน rate limit)
         if (testPayments.length > 0) {
             console.log('💸 Step 2: Deleting test payments...');
-            const batchSize = 100;
+            const batchSize = 20; // ลด batch size
             for (let i = 0; i < testPayments.length; i += batchSize) {
                 const batch = testPayments.slice(i, i + batchSize);
-                const deletePromises = batch.map(p => 
-                    base44.asServiceRole.entities.Payment.delete(p.id)
-                        .then(() => {
-                            results.deletedPayments++;
-                            return { success: true, id: p.id };
-                        })
-                        .catch(error => {
-                            results.errors.push(`Payment ${p.id}: ${error.message}`);
-                            return { success: false, id: p.id, error: error.message };
-                        })
-                );
                 
-                await Promise.all(deletePromises);
+                // ลบทีละตัวแบบ sequential เพื่อลด rate limit
+                for (const p of batch) {
+                    try {
+                        await base44.asServiceRole.entities.Payment.delete(p.id);
+                        results.deletedPayments++;
+                    } catch (error) {
+                        results.errors.push(`Payment ${p.id}: ${error.message}`);
+                    }
+                    await delay(100); // รอ 100ms ระหว่างแต่ละ request
+                }
+                
                 console.log(`  ✅ Deleted batch ${Math.floor(i/batchSize) + 1}: ${results.deletedPayments}/${testPayments.length}`);
+                await delay(500); // รอ 500ms ระหว่าง batch
             }
         }
 
