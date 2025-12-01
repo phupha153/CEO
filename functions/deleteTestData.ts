@@ -191,21 +191,28 @@ Deno.serve(async (req) => {
             }
         }
 
-        // ✅ STEP 7: หา Tenants ที่เป็น TEST
+        // ✅ STEP 7: หา Tenants ที่เป็น TEST (ใช้ pagination)
         console.log('📥 Step 7: Fetching all tenants...');
-        const allTenants = await base44.asServiceRole.entities.Tenant.list('-created_date', 1000);
+        const allTenants = await fetchAllEntities(base44.asServiceRole.entities.Tenant);
         
-        const testTenants = allTenants.filter(tenant => 
+        let testTenants = allTenants.filter(tenant => 
             tenant.full_name?.includes('[TEST-') || 
-            tenant.notes?.includes('[TEST-')
+            tenant.full_name?.includes('TEST-') ||
+            tenant.notes?.includes('[TEST-') ||
+            tenant.notes?.includes('TEST-')
         );
+        
+        // กรองตาม branch ถ้าระบุ
+        if (targetBranchId) {
+            testTenants = testTenants.filter(t => t.branch_id === targetBranchId);
+        }
         
         console.log(`Found ${testTenants.length} test tenants`);
 
         // ✅ STEP 8: ลบ Tenants
         if (testTenants.length > 0) {
             console.log('👥 Step 8: Deleting test tenants...');
-            const batchSize = 50;
+            const batchSize = 100;
             for (let i = 0; i < testTenants.length; i += batchSize) {
                 const batch = testTenants.slice(i, i + batchSize);
                 const deletePromises = batch.map(t => 
@@ -222,6 +229,49 @@ Deno.serve(async (req) => {
                 
                 await Promise.all(deletePromises);
                 console.log(`  ✅ Deleted batch ${Math.floor(i/batchSize) + 1}: ${results.deletedTenants}/${testTenants.length}`);
+            }
+        }
+
+        // ✅ STEP 9: หา MeterReadings ที่เกี่ยวข้องกับห้อง TEST (ใช้ pagination)
+        console.log('📥 Step 9: Fetching all meter readings...');
+        const allMeterReadings = await fetchAllEntities(base44.asServiceRole.entities.MeterReading);
+        
+        // หา room IDs ที่เป็น TEST
+        const testRoomIds = new Set(testRooms.map(r => r.id));
+        
+        let testMeterReadings = allMeterReadings.filter(mr => 
+            testRoomIds.has(mr.room_id) ||
+            mr.notes?.includes('[TEST-') ||
+            mr.notes?.includes('TEST-')
+        );
+        
+        // กรองตาม branch ถ้าระบุ
+        if (targetBranchId) {
+            testMeterReadings = testMeterReadings.filter(mr => mr.branch_id === targetBranchId);
+        }
+        
+        console.log(`Found ${testMeterReadings.length} test meter readings`);
+
+        // ✅ STEP 10: ลบ MeterReadings
+        if (testMeterReadings.length > 0) {
+            console.log('⚡ Step 10: Deleting test meter readings...');
+            const batchSize = 100;
+            for (let i = 0; i < testMeterReadings.length; i += batchSize) {
+                const batch = testMeterReadings.slice(i, i + batchSize);
+                const deletePromises = batch.map(mr => 
+                    base44.asServiceRole.entities.MeterReading.delete(mr.id)
+                        .then(() => {
+                            results.deletedMeterReadings++;
+                            return { success: true, id: mr.id };
+                        })
+                        .catch(error => {
+                            results.errors.push(`MeterReading ${mr.id}: ${error.message}`);
+                            return { success: false, id: mr.id, error: error.message };
+                        })
+                );
+                
+                await Promise.all(deletePromises);
+                console.log(`  ✅ Deleted batch ${Math.floor(i/batchSize) + 1}: ${results.deletedMeterReadings}/${testMeterReadings.length}`);
             }
         }
 
