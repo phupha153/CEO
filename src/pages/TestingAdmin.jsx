@@ -984,8 +984,8 @@ export default function TestingAdmin() {
       toast.error('จำนวนต้องมากกว่า 0');
       return;
     }
-    if (parseInt(quantity) > 500) {
-      toast.error('จำนวนต้องไม่เกิน 500');
+    if (parseInt(quantity) > 10000) {
+      toast.error('จำนวนต้องไม่เกิน 10,000');
       return;
     }
 
@@ -1811,12 +1811,12 @@ export default function TestingAdmin() {
 
                 <div>
                   <Label className="text-sm font-semibold mb-2 block">
-                    {testDataForm.entityType === 'CompleteSet' ? 'จำนวนชุด (1-500)' : 'จำนวนรวม (1-500)'}
+                    {testDataForm.entityType === 'CompleteSet' ? 'จำนวนชุด (1-10,000)' : 'จำนวนรวม (1-10,000)'}
                   </Label>
                   <Input
                     type="number"
                     min="1"
-                    max="500"
+                    max="10000"
                     value={testDataForm.quantity}
                     onChange={(e) => setTestDataForm({ ...testDataForm, quantity: e.target.value })}
                     className="text-center text-lg font-bold"
@@ -1970,7 +1970,7 @@ export default function TestingAdmin() {
 
               <Button
                 onClick={handleGenerateTestData}
-                disabled={generatingTestData || (testDataForm.branchId === 'current' && !selectedBranchId) || parseInt(testDataForm.quantity) < 1 || parseInt(testDataForm.quantity) > 500}
+                disabled={generatingTestData || (testDataForm.branchId === 'current' && !selectedBranchId) || parseInt(testDataForm.quantity) < 1 || parseInt(testDataForm.quantity) > 10000}
                 className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg h-14 text-base font-bold"
               >
                 {generatingTestData ? (
