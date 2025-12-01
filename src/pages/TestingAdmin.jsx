@@ -100,6 +100,17 @@ export default function TestingAdmin() {
       MaterialDelivery: true
     }
   });
+
+  const [testDataDeleteForm, setTestDataDeleteForm] = useState({
+    branchId: 'current'
+  });
+  const [deletingTestDataByBranch, setDeletingTestDataByBranch] = useState(false);
+  const [testDataDeleteProgress, setTestDataDeleteProgress] = useState({
+    current: '',
+    deleted: 0,
+    total: 0,
+    breakdown: {}
+  });
   const [customDeleting, setCustomDeleting] = useState(false);
   const [customDeleteProgress, setCustomDeleteProgress] = useState({
     current: '',
@@ -856,6 +867,115 @@ export default function TestingAdmin() {
       toast.error('เกิดข้อผิดพลาดในการสร้างข้อมูลทดสอบ: ' + error.message);
     }
   });
+
+  const handleDeleteTestDataByBranch = async () => {
+    const branchName = testDataDeleteForm.branchId === 'current' 
+      ? localStorage.getItem('selected_branch_name') 
+      : testDataDeleteForm.branchId === 'all' 
+        ? 'ทุกสาขา' 
+        : branches.find(b => b.id === testDataDeleteForm.branchId)?.branch_name || 'ไม่ทราบ';
+
+    if (!confirm(`⚠️ ยืนยันการลบข้อมูลทดสอบ\n\nสาขา: ${branchName}\n\nจะลบ:\n• ห้องพักที่มี "TEST-" หรือ "MASSIVE-"\n• ผู้เช่า การจอง บิล มิเตอร์ แจ้งซ่อม ที่เกี่ยวข้อง\n\n** การกระทำนี้ไม่สามารถย้อนกลับได้ **`)) {
+      return;
+    }
+
+    setDeletingTestDataByBranch(true);
+    setTestDataDeleteProgress({ current: 'เริ่มต้น...', deleted: 0, total: 0, breakdown: {} });
+    
+    const branchFilter = testDataDeleteForm.branchId === 'all' 
+      ? {} 
+      : { branch_id: testDataDeleteForm.branchId === 'current' ? selectedBranchId : testDataDeleteForm.branchId };
+    
+    let totalDeleted = 0;
+    const breakdown = {};
+    
+    try {
+      const entities = [
+        { name: 'Payment', label: 'บิลชำระเงิน' },
+        { name: 'MeterReading', label: 'มิเตอร์' },
+        { name: 'MaintenanceRequest', label: 'แจ้งซ่อม' },
+        { name: 'Expense', label: 'ค่าใช้จ่าย' },
+        { name: 'Booking', label: 'การจอง' },
+        { name: 'Tenant', label: 'ผู้เช่า' },
+        { name: 'Room', label: 'ห้องพัก' }
+      ];
+
+      for (const entity of entities) {
+        setTestDataDeleteProgress(prev => ({ ...prev, current: `กำลังลบ ${entity.label}...` }));
+        
+        let entityDeleted = 0;
+        let hasMore = true;
+        
+        while (hasMore) {
+          const items = await base44.entities[entity.name].filter(branchFilter, '-created_date', 100);
+          
+          if (!items || items.length === 0) {
+            hasMore = false;
+            break;
+          }
+          
+          const testItems = items.filter(item => {
+            const checkFields = [
+              item.room_number, item.full_name, item.notes, 
+              item.description, item.title, item.branch_name, item.branch_code
+            ];
+            return checkFields.some(f => f && (
+              f.includes('[TEST-') || f.includes('TEST-') || 
+              f.includes('[HEAVY-') || f.includes('HEAVY-') || 
+              f.includes('[MASSIVE-') || f.includes('MASSIVE-')
+            ));
+          });
+
+          for (const item of testItems) {
+            try {
+              await base44.entities[entity.name].delete(item.id);
+              entityDeleted++;
+              totalDeleted++;
+              
+              if (entityDeleted % 10 === 0) {
+                setTestDataDeleteProgress(prev => ({
+                  ...prev,
+                  deleted: totalDeleted,
+                  breakdown: { ...prev.breakdown, [entity.name]: entityDeleted }
+                }));
+              }
+            } catch (e) {
+              console.warn(`Failed to delete ${entity.name} ${item.id}:`, e.message);
+            }
+          }
+          
+          if (items.length < 100) {
+            hasMore = false;
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        breakdown[entity.name] = entityDeleted;
+        setTestDataDeleteProgress(prev => ({
+          ...prev,
+          deleted: totalDeleted,
+          breakdown: { ...breakdown }
+        }));
+      }
+      
+      setTestDataDeleteProgress(prev => ({ ...prev, current: 'เสร็จสิ้น!' }));
+      
+      if (totalDeleted === 0) {
+        toast.info(`ไม่พบข้อมูลทดสอบใน${branchName}`);
+      } else {
+        toast.success(`ลบข้อมูลทดสอบสำเร็จ ${totalDeleted.toLocaleString()} รายการ`);
+      }
+      
+      await queryClient.invalidateQueries();
+      
+    } catch (error) {
+      console.error('Delete test data by branch error:', error);
+      toast.error('เกิดข้อผิดพลาด: ' + error.message);
+    } finally {
+      setDeletingTestDataByBranch(false);
+    }
+  };
 
   const handleDeleteTestDataWithProgress = async () => {
     if (!confirm('⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลทดสอบทั้งหมด?\n\n' +
@@ -2701,42 +2821,109 @@ export default function TestingAdmin() {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm font-semibold mb-2 block">เลือกสาขาที่จะลบข้อมูลทดสอบ</Label>
+                  <Select
+                    value={testDataDeleteForm.branchId}
+                    onValueChange={(value) => setTestDataDeleteForm({ ...testDataDeleteForm, branchId: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="เลือกสาขา" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="current">
+                        🏢 สาขาปัจจุบัน ({localStorage.getItem('selected_branch_name') || 'ไม่ระบุ'})
+                      </SelectItem>
+                      <SelectItem value="all">
+                        🌐 ทุกสาขา (ระวัง!)
+                      </SelectItem>
+                      {branches.map(branch => (
+                        <SelectItem key={branch.id} value={branch.id}>
+                          {branch.branch_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {deletingTestDataByBranch && (
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <div className="flex items-center gap-3 mb-3">
+                      <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                      <span className="font-semibold text-blue-800">{testDataDeleteProgress.current}</span>
+                    </div>
+                    <p className="text-sm text-blue-700 mb-2">
+                      ลบไปแล้ว: <strong>{testDataDeleteProgress.deleted.toLocaleString()}</strong> รายการ
+                    </p>
+                    {Object.keys(testDataDeleteProgress.breakdown).length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        {Object.entries(testDataDeleteProgress.breakdown).map(([entity, count]) => (
+                          <div key={entity} className="flex justify-between bg-white rounded px-2 py-1">
+                            <span>{entity}:</span>
+                            <span className="font-bold">{count.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <Button
-                  onClick={handleDeleteTestDataWithProgress}
-                  disabled={deletionProgress.show && !deletionProgress.isComplete}
-                  className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 shadow-lg h-12 text-base font-bold"
+                  onClick={handleDeleteTestDataByBranch}
+                  disabled={deletingTestDataByBranch}
+                  className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 shadow-lg h-12 text-base font-bold"
                 >
-                  {deletionProgress.show && !deletionProgress.isComplete ? (
+                  {deletingTestDataByBranch ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                      กำลังลบ...
+                      กำลังลบ... ({testDataDeleteProgress.deleted.toLocaleString()} รายการ)
                     </>
                   ) : (
                     <>
                       <Trash2 className="w-5 h-5 mr-2" />
-                      ลบแบบมี Progress
+                      🎯 ลบข้อมูลทดสอบในสาขาที่เลือก
                     </>
                   )}
                 </Button>
 
-                <Button
-                  onClick={handleDeleteTestData}
-                  disabled={deleteTestDataMutation.isPending}
-                  className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg h-12 text-base font-bold"
-                >
-                  {deleteTestDataMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                      กำลังลบเร็ว...
-                    </>
-                  ) : (
-                    <>
-                      <Zap className="w-5 h-5 mr-2" />
-                      ลบแบบเร็ว (ไม่มี Progress)
-                    </>
-                  )}
-                </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Button
+                    onClick={handleDeleteTestDataWithProgress}
+                    disabled={deletionProgress.show && !deletionProgress.isComplete}
+                    className="bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 shadow-lg h-12 text-base font-bold"
+                  >
+                    {deletionProgress.show && !deletionProgress.isComplete ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                        กำลังลบ...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-5 h-5 mr-2" />
+                        ลบทุกสาขาแบบมี Progress
+                      </>
+                    )}
+                  </Button>
+
+                  <Button
+                    onClick={handleDeleteTestData}
+                    disabled={deleteTestDataMutation.isPending}
+                    className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg h-12 text-base font-bold"
+                  >
+                    {deleteTestDataMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                        กำลังลบเร็ว...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-5 h-5 mr-2" />
+                        ลบทุกสาขาแบบเร็ว
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
 
               <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-300">
