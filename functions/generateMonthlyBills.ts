@@ -431,6 +431,12 @@ Deno.serve(async (req) => {
                 const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
                 if (!activeBooking) continue;
 
+                // ⭐⭐⭐ CRITICAL: เช็คว่าห้องนี้ถูกเพิ่มใน session นี้แล้วหรือไม่ (ป้องกัน duplicate ใน loop)
+                if (roomsAddedThisSession.has(room.id)) {
+                    console.log(`⏭️ Room ${room.room_number}: Already added this session - skip duplicate`);
+                    continue;
+                }
+
                 // Check existing bill
                 const roomBranchId = room.branch_id;
                 const roomPayDay = parseInt(getConfigValue('pay_day', '5', roomBranchId));
