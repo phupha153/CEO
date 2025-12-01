@@ -482,7 +482,7 @@ export default function TestInvoiceGenerationPage() {
             <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-2 border-red-300">
               <CardContent className="p-3">
                 <div className="text-center">
-                  <p className="text-xs text-slate-600">ยังไม่มีบิล ({currentYearMonth})</p>
+                  <p className="text-xs text-slate-600">ยังไม่มีบิล ({targetBillYearMonth})</p>
                   <p className="text-2xl font-bold text-red-600">{roomsWithoutCurrentBill.length}</p>
                 </div>
               </CardContent>
