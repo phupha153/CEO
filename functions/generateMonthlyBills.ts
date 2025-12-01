@@ -286,6 +286,34 @@ Deno.serve(async (req) => {
         console.log(`📅 Current date: ${currentDay}/${currentMonth + 1}/${currentYear} (Thailand time)`);
         console.log(`🔧 Force create: ${forceCreate}`);
         console.log(`📊 existingBillsSet size: ${existingBillsSet.size}`);
+        
+        // ⭐⭐⭐ CRITICAL CHECK: ถ้า Set ว่างเปล่าแต่มี payments = มีปัญหา parsing
+        if (existingBillsSet.size === 0 && recentPayments.length > 0) {
+            console.error(`🚨 CRITICAL BUG: existingBillsSet is EMPTY but we have ${recentPayments.length} payments!`);
+            console.error(`🚨 This will cause DUPLICATE BILLS!`);
+            
+            // แสดงตัวอย่าง payment เพื่อ debug
+            const sample = recentPayments[0];
+            console.error(`🔍 Sample payment keys: ${Object.keys(sample || {}).join(', ')}`);
+            console.error(`🔍 Sample payment.id: ${sample?.id}`);
+            console.error(`🔍 Sample payment.room_id: ${sample?.room_id}`);
+            console.error(`🔍 Sample payment.due_date: ${sample?.due_date}`);
+            console.error(`🔍 Sample payment.data: ${JSON.stringify(sample?.data || 'undefined')}`);
+            
+            // ⭐ STOP EXECUTION - ไม่ยอมสร้างบิลซ้ำ
+            return Response.json({
+                success: false,
+                error: 'CRITICAL: existingBillsSet is empty but payments exist - potential duplicate bill bug',
+                debug: {
+                    paymentsCount: recentPayments.length,
+                    existingBillsSetSize: existingBillsSet.size,
+                    samplePaymentKeys: Object.keys(sample || {}),
+                    sampleRoomId: sample?.room_id,
+                    sampleDueDate: sample?.due_date,
+                    sampleData: sample?.data
+                }
+            }, { status: 500 });
+        }
 
         // ⭐⭐⭐ CRITICAL: Normalize ALL entities - data might be inside .data property OR flat
         const normalizeEntity = (entity) => {
