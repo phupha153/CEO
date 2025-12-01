@@ -217,23 +217,22 @@ Deno.serve(async (req) => {
         // ✅ STEP 8: ลบ Tenants
         if (testTenants.length > 0) {
             console.log('👥 Step 8: Deleting test tenants...');
-            const batchSize = 100;
+            const batchSize = 20;
             for (let i = 0; i < testTenants.length; i += batchSize) {
                 const batch = testTenants.slice(i, i + batchSize);
-                const deletePromises = batch.map(t => 
-                    base44.asServiceRole.entities.Tenant.delete(t.id)
-                        .then(() => {
-                            results.deletedTenants++;
-                            return { success: true, id: t.id };
-                        })
-                        .catch(error => {
-                            results.errors.push(`Tenant ${t.full_name}: ${error.message}`);
-                            return { success: false, id: t.id, error: error.message };
-                        })
-                );
                 
-                await Promise.all(deletePromises);
+                for (const t of batch) {
+                    try {
+                        await base44.asServiceRole.entities.Tenant.delete(t.id);
+                        results.deletedTenants++;
+                    } catch (error) {
+                        results.errors.push(`Tenant ${t.full_name}: ${error.message}`);
+                    }
+                    await delay(100);
+                }
+                
                 console.log(`  ✅ Deleted batch ${Math.floor(i/batchSize) + 1}: ${results.deletedTenants}/${testTenants.length}`);
+                await delay(500);
             }
         }
 
