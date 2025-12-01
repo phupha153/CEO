@@ -177,23 +177,22 @@ Deno.serve(async (req) => {
         // ✅ STEP 6: ลบ Rooms
         if (testRooms.length > 0) {
             console.log('🏠 Step 6: Deleting test rooms...');
-            const batchSize = 100;
+            const batchSize = 20;
             for (let i = 0; i < testRooms.length; i += batchSize) {
                 const batch = testRooms.slice(i, i + batchSize);
-                const deletePromises = batch.map(r => 
-                    base44.asServiceRole.entities.Room.delete(r.id)
-                        .then(() => {
-                            results.deletedRooms++;
-                            return { success: true, id: r.id };
-                        })
-                        .catch(error => {
-                            results.errors.push(`Room ${r.room_number}: ${error.message}`);
-                            return { success: false, id: r.id, error: error.message };
-                        })
-                );
                 
-                await Promise.all(deletePromises);
+                for (const r of batch) {
+                    try {
+                        await base44.asServiceRole.entities.Room.delete(r.id);
+                        results.deletedRooms++;
+                    } catch (error) {
+                        results.errors.push(`Room ${r.room_number}: ${error.message}`);
+                    }
+                    await delay(100);
+                }
+                
                 console.log(`  ✅ Deleted batch ${Math.floor(i/batchSize) + 1}: ${results.deletedRooms}/${testRooms.length}`);
+                await delay(500);
             }
         }
 
