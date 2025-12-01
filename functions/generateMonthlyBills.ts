@@ -230,9 +230,17 @@ Deno.serve(async (req) => {
             if (rawSample?.data) {
                 console.log(`🔍 [RAW BEFORE NORMALIZE] data.room_id: ${rawSample.data.room_id}`);
                 console.log(`🔍 [RAW BEFORE NORMALIZE] data.due_date: ${rawSample.data.due_date}`);
+                console.log(`🔍 [RAW BEFORE NORMALIZE] data.branch_id: ${rawSample.data.branch_id}`);
             }
             // ⭐ แสดง JSON ตัวเต็มของ payment แรก
             console.log(`🔍 [RAW BEFORE NORMALIZE] FULL JSON: ${JSON.stringify(rawSample).substring(0, 500)}`);
+            
+            // ⭐⭐⭐ นับจำนวน payment ที่มี branch_id ตรงกับ targetBranchId
+            const matchingBranchCount = recentPayments.filter(p => {
+                const branchId = p.branch_id || p.data?.branch_id;
+                return branchId === targetBranchId;
+            }).length;
+            console.log(`🔍 [DEBUG] Payments matching targetBranchId (${targetBranchId}): ${matchingBranchCount}/${recentPayments.length}`);
         } else {
             console.log(`🚨 recentPayments is EMPTY before normalize!`);
         }
