@@ -74,8 +74,7 @@ export default function TestingAdmin() {
   const [testDataForm, setTestDataForm] = useState({
     entityType: 'CompleteSet',
     quantity: 10,
-    branchId: 'current',
-    selectedBranches: [] // เลือกหลายสาขา
+    branchId: 'current'
   });
 
   const [yearlyDataForm, setYearlyDataForm] = useState({
@@ -3277,210 +3276,39 @@ export default function TestingAdmin() {
                 </div>
               )}
 
-              <div className="space-y-3">
-                <div>
-                  <Label className="text-sm font-semibold mb-2 block">เลือกสาขาที่ต้องการสร้างบิล</Label>
-                  <Select
-                    value={testDataForm.branchId}
-                    onValueChange={(value) => {
-                      if (value === 'multiple') {
-                        setTestDataForm({ ...testDataForm, branchId: value });
-                      } else {
-                        setTestDataForm({ ...testDataForm, branchId: value, selectedBranches: [] });
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกสาขา" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="current">
-                        🏢 สาขาปัจจุบัน ({localStorage.getItem('selected_branch_name') || 'ไม่ระบุ'})
-                      </SelectItem>
-                      <SelectItem value="all">
-                        🌐 ทุกสาขา ({branches.length} สาขา)
-                      </SelectItem>
-                      <SelectItem value="multiple">
-                        ✨ เลือกหลายสาขา
-                      </SelectItem>
-                      {branches.map(branch => (
-                        <SelectItem key={branch.id} value={branch.id}>
-                          {branch.branch_name} {branchesWithBillsThisMonth.find(b => b.branchId === branch.id) ? '✅' : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {testDataForm.branchId === 'multiple' && (
-                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                    <h4 className="font-semibold text-blue-800 mb-3">เลือกสาขาที่ต้องการสร้างบิล (เลือกได้หลายสาขา)</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
-                      {branches.map(branch => {
-                        const hasBill = branchesWithBillsThisMonth.find(b => b.branchId === branch.id);
-                        const isSelected = testDataForm.selectedBranches.includes(branch.id);
-                        return (
-                          <label
-                            key={branch.id}
-                            className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                              isSelected
-                                ? 'bg-green-100 border-green-400 text-green-900'
-                                : 'bg-white border-slate-200 hover:border-blue-300'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setTestDataForm({
-                                    ...testDataForm,
-                                    selectedBranches: [...testDataForm.selectedBranches, branch.id]
-                                  });
-                                } else {
-                                  setTestDataForm({
-                                    ...testDataForm,
-                                    selectedBranches: testDataForm.selectedBranches.filter(id => id !== branch.id)
-                                  });
-                                }
-                              }}
-                              className="w-4 h-4"
-                            />
-                            <Building2 className="w-4 h-4" />
-                            <span className="text-sm font-medium flex-1">{branch.branch_name}</span>
-                            {hasBill && <span className="text-xs">✅</span>}
-                          </label>
-                        );
-                      })}
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTestDataForm({ 
-                          ...testDataForm, 
-                          selectedBranches: branches.map(b => b.id) 
-                        })}
-                      >
-                        เลือกทั้งหมด
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTestDataForm({ 
-                          ...testDataForm, 
-                          selectedBranches: [] 
-                        })}
-                      >
-                        ยกเลิกทั้งหมด
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setTestDataForm({ 
-                          ...testDataForm, 
-                          selectedBranches: branches
-                            .filter(b => !branchesWithBillsThisMonth.find(bb => bb.branchId === b.id))
-                            .map(b => b.id)
-                        })}
-                      >
-                        เลือกที่ยังไม่มีบิล
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Button
-                  onClick={async () => {
-                    let targetBranchIds = [];
-                    let branchName = '';
-
-                    if (testDataForm.branchId === 'current') {
-                      targetBranchIds = [selectedBranchId];
-                      branchName = localStorage.getItem('selected_branch_name');
-                    } else if (testDataForm.branchId === 'all') {
-                      targetBranchIds = [null]; // null = all branches
-                      branchName = 'ทุกสาขา';
-                    } else if (testDataForm.branchId === 'multiple') {
-                      if (testDataForm.selectedBranches.length === 0) {
-                        toast.error('กรุณาเลือกสาขาอย่างน้อย 1 สาขา');
-                        return;
-                      }
-                      targetBranchIds = testDataForm.selectedBranches;
-                      branchName = `${testDataForm.selectedBranches.length} สาขาที่เลือก`;
-                    } else {
-                      targetBranchIds = [testDataForm.branchId];
-                      branchName = branches.find(b => b.id === testDataForm.branchId)?.branch_name;
-                    }
-
-                    if (!confirm(`คุณต้องการสร้างบิลประจำเดือนสำหรับ "${branchName}" ใช่หรือไม่?`)) {
-                      return;
-                    }
-
-                    setGeneratingBills(true);
-                    let totalGenerated = 0;
-                    let totalErrors = 0;
-
-                    try {
-                      // ถ้าเลือกหลายสาขา ทำทีละสาขา
-                      if (testDataForm.branchId === 'multiple') {
-                        for (const branchId of targetBranchIds) {
-                          const branch = branches.find(b => b.id === branchId);
-                          toast.info(`กำลังสร้างบิลสาขา ${branch?.branch_name || 'ไม่ทราบ'}...`);
-                          
-                          const response = await base44.functions.invoke('generateMonthlyBills', {
-                            force: false,
-                            branch_id: branchId
-                          });
-
-                          if (response.data.success) {
-                            totalGenerated += response.data.generatedCount || 0;
-                          } else {
-                            totalErrors++;
-                            toast.error(`${branch?.branch_name}: ${response.data.message}`);
-                          }
-                        }
-                        
-                        if (totalGenerated > 0) {
-                          toast.success(`สร้างบิลสำเร็จ ${totalGenerated} รายการจาก ${targetBranchIds.length} สาขา`);
-                        }
-                      } else {
-                        // เดี่ยวสาขา หรือทุกสาขา
-                        const response = await base44.functions.invoke('generateMonthlyBills', {
-                          force: false,
-                          branch_id: targetBranchIds[0]
-                        });
-
-                        if (response.data.success) {
-                          setLastBillGeneration(response.data);
-                          toast.success(response.data.message);
-                        } else {
-                          toast.error(response.data.message || 'เกิดข้อผิดพลาดในการสร้างบิล');
-                        }
-                      }
-
-                      await queryClient.invalidateQueries(['payments']);
-                      await queryClient.invalidateQueries(['allPaymentsTestingAdmin']);
-                      await refetchBillLogs();
-                    } catch (error) {
-                      toast.error('เกิดข้อผิดพลาด: ' + error.message);
-                    } finally {
-                      setGeneratingBills(false);
-                    }
-                  }}
-                  disabled={generatingBills || (testDataForm.branchId === 'multiple' && testDataForm.selectedBranches.length === 0)}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg h-12"
+                  onClick={handleGenerateBills}
+                  disabled={generatingBills}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg h-12"
                 >
                   {generatingBills ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
                       กำลังสร้างบิล...
                     </>
                   ) : (
                     <>
                       <Zap className="w-5 h-5 mr-2" />
-                      สร้างบิลสำหรับสาขาที่เลือก
-                      {testDataForm.branchId === 'multiple' && testDataForm.selectedBranches.length > 0 && ` (${testDataForm.selectedBranches.length})`}
+                      สร้างบิลสาขาปัจจุบัน
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  onClick={handleGenerateAllBranchesBills}
+                  disabled={generatingBills}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg h-12"
+                >
+                  {generatingBills ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      กำลังสร้างบิล...
+                    </>
+                  ) : (
+                    <>
+                      <Building2 className="w-5 h-5 mr-2" />
+                      สร้างบิลทุกสาขา
                     </>
                   )}
                 </Button>

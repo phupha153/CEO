@@ -108,10 +108,6 @@ Deno.serve(async (req) => {
         }
 
         console.log('📋 Target:', targetBranchId || 'ALL');
-        console.log(`🔧 Force mode: ${forceCreate} (${typeof forceCreate})`);
-        
-        // ⭐ ถ้าไม่ใช่ force mode = เป็น Cron Job ต้องเช็คบิลซ้ำอย่างเข้มงวด
-        const isCronMode = !forceCreate;
 
         // 1. Fetch Configs
         const configs = await base44.asServiceRole.entities.Config.list() || [];
@@ -421,21 +417,11 @@ Deno.serve(async (req) => {
         
         // To map back created payments later
         const paymentReferenceMap = new Map(); // key: "room_id", value: metadata
-        
-        // ⭐⭐⭐ CRITICAL: เก็บ room_id ที่เพิ่มเข้า paymentsToCreate แล้วใน session นี้
-        // เพื่อป้องกันการสร้างซ้ำภายใน loop เดียวกัน
-        const roomsAddedThisSession = new Set();
 
         for (const room of roomsToProcess) {
             try {
                 const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
                 if (!activeBooking) continue;
-
-                // ⭐⭐⭐ CRITICAL: เช็คว่าห้องนี้ถูกเพิ่มใน session นี้แล้วหรือไม่ (ป้องกัน duplicate ใน loop)
-                if (roomsAddedThisSession.has(room.id)) {
-                    console.log(`⏭️ Room ${room.room_number}: Already added this session - skip duplicate`);
-                    continue;
-                }
 
                 // Check existing bill
                 const roomBranchId = room.branch_id;
@@ -467,21 +453,16 @@ Deno.serve(async (req) => {
                     }
                 }
                 
-                // ⭐⭐⭐ DEBUG: แสดงการค้นหาบิลเก่า
-                console.log(`🔍 Room ${room.room_number}: Looking for bill with mapKey="${mapKey}", existingPaymentsMap.size=${existingPaymentsMap.size}`);
-                
                 if (existingBill) {
                     console.log(`✅ Room ${room.room_number}: Found bill ${existingBill.id} for ${targetDueYearMonth}`);
                 } else {
                     console.log(`📝 Room ${room.room_number}: No bill for ${targetDueYearMonth}, creating...`);
                 }
 
-                // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว:
-                // - ถ้า force=true (เรียกจาก TestingAdmin) → สร้างซ้ำได้เลย ไม่ต้องเช็ค
-                // - ถ้า force=false (เรียกจาก Cron Job) → ข้ามไป ป้องกันสร้างซ้ำ
-                console.log(`🔧 forceCreate=${forceCreate}, existingBill=${existingBill ? existingBill.id : 'null'}`);
-                if (existingBill && !forceCreate) {
-                    console.log(`⏭️ Room ${room.room_number}: มีบิลเดือน ${roomDueMonth + 1}/${roomDueYear} อยู่แล้ว (ID: ${existingBill.id}) - ข้าม (Cron mode)`);
+                // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว = ข้ามไป (ไม่ว่าจะ force หรือไม่ก็ตาม)
+                // เพื่อป้องกันการสร้างบิลซ้ำเมื่อ cron job รันหลายรอบต่อวัน
+                if (existingBill) {
+                    console.log(`⏭️ Room ${room.room_number}: มีบิลเดือน ${roomDueMonth + 1}/${roomDueYear} อยู่แล้ว (ID: ${existingBill.id}) - ข้าม`);
                     skippedDueToExistingBill++;
                     
                     // ถ้าต้องการส่งแจ้งเตือนซ้ำ
@@ -492,11 +473,6 @@ Deno.serve(async (req) => {
                         }
                     }
                     continue;
-                }
-                
-                // ⭐ ถ้า force=true และมีบิลอยู่แล้ว = สร้างซ้ำ (สำหรับ Testing)
-                if (existingBill && forceCreate) {
-                    console.log(`🔄 Room ${room.room_number}: มีบิลอยู่แล้วแต่ force=true → สร้างซ้ำ (Testing mode)`);
                 }
 
                 // Calculate Amounts - ⭐ หามิเตอร์ล่าสุดที่มีค่าหน่วยมากกว่า 0 (ถ้ามี)
@@ -655,13 +631,6 @@ Deno.serve(async (req) => {
 
                 paymentsToCreate.push(paymentData);
                 paymentReferenceMap.set(room.id, { tenant, room });
-                
-                // ⭐ เพิ่ม room.id เข้า Set เพื่อป้องกัน duplicate ใน loop เดียวกัน
-                roomsAddedThisSession.add(room.id);
-                
-                // ⭐⭐⭐ CRITICAL: เพิ่มเข้า existingPaymentsMap ด้วย เพื่อป้องกันการสร้างซ้ำถ้า loop เจอห้องเดียวกันอีก
-                const newMapKey = `${room.id}|${targetDueYearMonth}`;
-                existingPaymentsMap.set(newMapKey, { id: 'pending-creation', room_id: room.id, due_date: paymentData.due_date });
 
             } catch (err) {
                 console.error(`Skipping room ${room.room_number}:`, err);
@@ -682,20 +651,15 @@ Deno.serve(async (req) => {
                 await retryOperation(async () => {
                     const created = await base44.asServiceRole.entities.Payment.bulkCreate(batch);
                     
-                    // Map back for image generation (ทุกสาขา) และ LINE notifications (เฉพาะสาขาที่เปิด)
+                    // Map back for LINE notifications
                     for (const payment of created) {
                         const meta = paymentReferenceMap.get(payment.room_id);
-                        if (meta) {
-                            // ⭐ สร้างรูปทุกสาขา แต่ส่ง LINE เฉพาะสาขาที่เปิด auto_send
-                            const shouldSendLine = meta.tenant?.line_user_id && 
-                                getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
-                            
-                            billsToSend.push({ 
-                                payment, 
-                                tenant: meta.tenant, 
-                                room: meta.room,
-                                shouldSendLine // ⭐ flag บอกว่าต้องส่ง LINE หรือไม่
-                            });
+                        if (meta && meta.tenant?.line_user_id) {
+                            const shouldSend = getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
+                            // Don't send line if auto-paid (optional, usually we still notify)
+                            if (shouldSend) {
+                                billsToSend.push({ payment, tenant: meta.tenant, room: meta.room });
+                            }
                         }
                     }
                     createdCount += created.length;
