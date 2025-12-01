@@ -146,19 +146,7 @@ Deno.serve(async (req) => {
         // ⭐ existingPaymentsMap จะถูกสร้างเป็น Map หลังจาก fetch เพื่อเพิ่มประสิทธิภาพ
         let existingPaymentsMap = new Map(); // key: "room_id|YYYY-MM", value: payment object
         
-        // ⭐ คำนวณช่วงเดือนที่จะตรวจสอบบิลที่มีอยู่ (เดือนปัจจุบัน + 2 เดือนถัดไป เผื่อ edge case)
-        const paymentCheckStartYearMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`; // e.g., "2025-12"
-        
-        // คำนวณ 2 เดือนถัดไป
-        let endCheckYear = currentYear;
-        let endCheckMonth = currentMonth + 2; // 0-indexed, so +2 = next 2 months
-        if (endCheckMonth > 11) {
-            endCheckMonth = endCheckMonth - 12;
-            endCheckYear = currentYear + 1;
-        }
-        const paymentCheckEndYearMonth = `${endCheckYear}-${String(endCheckMonth + 1).padStart(2, '0')}`; // e.g., "2026-02"
-
-        console.log(`🔍 Will check existing payments with due_date YYYY-MM between ${paymentCheckStartYearMonth} and ${paymentCheckEndYearMonth}`);
+        console.log(`🔍 Will check ALL existing payments (no date range filter - fix for duplicate bug)`);
         
         // ⭐ Helper function สำหรับดึงข้อมูลแบบ pagination
         async function fetchWithPagination(entity, filter, sortBy, batchSize = 5000) {
