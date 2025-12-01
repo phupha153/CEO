@@ -299,11 +299,12 @@ Deno.serve(async (req) => {
             }
         }
         
-        console.log('');
         console.log('========================================');
-        console.log('🗺️ EXISTING PAYMENTS MAP');
         console.log('========================================');
-        console.log(`Map size: ${existingPaymentsMap.size}`);
+        console.log('🗺️🗺️🗺️ EXISTING PAYMENTS MAP 🗺️🗺️🗺️');
+        console.log('========================================');
+        console.log('========================================');
+        console.log(`⭐⭐⭐ MAP SIZE: ${existingPaymentsMap.size} ⭐⭐⭐`);
         
         if (existingPaymentsMap.size > 0) {
             const sampleKeys = Array.from(existingPaymentsMap.keys()).slice(0, 5);
