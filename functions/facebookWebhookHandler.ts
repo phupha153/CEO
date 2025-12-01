@@ -81,36 +81,51 @@ Deno.serve(async (req) => {
             // ตอบกลับ 200 OK ทันที
             const response = new Response('EVENT_RECEIVED', { status: 200 });
 
-            // Process events
+            // Process events asynchronously
             (async () => {
                 for (const entry of body.entry || []) {
-                    const webhookEvent = entry.messaging?.[0];
-                    if (!webhookEvent) continue;
+                    // Handle Messenger messages
+                    if (entry.messaging) {
+                        for (const webhookEvent of entry.messaging) {
+                            const senderPsid = webhookEvent.sender.id;
+                            const messageId = webhookEvent.message?.mid;
 
-                    const senderPsid = webhookEvent.sender.id;
-                    const messageId = webhookEvent.message?.mid;
+                            if (messageId && processedMessages.has(messageId)) continue;
+                            if (messageId) {
+                                processedMessages.add(messageId);
+                                if (processedMessages.size > 500) {
+                                    const first = processedMessages.values().next().value;
+                                    processedMessages.delete(first);
+                                }
+                            }
 
-                    if (messageId && processedMessages.has(messageId)) continue;
-                    if (messageId) {
-                        processedMessages.add(messageId);
-                        if (processedMessages.size > 500) {
-                            const first = processedMessages.values().next().value;
-                            processedMessages.delete(first);
+                            console.log(`📩 Messenger event from PSID: ${senderPsid}`);
+
+                            const tenants = await base44.asServiceRole.entities.Tenant.list();
+                            const tenant = tenants.find(t => t.facebook_user_id === senderPsid);
+                            const branchId = tenant?.branch_id || null;
+
+                            if (webhookEvent.message) {
+                                if (webhookEvent.message.text) {
+                                    await handleMessage(base44, senderPsid, webhookEvent.message.text, branchId, tenant);
+                                } else if (webhookEvent.message.attachments) {
+                                    await handleAttachments(base44, senderPsid, webhookEvent.message.attachments, branchId, tenant);
+                                }
+                            }
                         }
                     }
-
-                    console.log(`📩 Received event from PSID: ${senderPsid}`);
-
-                    // หา Tenant และ Branch
-                    const tenants = await base44.asServiceRole.entities.Tenant.list();
-                    const tenant = tenants.find(t => t.facebook_user_id === senderPsid);
-                    const branchId = tenant?.branch_id || null; // ถ้าไม่เจอ tenant, branchId = null (จะใช้ global token)
-
-                    if (webhookEvent.message) {
-                        if (webhookEvent.message.text) {
-                            await handleMessage(base44, senderPsid, webhookEvent.message.text, branchId, tenant);
-                        } else if (webhookEvent.message.attachments) {
-                            await handleAttachments(base44, senderPsid, webhookEvent.message.attachments, branchId, tenant);
+                    
+                    // Handle Page Feed (Posts, Comments)
+                    if (entry.changes) {
+                        for (const change of entry.changes) {
+                            if (change.field === 'feed') {
+                                const value = change.value;
+                                
+                                // Handle new comments
+                                if (value.item === 'comment' && value.verb === 'add') {
+                                    await handlePageComment(base44, value);
+                                }
+                            }
                         }
                     }
                 }
@@ -513,6 +528,48 @@ async function handleMaintenanceReport(base44, senderPsid, text, tenant) {
         await sendFacebookMessage(base44, senderPsid, `✅ รับเรื่องแจ้งซ่อมแล้ว\nหัวข้อ: ${analysis.title}`, tenant.branch_id);
     } else {
         await sendFacebookMessage(base44, senderPsid, '❌ ไม่พบข้อมูลการเช่าห้องของคุณ', tenant.branch_id);
+    }
+}
+
+async function handlePageComment(base44, commentData) {
+    try {
+        const commentId = commentData.comment_id;
+        const postId = commentData.post_id;
+        const senderId = commentData.from?.id;
+        const message = commentData.message;
+        
+        console.log(`💬 New comment on post ${postId}: "${message}"`);
+        
+        // ใช้ AI สร้างข้อความตอบกลับ
+        const replyText = await base44.asServiceRole.integrations.Core.InvokeLLM({
+            prompt: `คุณคือผู้ช่วยของหอพัก/อพาร์ทเมนท์ ตอบคอมเมนต์นี้อย่างสุภาพและเป็นมิตร:\n\n"${message}"\n\nตอบสั้นๆ ไม่เกิน 2-3 ประโยค เป็นภาษาไทยที่สุภาพ`,
+            add_context_from_internet: false
+        });
+        
+        // หา branch_id จาก post หรือ config
+        const branches = await base44.asServiceRole.entities.Branch.list();
+        const defaultBranch = branches[0];
+        const branchId = defaultBranch?.id || null;
+        
+        // Reply to comment
+        const config = await getFacebookConfig(base44, branchId);
+        if (!config?.pageAccessToken) {
+            console.error('❌ No Page Access Token for replying to comment');
+            return;
+        }
+        
+        await fetch(`https://graph.facebook.com/v18.0/${commentId}/comments`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: replyText,
+                access_token: config.pageAccessToken
+            })
+        });
+        
+        console.log(`✅ Replied to comment: ${replyText}`);
+    } catch (error) {
+        console.error('❌ Error handling page comment:', error);
     }
 }
 
