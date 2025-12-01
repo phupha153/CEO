@@ -658,10 +658,25 @@ export default function PaymentsPage() {
 
     let result = payments;
   
-    if (dateRange) {
+    // ⭐ กรองตาม dateRange เฉพาะเมื่อไม่ใช่ "ทั้งหมด"
+    if (dateRange && dateRangeType !== 'all') {
       result = result.filter(payment => {
         const effectiveStatus = getEffectiveStatus(payment);
         
+        // ⭐ สำหรับ paid payments ให้กรองตาม payment_date (เหมือน Dashboard)
+        if (effectiveStatus === 'paid') {
+          if (!payment.payment_date) return false;
+          try {
+            const paymentDate = parseISO(payment.payment_date);
+            if (isNaN(paymentDate.getTime())) return false;
+            return isWithinInterval(paymentDate, { start: dateRange.from, end: dateRange.to });
+          } catch (error) {
+            console.error('Error filtering payment by date:', error);
+            return false;
+          }
+        }
+        
+        // ⭐ สำหรับ pending/overdue ให้กรองตาม due_date (ไม่เปลี่ยนแปลง)
         if (effectiveStatus === 'pending' || effectiveStatus === 'overdue') {
           if (!payment.due_date) return false;
           try {
@@ -669,20 +684,6 @@ export default function PaymentsPage() {
             if (isNaN(dueDate.getTime())) return false;
             return isWithinInterval(dueDate, { start: dateRange.from, end: dateRange.to });
           } catch {
-            return false;
-          }
-        }
-        
-        if (effectiveStatus === 'paid') {
-          const dateToCheck = payment.payment_date;
-          if (!dateToCheck) return false;
-          
-          try {
-            const paymentDate = parseISO(dateToCheck);
-            if (isNaN(paymentDate.getTime())) return false;
-            return isWithinInterval(paymentDate, { start: dateRange.from, end: dateRange.to });
-          } catch (error) {
-            console.error('Error filtering payment by date:', error);
             return false;
           }
         }
