@@ -164,10 +164,23 @@ export default function TestInvoiceGenerationPage() {
       rooms: rooms.length,
       monthlyRooms: monthlyRooms.length,
       roomsWithBooking: roomsWithBooking.length,
+      roomsWithoutCurrentBill: roomsWithoutCurrentBill.length,
       bookings: bookings.length,
       meterReadings: meterReadings.length,
       tenants: tenants.length
     });
+    
+    addLog('info', `🔍 เดือนปัจจุบัน: ${currentYearMonth}`);
+    addLog('info', `🏠 ห้องที่ยังไม่มีบิลเดือนนี้: ${roomsWithoutCurrentBill.length} ห้อง`);
+    
+    if (roomsWithoutCurrentBill.length === 0) {
+      addLog('warning', '⚠️ ไม่มีห้องที่ต้องสร้างบิล - ทุกห้องมีบิลเดือนนี้แล้ว');
+      toast.info('ทุกห้องมีบิลเดือนนี้แล้ว');
+      setGeneratingBills(false);
+      return;
+    }
+    
+    addLog('info', `📋 ห้องที่จะสร้างบิล: ${roomsWithoutCurrentBill.map(r => r.room_number).slice(0, 10).join(', ')}${roomsWithoutCurrentBill.length > 10 ? '...' : ''}`);
 
     addLog('api', 'เรียก generateMonthlyBills API...', { branch_id: selectedBranchId, force: true });
 
