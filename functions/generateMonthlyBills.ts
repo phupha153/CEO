@@ -192,20 +192,24 @@ Deno.serve(async (req) => {
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
         // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ pagination เหมือนกัน
-        console.log(`🔍 Fetching recent payments with pagination...`);
-        console.log(`🔍 Target branch filter: ${targetBranchId || 'ALL BRANCHES'}`);
+        console.log('');
+        console.log('========================================');
+        console.log('📦 FETCHING EXISTING PAYMENTS');
+        console.log('========================================');
+        console.log(`Target branch: ${targetBranchId || 'ALL'}`);
         
         let recentPayments = [];
         await retryOperation(async () => {
             const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
-            console.log(`🔍 Payment filter: ${JSON.stringify(paymentFilter)}`);
             
             // ⭐ ลองดึงแบบ list ก่อนเพื่อ debug
             const testPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 10);
-            console.log(`🔍 TEST: Payment.list() returned ${testPayments?.length || 0} items`);
+            console.log(`TEST Payment.list(): ${testPayments?.length || 0} items`);
             if (testPayments && testPayments.length > 0) {
-                console.log(`🔍 TEST: First payment keys: ${Object.keys(testPayments[0]).join(', ')}`);
-                console.log(`🔍 TEST: First payment branch_id: ${testPayments[0].branch_id}`);
+                console.log(`TEST First payment KEYS: ${Object.keys(testPayments[0]).join(', ')}`);
+                console.log(`TEST First payment branch_id: ${testPayments[0].branch_id}`);
+                console.log(`TEST First payment room_id: ${testPayments[0].room_id}`);
+                console.log(`TEST First payment due_date: ${testPayments[0].due_date}`);
             }
             
             recentPayments = await fetchWithPagination(
@@ -215,18 +219,18 @@ Deno.serve(async (req) => {
             );
         });
         
-        console.log(`📦 Fetched ${(recentPayments || []).length} recent payments (raw)`);
+        console.log(`FETCHED: ${(recentPayments || []).length} payments (raw)`);
         recentPayments = recentPayments || [];
         
         // ⭐⭐⭐ DEBUG: แสดงตัวอย่าง payment แรก (ก่อน normalize)
         if (recentPayments.length > 0) {
             const sample = recentPayments[0];
-            console.log(`🔍 RAW Payment sample KEYS: ${Object.keys(sample).join(', ')}`);
-            console.log(`🔍 RAW Payment sample: id=${sample.id}, room_id=${sample.room_id}, due_date=${sample.due_date}, data=${sample.data ? 'EXISTS' : 'UNDEFINED'}`);
-            if (sample.data) {
-                console.log(`🔍 RAW Payment.data KEYS: ${Object.keys(sample.data).join(', ')}`);
-            }
+            console.log(`RAW Payment KEYS: ${Object.keys(sample).join(', ')}`);
+            console.log(`RAW Payment: id=${sample.id}, room_id=${sample.room_id}, due_date=${sample.due_date}`);
+        } else {
+            console.log(`❌ NO PAYMENTS FOUND IN DATABASE!`);
         }
+        console.log('========================================');
         
         // ⭐⭐⭐ CRITICAL FIX: Normalize payments - เช็ค .data property เหมือนโค้ดเก่าที่เคยทำงานได้
         const normalizedPayments = [];
