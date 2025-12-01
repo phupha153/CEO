@@ -268,12 +268,25 @@ Deno.serve(async (req) => {
         if (existingPaymentsMap.size > 0) {
             const sampleKeys = Array.from(existingPaymentsMap.keys()).slice(0, 10);
             console.log(`🔑 Sample map keys: ${sampleKeys.join(', ')}`);
+        } else {
+            console.log(`⚠️ WARNING: existingPaymentsMap is EMPTY!`);
         }
         
         // ⭐ DEBUG: แสดง due_date (YYYY-MM) ที่พบ
         if (normalizedPayments.length > 0) {
             const dueYearMonths = [...new Set(normalizedPayments.map(p => p.due_date?.substring(0, 7)).filter(Boolean))];
             console.log(`📅 Due YYYY-MM found in payments: ${dueYearMonths.join(', ')}`);
+            
+            // ⭐⭐⭐ DEBUG: หา room_id จาก booking แรกและเช็คว่ามีบิลหรือไม่
+            if (bookings.length > 0) {
+                const testRoomId = bookings[0].room_id;
+                const testRoom = allRooms.find(r => r.id === testRoomId);
+                const roomPayments = normalizedPayments.filter(p => p.room_id === testRoomId);
+                console.log(`🔍 DEBUG Room ${testRoom?.room_number || testRoomId}: has ${roomPayments.length} payments`);
+                if (roomPayments.length > 0) {
+                    console.log(`🔍 DEBUG Room payments due_dates: ${roomPayments.map(p => p.due_date).join(', ')}`);
+                }
+            }
         }
         console.log(`📅 Current date: ${currentDay}/${currentMonth + 1}/${currentYear} (Thailand time)`);
         console.log(`🔧 Force create: ${forceCreate}`);
