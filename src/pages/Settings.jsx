@@ -3177,6 +3177,64 @@ export default function Settings() {
                           canSetGlobalConfig={canSetGlobalConfig}
                         />
 
+                        {/* ปุ่ม OAuth Connect */}
+                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
+                          <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
+                            <Zap className="w-5 h-5" />
+                            🚀 เชื่อมต่อด้วย OAuth (แนะนำ)
+                          </h4>
+                          <p className="text-sm text-blue-800 mb-4">
+                            คลิกปุ่มด้านล่างเพื่อเชื่อมต่อกับ Facebook Page ของคุณแบบอัตโนมัติ ไม่ต้องคัดลอก Token เอง
+                          </p>
+                          <Button
+                            type="button"
+                            onClick={async () => {
+                              if (!selectedBranch?.id) {
+                                toast.error('กรุณาเลือกสาขาก่อน');
+                                return;
+                              }
+                              try {
+                                const response = await base44.functions.invoke('facebookOAuthStart', {
+                                  branch_id: selectedBranch.id,
+                                  redirect_url: window.location.href
+                                });
+                                
+                                if (response.data.success && response.data.auth_url) {
+                                  window.open(response.data.auth_url, 'facebook_oauth', 'width=600,height=700');
+                                  
+                                  // รอรับ message จาก popup
+                                  const handleMessage = (event) => {
+                                    if (event.data.type === 'facebook_oauth_success') {
+                                      toast.success(`เชื่อมต่อกับ ${event.data.pageName} สำเร็จ!`);
+                                      queryClient.invalidateQueries(['configs']);
+                                      window.removeEventListener('message', handleMessage);
+                                    }
+                                  };
+                                  window.addEventListener('message', handleMessage);
+                                } else {
+                                  toast.error('ไม่สามารถสร้าง OAuth URL ได้');
+                                }
+                              } catch (error) {
+                                toast.error('เกิดข้อผิดพลาด: ' + error.message);
+                              }
+                            }}
+                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-6"
+                          >
+                            <Globe className="w-5 h-5 mr-2" />
+                            เชื่อมต่อกับ Facebook
+                          </Button>
+                        </div>
+
+                        {/* หรือ */}
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-slate-300"></div>
+                          </div>
+                          <div className="relative flex justify-center">
+                            <span className="bg-white px-4 text-sm text-slate-500">หรือกรอก Token ด้วยตัวเอง</span>
+                          </div>
+                        </div>
+
                         <form onSubmit={handleFacebookSettingsSubmit} className="space-y-6">
                           <div className="space-y-4">
                             <div>
