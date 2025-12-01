@@ -147,20 +147,9 @@ Deno.serve(async (req) => {
         // ใช้ Set เก็บ "room_id|YYYY-MM" เพื่อเช็คซ้ำแบบ O(1)
         let existingBillsSet = new Set();
         
-        // ⭐ คำนวณช่วงเดือนที่จะตรวจสอบบิลที่มีอยู่ (เดือนปัจจุบัน + 2 เดือนถัดไป เผื่อ edge case)
-        // ใช้ YYYY-MM format สำหรับเปรียบเทียบ เพื่อความง่ายและถูกต้อง
-        const paymentCheckStartYearMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`; // e.g., "2025-11"
-        
-        // คำนวณ 2 เดือนถัดไป
-        let endCheckYear = currentYear;
-        let endCheckMonth = currentMonth + 2; // 0-indexed, so +2 = next 2 months
-        if (endCheckMonth > 11) {
-            endCheckMonth = endCheckMonth - 12;
-            endCheckYear = currentYear + 1;
-        }
-        const paymentCheckEndYearMonth = `${endCheckYear}-${String(endCheckMonth + 1).padStart(2, '0')}`; // e.g., "2026-01"
-
-        console.log(`🔍 Will check existing payments with due_date YYYY-MM between ${paymentCheckStartYearMonth} and ${paymentCheckEndYearMonth}`);
+        // ⭐ Log เดือนที่จะสร้างบิล
+        const targetBillMonth = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+        console.log(`🔍 Will check existing payments for month: ${targetBillMonth}`);
         
         await retryOperation(async () => {
             const filter = targetBranchId ? { branch_id: targetBranchId } : {};
