@@ -655,6 +655,13 @@ Deno.serve(async (req) => {
 
                 paymentsToCreate.push(paymentData);
                 paymentReferenceMap.set(room.id, { tenant, room });
+                
+                // ⭐ เพิ่ม room.id เข้า Set เพื่อป้องกัน duplicate ใน loop เดียวกัน
+                roomsAddedThisSession.add(room.id);
+                
+                // ⭐⭐⭐ CRITICAL: เพิ่มเข้า existingPaymentsMap ด้วย เพื่อป้องกันการสร้างซ้ำถ้า loop เจอห้องเดียวกันอีก
+                const newMapKey = `${room.id}|${targetDueYearMonth}`;
+                existingPaymentsMap.set(newMapKey, { id: 'pending-creation', room_id: room.id, due_date: paymentData.due_date });
 
             } catch (err) {
                 console.error(`Skipping room ${room.room_number}:`, err);
