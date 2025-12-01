@@ -330,32 +330,28 @@ Deno.serve(async (req) => {
         }
         console.log(`📥 Fetched ${allPayments.length} total payments`);
 
-        // ⭐ สร้างรูปเฉพาะบิลที่ยังไม่มีรูป หรือต้องสร้างใหม่
+        // ⭐ สร้างรูปเฉพาะบิลที่ยังไม่มีรูป และยังไม่ได้กำลังสร้าง
         const paymentsToProcess = allPayments.filter(p => {
             // ข้ามบิลที่ชำระแล้ว
             if (p.status === 'paid') return false;
             
-            // ⭐⭐⭐ ถ้ามีรูปแล้ว + status = completed = ข้ามเลย (ไม่สร้างซ้ำ)
-            if (p.invoice_image_url && p.invoice_image_status === 'completed') {
-                // เช็ค hash ว่าบิลถูกแก้ไขหรือไม่
-                if (p.invoice_data_hash) {
-                    const currentHash = generatePaymentHash(p);
-                    if (currentHash === p.invoice_data_hash) {
-                        // hash ตรง = ไม่ต้องสร้างใหม่
-                        return false;
-                    }
-                    // hash ไม่ตรง = ต้องสร้างใหม่
-                    console.log(`🔄 Payment ${p.id}: Hash mismatch - will regenerate`);
-                } else {
-                    // มีรูปแล้วแต่ไม่มี hash = ไม่ต้องสร้างใหม่
-                    return false;
-                }
+            // ⭐⭐⭐ ข้ามถ้ามีรูปแล้ว (ไม่ว่าจะ status อะไร)
+            if (p.invoice_image_url) {
+                return false;
             }
             
-            // ⭐ ต้องสร้างรูป: ยังไม่มีรูป หรือ status เป็น pending/generating/failed/null
-            const needsImage = !p.invoice_image_url || 
-                p.invoice_image_status === 'pending' || 
-                p.invoice_image_status === 'generating' || 
+            // ⭐⭐⭐ ข้ามถ้ากำลังสร้างอยู่ (generating) - รอบอื่นกำลังทำอยู่
+            if (p.invoice_image_status === 'generating') {
+                return false;
+            }
+            
+            // ⭐⭐⭐ ข้ามถ้า completed แต่ไม่มี URL (กรณีผิดปกติ)
+            if (p.invoice_image_status === 'completed') {
+                return false;
+            }
+            
+            // ⭐ ต้องสร้างรูป: status เป็น pending/failed/null เท่านั้น
+            const needsImage = p.invoice_image_status === 'pending' || 
                 p.invoice_image_status === 'failed' ||
                 !p.invoice_image_status;
             
