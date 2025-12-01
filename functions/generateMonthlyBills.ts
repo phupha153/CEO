@@ -204,8 +204,7 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
-        // ⭐⭐⭐ ดึง Payment แยกต่างหาก โดยใช้ sort by due_date desc และ limit เฉพาะล่าสุด
-        // เพื่อให้ได้เฉพาะ payments ที่เกี่ยวข้องกับเดือนปัจจุบัน/ถัดไป
+        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ Set เก็บ room_id + due_month เพื่อเช็คซ้ำ
         console.log(`🔍 Fetching recent payments with pagination...`);
         
         let recentPayments = [];
@@ -237,81 +236,38 @@ Deno.serve(async (req) => {
         console.log(`📦 Fetched ${(recentPayments || []).length} recent payments (raw)`);
         recentPayments = recentPayments || [];
         
-        // ⭐⭐⭐ CRITICAL FIX: Normalize payments using same logic as other entities
-        const normalizedPayments = [];
+        // ⭐⭐⭐ CRITICAL FIX: สร้าง Set เก็บ "room_id|YYYY-MM" ที่มีบิลแล้ว
+        // ใช้ Set แทน Map เพราะแค่ต้องการเช็คว่ามีหรือไม่
+        const existingBillsSet = new Set();
         
         for (const p of recentPayments) {
             if (!p) continue;
             
-            // ใช้ logic เดียวกับ normalizeEntity
-            let roomId, dueDate, bookingId, status, totalAmount;
+            // ดึง room_id และ due_date จากทั้ง p.data และ root level
+            let roomId, dueDate;
             
             if (p.data && typeof p.data === 'object') {
-                // ข้อมูลอยู่ใน p.data
                 roomId = p.data.room_id;
                 dueDate = p.data.due_date;
-                bookingId = p.data.booking_id;
-                status = p.data.status;
-                totalAmount = p.data.total_amount;
             } else {
-                // ข้อมูลอยู่ใน root level
                 roomId = p.room_id;
                 dueDate = p.due_date;
-                bookingId = p.booking_id;
-                status = p.status;
-                totalAmount = p.total_amount;
             }
             
             if (!roomId || !dueDate) continue;
             
-            normalizedPayments.push({
-                id: p.id,
-                room_id: roomId,
-                due_date: dueDate,
-                booking_id: bookingId,
-                status: status,
-                total_amount: totalAmount,
-            });
+            // สร้าง key จาก room_id + YYYY-MM
+            const dueYearMonth = dueDate.substring(0, 7); // "2025-12"
+            const key = `${roomId}|${dueYearMonth}`;
+            existingBillsSet.add(key);
         }
         
-        console.log(`📦 Normalized ${normalizedPayments.length} payments from ${recentPayments.length} raw`);
+        console.log(`📊 Found ${existingBillsSet.size} unique room-month combinations with existing bills`);
         
-        // Debug: log sample payment
-        if (normalizedPayments.length > 0) {
-            console.log(`🔍 Sample payment: room_id=${normalizedPayments[0].room_id}, due_date=${normalizedPayments[0].due_date}`);
-        }
-        
-        // ⭐ กรองเฉพาะ payments ที่ due_date อยู่ในช่วงที่ต้องการ และสร้าง Map
-        // ใช้ YYYY-MM comparison แทน full date comparison
-        let filteredPaymentsCount = 0;
-        
-        for (const p of normalizedPayments) {
-            if (!p.due_date) continue;
-            
-            const dueYearMonth = p.due_date.substring(0, 7); // "2025-12"
-            
-            // เช็คว่า YYYY-MM อยู่ในช่วงหรือไม่
-            if (dueYearMonth >= paymentCheckStartYearMonth && dueYearMonth <= paymentCheckEndYearMonth) {
-                const mapKey = `${p.room_id}|${dueYearMonth}`;
-                
-                if (!existingPaymentsMap.has(mapKey)) {
-                    existingPaymentsMap.set(mapKey, p);
-                    filteredPaymentsCount++;
-                }
-            }
-        }
-        
-        console.log(`📊 Added ${filteredPaymentsCount} payments to map (total unique: ${existingPaymentsMap.size})`);
-        
-        if (existingPaymentsMap.size > 0) {
-            const sampleKeys = Array.from(existingPaymentsMap.keys()).slice(0, 10);
-            console.log(`🔑 Sample map keys: ${sampleKeys.join(', ')}`);
-        }
-        
-        // ⭐ DEBUG: แสดง due_date (YYYY-MM) ที่พบ
-        if (normalizedPayments.length > 0) {
-            const dueYearMonths = [...new Set(normalizedPayments.map(p => p.due_date?.substring(0, 7)).filter(Boolean))];
-            console.log(`📅 Due YYYY-MM found in payments: ${dueYearMonths.join(', ')}`);
+        // Debug: แสดงตัวอย่าง keys
+        if (existingBillsSet.size > 0) {
+            const sampleKeys = Array.from(existingBillsSet).slice(0, 5);
+            console.log(`🔑 Sample existing bill keys: ${sampleKeys.join(', ')}`);
         }
         console.log(`📅 Current date: ${currentDay}/${currentMonth + 1}/${currentYear} (Thailand time)`);
         console.log(`🔧 Force create: ${forceCreate}`);
@@ -651,15 +607,20 @@ Deno.serve(async (req) => {
                 await retryOperation(async () => {
                     const created = await base44.asServiceRole.entities.Payment.bulkCreate(batch);
                     
-                    // Map back for LINE notifications
+                    // Map back for image generation (ทุกสาขา) และ LINE notifications (เฉพาะสาขาที่เปิด)
                     for (const payment of created) {
                         const meta = paymentReferenceMap.get(payment.room_id);
-                        if (meta && meta.tenant?.line_user_id) {
-                            const shouldSend = getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
-                            // Don't send line if auto-paid (optional, usually we still notify)
-                            if (shouldSend) {
-                                billsToSend.push({ payment, tenant: meta.tenant, room: meta.room });
-                            }
+                        if (meta) {
+                            // ⭐ สร้างรูปทุกสาขา แต่ส่ง LINE เฉพาะสาขาที่เปิด auto_send
+                            const shouldSendLine = meta.tenant?.line_user_id && 
+                                getConfigValue('auto_send_bills_after_generation', 'false', payment.branch_id) === 'true';
+                            
+                            billsToSend.push({ 
+                                payment, 
+                                tenant: meta.tenant, 
+                                room: meta.room,
+                                shouldSendLine // ⭐ flag บอกว่าต้องส่ง LINE หรือไม่
+                            });
                         }
                     }
                     createdCount += created.length;
