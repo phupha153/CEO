@@ -302,16 +302,18 @@ Deno.serve(async (req) => {
             if (!entity) return null;
             // ถ้ามี .data property = ข้อมูลอยู่ใน .data
             if (entity.data && typeof entity.data === 'object') {
-                return { id: entity.id, ...entity.data };
+                return { id: entity.id, created_date: entity.created_date, ...entity.data };
             }
             // ถ้าไม่มี .data = ข้อมูลอยู่ใน root level แล้ว
             return entity;
         };
-        
+
         allRooms = allRooms.map(normalizeEntity).filter(Boolean);
         bookings = bookings.map(normalizeEntity).filter(Boolean);
         meterReadings = meterReadings.map(normalizeEntity).filter(Boolean);
         tenants = tenants.map(normalizeEntity).filter(Boolean);
+
+        console.log(`📦 After normalize: ${allRooms.length} rooms, ${bookings.length} bookings, ${meterReadings.length} meters, ${tenants.length} tenants`);
         
         // Debug: log first room to verify structure
         if (allRooms.length > 0) {
