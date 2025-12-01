@@ -206,23 +206,18 @@ Deno.serve(async (req) => {
             tenants = t || [];
         });
         
-        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ .list() หรือ .filter() ตรงๆ เพราะ pagination อาจมีปัญหากับ Payment entity
+        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ pagination เพราะ limit max = 10000
         await retryOperation(async () => {
-            if (targetBranchId) {
-                // ดึงเฉพาะสาขา
-                recentPayments = await base44.asServiceRole.entities.Payment.filter(
-                    { branch_id: targetBranchId }, 
-                    '-created_date', 
-                    50000
-                );
-            } else {
-                // ดึงทั้งหมด
-                recentPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 50000);
-            }
+            recentPayments = await fetchWithPagination(
+                base44.asServiceRole.entities.Payment, 
+                targetBranchId ? { branch_id: targetBranchId } : {}, 
+                '-created_date',
+                5000 // batch size ต่อครั้ง
+            );
             recentPayments = recentPayments || [];
         });
         
-        console.log(`📦 Fetched payments separately: ${recentPayments.length}`);
+        console.log(`📦 Fetched payments: ${recentPayments.length}`);
         
         // ⭐⭐⭐ DEBUG: แสดง raw payment structure ก่อน normalize
         if (recentPayments.length > 0) {
