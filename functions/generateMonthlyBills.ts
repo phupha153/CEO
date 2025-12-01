@@ -228,7 +228,7 @@ Deno.serve(async (req) => {
         
         // ⭐⭐⭐ CRITICAL FIX: สร้าง Set เก็บ "room_id|YYYY-MM" ที่มีบิลแล้ว
         // ใช้ Set แทน Map เพราะแค่ต้องการเช็คว่ามีหรือไม่
-        const existingBillsSet = new Set();
+        // ไม่ประกาศ const ใหม่ - ใช้ existingBillsSet ที่ประกาศไว้ข้างบน
         
         for (const p of recentPayments) {
             if (!p) continue;
