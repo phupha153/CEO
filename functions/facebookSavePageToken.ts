@@ -11,6 +11,7 @@ Deno.serve(async (req) => {
 
         const base44 = createClient({
             appId: Deno.env.get('BASE44_APP_ID'),
+            serviceToken: Deno.env.get('BASE44_SERVICE_TOKEN')
         });
 
         // บันทึก Page Access Token
