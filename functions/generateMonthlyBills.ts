@@ -271,12 +271,14 @@ Deno.serve(async (req) => {
             console.log(`🔍 Sample payment: room_id=${sample?.room_id}, due_date=${sample?.due_date}, branch_id=${sample?.branch_id}`);
         }
 
-        // ⭐⭐⭐ สร้าง existingBillsSet
+        // ⭐⭐⭐ สร้าง existingBillsSet จาก Payment data ที่ดึงมา
         // ใช้ Set เก็บ "room_id|YYYY-MM" เพื่อเช็คซ้ำแบบ O(1)
         const existingBillsSet = new Set();
         let validPaymentCount = 0;
         let skippedNoRoomId = 0;
         let skippedNoDueDate = 0;
+
+        console.log(`🔍 Building existingBillsSet from ${recentPayments.length} payments...`);
 
         for (const p of recentPayments) {
             if (!p) continue;
@@ -286,7 +288,6 @@ Deno.serve(async (req) => {
 
             if (!roomId) {
                 skippedNoRoomId++;
-                // ⭐ DEBUG: แสดง payment ที่ไม่มี room_id
                 if (skippedNoRoomId <= 3) {
                     console.log(`⚠️ Payment without room_id: id=${p.id}, keys=${Object.keys(p).join(',')}`);
                 }
@@ -294,7 +295,6 @@ Deno.serve(async (req) => {
             }
             if (!dueDate) {
                 skippedNoDueDate++;
-                // ⭐ DEBUG: แสดง payment ที่ไม่มี due_date
                 if (skippedNoDueDate <= 3) {
                     console.log(`⚠️ Payment without due_date: id=${p.id}, room_id=${roomId}`);
                 }
@@ -307,25 +307,25 @@ Deno.serve(async (req) => {
             existingBillsSet.add(key);
             validPaymentCount++;
             
-            // ⭐ DEBUG: แสดง 5 keys แรกที่เพิ่มเข้า Set
             if (validPaymentCount <= 5) {
-                console.log(`✅ Added to existingBillsSet: ${key}`);
+                console.log(`✅ Added to existingBillsSet: ${key} (payment.id=${p.id})`);
             }
         }
 
         console.log(`📊 Payment parsing: valid=${validPaymentCount}, noRoomId=${skippedNoRoomId}, noDueDate=${skippedNoDueDate}`);
-        console.log(`📊 Found ${existingBillsSet.size} unique room-month combinations with existing bills`);
+        console.log(`📊 existingBillsSet.size = ${existingBillsSet.size} (from ${recentPayments.length} payments)`);
 
-        // Debug: แสดงตัวอย่าง keys
         if (existingBillsSet.size > 0) {
             const sampleKeys = Array.from(existingBillsSet).slice(0, 5);
             console.log(`🔑 Sample existing bill keys: ${sampleKeys.join(', ')}`);
+        } else if (recentPayments.length === 0) {
+            console.log(`ℹ️ No existing payments found - this branch has no bills yet`);
         } else {
-            console.log(`⚠️ WARNING: existingBillsSet is EMPTY - all rooms will get new bills!`);
+            console.log(`⚠️ WARNING: existingBillsSet is EMPTY but we have ${recentPayments.length} payments - check parsing!`);
         }
+        
         console.log(`📅 Current date: ${currentDay}/${currentMonth + 1}/${currentYear} (Thailand time)`);
         console.log(`🔧 Force create: ${forceCreate}`);
-        console.log(`📊 existingBillsSet size: ${existingBillsSet.size}`);
         
         // ⭐⭐⭐ CRITICAL CHECK: ถ้า Set ว่างเปล่าแต่มี payments = มีปัญหา parsing
         // แต่ถ้า filter เฉพาะ branch แล้วไม่มี payment ใน branch นี้ = OK (ไม่ใช่ bug)
