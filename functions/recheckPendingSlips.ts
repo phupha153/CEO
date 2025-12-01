@@ -16,19 +16,36 @@ Deno.serve(async (req) => {
             return Response.json({ success: false, error: 'SLIP2GO_API_KEY not configured' });
         }
 
-        // ⭐ CRITICAL: ดึง Payment แบบ batch เพื่อป้องกัน JSON truncation
+        // ⭐ CRITICAL: ดึงเฉพาะ Payment ที่ status=pending และมี payment_slip_url
+        // ไม่ดึงทั้งหมด 50,000+ รายการ - ใช้ filter ที่ DB level
+        console.log('🔍 Fetching only pending payments with slip...');
+        
         const BATCH_SIZE = 500;
-        let allPayments = [];
+        let pendingWithSlip = [];
         let skip = 0;
         let hasMore = true;
         
         while (hasMore) {
-            const batch = await base44.asServiceRole.entities.Payment.filter({}, '-created_date', BATCH_SIZE, skip);
+            // ดึงเฉพาะ pending payments
+            const batch = await base44.asServiceRole.entities.Payment.filter(
+                { status: 'pending' }, 
+                '-created_date', 
+                BATCH_SIZE, 
+                skip
+            );
             
             if (Array.isArray(batch) && batch.length > 0) {
-                allPayments = allPayments.concat(batch);
+                // กรองเฉพาะที่มี slip และ notes รอตรวจสอบ
+                const filtered = batch.filter(p => 
+                    p.payment_slip_url && 
+                    p.branch_id &&
+                    p.notes && 
+                    (p.notes.includes('รอตรวจสอบซ้ำ') || p.notes.includes('รอตรวจสอบ'))
+                );
+                pendingWithSlip = pendingWithSlip.concat(filtered);
+                
                 skip += batch.length;
-                console.log(`📦 Fetched batch: ${batch.length} payments, total: ${allPayments.length}`);
+                console.log(`📦 Batch: ${batch.length} pending, ${filtered.length} with slip to recheck, total: ${pendingWithSlip.length}`);
                 
                 if (batch.length < BATCH_SIZE) {
                     hasMore = false;
@@ -37,22 +54,20 @@ Deno.serve(async (req) => {
                 hasMore = false;
             }
             
-            // ป้องกัน infinite loop
-            if (skip > 50000) {
-                console.log('⚠️ Max payments reached, stopping');
+            // หยุดถ้าเจอที่ต้อง recheck มากพอแล้ว (ประหยัดเวลา)
+            if (pendingWithSlip.length >= 100) {
+                console.log('✅ Found enough payments to recheck, stopping fetch');
+                hasMore = false;
+            }
+            
+            // ป้องกัน infinite loop - แต่ไม่ต้องดึงมากกว่า 5000 pending
+            if (skip > 5000) {
+                console.log('⚠️ Max pending payments scanned, stopping');
                 hasMore = false;
             }
         }
         
-        console.log(`📋 Total payments fetched: ${allPayments.length}`);
-
-        const pendingRecheckPayments = allPayments.filter(p => 
-            p.status === 'pending' && 
-            p.payment_slip_url && 
-            p.branch_id && // ⭐ ต้องมี branch_id
-            p.notes && 
-            (p.notes.includes('รอตรวจสอบซ้ำ') || p.notes.includes('รอตรวจสอบ'))
-        );
+        const pendingRecheckPayments = pendingWithSlip;
 
         console.log(`📋 Found ${pendingRecheckPayments.length} payments pending recheck`);
 
