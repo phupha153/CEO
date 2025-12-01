@@ -35,11 +35,13 @@ Deno.serve(async (req) => {
             );
             
             if (Array.isArray(batch) && batch.length > 0) {
-                // กรองเฉพาะที่มี slip - ไม่ต้องเช็ค notes เพื่อให้ recheck ทุกสลิปที่ยังไม่ผ่าน
-                    const filtered = batch.filter(p => 
-                        p.payment_slip_url && 
-                        p.branch_id
-                    );
+                // กรองเฉพาะที่มี slip และ notes รอตรวจสอบ
+                const filtered = batch.filter(p => 
+                    p.payment_slip_url && 
+                    p.branch_id &&
+                    p.notes && 
+                    (p.notes.includes('รอตรวจสอบซ้ำ') || p.notes.includes('รอตรวจสอบ'))
+                );
                 pendingWithSlip = pendingWithSlip.concat(filtered);
                 
                 skip += batch.length;
