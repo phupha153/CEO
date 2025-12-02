@@ -606,17 +606,23 @@ export default function PackageSelectionPage() {
                               <Button
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  if (isDisabled) return; // ⭐ ไม่ให้คลิกถ้าปิด
                                   setSelectedPackageId(pkg.id);
                                 }}
+                                disabled={isDisabled}
                                 className={`w-full py-5 text-sm font-semibold rounded-xl mb-6 ${
-                                  isSelected
+                                  isDisabled
+                                    ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                                    : isSelected
                                     ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'
                                     : isMostPopular
                                     ? 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-white/20'
                                     : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-200'
                                 }`}
                               >
-                                {isSelected ? (
+                                {isDisabled ? (
+                                  'ปิดการขาย'
+                                ) : isSelected ? (
                                   <>
                                     <Check className="w-4 h-4 mr-2" />
                                     เลือกแล้ว
