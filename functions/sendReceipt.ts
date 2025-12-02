@@ -452,10 +452,7 @@ Deno.serve(async (req) => {
                             layout: "vertical",
                             contents: [
                                 { type: "text", text: buildingName, color: "#ffffff", size: "xl", weight: "bold", align: "center" },
-                                { type: "text", text: "ใบเสร็จรับเงิน", color: "#ffffff", size: "md", align: "center", margin: "md" },
-                                ...(issuerAddress ? [{ type: "text", text: issuerAddress, color: "#e0e7ff", size: "xs", align: "center", margin: "sm", wrap: true }] : []),
-                                ...(issuerPhone ? [{ type: "text", text: `โทร: ${issuerPhone}`, color: "#e0e7ff", size: "xs", align: "center", margin: "xs" }] : []),
-                                ...(issuerTaxId ? [{ type: "text", text: `เลขผู้เสียภาษี: ${issuerTaxId}`, color: "#e0e7ff", size: "xs", align: "center", margin: "xs" }] : [])
+                                { type: "text", text: "ใบเสร็จรับเงิน", color: "#ffffff", size: "md", align: "center", margin: "md" }
                             ]
                         }
                     ],
