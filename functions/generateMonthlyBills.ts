@@ -190,34 +190,36 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings, ${tenants.length} tenants`);
         
-        // ⭐⭐⭐ ดึง Payment เฉพาะเดือนปัจจุบัน/เดือนหน้า (แทนที่จะดึงทั้งหมด)
-        console.log('📦 Fetching payments for current/next month only...');
+        // ⭐⭐⭐ ดึง Payment เฉพาะเดือนที่กำลังจะสร้างบิล (ใช้ $gte filter)
+        console.log('📦 Fetching payments for target month...');
         
         let recentPayments = [];
         
-        // ⭐ สร้าง filter สำหรับดึงเฉพาะ payments ที่เกี่ยวข้อง
-        // คำนวณ due_date range: เดือนปัจจุบัน และเดือนหน้า
-        const thisMonthStart = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
-        const nextMonth = currentMonth + 1 > 11 ? 0 : currentMonth + 1;
-        const nextMonthYear = currentMonth + 1 > 11 ? currentYear + 1 : currentYear;
-        const nextMonthEnd = `${nextMonthYear}-${String(nextMonth + 1).padStart(2, '0')}-31`;
+        // ⭐ คำนวณเดือนที่จะสร้างบิล (เดือนหน้า)
+        const targetBillMonth = currentMonth + 1 > 11 ? 0 : currentMonth + 1;
+        const targetBillYear = currentMonth + 1 > 11 ? currentYear + 1 : currentYear;
+        const targetMonthStr = `${targetBillYear}-${String(targetBillMonth + 1).padStart(2, '0')}`;
         
-        console.log(`📅 Checking payments from ${thisMonthStart} to ${nextMonthEnd}`);
+        console.log(`📅 Target bill month: ${targetMonthStr}`);
         
         await retryOperation(async () => {
-            const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
+            // ⭐ ดึงเฉพาะ payments ที่มี due_date >= เดือนปัจจุบัน
+            const thisMonthStart = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
             
-            // ดึงเฉพาะ 2000 รายการล่าสุด (เพียงพอสำหรับ 1-2 เดือน)
+            const paymentFilter = targetBranchId 
+                ? { branch_id: targetBranchId, due_date: { $gte: thisMonthStart } }
+                : { due_date: { $gte: thisMonthStart } };
+            
             const payments = await base44.asServiceRole.entities.Payment.filter(
                 paymentFilter, 
                 '-due_date', 
-                2000
+                10000
             );
             
             recentPayments = Array.isArray(payments) ? payments : [];
         });
         
-        console.log(`✅ Fetched ${recentPayments.length} recent payments`);
+        console.log(`✅ Fetched ${recentPayments.length} payments (due_date >= this month)`);
         
         // ⭐ สร้าง Map จาก payments
         for (const p of recentPayments) {
