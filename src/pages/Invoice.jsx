@@ -231,13 +231,15 @@ export default function Invoice() {
                     <p className="font-semibold text-slate-800">{invoiceData.recipient.company_name}</p>
                     {invoiceData.recipient.tax_id && <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.tax_id}</p>}
                     {invoiceData.recipient.company_registration_number && <p>เลขทะเบียนนิติบุคคล: {invoiceData.recipient.company_registration_number}</p>}
+                    <p>{invoiceData.recipient?.building_address}</p>
+                    {invoiceData.recipient?.company_phone && <p>โทร: {invoiceData.recipient.company_phone}</p>}
                   </>
-                ) : invoiceData.recipient?.lessor_name && (
-                  <p className="font-semibold text-slate-800">{invoiceData.recipient.lessor_name}</p>
-                )}
-                <p>{invoiceData.recipient?.building_address || '28/244 หมู่ 4 ถนนมหาธรรมการ 4 ซอย 6'}</p>
-                {invoiceData.recipient?.building_phone && (
-                  <p>โทร: {invoiceData.recipient.building_phone}</p>
+                ) : (
+                  <>
+                    <p className="font-semibold text-slate-800">{invoiceData.recipient?.account_name || invoiceData.recipient?.lessor_name}</p>
+                    <p>{invoiceData.recipient?.building_address}</p>
+                    {invoiceData.recipient?.building_phone && <p>โทร: {invoiceData.recipient.building_phone}</p>}
+                  </>
                 )}
               </div>
 
