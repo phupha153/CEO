@@ -126,8 +126,10 @@ Deno.serve(async (req) => {
                 building_logo: configData.building_logo || '',
                 building_address: branch?.address || '',
                 building_phone: configData.contact_phone || branch?.phone || '',
+                lessor_name: getConfigValue('lessor_name') || '',
+                lessor_address: getConfigValue('lessor_address') || '',
                 company_name: getConfigValue('company_name') || '',
-                tax_id: getConfigValue('tax_id') || '',
+                tax_id: getConfigValue('company_tax_id') || '',
                 company_registration_number: getConfigValue('company_registration_number') || ''
             }
         };
