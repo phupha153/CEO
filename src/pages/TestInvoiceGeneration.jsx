@@ -474,16 +474,16 @@ export default function TestInvoiceGenerationPage() {
           if (res.data?.success) {
             addLog('success', `สร้างรูปสำเร็จ: ${res.data.invoice_image_url?.substring(0, 50)}...`);
             
-            // ⭐ ส่ง LINE/Facebook ด้วย sendPaymentReminder
+            // ⭐ ส่ง LINE/Facebook ด้วย sendPaymentReminder (ใช้ paymentId)
             addLog('api', `ส่งบิลผ่าน sendPaymentReminder...`);
             try {
               const sendRes = await base44.functions.invoke('sendPaymentReminder', { 
-                payment_ids: [p.id] 
+                paymentId: p.id 
               });
               if (sendRes.data?.success) {
-                addLog('success', `ส่งบิลสำเร็จ: LINE ${sendRes.data.lineSent || 0}, FB ${sendRes.data.facebookSent || 0}`);
+                addLog('success', `ส่งบิลสำเร็จ: ${sendRes.data.sent || 0} ราย`);
               } else {
-                addLog('warning', `ส่งบิลไม่สำเร็จ: ${sendRes.data?.error || 'ไม่มี LINE/FB'}`);
+                addLog('warning', `ส่งบิลไม่สำเร็จ: ${sendRes.data?.message || sendRes.data?.error || 'ไม่มี LINE/FB'}`);
               }
             } catch (sendErr) {
               addLog('error', `ส่งบิล Error: ${sendErr.message}`);
