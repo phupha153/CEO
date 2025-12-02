@@ -372,7 +372,21 @@ table .font-bold { font-weight: bold; }
 <p>Receipt</p>
 </div>
 </div>
-
+<div class="issuer-info">
+${(companyName && companyName.trim()) ? `
+<p>${escapeHtml(companyName)}</p>
+${(taxId && taxId.trim()) ? `<p>เลขที่ผู้เสียภาษี: ${escapeHtml(taxId)}</p>` : ''}
+<p>${escapeHtml(recipient.company_address || buildingAddress)}</p>
+${(buildingPhone && buildingPhone.trim()) ? `<p>โทร: ${escapeHtml(buildingPhone)}</p>` : ''}
+` : (lessorName && lessorName.trim()) ? `
+<p>${escapeHtml(lessorName)}</p>
+<p>${escapeHtml(lessorAddress || buildingAddress)}</p>
+${(buildingPhone && buildingPhone.trim()) ? `<p>โทร: ${escapeHtml(buildingPhone)}</p>` : ''}
+` : (buildingAddress && buildingAddress.trim()) ? `
+<p>${escapeHtml(buildingAddress)}</p>
+${(buildingPhone && buildingPhone.trim()) ? `<p>โทร: ${escapeHtml(buildingPhone)}</p>` : ''}
+` : ''}
+</div>
 </div>
 <div class="receipt-info">
 <div class="receipt-info-item">
