@@ -1,7 +1,7 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, User, MessageCircle, Trash2 } from "lucide-react";
+import { Search, User, MessageCircle, Trash2, Facebook } from "lucide-react";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { th } from "date-fns/locale";
@@ -108,17 +108,37 @@ export default function ChatSidebar({
                   <div className="flex items-start gap-3">
                     {/* Avatar */}
                     <div className="relative flex-shrink-0">
-                      {conv.line_picture_url ? (
+                      {conv.line_picture_url || conv.facebook_picture_url ? (
                         <img 
-                          src={conv.line_picture_url} 
+                          src={conv.line_picture_url || conv.facebook_picture_url} 
                           alt="" 
                           className="w-10 h-10 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
-                          <User className="w-5 h-5 text-white" />
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          conv.facebook_user_id 
+                            ? 'bg-gradient-to-br from-blue-500 to-blue-600' 
+                            : 'bg-gradient-to-br from-green-400 to-emerald-500'
+                        }`}>
+                          {conv.facebook_user_id ? (
+                            <Facebook className="w-5 h-5 text-white" />
+                          ) : (
+                            <User className="w-5 h-5 text-white" />
+                          )}
                         </div>
                       )}
+                      {/* Platform Logo Badge */}
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center border-2 border-white ${
+                        conv.facebook_user_id ? 'bg-blue-500' : 'bg-green-500'
+                      }`}>
+                        {conv.facebook_user_id ? (
+                          <Facebook className="w-2.5 h-2.5 text-white" />
+                        ) : (
+                          <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+                          </svg>
+                        )}
+                      </div>
                       {conv.unread_count > 0 && (
                         <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
                           {conv.unread_count > 9 ? '9+' : conv.unread_count}
