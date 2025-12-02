@@ -391,6 +391,7 @@ export default function Receipt() {
                   <>
                     <p className="font-medium text-slate-800">{receiptData.recipient.company_name}</p>
                     {receiptData.recipient.tax_id && <p>เลขที่ผู้เสียภาษี: {receiptData.recipient.tax_id}</p>}
+                    {receiptData.recipient.company_registration_number && <p>เลขทะเบียนนิติบุคคล: {receiptData.recipient.company_registration_number}</p>}
                     <p>{receiptData.recipient?.company_address || receiptData.recipient?.building_address}</p>
                     {receiptData.recipient?.building_phone && <p>โทร: {receiptData.recipient.building_phone}</p>}
                   </>
