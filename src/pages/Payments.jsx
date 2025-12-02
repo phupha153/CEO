@@ -848,7 +848,7 @@ export default function PaymentsPage() {
   const tenantsWithLine = pendingOverduePayments.filter(p => {
     const tenant = getTenantInfo(p.tenant_id);
     // ⭐ ข้ามห้องที่ส่งบิลไปแล้ว (มี bill_sent_date)
-    return tenant && tenant.line_user_id && !p.bill_sent_date;
+    return tenant && (tenant.line_user_id || tenant.facebook_user_id) && !p.bill_sent_date;
   }).length;
 
   const testPaymentsCount = payments.filter(p => p.notes?.includes('[TEST-')).length;
@@ -1087,7 +1087,7 @@ export default function PaymentsPage() {
             toast.warning('ยืนยันชำระสำเร็จ แต่ไม่สามารถส่งใบเสร็จอัตโนมัติได้: ' + error.message, { duration: 5000 });
           }
         } else if (!tenant?.line_user_id && !tenant?.facebook_user_id) {
-          toast.success('ยืนยันชำระสำเร็จ (ผู้เช่ายังไม่ได้เชื่อมต่อ LINE หรือ Facebook)', { duration: 3000 });
+          toast.success('ยืนยันชำระสำเร็จ (ผู้เช่ายังไม่ได้เชื่อมต่อระบบแชท)', { duration: 3000 });
         } else {
           toast.success('อัปเดตสถานะสำเร็จ', { duration: 3000 });
         }
@@ -1402,7 +1402,7 @@ export default function PaymentsPage() {
           paymentId: paymentId
         });
       } else {
-        toast.error('ผู้เช่ายังไม่ได้เชื่อมต่อ LINE หรือ Facebook');
+        toast.error('ผู้เช่ายังไม่ได้เชื่อมต่อระบบแชท');
         setSendingReceipt(false);
         return;
       }
@@ -2547,9 +2547,9 @@ Return JSON.`;
                       const effectiveStatus = getEffectiveStatus(payment);
                       const lateFee = calculateLateFee(payment);
                       const totalWithLateFee = (payment.total_amount || 0) + lateFee;
-                      const canSendReminderForPayment = canSendReminder && (effectiveStatus === 'pending' || effectiveStatus === 'overdue') && tenant && tenant.line_user_id;
-                      const canSendReceiptForPayment = canSendReceipt && effectiveStatus === 'paid' && tenant && tenant.line_user_id;
-                      const hasNoLine = !tenant || !tenant.line_user_id;
+                      const canSendReminderForPayment = canSendReminder && (effectiveStatus === 'pending' || effectiveStatus === 'overdue') && tenant && (tenant.line_user_id || tenant.facebook_user_id);
+                      const canSendReceiptForPayment = canSendReceipt && effectiveStatus === 'paid' && tenant && (tenant.line_user_id || tenant.facebook_user_id);
+                      const hasNoLine = !tenant || (!tenant.line_user_id && !tenant.facebook_user_id);
                       const isPaid = effectiveStatus === 'paid';
                       const hasSlip = payment.payment_slip_url && payment.payment_slip_url.trim() !== '';
                       const isExpanded = expandedPayments.has(payment.id);
@@ -2856,7 +2856,7 @@ Return JSON.`;
                                     }} 
                                     disabled={sendingReceipt === payment.id} 
                                     className={`flex-shrink-0 ${payment.receipt_sent_date ? 'bg-slate-500 hover:bg-slate-600' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'}`}
-                                    title={payment.receipt_sent_date ? `ส่งแล้วเมื่อ ${format(parseISO(payment.receipt_sent_date), 'd MMM HH:mm', { locale: th })}` : 'ส่งใบเสร็จ'}
+                                    title={payment.receipt_sent_date ? `ส่งแล้วเมื่อ ${format(parseISO(payment.receipt_sent_date), 'd MMM HH:mm', { locale: th })} (${tenant.facebook_user_id ? 'Facebook' : 'LINE'})` : `ส่งใบเสร็จ (${tenant.facebook_user_id ? 'Facebook' : 'LINE'})`}
                                   >
                                     {sendingReceipt === payment.id ? (
                                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -2967,7 +2967,7 @@ Return JSON.`;
                               {hasNoLine && (effectiveStatus === 'pending' || effectiveStatus === 'overdue') && canSendReminder && (
                                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-amber-700 flex items-start gap-2 mt-3">
                                   <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                                  <span>ผู้เช่ายังไม่ได้เชื่อมต่อ LINE</span>
+                                  <span>ผู้เช่ายังไม่ได้เชื่อมต่อระบบแชท</span>
                                 </div>
                               )}
                             </CardContent>
@@ -3105,7 +3105,7 @@ Return JSON.`;
                                           <CheckCircle2 className="w-4 h-4" />
                                         </Button>
                                       )}
-                                      {(effectiveStatus === 'pending' || effectiveStatus === 'overdue') && tenant?.line_user_id && canSendReminder && (
+                                      {(effectiveStatus === 'pending' || effectiveStatus === 'overdue') && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendReminder && (
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50" onClick={() => handleSendReminder(payment.id)} disabled={sendingReminder === payment.id} title="แจ้งเตือน (LINE)">
                                           {sendingReminder === payment.id ? (
                                             <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
@@ -3114,7 +3114,7 @@ Return JSON.`;
                                           )}
                                         </Button>
                                       )}
-                                      {isPaid && tenant?.line_user_id && canSendReceipt && (
+                                      {isPaid && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendReceipt && (
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleSendReceipt(payment.id)} disabled={sendingReceipt === payment.id} title="ส่งใบเสร็จ (LINE)">
                                           {sendingReceipt === payment.id ? (
                                             <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -3450,7 +3450,7 @@ Return JSON.`;
                                                  ยืนยันชำระ
                                                </Button>
                                              )}
-                                             {effectiveStatus !== 'paid' && tenant?.line_user_id && canSendReminder && (
+                                             {effectiveStatus !== 'paid' && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendReminder && (
                                                <Button 
                                                  size="sm" 
                                                  className={`w-full text-xs ${roomPayment.bill_sent_date ? 'bg-slate-500 hover:bg-slate-600' : 'bg-purple-600 hover:bg-purple-700'}`}
@@ -3465,7 +3465,7 @@ Return JSON.`;
                                                  {roomPayment.bill_sent_date ? 'ส่งซ้ำ' : 'แจ้งเตือน'}
                                                </Button>
                                              )}
-                                             {effectiveStatus === 'paid' && tenant?.line_user_id && canSendReceipt && (
+                                             {effectiveStatus === 'paid' && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendReceipt && (
                                                <Button 
                                                  size="sm" 
                                                  className={`w-full text-xs ${roomPayment.receipt_sent_date ? 'bg-slate-500 hover:bg-slate-600' : 'bg-blue-600 hover:bg-blue-700'}`}
