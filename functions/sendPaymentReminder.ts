@@ -211,8 +211,16 @@ Deno.serve(async (req) => {
             const tenant = tenantMap.get(payment.tenant_id);
             const room = roomMap.get(payment.room_id);
 
-            if (!tenant || !tenant.line_user_id) {
-                console.log(`⚠️ Skipping payment ${payment.id}: No LINE User ID`);
+            if (!tenant) {
+                console.log(`⚠️ Skipping payment ${payment.id}: No tenant found`);
+                continue;
+            }
+
+            // ⭐ ส่งผ่าน LINE หรือ Facebook ตามที่ผู้เช่าเชื่อมต่อ
+            const hasLineOrFacebook = tenant.line_user_id || tenant.facebook_user_id;
+            
+            if (!hasLineOrFacebook) {
+                console.log(`⚠️ Skipping payment ${payment.id}: No LINE or Facebook connection`);
                 continue;
             }
 
@@ -353,14 +361,16 @@ Deno.serve(async (req) => {
             message += `ขอบคุณค่ะ 🙏`;
 
             recipients.push({
-                lineUserId: tenant.line_user_id,
+                lineUserId: tenant.line_user_id || null,
+                facebookUserId: tenant.facebook_user_id || null,
                 message: message,
                 metadata: {
                     paymentId: payment.id,
                     tenantId: tenant.id,
                     tenantName: tenant.full_name,
                     roomNumber: room?.room_number,
-                    branchId: payment.branch_id
+                    branchId: payment.branch_id,
+                    platform: tenant.facebook_user_id ? 'facebook' : 'line'
                 }
             });
         }
@@ -368,7 +378,7 @@ Deno.serve(async (req) => {
         if (recipients.length === 0) {
             return Response.json({
                 success: false,
-                message: 'ไม่มีผู้รับที่มี LINE User ID'
+                message: 'ไม่มีผู้รับที่เชื่อมต่อระบบแชท (LINE/Facebook)'
             });
         }
 
@@ -391,18 +401,62 @@ Deno.serve(async (req) => {
             console.log(`✅ Updated bill_sent_date: ${Math.min(i + updateBatchSize, paymentIdsToUpdate.length)}/${paymentIdsToUpdate.length}`);
         }
 
-        // ✅ ใช้ batch sending - ปรับให้รองรับจำนวนมาก
-        const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-            recipients: recipients,
-            options: {
-                batchSize: 10,
-                delayBetweenBatches: 2000,
-                delayBetweenMessages: 200,
-                retryAttempts: 2
-            }
-        });
+        // ✅ ส่งข้อความผ่าน LINE และ Facebook
+        let successCount = 0;
+        let failCount = 0;
+        const errors = [];
 
-        const result = batchResult.data;
+        // แยกผู้รับตาม platform
+        const lineRecipients = recipients.filter(r => r.lineUserId);
+        const facebookRecipients = recipients.filter(r => r.facebookUserId);
+
+        console.log(`📊 Recipients: ${lineRecipients.length} LINE, ${facebookRecipients.length} Facebook`);
+
+        // ส่งผ่าน LINE
+        if (lineRecipients.length > 0) {
+            try {
+                const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                    recipients: lineRecipients,
+                    options: {
+                        batchSize: 10,
+                        delayBetweenBatches: 2000,
+                        delayBetweenMessages: 200,
+                        retryAttempts: 2
+                    }
+                });
+
+                const result = batchResult.data;
+                successCount += result.success || 0;
+                failCount += result.failed || 0;
+                if (result.errors) errors.push(...result.errors);
+                
+                console.log(`✅ LINE: ${result.success}/${lineRecipients.length} sent`);
+            } catch (lineError) {
+                console.error('❌ LINE batch send failed:', lineError);
+                failCount += lineRecipients.length;
+            }
+        }
+
+        // ส่งผ่าน Facebook
+        if (facebookRecipients.length > 0) {
+            try {
+                const fbResult = await base44.asServiceRole.functions.invoke('sendFacebookPaymentReminder', {
+                    recipients: facebookRecipients
+                });
+
+                const result = fbResult.data;
+                successCount += result.success || 0;
+                failCount += result.failed || 0;
+                if (result.errors) errors.push(...result.errors);
+                
+                console.log(`✅ Facebook: ${result.success}/${facebookRecipients.length} sent`);
+            } catch (fbError) {
+                console.error('❌ Facebook batch send failed:', fbError);
+                failCount += facebookRecipients.length;
+            }
+        }
+
+        const result = { success: successCount, failed: failCount, total: recipients.length, errors };
         
         return Response.json({ 
             success: true,
