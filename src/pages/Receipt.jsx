@@ -385,7 +385,28 @@ export default function Receipt() {
                   <p className="text-xs text-green-600">Receipt</p>
                 </div>
               </div>
-
+              {/* ข้อมูลบริษัทใต้โลโก้ */}
+              <div className="text-xs text-slate-600 mt-2 space-y-0.5">
+                {receiptData.recipient?.company_name ? (
+                  <>
+                    <p className="font-medium text-slate-800">{receiptData.recipient.company_name}</p>
+                    {receiptData.recipient.tax_id && <p>เลขที่ผู้เสียภาษี: {receiptData.recipient.tax_id}</p>}
+                    <p>{receiptData.recipient?.company_address || receiptData.recipient?.building_address}</p>
+                    {receiptData.recipient?.building_phone && <p>โทร: {receiptData.recipient.building_phone}</p>}
+                  </>
+                ) : receiptData.recipient?.lessor_name ? (
+                  <>
+                    <p className="font-medium text-slate-800">{receiptData.recipient.lessor_name}</p>
+                    <p>{receiptData.recipient?.lessor_address || receiptData.recipient?.building_address}</p>
+                    {receiptData.recipient?.building_phone && <p>โทร: {receiptData.recipient.building_phone}</p>}
+                  </>
+                ) : receiptData.recipient?.building_address ? (
+                  <>
+                    <p>{receiptData.recipient.building_address}</p>
+                    {receiptData.recipient?.building_phone && <p>โทร: {receiptData.recipient.building_phone}</p>}
+                  </>
+                ) : null}
+              </div>
             </div>
 
             {/* Receipt Info */}
