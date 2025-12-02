@@ -225,23 +225,39 @@ export default function BookingsPage() {
       // นับจำนวนห้องรายวันที่ว่าง
       const dailyAvailableRooms = roomsData.filter(r => r.room_type === 'daily' && r.status === 'available');
       const monthlyAvailableRooms = roomsData.filter(r => r.room_type === 'monthly' && r.status === 'available');
+      
+      // หาห้องที่มีผู้เช่าแต่จะว่างในอนาคต (มี check_out_date)
+      const occupiedRoomsWithCheckout = bookingsData
+        .filter(b => b.status === 'active' && b.check_out_date)
+        .map(b => {
+          const room = roomsData.find(r => r.id === b.room_id);
+          return {
+            ...room,
+            current_booking_end: b.check_out_date,
+            current_tenant: b.guest_name || 'ผู้เช่ารายเดือน'
+          };
+        })
+        .filter(r => r && r.id);
 
       const promptText = `คุณเป็นผู้ช่วยอัจฉริยะระบบจัดการหอพัก วิเคราะห์คำถามและระบุ action ที่ต้องการ
 
 วันที่ปัจจุบัน: ${format(new Date(), 'yyyy-MM-dd')}
 คำถาม: "${searchQuery}"
 
-**สรุปจำนวนห้องว่าง:**
+**สรุปจำนวนห้องว่างปัจจุบัน:**
 - ห้องรายวันว่าง: ${dailyAvailableRooms.length} ห้อง
 - ห้องรายเดือนว่าง: ${monthlyAvailableRooms.length} ห้อง
 
-**รายละเอียดห้องรายวันที่ว่าง (${dailyAvailableRooms.length} ห้อง):**
+**รายละเอียดห้องรายวันที่ว่างตอนนี้ (${dailyAvailableRooms.length} ห้อง):**
 ${JSON.stringify(dailyAvailableRooms, null, 2)}
 
-**รายละเอียดห้องรายเดือนที่ว่าง (${monthlyAvailableRooms.length} ห้อง):**
+**รายละเอียดห้องรายเดือนที่ว่างตอนนี้ (${monthlyAvailableRooms.length} ห้อง):**
 ${JSON.stringify(monthlyAvailableRooms, null, 2)}
 
-ข้อมูลการจอง ${bookingsData.length} รายการ:
+**ห้องที่มีผู้เช่าแต่จะว่างในอนาคต (${occupiedRoomsWithCheckout.length} ห้อง):**
+${JSON.stringify(occupiedRoomsWithCheckout, null, 2)}
+
+**ข้อมูลการจองทั้งหมด (${bookingsData.length} รายการ):**
 ${JSON.stringify(bookingsData, null, 2)}
 
 **ประเภทห้อง**:
@@ -260,6 +276,8 @@ ${JSON.stringify(bookingsData, null, 2)}
 **สำคัญมาก**: 
 - **ต้องมี answer เสมอ** - ระบุจำนวนห้องที่พบให้ชัดเจน
 - **ต้องใส่ห้องทั้งหมดที่ตรงเงื่อนไขใน rooms array** ไม่ใช่แค่บางห้อง
+- ถ้าถามหาห้องที่จะว่างในอนาคต ให้ดูจาก check_out_date ของการจอง และระบุวันที่จะว่างใน reason
+- ถ้าถามหาห้องชั้นไหนที่ใกล้ว่างที่สุด ให้เรียงตาม check_out_date จากน้อยไปมาก
 - ถ้าถามว่าว่างกี่ห้อง ให้ตอบจำนวนที่ถูกต้องจากข้อมูลด้านบน
 - ถ้าหาห้องว่างรายวัน ต้องใส่ห้องรายวันที่ว่างทั้งหมด ${dailyAvailableRooms.length} ห้อง
 - ถ้าจองห้องเลขที่เฉพาะ ต้อง exact match room_number เท่านั้น
