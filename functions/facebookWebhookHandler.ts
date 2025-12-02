@@ -215,6 +215,24 @@ Deno.serve(async (req) => {
 async function handleMessage(base44, senderPsid, receivedMessage, branchId, tenant) {
     const text = receivedMessage.trim();
     console.log(`📝 Text: "${text}"`);
+    
+    // ⭐⭐⭐ บันทึกข้อความลง FacebookMessage entity
+    try {
+        await base44.asServiceRole.entities.FacebookMessage.create({
+            branch_id: branchId,
+            tenant_id: tenant?.id || null,
+            facebook_user_id: senderPsid,
+            facebook_display_name: tenant?.full_name || null,
+            facebook_picture_url: null,
+            direction: 'incoming',
+            message_type: 'text',
+            content: text,
+            is_read: false
+        });
+        console.log('✅ Saved incoming Facebook message to FacebookMessage entity');
+    } catch (saveError) {
+        console.error('❌ Failed to save Facebook message:', saveError);
+    }
 
     // 1. ลงทะเบียนด้วยเบอร์โทรหรือชื่อ (กรณีข้ามสาขา)
     const phonePattern = /^(0\d{9})$/;
@@ -486,12 +504,32 @@ async function handleNameRegistration(base44, senderPsid, nameQuery) {
 }
 
 async function handleAttachments(base44, senderPsid, attachments, branchId, tenant) {
+    // ⭐⭐⭐ บันทึกข้อความรูปภาพลง FacebookMessage entity
+    const imageAttachment = attachments.find(a => a.type === 'image');
+    
+    try {
+        await base44.asServiceRole.entities.FacebookMessage.create({
+            branch_id: branchId,
+            tenant_id: tenant?.id || null,
+            facebook_user_id: senderPsid,
+            facebook_display_name: tenant?.full_name || null,
+            facebook_picture_url: null,
+            direction: 'incoming',
+            message_type: 'image',
+            content: '[รูปภาพ]',
+            media_url: imageAttachment?.payload?.url || null,
+            is_read: false
+        });
+        console.log('✅ Saved incoming Facebook image to FacebookMessage entity');
+    } catch (saveError) {
+        console.error('❌ Failed to save Facebook image message:', saveError);
+    }
+    
     if (!tenant) {
         await sendFacebookMessage(base44, senderPsid, '❌ กรุณาลงทะเบียนก่อนส่งรูปภาพ', branchId);
         return;
     }
 
-    const imageAttachment = attachments.find(a => a.type === 'image');
     if (imageAttachment) {
         // Process Slip Logic (Simplified from LINE)
         const imageUrl = imageAttachment.payload.url;
@@ -647,6 +685,25 @@ async function handlePageComment(base44, commentData) {
 
 async function sendFacebookMessage(base44, recipientId, text, branchId) {
     console.log(`📤 Sending FB message to ${recipientId}: "${text.substring(0, 50)}..."`);
+    
+    // ⭐⭐⭐ บันทึกข้อความขาออกลง FacebookMessage entity
+    try {
+        await base44.asServiceRole.entities.FacebookMessage.create({
+            branch_id: branchId,
+            tenant_id: null,
+            facebook_user_id: recipientId,
+            facebook_display_name: null,
+            facebook_picture_url: null,
+            direction: 'outgoing',
+            message_type: 'text',
+            content: text,
+            is_read: true,
+            sent_by: 'system'
+        });
+        console.log('✅ Saved outgoing Facebook message to FacebookMessage entity');
+    } catch (saveError) {
+        console.error('❌ Failed to save outgoing Facebook message:', saveError);
+    }
     
     // ⭐ ลองหา token จากทุกแหล่ง
     let config = await getFacebookConfig(base44, branchId);
