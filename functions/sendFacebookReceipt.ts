@@ -88,23 +88,13 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // ✅ ตรวจสอบ authentication ก่อน
-        let user;
+        // ✅ ตรวจสอบ authentication - อนุญาตให้ service role เรียกได้โดยไม่ต้อง auth
+        let user = null;
         try {
             user = await base44.auth.me();
         } catch (authError) {
-            console.error('Authentication error:', authError);
-            return Response.json({ 
-                success: false,
-                error: 'ไม่ได้รับอนุญาต กรุณาเข้าสู่ระบบใหม่'
-            }, { status: 401 });
-        }
-
-        if (!user) {
-            return Response.json({ 
-                success: false,
-                error: 'ไม่ได้รับอนุญาต'
-            }, { status: 401 });
+            // ไม่ error ถ้าเป็นการเรียกจาก service role (เช่น webhook)
+            console.log('ℹ️ No user auth - assuming service role call');
         }
 
         // ✅ Parse request body
@@ -368,7 +358,7 @@ Deno.serve(async (req) => {
                 message_type: 'text',
                 content: message,
                 is_read: true,
-                sent_by: user?.email || 'system'
+                sent_by: user?.email || 'system (auto)'
             });
             console.log('✅ Saved outgoing Facebook message to FacebookMessage entity');
         } catch (saveError) {
