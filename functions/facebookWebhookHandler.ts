@@ -70,40 +70,65 @@ Deno.serve(async (req) => {
 
     // 2. Event Notification (POST)
     if (req.method === 'POST') {
+        console.log('📥 POST Request received - Facebook Webhook');
+        
         let body;
         try {
             body = await req.json();
+            console.log('📦 Webhook Body:', JSON.stringify(body, null, 2));
         } catch (e) {
+            console.error('❌ Failed to parse JSON body:', e);
             return new Response('Bad Request', { status: 400 });
         }
 
+        console.log('🔍 body.object:', body.object);
+
         if (body.object === 'page') {
+            console.log('✅ body.object === "page" - Processing...');
+            
             // ตอบกลับ 200 OK ทันที
             const response = new Response('EVENT_RECEIVED', { status: 200 });
 
             // Process events asynchronously
             (async () => {
-                for (const entry of body.entry || []) {
-                    // Handle Messenger messages
-                    if (entry.messaging) {
-                        for (const webhookEvent of entry.messaging) {
-                            const senderPsid = webhookEvent.sender.id;
-                            const messageId = webhookEvent.message?.mid;
+                try {
+                    console.log('🔄 Processing entries:', body.entry?.length || 0);
+                    
+                    for (const entry of body.entry || []) {
+                        console.log('📋 Entry:', JSON.stringify(entry, null, 2));
+                        
+                        // Handle Messenger messages
+                        if (entry.messaging) {
+                            console.log('💬 Found messaging events:', entry.messaging.length);
+                            
+                            for (const webhookEvent of entry.messaging) {
+                                const senderPsid = webhookEvent.sender.id;
+                                const messageId = webhookEvent.message?.mid;
 
-                            if (messageId && processedMessages.has(messageId)) continue;
-                            if (messageId) {
-                                processedMessages.add(messageId);
-                                if (processedMessages.size > 500) {
-                                    const first = processedMessages.values().next().value;
-                                    processedMessages.delete(first);
+                                console.log(`📩 Messenger event - PSID: ${senderPsid}, MessageID: ${messageId}`);
+                                console.log('📨 Event details:', JSON.stringify(webhookEvent, null, 2));
+
+                                if (messageId && processedMessages.has(messageId)) {
+                                    console.log('⏭️ Skipping duplicate message:', messageId);
+                                    continue;
                                 }
-                            }
+                                if (messageId) {
+                                    processedMessages.add(messageId);
+                                    if (processedMessages.size > 500) {
+                                        const first = processedMessages.values().next().value;
+                                        processedMessages.delete(first);
+                                    }
+                                }
 
-                            console.log(`📩 Messenger event from PSID: ${senderPsid}`);
+                                console.log(`📩 Processing Messenger event from PSID: ${senderPsid}`);
 
-                            const tenants = await base44.asServiceRole.entities.Tenant.list();
-                            const tenant = tenants.find(t => t.facebook_user_id === senderPsid);
-                            const branchId = tenant?.branch_id || null;
+                                const tenants = await base44.asServiceRole.entities.Tenant.list();
+                                console.log(`👥 Found ${tenants.length} tenants`);
+                                
+                                const tenant = tenants.find(t => t.facebook_user_id === senderPsid);
+                                console.log(`🔍 Matched tenant:`, tenant ? tenant.full_name : 'None');
+                                
+                                const branchId = tenant?.branch_id || null;
 
                             if (webhookEvent.message) {
                                 if (webhookEvent.message.text) {
