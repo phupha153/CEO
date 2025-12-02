@@ -188,139 +188,168 @@ export default function BookingsPage() {
     setAiResult(null);
 
     try {
-      const roomsData = rooms.map(r => ({
+      // *** เฉพาะห้องรายวันเท่านั้น ***
+      const dailyRoomsOnly = rooms.filter(r => r.room_type === 'daily');
+      
+      const roomsData = dailyRoomsOnly.map(r => ({
         id: r.id,
         room_number: r.room_number,
         floor: r.floor,
-        room_type: r.room_type,
+        room_type: 'daily',
         status: r.status,
-        price: r.price,
-        size: r.size,
-        amenities: r.amenities,
-        description: r.description
+        price: r.price
       }));
 
-      const bookingsData = bookings.map(b => {
-        const room = rooms.find(r => r.id === b.room_id);
+      // การจองที่ active ของห้องรายวัน
+      const activeBookings = bookings.filter(b => 
+        b.status === 'active' && 
+        dailyRoomsOnly.some(r => r.id === b.room_id)
+      );
+
+      const bookingsData = activeBookings.map(b => {
+        const room = dailyRoomsOnly.find(r => r.id === b.room_id);
+        const tenant = b.tenant_id ? tenants.find(t => t.id === b.tenant_id) : null;
         return {
-          id: b.id,
           room_id: b.room_id,
           room_number: room?.room_number || 'N/A',
           floor: room?.floor,
-          tenant_id: b.tenant_id,
-          guest_name: b.guest_name,
+          guest_name: b.guest_name || tenant?.full_name || 'ไม่ระบุชื่อ',
           check_in_date: b.check_in_date,
-          check_out_date: b.check_out_date,
-          status: b.status,
+          check_out_date: b.check_out_date || null, // null = ไม่มีกำหนดออก (รายเดือนหรือระยะยาว)
           booking_type: b.booking_type
         };
       });
 
-      const tenantsData = tenants.map(t => ({
-        id: t.id,
-        full_name: t.full_name,
-        phone: t.phone
-      }));
-
-      // นับจำนวนห้องรายวันที่ว่าง
-      const dailyAvailableRooms = roomsData.filter(r => r.room_type === 'daily' && r.status === 'available');
-      const monthlyAvailableRooms = roomsData.filter(r => r.room_type === 'monthly' && r.status === 'available');
-      
-      // หาห้องที่มีผู้เช่าแต่จะว่างในอนาคต (มี check_out_date)
-      const occupiedRoomsWithCheckout = bookingsData
-        .filter(b => b.status === 'active' && b.check_out_date)
-        .map(b => {
-          const room = roomsData.find(r => r.id === b.room_id);
-          return {
-            ...room,
-            current_booking_end: b.check_out_date,
-            current_tenant: b.guest_name || (b.tenant_id ? 'ผู้เช่ารายเดือน' : 'ไม่ระบุ')
-          };
-        })
-        .filter(r => r && r.id);
-
-      // คำนวณวันที่สำคัญ
+      // วันที่ปัจจุบัน
       const today = new Date();
-      const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-      const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
-      const nextMonthStartStr = format(nextMonthStart, 'yyyy-MM-dd');
-      const nextMonthEndStr = format(nextMonthEnd, 'yyyy-MM-dd');
+      const todayStr = format(today, 'yyyy-MM-dd');
 
-      // หาห้องที่จะว่างเดือนหน้า (check_out_date อยู่ในเดือนหน้า หรือก่อนเดือนหน้า)
-      const roomsAvailableNextMonth = occupiedRoomsWithCheckout.filter(r => {
-        if (!r.current_booking_end) return false;
-        return r.current_booking_end <= nextMonthEndStr;
+      // ฟังก์ชันหาว่าห้องว่างในวันที่กำหนดหรือไม่
+      const isRoomAvailableOnDate = (roomId, targetDate) => {
+        const roomBookings = bookingsData.filter(b => b.room_id === roomId);
+        if (roomBookings.length === 0) return true; // ไม่มี booking = ว่าง
+        
+        for (const booking of roomBookings) {
+          const checkIn = booking.check_in_date;
+          const checkOut = booking.check_out_date;
+          
+          // ถ้าไม่มี check_out_date = ถือว่ายังเช่าอยู่ตลอด
+          if (!checkOut) {
+            if (targetDate >= checkIn) return false;
+          } else {
+            // มี check_out = เช็คว่า targetDate อยู่ในช่วงเช่าหรือไม่
+            if (targetDate >= checkIn && targetDate < checkOut) return false;
+          }
+        }
+        return true;
+      };
+
+      // ฟังก์ชันหาวันที่ห้องจะว่าง
+      const getRoomAvailabilityDate = (roomId) => {
+        const roomBookings = bookingsData.filter(b => b.room_id === roomId);
+        if (roomBookings.length === 0) return { available: true, availableFrom: todayStr, reason: 'ว่างอยู่แล้วตอนนี้' };
+        
+        // หา booking ที่ยังใช้งานอยู่ (check_in <= today และ ยังไม่ check_out)
+        let latestCheckOut = null;
+        let hasNoEndDate = false;
+        let currentTenant = null;
+        
+        for (const booking of roomBookings) {
+          if (!booking.check_out_date) {
+            hasNoEndDate = true;
+            currentTenant = booking.guest_name;
+          } else {
+            if (!latestCheckOut || booking.check_out_date > latestCheckOut) {
+              latestCheckOut = booking.check_out_date;
+              currentTenant = booking.guest_name;
+            }
+          }
+        }
+        
+        if (hasNoEndDate) {
+          return { available: false, availableFrom: null, reason: `มีผู้เช่า (${currentTenant}) - ไม่มีกำหนดย้ายออก`, currentTenant };
+        }
+        
+        if (latestCheckOut && latestCheckOut > todayStr) {
+          return { available: false, availableFrom: latestCheckOut, reason: `จะว่างวันที่ ${latestCheckOut}`, currentTenant };
+        }
+        
+        return { available: true, availableFrom: todayStr, reason: 'ว่างอยู่แล้วตอนนี้' };
+      };
+
+      // สร้างข้อมูลห้องพร้อมสถานะความว่าง
+      const roomsWithAvailability = roomsData.map(r => {
+        const availability = getRoomAvailabilityDate(r.id);
+        return {
+          ...r,
+          ...availability
+        };
       });
 
-      // รวมห้องที่ว่างตอนนี้ + ห้องที่จะว่างเดือนหน้า
-      const allRoomsAvailableNextMonth = [
-        ...dailyAvailableRooms.map(r => ({ ...r, availability_reason: 'ว่างอยู่แล้วตอนนี้' })),
-        ...monthlyAvailableRooms.map(r => ({ ...r, availability_reason: 'ว่างอยู่แล้วตอนนี้' })),
-        ...roomsAvailableNextMonth.map(r => ({ ...r, availability_reason: `จะว่างวันที่ ${r.current_booking_end}` }))
-      ];
+      // ห้องที่ว่างตอนนี้
+      const currentlyAvailable = roomsWithAvailability.filter(r => r.available);
+      
+      // ห้องที่มีผู้เช่าแต่มีกำหนดว่าง
+      const willBeAvailable = roomsWithAvailability.filter(r => !r.available && r.availableFrom);
+      
+      // ห้องที่ไม่มีกำหนดว่าง
+      const noEndDate = roomsWithAvailability.filter(r => !r.available && !r.availableFrom);
 
-      const promptText = `คุณเป็นผู้ช่วยอัจฉริยะระบบจัดการหอพัก วิเคราะห์คำถามและตอบให้ถูกต้อง
+      // สร้าง prompt ที่ชัดเจน
+      const promptText = `คุณเป็นผู้ช่วยค้นหาห้องพักรายวัน (DAILY ROOMS ONLY) ตอบแม่นยำที่สุด
 
-**วันที่ปัจจุบัน:** ${format(today, 'yyyy-MM-dd')} (${format(today, 'd MMMM yyyy', { locale: th })})
-**เดือนหน้า:** ${format(nextMonthStart, 'MMMM yyyy', { locale: th })} (${nextMonthStartStr} ถึง ${nextMonthEndStr})
+📅 วันที่ปัจจุบัน: ${todayStr} (${format(today, 'd MMMM yyyy', { locale: th })})
+📅 ปีปัจจุบัน: ${today.getFullYear()} (พ.ศ. ${today.getFullYear() + 543})
 
-**คำถาม:** "${searchQuery}"
+❓ คำถาม: "${searchQuery}"
 
-=== ข้อมูลห้องพักทั้งหมด (${roomsData.length} ห้อง) ===
-${JSON.stringify(roomsData.map(r => ({
-  id: r.id,
-  room_number: r.room_number,
-  floor: r.floor,
-  room_type: r.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน',
-  status: r.status === 'available' ? 'ว่าง' : r.status === 'occupied' ? 'มีผู้เช่า' : 'จอง',
-  price: r.price
-})), null, 2)}
+=== 📊 สรุปห้องรายวันทั้งหมด (${roomsData.length} ห้อง) ===
 
-=== ห้องที่ว่างตอนนี้ ===
-- ห้องรายวันว่าง: ${dailyAvailableRooms.length} ห้อง ${dailyAvailableRooms.length > 0 ? `(${dailyAvailableRooms.map(r => r.room_number).join(', ')})` : ''}
-- ห้องรายเดือนว่าง: ${monthlyAvailableRooms.length} ห้อง ${monthlyAvailableRooms.length > 0 ? `(${monthlyAvailableRooms.map(r => r.room_number).join(', ')})` : ''}
+🟢 ห้องที่ว่างตอนนี้ (${currentlyAvailable.length} ห้อง):
+${currentlyAvailable.length > 0 ? currentlyAvailable.map(r => 
+  `  - ห้อง ${r.room_number} ชั้น ${r.floor} (${r.price?.toLocaleString() || 0} บาท)`
+).join('\n') : '  ไม่มีห้องว่าง'}
 
-=== ห้องที่มีผู้เช่าแต่จะว่างในอนาคต (${occupiedRoomsWithCheckout.length} ห้อง) ===
-${occupiedRoomsWithCheckout.length > 0 ? JSON.stringify(occupiedRoomsWithCheckout.map(r => ({
-  room_number: r.room_number,
-  floor: r.floor,
-  room_type: r.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน',
-  จะว่างวันที่: r.current_booking_end,
-  ผู้เช่าปัจจุบัน: r.current_tenant
-})), null, 2) : 'ไม่มีข้อมูล'}
+🟡 ห้องที่มีผู้เช่าแต่มีกำหนดว่าง (${willBeAvailable.length} ห้อง):
+${willBeAvailable.length > 0 ? willBeAvailable.map(r => 
+  `  - ห้อง ${r.room_number} ชั้น ${r.floor} → จะว่างวันที่ ${r.availableFrom} (ผู้เช่า: ${r.currentTenant})`
+).join('\n') : '  ไม่มี'}
 
-=== ห้องที่จะว่างภายในเดือนหน้า (${roomsAvailableNextMonth.length} ห้อง) ===
-${roomsAvailableNextMonth.length > 0 ? JSON.stringify(roomsAvailableNextMonth.map(r => ({
-  room_number: r.room_number,
-  floor: r.floor,
-  room_type: r.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน',
-  จะว่างวันที่: r.current_booking_end
-})), null, 2) : 'ไม่มีห้องที่จะว่างเดือนหน้า'}
+🔴 ห้องที่ไม่มีกำหนดย้ายออก (${noEndDate.length} ห้อง):
+${noEndDate.length > 0 ? noEndDate.map(r => 
+  `  - ห้อง ${r.room_number} ชั้น ${r.floor} → ${r.reason}`
+).join('\n') : '  ไม่มี'}
 
-=== รวมห้องทั้งหมดที่จะว่างเดือนหน้า (รวมห้องที่ว่างอยู่แล้ว + จะว่าง) ===
-จำนวนรวม: ${allRoomsAvailableNextMonth.length} ห้อง
-${allRoomsAvailableNextMonth.length > 0 ? JSON.stringify(allRoomsAvailableNextMonth.map(r => ({
-  id: r.id,
-  room_number: r.room_number,
-  floor: r.floor,
-  room_type: r.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน',
-  สาเหตุ: r.availability_reason
-})), null, 2) : 'ไม่มี'}
+=== 📋 รายละเอียดการจองที่ Active ===
+${bookingsData.length > 0 ? JSON.stringify(bookingsData.map(b => ({
+  ห้อง: b.room_number,
+  ชั้น: b.floor,
+  ผู้เช่า: b.guest_name,
+  เข้าพัก: b.check_in_date,
+  ย้ายออก: b.check_out_date || 'ไม่มีกำหนด'
+})), null, 2) : 'ไม่มีการจอง'}
 
-=== คำแนะนำในการตอบ ===
-1. ถ้าถามหา "ห้องว่างเดือนหน้า" หรือ "ห้องว่างในอนาคต":
-   - ต้องรวมทั้งห้องที่ว่างอยู่แล้วตอนนี้ + ห้องที่จะว่างในเดือนหน้า
-   - ใส่ทุกห้องใน rooms array พร้อม reason อธิบาย
-   
-2. ถ้าถามหา "ห้องว่างตอนนี้" หรือ "ห้องว่างวันนี้":
-   - ใส่เฉพาะห้องที่ status = available
-   
-3. ถ้าถามหาห้องตามชั้น (เช่น "ห้องว่างชั้น 3"):
-   - กรองตาม floor ที่ต้องการ
+=== 🎯 วิธีตอบคำถาม ===
 
-4. **สำคัญ**: ต้องมี answer และ rooms array เสมอ ห้ามปล่อยว่าง
+**ถ้าถามหา "ห้องว่างเดือน X" หรือ "ห้องว่างในเดือน X":**
+- คำนวณช่วงวันที่ของเดือนนั้นๆ (เช่น กุมภาพันธ์ 2025 = 2025-02-01 ถึง 2025-02-28)
+- ห้องจะว่างในเดือนนั้นได้ก็ต่อเมื่อ:
+  1. ว่างอยู่แล้วตอนนี้ (available = true) หรือ
+  2. มี availableFrom ที่ <= วันสุดท้ายของเดือนนั้น
+- ห้องที่ไม่มีกำหนดย้ายออก (availableFrom = null) = ไม่นับว่าจะว่าง
 
-ตอบเป็นภาษาไทย กระชับชัดเจน`;
+**ถ้าถามหา "ห้องว่างตอนนี้" หรือ "ห้องว่างวันนี้":**
+- ตอบเฉพาะห้องที่ available = true
+
+**ถ้าถามหาห้องตามชั้น:**
+- กรองตาม floor ที่ระบุ
+
+**สำคัญมาก:**
+- ต้องตอบ answer ที่ชัดเจน ระบุจำนวนห้องและเลขห้อง
+- ต้องมี rooms array ที่มี room_id, room_number, floor, reason
+- ห้องที่ไม่มี availableFrom = ไม่นับว่าจะว่างในอนาคต
+
+ตอบเป็นภาษาไทย กระชับ ถูกต้อง แม่นยำ`;
 
       const response = await base44.integrations.Core.InvokeLLM({
         prompt: promptText,
