@@ -327,10 +327,14 @@ ${allRoomsAvailableNextMonth.length > 0 ? JSON.stringify(allRoomsAvailableNextMo
         response_json_schema: {
           type: "object",
           properties: {
-            answer: { type: "string" },
+            answer: { 
+              type: "string",
+              description: "คำตอบภาษาไทยที่สรุปผลการค้นหา ต้องมีเสมอ"
+            },
             action_type: { 
               type: "string",
-              enum: ["view", "create"]
+              enum: ["view", "create"],
+              description: "view สำหรับดูข้อมูล, create สำหรับจองห้อง"
             },
             data: {
               type: "object",
@@ -348,18 +352,20 @@ ${allRoomsAvailableNextMonth.length > 0 ? JSON.stringify(allRoomsAvailableNextMo
             },
             rooms: {
               type: "array",
+              description: "รายการห้องที่ตรงเงื่อนไข ต้องมีเสมอเมื่อ action_type เป็น view",
               items: {
                 type: "object",
                 properties: {
-                  room_id: { type: "string" },
-                  room_number: { type: "string" },
-                  floor: { type: "number" },
-                  reason: { type: "string" }
-                }
+                  room_id: { type: "string", description: "ID ของห้อง" },
+                  room_number: { type: "string", description: "เลขห้อง" },
+                  floor: { type: "number", description: "ชั้น" },
+                  reason: { type: "string", description: "เหตุผลที่แนะนำห้องนี้" }
+                },
+                required: ["room_id", "room_number", "floor", "reason"]
               }
             }
           },
-          required: ["answer"]
+          required: ["answer", "rooms"]
         }
       });
 
@@ -370,15 +376,23 @@ ${allRoomsAvailableNextMonth.length > 0 ? JSON.stringify(allRoomsAvailableNextMo
         setAiAction({ ...response, description: response.answer });
         setAiResult({ answer: response.answer });
       } else {
-        // ถ้าไม่มี answer ให้สร้างขึ้นมา
-        if (!response.answer) {
-          if (response.rooms && response.rooms.length > 0) {
-            response.answer = `พบห้องที่ตรงเงื่อนไข ${response.rooms.length} ห้อง`;
+        // สร้าง answer ถ้าไม่มี
+        let finalAnswer = response.answer;
+        let finalRooms = response.rooms || [];
+        
+        if (!finalAnswer || finalAnswer.trim() === '') {
+          if (finalRooms.length > 0) {
+            finalAnswer = `พบห้องที่ตรงเงื่อนไข ${finalRooms.length} ห้อง`;
           } else {
-            response.answer = 'ไม่พบห้องที่ตรงตามเงื่อนไข';
+            finalAnswer = 'ไม่พบห้องที่ตรงตามเงื่อนไข กรุณาลองค้นหาด้วยคำอื่น';
           }
         }
-        setAiResult(response);
+        
+        setAiResult({ 
+          ...response, 
+          answer: finalAnswer,
+          rooms: finalRooms
+        });
       }
       toast.success('วิเคราะห์สำเร็จ');
     } catch (error) {
