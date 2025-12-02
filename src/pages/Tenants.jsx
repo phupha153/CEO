@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Edit2, Trash2, Phone, Mail, User, Calendar, Home, AlertTriangle, FileText, DollarSign, Clock, Car, Users, Star, Search, X, Loader2, Upload, Sparkles, Wallet, Camera, LogOut, ScrollText, Eye, RefreshCw, Grid3x3, TableIcon, Download, CheckSquare, Square, XCircle, ChevronRight, Check, MessageSquare, CheckCircle2, RotateCcw } from "lucide-react";
+import { Plus, Edit2, Trash2, Phone, Mail, User, Calendar, Home, AlertTriangle, FileText, DollarSign, Clock, Car, Users, Star, Search, X, Loader2, Upload, Sparkles, Wallet, Camera, LogOut, ScrollText, Eye, RefreshCw, Grid3x3, TableIcon, Download, CheckSquare, Square, XCircle, ChevronRight, Check, MessageSquare, CheckCircle2, RotateCcw, Facebook } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO, differenceInDays, addMonths, startOfMonth } from "date-fns";
 import { th } from "date-fns/locale";
@@ -3367,39 +3367,86 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                     </Card>
                   )}
 
-                  {/* LINE Connection - Small inline */}
-                  <div className="flex items-center justify-between bg-slate-50 rounded-lg p-3 border border-slate-200">
-                   <div className="flex items-center gap-2">
-                     <MessageSquare className="w-4 h-4 text-green-600" />
-                     <span className="text-sm text-slate-700">LINE:</span>
+                  {/* Messaging Platforms Connection - Responsive Layout */}
+                  <div className="space-y-3">
+                    {/* LINE */}
+                    <div className="flex items-center justify-between bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
+                     <div className="flex items-center gap-2">
+                       <svg className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="currentColor">
+                         <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.193 0-.378-.09-.503-.234l-1.89-2.181v1.787c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.27.173-.51.43-.595.063-.021.13-.03.196-.03.195 0 .38.089.503.234l1.89 2.181V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.001zm-5.741 0c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.003zm-2.466.63H4.917c-.345 0-.63-.285-.63-.63V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629z"/>
+                       </svg>
+                       <span className="text-sm font-medium text-slate-700">LINE:</span>
+                       {selectedTenant.line_user_id ? (
+                         <span className="text-sm text-green-600 font-medium flex items-center gap-1">
+                           <CheckCircle2 className="w-3.5 h-3.5" /> เชื่อมต่อแล้ว
+                         </span>
+                       ) : (
+                         <span className="text-sm text-slate-500">ยังไม่เชื่อมต่อ</span>
+                       )}
+                     </div>
                      {selectedTenant.line_user_id ? (
-                       <span className="text-sm text-green-600 font-medium flex items-center gap-1">
-                         <CheckCircle2 className="w-3.5 h-3.5" /> เชื่อมต่อแล้ว
-                       </span>
+                       <Button
+                         size="sm"
+                         variant="outline"
+                         onClick={async () => {
+                           if (confirm('ยกเลิกการเชื่อมต่อ LINE?')) {
+                             await base44.entities.Tenant.update(selectedTenant.id, { line_user_id: null });
+                             queryClient.invalidateQueries(['tenants', selectedBranchId]);
+                             setSelectedTenant({ ...selectedTenant, line_user_id: null });
+                             toast.success('ยกเลิกการเชื่อมต่อ LINE สำเร็จ');
+                           }
+                         }}
+                         className="text-red-600 hover:bg-red-50"
+                       >
+                         <X className="w-3.5 h-3.5 mr-1" />
+                         ยกเลิก
+                       </Button>
                      ) : (
-                       <span className="text-sm text-slate-500">ยังไม่เชื่อมต่อ</span>
+                       <LineConnectButton tenant={selectedTenant} size="sm" />
                      )}
-                   </div>
-                   {selectedTenant.line_user_id ? (
-                     <Button
-                       size="sm"
-                       variant="outline"
-                       onClick={async () => {
-                         if (confirm('ยกเลิกการเชื่อมต่อ LINE?')) {
-                           await base44.entities.Tenant.update(selectedTenant.id, { line_user_id: null });
-                           queryClient.invalidateQueries(['tenants', selectedBranchId]);
-                           setSelectedTenant({ ...selectedTenant, line_user_id: null });
-                           toast.success('ยกเลิกการเชื่อมต่อ LINE สำเร็จ');
-                         }
-                       }}
-                       className="text-red-600 hover:bg-red-50"
-                     >
-                       <X className="w-3.5 h-3.5 mr-1" />
-                       ยกเลิก
-                     </Button>
-                   ) : (
-                     <LineConnectButton tenant={selectedTenant} size="sm" />
-                   )}
+                    </div>
+
+                    {/* Facebook */}
+                    <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200">
+                     <div className="flex items-center gap-2">
+                       <Facebook className="w-5 h-5 text-blue-600" />
+                       <span className="text-sm font-medium text-slate-700">Facebook:</span>
+                       {selectedTenant.facebook_user_id ? (
+                         <span className="text-sm text-blue-600 font-medium flex items-center gap-1">
+                           <CheckCircle2 className="w-3.5 h-3.5" /> เชื่อมต่อแล้ว
+                         </span>
+                       ) : (
+                         <span className="text-sm text-slate-500">ยังไม่เชื่อมต่อ</span>
+                       )}
+                     </div>
+                     {selectedTenant.facebook_user_id ? (
+                       <Button
+                         size="sm"
+                         variant="outline"
+                         onClick={async () => {
+                           if (confirm('ยกเลิกการเชื่อมต่อ Facebook?')) {
+                             await base44.entities.Tenant.update(selectedTenant.id, { facebook_user_id: null });
+                             queryClient.invalidateQueries(['tenants', selectedBranchId]);
+                             setSelectedTenant({ ...selectedTenant, facebook_user_id: null });
+                             toast.success('ยกเลิกการเชื่อมต่อ Facebook สำเร็จ');
+                           }
+                         }}
+                         className="text-red-600 hover:bg-red-50"
+                       >
+                         <X className="w-3.5 h-3.5 mr-1" />
+                         ยกเลิก
+                       </Button>
+                     ) : (
+                       <Button
+                         size="sm"
+                         variant="outline"
+                         className="text-blue-600 hover:bg-blue-50 border-blue-300"
+                         disabled
+                       >
+                         เชื่อมต่อ
+                       </Button>
+                     )}
+                    </div>
                   </div>
 
                   <div className="flex justify-end gap-2 pt-4 border-t">
