@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Megaphone, Send, Users, CheckCircle, XCircle, AlertTriangle, Loader2, Search, UserCheck, Sparkles, MessageCircle } from "lucide-react";
+import { Megaphone, Send, Users, CheckCircle, XCircle, AlertTriangle, Loader2, Search, UserCheck, Sparkles, MessageCircle, Facebook } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import PageHeader from "../components/shared/PageHeader";
@@ -193,8 +193,10 @@ export default function Announcements() {
     }
   }, [selectedConversation?.line_user_id, selectedMessages]);
 
-  // นับผู้เช่าที่มี LINE User ID
+  // นับผู้เช่าที่มี LINE/Facebook User ID
   const tenantsWithLine = tenants.filter(t => t.line_user_id);
+  const tenantsWithFacebook = tenants.filter(t => t.facebook_user_id);
+  const tenantsWithMessaging = tenants.filter(t => t.line_user_id || t.facebook_user_id);
 
   // Reset selection when branch changes
   useEffect(() => {
@@ -574,7 +576,7 @@ export default function Announcements() {
           <TabsContent value="broadcast" className="mt-0">
             <div className="max-w-4xl mx-auto space-y-6">
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-xl">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -594,7 +596,21 @@ export default function Announcements() {
                     <p className="text-green-100 text-sm mb-1">ลงทะเบียน LINE</p>
                     <p className="text-3xl font-bold">{tenantsWithLine.length}</p>
                   </div>
-                  <CheckCircle className="w-12 h-12 text-green-200" />
+                  <svg className="w-12 h-12 text-green-200" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.193 0-.378-.09-.503-.234l-1.89-2.181v1.787c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.27.173-.51.43-.595.063-.021.13-.03.196-.03.195 0 .38.089.503.234l1.89 2.181V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.001zm-5.741 0c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.003zm-2.466.63H4.917c-.345 0-.63-.285-.63-.63V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629z"/>
+                  </svg>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-100 text-sm mb-1">ลงทะเบียน Facebook</p>
+                    <p className="text-3xl font-bold">{tenantsWithFacebook.length}</p>
+                  </div>
+                  <Facebook className="w-12 h-12 text-blue-200" />
                 </div>
               </CardContent>
             </Card>
@@ -604,7 +620,7 @@ export default function Announcements() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-orange-100 text-sm mb-1">ยังไม่ลงทะเบียน</p>
-                    <p className="text-3xl font-bold">{tenants.length - tenantsWithLine.length}</p>
+                    <p className="text-3xl font-bold">{tenants.length - tenantsWithMessaging.length}</p>
                   </div>
                   <XCircle className="w-12 h-12 text-orange-200" />
                 </div>
