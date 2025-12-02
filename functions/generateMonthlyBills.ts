@@ -222,103 +222,24 @@ Deno.serve(async (req) => {
         
         console.log(`✅ Fetched ${recentPayments.length} recent payments`);
         
-        // ⭐⭐⭐ CRITICAL FIX: Normalize payments - เช็ค .data property เหมือนโค้ดเก่าที่เคยทำงานได้
-        const normalizedPayments = [];
-        
+        // ⭐ สร้าง Map จาก payments
         for (const p of recentPayments) {
-            if (!p) continue;
-            
-            // ⭐ ใช้ logic เดียวกับโค้ดเก่าที่เคยทำงานได้ - เช็ค p.data ก่อน
-            let roomId, dueDate, bookingId, status, totalAmount;
-            
-            if (p.data && typeof p.data === 'object') {
-                // ข้อมูลอยู่ใน p.data
-                roomId = p.data.room_id;
-                dueDate = p.data.due_date;
-                bookingId = p.data.booking_id;
-                status = p.data.status;
-                totalAmount = p.data.total_amount;
-            } else {
-                // ข้อมูลอยู่ใน root level
-                roomId = p.room_id;
-                dueDate = p.due_date;
-                bookingId = p.booking_id;
-                status = p.status;
-                totalAmount = p.total_amount;
-            }
-            
-            if (!roomId || !dueDate) continue;
-            
-            normalizedPayments.push({
-                id: p.id,
-                room_id: roomId,
-                due_date: dueDate,
-                booking_id: bookingId,
-                status: status,
-                total_amount: totalAmount,
-            });
-        }
-        
-        console.log('');
-        console.log('========================================');
-        console.log('📊 NORMALIZED PAYMENTS');
-        console.log('========================================');
-        console.log(`Normalized: ${normalizedPayments.length} from ${recentPayments.length} raw`);
-        
-        if (normalizedPayments.length > 0) {
-            console.log(`Sample: room_id=${normalizedPayments[0].room_id}, due_date=${normalizedPayments[0].due_date}`);
-        } else {
-            console.log(`❌ PROBLEM: normalizedPayments is EMPTY!`);
-        }
-        console.log('========================================');
-        
-        // ⭐⭐⭐ สร้าง Map จาก ALL payments (ไม่กรองช่วงเดือน) เพื่อไม่ให้พลาดบิลที่มีอยู่
-        let filteredPaymentsCount = 0;
-        
-        for (const p of normalizedPayments) {
-            if (!p.due_date) continue;
+            if (!p || !p.room_id || !p.due_date) continue;
             
             const dueYearMonth = p.due_date.substring(0, 7); // "2025-01"
             const mapKey = `${p.room_id}|${dueYearMonth}`;
             
             if (!existingPaymentsMap.has(mapKey)) {
-                existingPaymentsMap.set(mapKey, p);
-                filteredPaymentsCount++;
+                existingPaymentsMap.set(mapKey, {
+                    id: p.id,
+                    room_id: p.room_id,
+                    due_date: p.due_date,
+                    status: p.status
+                });
             }
         }
         
-        console.log('========================================');
-        console.log('========================================');
-        console.log('🗺️🗺️🗺️ EXISTING PAYMENTS MAP 🗺️🗺️🗺️');
-        console.log('========================================');
-        console.log('========================================');
-        console.log(`⭐⭐⭐ MAP SIZE: ${existingPaymentsMap.size} ⭐⭐⭐`);
-        
-        if (existingPaymentsMap.size > 0) {
-            const sampleKeys = Array.from(existingPaymentsMap.keys()).slice(0, 5);
-            console.log(`Sample keys: ${sampleKeys.join(', ')}`);
-        } else {
-            console.log(`❌ MAP IS EMPTY - will create all bills!`);
-        }
-        console.log('========================================');
-        console.log('');
-        
-        // ⭐ DEBUG: แสดง due_date (YYYY-MM) ที่พบ
-        if (normalizedPayments.length > 0) {
-            const dueYearMonths = [...new Set(normalizedPayments.map(p => p.due_date?.substring(0, 7)).filter(Boolean))];
-            console.log(`📅 Due YYYY-MM found in payments: ${dueYearMonths.join(', ')}`);
-            
-            // ⭐⭐⭐ DEBUG: หา room_id จาก booking แรกและเช็คว่ามีบิลหรือไม่
-            if (bookings.length > 0) {
-                const testRoomId = bookings[0].room_id;
-                const testRoom = allRooms.find(r => r.id === testRoomId);
-                const roomPayments = normalizedPayments.filter(p => p.room_id === testRoomId);
-                console.log(`🔍 DEBUG Room ${testRoom?.room_number || testRoomId}: has ${roomPayments.length} payments`);
-                if (roomPayments.length > 0) {
-                    console.log(`🔍 DEBUG Room payments due_dates: ${roomPayments.map(p => p.due_date).join(', ')}`);
-                }
-            }
-        }
+        console.log(`🗺️ Existing payments map: ${existingPaymentsMap.size} unique room-month combinations`);
         console.log(`📅 Current date: ${currentDay}/${currentMonth + 1}/${currentYear} (Thailand time)`);
         console.log(`🔧 Force create: ${forceCreate}`);
 
