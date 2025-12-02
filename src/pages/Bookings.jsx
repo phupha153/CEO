@@ -539,18 +539,7 @@ ${JSON.stringify(tenantsData, null, 2)}
 
       const booking = await base44.entities.Booking.create({ ...data, branch_id: selectedBranchId });
       
-      // บันทึกรายจ่ายเมื่อมีการจ่ายเงินมัดจำ
-      if (data.deposit_amount && data.deposit_amount > 0) {
-        await base44.entities.Expense.create({
-          branch_id: selectedBranchId,
-          title: `เงินมัดจำการจองห้อง ${room.room_number} - ${data.guest_name}`,
-          amount: data.deposit_amount,
-          category: 'other',
-          date: data.check_in_date,
-          description: `เงินมัดจำการจองห้องรายวัน (Booking ID: ${booking.id})`,
-          notes: `ชำระผ่าน: ${data.deposit_payment_method === 'cash' ? 'เงินสด' : data.deposit_payment_method === 'transfer' ? 'โอนเงิน' : 'QR Code'}`
-        });
-      }
+
       
       return booking;
     },
@@ -1135,11 +1124,7 @@ ${JSON.stringify(tenantsData, null, 2)}
                               variant="outline"
                               size="sm"
                               className="bg-green-50 text-green-700 hover:bg-green-100 border-green-300"
-                              onClick={() => {
-                                if (confirm('ยืนยันการเข้าพักสำหรับการจองนี้?')) {
-                                  confirmCheckInMutation.mutate(booking);
-                                }
-                              }}
+                              onClick={() => handleConfirmCheckIn(booking)}
                               disabled={confirmCheckInMutation.isPending}
                             >
                               <CheckCircle2 className="w-4 h-4 mr-2" />
@@ -1746,6 +1731,120 @@ ${JSON.stringify(tenantsData, null, 2)}
           </Dialog>
         </div>
       </div>
+
+      {/* Dialog ยืนยันการเข้าพัก */}
+      <Dialog open={checkInConfirmDialog} onOpenChange={setCheckInConfirmDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              ยืนยันการเข้าพัก
+            </DialogTitle>
+          </DialogHeader>
+          
+          {pendingCheckInBooking && (
+            <div className="space-y-4">
+              <div className="bg-slate-50 rounded-lg p-4">
+                <p className="font-semibold text-slate-800">
+                  ห้อง {rooms.find(r => r.id === pendingCheckInBooking.room_id)?.room_number}
+                </p>
+                <p className="text-sm text-slate-600">{pendingCheckInBooking.guest_name}</p>
+              </div>
+              
+              {/* แสดงยอดที่ต้องชำระ */}
+              {(pendingCheckInBooking.security_deposit > 0 || 
+                pendingCheckInBooking.advance_rent > 0 || 
+                pendingCheckInBooking.common_fee_included > 0) && (
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <h4 className="font-semibold text-blue-800 mb-2">ยอดคงเหลือที่ต้องชำระ</h4>
+                  <div className="space-y-1 text-sm">
+                    {pendingCheckInBooking.security_deposit > 0 && (
+                      <div className="flex justify-between">
+                        <span>เงินประกันห้อง:</span>
+                        <span>{pendingCheckInBooking.security_deposit.toLocaleString()} บาท</span>
+                      </div>
+                    )}
+                    {pendingCheckInBooking.advance_rent > 0 && (
+                      <div className="flex justify-between">
+                        <span>ค่าเช่าล่วงหน้า:</span>
+                        <span>{pendingCheckInBooking.advance_rent.toLocaleString()} บาท</span>
+                      </div>
+                    )}
+                    {pendingCheckInBooking.common_fee_included > 0 && (
+                      <div className="flex justify-between">
+                        <span>ค่าส่วนกลาง:</span>
+                        <span>{pendingCheckInBooking.common_fee_included.toLocaleString()} บาท</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-bold text-blue-800 border-t border-blue-300 pt-2 mt-2">
+                      <span>รวม:</span>
+                      <span>
+                        {(
+                          (pendingCheckInBooking.security_deposit || 0) +
+                          (pendingCheckInBooking.advance_rent || 0) +
+                          (pendingCheckInBooking.common_fee_included || 0)
+                        ).toLocaleString()} บาท
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="createPayment"
+                      checked={createPaymentOnCheckIn}
+                      onChange={(e) => setCreatePaymentOnCheckIn(e.target.checked)}
+                      className="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="createPayment" className="text-sm text-blue-800">
+                      สร้างรายการรอชำระในหน้าการชำระเงิน
+                    </label>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setCheckInConfirmDialog(false);
+                    setPendingCheckInBooking(null);
+                  }}
+                  disabled={confirmCheckInMutation.isPending}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => {
+                    confirmCheckInMutation.mutate({
+                      booking: pendingCheckInBooking,
+                      shouldCreatePayment: createPaymentOnCheckIn && (
+                        pendingCheckInBooking.security_deposit > 0 ||
+                        pendingCheckInBooking.advance_rent > 0 ||
+                        pendingCheckInBooking.common_fee_included > 0
+                      )
+                    });
+                  }}
+                  disabled={confirmCheckInMutation.isPending}
+                >
+                  {confirmCheckInMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      กำลังดำเนินการ...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      ยืนยันการเข้าพัก
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
