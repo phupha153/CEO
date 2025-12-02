@@ -147,14 +147,19 @@ Deno.serve(async (req) => {
                 const message = recipient.message;
                 const branchId = recipient.metadata?.branchId;
                 
+                console.log(`📋 Recipient: facebookUserId=${facebookUserId}, branchId=${branchId}, messageLength=${message?.length || 0}`);
+                
                 if (!facebookUserId || !message) {
                     console.log(`⚠️ Skipping: missing facebookUserId or message`);
                     results.failed++;
+                    results.errors.push({ error: 'Missing facebookUserId or message' });
                     continue;
                 }
                 
                 // ดึง config สำหรับสาขา
                 const config = await getFacebookConfig(base44, branchId);
+                console.log(`🔑 Config: hasToken=${!!config?.pageAccessToken}, branch=${branchId}`);
+                
                 if (!config?.pageAccessToken) {
                     console.error(`❌ No Facebook token for branch: ${branchId}`);
                     results.failed++;
@@ -163,7 +168,10 @@ Deno.serve(async (req) => {
                 }
 
                 // ส่งข้อความ
+                console.log(`📤 Sending to Facebook: ${facebookUserId}`);
                 const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, facebookUserId, message, branchId, user?.email || 'system');
+                
+                console.log(`📬 Send result:`, JSON.stringify(sendResult));
                 
                 if (sendResult.success) {
                     results.success++;
@@ -171,6 +179,7 @@ Deno.serve(async (req) => {
                 } else {
                     results.failed++;
                     results.errors.push({ paymentId: recipient.metadata?.paymentId, error: sendResult.error });
+                    console.log(`❌ Failed to send to ${facebookUserId}:`, sendResult.error);
                 }
 
                 // หน่วงเวลาเพื่อป้องกัน rate limit
@@ -178,7 +187,7 @@ Deno.serve(async (req) => {
             }
 
             return Response.json({ 
-                success: true,
+                success: results.success > 0,
                 message: `ส่งข้อความ Facebook สำเร็จ ${results.success}/${results.success + results.failed} รายการ`,
                 successCount: results.success,
                 failCount: results.failed,
