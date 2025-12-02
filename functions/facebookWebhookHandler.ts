@@ -130,29 +130,44 @@ Deno.serve(async (req) => {
                                 
                                 const branchId = tenant?.branch_id || null;
 
-                            if (webhookEvent.message) {
-                                if (webhookEvent.message.text) {
-                                    await handleMessage(base44, senderPsid, webhookEvent.message.text, branchId, tenant);
-                                } else if (webhookEvent.message.attachments) {
-                                    await handleAttachments(base44, senderPsid, webhookEvent.message.attachments, branchId, tenant);
+                                if (webhookEvent.message) {
+                                    console.log('📝 Message content:', webhookEvent.message);
+                                    
+                                    if (webhookEvent.message.text) {
+                                        console.log(`💬 Text message: "${webhookEvent.message.text}"`);
+                                        await handleMessage(base44, senderPsid, webhookEvent.message.text, branchId, tenant);
+                                    } else if (webhookEvent.message.attachments) {
+                                        console.log('📎 Attachments:', webhookEvent.message.attachments.length);
+                                        await handleAttachments(base44, senderPsid, webhookEvent.message.attachments, branchId, tenant);
+                                    }
+                                } else {
+                                    console.log('⚠️ No message in event, might be other type:', Object.keys(webhookEvent));
+                                }
+                            }
+                        } else {
+                            console.log('ℹ️ No messaging in entry');
+                        }
+                        
+                        // Handle Page Feed (Posts, Comments)
+                        if (entry.changes) {
+                            console.log('📰 Found changes (feed):', entry.changes.length);
+                            
+                            for (const change of entry.changes) {
+                                if (change.field === 'feed') {
+                                    const value = change.value;
+                                    
+                                    // Handle new comments
+                                    if (value.item === 'comment' && value.verb === 'add') {
+                                        await handlePageComment(base44, value);
+                                    }
                                 }
                             }
                         }
                     }
                     
-                    // Handle Page Feed (Posts, Comments)
-                    if (entry.changes) {
-                        for (const change of entry.changes) {
-                            if (change.field === 'feed') {
-                                const value = change.value;
-                                
-                                // Handle new comments
-                                if (value.item === 'comment' && value.verb === 'add') {
-                                    await handlePageComment(base44, value);
-                                }
-                            }
-                        }
-                    }
+                    console.log('✅ Finished processing all entries');
+                } catch (error) {
+                    console.error('❌ Error in async processing:', error);
                 }
             })();
 
