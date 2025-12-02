@@ -188,23 +188,18 @@ export default function BookingsPage() {
     setAiResult(null);
 
     try {
-      // *** เฉพาะห้องรายวันเท่านั้น ***
-      const dailyRoomsOnly = rooms.filter(r => r.room_type === 'daily');
-      
-      const roomsData = dailyRoomsOnly.map(r => ({
+      // ข้อมูลห้องทั้งหมด
+      const roomsData = rooms.map(r => ({
         id: r.id,
         room_number: r.room_number,
         floor: r.floor,
-        room_type: 'daily',
+        room_type: r.room_type,
         status: r.status,
         price: r.price
       }));
 
-      // การจองที่ active ของห้องรายวัน
-      const activeBookings = bookings.filter(b => 
-        b.status === 'active' && 
-        dailyRoomsOnly.some(r => r.id === b.room_id)
-      );
+      // การจองที่ active ทั้งหมด
+      const activeBookings = bookings.filter(b => b.status === 'active');
 
       const bookingsData = activeBookings.map(b => {
         const room = dailyRoomsOnly.find(r => r.id === b.room_id);
