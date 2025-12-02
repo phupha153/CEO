@@ -15,21 +15,39 @@ async function getFacebookConfig(base44, branchId = null) {
         if (!configCache || (now - configCacheTime) > CONFIG_CACHE_DURATION) {
             configCache = await base44.asServiceRole.entities.Config.list();
             configCacheTime = now;
+            console.log('🔄 Config cache refreshed, found', configCache.length, 'configs');
         }
         
         if (!configCache) return null;
         
         const findConfig = (key) => {
+            // ⭐ หา token ที่มีค่าจริงๆ ก่อน (ไม่ว่าจะสาขาไหน)
+            const allConfigs = configCache.filter(c => c.key === key && c.value?.trim());
+            console.log(`🔍 Found ${allConfigs.length} configs for key "${key}"`);
+            
             if (branchId) {
-                const branchVal = configCache.find(c => c.key === key && c.branch_id === branchId);
-                if (branchVal?.value?.trim()) return branchVal.value.trim();
+                const branchVal = allConfigs.find(c => c.branch_id === branchId);
+                if (branchVal?.value?.trim()) {
+                    console.log(`✅ Using branch-specific token for branch ${branchId}`);
+                    return branchVal.value.trim();
+                }
             }
-            const globalVal = configCache.find(c => c.key === key && !c.branch_id);
-            return globalVal?.value?.trim() || null;
+            
+            // ⭐ ถ้าไม่มี branch-specific ให้ใช้อันแรกที่มีค่า
+            const anyValidToken = allConfigs.find(c => c.value?.trim());
+            if (anyValidToken) {
+                console.log(`✅ Using token from branch ${anyValidToken.branch_id || 'global'}`);
+                return anyValidToken.value.trim();
+            }
+            
+            return null;
         };
 
+        const token = findConfig('facebook_page_access_token');
+        console.log('🔑 Token found:', token ? `${token.substring(0, 20)}...` : 'NONE');
+
         return {
-            pageAccessToken: findConfig('facebook_page_access_token'),
+            pageAccessToken: token,
             verifyToken: findConfig('facebook_verify_token')
         };
     } catch (error) {
@@ -132,18 +150,30 @@ Deno.serve(async (req) => {
                                 const branchId = tenant?.branch_id || null;
 
                                 if (webhookEvent.message) {
-                                    console.log('📝 Message content:', webhookEvent.message);
-                                    
-                                    if (webhookEvent.message.text) {
-                                        console.log(`💬 Text message: "${webhookEvent.message.text}"`);
-                                        await handleMessage(base44, senderPsid, webhookEvent.message.text, branchId, tenant);
-                                    } else if (webhookEvent.message.attachments) {
-                                        console.log('📎 Attachments:', webhookEvent.message.attachments.length);
-                                        await handleAttachments(base44, senderPsid, webhookEvent.message.attachments, branchId, tenant);
-                                    }
-                                } else {
-                                    console.log('⚠️ No message in event, might be other type:', Object.keys(webhookEvent));
-                                }
+                                                console.log('📝 Message content:', webhookEvent.message);
+
+                                                // Skip echo messages (messages sent by the page itself)
+                                                if (webhookEvent.message.is_echo) {
+                                                    console.log('⏭️ Skipping echo message');
+                                                    continue;
+                                                }
+
+                                                if (webhookEvent.message.text) {
+                                                    console.log(`💬 Text message: "${webhookEvent.message.text}"`);
+                                                    await handleMessage(base44, senderPsid, webhookEvent.message.text, branchId, tenant);
+                                                } else if (webhookEvent.message.attachments) {
+                                                    console.log('📎 Attachments:', webhookEvent.message.attachments.length);
+                                                    await handleAttachments(base44, senderPsid, webhookEvent.message.attachments, branchId, tenant);
+                                                }
+                                            } else if (webhookEvent.delivery || webhookEvent.read) {
+                                                // Skip delivery/read receipts silently
+                                                console.log('📬 Delivery/Read receipt - skipping');
+                                            } else if (webhookEvent.postback) {
+                                                console.log('🔘 Postback event:', webhookEvent.postback);
+                                                // Handle postback if needed
+                                            } else {
+                                                console.log('⚠️ Unknown event type:', Object.keys(webhookEvent));
+                                            }
                             }
                         } else {
                             console.log('ℹ️ No messaging in entry');
@@ -618,33 +648,55 @@ async function handlePageComment(base44, commentData) {
 async function sendFacebookMessage(base44, recipientId, text, branchId) {
     console.log(`📤 Sending FB message to ${recipientId}: "${text.substring(0, 50)}..."`);
     
-    const config = await getFacebookConfig(base44, branchId);
-    console.log('🔑 FB Config:', { hasToken: !!config?.pageAccessToken, branchId });
+    // ⭐ ลองหา token จากทุกแหล่ง
+    let config = await getFacebookConfig(base44, branchId);
+    
+    // ⭐ ถ้าไม่มี token ลองหาจาก branchId = null (ทุกสาขา)
+    if (!config?.pageAccessToken) {
+        console.log('⚠️ No token for branchId, trying all branches...');
+        config = await getFacebookConfig(base44, null);
+    }
+    
+    console.log('🔑 FB Config:', { 
+        hasToken: !!config?.pageAccessToken, 
+        tokenPreview: config?.pageAccessToken ? config.pageAccessToken.substring(0, 30) + '...' : 'NONE',
+        branchId 
+    });
     
     if (!config?.pageAccessToken) {
-        console.error('❌ No Facebook Page Access Token - Check Config "facebook_page_access_token"');
+        console.error('❌ No Facebook Page Access Token found in any Config!');
         return;
     }
 
     try {
+        const requestBody = {
+            recipient: { id: recipientId },
+            message: { text: text },
+            messaging_type: 'RESPONSE'
+        };
+        
+        console.log('📨 Request body:', JSON.stringify(requestBody));
+        
         const response = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${config.pageAccessToken}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                recipient: { id: recipientId },
-                message: { text: text }
-            })
+            body: JSON.stringify(requestBody)
         });
         
         const result = await response.json();
         console.log('📬 FB API Response:', JSON.stringify(result));
         
         if (result.error) {
-            console.error('❌ FB API Error:', result.error);
+            console.error('❌ FB API Error:', result.error.message, result.error.code);
+            
+            // ⭐ ถ้า token หมดอายุ ให้ log ชัดเจน
+            if (result.error.code === 190) {
+                console.error('🔴 TOKEN EXPIRED! Need to refresh Facebook Page Access Token');
+            }
         } else {
-            console.log('✅ Message sent successfully');
+            console.log('✅ Message sent successfully to:', recipientId);
         }
     } catch (e) {
-        console.error('❌ Error sending FB message:', e);
+        console.error('❌ Error sending FB message:', e.message);
     }
 }
