@@ -6,10 +6,23 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function AIResultCard({ aiResult, children }) {
   if (!aiResult) return null;
 
-  // ถ้าไม่มี answer และไม่มี children ให้ไม่แสดงการ์ด
-  if (!aiResult.answer && !children) return null;
+  // ถ้าไม่มี answer และไม่มี rooms และไม่มี children ให้ไม่แสดงการ์ด
+  const hasRooms = aiResult.rooms && aiResult.rooms.length > 0;
+  if (!aiResult.answer && !hasRooms && !children) return null;
 
-  const displayAnswer = aiResult.answer || (aiResult.action_type === 'update' ? 'พบข้อมูลที่ต้องการแก้ไข กรุณาตรวจสอบรายละเอียดด้านล่าง' : 'วิเคราะห์ข้อมูลเสร็จสิ้น');
+  // สร้างข้อความ default ตามสถานการณ์
+  let displayAnswer = aiResult.answer;
+  if (!displayAnswer) {
+    if (hasRooms) {
+      displayAnswer = `พบห้องที่ตรงเงื่อนไข ${aiResult.rooms.length} ห้อง`;
+    } else if (aiResult.action_type === 'update') {
+      displayAnswer = 'พบข้อมูลที่ต้องการแก้ไข กรุณาตรวจสอบรายละเอียดด้านล่าง';
+    } else if (aiResult.action_type === 'create') {
+      displayAnswer = 'เตรียมสร้างรายการใหม่ กรุณาตรวจสอบรายละเอียด';
+    } else {
+      displayAnswer = 'ไม่พบข้อมูลที่ตรงตามเงื่อนไข';
+    }
+  }
 
   return (
     <AnimatePresence>
