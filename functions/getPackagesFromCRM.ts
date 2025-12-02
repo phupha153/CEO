@@ -39,10 +39,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ⭐ Map is_active ให้ชัดเจน (ถ้าไม่มี field ให้ default เป็น true)
+    // ⭐ Map is_active จาก status field (status: 'inactive' = ปิด, status: 'active' = เปิด)
     const mappedPackages = (packages || []).map(pkg => ({
       ...pkg,
-      is_active: pkg.is_active !== undefined ? pkg.is_active : (pkg.status === 'active')
+      is_active: pkg.status !== 'inactive'
     }));
 
     return Response.json({
