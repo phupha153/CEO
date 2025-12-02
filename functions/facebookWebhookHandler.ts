@@ -132,30 +132,18 @@ Deno.serve(async (req) => {
                                 const branchId = tenant?.branch_id || null;
 
                                 if (webhookEvent.message) {
-                                                console.log('📝 Message content:', webhookEvent.message);
-
-                                                // Skip echo messages (messages sent by the page itself)
-                                                if (webhookEvent.message.is_echo) {
-                                                    console.log('⏭️ Skipping echo message');
-                                                    continue;
-                                                }
-
-                                                if (webhookEvent.message.text) {
-                                                    console.log(`💬 Text message: "${webhookEvent.message.text}"`);
-                                                    await handleMessage(base44, senderPsid, webhookEvent.message.text, branchId, tenant);
-                                                } else if (webhookEvent.message.attachments) {
-                                                    console.log('📎 Attachments:', webhookEvent.message.attachments.length);
-                                                    await handleAttachments(base44, senderPsid, webhookEvent.message.attachments, branchId, tenant);
-                                                }
-                                            } else if (webhookEvent.delivery || webhookEvent.read) {
-                                                // Skip delivery/read receipts silently
-                                                console.log('📬 Delivery/Read receipt - skipping');
-                                            } else if (webhookEvent.postback) {
-                                                console.log('🔘 Postback event:', webhookEvent.postback);
-                                                // Handle postback if needed
-                                            } else {
-                                                console.log('⚠️ Unknown event type:', Object.keys(webhookEvent));
-                                            }
+                                    console.log('📝 Message content:', webhookEvent.message);
+                                    
+                                    if (webhookEvent.message.text) {
+                                        console.log(`💬 Text message: "${webhookEvent.message.text}"`);
+                                        await handleMessage(base44, senderPsid, webhookEvent.message.text, branchId, tenant);
+                                    } else if (webhookEvent.message.attachments) {
+                                        console.log('📎 Attachments:', webhookEvent.message.attachments.length);
+                                        await handleAttachments(base44, senderPsid, webhookEvent.message.attachments, branchId, tenant);
+                                    }
+                                } else {
+                                    console.log('⚠️ No message in event, might be other type:', Object.keys(webhookEvent));
+                                }
                             }
                         } else {
                             console.log('ℹ️ No messaging in entry');
