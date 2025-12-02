@@ -234,7 +234,7 @@ Deno.serve(async (req) => {
                             : `[${messageType}]`;
 
                         await base44.asServiceRole.entities.LineMessage.create({
-                            branch_id: msgBranchId,
+                            branch_id: finalBranchId,
                             tenant_id: tenant?.id || null,
                             line_user_id: lineUserId,
                             line_display_name: displayName,
