@@ -466,13 +466,28 @@ export default function TestInvoiceGenerationPage() {
       
       addLog('info', `พบ ${roomPayments.length} บิลที่ต้องสร้างรูป`);
       
-      // สร้างรูปทีละใบ
+      // สร้างรูปทีละใบ + ส่ง LINE/Facebook
       for (const p of roomPayments) {
         addLog('api', `สร้างรูปบิล ${p.id.substring(0,8)}...`);
         try {
           const res = await base44.functions.invoke('generateInvoiceImage', { paymentId: p.id });
           if (res.data?.success) {
             addLog('success', `สร้างรูปสำเร็จ: ${res.data.invoice_image_url?.substring(0, 50)}...`);
+            
+            // ⭐ ส่ง LINE/Facebook ด้วย sendPaymentReminder
+            addLog('api', `ส่งบิลผ่าน sendPaymentReminder...`);
+            try {
+              const sendRes = await base44.functions.invoke('sendPaymentReminder', { 
+                payment_ids: [p.id] 
+              });
+              if (sendRes.data?.success) {
+                addLog('success', `ส่งบิลสำเร็จ: LINE ${sendRes.data.lineSent || 0}, FB ${sendRes.data.facebookSent || 0}`);
+              } else {
+                addLog('warning', `ส่งบิลไม่สำเร็จ: ${sendRes.data?.error || 'ไม่มี LINE/FB'}`);
+              }
+            } catch (sendErr) {
+              addLog('error', `ส่งบิล Error: ${sendErr.message}`);
+            }
           } else {
             addLog('error', `ล้มเหลว: ${res.data?.error}`);
           }
