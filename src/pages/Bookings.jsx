@@ -234,26 +234,37 @@ ${JSON.stringify(tenantsData, null, 2)}
 - ถ้าเป็นการค้นหา/ดูข้อมูล: action_type = "view" พร้อม rooms array (room_id, room_number, floor, reason)
 - ถ้าเป็นการจองห้อง (เช่น "จองห้อง 101", "จองห้องชั้น 2"): action_type = "create" พร้อม data สำหรับจอง
 
-ตัวอย่าง data สำหรับจอง:
+**ตัวอย่างคำตอบสำหรับการจอง (action_type = "create"):**
 {
-  room_id: "room_id_here",
-  guest_name: "ชื่อผู้เข้าพัก",
-  guest_phone: "0812345678",
-  guest_email: "email@example.com",
-  check_in_date: "2025-01-20",
-  check_out_date: "2025-01-22",
-  deposit_amount: 1000,
-  deposit_payment_method: "transfer",
-  notes: "หมายเหตุ"
+  "answer": "วิเคราะห์ข้อมูลเสร็จสิ้น",
+  "action_type": "create",
+  "data": {
+    "room_id": "xxx-room-id-xxx",
+    "guest_name": "",
+    "guest_phone": "",
+    "check_in_date": "2025-12-02",
+    "deposit_amount": 2000,
+    "deposit_payment_method": "transfer"
+  }
+}
+
+**ตัวอย่างคำตอบสำหรับการดูข้อมูล (action_type = "view"):**
+{
+  "answer": "พบห้องว่าง 3 ห้อง ในชั้น 3",
+  "action_type": "view",
+  "rooms": [
+    {"room_id": "xxx", "room_number": "301", "floor": 3, "reason": "ห้องว่าง ราคา 3,500 บาท"}
+  ]
 }
 
 **สำคัญมาก**: 
-- ถ้า action_type = "create" ห้ามตอบว่า "เรียบร้อยแล้ว" หรือ "จองสำเร็จ" 
-- ให้ตอบว่า "เตรียมข้อมูลสำหรับการจอง กรุณาตรวจสอบและยืนยัน" แทน
-- ผู้ใช้จะต้องกดยืนยันก่อนถึงจะมีการจองจริง
+- **ต้องมี answer เสมอ** - ห้ามเว้นว่าง
+- ถ้า action_type = "create" ให้ answer = "วิเคราะห์ข้อมูลเสร็จสิ้น" เสมอ
+- ถ้า action_type = "view" ให้อธิบายผลลัพธ์ที่พบ
 - ถ้ามีการขอจองห้อง ต้องเช็คว่าห้องว่างหรือไม่ (status=available) ก่อน
-- deposit_amount ควรเป็นจำนวนเงินที่เหมาะสม (ปกติประมาณ 500-2000 บาท)
-- deposit_payment_method ควรเป็น "transfer" โดยดีฟอลต์ (เพราะจะต้องอัปโหลดสลิป)
+- deposit_amount ควรเป็นจำนวนเงินที่เหมาะสม (ปกติประมาณ 1000-2000 บาท)
+- deposit_payment_method ควรเป็น "transfer" โดยดีฟอลต์
+- guest_name และ guest_phone ให้เว้นว่างไว้ (ผู้ใช้จะกรอกเอง)
 
 ตอบเป็นภาษาไทย กระชับชัดเจน`;
 
