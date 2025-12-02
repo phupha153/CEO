@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
+// Facebook Webhook Handler v2
 const processedMessages = new Set();
 const messageSentCache = new Map();
 
