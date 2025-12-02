@@ -401,15 +401,8 @@ ${(buildingPhone && buildingPhone.trim()) ? `<p>โทร: ${escapeHtml(building
 <div class="parties-grid">
 <div class="party-box">
 <h3>ผู้รับเงิน</h3>
-${(companyName && companyName.trim()) ? `
-<p class="name">${escapeHtml(companyName)}</p>
-${(taxId && taxId.trim()) ? `<p class="detail">เลขที่ผู้เสียภาษี: ${escapeHtml(taxId)}</p>` : ''}
-${(companyRegistrationNumber && companyRegistrationNumber.trim()) ? `<p class="detail">เลขทะเบียนนิติบุคคล: ${escapeHtml(companyRegistrationNumber)}</p>` : ''}
-<p class="detail">${escapeHtml(recipient.company_address || buildingAddress)}</p>
-` : `
 <p class="name">${escapeHtml(bankAccountName || lessorName || buildingName)}</p>
 <p class="detail">${escapeHtml(lessorAddress || buildingAddress)}</p>
-`}
 </div>
 <div class="party-box">
 <h3>ผู้จ่ายเงิน</h3>
