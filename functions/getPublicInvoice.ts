@@ -86,6 +86,24 @@ Deno.serve(async (req) => {
         };
 
         console.log('✅ Invoice data fetched successfully');
+        
+        // ⭐ Debug: Log all config keys
+        console.log('📋 ALL CONFIGS COUNT:', configs.length);
+        console.log('📋 CONFIGS FOR BRANCH:', actualBranchId);
+        const relevantConfigs = configs.filter(c => 
+            ['company_name', 'company_tax_id', 'company_registration_number', 'company_address', 'lessor_name', 'lessor_address', 'bank_account_name'].includes(c.key)
+        );
+        console.log('📋 RELEVANT CONFIGS:', JSON.stringify(relevantConfigs, null, 2));
+        
+        // Debug extracted values
+        console.log('📋 EXTRACTED CONFIG VALUES:');
+        console.log('  - company_name:', getConfigValue('company_name'));
+        console.log('  - company_tax_id:', getConfigValue('company_tax_id'));
+        console.log('  - company_registration_number:', getConfigValue('company_registration_number'));
+        console.log('  - company_address:', getConfigValue('company_address'));
+        console.log('  - lessor_name:', getConfigValue('lessor_name'));
+        console.log('  - lessor_address:', getConfigValue('lessor_address'));
+        console.log('  - bank_account_name:', configData.bank_account_name);
 
         // ⭐ สร้าง invoice object สำหรับ generateInvoiceImage
         const invoiceObject = {
