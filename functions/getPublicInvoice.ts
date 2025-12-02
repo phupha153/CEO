@@ -132,6 +132,7 @@ Deno.serve(async (req) => {
                 tax_id: getConfigValue('company_tax_id') || '',
                 company_registration_number: getConfigValue('company_registration_number') || '',
                 company_phone: getConfigValue('company_phone') || '',
+                company_address: getConfigValue('company_address') || '',
                 account_name: configData.bank_account_name || ''
             }
         };
