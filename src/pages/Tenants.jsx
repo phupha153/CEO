@@ -471,6 +471,9 @@ export default function TenantsPage() {
         return { ...t, avg_rating: avgRating };
       });
 
+      // กรองเฉพาะผู้เช่าที่มีคะแนน (สำหรับคำถามเกี่ยวกับคะแนน)
+      const tenantsWithRatingOnly = tenantsWithAvgRating.filter(t => t.avg_rating !== null);
+
       const promptText = `คุณเป็นผู้ช่วย AI ระบบจัดการหอพัก ตอบคำถามผู้ใช้ให้ตรงประเด็น
 
 📌 คำถาม/คำสั่ง: "${searchQuery}"
@@ -478,6 +481,9 @@ export default function TenantsPage() {
 
 📋 ข้อมูลผู้เช่า (${tenantsWithAvgRating.length} คน):
 ${JSON.stringify(tenantsWithAvgRating.slice(0, 30), null, 2)}
+
+📋 ผู้เช่าที่มีคะแนน (${tenantsWithRatingOnly.length} คน):
+${JSON.stringify(tenantsWithRatingOnly.slice(0, 30), null, 2)}
 
 📋 ข้อมูลสัญญาเช่า (${bookingsData.length} สัญญา):
 ${JSON.stringify(bookingsData.slice(0, 30), null, 2)}
@@ -500,7 +506,8 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
 ⚠️ **สำคัญมาก:**
 - ตอบ answer ให้ตรงคำถาม ห้ามตอบว่า "วิเคราะห์ข้อมูลเสร็จสิ้น" ถ้าเป็นคำถาม
 - reason ใน tenants ต้องอธิบายว่าทำไมผู้เช่านี้ถึงอยู่ในรายการ
-- ตอบภาษาไทย`;
+- ตอบภาษาไทย
+- **เมื่อถามเรื่องคะแนน ความเสี่ยง หรือผู้เช่าที่คะแนนน้อย:** ให้ใช้ข้อมูลจาก "ผู้เช่าที่มีคะแนน" เท่านั้น (avg_rating ไม่เป็น null) ห้ามรวมผู้เช่าที่ยังไม่มีคะแนน`;
 
       const response = await Promise.race([
         base44.integrations.Core.InvokeLLM({
