@@ -387,96 +387,12 @@ Deno.serve(async (req) => {
         console.log(`📅 Current date: ${currentDay}/${currentMonth + 1}/${currentYear} (Thailand time)`);
         console.log(`🔧 Force create: ${forceCreate}`);
 
-        // ⭐⭐⭐ Normalize other entities - data might be inside .data property OR flat
-        const normalizeEntity = (entity) => {
-            if (!entity) return null;
-            if (entity.data && typeof entity.data === 'object') {
-                return { id: entity.id, ...entity.data };
-            }
-            return entity;
-        };
-        
-        allRooms = allRooms.map(normalizeEntity).filter(Boolean);
-        bookings = bookings.map(normalizeEntity).filter(Boolean);
-        meterReadings = meterReadings.map(normalizeEntity).filter(Boolean);
-        tenants = tenants.map(normalizeEntity).filter(Boolean);
-        
-        // Debug: log first room to verify structure
-        if (allRooms.length > 0) {
-            console.log(`🔍 Sample room after normalize:`, JSON.stringify({
-                id: allRooms[0].id,
-                room_type: allRooms[0].room_type,
-                room_number: allRooms[0].room_number,
-                branch_id: allRooms[0].branch_id
-            }));
-        }
-        
-        console.log(`📦 Normalized entities: ${allRooms.length} rooms, ${bookings.length} bookings, ${tenants.length} tenants`);
-
-        // Filter Rooms with detailed logging
-        const monthlyRooms = allRooms.filter(room => room.room_type === 'monthly');
-        console.log(`🏠 Monthly rooms: ${monthlyRooms.length}`);
-
-        const roomsWithBooking = monthlyRooms.filter(room => {
-            return bookings.some(b => b.room_id === room.id);
-        });
-        console.log(`📋 Rooms with active booking: ${roomsWithBooking.length}`);
-
-        // ⭐ ดึง unique branch IDs และเช็คว่าสาขาไหนตรงวันสร้างบิล
-        const branchIds = [...new Set(roomsWithBooking.map(r => r.branch_id).filter(Boolean))];
-        const branchGenDayMap = {};
-        const branchesToProcess = [];
-        const branchesSkipped = [];
-        
-        for (const branchId of branchIds) {
-            const genDay = parseInt(getConfigValue('bill_generation_day', '27', branchId));
-            branchGenDayMap[branchId] = genDay;
-            
-            if (forceCreate || currentDay === genDay) {
-                branchesToProcess.push({ branchId, genDay });
-            } else {
-                branchesSkipped.push({ branchId, genDay, reason: `วันนี้ (${currentDay}) ไม่ตรงกับวันสร้างบิล (${genDay})` });
-            }
-        }
-
-        console.log(`📆 สาขาที่จะสร้างบิลวันนี้: ${branchesToProcess.length} สาขา`);
-        console.log(`⏭️ สาขาที่ข้าม: ${branchesSkipped.length} สาขา`);
-        
-        if (branchesSkipped.length > 0) {
-            branchesSkipped.forEach(b => {
-                console.log(`   - สาขา ${b.branchId}: ${b.reason}`);
-            });
-        }
-
-        // กรองเฉพาะห้องที่อยู่ในสาขาที่ตรงวัน
-        const branchIdsToProcess = branchesToProcess.map(b => b.branchId);
+        // กรองเฉพาะห้องที่อยู่ในสาขาที่ตรงวัน (branchIdsToProcess ถูกกำหนดไว้ก่อนหน้าแล้ว)
         let roomsToProcess = roomsWithBooking.filter(room => {
             return branchIdsToProcess.includes(room.branch_id);
         });
 
         console.log(`✅ Rooms to process (after branch/date filter): ${roomsToProcess.length}`);
-
-        if (roomsToProcess.length === 0) {
-            const reason = branchesSkipped.length > 0
-                ? `ไม่มีสาขาที่ตรงวันสร้างบิลวันนี้ (${currentDay}) - สาขาที่ข้าม: ${branchesSkipped.map(b => `${b.branchId}(วันที่${b.genDay})`).join(', ')}`
-                : 'ไม่มีห้องที่ต้องสร้างบิล';
-            console.log(`⏭️ ${reason}`);
-            return Response.json({ 
-                success: true, 
-                message: reason, 
-                generatedCount: 0,
-                debug: {
-                    currentDay,
-                    forceCreate,
-                    totalRooms: allRooms.length,
-                    monthlyRooms: monthlyRooms.length,
-                    roomsWithBooking: roomsWithBooking.length,
-                    branchGenDayMap,
-                    branchesToProcess: branchesToProcess.map(b => b.branchId),
-                    branchesSkipped: branchesSkipped.map(b => ({ id: b.branchId, genDay: b.genDay }))
-                }
-            });
-        }
 
         // 4. Prepare Payments (In-Memory Calculation)
         const paymentsToCreate = [];
