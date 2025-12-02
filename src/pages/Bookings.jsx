@@ -227,50 +227,51 @@ ${JSON.stringify(roomsData, null, 2)}
 ข้อมูลการจอง ${bookingsData.length} รายการ:
 ${JSON.stringify(bookingsData, null, 2)}
 
-ข้อมูลผู้เช่า ${tenantsData.length} ราย:
-${JSON.stringify(tenantsData, null, 2)}
+**ประเภทห้อง**:
+- room_type = "daily" คือห้องรายวัน
+- room_type = "monthly" คือห้องรายเดือน
+
+**สถานะห้อง**:
+- status = "available" คือห้องว่าง
+- status = "occupied" คือมีผู้เช่า
+- status = "reserved" คือจองแล้ว
 
 การระบุ Action:
-- ถ้าเป็นการค้นหา/ดูข้อมูล: action_type = "view" พร้อม rooms array (room_id, room_number, floor, reason)
-- ถ้าเป็นการจองห้อง (เช่น "จองห้อง 101", "จองห้องชั้น 2"): action_type = "create" พร้อม data สำหรับจอง
+- ถ้าเป็นการค้นหา/ดูข้อมูล/หาห้องว่าง: action_type = "view" พร้อม rooms array
+- ถ้าเป็นการจองห้อง (เช่น "จองห้อง 101"): action_type = "create" พร้อม data สำหรับจอง
+
+**ตัวอย่างคำตอบสำหรับการค้นหาห้องว่าง:**
+คำถาม: "หาห้องว่างรายวัน พัก 3 คืน"
+{
+  "answer": "พบห้องว่างรายวัน 2 ห้อง สามารถพัก 3 คืน (2 ธ.ค. - 5 ธ.ค. 2568) ได้",
+  "action_type": "view",
+  "rooms": [
+    {"room_id": "xxx", "room_number": "101", "floor": 1, "reason": "ห้องรายวัน ว่าง ราคา 800 บาท/คืน รวม 3 คืน = 2,400 บาท"}
+  ]
+}
 
 **ตัวอย่างคำตอบสำหรับการจอง (action_type = "create"):**
 {
-  "answer": "วิเคราะห์ข้อมูลเสร็จสิ้น",
+  "answer": "เตรียมจองห้อง 101 พัก 3 คืน (2-5 ธ.ค. 2568)",
   "action_type": "create",
   "data": {
     "room_id": "xxx-room-id-xxx",
     "guest_name": "",
     "guest_phone": "",
     "check_in_date": "2025-12-02",
+    "check_out_date": "2025-12-05",
     "deposit_amount": 2000,
     "deposit_payment_method": "transfer"
   }
 }
 
-**ตัวอย่างคำตอบสำหรับการดูข้อมูล (action_type = "view"):**
-{
-  "answer": "พบห้องว่าง 3 ห้อง ในชั้น 3",
-  "action_type": "view",
-  "rooms": [
-    {"room_id": "xxx", "room_number": "301", "floor": 3, "reason": "ห้องว่าง ราคา 3,500 บาท"}
-  ]
-}
-
 **สำคัญมาก**: 
-- **ต้องมี answer เสมอ** - ห้ามเว้นว่าง
-- ถ้า action_type = "create" ให้ answer = "วิเคราะห์ข้อมูลเสร็จสิ้น" เสมอ
-- ถ้า action_type = "view" ให้อธิบายผลลัพธ์ที่พบ
-- ถ้ามีการขอจองห้อง ต้องเช็คว่าห้องว่างหรือไม่ (status=available) ก่อน
-- deposit_amount ควรเป็นจำนวนเงินที่เหมาะสม (ปกติประมาณ 1000-2000 บาท)
-- deposit_payment_method ควรเป็น "transfer" โดยดีฟอลต์
-- guest_name และ guest_phone ให้เว้นว่างไว้ (ผู้ใช้จะกรอกเอง)
-
-**สำคัญที่สุด - การจับคู่ห้อง**:
-- ต้องค้นหาห้องที่ตรงกับ room_number **ตรงทั้งหมด** (exact match)
-- เช่น ถ้าผู้ใช้พิมพ์ "จองห้อง 112" ต้องหาห้องที่ room_number = "112" เท่านั้น
-- ห้ามเลือกห้อง 411 แทนห้อง 112 เด็ดขาด
-- ถ้าไม่พบห้องที่ตรงกัน ให้ตอบว่า "ไม่พบห้อง XXX ในระบบ"
+- **ต้องมี answer เสมอ** - อธิบายผลลัพธ์ให้ชัดเจน
+- ถ้าหาห้องว่างรายวัน ให้กรองเฉพาะห้องที่ room_type = "daily" และ status = "available"
+- ถ้าหาห้องว่างรายเดือน ให้กรองเฉพาะห้องที่ room_type = "monthly" และ status = "available"
+- ถ้าระบุจำนวนคืน ให้คำนวณวัน check_out จากวันปัจจุบัน + จำนวนคืน
+- ถ้าจองห้องเลขที่เฉพาะ ต้อง exact match room_number เท่านั้น (เช่น "112" ต้องได้ "112" ไม่ใช่ "411")
+- ถ้าไม่พบห้องที่ตรงกัน ให้ตอบว่า "ไม่พบห้องที่ตรงตามเงื่อนไข"
 
 ตอบเป็นภาษาไทย กระชับชัดเจน`;
 
