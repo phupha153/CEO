@@ -506,7 +506,14 @@ export default function PackageSelectionPage() {
                            console.log('Pricing data:', pkg.pricing);
                           }}
                           >
-                            {isMostPopular && (
+                            {isDisabled && (
+                              <div className="absolute -top-4 left-0 right-0 flex justify-center">
+                                <Badge className="bg-slate-600 text-slate-300 border-0 px-4 py-1.5 text-xs font-bold rounded-t-lg rounded-b-none">
+                                  ปิดการขาย
+                                </Badge>
+                              </div>
+                            )}
+                            {isMostPopular && !isDisabled && (
                               <div className="absolute -top-4 left-0 right-0 flex justify-center">
                                 <Badge className="bg-orange-500 text-white border-0 px-4 py-1.5 text-xs font-bold rounded-t-lg rounded-b-none">
                                   MOST POPULAR
