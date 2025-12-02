@@ -192,6 +192,7 @@ export default function BookingsPage() {
         id: r.id,
         room_number: r.room_number,
         floor: r.floor,
+        room_type: r.room_type,
         status: r.status,
         price: r.price,
         size: r.size,
