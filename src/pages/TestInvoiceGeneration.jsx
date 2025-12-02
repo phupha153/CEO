@@ -27,6 +27,8 @@ export default function TestInvoiceGenerationPage() {
   const [selectedPaymentId, setSelectedPaymentId] = useState('');
   const [testLineUserId, setTestLineUserId] = useState('');
   const [sendingTestLine, setSendingTestLine] = useState(false);
+  const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [runningQueue, setRunningQueue] = useState(false);
   const logsEndRef = useRef(null);
 
   const addLog = (type, message, data = null) => {
@@ -99,6 +101,11 @@ export default function TestInvoiceGenerationPage() {
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
     enabled: !!selectedBranchId,
+  });
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn: () => base44.entities.Branch.list(),
   });
 
   const getConfigValue = (key, defaultValue = '') => {
@@ -408,6 +415,109 @@ export default function TestInvoiceGenerationPage() {
     }
   };
 
+  // ===== ส่ง Bills ด้วย sendPaymentReminder =====
+  const handleSendBills = async () => {
+    setSendingBills(true);
+    clearLogs();
+    addLog('step', '=== ส่งบิลผ่าน sendPaymentReminder ===');
+    addLog('info', `สาขา: ${selectedBranchName}`);
+    
+    try {
+      const response = await base44.functions.invoke('sendPaymentReminder', {
+        branch_id: selectedBranchId
+      });
+      
+      const result = response.data;
+      setSendResult(result);
+      
+      if (result.success) {
+        addLog('success', result.message);
+        toast.success(result.message);
+      } else {
+        addLog('error', result.error || 'เกิดข้อผิดพลาด');
+        toast.error(result.error);
+      }
+    } catch (error) {
+      addLog('error', `เกิดข้อผิดพลาด: ${error.message}`);
+      toast.error(error.message);
+    } finally {
+      setSendingBills(false);
+    }
+  };
+
+  // ===== ทดสอบ processInvoiceImageQueue เฉพาะห้อง/สาขา =====
+  const handleTestProcessQueue = async () => {
+    setRunningQueue(true);
+    clearLogs();
+    addLog('step', '=== ทดสอบ processInvoiceImageQueue ===');
+    
+    // ถ้าเลือกห้องเฉพาะ = สร้างบิลเฉพาะห้องนั้นก่อน
+    if (selectedRoomId) {
+      const room = rooms.find(r => r.id === selectedRoomId);
+      addLog('info', `เลือกห้อง: ${room?.room_number || selectedRoomId}`);
+      
+      // หาบิลของห้องนี้ที่ยังไม่มีรูป
+      const roomPayments = payments.filter(p => p.room_id === selectedRoomId && !p.invoice_image_url);
+      if (roomPayments.length === 0) {
+        addLog('warning', 'ไม่มีบิลที่ต้องสร้างรูปสำหรับห้องนี้');
+        setRunningQueue(false);
+        return;
+      }
+      
+      addLog('info', `พบ ${roomPayments.length} บิลที่ต้องสร้างรูป`);
+      
+      // สร้างรูปทีละใบ
+      for (const p of roomPayments) {
+        addLog('api', `สร้างรูปบิล ${p.id.substring(0,8)}...`);
+        try {
+          const res = await base44.functions.invoke('generateInvoiceImage', { paymentId: p.id });
+          if (res.data?.success) {
+            addLog('success', `สร้างรูปสำเร็จ: ${res.data.invoice_image_url?.substring(0, 50)}...`);
+          } else {
+            addLog('error', `ล้มเหลว: ${res.data?.error}`);
+          }
+        } catch (e) {
+          addLog('error', `Error: ${e.message}`);
+        }
+      }
+    } else {
+      // ไม่เลือกห้อง = รัน queue ทั้งสาขา
+      addLog('info', `รัน processInvoiceImageQueue สำหรับสาขา: ${selectedBranchName}`);
+      addLog('api', 'เรียก processInvoiceImageQueue...');
+      
+      try {
+        const response = await base44.functions.invoke('processInvoiceImageQueue', {
+          branch_id: selectedBranchId,
+          batch_size: 10,
+          concurrent_limit: 1,
+          skip_line_send: true // ไม่ส่ง LINE ตอนทดสอบ
+        });
+        
+        const result = response.data;
+        if (result.success) {
+          addLog('success', result.message);
+          addLog('data', 'ผลลัพธ์:', {
+            processed: result.processed,
+            imageGenerated: result.imageGenerated,
+            imageFailed: result.imageFailed,
+            remaining: result.remaining
+          });
+          toast.success(result.message);
+        } else {
+          addLog('error', result.error || 'เกิดข้อผิดพลาด');
+          toast.error(result.error);
+        }
+      } catch (error) {
+        addLog('error', `เกิดข้อผิดพลาด: ${error.message}`);
+        toast.error(error.message);
+      }
+    }
+    
+    await refetchPayments();
+    setRunningQueue(false);
+    addLog('step', '=== จบการทดสอบ ===');
+  };
+
   // ===== FULL FLOW =====
   const handleFullFlow = async () => {
     clearLogs();
@@ -513,6 +623,68 @@ export default function TestInvoiceGenerationPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* ⭐ ตัวเลือกห้อง/สาขา สำหรับทดสอบ */}
+          <Card className="bg-white/90 shadow-lg border-2 border-indigo-200">
+            <CardHeader className="pb-2 bg-indigo-50">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-indigo-600" />
+                ทดสอบเฉพาะห้อง / สาขา
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                {/* เลือกสาขา */}
+                <div>
+                  <Label className="text-xs text-slate-600">สาขาปัจจุบัน</Label>
+                  <div className="mt-1 p-2 bg-slate-100 rounded text-sm font-medium">
+                    {selectedBranchName || 'ไม่ได้เลือก'}
+                  </div>
+                </div>
+                
+                {/* เลือกห้อง */}
+                <div>
+                  <Label className="text-xs text-slate-600">เลือกห้อง (ทดสอบเฉพาะห้อง)</Label>
+                  <Select value={selectedRoomId} onValueChange={setSelectedRoomId}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="ทุกห้อง (ไม่เลือก)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={null}>ทุกห้อง (ไม่เลือก)</SelectItem>
+                      {roomsWithBooking.slice(0, 50).map(r => {
+                        const hasPayment = payments.some(p => p.room_id === r.id);
+                        const hasImage = payments.some(p => p.room_id === r.id && p.invoice_image_url);
+                        return (
+                          <SelectItem key={r.id} value={r.id}>
+                            ห้อง {r.room_number} {hasPayment ? (hasImage ? '✅' : '📄') : '❌'}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* ปุ่มทดสอบ Queue */}
+                <div className="flex items-end">
+                  <Button
+                    onClick={handleTestProcessQueue}
+                    disabled={runningQueue}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700"
+                  >
+                    {runningQueue ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> กำลังทำงาน...</>
+                    ) : (
+                      <><Play className="w-4 h-4 mr-2" /> ทดสอบสร้างรูป {selectedRoomId ? '(ห้องเดียว)' : '(ทั้งสาขา)'}</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="text-xs text-slate-500 bg-slate-50 p-2 rounded">
+                💡 เลือกห้องเพื่อทดสอบเฉพาะห้องนั้น หรือไม่เลือกเพื่อรัน processInvoiceImageQueue ทั้งสาขา (batch_size=10, skip_line_send=true)
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Quick Actions */}
           <Card className="bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-2xl">
