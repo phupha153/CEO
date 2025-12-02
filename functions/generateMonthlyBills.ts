@@ -80,7 +80,11 @@ const retryOperation = async (fn, maxRetries = 5, baseDelay = 2000) => {
 };
 
 Deno.serve(async (req) => {
+    console.log('========================================');
     console.log('🚀 STARTING BILL GENERATION');
+    console.log('========================================');
+    console.log('⬇️ SCROLL DOWN TO SEE PAYMENT DEBUG ⬇️');
+    console.log('========================================');
 
     let base44 = null;
     let targetBranchId = null;
@@ -174,79 +178,200 @@ Deno.serve(async (req) => {
             const filter = targetBranchId ? { branch_id: targetBranchId } : {};
             const bookingFilter = { ...filter, status: 'active' };
 
-            // ⭐ ใช้ filter ธรรมดา + limit เท่าที่จำเป็น แทน pagination
             const [r, b, m, t] = await Promise.all([
-                base44.asServiceRole.entities.Room.filter(filter, '-room_number', 5000),
-                base44.asServiceRole.entities.Booking.filter(bookingFilter, '-created_date', 5000),
-                base44.asServiceRole.entities.MeterReading.filter(filter, '-reading_date', 5000),
-                base44.asServiceRole.entities.Tenant.filter(filter, '-created_date', 5000)
+                fetchWithPagination(base44.asServiceRole.entities.Room, filter, '-room_number'),
+                fetchWithPagination(base44.asServiceRole.entities.Booking, bookingFilter, '-created_date'),
+                fetchWithPagination(base44.asServiceRole.entities.MeterReading, filter, '-reading_date'),
+                fetchWithPagination(base44.asServiceRole.entities.Tenant, filter, '-created_date')
             ]);
             
-            allRooms = Array.isArray(r) ? r : []; 
-            bookings = Array.isArray(b) ? b : []; 
-            meterReadings = Array.isArray(m) ? m : []; 
-            tenants = Array.isArray(t) ? t : [];
+            allRooms = r || []; 
+            bookings = b || []; 
+            meterReadings = m || []; 
+            tenants = t || [];
         });
 
-        console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings, ${tenants.length} tenants`);
+        console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
-        // ⭐⭐⭐ ดึง Payment ของสาขาที่กำลังประมวลผล (ไม่ใช้ $gte เพราะ SDK ไม่รองรับ)
-        console.log('📦 Fetching payments...');
+        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ pagination เหมือนกัน
+        console.log('========================================');
+        console.log('========================================');
+        console.log('📦📦📦 FETCHING EXISTING PAYMENTS 📦📦📦');
+        console.log('========================================');
+        console.log('========================================');
+        console.log(`Target branch: ${targetBranchId || 'ALL'}`);
         
         let recentPayments = [];
         
-        // ⭐ คำนวณเดือนที่จะสร้างบิล (เดือนหน้า)
-        const targetBillMonth = currentMonth + 1 > 11 ? 0 : currentMonth + 1;
-        const targetBillYear = currentMonth + 1 > 11 ? currentYear + 1 : currentYear;
-        const targetMonthStr = `${targetBillYear}-${String(targetBillMonth + 1).padStart(2, '0')}`;
-        const thisMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
-        
-        console.log(`📅 Target bill month: ${targetMonthStr}, this month: ${thisMonthStr}`);
-        
-        await retryOperation(async () => {
-            // ⭐ ดึง payments ของสาขา (ไม่ใช้ $gte เพราะไม่ work)
-            const paymentFilter = targetBranchId 
-                ? { branch_id: targetBranchId }
-                : {};
-            
-            const payments = await base44.asServiceRole.entities.Payment.filter(
-                paymentFilter, 
-                '-due_date', 
-                5000
-            );
-            
-            const allPayments = Array.isArray(payments) ? payments : [];
-            
-            // ⭐ กรองเฉพาะ due_date >= เดือนปัจจุบัน (ในโค้ด)
-            recentPayments = allPayments.filter(p => {
-                if (!p || !p.due_date) return false;
-                const dueYearMonth = p.due_date.substring(0, 7); // "2025-12"
-                return dueYearMonth >= thisMonthStr;
+        console.log('');
+        console.log('⭐ FETCHING PAYMENTS - START');
+
+        // ⭐⭐⭐ FIX: ดึงทีละ batch เล็กๆ เพื่อหลีกเลี่ยง JSON truncation
+        const BATCH_SIZE = 500; // ลดขนาดเพื่อป้องกัน response ถูกตัด
+        let allPayments = [];
+        let skip = 0;
+        let hasMore = true;
+        let batchNum = 0;
+
+        while (hasMore) {
+            batchNum++;
+            await retryOperation(async () => {
+                const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
+                console.log(`Batch ${batchNum}: skip=${skip}, limit=${BATCH_SIZE}`);
+
+                const batch = await base44.asServiceRole.entities.Payment.filter(
+                    paymentFilter, 
+                    '-created_date', 
+                    BATCH_SIZE, 
+                    skip
+                );
+
+                if (Array.isArray(batch) && batch.length > 0) {
+                    allPayments = allPayments.concat(batch);
+                    skip += batch.length;
+                    console.log(`Batch ${batchNum}: got ${batch.length} payments, total: ${allPayments.length}`);
+
+                    if (batch.length < BATCH_SIZE) {
+                        hasMore = false;
+                    }
+                } else {
+                    console.log(`Batch ${batchNum}: no more data or invalid response`);
+                    hasMore = false;
+                }
             });
-            
-            console.log(`📊 Filtered: ${recentPayments.length}/${allPayments.length} payments (due >= ${thisMonthStr})`);
-        });
+
+            // หยุดถ้าดึงมากเกินไป (ป้องกัน infinite loop)
+            if (batchNum > 50) {
+                console.log('⚠️ Max batches reached, stopping');
+                hasMore = false;
+            }
+
+            // รอเล็กน้อยระหว่าง batch
+            if (hasMore) {
+                await delay(500);
+            }
+        }
+
+        recentPayments = allPayments;
+        console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments.length} (${batchNum} batches)`);
+
+        if (recentPayments.length > 0) {
+            console.log(`Sample: room_id=${recentPayments[0].room_id}, due=${recentPayments[0].due_date}`);
+        }
         
-        console.log(`✅ Fetched ${recentPayments.length} relevant payments`);
+        console.log('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
+        console.log(`⭐ TOTAL PAYMENTS FETCHED: ${(recentPayments || []).length}`);
+        console.log('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
+        console.log('');
+        recentPayments = recentPayments || [];
         
-        // ⭐ สร้าง Map จาก payments
+        // ⭐⭐⭐ DEBUG: แสดงตัวอย่าง payment แรก (ก่อน normalize)
+        if (recentPayments.length > 0) {
+            const sample = recentPayments[0];
+            console.log(`RAW Payment KEYS: ${Object.keys(sample).join(', ')}`);
+            console.log(`RAW Payment: id=${sample.id}, room_id=${sample.room_id}, due_date=${sample.due_date}`);
+        } else {
+            console.log(`❌ NO PAYMENTS FOUND IN DATABASE!`);
+        }
+        console.log('========================================');
+        
+        // ⭐⭐⭐ CRITICAL FIX: Normalize payments - เช็ค .data property เหมือนโค้ดเก่าที่เคยทำงานได้
+        const normalizedPayments = [];
+        
         for (const p of recentPayments) {
-            if (!p || !p.room_id || !p.due_date) continue;
+            if (!p) continue;
+            
+            // ⭐ ใช้ logic เดียวกับโค้ดเก่าที่เคยทำงานได้ - เช็ค p.data ก่อน
+            let roomId, dueDate, bookingId, status, totalAmount;
+            
+            if (p.data && typeof p.data === 'object') {
+                // ข้อมูลอยู่ใน p.data
+                roomId = p.data.room_id;
+                dueDate = p.data.due_date;
+                bookingId = p.data.booking_id;
+                status = p.data.status;
+                totalAmount = p.data.total_amount;
+            } else {
+                // ข้อมูลอยู่ใน root level
+                roomId = p.room_id;
+                dueDate = p.due_date;
+                bookingId = p.booking_id;
+                status = p.status;
+                totalAmount = p.total_amount;
+            }
+            
+            if (!roomId || !dueDate) continue;
+            
+            normalizedPayments.push({
+                id: p.id,
+                room_id: roomId,
+                due_date: dueDate,
+                booking_id: bookingId,
+                status: status,
+                total_amount: totalAmount,
+            });
+        }
+        
+        console.log('');
+        console.log('========================================');
+        console.log('📊 NORMALIZED PAYMENTS');
+        console.log('========================================');
+        console.log(`Normalized: ${normalizedPayments.length} from ${recentPayments.length} raw`);
+        
+        if (normalizedPayments.length > 0) {
+            console.log(`Sample: room_id=${normalizedPayments[0].room_id}, due_date=${normalizedPayments[0].due_date}`);
+        } else {
+            console.log(`❌ PROBLEM: normalizedPayments is EMPTY!`);
+        }
+        console.log('========================================');
+        
+        // ⭐⭐⭐ สร้าง Map จาก ALL payments (ไม่กรองช่วงเดือน) เพื่อไม่ให้พลาดบิลที่มีอยู่
+        let filteredPaymentsCount = 0;
+        
+        for (const p of normalizedPayments) {
+            if (!p.due_date) continue;
             
             const dueYearMonth = p.due_date.substring(0, 7); // "2025-01"
             const mapKey = `${p.room_id}|${dueYearMonth}`;
             
             if (!existingPaymentsMap.has(mapKey)) {
-                existingPaymentsMap.set(mapKey, {
-                    id: p.id,
-                    room_id: p.room_id,
-                    due_date: p.due_date,
-                    status: p.status
-                });
+                existingPaymentsMap.set(mapKey, p);
+                filteredPaymentsCount++;
             }
         }
         
-        console.log(`🗺️ Existing payments map: ${existingPaymentsMap.size} unique room-month combinations`);
+        console.log('========================================');
+        console.log('========================================');
+        console.log('🗺️🗺️🗺️ EXISTING PAYMENTS MAP 🗺️🗺️🗺️');
+        console.log('========================================');
+        console.log('========================================');
+        console.log(`⭐⭐⭐ MAP SIZE: ${existingPaymentsMap.size} ⭐⭐⭐`);
+        
+        if (existingPaymentsMap.size > 0) {
+            const sampleKeys = Array.from(existingPaymentsMap.keys()).slice(0, 5);
+            console.log(`Sample keys: ${sampleKeys.join(', ')}`);
+        } else {
+            console.log(`❌ MAP IS EMPTY - will create all bills!`);
+        }
+        console.log('========================================');
+        console.log('');
+        
+        // ⭐ DEBUG: แสดง due_date (YYYY-MM) ที่พบ
+        if (normalizedPayments.length > 0) {
+            const dueYearMonths = [...new Set(normalizedPayments.map(p => p.due_date?.substring(0, 7)).filter(Boolean))];
+            console.log(`📅 Due YYYY-MM found in payments: ${dueYearMonths.join(', ')}`);
+            
+            // ⭐⭐⭐ DEBUG: หา room_id จาก booking แรกและเช็คว่ามีบิลหรือไม่
+            if (bookings.length > 0) {
+                const testRoomId = bookings[0].room_id;
+                const testRoom = allRooms.find(r => r.id === testRoomId);
+                const roomPayments = normalizedPayments.filter(p => p.room_id === testRoomId);
+                console.log(`🔍 DEBUG Room ${testRoom?.room_number || testRoomId}: has ${roomPayments.length} payments`);
+                if (roomPayments.length > 0) {
+                    console.log(`🔍 DEBUG Room payments due_dates: ${roomPayments.map(p => p.due_date).join(', ')}`);
+                }
+            }
+        }
         console.log(`📅 Current date: ${currentDay}/${currentMonth + 1}/${currentYear} (Thailand time)`);
         console.log(`🔧 Force create: ${forceCreate}`);
 
@@ -302,7 +427,14 @@ Deno.serve(async (req) => {
             }
         }
 
-        console.log(`📆 สาขาที่จะสร้างบิล: ${branchesToProcess.length} สาขา, ข้าม: ${branchesSkipped.length} สาขา`);
+        console.log(`📆 สาขาที่จะสร้างบิลวันนี้: ${branchesToProcess.length} สาขา`);
+        console.log(`⏭️ สาขาที่ข้าม: ${branchesSkipped.length} สาขา`);
+        
+        if (branchesSkipped.length > 0) {
+            branchesSkipped.forEach(b => {
+                console.log(`   - สาขา ${b.branchId}: ${b.reason}`);
+            });
+        }
 
         // กรองเฉพาะห้องที่อยู่ในสาขาที่ตรงวัน
         const branchIdsToProcess = branchesToProcess.map(b => b.branchId);
@@ -368,10 +500,10 @@ Deno.serve(async (req) => {
                 
                 let existingBill = existingPaymentsMap.get(mapKey) || null;
 
-                // ⭐ FALLBACK: scan จาก recentPayments array
+                // ⭐ FALLBACK: scan จาก normalizedPayments array
                 if (!existingBill) {
-                    for (const p of recentPayments) {
-                        if (p && p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
+                    for (const p of normalizedPayments) {
+                        if (p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
                             existingBill = p;
                             break;
                         }
@@ -380,6 +512,7 @@ Deno.serve(async (req) => {
 
                 // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว = ข้ามไป (ไม่ว่าจะ force หรือไม่ก็ตาม)
                 if (existingBill) {
+                    console.log(`⏭️ Room ${room.room_number}: มีบิลเดือน ${roomDueMonth + 1}/${roomDueYear} อยู่แล้ว (ID: ${existingBill.id}) - ข้าม`);
                     skippedDueToExistingBill++;
                     
                     // ถ้าต้องการส่งแจ้งเตือนซ้ำ
