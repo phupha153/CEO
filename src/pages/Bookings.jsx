@@ -646,23 +646,72 @@ ${JSON.stringify(tenantsData, null, 2)}
     }
   });
 
+  const [checkInConfirmDialog, setCheckInConfirmDialog] = useState(false);
+  const [pendingCheckInBooking, setPendingCheckInBooking] = useState(null);
+  const [createPaymentOnCheckIn, setCreatePaymentOnCheckIn] = useState(true);
+
   const confirmCheckInMutation = useMutation({
-    mutationFn: async (booking) => {
+    mutationFn: async ({ booking, shouldCreatePayment }) => {
       if (!canCheckIn) {
         throw new Error('คุณไม่มีสิทธิ์ยืนยันการเข้าพัก');
       }
+      
+      // อัปเดตวันที่เข้าพักจริง
       await base44.entities.Booking.update(booking.id, {
         actual_check_in_date: new Date().toISOString().split('T')[0]
       });
+
+      // ถ้าเลือกสร้างรายการชำระเงิน
+      if (shouldCreatePayment) {
+        const room = rooms.find(r => r.id === booking.room_id);
+        const today = new Date().toISOString().split('T')[0];
+        const dueDate = booking.contract_deadline || today;
+        
+        // คำนวณยอดรวมที่ต้องชำระ (ไม่รวมเงินจองที่จ่ายไปแล้ว)
+        const securityDeposit = booking.security_deposit || 0;
+        const advanceRent = booking.advance_rent || 0;
+        const commonFee = booking.common_fee_included || 0;
+        const totalRemaining = securityDeposit + advanceRent + commonFee;
+        
+        if (totalRemaining > 0) {
+          // สร้างรายการชำระเงินรอดำเนินการ
+          await base44.entities.Payment.create({
+            branch_id: selectedBranchId,
+            booking_id: booking.id,
+            room_id: booking.room_id,
+            payment_category: 'security_deposit',
+            due_date: dueDate,
+            security_deposit_amount: securityDeposit,
+            advance_rent_amount: advanceRent,
+            common_fee_amount: commonFee,
+            total_amount: totalRemaining,
+            status: 'pending',
+            notes: `รายการชำระจากการจองห้อง ${room?.room_number || ''} - ${booking.guest_name}\n` +
+                   `เงินประกัน: ${securityDeposit.toLocaleString()} บาท\n` +
+                   `ค่าเช่าล่วงหน้า: ${advanceRent.toLocaleString()} บาท\n` +
+                   `ค่าส่วนกลาง: ${commonFee.toLocaleString()} บาท`
+          });
+        }
+      }
+      
+      return booking;
     },
-    onSuccess: () => {
+    onSuccess: (booking) => {
       queryClient.invalidateQueries(['bookings', selectedBranchId]);
+      queryClient.invalidateQueries(['payments', selectedBranchId]);
+      setCheckInConfirmDialog(false);
+      setPendingCheckInBooking(null);
       toast.success('ยืนยันการเข้าพักสำเร็จ');
     },
     onError: (error) => {
       toast.error(error.message || 'เกิดข้อผิดพลาด');
     }
   });
+
+  const handleConfirmCheckIn = (booking) => {
+    setPendingCheckInBooking(booking);
+    setCheckInConfirmDialog(true);
+  };
 
   const handleSlipUpload = async (e) => {
     const file = e.target.files?.[0];
