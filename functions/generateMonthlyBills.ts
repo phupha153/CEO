@@ -80,11 +80,7 @@ const retryOperation = async (fn, maxRetries = 5, baseDelay = 2000) => {
 };
 
 Deno.serve(async (req) => {
-    console.log('========================================');
     console.log('🚀 STARTING BILL GENERATION');
-    console.log('========================================');
-    console.log('⬇️ SCROLL DOWN TO SEE PAYMENT DEBUG ⬇️');
-    console.log('========================================');
 
     let base44 = null;
     let targetBranchId = null;
