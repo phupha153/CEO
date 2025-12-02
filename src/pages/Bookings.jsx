@@ -202,15 +202,16 @@ export default function BookingsPage() {
       const activeBookings = bookings.filter(b => b.status === 'active');
 
       const bookingsData = activeBookings.map(b => {
-        const room = dailyRoomsOnly.find(r => r.id === b.room_id);
+        const room = rooms.find(r => r.id === b.room_id);
         const tenant = b.tenant_id ? tenants.find(t => t.id === b.tenant_id) : null;
         return {
           room_id: b.room_id,
           room_number: room?.room_number || 'N/A',
           floor: room?.floor,
+          room_type: room?.room_type || 'unknown',
           guest_name: b.guest_name || tenant?.full_name || 'ไม่ระบุชื่อ',
           check_in_date: b.check_in_date,
-          check_out_date: b.check_out_date || null, // null = ไม่มีกำหนดออก (รายเดือนหรือระยะยาว)
+          check_out_date: b.check_out_date || null,
           booking_type: b.booking_type
         };
       });
