@@ -292,14 +292,7 @@ Deno.serve(async (req) => {
             }
         }
 
-        console.log(`📆 สาขาที่จะสร้างบิลวันนี้: ${branchesToProcess.length} สาขา`);
-        console.log(`⏭️ สาขาที่ข้าม: ${branchesSkipped.length} สาขา`);
-        
-        if (branchesSkipped.length > 0) {
-            branchesSkipped.forEach(b => {
-                console.log(`   - สาขา ${b.branchId}: ${b.reason}`);
-            });
-        }
+        console.log(`📆 สาขาที่จะสร้างบิล: ${branchesToProcess.length} สาขา, ข้าม: ${branchesSkipped.length} สาขา`);
 
         // กรองเฉพาะห้องที่อยู่ในสาขาที่ตรงวัน
         const branchIdsToProcess = branchesToProcess.map(b => b.branchId);
