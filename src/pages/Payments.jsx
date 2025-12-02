@@ -1067,25 +1067,27 @@ export default function PaymentsPage() {
           }
         }
 
-        // ส่งใบเสร็จอัตโนมัติทันทีหลังยืนยันชำระ
-        if (tenant?.line_user_id && canSendReceipt) {
+        // ส่งใบเสร็จอัตโนมัติทันทีหลังยืนยันชำระ (รองรับทั้ง LINE และ Facebook)
+        if ((tenant?.line_user_id || tenant?.facebook_user_id) && canSendReceipt) {
           try {
-            toast.info('กำลังส่งใบเสร็จทาง LINE...', { duration: 2000 });
-            const response = await base44.functions.invoke('sendReceipt', {
-              paymentId: updatedPayment.id
-            });
+            const platform = tenant?.facebook_user_id ? 'Facebook' : 'LINE';
+            toast.info(`กำลังส่งใบเสร็จทาง ${platform}...`, { duration: 2000 });
+            
+            const response = tenant?.facebook_user_id
+              ? await base44.functions.invoke('sendFacebookReceipt', { paymentId: updatedPayment.id })
+              : await base44.functions.invoke('sendReceipt', { paymentId: updatedPayment.id });
             
             if (response.data?.success) {
-              toast.success(`✅ ส่งใบเสร็จทาง LINE สำเร็จ\nส่งถึง: ${tenant.full_name}`, { duration: 5000 });
+              toast.success(`✅ ส่งใบเสร็จทาง ${platform} สำเร็จ\nส่งถึง: ${tenant.full_name}`, { duration: 5000 });
             } else {
               toast.warning(`ยืนยันชำระสำเร็จ แต่ไม่สามารถส่งใบเสร็จได้: ${response.data?.error || 'ไม่ทราบสาเหตุ'}`, { duration: 5000 });
             }
           } catch (error) {
             console.error('Auto-send receipt error:', error);
-            toast.warning('ยืนยันชำระสำเร็จ แต่ไม่สามารถส่งใบเสร็จอัตโนมัติได้', { duration: 5000 });
+            toast.warning('ยืนยันชำระสำเร็จ แต่ไม่สามารถส่งใบเสร็จอัตโนมัติได้: ' + error.message, { duration: 5000 });
           }
-        } else if (!tenant?.line_user_id) {
-          toast.success('ยืนยันชำระสำเร็จ (ผู้เช่ายังไม่ได้เชื่อมต่อ LINE)', { duration: 3000 });
+        } else if (!tenant?.line_user_id && !tenant?.facebook_user_id) {
+          toast.success('ยืนยันชำระสำเร็จ (ผู้เช่ายังไม่ได้เชื่อมต่อ LINE หรือ Facebook)', { duration: 3000 });
         } else {
           toast.success('อัปเดตสถานะสำเร็จ', { duration: 3000 });
         }
@@ -1382,13 +1384,32 @@ export default function PaymentsPage() {
 
     setSendingReceipt(paymentId);
     try {
-      const response = await base44.functions.invoke('sendReceipt', {
-        paymentId: paymentId
-      });
+      // ⭐ ตรวจสอบว่าผู้เช่าใช้ LINE หรือ Facebook
+      const payment = payments.find(p => p.id === paymentId);
+      const tenant = payment ? getTenantInfo(payment.tenant_id) : null;
+      
+      let response;
+      if (tenant?.facebook_user_id) {
+        // ส่งผ่าน Facebook
+        console.log('📤 Sending receipt via Facebook to:', tenant.facebook_user_id);
+        response = await base44.functions.invoke('sendFacebookReceipt', {
+          paymentId: paymentId
+        });
+      } else if (tenant?.line_user_id) {
+        // ส่งผ่าน LINE (เดิม)
+        console.log('📤 Sending receipt via LINE to:', tenant.line_user_id);
+        response = await base44.functions.invoke('sendReceipt', {
+          paymentId: paymentId
+        });
+      } else {
+        toast.error('ผู้เช่ายังไม่ได้เชื่อมต่อ LINE หรือ Facebook');
+        setSendingReceipt(false);
+        return;
+      }
 
       if (response.data && response.data.success) {
-        toast.success(response.data.message || 'ส่งใบเสร็จทาง LINE สำเร็จ');
-        // ⭐ รีเฟรชข้อมูลทันทีหลังส่งใบเสร็จสำเร็จ
+        const platform = tenant?.facebook_user_id ? 'Facebook' : 'LINE';
+        toast.success(response.data.message || `ส่งใบเสร็จทาง ${platform} สำเร็จ`);
         queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
       } else {
         const errorMsg = response.data?.message || response.data?.error || 'ส่งใบเสร็จไม่สำเร็จ';
@@ -1396,7 +1417,7 @@ export default function PaymentsPage() {
       }
     } catch (error) {
       console.error('Send receipt error:', error);
-      toast.error('เกิดข้อผิดพลาดในการส่งใบเสร็จ');
+      toast.error('เกิดข้อผิดพลาดในการส่งใบเสร็จ: ' + error.message);
     } finally {
       setSendingReceipt(false);
     }
