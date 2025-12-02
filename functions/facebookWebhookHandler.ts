@@ -173,6 +173,7 @@ Deno.serve(async (req) => {
 
             return response;
         } else {
+            console.log('⚠️ body.object is not "page":', body.object);
             return new Response('Not Found', { status: 404 });
         }
     }
