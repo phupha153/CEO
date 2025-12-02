@@ -178,20 +178,21 @@ Deno.serve(async (req) => {
             const filter = targetBranchId ? { branch_id: targetBranchId } : {};
             const bookingFilter = { ...filter, status: 'active' };
 
+            // ⭐ ใช้ filter ธรรมดา + limit เท่าที่จำเป็น แทน pagination
             const [r, b, m, t] = await Promise.all([
-                fetchWithPagination(base44.asServiceRole.entities.Room, filter, '-room_number'),
-                fetchWithPagination(base44.asServiceRole.entities.Booking, bookingFilter, '-created_date'),
-                fetchWithPagination(base44.asServiceRole.entities.MeterReading, filter, '-reading_date'),
-                fetchWithPagination(base44.asServiceRole.entities.Tenant, filter, '-created_date')
+                base44.asServiceRole.entities.Room.filter(filter, '-room_number', 5000),
+                base44.asServiceRole.entities.Booking.filter(bookingFilter, '-created_date', 5000),
+                base44.asServiceRole.entities.MeterReading.filter(filter, '-reading_date', 5000),
+                base44.asServiceRole.entities.Tenant.filter(filter, '-created_date', 5000)
             ]);
             
-            allRooms = r || []; 
-            bookings = b || []; 
-            meterReadings = m || []; 
-            tenants = t || [];
+            allRooms = Array.isArray(r) ? r : []; 
+            bookings = Array.isArray(b) ? b : []; 
+            meterReadings = Array.isArray(m) ? m : []; 
+            tenants = Array.isArray(t) ? t : [];
         });
 
-        console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
+        console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings, ${tenants.length} tenants`);
         
         // ⭐⭐⭐ ดึง Payment เฉพาะเดือนปัจจุบัน/เดือนหน้า (แทนที่จะดึงทั้งหมด)
         console.log('📦 Fetching payments for current/next month only...');
