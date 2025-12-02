@@ -3262,20 +3262,28 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                                       </div>
                                       <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                                         {booking.check_in_date && (
-                                          <div>
-                                            <Label className="text-slate-600">วันเริ่มสัญญา</Label>
-                                            <p className="font-semibold flex items-center gap-1">
-                                              <Calendar className="w-3 h-3 text-green-600" />
-                                              {typeof booking.check_in_date === 'string' ? format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th }) : 'N/A'}
-                                            </p>
-                                          </div>
+                                         <div>
+                                           <Label className="text-slate-600">วันเริ่มสัญญา</Label>
+                                           <p className="font-semibold flex items-center gap-1">
+                                             <Calendar className="w-3 h-3 text-green-600" />
+                                             {typeof booking.check_in_date === 'string' ? (
+                                               <>
+                                                 {format(parseISO(booking.check_in_date), 'd MMM', { locale: th })} {parseInt(booking.check_in_date.split('-')[0]) + 543}
+                                               </>
+                                             ) : 'N/A'}
+                                           </p>
+                                         </div>
                                         )}
                                         {booking.check_out_date && (
                                           <div>
                                             <Label className="text-slate-600">วันสิ้นสุดสัญญา</Label>
                                             <p className={`font-semibold flex items-center gap-1 ${isExpired ? 'text-red-600' : ''}`}>
                                               <Calendar className="w-3 h-3 text-red-600" />
-                                              {typeof booking.check_out_date === 'string' ? format(parseISO(booking.check_out_date), 'd MMM yyyy', { locale: th }) : 'N/A'}
+                                              {typeof booking.check_out_date === 'string' ? (
+                                                <>
+                                                  {format(parseISO(booking.check_out_date), 'd MMM', { locale: th })} {parseInt(booking.check_out_date.split('-')[0]) + 543}
+                                                </>
+                                              ) : 'N/A'}
                                             </p>
                                           </div>
                                         )}
