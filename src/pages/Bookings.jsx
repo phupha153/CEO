@@ -326,11 +326,21 @@ ${JSON.stringify(bookingsData, null, 2)}
         }
       });
 
+      console.log('AI Response:', response);
+      
       // ถ้า action_type = "create" ให้แสดง confirmation พร้อมเพิ่ม description
       if (response.action_type === 'create' && response.data) {
         setAiAction({ ...response, description: response.answer });
         setAiResult({ answer: response.answer });
       } else {
+        // ถ้าไม่มี answer ให้สร้างขึ้นมา
+        if (!response.answer) {
+          if (response.rooms && response.rooms.length > 0) {
+            response.answer = `พบห้องที่ตรงเงื่อนไข ${response.rooms.length} ห้อง`;
+          } else {
+            response.answer = 'ไม่พบห้องที่ตรงตามเงื่อนไข';
+          }
+        }
         setAiResult(response);
       }
       toast.success('วิเคราะห์สำเร็จ');
