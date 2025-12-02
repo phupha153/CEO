@@ -386,8 +386,14 @@ export default function Receipt() {
                 </div>
               </div>
               <div className="text-xs text-slate-600 mt-1 space-y-0.5">
-                {receiptData.recipient?.lessor_name && (
-                  <p>{receiptData.recipient.lessor_name} {receiptData.recipient.tax_id && <>เลขที่ภาษี ({receiptData.recipient.tax_id})</>}</p>
+                {receiptData.recipient?.company_name ? (
+                  <>
+                    <p>{receiptData.recipient.company_name}</p>
+                    {receiptData.recipient.tax_id && <p>เลขที่ผู้เสียภาษี: {receiptData.recipient.tax_id}</p>}
+                    {receiptData.recipient.company_registration_number && <p>เลขทะเบียนนิติบุคคล: {receiptData.recipient.company_registration_number}</p>}
+                  </>
+                ) : receiptData.recipient?.lessor_name && (
+                  <p>{receiptData.recipient.lessor_name}</p>
                 )}
                 <p>{receiptData.recipient.building_address}</p>
                 {receiptData.recipient.building_phone && <p>โทร: {receiptData.recipient.building_phone}</p>}
@@ -414,8 +420,19 @@ export default function Receipt() {
               <div className="border border-slate-200 rounded p-2">
                 <h3 className="font-semibold text-slate-700 text-xs mb-1">ผู้รับเงิน</h3>
                 <div className="text-xs text-slate-600 space-y-0.5">
-                  <p className="font-medium text-slate-800">{receiptData.recipient?.lessor_name || receiptData.recipient?.building_name}</p>
-                  <p>{receiptData.recipient?.lessor_address || receiptData.recipient?.building_address}</p>
+                  {receiptData.recipient?.company_name ? (
+                    <>
+                      <p className="font-medium text-slate-800">{receiptData.recipient.company_name}</p>
+                      {receiptData.recipient.tax_id && <p>เลขที่ผู้เสียภาษี: {receiptData.recipient.tax_id}</p>}
+                      {receiptData.recipient.company_registration_number && <p>เลขทะเบียนนิติบุคคล: {receiptData.recipient.company_registration_number}</p>}
+                      <p>{receiptData.recipient?.building_address}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium text-slate-800">{receiptData.recipient?.lessor_name || receiptData.recipient?.building_name}</p>
+                      <p>{receiptData.recipient?.lessor_address || receiptData.recipient?.building_address}</p>
+                    </>
+                  )}
                 </div>
               </div>
 
