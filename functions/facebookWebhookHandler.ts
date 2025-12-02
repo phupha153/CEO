@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-// Facebook Webhook Handler v2
+// Facebook Webhook Handler v3 - Force Redeploy
 const processedMessages = new Set();
 const messageSentCache = new Map();
 
