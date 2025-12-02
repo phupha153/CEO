@@ -319,12 +319,12 @@ ${dailyAvailable.length > 0 ? dailyAvailable.map(r =>
   `  - ห้อง ${r.room_number} ชั้น ${r.floor} (${r.price?.toLocaleString() || 0} บาท)`
 ).join('\n') : '  ไม่มี'}
 
-🟡 มีผู้เช่าแต่มีกำหนดว่าง (${dailyWillBeAvailable.length} ห้อง):
+🟡 มีผู้เช่า มีวันหมดสัญญา (${dailyWillBeAvailable.length} ห้อง):
 ${dailyWillBeAvailable.length > 0 ? dailyWillBeAvailable.map(r => 
-  `  - ห้อง ${r.room_number} ชั้น ${r.floor} → จะว่างวันที่ ${r.availableFrom} (ผู้เช่า: ${r.currentTenant})`
+  `  - ห้อง ${r.room_number} ชั้น ${r.floor} → หมดสัญญา ${r.availableFrom} (ผู้เช่า: ${r.currentTenant})`
 ).join('\n') : '  ไม่มี'}
 
-🔴 ไม่มีกำหนดย้ายออก (${dailyNoEndDate.length} ห้อง):
+🔴 มีผู้เช่า ไม่มีวันหมดสัญญา (${dailyNoEndDate.length} ห้อง):
 ${dailyNoEndDate.length > 0 ? dailyNoEndDate.map(r => 
   `  - ห้อง ${r.room_number} ชั้น ${r.floor} (ผู้เช่า: ${r.currentTenant})`
 ).join('\n') : '  ไม่มี'}
@@ -336,12 +336,12 @@ ${monthlyAvailable.length > 0 ? monthlyAvailable.map(r =>
   `  - ห้อง ${r.room_number} ชั้น ${r.floor} (${r.price?.toLocaleString() || 0} บาท)`
 ).join('\n') : '  ไม่มี'}
 
-🟡 มีผู้เช่าแต่มีกำหนดว่าง (${monthlyWillBeAvailable.length} ห้อง):
+🟡 มีผู้เช่า มีวันหมดสัญญา (${monthlyWillBeAvailable.length} ห้อง):
 ${monthlyWillBeAvailable.length > 0 ? monthlyWillBeAvailable.map(r => 
-  `  - ห้อง ${r.room_number} ชั้น ${r.floor} → จะว่างวันที่ ${r.availableFrom} (ผู้เช่า: ${r.currentTenant})`
+  `  - ห้อง ${r.room_number} ชั้น ${r.floor} → หมดสัญญา ${r.availableFrom} (ผู้เช่า: ${r.currentTenant})`
 ).join('\n') : '  ไม่มี'}
 
-🔴 ไม่มีกำหนดย้ายออก (${monthlyNoEndDate.length} ห้อง):
+🔴 มีผู้เช่า ไม่มีวันหมดสัญญา (${monthlyNoEndDate.length} ห้อง):
 ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r => 
   `  - ห้อง ${r.room_number} ชั้น ${r.floor} (ผู้เช่า: ${r.currentTenant})`
 ).join('\n') : '  ไม่มี'}
