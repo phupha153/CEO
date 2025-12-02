@@ -298,9 +298,9 @@ ${JSON.stringify(tenantsData, null, 2)}
         }
       });
 
-      // ถ้า action_type = "create" ให้แสดง confirmation
+      // ถ้า action_type = "create" ให้แสดง confirmation พร้อมเพิ่ม description
       if (response.action_type === 'create' && response.data) {
-        setAiAction(response);
+        setAiAction({ ...response, description: response.answer });
         setAiResult({ answer: response.answer });
       } else {
         setAiResult(response);
