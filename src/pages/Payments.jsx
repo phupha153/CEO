@@ -61,8 +61,7 @@ export default function PaymentsPage() {
   
   // Room View State
   const [roomViewMonth, setRoomViewMonth] = useState(() => {
-    const nextMonth = addMonths(new Date(), 1);
-    return format(nextMonth, 'yyyy-MM');
+    return format(new Date(), 'yyyy-MM');
   });
 
   const [aiSearching, setAiSearching] = useState(false);
