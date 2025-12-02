@@ -130,7 +130,8 @@ Deno.serve(async (req) => {
                 lessor_address: getConfigValue('lessor_address') || '',
                 company_name: getConfigValue('company_name') || '',
                 tax_id: getConfigValue('company_tax_id') || '',
-                company_registration_number: getConfigValue('company_registration_number') || ''
+                company_registration_number: getConfigValue('company_registration_number') || '',
+                account_name: configData.bank_account_name || ''
             }
         };
 
