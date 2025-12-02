@@ -217,13 +217,24 @@ export default function BookingsPage() {
         phone: t.phone
       }));
 
+      // นับจำนวนห้องรายวันที่ว่าง
+      const dailyAvailableRooms = roomsData.filter(r => r.room_type === 'daily' && r.status === 'available');
+      const monthlyAvailableRooms = roomsData.filter(r => r.room_type === 'monthly' && r.status === 'available');
+
       const promptText = `คุณเป็นผู้ช่วยอัจฉริยะระบบจัดการหอพัก วิเคราะห์คำถามและระบุ action ที่ต้องการ
 
 วันที่ปัจจุบัน: ${format(new Date(), 'yyyy-MM-dd')}
 คำถาม: "${searchQuery}"
 
-ข้อมูลห้องพัก ${roomsData.length} ห้อง:
-${JSON.stringify(roomsData, null, 2)}
+**สรุปจำนวนห้องว่าง:**
+- ห้องรายวันว่าง: ${dailyAvailableRooms.length} ห้อง
+- ห้องรายเดือนว่าง: ${monthlyAvailableRooms.length} ห้อง
+
+**รายละเอียดห้องรายวันที่ว่าง (${dailyAvailableRooms.length} ห้อง):**
+${JSON.stringify(dailyAvailableRooms, null, 2)}
+
+**รายละเอียดห้องรายเดือนที่ว่าง (${monthlyAvailableRooms.length} ห้อง):**
+${JSON.stringify(monthlyAvailableRooms, null, 2)}
 
 ข้อมูลการจอง ${bookingsData.length} รายการ:
 ${JSON.stringify(bookingsData, null, 2)}
@@ -238,40 +249,15 @@ ${JSON.stringify(bookingsData, null, 2)}
 - status = "reserved" คือจองแล้ว
 
 การระบุ Action:
-- ถ้าเป็นการค้นหา/ดูข้อมูล/หาห้องว่าง: action_type = "view" พร้อม rooms array
+- ถ้าเป็นการค้นหา/ดูข้อมูล/หาห้องว่าง: action_type = "view" พร้อม rooms array (ใส่ทุกห้องที่ตรงเงื่อนไข)
 - ถ้าเป็นการจองห้อง (เช่น "จองห้อง 101"): action_type = "create" พร้อม data สำหรับจอง
 
-**ตัวอย่างคำตอบสำหรับการค้นหาห้องว่าง:**
-คำถาม: "หาห้องว่างรายวัน พัก 3 คืน"
-{
-  "answer": "พบห้องว่างรายวัน 2 ห้อง สามารถพัก 3 คืน (2 ธ.ค. - 5 ธ.ค. 2568) ได้",
-  "action_type": "view",
-  "rooms": [
-    {"room_id": "xxx", "room_number": "101", "floor": 1, "reason": "ห้องรายวัน ว่าง ราคา 800 บาท/คืน รวม 3 คืน = 2,400 บาท"}
-  ]
-}
-
-**ตัวอย่างคำตอบสำหรับการจอง (action_type = "create"):**
-{
-  "answer": "เตรียมจองห้อง 101 พัก 3 คืน (2-5 ธ.ค. 2568)",
-  "action_type": "create",
-  "data": {
-    "room_id": "xxx-room-id-xxx",
-    "guest_name": "",
-    "guest_phone": "",
-    "check_in_date": "2025-12-02",
-    "check_out_date": "2025-12-05",
-    "deposit_amount": 2000,
-    "deposit_payment_method": "transfer"
-  }
-}
-
 **สำคัญมาก**: 
-- **ต้องมี answer เสมอ** - อธิบายผลลัพธ์ให้ชัดเจน
-- ถ้าหาห้องว่างรายวัน ให้กรองเฉพาะห้องที่ room_type = "daily" และ status = "available"
-- ถ้าหาห้องว่างรายเดือน ให้กรองเฉพาะห้องที่ room_type = "monthly" และ status = "available"
-- ถ้าระบุจำนวนคืน ให้คำนวณวัน check_out จากวันปัจจุบัน + จำนวนคืน
-- ถ้าจองห้องเลขที่เฉพาะ ต้อง exact match room_number เท่านั้น (เช่น "112" ต้องได้ "112" ไม่ใช่ "411")
+- **ต้องมี answer เสมอ** - ระบุจำนวนห้องที่พบให้ชัดเจน
+- **ต้องใส่ห้องทั้งหมดที่ตรงเงื่อนไขใน rooms array** ไม่ใช่แค่บางห้อง
+- ถ้าถามว่าว่างกี่ห้อง ให้ตอบจำนวนที่ถูกต้องจากข้อมูลด้านบน
+- ถ้าหาห้องว่างรายวัน ต้องใส่ห้องรายวันที่ว่างทั้งหมด ${dailyAvailableRooms.length} ห้อง
+- ถ้าจองห้องเลขที่เฉพาะ ต้อง exact match room_number เท่านั้น
 - ถ้าไม่พบห้องที่ตรงกัน ให้ตอบว่า "ไม่พบห้องที่ตรงตามเงื่อนไข"
 
 ตอบเป็นภาษาไทย กระชับชัดเจน`;
