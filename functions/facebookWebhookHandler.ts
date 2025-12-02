@@ -615,14 +615,18 @@ async function handlePageComment(base44, commentData) {
 }
 
 async function sendFacebookMessage(base44, recipientId, text, branchId) {
+    console.log(`📤 Sending FB message to ${recipientId}: "${text.substring(0, 50)}..."`);
+    
     const config = await getFacebookConfig(base44, branchId);
+    console.log('🔑 FB Config:', { hasToken: !!config?.pageAccessToken, branchId });
+    
     if (!config?.pageAccessToken) {
-        console.error('❌ No Facebook Page Access Token');
+        console.error('❌ No Facebook Page Access Token - Check Config "facebook_page_access_token"');
         return;
     }
 
     try {
-        await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${config.pageAccessToken}`, {
+        const response = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${config.pageAccessToken}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -630,6 +634,15 @@ async function sendFacebookMessage(base44, recipientId, text, branchId) {
                 message: { text: text }
             })
         });
+        
+        const result = await response.json();
+        console.log('📬 FB API Response:', JSON.stringify(result));
+        
+        if (result.error) {
+            console.error('❌ FB API Error:', result.error);
+        } else {
+            console.log('✅ Message sent successfully');
+        }
     } catch (e) {
         console.error('❌ Error sending FB message:', e);
     }
