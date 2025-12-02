@@ -233,17 +233,18 @@ export default function Announcements() {
   const selectedMessages = React.useMemo(() => {
     if (!selectedConversation) return [];
     
+    // ถ้าเป็น Facebook (เช็ค platform ก่อน หรือมี facebook_user_id แต่ไม่มี line_user_id)
+    if (selectedConversation.platform === 'facebook' || 
+        (selectedConversation.facebook_user_id && !selectedConversation.line_user_id)) {
+      return facebookMessages
+        .filter(m => m.facebook_user_id === selectedConversation.facebook_user_id)
+        .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+    }
+    
     // ถ้าเป็น LINE
     if (selectedConversation.line_user_id) {
       return lineMessages
         .filter(m => m.line_user_id === selectedConversation.line_user_id)
-        .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
-    }
-    
-    // ถ้าเป็น Facebook
-    if (selectedConversation.facebook_user_id) {
-      return facebookMessages
-        .filter(m => m.facebook_user_id === selectedConversation.facebook_user_id)
         .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
     }
     
