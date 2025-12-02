@@ -230,10 +230,12 @@ Deno.serve(async (req) => {
         console.log(`📆 สาขาที่จะสร้างบิลวันนี้: ${branchesToProcess.length} สาขา`);
         console.log(`⏭️ สาขาที่ข้าม: ${branchesSkipped.length} สาขา`);
         
-        if (branchesSkipped.length > 0) {
+        if (branchesSkipped.length > 0 && branchesSkipped.length <= 5) {
             branchesSkipped.forEach(b => {
                 console.log(`   - สาขา ${b.branchId}: ${b.reason}`);
             });
+        } else if (branchesSkipped.length > 5) {
+            console.log(`   (ข้ามแสดงรายละเอียด - มี ${branchesSkipped.length} สาขา)`);
         }
 
         // ⭐⭐⭐ ถ้าไม่มีสาขาที่ต้องสร้างบิล = return เลย (ไม่ต้องดึง payment เลย!)
