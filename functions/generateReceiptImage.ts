@@ -378,8 +378,15 @@ ${buildingPhone ? `<p>โทร: ${escapeHtml(buildingPhone)}</p>` : ''}
 <div class="parties-grid">
 <div class="party-box">
 <h3>ผู้รับเงิน</h3>
-<p class="name">${escapeHtml(lessorName || buildingName)}</p>
+${companyName ? `
+<p class="name">${escapeHtml(companyName)}</p>
+${taxId ? `<p class="detail">เลขที่ผู้เสียภาษี: ${escapeHtml(taxId)}</p>` : ''}
+${companyRegistrationNumber ? `<p class="detail">เลขทะเบียนนิติบุคคล: ${escapeHtml(companyRegistrationNumber)}</p>` : ''}
+<p class="detail">${escapeHtml(recipient.company_address || buildingAddress)}</p>
+` : `
+<p class="name">${escapeHtml(bankAccountName || lessorName || buildingName)}</p>
 <p class="detail">${escapeHtml(lessorAddress || buildingAddress)}</p>
+`}
 </div>
 <div class="party-box">
 <h3>ผู้จ่ายเงิน</h3>
