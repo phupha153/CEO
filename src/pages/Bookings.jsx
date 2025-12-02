@@ -291,59 +291,83 @@ export default function BookingsPage() {
       // ห้องที่ไม่มีกำหนดว่าง
       const noEndDate = roomsWithAvailability.filter(r => !r.available && !r.availableFrom);
 
+      // แยกห้องตามประเภท
+      const dailyRooms = roomsWithAvailability.filter(r => r.room_type === 'daily');
+      const monthlyRooms = roomsWithAvailability.filter(r => r.room_type === 'monthly');
+      
+      const dailyAvailable = dailyRooms.filter(r => r.available);
+      const dailyWillBeAvailable = dailyRooms.filter(r => !r.available && r.availableFrom);
+      const dailyNoEndDate = dailyRooms.filter(r => !r.available && !r.availableFrom);
+      
+      const monthlyAvailable = monthlyRooms.filter(r => r.available);
+      const monthlyWillBeAvailable = monthlyRooms.filter(r => !r.available && r.availableFrom);
+      const monthlyNoEndDate = monthlyRooms.filter(r => !r.available && !r.availableFrom);
+
       // สร้าง prompt ที่ชัดเจน
-      const promptText = `คุณเป็นผู้ช่วยค้นหาห้องพักรายวัน (DAILY ROOMS ONLY) ตอบแม่นยำที่สุด
+      const promptText = `คุณเป็นผู้ช่วยค้นหาห้องพักอัจฉริยะ ตอบแม่นยำที่สุด
 
 📅 วันที่ปัจจุบัน: ${todayStr} (${format(today, 'd MMMM yyyy', { locale: th })})
 📅 ปีปัจจุบัน: ${today.getFullYear()} (พ.ศ. ${today.getFullYear() + 543})
 
 ❓ คำถาม: "${searchQuery}"
 
-=== 📊 สรุปห้องรายวันทั้งหมด (${roomsData.length} ห้อง) ===
+=== 🏨 ห้องรายวัน (Daily) - ${dailyRooms.length} ห้อง ===
 
-🟢 ห้องที่ว่างตอนนี้ (${currentlyAvailable.length} ห้อง):
-${currentlyAvailable.length > 0 ? currentlyAvailable.map(r => 
+🟢 ว่างตอนนี้ (${dailyAvailable.length} ห้อง):
+${dailyAvailable.length > 0 ? dailyAvailable.map(r => 
   `  - ห้อง ${r.room_number} ชั้น ${r.floor} (${r.price?.toLocaleString() || 0} บาท)`
-).join('\n') : '  ไม่มีห้องว่าง'}
+).join('\n') : '  ไม่มี'}
 
-🟡 ห้องที่มีผู้เช่าแต่มีกำหนดว่าง (${willBeAvailable.length} ห้อง):
-${willBeAvailable.length > 0 ? willBeAvailable.map(r => 
+🟡 มีผู้เช่าแต่มีกำหนดว่าง (${dailyWillBeAvailable.length} ห้อง):
+${dailyWillBeAvailable.length > 0 ? dailyWillBeAvailable.map(r => 
   `  - ห้อง ${r.room_number} ชั้น ${r.floor} → จะว่างวันที่ ${r.availableFrom} (ผู้เช่า: ${r.currentTenant})`
 ).join('\n') : '  ไม่มี'}
 
-🔴 ห้องที่ไม่มีกำหนดย้ายออก (${noEndDate.length} ห้อง):
-${noEndDate.length > 0 ? noEndDate.map(r => 
-  `  - ห้อง ${r.room_number} ชั้น ${r.floor} → ${r.reason}`
+🔴 ไม่มีกำหนดย้ายออก (${dailyNoEndDate.length} ห้อง):
+${dailyNoEndDate.length > 0 ? dailyNoEndDate.map(r => 
+  `  - ห้อง ${r.room_number} ชั้น ${r.floor} (ผู้เช่า: ${r.currentTenant})`
 ).join('\n') : '  ไม่มี'}
 
-=== 📋 รายละเอียดการจองที่ Active ===
-${bookingsData.length > 0 ? JSON.stringify(bookingsData.map(b => ({
-  ห้อง: b.room_number,
-  ชั้น: b.floor,
-  ผู้เช่า: b.guest_name,
-  เข้าพัก: b.check_in_date,
-  ย้ายออก: b.check_out_date || 'ไม่มีกำหนด'
-})), null, 2) : 'ไม่มีการจอง'}
+=== 🏠 ห้องรายเดือน (Monthly) - ${monthlyRooms.length} ห้อง ===
+
+🟢 ว่างตอนนี้ (${monthlyAvailable.length} ห้อง):
+${monthlyAvailable.length > 0 ? monthlyAvailable.map(r => 
+  `  - ห้อง ${r.room_number} ชั้น ${r.floor} (${r.price?.toLocaleString() || 0} บาท)`
+).join('\n') : '  ไม่มี'}
+
+🟡 มีผู้เช่าแต่มีกำหนดว่าง (${monthlyWillBeAvailable.length} ห้อง):
+${monthlyWillBeAvailable.length > 0 ? monthlyWillBeAvailable.map(r => 
+  `  - ห้อง ${r.room_number} ชั้น ${r.floor} → จะว่างวันที่ ${r.availableFrom} (ผู้เช่า: ${r.currentTenant})`
+).join('\n') : '  ไม่มี'}
+
+🔴 ไม่มีกำหนดย้ายออก (${monthlyNoEndDate.length} ห้อง):
+${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r => 
+  `  - ห้อง ${r.room_number} ชั้น ${r.floor} (ผู้เช่า: ${r.currentTenant})`
+).join('\n') : '  ไม่มี'}
 
 === 🎯 วิธีตอบคำถาม ===
 
-**ถ้าถามหา "ห้องว่างเดือน X" หรือ "ห้องว่างในเดือน X":**
-- คำนวณช่วงวันที่ของเดือนนั้นๆ (เช่น กุมภาพันธ์ 2025 = 2025-02-01 ถึง 2025-02-28)
-- ห้องจะว่างในเดือนนั้นได้ก็ต่อเมื่อ:
-  1. ว่างอยู่แล้วตอนนี้ (available = true) หรือ
-  2. มี availableFrom ที่ <= วันสุดท้ายของเดือนนั้น
-- ห้องที่ไม่มีกำหนดย้ายออก (availableFrom = null) = ไม่นับว่าจะว่าง
+**ถ้าถามเฉพาะ "ห้องรายวัน" หรือ "daily":**
+- ตอบเฉพาะห้องที่ room_type = "daily"
 
-**ถ้าถามหา "ห้องว่างตอนนี้" หรือ "ห้องว่างวันนี้":**
+**ถ้าถามเฉพาะ "ห้องรายเดือน" หรือ "monthly":**
+- ตอบเฉพาะห้องที่ room_type = "monthly"
+
+**ถ้าถามหา "ห้องว่างเดือน X" (เช่น กุมภาพันธ์):**
+- คำนวณช่วงวันที่ของเดือนนั้น (กุมภาพันธ์ 2025 = 2025-02-01 ถึง 2025-02-28)
+- ห้องว่างในเดือนนั้น = ว่างอยู่แล้ว หรือ availableFrom <= วันสุดท้ายของเดือน
+- ห้องที่ไม่มี availableFrom (null) = ไม่นับว่าจะว่าง
+
+**ถ้าถามหา "ห้องว่างตอนนี้":**
 - ตอบเฉพาะห้องที่ available = true
 
 **ถ้าถามหาห้องตามชั้น:**
 - กรองตาม floor ที่ระบุ
 
 **สำคัญมาก:**
-- ต้องตอบ answer ที่ชัดเจน ระบุจำนวนห้องและเลขห้อง
+- ต้องมี answer ที่ชัดเจน ระบุจำนวนและเลขห้อง
 - ต้องมี rooms array ที่มี room_id, room_number, floor, reason
-- ห้องที่ไม่มี availableFrom = ไม่นับว่าจะว่างในอนาคต
+- ห้องที่ไม่มี availableFrom = ยังมีผู้เช่าไม่มีกำหนดออก = ไม่ว่าง
 
 ตอบเป็นภาษาไทย กระชับ ถูกต้อง แม่นยำ`;
 
