@@ -76,13 +76,15 @@ async function getFacebookConfig(base44, branchId = null) {
 
 async function sendFacebookMessage(base44, pageAccessToken, recipientId, text, branchId = null, sentBy = 'system') {
     try {
+        // ⭐ ใช้ MESSAGE_TAG เพื่อส่งนอกช่วง 24 ชม. (แจ้งเตือนการชำระเงิน)
         const response = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 recipient: { id: recipientId },
                 message: { text: text },
-                messaging_type: 'RESPONSE'
+                messaging_type: 'MESSAGE_TAG',
+                tag: 'CONFIRMED_EVENT_UPDATE'
             })
         });
         
