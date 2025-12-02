@@ -374,10 +374,10 @@ table .font-bold { font-weight: bold; }
 <div class="parties-grid">
 <div class="party-box">
 <h3>ผู้รับเงิน</h3>
-${companyName ? `
+${(companyName && companyName.trim()) ? `
 <p class="name">${escapeHtml(companyName)}</p>
-${taxId ? `<p class="detail">เลขที่ผู้เสียภาษี: ${escapeHtml(taxId)}</p>` : ''}
-${companyRegistrationNumber ? `<p class="detail">เลขทะเบียนนิติบุคคล: ${escapeHtml(companyRegistrationNumber)}</p>` : ''}
+${(taxId && taxId.trim()) ? `<p class="detail">เลขที่ผู้เสียภาษี: ${escapeHtml(taxId)}</p>` : ''}
+${(companyRegistrationNumber && companyRegistrationNumber.trim()) ? `<p class="detail">เลขทะเบียนนิติบุคคล: ${escapeHtml(companyRegistrationNumber)}</p>` : ''}
 <p class="detail">${escapeHtml(recipient.company_address || buildingAddress)}</p>
 ` : `
 <p class="name">${escapeHtml(recipient.account_name || lessorName || buildingName)}</p>
