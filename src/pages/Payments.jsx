@@ -2831,6 +2831,29 @@ Return JSON.`;
                                     )}
                                   </Button>
                                 )}
+                                
+                                {userRole === 'developer' && isPaid && (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSendReceipt(payment.id);
+                                    }} 
+                                    disabled={sendingReceipt === payment.id} 
+                                    className="flex-shrink-0 border-slate-400 text-slate-600 hover:bg-slate-50"
+                                    title="ส่งใบเสร็จอีกครั้ง (Developer)"
+                                  >
+                                    {sendingReceipt === payment.id ? (
+                                      <div className="w-4 h-4 border-2 border-slate-600 border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                      <>
+                                        <Send className="w-4 h-4 mr-1" />
+                                        ส่งซ้ำ
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
 
                                 {canSendReminderForPayment && (
                                   <Button 
@@ -3058,6 +3081,15 @@ Return JSON.`;
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleSendReceipt(payment.id)} disabled={sendingReceipt === payment.id} title="ส่งใบเสร็จ (LINE)">
                                           {sendingReceipt === payment.id ? (
                                             <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                                          ) : (
+                                            <Send className="w-4 h-4" />
+                                          )}
+                                        </Button>
+                                      )}
+                                      {userRole === 'developer' && isPaid && (
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-600 hover:text-slate-700 hover:bg-slate-50" onClick={() => handleSendReceipt(payment.id)} disabled={sendingReceipt === payment.id} title="ส่งใบเสร็จอีกครั้ง (Developer)">
+                                          {sendingReceipt === payment.id ? (
+                                            <div className="w-4 h-4 border-2 border-slate-600 border-t-transparent rounded-full animate-spin" />
                                           ) : (
                                             <Send className="w-4 h-4" />
                                           )}
@@ -3409,6 +3441,22 @@ Return JSON.`;
                                                    <Send className="w-3 h-3 mr-1" />
                                                  )}
                                                  {roomPayment.receipt_sent_date ? 'ส่งซ้ำ' : 'ส่งใบเสร็จ'}
+                                               </Button>
+                                             )}
+                                             {userRole === 'developer' && effectiveStatus === 'paid' && (
+                                               <Button 
+                                                 size="sm" 
+                                                 variant="outline"
+                                                 className="w-full text-xs border-slate-400 text-slate-600 hover:bg-slate-50"
+                                                 onClick={() => handleSendReceipt(roomPayment.id)}
+                                                 disabled={sendingReceipt === roomPayment.id}
+                                               >
+                                                 {sendingReceipt === roomPayment.id ? (
+                                                   <div className="w-3 h-3 border-2 border-slate-600 border-t-transparent rounded-full animate-spin mr-1" />
+                                                 ) : (
+                                                   <Send className="w-3 h-3 mr-1" />
+                                                 )}
+                                                 ส่งซ้ำ (Dev)
                                                </Button>
                                              )}
                                            </div>
