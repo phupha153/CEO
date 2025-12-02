@@ -337,6 +337,17 @@ Deno.serve(async (req) => {
 
         console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments.length} (only target branches)`);
         
+        // ⭐ สรุปจำนวน payment ต่อสาขา
+        const paymentCountByBranch = {};
+        for (const p of recentPayments) {
+            const bid = p.branch_id || p.data?.branch_id || 'unknown';
+            paymentCountByBranch[bid] = (paymentCountByBranch[bid] || 0) + 1;
+        }
+        console.log(`📊 Payment count by branch:`);
+        for (const [bid, count] of Object.entries(paymentCountByBranch)) {
+            console.log(`   - ${bid}: ${count} payments`);
+        }
+        
         // ⭐⭐⭐ Normalize payments
         const normalizedPayments = [];
         
