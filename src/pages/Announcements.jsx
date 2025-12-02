@@ -93,14 +93,15 @@ export default function Announcements() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // สร้าง Map ของ tenant โดย line_user_id
+  // สร้าง Map ของ tenant โดย line_user_id และ facebook_user_id
   const tenantsMap = {};
   tenants.forEach(t => {
     if (t.line_user_id) tenantsMap[t.line_user_id] = t;
+    if (t.facebook_user_id) tenantsMap[t.facebook_user_id] = t;
     if (t.id) tenantsMap[t.id] = t;
   });
 
-  // ดึงข้อความ LINE เฉพาะสาขานี้
+  // ดึงข้อความ LINE + Facebook เฉพาะสาขานี้
   const { data: lineMessages = [], isLoading: messagesLoading, error: messagesError } = useQuery({
     queryKey: ['lineMessages', selectedBranchId],
     queryFn: async () => {
@@ -114,10 +115,30 @@ export default function Announcements() {
     enabled: !!selectedBranchId,
   });
 
-  // สร้าง conversations จากข้อความ - รวม user ที่เป็นคนเดียวกัน
+  // ดึงข้อความ Facebook เฉพาะสาขานี้
+  const { data: facebookMessages = [] } = useQuery({
+    queryKey: ['facebookMessages', selectedBranchId],
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      // สมมติว่า Facebook messages จะถูกเก็บใน entity ชื่อ FacebookMessage
+      // ถ้าไม่มีให้ส่ง [] กลับไป
+      try {
+        const fbMessages = await base44.entities.FacebookMessage?.filter({ branch_id: selectedBranchId }, '-created_date', 500);
+        return fbMessages || [];
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 5 * 1000,
+    refetchInterval: 5 * 1000,
+    enabled: !!selectedBranchId,
+  });
+
+  // สร้าง conversations จากข้อความ - รวมทั้ง LINE และ Facebook
   const conversations = React.useMemo(() => {
     const convMap = new Map();
     
+    // ดึงข้อความ LINE
     lineMessages.forEach(msg => {
       const key = msg.line_user_id;
       if (!convMap.has(key)) {
@@ -128,12 +149,12 @@ export default function Announcements() {
           tenant_id: msg.tenant_id,
           last_message: msg.content,
           last_message_time: msg.created_date,
-          unread_count: 0
+          unread_count: 0,
+          platform: 'line'
         });
       }
       
       const conv = convMap.get(key);
-      // Update display name and picture if newer message has them
       if (msg.line_display_name && !conv.line_display_name) {
         conv.line_display_name = msg.line_display_name;
       }
@@ -143,16 +164,61 @@ export default function Announcements() {
       if (msg.tenant_id && !conv.tenant_id) {
         conv.tenant_id = msg.tenant_id;
       }
-      // Update last message if newer
       if (new Date(msg.created_date) > new Date(conv.last_message_time)) {
         conv.last_message = msg.content;
         conv.last_message_time = msg.created_date;
-        // อัปเดต display name และ picture จากข้อความล่าสุด
         if (msg.line_display_name) conv.line_display_name = msg.line_display_name;
         if (msg.line_picture_url) conv.line_picture_url = msg.line_picture_url;
         if (msg.tenant_id) conv.tenant_id = msg.tenant_id;
       }
-      // Count unread incoming messages
+      if (msg.direction === 'incoming' && !msg.is_read) {
+        conv.unread_count++;
+      }
+    });
+    
+    // ดึงข้อความ Facebook
+    facebookMessages.forEach(msg => {
+      const key = msg.facebook_user_id;
+      if (!convMap.has(key)) {
+        convMap.set(key, {
+          facebook_user_id: msg.facebook_user_id,
+          facebook_display_name: msg.facebook_display_name,
+          facebook_picture_url: msg.facebook_picture_url,
+          line_display_name: msg.facebook_display_name, // เพื่อใช้ในการแสดงผล
+          line_picture_url: msg.facebook_picture_url,
+          tenant_id: msg.tenant_id,
+          last_message: msg.content,
+          last_message_time: msg.created_date,
+          unread_count: 0,
+          platform: 'facebook'
+        });
+      }
+      
+      const conv = convMap.get(key);
+      if (msg.facebook_display_name && !conv.facebook_display_name) {
+        conv.facebook_display_name = msg.facebook_display_name;
+        conv.line_display_name = msg.facebook_display_name;
+      }
+      if (msg.facebook_picture_url && !conv.facebook_picture_url) {
+        conv.facebook_picture_url = msg.facebook_picture_url;
+        conv.line_picture_url = msg.facebook_picture_url;
+      }
+      if (msg.tenant_id && !conv.tenant_id) {
+        conv.tenant_id = msg.tenant_id;
+      }
+      if (new Date(msg.created_date) > new Date(conv.last_message_time)) {
+        conv.last_message = msg.content;
+        conv.last_message_time = msg.created_date;
+        if (msg.facebook_display_name) {
+          conv.facebook_display_name = msg.facebook_display_name;
+          conv.line_display_name = msg.facebook_display_name;
+        }
+        if (msg.facebook_picture_url) {
+          conv.facebook_picture_url = msg.facebook_picture_url;
+          conv.line_picture_url = msg.facebook_picture_url;
+        }
+        if (msg.tenant_id) conv.tenant_id = msg.tenant_id;
+      }
       if (msg.direction === 'incoming' && !msg.is_read) {
         conv.unread_count++;
       }
@@ -161,15 +227,28 @@ export default function Announcements() {
     return Array.from(convMap.values()).sort((a, b) => 
       new Date(b.last_message_time) - new Date(a.last_message_time)
     );
-  }, [lineMessages]);
+  }, [lineMessages, facebookMessages]);
 
-  // ข้อความของ conversation ที่เลือก
+  // ข้อความของ conversation ที่เลือก - รวมทั้ง LINE และ Facebook
   const selectedMessages = React.useMemo(() => {
     if (!selectedConversation) return [];
-    return lineMessages
-      .filter(m => m.line_user_id === selectedConversation.line_user_id)
-      .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
-  }, [lineMessages, selectedConversation]);
+    
+    // ถ้าเป็น LINE
+    if (selectedConversation.line_user_id) {
+      return lineMessages
+        .filter(m => m.line_user_id === selectedConversation.line_user_id)
+        .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+    }
+    
+    // ถ้าเป็น Facebook
+    if (selectedConversation.facebook_user_id) {
+      return facebookMessages
+        .filter(m => m.facebook_user_id === selectedConversation.facebook_user_id)
+        .sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+    }
+    
+    return [];
+  }, [lineMessages, facebookMessages, selectedConversation]);
 
   // ⭐ เมื่อเปิด conversation ให้ mark unread messages เป็น read
   React.useEffect(() => {
@@ -181,17 +260,23 @@ export default function Announcements() {
     
     if (unreadMessages.length > 0) {
       // อัปเดตทีละ batch เพื่อไม่ให้ช้า
+      const entityName = selectedConversation.platform === 'facebook' ? 'FacebookMessage' : 'LineMessage';
+      
       Promise.all(
         unreadMessages.map(msg => 
-          base44.entities.LineMessage.update(msg.id, { is_read: true })
+          base44.entities[entityName]?.update(msg.id, { is_read: true })
             .catch(err => console.warn('Failed to mark as read:', err))
         )
       ).then(() => {
         // Refresh messages หลังจาก mark เป็น read
-        queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
+        if (selectedConversation.platform === 'facebook') {
+          queryClient.invalidateQueries(['facebookMessages', selectedBranchId]);
+        } else {
+          queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
+        }
       });
     }
-  }, [selectedConversation?.line_user_id, selectedMessages]);
+  }, [selectedConversation?.line_user_id, selectedConversation?.facebook_user_id, selectedMessages]);
 
   // นับผู้เช่าที่มี LINE/Facebook User ID
   const tenantsWithLine = tenants.filter(t => t.line_user_id);
