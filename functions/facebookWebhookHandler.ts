@@ -325,22 +325,14 @@ async function handleMessage(base44, senderPsid, receivedMessage, branchId, tena
         return;
     }
 
-    // 3. Default Response
+    // 3. ถ้าลงทะเบียนแล้ว และพิมพ์ข้อความทั่วไป → ไม่ตอบอะไรเลย (เหมือน LINE)
     if (tenant) {
-        await sendFacebookMessage(base44, senderPsid, 
-            '🤖 สวัสดีค่ะ มีอะไรให้ช่วยไหมคะ?\n\n' +
-            '🔧 แจ้งซ่อม: พิมพ์ "แจ้งซ่อม" ตามด้วยปัญหา\n' +
-            '💰 ชำระเงิน: ส่งรูปสลิป', 
-            branchId
-        );
-    } else {
-        await sendFacebookMessage(base44, senderPsid, 
-            '👋 สวัสดีค่ะ กรุณาลงทะเบียนก่อนใช้งาน\n\n' +
-            'พิมพ์ "เบอร์โทรศัพท์" (เช่น 0812345678)\n' +
-            'หรือพิมพ์ "ชื่อ-นามสกุล" เพื่อยืนยันตัวตนค่ะ', 
-            null
-        );
+        console.log('ℹ️ Registered user sent general message - NOT responding (silent)');
+        return;
     }
+
+    // ⭐ ไม่ตอบอะไรถ้าข้อความไม่เข้าใจ (ไม่ใช่คำสั่งที่รู้จัก) - เหมือน LINE
+    console.log('ℹ️ Unknown message, not responding');
 }
 
 async function handleRegistration(base44, senderPsid, phoneNumber, branchCode) {
