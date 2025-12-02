@@ -53,8 +53,9 @@ export default function PackageSelectionPage() {
       console.log('🔍 CRM Response:', response.data);
       console.log('🔍 Packages:', response.data?.packages);
       if (response.data?.packages?.length > 0) {
-        console.log('🔍 First Package:', response.data.packages[0]);
-        console.log('🔍 First Package Pricing:', response.data.packages[0].pricing);
+        response.data.packages.forEach((pkg, i) => {
+          console.log(`🔍 Package ${i}:`, pkg.package_name, 'is_active:', pkg.is_active);
+        });
       }
       return response.data;
     },
