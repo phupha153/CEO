@@ -109,7 +109,8 @@ export default function TenantsPage() {
     check_out_date: '',
     deposit_amount: '',
     payment_timing: 'stay_first',
-    notes: ''
+    notes: '',
+    create_payment: true // default true สำหรับสร้างใหม่
   });
 
   const queryClient = useQueryClient();
@@ -850,76 +851,123 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
       }
 
       const bookingDataWithBranch = { ...data, branch_id: selectedBranchId };
+      delete bookingDataWithBranch.create_payment; // ลบ field ที่ไม่ต้องการบันทึก
       const createdBooking = await base44.entities.Booking.create(bookingDataWithBranch);
       await base44.entities.Room.update(data.room_id, { status: 'occupied' });
 
-      // ใช้รูปแบบการชำระจาก booking form
-      const paymentTiming = data.payment_timing || 'stay_first';
+      // ⭐ สร้างบิลเฉพาะเมื่อ create_payment = true
+      if (data.create_payment) {
+        // ใช้รูปแบบการชำระจาก booking form
+        const paymentTiming = data.payment_timing || 'stay_first';
 
-      const checkInDate = parseISO(data.check_in_date);
-      let dueDate;
-      let paymentNotes;
+        const checkInDate = parseISO(data.check_in_date);
+        let dueDate;
+        let paymentNotes;
 
-      if (paymentTiming === 'pay_first') {
-        // ชำระก่อนเข้าอยู่ = สร้างบิลเดือนแรกทันที
-        dueDate = checkInDate;
-        paymentNotes = `ค่าเช่าเดือนแรก - ${format(checkInDate, 'MMMM yyyy', { locale: th })}`;
-      } else {
-        // อยู่ก่อนค่อยชำระ = สร้างบิลเดือนถัดไป
-        const nextMonthDate = addMonths(checkInDate, 1);
-        dueDate = startOfMonth(nextMonthDate);
-        paymentNotes = `ค่าเช่าสำหรับเดือน ${format(dueDate, 'MMMM yyyy', { locale: th })}`;
+        if (paymentTiming === 'pay_first') {
+          // ชำระก่อนเข้าอยู่ = สร้างบิลเดือนแรกทันที
+          dueDate = checkInDate;
+          paymentNotes = `ค่าเช่าเดือนแรก - ${format(checkInDate, 'MMMM yyyy', { locale: th })}`;
+        } else {
+          // อยู่ก่อนค่อยชำระ = สร้างบิลเดือนถัดไป
+          const nextMonthDate = addMonths(checkInDate, 1);
+          dueDate = startOfMonth(nextMonthDate);
+          paymentNotes = `ค่าเช่าสำหรับเดือน ${format(dueDate, 'MMMM yyyy', { locale: th })}`;
+        }
+
+        const paymentData = {
+          booking_id: createdBooking.id,
+          tenant_id: data.tenant_id,
+          room_id: data.room_id,
+          due_date: format(dueDate, 'yyyy-MM-dd'),
+          rent_amount: room.price,
+          water_amount: 0,
+          electricity_amount: 0,
+          internet_amount: 0,
+          other_amount: 0,
+          total_amount: room.price,
+          status: 'pending',
+          payment_method: 'transfer',
+          notes: paymentNotes,
+          branch_id: selectedBranchId
+        };
+
+        await base44.entities.Payment.create(paymentData);
       }
-
-      const paymentData = {
-        booking_id: createdBooking.id,
-        tenant_id: data.tenant_id,
-        room_id: data.room_id,
-        due_date: format(dueDate, 'yyyy-MM-dd'),
-        rent_amount: room.price,
-        water_amount: 0,
-        electricity_amount: 0,
-        internet_amount: 0,
-        other_amount: 0,
-        total_amount: room.price,
-        status: 'pending',
-        payment_method: 'transfer',
-        notes: paymentNotes,
-        branch_id: selectedBranchId
-      };
-
-      await base44.entities.Payment.create(paymentData);
       return createdBooking;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries(['bookings', selectedBranchId]);
       queryClient.invalidateQueries(['rooms', selectedBranchId]);
       queryClient.invalidateQueries(['payments', selectedBranchId]);
       setShowBookingDialog(false);
       setShowDetailDialog(false);
       resetBookingForm();
-      toast.success('สร้างสัญญาเช่าและบิลค่าเช่าสำเร็จ');
+      toast.success(variables.create_payment ? 'สร้างสัญญาเช่าและบิลค่าเช่าสำเร็จ' : 'สร้างสัญญาเช่าสำเร็จ');
     },
     onError: (error) => toast.error(error.message || 'เกิดข้อผิดพลาด')
   });
 
   const updateBookingMutation = useMutation({
-    mutationFn: async ({ id, data, oldRoomId }) => {
+    mutationFn: async ({ id, data, oldRoomId, createPayment }) => {
       if (!canEditContract) throw new Error('คุณไม่มีสิทธิ์แก้ไขสัญญาเช่า');
       if (oldRoomId !== data.room_id) {
         await base44.entities.Room.update(oldRoomId, { status: 'available' });
         await base44.entities.Room.update(data.room_id, { status: 'occupied' });
       }
-      return await base44.entities.Booking.update(id, data);
+      
+      const updateData = { ...data };
+      delete updateData.create_payment; // ลบ field ที่ไม่ต้องการบันทึก
+      
+      const updatedBooking = await base44.entities.Booking.update(id, updateData);
+
+      // ⭐ สร้างบิลเฉพาะเมื่อ createPayment = true
+      if (createPayment) {
+        const room = rooms.find(r => r.id === data.room_id);
+        if (room) {
+          const paymentTiming = data.payment_timing || 'stay_first';
+          const checkInDate = parseISO(data.check_in_date);
+          let dueDate;
+          let paymentNotes;
+
+          if (paymentTiming === 'pay_first') {
+            dueDate = checkInDate;
+            paymentNotes = `ค่าเช่าเดือนแรก - ${format(checkInDate, 'MMMM yyyy', { locale: th })}`;
+          } else {
+            const nextMonthDate = addMonths(checkInDate, 1);
+            dueDate = startOfMonth(nextMonthDate);
+            paymentNotes = `ค่าเช่าสำหรับเดือน ${format(dueDate, 'MMMM yyyy', { locale: th })}`;
+          }
+
+          await base44.entities.Payment.create({
+            booking_id: id,
+            tenant_id: data.tenant_id,
+            room_id: data.room_id,
+            due_date: format(dueDate, 'yyyy-MM-dd'),
+            rent_amount: room.price,
+            water_amount: 0,
+            electricity_amount: 0,
+            internet_amount: 0,
+            other_amount: 0,
+            total_amount: room.price,
+            status: 'pending',
+            payment_method: 'transfer',
+            notes: paymentNotes,
+            branch_id: selectedBranchId
+          });
+        }
+      }
+      
+      return updatedBooking;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries(['bookings', selectedBranchId]);
       queryClient.invalidateQueries(['rooms', selectedBranchId]);
       queryClient.invalidateQueries(['payments', selectedBranchId]);
       setShowBookingDialog(false);
       setShowDetailDialog(false);
       resetBookingForm();
-      toast.success('แก้ไขสัญญาเช่าสำเร็จ');
+      toast.success(variables.createPayment ? 'แก้ไขสัญญาและสร้างบิลสำเร็จ' : 'แก้ไขสัญญาเช่าสำเร็จ');
     },
     onError: (error) => toast.error(error.message || 'เกิดข้อผิดพลาด')
   });
@@ -1341,10 +1389,11 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
       updateBookingMutation.mutate({
         id: editingBooking.id,
         data: data,
-        oldRoomId: editingBooking.room_id
+        oldRoomId: editingBooking.room_id,
+        createPayment: bookingFormData.create_payment
       });
     } else {
-      createBookingMutation.mutate(data);
+      createBookingMutation.mutate({ ...data, create_payment: bookingFormData.create_payment });
     }
   };
 
@@ -1402,7 +1451,8 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
       check_out_date: booking.check_out_date || '',
       deposit_amount: booking.deposit_amount?.toString() || '',
       payment_timing: booking.payment_timing || 'stay_first',
-      notes: booking.notes || ''
+      notes: booking.notes || '',
+      create_payment: false // default false เมื่อแก้ไข เพื่อไม่ให้สร้างบิลซ้ำ
     });
     setShowBookingDialog(true);
   };
@@ -1440,7 +1490,8 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
       check_out_date: '',
       deposit_amount: '',
       payment_timing: 'stay_first',
-      notes: ''
+      notes: '',
+      create_payment: true
     });
   };
 
@@ -3494,6 +3545,11 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                       onChange={(e) => setBookingFormData({ ...bookingFormData, check_in_date: e.target.value })}
                       required
                     />
+                    {bookingFormData.check_in_date && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        ({format(parseISO(bookingFormData.check_in_date), 'd MMM yyyy', { locale: th })} - พ.ศ. {parseInt(bookingFormData.check_in_date.split('-')[0]) + 543})
+                      </p>
+                    )}
                   </div>
                   <div>
                     <Label>วันสิ้นสุดสัญญา</Label>
@@ -3502,6 +3558,11 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                       value={bookingFormData.check_out_date}
                       onChange={(e) => setBookingFormData({ ...bookingFormData, check_out_date: e.target.value })}
                     />
+                    {bookingFormData.check_out_date && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        ({format(parseISO(bookingFormData.check_out_date), 'd MMM yyyy', { locale: th })} - พ.ศ. {parseInt(bookingFormData.check_out_date.split('-')[0]) + 543})
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -3517,6 +3578,28 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                   {!canEditDeposit && <p className="text-xs text-red-500 mt-1">* คุณไม่มีสิทธิ์แก้ไขเงินมัดจำ</p>}
                 </div>
 
+                {/* Checkbox สร้างบิลค่าเช่า */}
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-4 border-2 border-green-200">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="create_payment_booking"
+                      checked={bookingFormData.create_payment}
+                      onChange={(e) => setBookingFormData({ ...bookingFormData, create_payment: e.target.checked })}
+                      className="w-5 h-5 rounded border-green-300 text-green-600 focus:ring-green-500"
+                    />
+                    <Label htmlFor="create_payment_booking" className="text-sm font-semibold text-green-900 cursor-pointer">
+                      💳 สร้างบิลค่าเช่าพร้อมกัน
+                    </Label>
+                  </div>
+                  {editingBooking && (
+                    <p className="text-xs text-orange-600 mt-2 ml-8">
+                      ⚠️ หากติ๊กเลือก จะสร้างบิลใหม่เพิ่ม (ระวังบิลซ้ำ)
+                    </p>
+                  )}
+                </div>
+
+                {bookingFormData.create_payment && (
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border-2 border-blue-200">
                   <Label className="text-sm font-semibold text-blue-900 mb-3 block">💳 รูปแบบการชำระเงิน</Label>
                   <div className="space-y-2">
@@ -3550,6 +3633,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                     </label>
                   </div>
                 </div>
+                )}
 
                 <div>
                   <Label>หมายเหตุ</Label>
