@@ -1050,6 +1050,23 @@ export default function PaymentsPage() {
           }
         }
 
+        // ⭐ ถ้าเป็นการชำระค่าเช่าล่วงหน้า (advance_rent) → เพิ่มยอดเงินล่วงหน้าให้ผู้เช่า
+        if (updatedPayment.advance_rent_amount && updatedPayment.advance_rent_amount > 0 && tenant) {
+          try {
+            const currentPrepaid = tenant.prepaid_balance || 0;
+            const newPrepaid = currentPrepaid + updatedPayment.advance_rent_amount;
+            
+            await base44.entities.Tenant.update(tenant.id, {
+              prepaid_balance: newPrepaid
+            });
+            
+            console.log(`✅ เพิ่มยอดเงินล่วงหน้า: ${updatedPayment.advance_rent_amount} บาท → ยอดใหม่: ${newPrepaid} บาท`);
+            toast.info(`💰 เพิ่มยอดเงินล่วงหน้า ${updatedPayment.advance_rent_amount.toLocaleString()} บาท ให้ ${tenant.full_name}`, { duration: 5000 });
+          } catch (prepaidError) {
+            console.error('Error updating prepaid balance:', prepaidError);
+          }
+        }
+
         // ส่งใบเสร็จอัตโนมัติทันทีหลังยืนยันชำระ
         if (tenant?.line_user_id && canSendReceipt) {
           try {
