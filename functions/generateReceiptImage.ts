@@ -187,6 +187,9 @@ Deno.serve(async (req) => {
         const recipient = invoiceData.recipient || {};
 
         console.log('✅ Room:', room.room_number, 'Tenant:', tenant.full_name, 'Tenant address:', tenant.address);
+        
+        // ⭐ Debug: Log recipient data
+        console.log('📋 RECIPIENT DATA:', JSON.stringify(recipient, null, 2));
 
         // ใช้ข้อมูลจาก recipient (เหมือนกับหน้าแอป)
         const buildingName = recipient.building_name || 'W RESIDENTS';
@@ -198,6 +201,16 @@ Deno.serve(async (req) => {
         const companyRegistrationNumber = recipient.company_registration_number || '';
         const lessorName = recipient.lessor_name || '';
         const lessorAddress = recipient.lessor_address || buildingAddress;
+        
+        // ⭐ Debug: Log extracted values
+        console.log('📋 EXTRACTED VALUES:');
+        console.log('  - companyName:', companyName);
+        console.log('  - taxId:', taxId);
+        console.log('  - companyRegistrationNumber:', companyRegistrationNumber);
+        console.log('  - lessorName:', lessorName);
+        console.log('  - lessorAddress:', lessorAddress);
+        console.log('  - account_name:', recipient.account_name);
+        console.log('  - buildingAddress:', buildingAddress);
         
         // ข้อมูลธนาคาร
         const bankName = bank.name || 'กสิกรไทย';
