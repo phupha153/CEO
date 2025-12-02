@@ -193,87 +193,34 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         
-        // ⭐⭐⭐ ดึง Payment แยกต่างหาก - ใช้ pagination เหมือนกัน
-        console.log('========================================');
-        console.log('========================================');
-        console.log('📦📦📦 FETCHING EXISTING PAYMENTS 📦📦📦');
-        console.log('========================================');
-        console.log('========================================');
-        console.log(`Target branch: ${targetBranchId || 'ALL'}`);
+        // ⭐⭐⭐ ดึง Payment เฉพาะเดือนปัจจุบัน/เดือนหน้า (แทนที่จะดึงทั้งหมด)
+        console.log('📦 Fetching payments for current/next month only...');
         
         let recentPayments = [];
         
-        console.log('');
-        console.log('⭐ FETCHING PAYMENTS - START');
-
-        // ⭐⭐⭐ FIX: ดึงทีละ batch เล็กๆ เพื่อหลีกเลี่ยง JSON truncation
-        const BATCH_SIZE = 500; // ลดขนาดเพื่อป้องกัน response ถูกตัด
-        let allPayments = [];
-        let skip = 0;
-        let hasMore = true;
-        let batchNum = 0;
-
-        while (hasMore) {
-            batchNum++;
-            await retryOperation(async () => {
-                const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
-                console.log(`Batch ${batchNum}: skip=${skip}, limit=${BATCH_SIZE}`);
-
-                const batch = await base44.asServiceRole.entities.Payment.filter(
-                    paymentFilter, 
-                    '-created_date', 
-                    BATCH_SIZE, 
-                    skip
-                );
-
-                if (Array.isArray(batch) && batch.length > 0) {
-                    allPayments = allPayments.concat(batch);
-                    skip += batch.length;
-                    console.log(`Batch ${batchNum}: got ${batch.length} payments, total: ${allPayments.length}`);
-
-                    if (batch.length < BATCH_SIZE) {
-                        hasMore = false;
-                    }
-                } else {
-                    console.log(`Batch ${batchNum}: no more data or invalid response`);
-                    hasMore = false;
-                }
-            });
-
-            // หยุดถ้าดึงมากเกินไป (ป้องกัน infinite loop)
-            if (batchNum > 50) {
-                console.log('⚠️ Max batches reached, stopping');
-                hasMore = false;
-            }
-
-            // รอเล็กน้อยระหว่าง batch
-            if (hasMore) {
-                await delay(500);
-            }
-        }
-
-        recentPayments = allPayments;
-        console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments.length} (${batchNum} batches)`);
-
-        if (recentPayments.length > 0) {
-            console.log(`Sample: room_id=${recentPayments[0].room_id}, due=${recentPayments[0].due_date}`);
-        }
+        // ⭐ สร้าง filter สำหรับดึงเฉพาะ payments ที่เกี่ยวข้อง
+        // คำนวณ due_date range: เดือนปัจจุบัน และเดือนหน้า
+        const thisMonthStart = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
+        const nextMonth = currentMonth + 1 > 11 ? 0 : currentMonth + 1;
+        const nextMonthYear = currentMonth + 1 > 11 ? currentYear + 1 : currentYear;
+        const nextMonthEnd = `${nextMonthYear}-${String(nextMonth + 1).padStart(2, '0')}-31`;
         
-        console.log('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
-        console.log(`⭐ TOTAL PAYMENTS FETCHED: ${(recentPayments || []).length}`);
-        console.log('⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐');
-        console.log('');
-        recentPayments = recentPayments || [];
+        console.log(`📅 Checking payments from ${thisMonthStart} to ${nextMonthEnd}`);
         
-        // ⭐⭐⭐ DEBUG: แสดงตัวอย่าง payment แรก (ก่อน normalize)
-        if (recentPayments.length > 0) {
-            const sample = recentPayments[0];
-            console.log(`RAW Payment KEYS: ${Object.keys(sample).join(', ')}`);
-            console.log(`RAW Payment: id=${sample.id}, room_id=${sample.room_id}, due_date=${sample.due_date}`);
-        } else {
-            console.log(`❌ NO PAYMENTS FOUND IN DATABASE!`);
-        }
-        console.log('========================================');
+        await retryOperation(async () => {
+            const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
+            
+            // ดึงเฉพาะ 2000 รายการล่าสุด (เพียงพอสำหรับ 1-2 เดือน)
+            const payments = await base44.asServiceRole.entities.Payment.filter(
+                paymentFilter, 
+                '-due_date', 
+                2000
+            );
+            
+            recentPayments = Array.isArray(payments) ? payments : [];
+        });
+        
+        console.log(`✅ Fetched ${recentPayments.length} recent payments`);
         
         // ⭐⭐⭐ CRITICAL FIX: Normalize payments - เช็ค .data property เหมือนโค้ดเก่าที่เคยทำงานได้
         const normalizedPayments = [];
