@@ -158,12 +158,27 @@ Deno.serve(async (req) => {
                                                     continue;
                                                 }
 
+                                                // ⭐ ดึงข้อมูลโปรไฟล์ Facebook
+                                                let userProfile = null;
+                                                try {
+                                                    const config = await getFacebookConfig(base44, branchId);
+                                                    if (config?.pageAccessToken) {
+                                                        const profileRes = await fetch(`https://graph.facebook.com/v18.0/${senderPsid}?fields=first_name,last_name,profile_pic&access_token=${config.pageAccessToken}`);
+                                                        if (profileRes.ok) {
+                                                            userProfile = await profileRes.json();
+                                                            console.log('👤 User profile:', userProfile);
+                                                        }
+                                                    }
+                                                } catch (profileErr) {
+                                                    console.warn('⚠️ Failed to get user profile:', profileErr.message);
+                                                }
+
                                                 if (webhookEvent.message.text) {
                                                     console.log(`💬 Text message: "${webhookEvent.message.text}"`);
-                                                    await handleMessage(base44, senderPsid, webhookEvent.message.text, branchId, tenant);
+                                                    await handleMessage(base44, senderPsid, webhookEvent.message.text, branchId, tenant, userProfile);
                                                 } else if (webhookEvent.message.attachments) {
                                                     console.log('📎 Attachments:', webhookEvent.message.attachments.length);
-                                                    await handleAttachments(base44, senderPsid, webhookEvent.message.attachments, branchId, tenant);
+                                                    await handleAttachments(base44, senderPsid, webhookEvent.message.attachments, branchId, tenant, userProfile);
                                                 }
                                             } else if (webhookEvent.delivery || webhookEvent.read) {
                                                 // Skip delivery/read receipts silently
@@ -212,9 +227,13 @@ Deno.serve(async (req) => {
     return new Response('Method Not Allowed', { status: 405 });
 });
 
-async function handleMessage(base44, senderPsid, receivedMessage, branchId, tenant) {
+async function handleMessage(base44, senderPsid, receivedMessage, branchId, tenant, userProfile = null) {
     const text = receivedMessage.trim();
     console.log(`📝 Text: "${text}"`);
+    
+    // ⭐ สร้างชื่อจากโปรไฟล์
+    const displayName = userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : (tenant?.full_name || null);
+    const pictureUrl = userProfile?.profile_pic || null;
     
     // ⭐⭐⭐ บันทึกข้อความลง FacebookMessage entity
     try {
@@ -222,8 +241,8 @@ async function handleMessage(base44, senderPsid, receivedMessage, branchId, tena
             branch_id: branchId,
             tenant_id: tenant?.id || null,
             facebook_user_id: senderPsid,
-            facebook_display_name: tenant?.full_name || null,
-            facebook_picture_url: null,
+            facebook_display_name: displayName,
+            facebook_picture_url: pictureUrl,
             direction: 'incoming',
             message_type: 'text',
             content: text,
@@ -503,7 +522,11 @@ async function handleNameRegistration(base44, senderPsid, nameQuery) {
     }
 }
 
-async function handleAttachments(base44, senderPsid, attachments, branchId, tenant) {
+async function handleAttachments(base44, senderPsid, attachments, branchId, tenant, userProfile = null) {
+    // ⭐ สร้างชื่อจากโปรไฟล์
+    const displayName = userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : (tenant?.full_name || null);
+    const pictureUrl = userProfile?.profile_pic || null;
+    
     // ⭐⭐⭐ บันทึกข้อความรูปภาพลง FacebookMessage entity
     const imageAttachment = attachments.find(a => a.type === 'image');
     
@@ -512,8 +535,8 @@ async function handleAttachments(base44, senderPsid, attachments, branchId, tena
             branch_id: branchId,
             tenant_id: tenant?.id || null,
             facebook_user_id: senderPsid,
-            facebook_display_name: tenant?.full_name || null,
-            facebook_picture_url: null,
+            facebook_display_name: displayName,
+            facebook_picture_url: pictureUrl,
             direction: 'incoming',
             message_type: 'image',
             content: '[รูปภาพ]',
