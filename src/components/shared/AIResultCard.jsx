@@ -6,7 +6,9 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function AIResultCard({ aiResult, children }) {
   if (!aiResult) return null;
 
-  // ถ้าไม่มี answer และไม่มี children ให้แสดงข้อความเริ่มต้น
+  // ถ้าไม่มี answer และไม่มี children ให้ไม่แสดงการ์ด
+  if (!aiResult.answer && !children) return null;
+
   const displayAnswer = aiResult.answer || (aiResult.action_type === 'update' ? 'พบข้อมูลที่ต้องการแก้ไข กรุณาตรวจสอบรายละเอียดด้านล่าง' : 'วิเคราะห์ข้อมูลเสร็จสิ้น');
 
   return (
