@@ -376,6 +376,7 @@ table .font-bold { font-weight: bold; }
 ${(companyName && companyName.trim()) ? `
 <p>${escapeHtml(companyName)}</p>
 ${(taxId && taxId.trim()) ? `<p>เลขที่ผู้เสียภาษี: ${escapeHtml(taxId)}</p>` : ''}
+${(companyRegistrationNumber && companyRegistrationNumber.trim()) ? `<p>เลขทะเบียนนิติบุคคล: ${escapeHtml(companyRegistrationNumber)}</p>` : ''}
 <p>${escapeHtml(recipient.company_address || buildingAddress)}</p>
 ${(buildingPhone && buildingPhone.trim()) ? `<p>โทร: ${escapeHtml(buildingPhone)}</p>` : ''}
 ` : (lessorName && lessorName.trim()) ? `
