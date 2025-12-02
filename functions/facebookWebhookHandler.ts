@@ -585,19 +585,68 @@ async function handleAttachments(base44, senderPsid, attachments, branchId, tena
                     });
                     
                     const verifyData = await verifyRes.json();
-                    if (verifyData.data && verifyData.data.amount) {
-                        const amount = verifyData.data.amount;
+                    const isValidCode = verifyData.code === '200200' || verifyData.code === 200200;
+                    
+                    if ((verifyRes.ok && verifyData.success && verifyData.data) || (isValidCode && verifyData.data)) {
+                        const slipData = verifyData.data;
+                        const amount = slipData.amount || slipData.transAmount || 0;
+                        const senderName = slipData.sender?.account?.name?.th || slipData.sender?.displayName || 'N/A';
+                        const transDate = slipData.transDate || new Date().toISOString().split('T')[0];
+                        
+                        console.log(`✅ Slip verified! Amount: ${amount} บาท`);
+                        
+                        // เช็คยอดเงิน
+                        const amountDiff = Math.abs(amount - pendingPayment.total_amount);
+                        const diffPercent = (amountDiff / pendingPayment.total_amount) * 100;
+
+                        if (amount === 0) {
+                            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                                payment_slip_url: slipUrl,
+                                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ระบบอ่านยอดไม่ได้`
+                            });
+                            await sendFacebookMessage(base44, senderPsid, '📸 ได้รับสลิปแล้ว!\n\n⚠️ รอเจ้าของหอพักตรวจสอบค่ะ', branchId);
+                            return;
+                        }
+
+                        if (diffPercent > 10) {
+                            await sendFacebookMessage(base44, senderPsid, 
+                                `❌ ยอดเงินไม่ตรง\n\n💰 ยอดที่ต้องชำระ: ${pendingPayment.total_amount.toLocaleString()} บาท\n💵 ยอดที่โอนมา: ${amount.toLocaleString()} บาท\n\nกรุณาตรวจสอบและโอนใหม่ค่ะ`,
+                                branchId
+                            );
+                            return;
+                        }
+                        
                         await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                             status: 'paid',
+                            payment_date: transDate.split('T')[0],
                             payment_slip_url: slipUrl,
-                            notes: `ตรวจสอบอัตโนมัติ (Facebook): ยอด ${amount} บาท`
+                            notes: `${pendingPayment.notes || ''}\n\nตรวจสอบสลิปอัตโนมัติผ่าน Facebook: ${senderName} โอน ${amount} บาท`
                         });
-                        await sendFacebookMessage(base44, senderPsid, `✅ ตรวจสอบสลิปสำเร็จ! ยอด ${amount} บาท\nบันทึกการชำระเงินเรียบร้อยแล้วค่ะ`, branchId);
                         
-                        // Send Receipt
+                        // ⭐⭐⭐ ส่งใบเสร็จโดยตรงเลย (เหมือน LINE)
+                        console.log('📄 Sending receipt directly via Facebook...');
                         try {
-                            await base44.asServiceRole.functions.invoke('sendReceipt', { paymentId: pendingPayment.id });
-                        } catch (e) {}
+                            const receiptResponse = await base44.asServiceRole.functions.invoke('sendFacebookReceipt', { 
+                                paymentId: pendingPayment.id 
+                            });
+                            
+                            if (receiptResponse.data?.success) {
+                                console.log('✅ Receipt sent successfully via Facebook');
+                            } else {
+                                // Fallback message
+                                console.error('⚠️ Receipt sending failed, sending fallback message:', receiptResponse.data?.error);
+                                await sendFacebookMessage(base44, senderPsid, 
+                                    `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${amount.toLocaleString()} บาท\n📅 วันที่: ${transDate.split('T')[0]}\n\n✓ อัปเดตสถานะ "ชำระแล้ว"\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
+                                    branchId
+                                );
+                            }
+                        } catch (receiptError) {
+                            console.error('⚠️ Failed to send receipt, sending fallback message:', receiptError.message);
+                            await sendFacebookMessage(base44, senderPsid, 
+                                `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${amount.toLocaleString()} บาท\n📅 วันที่: ${transDate.split('T')[0]}\n\n✓ อัปเดตสถานะ "ชำระแล้ว"\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
+                                branchId
+                            );
+                        }
                         
                         return;
                     }
@@ -613,7 +662,8 @@ async function handleAttachments(base44, senderPsid, attachments, branchId, tena
             });
             await sendFacebookMessage(base44, senderPsid, '📸 ได้รับรูปสลิปแล้ว เจ้าหน้าที่จะตรวจสอบและยืนยันอีกครั้งค่ะ', branchId);
         } else {
-            await sendFacebookMessage(base44, senderPsid, '✅ ไม่มียอดค้างชำระ ขอบคุณค่ะ', branchId);
+            // ⭐ ไม่มี pending payment = ไม่ตอบอะไรเลย (เหมือน LINE)
+            console.log(`ℹ️ User ${senderPsid} has no pending payment - ignoring image, NOT responding`);
         }
     }
 }
