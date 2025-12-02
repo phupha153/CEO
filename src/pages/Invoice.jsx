@@ -226,18 +226,18 @@ export default function Invoice() {
               </div>
               
               <div className="text-xs text-slate-600 space-y-0.5">
-                {invoiceData.recipient?.company_name && (
-                  <p className="font-semibold text-slate-800">{invoiceData.recipient.company_name}</p>
+                {invoiceData.recipient?.company_name ? (
+                  <>
+                    <p className="font-semibold text-slate-800">{invoiceData.recipient.company_name}</p>
+                    {invoiceData.recipient.tax_id && <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.tax_id}</p>}
+                    {invoiceData.recipient.company_registration_number && <p>เลขทะเบียนนิติบุคคล: {invoiceData.recipient.company_registration_number}</p>}
+                  </>
+                ) : invoiceData.recipient?.lessor_name && (
+                  <p className="font-semibold text-slate-800">{invoiceData.recipient.lessor_name}</p>
                 )}
                 <p>{invoiceData.recipient?.building_address || '28/244 หมู่ 4 ถนนมหาธรรมการ 4 ซอย 6'}</p>
                 {invoiceData.recipient?.building_phone && (
                   <p>โทร: {invoiceData.recipient.building_phone}</p>
-                )}
-                {invoiceData.recipient?.tax_id && (
-                  <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.tax_id}</p>
-                )}
-                {invoiceData.recipient?.company_registration_number && (
-                  <p>เลขทะเบียนนิติบุคคล: {invoiceData.recipient.company_registration_number}</p>
                 )}
               </div>
 
