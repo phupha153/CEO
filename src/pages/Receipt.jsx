@@ -436,13 +436,11 @@ export default function Receipt() {
                       {receiptData.recipient.tax_id && <p>เลขที่ผู้เสียภาษี: {receiptData.recipient.tax_id}</p>}
                       {receiptData.recipient.company_registration_number && <p>เลขทะเบียนนิติบุคคล: {receiptData.recipient.company_registration_number}</p>}
                       <p>{receiptData.recipient?.company_address || receiptData.recipient?.building_address}</p>
-                      {receiptData.recipient?.company_phone && <p>โทร: {receiptData.recipient.company_phone}</p>}
                     </>
                   ) : (
                     <>
                       <p className="font-medium text-slate-800">{receiptData.recipient?.account_name || receiptData.recipient?.lessor_name || receiptData.recipient?.building_name}</p>
                       <p>{receiptData.recipient?.lessor_address || receiptData.recipient?.building_address}</p>
-                      {receiptData.recipient?.building_phone && <p>โทร: {receiptData.recipient.building_phone}</p>}
                     </>
                   )}
                 </div>
