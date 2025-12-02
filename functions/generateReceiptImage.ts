@@ -359,11 +359,7 @@ table .font-bold { font-weight: bold; }
 <p>Receipt</p>
 </div>
 </div>
-<div class="issuer-info">
-${lessorName ? `<p>${escapeHtml(lessorName)}${taxId ? ` เลขที่ภาษี (${escapeHtml(taxId)})` : ''}</p>` : ''}
-<p>${escapeHtml(buildingAddress)}</p>
-${buildingPhone ? `<p>โทร: ${escapeHtml(buildingPhone)}</p>` : ''}
-</div>
+
 </div>
 <div class="receipt-info">
 <div class="receipt-info-item">
@@ -384,7 +380,7 @@ ${taxId ? `<p class="detail">เลขที่ผู้เสียภาษี
 ${companyRegistrationNumber ? `<p class="detail">เลขทะเบียนนิติบุคคล: ${escapeHtml(companyRegistrationNumber)}</p>` : ''}
 <p class="detail">${escapeHtml(recipient.company_address || buildingAddress)}</p>
 ` : `
-<p class="name">${escapeHtml(bankAccountName || lessorName || buildingName)}</p>
+<p class="name">${escapeHtml(recipient.account_name || lessorName || buildingName)}</p>
 <p class="detail">${escapeHtml(lessorAddress || buildingAddress)}</p>
 `}
 </div>
