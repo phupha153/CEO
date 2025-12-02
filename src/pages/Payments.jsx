@@ -1314,7 +1314,7 @@ export default function PaymentsPage() {
     if (!paymentId) {
       const paymentsToSend = pendingOverduePayments.filter(p => {
         const tenant = getTenantInfo(p.tenant_id);
-        return tenant && tenant.line_user_id && !p.bill_sent_date;
+        return tenant && (tenant.line_user_id || tenant.facebook_user_id) && !p.bill_sent_date;
       });
       
       const roomsList = paymentsToSend
@@ -1328,7 +1328,7 @@ export default function PaymentsPage() {
       const confirmed = confirm(
         `📤 ต้องการส่งบิลไปยัง ${tenantsWithLine} ห้อง?\n\n` +
         `ห้องที่จะส่ง:\n${roomsList}\n\n` +
-        `(เฉพาะห้องที่มี LINE และยังไม่ได้ส่งบิล)`
+        `(เฉพาะห้องที่เชื่อมต่อระบบแชทและยังไม่ได้ส่งบิล)`
       );
       if (!confirmed) return;
     }
