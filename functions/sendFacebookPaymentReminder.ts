@@ -129,8 +129,64 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { paymentId } = await req.json();
+        const body = await req.json();
+        const { paymentId, recipients: passedRecipients } = body;
 
+        const results = {
+            success: 0,
+            failed: 0,
+            errors: []
+        };
+
+        // ⭐ ถ้ามี recipients ส่งมาจาก sendPaymentReminder ให้ใช้เลย
+        if (passedRecipients && Array.isArray(passedRecipients) && passedRecipients.length > 0) {
+            console.log(`📤 Processing ${passedRecipients.length} Facebook recipients from caller...`);
+            
+            for (const recipient of passedRecipients) {
+                const facebookUserId = recipient.facebookUserId;
+                const message = recipient.message;
+                const branchId = recipient.metadata?.branchId;
+                
+                if (!facebookUserId || !message) {
+                    console.log(`⚠️ Skipping: missing facebookUserId or message`);
+                    results.failed++;
+                    continue;
+                }
+                
+                // ดึง config สำหรับสาขา
+                const config = await getFacebookConfig(base44, branchId);
+                if (!config?.pageAccessToken) {
+                    console.error(`❌ No Facebook token for branch: ${branchId}`);
+                    results.failed++;
+                    results.errors.push({ paymentId: recipient.metadata?.paymentId, error: 'No Facebook token' });
+                    continue;
+                }
+
+                // ส่งข้อความ
+                const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, facebookUserId, message, branchId, user?.email || 'system');
+                
+                if (sendResult.success) {
+                    results.success++;
+                    console.log(`✅ Sent to Facebook ${facebookUserId}`);
+                } else {
+                    results.failed++;
+                    results.errors.push({ paymentId: recipient.metadata?.paymentId, error: sendResult.error });
+                }
+
+                // หน่วงเวลาเพื่อป้องกัน rate limit
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            return Response.json({ 
+                success: true,
+                message: `ส่งข้อความ Facebook สำเร็จ ${results.success}/${results.success + results.failed} รายการ`,
+                successCount: results.success,
+                failCount: results.failed,
+                errors: results.errors
+            });
+        }
+
+        // ⭐ Fallback: ถ้าไม่มี recipients ให้ใช้ paymentId ดึงข้อมูลเอง
         let paymentsToSend = [];
         
         if (paymentId) {
@@ -152,12 +208,6 @@ Deno.serve(async (req) => {
                 message: 'ไม่มีรายการที่ต้องส่ง' 
             });
         }
-
-        const results = {
-            success: 0,
-            failed: 0,
-            errors: []
-        };
 
         for (const payment of paymentsToSend) {
             // ดึงข้อมูล Tenant และ Room
