@@ -576,6 +576,38 @@ Deno.serve(async (req) => {
 
                     // Delay ระหว่างส่ง LINE แต่ละใบ
                     await delay(500);
+                    
+                    // ⭐ ส่ง Facebook ด้วย (ถ้ามี facebook_user_id)
+                    if (tenant?.facebook_user_id) {
+                        try {
+                            const fbToken = getConfigValue('facebook_page_access_token', branchId, '');
+                            if (fbToken) {
+                                const fbMsg = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\nสวัสดีคุณ ${tenant.full_name}\nห้อง ${room?.room_number || 'N/A'}\n\n💰 ยอดรวม: ${payment.total_amount.toLocaleString()} บาท\n📅 กำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n\n💳 โอนเงินได้ที่: ${bankName} ${bankAcc} (${bankOwner})${imageUrl ? `\n\n📄 ดูใบแจ้งหนี้: ${imageUrl}` : ''}`;
+                                
+                                const fbResponse = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        recipient: { id: tenant.facebook_user_id },
+                                        message: { text: fbMsg },
+                                        messaging_type: 'MESSAGE_TAG',
+                                        tag: 'CONFIRMED_EVENT_UPDATE'
+                                    })
+                                });
+                                
+                                if (fbResponse.ok) {
+                                    console.log(`📘 Payment ${payment.id}: Facebook sent to ${tenant.full_name}`);
+                                } else {
+                                    const fbError = await fbResponse.text();
+                                    console.error(`❌ Payment ${payment.id}: Facebook failed - ${fbError}`);
+                                }
+                                
+                                await delay(200);
+                            }
+                        } catch (fbError) {
+                            console.error(`❌ Payment ${payment.id}: Facebook error - ${fbError.message}`);
+                        }
+                    }
 
                 } catch (lineError) {
                     console.error(`❌ Payment ${payment.id}: LINE error - ${lineError.message}`);
