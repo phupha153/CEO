@@ -440,7 +440,6 @@ Deno.serve(async (req) => {
 
                 // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว = ข้ามไป (ไม่ว่าจะ force หรือไม่ก็ตาม)
                 if (existingBill) {
-                    console.log(`⏭️ Room ${room.room_number}: มีบิลเดือน ${roomDueMonth + 1}/${roomDueYear} อยู่แล้ว (ID: ${existingBill.id}) - ข้าม`);
                     skippedDueToExistingBill++;
                     
                     // ถ้าต้องการส่งแจ้งเตือนซ้ำ
