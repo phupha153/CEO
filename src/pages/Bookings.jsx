@@ -234,54 +234,91 @@ export default function BookingsPage() {
           return {
             ...room,
             current_booking_end: b.check_out_date,
-            current_tenant: b.guest_name || 'ผู้เช่ารายเดือน'
+            current_tenant: b.guest_name || (b.tenant_id ? 'ผู้เช่ารายเดือน' : 'ไม่ระบุ')
           };
         })
         .filter(r => r && r.id);
 
-      const promptText = `คุณเป็นผู้ช่วยอัจฉริยะระบบจัดการหอพัก วิเคราะห์คำถามและระบุ action ที่ต้องการ
+      // คำนวณวันที่สำคัญ
+      const today = new Date();
+      const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+      const nextMonthEnd = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+      const nextMonthStartStr = format(nextMonthStart, 'yyyy-MM-dd');
+      const nextMonthEndStr = format(nextMonthEnd, 'yyyy-MM-dd');
 
-วันที่ปัจจุบัน: ${format(new Date(), 'yyyy-MM-dd')}
-คำถาม: "${searchQuery}"
+      // หาห้องที่จะว่างเดือนหน้า (check_out_date อยู่ในเดือนหน้า หรือก่อนเดือนหน้า)
+      const roomsAvailableNextMonth = occupiedRoomsWithCheckout.filter(r => {
+        if (!r.current_booking_end) return false;
+        return r.current_booking_end <= nextMonthEndStr;
+      });
 
-**สรุปจำนวนห้องว่างปัจจุบัน:**
-- ห้องรายวันว่าง: ${dailyAvailableRooms.length} ห้อง
-- ห้องรายเดือนว่าง: ${monthlyAvailableRooms.length} ห้อง
+      // รวมห้องที่ว่างตอนนี้ + ห้องที่จะว่างเดือนหน้า
+      const allRoomsAvailableNextMonth = [
+        ...dailyAvailableRooms.map(r => ({ ...r, availability_reason: 'ว่างอยู่แล้วตอนนี้' })),
+        ...monthlyAvailableRooms.map(r => ({ ...r, availability_reason: 'ว่างอยู่แล้วตอนนี้' })),
+        ...roomsAvailableNextMonth.map(r => ({ ...r, availability_reason: `จะว่างวันที่ ${r.current_booking_end}` }))
+      ];
 
-**รายละเอียดห้องรายวันที่ว่างตอนนี้ (${dailyAvailableRooms.length} ห้อง):**
-${JSON.stringify(dailyAvailableRooms, null, 2)}
+      const promptText = `คุณเป็นผู้ช่วยอัจฉริยะระบบจัดการหอพัก วิเคราะห์คำถามและตอบให้ถูกต้อง
 
-**รายละเอียดห้องรายเดือนที่ว่างตอนนี้ (${monthlyAvailableRooms.length} ห้อง):**
-${JSON.stringify(monthlyAvailableRooms, null, 2)}
+**วันที่ปัจจุบัน:** ${format(today, 'yyyy-MM-dd')} (${format(today, 'd MMMM yyyy', { locale: th })})
+**เดือนหน้า:** ${format(nextMonthStart, 'MMMM yyyy', { locale: th })} (${nextMonthStartStr} ถึง ${nextMonthEndStr})
 
-**ห้องที่มีผู้เช่าแต่จะว่างในอนาคต (${occupiedRoomsWithCheckout.length} ห้อง):**
-${JSON.stringify(occupiedRoomsWithCheckout, null, 2)}
+**คำถาม:** "${searchQuery}"
 
-**ข้อมูลการจองทั้งหมด (${bookingsData.length} รายการ):**
-${JSON.stringify(bookingsData, null, 2)}
+=== ข้อมูลห้องพักทั้งหมด (${roomsData.length} ห้อง) ===
+${JSON.stringify(roomsData.map(r => ({
+  id: r.id,
+  room_number: r.room_number,
+  floor: r.floor,
+  room_type: r.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน',
+  status: r.status === 'available' ? 'ว่าง' : r.status === 'occupied' ? 'มีผู้เช่า' : 'จอง',
+  price: r.price
+})), null, 2)}
 
-**ประเภทห้อง**:
-- room_type = "daily" คือห้องรายวัน
-- room_type = "monthly" คือห้องรายเดือน
+=== ห้องที่ว่างตอนนี้ ===
+- ห้องรายวันว่าง: ${dailyAvailableRooms.length} ห้อง ${dailyAvailableRooms.length > 0 ? `(${dailyAvailableRooms.map(r => r.room_number).join(', ')})` : ''}
+- ห้องรายเดือนว่าง: ${monthlyAvailableRooms.length} ห้อง ${monthlyAvailableRooms.length > 0 ? `(${monthlyAvailableRooms.map(r => r.room_number).join(', ')})` : ''}
 
-**สถานะห้อง**:
-- status = "available" คือห้องว่าง
-- status = "occupied" คือมีผู้เช่า
-- status = "reserved" คือจองแล้ว
+=== ห้องที่มีผู้เช่าแต่จะว่างในอนาคต (${occupiedRoomsWithCheckout.length} ห้อง) ===
+${occupiedRoomsWithCheckout.length > 0 ? JSON.stringify(occupiedRoomsWithCheckout.map(r => ({
+  room_number: r.room_number,
+  floor: r.floor,
+  room_type: r.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน',
+  จะว่างวันที่: r.current_booking_end,
+  ผู้เช่าปัจจุบัน: r.current_tenant
+})), null, 2) : 'ไม่มีข้อมูล'}
 
-การระบุ Action:
-- ถ้าเป็นการค้นหา/ดูข้อมูล/หาห้องว่าง: action_type = "view" พร้อม rooms array (ใส่ทุกห้องที่ตรงเงื่อนไข)
-- ถ้าเป็นการจองห้อง (เช่น "จองห้อง 101"): action_type = "create" พร้อม data สำหรับจอง
+=== ห้องที่จะว่างภายในเดือนหน้า (${roomsAvailableNextMonth.length} ห้อง) ===
+${roomsAvailableNextMonth.length > 0 ? JSON.stringify(roomsAvailableNextMonth.map(r => ({
+  room_number: r.room_number,
+  floor: r.floor,
+  room_type: r.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน',
+  จะว่างวันที่: r.current_booking_end
+})), null, 2) : 'ไม่มีห้องที่จะว่างเดือนหน้า'}
 
-**สำคัญมาก**: 
-- **ต้องมี answer เสมอ** - ระบุจำนวนห้องที่พบให้ชัดเจน
-- **ต้องใส่ห้องทั้งหมดที่ตรงเงื่อนไขใน rooms array** ไม่ใช่แค่บางห้อง
-- ถ้าถามหาห้องที่จะว่างในอนาคต ให้ดูจาก check_out_date ของการจอง และระบุวันที่จะว่างใน reason
-- ถ้าถามหาห้องชั้นไหนที่ใกล้ว่างที่สุด ให้เรียงตาม check_out_date จากน้อยไปมาก
-- ถ้าถามว่าว่างกี่ห้อง ให้ตอบจำนวนที่ถูกต้องจากข้อมูลด้านบน
-- ถ้าหาห้องว่างรายวัน ต้องใส่ห้องรายวันที่ว่างทั้งหมด ${dailyAvailableRooms.length} ห้อง
-- ถ้าจองห้องเลขที่เฉพาะ ต้อง exact match room_number เท่านั้น
-- ถ้าไม่พบห้องที่ตรงกัน ให้ตอบว่า "ไม่พบห้องที่ตรงตามเงื่อนไข"
+=== รวมห้องทั้งหมดที่จะว่างเดือนหน้า (รวมห้องที่ว่างอยู่แล้ว + จะว่าง) ===
+จำนวนรวม: ${allRoomsAvailableNextMonth.length} ห้อง
+${allRoomsAvailableNextMonth.length > 0 ? JSON.stringify(allRoomsAvailableNextMonth.map(r => ({
+  id: r.id,
+  room_number: r.room_number,
+  floor: r.floor,
+  room_type: r.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน',
+  สาเหตุ: r.availability_reason
+})), null, 2) : 'ไม่มี'}
+
+=== คำแนะนำในการตอบ ===
+1. ถ้าถามหา "ห้องว่างเดือนหน้า" หรือ "ห้องว่างในอนาคต":
+   - ต้องรวมทั้งห้องที่ว่างอยู่แล้วตอนนี้ + ห้องที่จะว่างในเดือนหน้า
+   - ใส่ทุกห้องใน rooms array พร้อม reason อธิบาย
+   
+2. ถ้าถามหา "ห้องว่างตอนนี้" หรือ "ห้องว่างวันนี้":
+   - ใส่เฉพาะห้องที่ status = available
+   
+3. ถ้าถามหาห้องตามชั้น (เช่น "ห้องว่างชั้น 3"):
+   - กรองตาม floor ที่ต้องการ
+
+4. **สำคัญ**: ต้องมี answer และ rooms array เสมอ ห้ามปล่อยว่าง
 
 ตอบเป็นภาษาไทย กระชับชัดเจน`;
 
