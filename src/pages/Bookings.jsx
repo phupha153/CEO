@@ -240,12 +240,12 @@ export default function BookingsPage() {
         return true;
       };
 
-      // ฟังก์ชันหาวันที่ห้องจะว่าง
+      // ฟังก์ชันหาวันที่ห้องจะว่าง (วันหมดสัญญา = วันที่ว่าง)
       const getRoomAvailabilityDate = (roomId) => {
         const roomBookings = bookingsData.filter(b => b.room_id === roomId);
         if (roomBookings.length === 0) return { available: true, availableFrom: todayStr, reason: 'ว่างอยู่แล้วตอนนี้' };
         
-        // หา booking ที่ยังใช้งานอยู่ (check_in <= today และ ยังไม่ check_out)
+        // หา booking ที่ยังใช้งานอยู่
         let latestCheckOut = null;
         let hasNoEndDate = false;
         let currentTenant = null;
@@ -263,11 +263,12 @@ export default function BookingsPage() {
         }
         
         if (hasNoEndDate) {
-          return { available: false, availableFrom: null, reason: `มีผู้เช่า (${currentTenant}) - ไม่มีกำหนดย้ายออก`, currentTenant };
+          return { available: false, availableFrom: null, reason: `มีผู้เช่า (${currentTenant}) - ไม่มีวันหมดสัญญา`, currentTenant };
         }
         
         if (latestCheckOut && latestCheckOut > todayStr) {
-          return { available: false, availableFrom: latestCheckOut, reason: `จะว่างวันที่ ${latestCheckOut}`, currentTenant };
+          // วันหมดสัญญา = วันที่ว่าง
+          return { available: false, availableFrom: latestCheckOut, contractEndDate: latestCheckOut, reason: `หมดสัญญาวันที่ ${latestCheckOut}`, currentTenant };
         }
         
         return { available: true, availableFrom: todayStr, reason: 'ว่างอยู่แล้วตอนนี้' };
