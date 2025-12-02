@@ -200,16 +200,21 @@ export default function BookingsPage() {
         description: r.description
       }));
 
-      const bookingsData = bookings.map(b => ({
-        id: b.id,
-        room_id: b.room_id,
-        tenant_id: b.tenant_id,
-        guest_name: b.guest_name,
-        check_in_date: b.check_in_date,
-        check_out_date: b.check_out_date,
-        status: b.status,
-        booking_type: b.booking_type
-      }));
+      const bookingsData = bookings.map(b => {
+        const room = rooms.find(r => r.id === b.room_id);
+        return {
+          id: b.id,
+          room_id: b.room_id,
+          room_number: room?.room_number || 'N/A',
+          floor: room?.floor,
+          tenant_id: b.tenant_id,
+          guest_name: b.guest_name,
+          check_in_date: b.check_in_date,
+          check_out_date: b.check_out_date,
+          status: b.status,
+          booking_type: b.booking_type
+        };
+      });
 
       const tenantsData = tenants.map(t => ({
         id: t.id,
