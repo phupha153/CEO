@@ -266,6 +266,12 @@ ${JSON.stringify(tenantsData, null, 2)}
 - deposit_payment_method ควรเป็น "transfer" โดยดีฟอลต์
 - guest_name และ guest_phone ให้เว้นว่างไว้ (ผู้ใช้จะกรอกเอง)
 
+**สำคัญที่สุด - การจับคู่ห้อง**:
+- ต้องค้นหาห้องที่ตรงกับ room_number **ตรงทั้งหมด** (exact match)
+- เช่น ถ้าผู้ใช้พิมพ์ "จองห้อง 112" ต้องหาห้องที่ room_number = "112" เท่านั้น
+- ห้ามเลือกห้อง 411 แทนห้อง 112 เด็ดขาด
+- ถ้าไม่พบห้องที่ตรงกัน ให้ตอบว่า "ไม่พบห้อง XXX ในระบบ"
+
 ตอบเป็นภาษาไทย กระชับชัดเจน`;
 
       const response = await base44.integrations.Core.InvokeLLM({
