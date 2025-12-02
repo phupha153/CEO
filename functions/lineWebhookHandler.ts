@@ -191,6 +191,7 @@ Deno.serve(async (req) => {
                     try {
                         // ⭐ CRITICAL: Filter by branch_id AND line_user_id
                         let tenant = null;
+                        const msgBranchId = destinationBranchId; // ใช้ branch จาก destination ก่อน
                         try {
                             const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
                                 line_user_id: lineUserId,
@@ -200,7 +201,7 @@ Deno.serve(async (req) => {
                         } catch (e) {
                             console.log('⚠️ Could not find tenant:', e.message);
                         }
-                        const msgBranchId = tenant?.branch_id || destinationBranchId;
+                        const finalBranchId = tenant?.branch_id || msgBranchId;
 
                         // ดึง LINE Profile เสมอ
                         let displayName = null;
