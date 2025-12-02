@@ -32,15 +32,22 @@ Deno.serve(async (req) => {
     
     console.log('✅ Success! Packages:', packages?.length || 0);
     
-    // DEBUG: แสดงข้อมูลแพ็กเกจแรก
+    // DEBUG: แสดงข้อมูลแพ็กเกจทั้งหมด รวม is_active
     if (packages && packages.length > 0) {
-      console.log('First package data:', JSON.stringify(packages[0], null, 2));
-      console.log('Package fields:', Object.keys(packages[0]));
+      packages.forEach((pkg, i) => {
+        console.log(`Package ${i}: ${pkg.package_name}, is_active: ${pkg.is_active}, status: ${pkg.status}`);
+      });
     }
+
+    // ⭐ Map is_active ให้ชัดเจน (ถ้าไม่มี field ให้ default เป็น true)
+    const mappedPackages = (packages || []).map(pkg => ({
+      ...pkg,
+      is_active: pkg.is_active !== undefined ? pkg.is_active : (pkg.status === 'active')
+    }));
 
     return Response.json({
       success: true,
-      packages: packages || [],
+      packages: mappedPackages,
       active_subscriptions: []
     });
 
