@@ -74,14 +74,15 @@ async function getFacebookConfig(base44, branchId = null) {
     }
 }
 
-async function sendFacebookMessage(pageAccessToken, recipientId, text) {
+async function sendFacebookMessage(base44, pageAccessToken, recipientId, text, branchId = null, sentBy = 'system') {
     try {
         const response = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${pageAccessToken}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 recipient: { id: recipientId },
-                message: { text: text }
+                message: { text: text },
+                messaging_type: 'RESPONSE'
             })
         });
         
@@ -89,6 +90,25 @@ async function sendFacebookMessage(pageAccessToken, recipientId, text) {
             const errorData = await response.json();
             console.error('Facebook API error:', errorData);
             return { success: false, error: errorData };
+        }
+
+        // ⭐⭐⭐ บันทึกข้อความขาออกลง FacebookMessage entity (เหมือน LINE)
+        try {
+            await base44.asServiceRole.entities.FacebookMessage.create({
+                branch_id: branchId,
+                tenant_id: null,
+                facebook_user_id: recipientId,
+                facebook_display_name: null,
+                facebook_picture_url: null,
+                direction: 'outgoing',
+                message_type: 'text',
+                content: text,
+                is_read: true,
+                sent_by: sentBy
+            });
+            console.log('✅ Saved outgoing Facebook message to FacebookMessage entity');
+        } catch (saveError) {
+            console.error('❌ Failed to save outgoing Facebook message:', saveError);
         }
         
         return { success: true };
@@ -247,12 +267,21 @@ Deno.serve(async (req) => {
             message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
             message += `ขอบคุณค่ะ 🙏`;
 
-            // ส่งข้อความ
-            const sendResult = await sendFacebookMessage(config.pageAccessToken, tenant.facebook_user_id, message);
+            // ส่งข้อความ (ส่ง base44 และ branchId เพื่อบันทึกข้อความ)
+            const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, tenant.facebook_user_id, message, payment.branch_id, user?.email || 'system');
             
             if (sendResult.success) {
                 results.success++;
                 console.log(`✅ Sent to ${tenant.full_name} (${tenant.facebook_user_id})`);
+                
+                // ⭐ อัปเดต bill_sent_date (เหมือน LINE)
+                try {
+                    await base44.asServiceRole.entities.Payment.update(payment.id, {
+                        bill_sent_date: new Date().toISOString()
+                    });
+                } catch (updateErr) {
+                    console.warn(`⚠️ Failed to update bill_sent_date:`, updateErr.message);
+                }
             } else {
                 results.failed++;
                 results.errors.push({ paymentId: payment.id, tenantName: tenant.full_name, error: sendResult.error });
