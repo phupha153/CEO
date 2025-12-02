@@ -190,8 +190,8 @@ Deno.serve(async (req) => {
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings, ${tenants.length} tenants`);
         
-        // ⭐⭐⭐ ดึง Payment เฉพาะเดือนที่กำลังจะสร้างบิล (ใช้ $gte filter)
-        console.log('📦 Fetching payments for target month...');
+        // ⭐⭐⭐ ดึง Payment ของสาขาที่กำลังประมวลผล (ไม่ใช้ $gte เพราะ SDK ไม่รองรับ)
+        console.log('📦 Fetching payments...');
         
         let recentPayments = [];
         
@@ -199,27 +199,35 @@ Deno.serve(async (req) => {
         const targetBillMonth = currentMonth + 1 > 11 ? 0 : currentMonth + 1;
         const targetBillYear = currentMonth + 1 > 11 ? currentYear + 1 : currentYear;
         const targetMonthStr = `${targetBillYear}-${String(targetBillMonth + 1).padStart(2, '0')}`;
+        const thisMonthStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
         
-        console.log(`📅 Target bill month: ${targetMonthStr}`);
+        console.log(`📅 Target bill month: ${targetMonthStr}, this month: ${thisMonthStr}`);
         
         await retryOperation(async () => {
-            // ⭐ ดึงเฉพาะ payments ที่มี due_date >= เดือนปัจจุบัน
-            const thisMonthStart = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
-            
+            // ⭐ ดึง payments ของสาขา (ไม่ใช้ $gte เพราะไม่ work)
             const paymentFilter = targetBranchId 
-                ? { branch_id: targetBranchId, due_date: { $gte: thisMonthStart } }
-                : { due_date: { $gte: thisMonthStart } };
+                ? { branch_id: targetBranchId }
+                : {};
             
             const payments = await base44.asServiceRole.entities.Payment.filter(
                 paymentFilter, 
                 '-due_date', 
-                10000
+                5000
             );
             
-            recentPayments = Array.isArray(payments) ? payments : [];
+            const allPayments = Array.isArray(payments) ? payments : [];
+            
+            // ⭐ กรองเฉพาะ due_date >= เดือนปัจจุบัน (ในโค้ด)
+            recentPayments = allPayments.filter(p => {
+                if (!p || !p.due_date) return false;
+                const dueYearMonth = p.due_date.substring(0, 7); // "2025-12"
+                return dueYearMonth >= thisMonthStr;
+            });
+            
+            console.log(`📊 Filtered: ${recentPayments.length}/${allPayments.length} payments (due >= ${thisMonthStr})`);
         });
         
-        console.log(`✅ Fetched ${recentPayments.length} payments (due_date >= this month)`);
+        console.log(`✅ Fetched ${recentPayments.length} relevant payments`);
         
         // ⭐ สร้าง Map จาก payments
         for (const p of recentPayments) {
