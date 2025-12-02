@@ -359,32 +359,9 @@ export default function Settings() {
       });
 
       if (response.data.success) {
-        // อัพเดท state ให้แสดงโลโก้และชื่อ Page
-        const pageLogoUrl = `https://graph.facebook.com/${page.id}/picture?type=large&access_token=${page.access_token}`;
-        setBuildingLogo(pageLogoUrl);
-        setBuildingInfo(prev => ({ ...prev, building_name: page.name }));
-        
-        // บันทึกโลโก้และชื่อไปที่ Config ด้วย
-        await updateConfigMutation.mutateAsync({
-          key: 'building_logo',
-          value: pageLogoUrl,
-          description: `โลโก้ Facebook Page: ${page.name}`,
-          category: 'general',
-          applyToAllBranches: false
-        });
-        
-        await updateConfigMutation.mutateAsync({
-          key: 'building_name',
-          value: page.name,
-          description: 'ชื่อหอพักจาก Facebook Page',
-          category: 'general',
-          applyToAllBranches: false
-        });
-        
         toast.success(`เชื่อมต่อกับ ${page.name} สำเร็จ!`);
         queryClient.invalidateQueries(['configs']);
         setShowPageSelectionDialog(false);
-        setActiveTab('building'); // เปลี่ยนไปแท็บอาคารเพื่อแสดงโลโก้
       } else {
         toast.error('ไม่สามารถบันทึก Token ได้');
       }
