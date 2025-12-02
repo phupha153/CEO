@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
             const bankName = getConfigValue('bank_name', branchId, 'กสิกร');
             const buildingName = getConfigValue('building_name', branchId, 'W RESIDENTS');
 
-            let message = `🏠 แจ้งเตือนค่าเช่า - ${buildingName}\n\n`;
+            let message = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
             message += `สวัสดีคุณ ${tenant.full_name}\n`;
             message += `ห้อง ${room?.room_number || 'N/A'}\n\n`;
             message += `📋 รายละเอียดค่าใช้จ่าย:\n`;
