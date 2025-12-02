@@ -474,8 +474,9 @@ export default function PackageSelectionPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     {packages.map((pkg, index) => {
-                      const isMostPopular = index === packages.length - 1 && packages.length === 3;
+                      const isMostPopular = pkg.popular === true || (index === packages.length - 1 && packages.length === 3);
                       const isSelected = selectedPackageId === pkg.id;
+                      const isDisabled = pkg.is_active === false; // ⭐ เช็คว่าปิดอยู่หรือไม่
                       
                       return (
                         <motion.div
@@ -483,16 +484,23 @@ export default function PackageSelectionPage() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          className={`relative ${isMostPopular ? 'md:scale-105' : ''}`}
+                          className={`relative ${isMostPopular && !isDisabled ? 'md:scale-105' : ''}`}
                         >
-                          <Card className={`h-full transition-all cursor-pointer ${
-                           isSelected ? 'ring-4 ring-blue-500 ring-offset-4' : ''
+                          <Card className={`h-full transition-all ${
+                           isDisabled 
+                             ? 'cursor-not-allowed opacity-60 grayscale' 
+                             : 'cursor-pointer'
                           } ${
-                           isMostPopular 
-                             ? 'bg-gradient-to-br from-slate-800 via-slate-900 to-black text-white shadow-2xl border-0' 
-                             : 'bg-white text-slate-800 shadow-lg hover:shadow-xl border-slate-200'
+                           isSelected && !isDisabled ? 'ring-4 ring-blue-500 ring-offset-4' : ''
+                          } ${
+                           isDisabled
+                             ? 'bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 text-slate-400 shadow-lg border-slate-600'
+                             : isMostPopular 
+                               ? 'bg-gradient-to-br from-slate-800 via-slate-900 to-black text-white shadow-2xl border-0' 
+                               : 'bg-white text-slate-800 shadow-lg hover:shadow-xl border-slate-200'
                           }`}
                           onClick={() => {
+                           if (isDisabled) return; // ⭐ ไม่ให้คลิกถ้าปิด
                            setSelectedPackageId(pkg.id);
                            console.log('Selected package:', pkg);
                            console.log('Pricing data:', pkg.pricing);
