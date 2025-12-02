@@ -328,7 +328,8 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
                 recipient: { id: tenant.facebook_user_id },
                 message: { text: message },
-                messaging_type: 'RESPONSE'
+                messaging_type: 'MESSAGE_TAG',
+                tag: 'CONFIRMED_EVENT_UPDATE'
             })
         });
 
