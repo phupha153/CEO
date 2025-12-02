@@ -360,10 +360,10 @@ Deno.serve(async (req) => {
                 
                 let existingBill = existingPaymentsMap.get(mapKey) || null;
 
-                // ⭐ FALLBACK: scan จาก normalizedPayments array
+                // ⭐ FALLBACK: scan จาก recentPayments array
                 if (!existingBill) {
-                    for (const p of normalizedPayments) {
-                        if (p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
+                    for (const p of recentPayments) {
+                        if (p && p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
                             existingBill = p;
                             break;
                         }
