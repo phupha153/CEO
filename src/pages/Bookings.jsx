@@ -565,26 +565,7 @@ ${JSON.stringify(tenantsData, null, 2)}
       const oldBooking = bookings.find(b => b.id === id);
       const booking = await base44.entities.Booking.update(id, data);
       
-      // ถ้ามีการเพิ่มหรือเปลี่ยนแปลงเงินมัดจำ ให้บันทึกรายจ่ายใหม่
-      if (data.deposit_amount && data.deposit_amount > 0) {
-        const oldDepositAmount = oldBooking?.deposit_amount || 0;
-        
-        // ถ้าเงินมัดจำเพิ่มขึ้น ให้บันทึกส่วนที่เพิ่ม
-        if (data.deposit_amount > oldDepositAmount) {
-          const room = rooms.find(r => r.id === data.room_id || r.id === oldBooking?.room_id);
-          const additionalDeposit = data.deposit_amount - oldDepositAmount;
-          
-          await base44.entities.Expense.create({
-            branch_id: selectedBranchId,
-            title: `เงินมัดจำเพิ่มเติมห้อง ${room?.room_number} - ${data.guest_name || oldBooking?.guest_name}`,
-            amount: additionalDeposit,
-            category: 'other',
-            date: new Date().toISOString().split('T')[0],
-            description: `เงินมัดจำเพิ่มเติมการจองห้องรายวัน (Booking ID: ${id})`,
-            notes: `ชำระผ่าน: ${data.deposit_payment_method === 'cash' ? 'เงินสด' : data.deposit_payment_method === 'transfer' ? 'โอนเงิน' : 'QR Code'}`
-          });
-        }
-      }
+
       
       return booking;
     },
