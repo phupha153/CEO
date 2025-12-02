@@ -2667,10 +2667,11 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                                       </div>
 
                                       {/* Contract Period */}
-                                      {roomBooking?.check_in_date && (
-                                        <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-100">
-                                          <span>เข้าพัก: {format(parseISO(roomBooking.check_in_date), 'd MMM yy', { locale: th })}</span>
-                                        </div>
+                                      {roomBooking?.check_in_date && roomBooking?.check_out_date && (
+                                       <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-100 space-y-0.5">
+                                         <div>เข้าพัก: {format(parseISO(roomBooking.check_in_date), 'd MMM', { locale: th })} {parseInt(roomBooking.check_in_date.split('-')[0]) + 543}</div>
+                                         <div>หมดสัญญา: {format(parseISO(roomBooking.check_out_date), 'd MMM', { locale: th })} {parseInt(roomBooking.check_out_date.split('-')[0]) + 543}</div>
+                                       </div>
                                       )}
 
                                       {/* Action Buttons */}
