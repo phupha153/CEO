@@ -323,10 +323,7 @@ Deno.serve(async (req) => {
                     }
                 });
 
-                if (batchNum > 20) {
-                    console.log(`⚠️ Branch ${branchId}: max batches reached`);
-                    hasMore = false;
-                }
+
 
                 if (hasMore) await delay(200);
             }
