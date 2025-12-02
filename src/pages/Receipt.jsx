@@ -385,7 +385,29 @@ export default function Receipt() {
                   <p className="text-xs text-green-600">Receipt</p>
                 </div>
               </div>
-
+              <div className="text-xs text-slate-600 mt-1 space-y-0.5">
+                {receiptData.recipient?.company_name ? (
+                  <>
+                    <p className="font-semibold text-slate-800">{receiptData.recipient.company_name}</p>
+                    {receiptData.recipient.tax_id && <p>เลขที่ผู้เสียภาษี: {receiptData.recipient.tax_id}</p>}
+                    {receiptData.recipient.company_registration_number && <p>เลขทะเบียนนิติบุคคล: {receiptData.recipient.company_registration_number}</p>}
+                    <p>{receiptData.recipient?.company_address || receiptData.recipient?.building_address}</p>
+                    {receiptData.recipient?.company_phone && <p>โทร: {receiptData.recipient.company_phone}</p>}
+                  </>
+                ) : receiptData.recipient?.account_name ? (
+                  <>
+                    <p className="font-semibold text-slate-800">{receiptData.recipient.account_name}</p>
+                    <p>{receiptData.recipient?.building_address}</p>
+                    {receiptData.recipient?.building_phone && <p>โทร: {receiptData.recipient.building_phone}</p>}
+                  </>
+                ) : receiptData.recipient?.lessor_name && (
+                  <>
+                    <p className="font-semibold text-slate-800">{receiptData.recipient.lessor_name}</p>
+                    <p>{receiptData.recipient?.lessor_address || receiptData.recipient?.building_address}</p>
+                    {receiptData.recipient?.building_phone && <p>โทร: {receiptData.recipient.building_phone}</p>}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Receipt Info */}
