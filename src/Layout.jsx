@@ -692,63 +692,24 @@ export default function Layout({ children, currentPageName }) {
         );
 
         if (!existingPackage && !anyActivePackage) {
-          // ⭐ เช็คว่า user มี paid package ในสาขาอื่นๆ ที่ตัวเองมีสิทธิ์หรือไม่
-          // ถ้า accessible_branches เป็น null/undefined = developer ที่ยังไม่ set ให้ดูจาก email
-          const userAccessibleBranchIds = currentUser?.accessible_branches || [];
-          const userPaidPackages = branchPackages.filter(bp => 
-            bp.status === 'active' && 
-            bp.package_id !== 'trial' && 
-            bp.price_per_month > 0 &&
-            (userAccessibleBranchIds.length === 0 
-              ? bp.owner_email === currentUser.email  // developer: ดูจาก email
-              : userAccessibleBranchIds.includes(bp.branch_id))  // user ปกติ: ดูจากสาขา
+          // ⭐⭐⭐ ไม่ auto-copy paid package จากสาขาอื่นอีกต่อไป
+          // ถ้าสาขานี้ไม่มี package = redirect ไปหน้าเลือก package แทน
+          console.log('🚫 No active package for branch:', selectedBranch.id, '- Redirecting to package selection');
+          
+          // ไม่สร้าง trial อัตโนมัติ - ให้ user เลือกซื้อ package เอง
+          // แต่ถ้าเป็นสาขาใหม่ที่ไม่เคยมี package เลย (ไม่มีแม้แต่ cancelled) = สร้าง trial
+          const everHadPackage = branchPackages.some(bp => 
+            bp.branch_id === selectedBranch.id
           );
-
-          console.log('🔍 Checking for paid packages:', { 
-            email: currentUser.email, 
-            userAccessibleBranchIds, 
-            userPaidPackages: userPaidPackages.length,
-            branchId: selectedBranch.id
-          });
-
-          if (userPaidPackages.length > 0) {
-            // มี paid package ในสาขาอื่น → ใช้ package เดียวกัน
-            const sourcePkg = userPaidPackages[0];
-            setIsCreatingTrial(true);
-            try {
-              // ⭐ ลบ package เก่าที่ไม่ active ทั้งหมดในสาขานี้ก่อน
-              const oldPackages = branchPackages.filter(bp => 
-                bp.branch_id === selectedBranch.id && bp.id !== sourcePkg.id
-              );
-              for (const oldPkg of oldPackages) {
-                try {
-                  await base44.entities.BranchPackage.delete(oldPkg.id);
-                  console.log('🗑️ Deleted old package:', oldPkg.id);
-                } catch (e) {
-                  console.warn('Failed to delete old package:', e);
-                }
-              }
-
-              await base44.entities.BranchPackage.create({
-                branch_id: selectedBranch.id,
-                package_id: sourcePkg.package_id,
-                package_name: sourcePkg.package_name,
-                owner_email: sourcePkg.owner_email || currentUser.email,
-                subscription_start_date: sourcePkg.subscription_start_date,
-                subscription_end_date: sourcePkg.subscription_end_date,
-                status: 'active',
-                price_per_month: sourcePkg.price_per_month,
-                features: sourcePkg.features || []
-              });
-
-              console.log('✅ Created BranchPackage from existing paid package for branch:', selectedBranch.id);
-              await refetchBranchPackages();
-            } catch (error) {
-              console.error('Failed to create BranchPackage from paid package:', error);
-            } finally {
-              setIsCreatingTrial(false);
-            }
-          } else {
+          
+          if (everHadPackage) {
+            // เคยมี package แล้ว (แต่ถูก cancel/expire) = ต้องซื้อใหม่
+            console.log('📦 Branch had package before, redirecting to PackageSelectionPage');
+            navigate(createPageUrl('PackageSelectionPage'), { replace: true });
+            return;
+          }
+          
+          // สาขาใหม่ที่ไม่เคยมี package เลย = สร้าง trial
             // ไม่มี paid package → สร้าง trial (เฉพาะเมื่อยังไม่มี package ใดๆ)
             console.log('🆕 No existing package found, creating trial for branch:', selectedBranch.id);
             setIsCreatingTrial(true);
