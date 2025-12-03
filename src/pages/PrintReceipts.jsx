@@ -134,58 +134,33 @@ export default function PrintReceipts() {
 
         console.log(`📊 Starting to fetch ${paymentIds.length} receipts...`);
 
-        // ✅ ปรับลด batch size จาก 5 เป็น 3 เพื่อความเสถียร
-        const results = await fetchInBatches(
-          paymentIds, 
-          3, // ลดจาก 5 เป็น 3 รายการต่อครั้ง
-          async (paymentId) => {
-            return await fetchWithRetry(
-              async () => {
-                const logMsg = `🔄 Fetching: ${paymentId.slice(0,8)}...`;
-                console.log(logMsg);
-                setDebugLogs(prev => [...prev, logMsg]);
+        // ✅ ใช้ Promise.all โดยตรงสำหรับความเร็ว (ไม่ต้อง batch เพราะ API รองรับได้)
+        console.log(`🚀 Fetching ${paymentIds.length} receipts in parallel...`);
+        setDebugLogs(prev => [...prev, `🚀 เริ่มโหลด ${paymentIds.length} รายการพร้อมกัน`]);
 
-                // ✅ เพิ่ม timeout protection
-                const timeoutPromise = new Promise((_, reject) => 
-                  setTimeout(() => reject(new Error('Request timeout')), 15000) // 15 วินาที
-                );
+        const results = await Promise.allSettled(
+          paymentIds.map(async (paymentId) => {
+            const logMsg = `🔄 ${paymentId.slice(0,8)}`;
+            setDebugLogs(prev => [...prev, logMsg]);
 
-                const fetchPromise = base44.functions.invoke('getPublicInvoice', { 
-                  paymentId: paymentId 
-                });
+            const response = await base44.functions.invoke('getPublicInvoice', { 
+              paymentId: paymentId 
+            });
 
-                const response = await Promise.race([fetchPromise, timeoutPromise]);
+            setProgress(prev => ({ ...prev, current: prev.current + 1 }));
 
-                setProgress(prev => ({ ...prev, current: prev.current + 1 }));
-
-                // ✅ Debug log
-                console.log(`📋 Response for ${paymentId}:`, JSON.stringify(response.data, null, 2));
-
-                if (response.data && response.data.success && response.data.invoice) {
-                  const successMsg = `✅ ${paymentId.slice(0,8)}: Room=${response.data.invoice.room?.room_number || 'N/A'}, Tenant=${response.data.invoice.tenant?.full_name || 'N/A'}`;
-                  console.log(successMsg);
-                  setDebugLogs(prev => [...prev, successMsg]);
-                  return { success: true, data: response.data.invoice, paymentId };
-                } else {
-                  const errorMsg = response.data?.error || 'ไม่พบใบเสร็จ';
-                  const failMsg = `❌ ${paymentId.slice(0,8)}: ${errorMsg}`;
-                  console.log(failMsg);
-                  setDebugLogs(prev => [...prev, failMsg]);
-                  return { 
-                    success: false, 
-                    error: errorMsg,
-                    paymentId 
-                  };
-                }
-              },
-              3, // retry 3 ครั้ง
-              3000 // เพิ่มจาก 2 เป็น 3 วินาที
-            );
-          }
+            if (response.data && response.data.success && response.data.invoice) {
+              const successMsg = `✅ ${paymentId.slice(0,8)}: ${response.data.invoice.room?.room_number || 'N/A'}`;
+              setDebugLogs(prev => [...prev, successMsg]);
+              return { success: true, data: response.data.invoice, paymentId };
+            } else {
+              const errorMsg = response.data?.error || 'ไม่พบ';
+              const failMsg = `❌ ${paymentId.slice(0,8)}: ${errorMsg}`;
+              setDebugLogs(prev => [...prev, failMsg]);
+              return { success: false, error: errorMsg, paymentId };
+            }
+          })
         );
-
-        // ✅ เพิ่ม delay 1 วินาทีระหว่างแต่ละ batch
-        await new Promise(resolve => setTimeout(resolve, 1000));
 
         // ประมวลผลลัพธ์
         results.forEach((result, index) => {
