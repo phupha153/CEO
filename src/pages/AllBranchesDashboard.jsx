@@ -114,10 +114,10 @@ export default function AllBranchesDashboard() {
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['allPayments', 'v4'],
     queryFn: async () => {
-      // ดึงข้อมูลแบบ pagination เพื่อหลีกเลี่ยง limit
+      // ดึงข้อมูลแบบ pagination เพื่อหลีกเลี่ยง 5000 limit
       let allData = [];
       let skip = 0;
-      const limit = 10000;
+      const limit = 5000;
       let hasMore = true;
 
       while (hasMore) {
