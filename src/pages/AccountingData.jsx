@@ -111,13 +111,40 @@ export default function AccountingData() {
     navigate(`${createPageUrl('PrintReceipts')}?paymentIds=${failedIds}`);
   };
 
-  // ✅ เพิ่ม limit เป็น 1000
+  // ✅ ดึงแบบ pagination เหมือนหน้า Payments
   const { data: payments = [], isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
     queryKey: ['payments', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allPayments = await base44.entities.Payment.list('-payment_date', 1000);
-      return allPayments.filter(payment => payment.branch_id === selectedBranchId);
+      
+      // ดึงข้อมูลแบบ pagination
+      let allData = [];
+      let skip = 0;
+      const limit = 5000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch = await base44.entities.Payment.filter(
+          { branch_id: selectedBranchId },
+          '-created_date',
+          limit,
+          skip
+        );
+        allData = [...allData, ...batch];
+        skip += limit;
+        
+        if (batch.length < limit) {
+          hasMore = false;
+        }
+        
+        // สูงสุด 1,000,000 records
+        if (skip >= 1000000) {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`📊 AccountingData - Loaded ${allData.length} payments for branch ${selectedBranchId}`);
+      return allData;
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
