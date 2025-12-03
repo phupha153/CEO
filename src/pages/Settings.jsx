@@ -3596,6 +3596,13 @@ export default function Settings() {
                           if (userRole === 'owner' && role === 'developer') return false;
                           if (user.id === currentUser?.id) return false;
                           
+                          // กรองเฉพาะผู้ใช้ที่มีสิทธิ์ในสาขาที่เลือกอยู่
+                          if (selectedBranch) {
+                            const userBranches = user.accessible_branches || [];
+                            // ถ้าผู้ใช้คนนี้ไม่มีสิทธิ์ในสาขาที่เลือก = ไม่แสดง
+                            if (!userBranches.includes(selectedBranch.id)) return false;
+                          }
+                          
                           return true;
                         })
                         .sort((a, b) => {
