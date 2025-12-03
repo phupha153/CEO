@@ -794,6 +794,9 @@ export default function Layout({ children, currentPageName }) {
 
   // เช็คสถานะและ redirect - แก้ให้รองรับ multi_tenant
   const checkSubscriptionStatus = () => {
+    // ⭐ Developer ไม่ต้อง redirect ไปหน้า package pages
+    if (userRole === 'developer') return { shouldRedirect: false, status: 'developer' };
+    
     if (currentPageName === 'PackageSelectionPage' || currentPageName === 'RenewalPage' || currentPageName === 'TrialExpiredPage' || currentPageName === 'PackageExpiredPage') return { shouldRedirect: false };
     
     // ถ้าเป็น multi_tenant ให้ดูจาก BranchPackage
