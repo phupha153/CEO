@@ -758,12 +758,14 @@ export default function UserBranchAccess() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => {
-                                    handleOpenPackageDialog(selectedUser, {
+                                    // Set form data to current package values for editing
+                                    setPackageFormData({
                                       package_id: activePackage.package_id,
                                       subscription_start_date: activePackage.subscription_start_date || '',
                                       subscription_end_date: activePackage.subscription_end_date || '',
                                       duration_months: '1',
                                     });
+                                    toast.info('กรุณาเลือกแพ็กเกจและระยะเวลาใหม่ด้านล่าง');
                                   }}
                                   className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                 >
