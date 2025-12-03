@@ -161,8 +161,17 @@ Deno.serve(async (req) => {
                 const tenant = tenantMap.get(payment.tenant_id);
                 const room = roomMap.get(payment.room_id);
 
-                if (!tenant || !tenant.line_user_id) {
-                    console.log(`⚠️ No LINE User ID for payment ${payment.id}`);
+                if (!tenant) {
+                    console.log(`⚠️ Tenant not found for payment ${payment.id}`);
+                    continue;
+                }
+
+                // ⭐ เช็คว่ามี LINE หรือ Facebook
+                const hasLine = tenant.line_user_id && tenant.line_user_id.trim() !== '';
+                const hasFacebook = tenant.facebook_user_id && tenant.facebook_user_id.trim() !== '';
+                
+                if (!hasLine && !hasFacebook) {
+                    console.log(`⚠️ No LINE or Facebook ID for payment ${payment.id}, tenant: ${tenant.full_name}`);
                     continue;
                 }
 
