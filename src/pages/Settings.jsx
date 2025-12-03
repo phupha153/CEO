@@ -1749,15 +1749,19 @@ export default function Settings() {
                                         ? 'bg-gradient-to-br from-blue-300 via-indigo-200 to-purple-200'
                                         : 'bg-gradient-to-br from-amber-300 via-yellow-200 to-orange-200'
                                     }`}>
-                                      {/* Shimmer overlay */}
-                                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" 
-                                        style={{ animation: 'shimmer 3s infinite' }} />
-                                      <style>{`
-                                        @keyframes shimmer {
-                                          0% { transform: translateX(-100%); }
-                                          100% { transform: translateX(100%); }
-                                        }
-                                      `}</style>
+                                      {/* Shimmer overlay - only for Pro and Elite */}
+                                      {(isPro || isElite) && (
+                                        <>
+                                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" 
+                                            style={{ animation: 'shimmer 3s infinite' }} />
+                                          <style>{`
+                                            @keyframes shimmer {
+                                              0% { transform: translateX(-100%); }
+                                              100% { transform: translateX(100%); }
+                                            }
+                                          `}</style>
+                                        </>
+                                      )}
                                       
                                       <div className="relative z-10 flex items-start justify-between mb-4">
                                         <Badge className={`text-xs px-3 py-1 rounded-full font-semibold shadow-lg ${
