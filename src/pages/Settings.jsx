@@ -1815,7 +1815,9 @@ export default function Settings() {
                                     <Button
                                       onClick={() => navigate(createPageUrl(activeSubscription.status === 'trial' ? 'PackageSelectionPage' : (appMode === 'multi_tenant' ? 'PackageSelectionPage' : 'RenewalPage')))}
                                       className={`w-full py-3 text-sm font-semibold rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] ${
-                                        isBasic
+                                        isTrial
+                                          ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600'
+                                          : isBasic
                                           ? 'bg-gradient-to-r from-slate-800 to-slate-900 text-white hover:from-slate-700 hover:to-slate-800'
                                           : isPro
                                           ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600'
