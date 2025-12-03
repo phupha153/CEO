@@ -86,14 +86,15 @@ export default function UserBranchAccess() {
 
   // กรองผู้ใช้ให้แสดงเฉพาะที่เกี่ยวข้องกับสาขาที่ตัวเองมีสิทธิ์
   const users = React.useMemo(() => {
-    if (userRole === 'developer') return allUsers;
+    // Developer เห็นทุกผู้ใช้
+    if (isDeveloper) return allUsers;
     return allUsers.filter(user => {
       const targetUserBranches = user.accessible_branches || [];
       // แสดงผู้ใช้ที่มีอย่างน้อย 1 สาขาที่ตัวเองมีสิทธิ์ หรือยังไม่มีสาขา
       return targetUserBranches.some(branchId => userAccessibleBranches.includes(branchId)) ||
              targetUserBranches.length === 0;
     });
-  }, [allUsers, userRole, userAccessibleBranches]);
+  }, [allUsers, isDeveloper, userAccessibleBranches]);
 
   const getBranchName = (branchId) => {
     const branch = branches.find(b => b.id === branchId);
