@@ -294,15 +294,22 @@ export default function BranchSelection() {
                         : 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ หรือติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา'}
                     </p>
 
-                    <Button
-                      onClick={handleManageBranches}
-                      disabled={isNavigating || !canAddMoreBranches}
-                      className="bg-gradient-to-r from-blue-500 to-sky-600 hover:from-blue-600 hover:to-sky-700 text-white h-auto py-5 px-10 text-lg shadow-2xl rounded-2xl font-bold disabled:opacity-50"
-                      data-onboarding="add-branch-button"
-                    >
-                      <Building2 className="w-6 h-6 mr-3" />
-                      เพิ่มตึกของคุณ
-                    </Button>
+                    {/* ปุ่มเพิ่มสาขา - เฉพาะ developer และ owner เท่านั้น */}
+                    {(userRole === 'developer' || userRole === 'owner') ? (
+                      <Button
+                        onClick={handleManageBranches}
+                        disabled={isNavigating || !canAddMoreBranches}
+                        className="bg-gradient-to-r from-blue-500 to-sky-600 hover:from-blue-600 hover:to-sky-700 text-white h-auto py-5 px-10 text-lg shadow-2xl rounded-2xl font-bold disabled:opacity-50"
+                        data-onboarding="add-branch-button"
+                      >
+                        <Building2 className="w-6 h-6 mr-3" />
+                        เพิ่มตึกของคุณ
+                      </Button>
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-slate-600">กรุณาติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา</p>
+                      </div>
+                    )}
                     {!canAddMoreBranches && (
                       <p className="text-sm text-amber-700 bg-amber-50 px-6 py-3 rounded-xl border-2 border-amber-200 mt-4">
                         ⚠️ สร้างได้สูงสุด {maxTrialBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด
