@@ -724,7 +724,7 @@ export default function UserBranchAccess() {
                       );
                     })}
                   </div>
-                  {userRole !== 'developer' && (
+                  {!isDeveloper && (
                     <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                       <p className="text-xs text-blue-800">
                         💡 <strong>หมายเหตุ:</strong> แสดงเฉพาะสาขาที่คุณมีสิทธิ์เข้าถึง ({branches.length} สาขา)
