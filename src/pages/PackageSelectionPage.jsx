@@ -552,20 +552,14 @@ export default function PackageSelectionPage() {
                                       displayPrice = hasNewStructure ? (pricing.yearly_per_month || basePrice) : ((pkg.price_yearly || (basePrice * 12)) / 12);
                                     }
                                     
-                                    return isElite ? (
-                                      <div>
-                                        <span className="text-4xl font-bold text-amber-900">
-                                          Elite
-                                        </span>
-                                      </div>
-                                    ) : (
+                                    return (
                                       <div className="flex items-baseline gap-1">
-                                        <span className={`text-4xl font-bold ${isBasic ? 'text-white' : 'text-slate-900'}`}>
+                                        <span className={`text-4xl font-bold ${isBasic ? 'text-white' : isElite ? 'text-amber-900' : 'text-slate-900'}`}>
                                           ฿{Math.round(displayPrice).toLocaleString()}
                                         </span>
-                                        <span className={`text-sm ${isBasic ? 'text-slate-400' : 'text-slate-600'}`}>/month</span>
+                                        <span className={`text-sm ${isBasic ? 'text-slate-400' : isElite ? 'text-amber-700' : 'text-slate-600'}`}>/month</span>
                                       </div>
-                                    );
+                                    )
                                   })()}
                                 </div>
 
