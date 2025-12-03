@@ -308,32 +308,37 @@ export default function AllBranchesDashboard() {
   const dateRange = getDateRange();
   const compareRange = getCompareRange();
 
-  useEffect(() => {
-    console.log('🔍 Debug AllBranchesDashboard:', {
-      dateRangeType,
-      dateRange: {
-        from: dateRange.from.toISOString(),
-        to: dateRange.to.toISOString()
-      },
-      userRole,
-      canViewAllBranches,
-      userAccessibleBranches,
-      allBranchesCount: allBranches.length,
-      filteredBranchesCount: branches.length,
-      branchIds: branches.map(b => ({ id: b.id, name: b.branch_name })),
-      accessibleBranchIds: Array.from(accessibleBranchIds),
-      allPaymentsCount: allPayments.length,
-      filteredPaymentsCount: payments.length,
-      totalPayments: payments.length,
-      paidPayments: payments.filter(p => p.status === 'paid').length,
-      paymentsWithDate: payments.filter(p => p.payment_date).length,
-      samplePayments: payments.filter(p => p.status === 'paid' && p.payment_date).slice(0, 3).map(p => ({ 
-        branch_id: p.branch_id, 
-        date: p.payment_date, 
-        amount: p.total_amount 
-      })),
-    });
-  }, [dateRangeType, dateRange, payments.length, branches.length, userRole, canViewAllBranches, userAccessibleBranches, allBranches.length, allPayments.length, accessibleBranchIds]);
+  const [showDebug, setShowDebug] = useState(false);
+  
+  const debugInfo = useMemo(() => ({
+    dateRangeType,
+    dateRange: {
+      from: dateRange.from.toISOString(),
+      to: dateRange.to.toISOString()
+    },
+    userRole,
+    canViewAllBranches,
+    userAccessibleBranches,
+    allBranchesCount: allBranches.length,
+    filteredBranchesCount: branches.length,
+    branchIds: branches.map(b => ({ id: b.id, name: b.branch_name })),
+    accessibleBranchIds: Array.from(accessibleBranchIds),
+    allPaymentsCount: allPayments.length,
+    filteredPaymentsCount: payments.length,
+    paidPayments: payments.filter(p => p.status === 'paid').length,
+    paymentsInRange: payments.filter(p => {
+      if (p.status !== 'paid' || !p.payment_date) return false;
+      try {
+        const paymentDate = parseISO(p.payment_date);
+        return isWithinInterval(paymentDate, { start: dateRange.from, end: dateRange.to });
+      } catch { return false; }
+    }).length,
+    samplePaidPayments: payments.filter(p => p.status === 'paid').slice(0, 5).map(p => ({ 
+      branch_id: p.branch_id, 
+      date: p.payment_date, 
+      amount: p.total_amount 
+    })),
+  }), [dateRangeType, dateRange, payments, branches, userRole, canViewAllBranches, userAccessibleBranches, allBranches.length, allPayments.length, accessibleBranchIds]);
 
   const getMonthsForChart = () => {
     switch(dateRangeType) {
