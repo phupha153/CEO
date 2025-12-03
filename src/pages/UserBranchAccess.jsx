@@ -317,7 +317,7 @@ export default function UserBranchAccess() {
 
     console.log('Saving package:', { ownerEmail: selectedUser.email, packageData, isEditing: isEditingPackage });
 
-    createOrUpdatePackageMutation.mutate({
+    updatePackageMutation.mutate({
       ownerEmail: selectedUser.email,
       packageData,
       isEditing: isEditingPackage,
@@ -1147,10 +1147,10 @@ export default function UserBranchAccess() {
                         console.log('Button clicked, calling handleSavePackage');
                         handleSavePackage();
                       }}
-                      disabled={!packageFormData.package_id || !packageFormData.subscription_start_date || !packageFormData.subscription_end_date || createOrUpdatePackageMutation.isPending}
+                      disabled={!packageFormData.package_id || !packageFormData.subscription_start_date || !packageFormData.subscription_end_date || updatePackageMutation.isPending}
                       className="bg-gradient-to-r from-green-600 to-emerald-600"
                     >
-                      {createOrUpdatePackageMutation.isPending ? (
+                      {updatePackageMutation.isPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           กำลังบันทึก...
