@@ -267,8 +267,8 @@ export default function Dashboard() {
           hasMore = false;
         }
         
-        // สูงสุด 100,000 records
-        if (skip >= 100000) {
+        // สูงสุด 1,000,000 records
+        if (skip >= 1000000) {
           hasMore = false;
         }
       }

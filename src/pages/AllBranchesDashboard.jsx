@@ -138,8 +138,8 @@ export default function AllBranchesDashboard() {
           hasMore = false;
         }
         
-        // ป้องกัน infinite loop - สูงสุด 20 รอบ (100,000 records)
-        if (allData.length >= 100000) {
+        // ป้องกัน infinite loop - สูงสุด 1,000,000 records
+        if (allData.length >= 1000000) {
           hasMore = false;
         }
       }
