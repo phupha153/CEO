@@ -112,7 +112,7 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allPayments = [] } = useQuery({
-    queryKey: ['allPayments', 'v3'],
+    queryKey: ['allPayments', 'v4'],
     queryFn: async () => {
       // ดึงข้อมูลแบบ pagination เพื่อหลีกเลี่ยง 5000 limit
       let allData = [];
@@ -121,12 +121,17 @@ export default function AllBranchesDashboard() {
       let hasMore = true;
 
       while (hasMore) {
-        // ใช้ filter แบบเปล่า {} เพื่อดึงทั้งหมด พร้อม pagination
-        const batch = await base44.entities.Payment.filter({}, '-created_date', limit, skip);
-        allData = [...allData, ...batch];
-        skip += limit;
+        const batch = await base44.entities.Payment.list('-created_date', limit, skip);
         
-        console.log(`📊 AllBranches - Batch ${skip/limit}: got ${batch.length} payments, total so far: ${allData.length}`);
+        if (!batch || batch.length === 0) {
+          hasMore = false;
+          break;
+        }
+        
+        allData = [...allData, ...batch];
+        skip += batch.length;
+        
+        console.log(`📊 AllBranches - Batch: got ${batch.length} payments, total so far: ${allData.length}`);
         
         // ถ้าดึงมาน้อยกว่า limit แสดงว่าหมดแล้ว
         if (batch.length < limit) {
@@ -134,7 +139,7 @@ export default function AllBranchesDashboard() {
         }
         
         // ป้องกัน infinite loop - สูงสุด 20 รอบ (100,000 records)
-        if (skip >= 100000) {
+        if (allData.length >= 100000) {
           hasMore = false;
         }
       }
@@ -145,7 +150,6 @@ export default function AllBranchesDashboard() {
     ...retryConfig,
     staleTime: 2 * 60 * 60 * 1000,
     gcTime: 4 * 60 * 60 * 1000,
-    placeholderData: (previousData) => previousData,
   });
 
   // กรอง payments ตามสาขาที่เข้าถึงได้
