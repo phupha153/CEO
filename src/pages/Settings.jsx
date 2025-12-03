@@ -1787,9 +1787,9 @@ export default function Settings() {
                                       </div>
                                       
                                       <h3 className={`relative z-10 text-xl font-bold mb-1 ${
-                                        isBasic ? 'text-white' : isElite ? 'text-amber-900' : 'text-slate-900'
+                                        isTrial ? 'text-white' : isBasic ? 'text-white' : isElite ? 'text-amber-900' : 'text-slate-900'
                                       }`}>
-                                        {activeSubscription?.package_name || activeSubscription?.app_name || 'แพ็กเกจระบบจัดการหอพัก'}
+                                        {isTrial ? '🎉 ทดลองใช้งาน' : activeSubscription?.package_name || activeSubscription?.app_name || 'แพ็กเกจระบบจัดการหอพัก'}
                                       </h3>
                                       
                                       {activeSubscription?.subscription_end_date && (
