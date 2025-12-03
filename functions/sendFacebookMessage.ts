@@ -64,6 +64,7 @@ Deno.serve(async (req) => {
         console.log(`📤 Sending FB message to ${to}: "${message.substring(0, 50)}..."`);
 
         // ส่งข้อความผ่าน Facebook Graph API
+        // ⭐ ใช้ MESSAGE_TAG สำหรับส่งนอก 24 ชั่วโมง (reminder, payment notification)
         const response = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${config.pageAccessToken}`, {
             method: 'POST',
             headers: {
@@ -72,7 +73,8 @@ Deno.serve(async (req) => {
             body: JSON.stringify({
                 recipient: { id: to },
                 message: { text: message },
-                messaging_type: 'RESPONSE'
+                messaging_type: 'MESSAGE_TAG',
+                tag: 'ACCOUNT_UPDATE'  // ใช้ tag นี้สำหรับแจ้งเตือนการชำระเงิน
             })
         });
 
