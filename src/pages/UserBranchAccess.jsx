@@ -260,7 +260,15 @@ export default function UserBranchAccess() {
   };
 
   const handleSavePackage = async () => {
-    if (!selectedUser || !packageFormData.package_id) return;
+    if (!selectedUser || !packageFormData.package_id) {
+      toast.error('กรุณาเลือกแพ็กเกจ');
+      return;
+    }
+
+    if (!packageFormData.subscription_start_date || !packageFormData.subscription_end_date) {
+      toast.error('กรุณาระบุวันเริ่มต้นและสิ้นสุด');
+      return;
+    }
 
     const selectedCrmPackage = (crmPackages?.packages || []).find(p => p.id === packageFormData.package_id);
     if (!selectedCrmPackage) {
@@ -289,6 +297,8 @@ export default function UserBranchAccess() {
       price_per_month: pricePerMonth,
       features: selectedCrmPackage.features || [],
     };
+
+    console.log('Saving package:', { ownerEmail: selectedUser.email, packageData, isEditing: isEditingPackage });
 
     createOrUpdatePackageMutation.mutate({
       ownerEmail: selectedUser.email,
