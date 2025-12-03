@@ -54,20 +54,25 @@ Deno.serve(async (req) => {
 
         const actualBranchId = payment.branch_id;
 
-        // ดึงข้อมูลที่เกี่ยวข้อง - ใช้ list แล้ว filter เองเพื่อความเสถียร
-        console.log(`🔍 Looking for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}`);
+        // ดึงข้อมูลที่เกี่ยวข้อง - ดึงเฉพาะ branch เดียวกันเพื่อประสิทธิภาพ
+        console.log(`🔍 Looking for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}, branch_id: ${actualBranchId}`);
         
-        const [allTenants, allRooms, allBranches, configs] = await Promise.all([
-            base44.asServiceRole.entities.Tenant.list('-created_date', 5000),
-            base44.asServiceRole.entities.Room.list('-created_date', 5000),
+        const [branchTenants, branchRooms, allBranches, configs] = await Promise.all([
+            actualBranchId 
+                ? base44.asServiceRole.entities.Tenant.filter({ branch_id: actualBranchId }, '-created_date', 2000)
+                : base44.asServiceRole.entities.Tenant.list('-created_date', 500),
+            actualBranchId 
+                ? base44.asServiceRole.entities.Room.filter({ branch_id: actualBranchId }, '-created_date', 2000)
+                : base44.asServiceRole.entities.Room.list('-created_date', 500),
             base44.asServiceRole.entities.Branch.list(),
             base44.asServiceRole.entities.Config.list()
         ]);
 
-        const tenant = payment.tenant_id ? allTenants.find(t => t.id === payment.tenant_id) : null;
-        const room = payment.room_id ? allRooms.find(r => r.id === payment.room_id) : null;
+        const tenant = payment.tenant_id ? branchTenants.find(t => t.id === payment.tenant_id) : null;
+        const room = payment.room_id ? branchRooms.find(r => r.id === payment.room_id) : null;
         const branch = actualBranchId ? allBranches.find(b => b.id === actualBranchId) : null;
 
+        console.log(`📋 Loaded ${branchRooms.length} rooms, ${branchTenants.length} tenants for branch`);
         console.log(`📋 Found: room=${room?.room_number || 'NOT FOUND'}, tenant=${tenant?.full_name || 'NOT FOUND'}, branch=${branch?.branch_name || 'NOT FOUND'}`);
 
         // ดึง config ของสาขา
