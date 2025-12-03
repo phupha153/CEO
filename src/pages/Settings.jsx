@@ -1767,13 +1767,15 @@ export default function Settings() {
                                       
                                       <div className="relative z-10 flex items-start justify-between mb-4">
                                         <Badge className={`text-xs px-3 py-1 rounded-full font-semibold shadow-lg ${
-                                          isBasic 
+                                          isTrial
+                                            ? 'bg-gradient-to-r from-amber-600 to-orange-500 text-white'
+                                            : isBasic 
                                             ? 'bg-gradient-to-r from-slate-500 to-slate-600 text-white' 
                                             : isPro 
                                             ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                                             : 'bg-gradient-to-r from-amber-600 to-yellow-500 text-white'
                                         }`}>
-                                          {isBasic ? 'Basic' : isPro ? 'Pro' : 'Elite'}
+                                          {isTrial ? '🎉 Trial' : isBasic ? 'Basic' : isPro ? 'Pro' : 'Elite'}
                                         </Badge>
                                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg ${
                                           isBasic ? 'bg-slate-700/60' : isPro ? 'bg-white/40' : 'bg-white/50'
