@@ -3944,9 +3944,9 @@ export default function Settings() {
                   </div>
 
                   {(() => {
-                    // กรองเฉพาะสาขาที่ผู้ใช้ปัจจุบัน (ผมเอง) เข้าถึงได้
+                    // Developer เห็นทุกสาขา, คนอื่นเห็นเฉพาะสาขาที่ตัวเองมีสิทธิ์
                     const myAccessibleBranches = currentUser?.accessible_branches;
-                    const isDeveloper = userRole === 'developer' && (!myAccessibleBranches || myAccessibleBranches.length === 0);
+                    const isDeveloper = userRole === 'developer';
                     
                     const filteredBranches = isDeveloper
                       ? branches
