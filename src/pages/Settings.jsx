@@ -1743,7 +1743,9 @@ export default function Settings() {
                                   {/* Header with shimmer effect */}
                                   <div className="relative overflow-hidden">
                                     <div className={`relative p-5 ${
-                                      isBasic
+                                      isTrial
+                                        ? 'bg-gradient-to-br from-amber-400 via-orange-300 to-amber-400'
+                                        : isBasic
                                         ? 'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950'
                                         : isPro
                                         ? 'bg-gradient-to-br from-blue-300 via-indigo-200 to-purple-200'
