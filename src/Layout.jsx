@@ -1018,6 +1018,9 @@ export default function Layout({ children, currentPageName }) {
   const visibleAdminItems = currentUser && userRole === 'developer' ? adminOnlyItems.filter(canAccessMenuItem) : [];
 
   // Don't apply subscription check to these pages (public or critical admin pages)
+  // Developer สามารถเข้าถึงทุกหน้าได้แม้แพ็กเกจหมดอายุ
+  const isDeveloper = userRole === 'developer';
+
   if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
       currentPageName === 'PrintReceipts' || currentPageName === 'BranchSelection' || 
       currentPageName === 'AllBranchesDashboard' || currentPageName === 'BranchManagement' ||
@@ -1027,7 +1030,8 @@ export default function Layout({ children, currentPageName }) {
       currentPageName === 'RenewalPage' ||
       currentPageName === 'PackageSelectionPage' ||
       currentPageName === 'TrialExpiredPage' ||
-      currentPageName === 'PackageExpiredPage') {
+      currentPageName === 'PackageExpiredPage' ||
+      isDeveloper) {
     return children;
   }
 

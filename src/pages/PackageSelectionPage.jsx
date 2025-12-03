@@ -49,6 +49,35 @@ export default function PackageSelectionPage() {
     queryFn: () => base44.entities.BranchPackage.list('-created_date', 200),
   });
 
+  // หาว่า package ที่หมดอายุเป็น trial หรือ paid
+  const selectedBranchId = localStorage.getItem('selected_branch_id');
+  const expiredPackageType = useMemo(() => {
+    if (!selectedBranchId) return null;
+    
+    // หา package ล่าสุดของสาขานี้ (ไม่ว่าจะ status ไหน)
+    const branchPkgs = branchPackages.filter(bp => bp.branch_id === selectedBranchId);
+    if (branchPkgs.length === 0) return null;
+    
+    // เรียงตามวันที่สร้างล่าสุด
+    const latestPkg = branchPkgs.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0];
+    
+    // เช็คว่าเป็น trial หรือ paid
+    if (latestPkg.package_id === 'trial' || latestPkg.price_per_month === 0 || !latestPkg.price_per_month) {
+      return 'trial';
+    }
+    return 'paid';
+  }, [branchPackages, selectedBranchId]);
+
+  const handleGoBack = () => {
+    if (expiredPackageType === 'trial') {
+      navigate(createPageUrl('TrialExpiredPage'));
+    } else if (expiredPackageType === 'paid') {
+      navigate(createPageUrl('PackageExpiredPage'));
+    } else {
+      navigate(createPageUrl('BranchSelection'));
+    }
+  };
+
   const { data: crmPackages, isLoading: loadingPackages } = useQuery({
     queryKey: ['crmPackages'],
     queryFn: async () => {
@@ -67,7 +96,6 @@ export default function PackageSelectionPage() {
   const accountName = getConfigValue('bank_account_name', 'บริษัท...');
   const promptpay = getConfigValue('promptpay', '0812345678');
 
-  const selectedBranchId = localStorage.getItem('selected_branch_id');
   const appMode = getConfigValue('app_mode', 'single_tenant');
   const userAccessibleBranches = currentUser?.accessible_branches || [];
   
@@ -272,7 +300,7 @@ export default function PackageSelectionPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="relative z-10 p-4 flex items-center justify-between">
         <Button
-          onClick={() => navigate(createPageUrl('Dashboard'))}
+          onClick={handleGoBack}
           variant="ghost"
           className="text-slate-600 hover:text-slate-800"
         >
