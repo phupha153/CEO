@@ -33,11 +33,21 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // ดึงข้อมูล Payment โดยตรงด้วย filter
-        const paymentResults = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
-        const payment = Array.isArray(paymentResults) ? paymentResults[0] : paymentResults;
+        // ดึงข้อมูลทั้งหมดพร้อมกัน แล้วใช้ find หา ID ที่ต้องการ
+        const [allPayments, allTenants, allRooms, allBranches, configs] = await Promise.all([
+            base44.asServiceRole.entities.Payment.list('-created_date', 10000),
+            base44.asServiceRole.entities.Tenant.list('-created_date', 5000),
+            base44.asServiceRole.entities.Room.list('-room_number', 5000),
+            base44.asServiceRole.entities.Branch.list(),
+            base44.asServiceRole.entities.Config.list()
+        ]);
+
+        // หา payment ที่ต้องการ
+        const payment = allPayments.find(p => p.id === paymentId);
 
         if (!payment) {
+            console.log(`❌ Payment not found: ${paymentId}`);
+            console.log(`📊 Total payments loaded: ${allPayments.length}`);
             return Response.json({ 
                 success: false, 
                 error: 'ไม่พบใบแจ้งหนี้' 
@@ -54,17 +64,12 @@ Deno.serve(async (req) => {
 
         const actualBranchId = payment.branch_id;
 
-        // ดึงข้อมูลที่เกี่ยวข้องโดยตรงด้วย filter
-        const [tenantResults, roomResults, branchResults, configs] = await Promise.all([
-            payment.tenant_id ? base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id }) : Promise.resolve([]),
-            payment.room_id ? base44.asServiceRole.entities.Room.filter({ id: payment.room_id }) : Promise.resolve([]),
-            actualBranchId ? base44.asServiceRole.entities.Branch.filter({ id: actualBranchId }) : Promise.resolve([]),
-            base44.asServiceRole.entities.Config.list()
-        ]);
+        // หาข้อมูลที่เกี่ยวข้องจาก arrays ที่โหลดมาแล้ว
+        const tenant = payment.tenant_id ? allTenants.find(t => t.id === payment.tenant_id) : null;
+        const room = payment.room_id ? allRooms.find(r => r.id === payment.room_id) : null;
+        const branch = actualBranchId ? allBranches.find(b => b.id === actualBranchId) : null;
 
-        const tenant = Array.isArray(tenantResults) ? tenantResults[0] : tenantResults;
-        const room = Array.isArray(roomResults) ? roomResults[0] : roomResults;
-        const branch = Array.isArray(branchResults) ? branchResults[0] : branchResults;
+        console.log(`📋 Found - Payment: ✅, Tenant: ${tenant ? '✅' : '❌'}, Room: ${room ? '✅' : '❌'}, Branch: ${branch ? '✅' : '❌'}`);
 
         // ดึง config ของสาขา
         const getConfigValue = (key) => {
