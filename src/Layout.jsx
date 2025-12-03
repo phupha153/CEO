@@ -1028,17 +1028,9 @@ export default function Layout({ children, currentPageName }) {
   // Developer สามารถเข้าถึงทุกหน้าได้แม้แพ็กเกจหมดอายุ
   const isDeveloper = userRole === 'developer';
 
-  // Developer สามารถเข้าถึงทุกหน้าได้โดยไม่ต้องเช็ค package
-  if (isDeveloper) {
-    return children;
-  }
-
+  // หน้าที่ไม่ต้องมี sidebar - return children เลย
   if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
-      currentPageName === 'PrintReceipts' || currentPageName === 'BranchSelection' || 
-      currentPageName === 'AllBranchesDashboard' || currentPageName === 'BranchManagement' ||
-      currentPageName === 'ActivityLog' || 
-      currentPageName === 'DataLists' || currentPageName === 'PackageSettings' ||
-      currentPageName === 'UserBranchAccess' ||
+      currentPageName === 'PrintReceipts' || 
       currentPageName === 'RenewalPage' ||
       currentPageName === 'PackageSelectionPage' ||
       currentPageName === 'TrialExpiredPage' ||
