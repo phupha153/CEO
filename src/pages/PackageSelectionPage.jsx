@@ -69,8 +69,8 @@ export default function PackageSelectionPage() {
   }, [branchPackages, selectedBranchId]);
 
   const handleGoBack = () => {
-    // ⭐ กลับไปหน้าเลือกสาขาเสมอ (ไม่กลับไปหน้าหมดอายุ)
-    navigate(createPageUrl('BranchSelection'));
+    // ⭐ กลับไปหน้าก่อนหน้า (ใช้ browser history)
+    window.history.back();
   };
 
   const { data: crmPackages, isLoading: loadingPackages } = useQuery({

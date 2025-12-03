@@ -1455,9 +1455,14 @@ export default function Layout({ children, currentPageName }) {
     return null;
   };
 
-  // If no branch is selected, show branch selection page
+  // If no branch is selected, show branch selection page WITHOUT sidebar
   if (!selectedBranch) {
-    return <BranchSelection />;
+    return (
+      <>
+        <Toaster richColors position="top-center" />
+        <BranchSelection />
+      </>
+    );
   }
 
   // If a branch is selected but user doesn't have access
