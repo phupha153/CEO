@@ -1215,7 +1215,7 @@ export default function UserBranchAccess() {
                       ยกเลิก
                     </Button>
                     <Button
-                      onClick={() => cancelPackageMutation.mutate(packageToCancel.id)}
+                      onClick={() => cancelPackageMutation.mutate(packageToCancel.owner_email)}
                       disabled={cancelPackageMutation.isPending}
                       className="bg-red-600 hover:bg-red-700"
                     >
