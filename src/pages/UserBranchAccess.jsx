@@ -722,11 +722,13 @@ export default function UserBranchAccess() {
                       );
                     })}
                   </div>
-                  <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-800">
-                      💡 <strong>หมายเหตุ:</strong> แสดงเฉพาะสาขาที่คุณมีสิทธิ์เข้าถึง ({branches.length} สาขา)
-                    </p>
-                  </div>
+                  {userRole !== 'developer' && (
+                    <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-xs text-blue-800">
+                        💡 <strong>หมายเหตุ:</strong> แสดงเฉพาะสาขาที่คุณมีสิทธิ์เข้าถึง ({branches.length} สาขา)
+                      </p>
+                    </div>
+                  )}
                   <div className="flex justify-end gap-2 pt-4 border-t">
                     <Button variant="outline" onClick={() => setShowBranchDialog(false)}>
                       ยกเลิก
