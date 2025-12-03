@@ -472,15 +472,19 @@ export default function PackageSelectionPage() {
                           transition={{ delay: index * 0.1 }}
                           className="relative"
                         >
-                          <Card className={`h-full transition-all overflow-hidden ${
+                          <Card className={`h-full transition-all overflow-hidden rounded-3xl ${
                            isDisabled 
                              ? 'cursor-not-allowed opacity-60 grayscale' 
                              : 'cursor-pointer hover:shadow-2xl'
                           } ${
-                           isSelected && !isDisabled ? 'ring-4 ring-blue-500 ring-offset-4' : 'shadow-xl'
+                           isSelected && !isDisabled ? 'ring-4 ring-blue-500 ring-offset-4' : 'shadow-lg'
                           } ${
                            isBasic && !isDisabled
-                             ? 'bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 border-0'
+                             ? 'bg-white border border-slate-200'
+                             : isPro && !isDisabled
+                             ? 'bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200'
+                             : isElite && !isDisabled
+                             ? 'bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200'
                              : 'bg-white border border-slate-200'
                           }`}
                           onClick={() => {
@@ -503,122 +507,87 @@ export default function PackageSelectionPage() {
                               </div>
                             )}
 
-                            <CardContent className="p-0 overflow-hidden">
-                              {/* Header Section */}
-                              <div className={`p-8 ${
-                                isBasic && !isDisabled
-                                  ? 'bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900'
-                                  : isPro && !isDisabled
-                                  ? 'bg-gradient-to-br from-blue-400 via-purple-500 to-pink-400'
-                                  : isElite && !isDisabled
-                                  ? 'bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-400'
-                                  : 'bg-slate-700'
+                            <CardContent className="p-8">
+                              {/* Tag */}
+                              <Badge className={`text-xs px-3 py-1 rounded-full mb-6 ${
+                                isBasic || isDisabled
+                                  ? 'bg-slate-200 text-slate-700' 
+                                  : isPro
+                                  ? 'bg-blue-200 text-blue-800'
+                                  : 'bg-slate-200 text-slate-700'
                               }`}>
-                                <div className="flex items-center justify-between mb-6">
-                                  <Badge className={`text-sm px-4 py-1.5 rounded-full ${
-                                    isBasic || isDisabled
-                                      ? 'bg-slate-600 text-slate-200' 
-                                      : 'bg-white/30 text-white backdrop-blur-sm'
-                                  }`}>
-                                    {pkg.package_name}
-                                  </Badge>
-                                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-                                    isBasic || isDisabled ? '' : 'bg-white/20 backdrop-blur-sm'
-                                  }`}>
-                                    {React.createElement(packageIcon, { 
-                                      className: `w-8 h-8 ${
-                                        isBasic && !isDisabled ? 'text-blue-400' : 'text-white'
-                                      }` 
-                                    })}
-                                  </div>
-                                </div>
+                                {pkg.package_name}
+                              </Badge>
 
-                                <div className="text-white mb-4">
-                                  {(() => {
-                                    const months = parseInt(billingCycle);
-                                    const pricing = pkg.pricing || {};
-                                    const hasNewStructure = pricing.monthly !== undefined;
-                                    
-                                    const basePrice = hasNewStructure ? (pricing.monthly || 0) : (pkg.price_monthly || 0);
-                                    let displayPrice = basePrice;
-                                    let totalPrice = basePrice * months;
-                                    
-                                    if (months === 3) {
-                                      if (hasNewStructure) {
-                                        totalPrice = pricing.three_months || (basePrice * 3);
-                                        displayPrice = pricing.three_months_per_month || basePrice;
-                                      } else {
-                                        totalPrice = pkg.price_3_months || (basePrice * 3);
-                                        displayPrice = totalPrice / 3;
-                                      }
-                                    } else if (months === 6) {
-                                      if (hasNewStructure) {
-                                        totalPrice = pricing.six_months || (basePrice * 6);
-                                        displayPrice = pricing.six_months_per_month || basePrice;
-                                      } else {
-                                        totalPrice = pkg.price_6_months || (basePrice * 6);
-                                        displayPrice = totalPrice / 6;
-                                      }
-                                    } else if (months === 12) {
-                                      if (hasNewStructure) {
-                                        totalPrice = pricing.yearly || (basePrice * 12);
-                                        displayPrice = pricing.yearly_per_month || basePrice;
-                                      } else {
-                                        totalPrice = pkg.price_yearly || (basePrice * 12);
-                                        displayPrice = totalPrice / 12;
-                                      }
-                                    }
-                                    
-                                    return (
-                                      <div className="flex items-baseline justify-start gap-1">
-                                        <span className="text-5xl font-bold">
-                                          ${Math.round(displayPrice).toLocaleString()}
-                                        </span>
-                                        <span className="text-base opacity-70">
-                                          /month
-                                        </span>
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-
-                                <p className={`text-sm ${
-                                  isBasic && !isDisabled ? 'text-slate-300' : 'text-white/90'
-                                }`}>
-                                  {pkg.description || 'Perfect For Small Teams'}
-                                </p>
+                              {/* Price */}
+                              <div className="mb-2">
+                                {(() => {
+                                  const months = parseInt(billingCycle);
+                                  const pricing = pkg.pricing || {};
+                                  const hasNewStructure = pricing.monthly !== undefined;
+                                  
+                                  const basePrice = hasNewStructure ? (pricing.monthly || 0) : (pkg.price_monthly || 0);
+                                  let displayPrice = basePrice;
+                                  
+                                  if (months === 3) {
+                                    displayPrice = hasNewStructure 
+                                      ? (pricing.three_months_per_month || basePrice)
+                                      : ((pkg.price_3_months || (basePrice * 3)) / 3);
+                                  } else if (months === 6) {
+                                    displayPrice = hasNewStructure 
+                                      ? (pricing.six_months_per_month || basePrice)
+                                      : ((pkg.price_6_months || (basePrice * 6)) / 6);
+                                  } else if (months === 12) {
+                                    displayPrice = hasNewStructure 
+                                      ? (pricing.yearly_per_month || basePrice)
+                                      : ((pkg.price_yearly || (basePrice * 12)) / 12);
+                                  }
+                                  
+                                  return (
+                                    <div className="flex items-baseline gap-1">
+                                      <span className="text-4xl font-bold text-slate-900">
+                                        ${Math.round(displayPrice).toLocaleString()}
+                                      </span>
+                                      <span className="text-sm text-slate-500">/month</span>
+                                    </div>
+                                  );
+                                })()}
                               </div>
 
-                              {/* Body Section */}
-                              <div className="p-8 bg-white">
-                                <Button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (isDisabled) return;
-                                    setSelectedPackageId(pkg.id);
-                                  }}
-                                  disabled={isDisabled}
-                                  className={`w-full py-5 text-base font-bold rounded-full mb-6 transition-all ${
-                                    isDisabled
-                                      ? 'bg-slate-400 text-slate-200 cursor-not-allowed'
-                                      : isBasic
-                                      ? 'bg-white text-slate-900 hover:bg-slate-50 border-2 border-slate-900'
-                                      : isPro
-                                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-lg'
-                                      : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600 shadow-lg'
-                                  }`}
-                                >
-                                  Start Hiring
-                                </Button>
+                              {/* Description */}
+                              <p className="text-sm text-slate-500 mb-6">
+                                {pkg.description || 'Perfect For Small Teams'}
+                              </p>
 
-                                <div className="space-y-3">
-                                  {(pkg.features || []).map((feature, idx) => (
-                                    <div key={idx} className="flex items-start gap-2">
-                                      <Check className="w-5 h-5 flex-shrink-0 text-slate-700" />
-                                      <span className="text-sm text-slate-700">{feature}</span>
-                                    </div>
-                                  ))}
-                                </div>
+                              {/* Button */}
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (isDisabled) return;
+                                  setSelectedPackageId(pkg.id);
+                                }}
+                                disabled={isDisabled}
+                                className={`w-full py-5 text-sm font-semibold rounded-full mb-6 transition-all ${
+                                  isDisabled
+                                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                                    : isBasic
+                                    ? 'bg-slate-900 text-white hover:bg-slate-800'
+                                    : isPro
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                    : 'bg-slate-900 text-white hover:bg-slate-800'
+                                }`}
+                              >
+                                {isElite ? 'Contact Us' : 'Start Hiring'}
+                              </Button>
+
+                              {/* Features */}
+                              <div className="space-y-3">
+                                {(pkg.features || []).map((feature, idx) => (
+                                  <div key={idx} className="flex items-start gap-2">
+                                    <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-500" />
+                                    <span className="text-sm text-slate-600">{feature}</span>
+                                  </div>
+                                ))}
                               </div>
                             </CardContent>
 
