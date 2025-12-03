@@ -405,7 +405,9 @@ Deno.serve(async (req) => {
             enabledBranches: enabledBranches,
             errors: sendErrors.length > 0 ? sendErrors : undefined,
             currentDate: todayString,
-            usingTestDate: !!testDateConfig
+            usingTestDate: !!(testDateConfig && testDateConfig.value && testDateConfig.value.trim() !== ''),
+            lineCount: lineRecipients.length,
+            facebookCount: facebookRecipients.length
         };
 
         console.log('🎉 Due date reminder completed:', result);
