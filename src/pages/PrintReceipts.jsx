@@ -196,7 +196,7 @@ export default function PrintReceipts() {
         }
 
         if (receipts.length === 0) {
-          setError(`ไม่พบใบเสร็จที่ชำระแล้ว (${failed.length} รายการไม่สามารถโหลดได้)`);
+          setError(`ไม่พบรายการที่โหลดได้ (${failed.length} รายการไม่สามารถโหลดได้)`);
           setFailedPayments(failed);
         } else {
           setReceiptsData(receipts);
@@ -348,7 +348,17 @@ export default function PrintReceipts() {
             </Button>
             <div>
               <h2 className="font-bold text-slate-800">
-                ใบเสร็จรับเงิน {receiptsData.length} รายการ
+                {(() => {
+                  const paidCount = receiptsData.filter(r => r.status === 'paid').length;
+                  const pendingCount = receiptsData.filter(r => r.status !== 'paid').length;
+                  if (paidCount > 0 && pendingCount > 0) {
+                    return `ใบเสร็จ ${paidCount} รายการ + ใบแจ้งหนี้ ${pendingCount} รายการ`;
+                  } else if (paidCount > 0) {
+                    return `ใบเสร็จรับเงิน ${paidCount} รายการ`;
+                  } else {
+                    return `ใบแจ้งหนี้ ${pendingCount} รายการ`;
+                  }
+                })()}
                 {failedPayments.length > 0 && (
                   <span className="text-sm font-normal text-orange-600 ml-2">
                     (โหลดสำเร็จ {receiptsData.length}/{paymentIds.length} รายการ)
@@ -536,15 +546,23 @@ export default function PrintReceipts() {
                   </div>
                 </div>
 
-                {/* Receipt Info */}
+                {/* Receipt/Invoice Info */}
                 <div className="grid grid-cols-2 gap-3 mb-5 p-3 bg-slate-50 rounded-lg">
                   <div>
-                    <p className="text-xs text-slate-500 mb-1">เลขที่ใบเสร็จ</p>
-                    <p className="font-bold text-slate-800">{receiptNumber}</p>
+                    <p className="text-xs text-slate-500 mb-1">เลขที่{isPaid ? 'ใบเสร็จ' : 'ใบแจ้งหนี้'}</p>
+                    <p className="font-bold text-slate-800">{isPaid ? receiptNumber : `INV-${receiptData.id.slice(0, 8).toUpperCase()}`}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-slate-500 mb-1">วันที่ออก</p>
-                    <p className="font-bold text-slate-800">{paymentDate}</p>
+                    <p className="text-xs text-slate-500 mb-1">{isPaid ? 'วันที่ชำระ' : 'วันครบกำหนด'}</p>
+                    <p className="font-bold text-slate-800">
+                      {isPaid 
+                        ? paymentDate 
+                        : (receiptData.due_date 
+                            ? format(parseISO(receiptData.due_date), 'd MMMM yyyy', { locale: th })
+                            : format(new Date(), 'd MMMM yyyy', { locale: th })
+                          )
+                      }
+                    </p>
                   </div>
                 </div>
 
@@ -630,7 +648,7 @@ export default function PrintReceipts() {
 
                 {/* Payment Method & Notes - แบบเรียบง่าย */}
                 <div className="mb-3 text-xs text-slate-500">
-                  <span className="font-medium text-slate-600">ชำระผ่าน:</span> {receiptData.bank?.name} | {receiptData.bank?.account_number} • ใบเสร็จนี้ออกให้เป็นหลักฐานการรับเงินเรียบร้อยแล้ว
+                  <span className="font-medium text-slate-600">ชำระผ่าน:</span> {receiptData.bank?.name} | {receiptData.bank?.account_number} • {isPaid ? 'ใบเสร็จนี้ออกให้เป็นหลักฐานการรับเงินเรียบร้อยแล้ว' : 'กรุณาชำระเงินภายในวันที่กำหนด'}
                 </div>
 
                 {/* Signature Section */}
