@@ -3512,7 +3512,8 @@ export default function Settings() {
                           const currentPermissions = userPermissions[user.id] || [];
                           const accessibleBranches = user.accessible_branches || [];
                           const canAccessAllBranches = role === 'developer' || role === 'owner';
-                          const isPending = !user.custom_role; // ถ้าไม่มี custom_role = กำลังรอเข้าใช้
+                          // แสดง pending เฉพาะผู้ใช้ที่ไม่ใช่ admin และยังไม่มี custom_role
+                          const isPending = !user.custom_role && user.role !== 'admin';
 
                           return (
                             <Card key={user.id} className={`border-2 transition-shadow ${isPending ? 'border-amber-400 bg-amber-50/30' : 'border-slate-200 hover:shadow-md'}`}>
