@@ -123,18 +123,8 @@ Deno.serve(async (req) => {
         
 
 
-        // กรองบิลที่ครบกำหนดชำระวันนี้ - เช็คจาก due_date จริงของบิล
-        // ⭐ กรองเฉพาะสาขาที่เปิดการแจ้งเตือน
+        // กรองบิลที่ยังไม่ได้ส่งแจ้งเตือน และสาขาเปิดใช้งาน
         const dueToday = payments.filter(p => {
-            // ส่งเฉพาะที่ยังไม่ได้ชำระ (pending หรือ overdue)
-            if (p.status !== 'pending' && p.status !== 'overdue') return false;
-
-            // ต้องมี due_date
-            if (!p.due_date) return false;
-
-            // เช็คว่า due_date ตรงกับวันนี้หรือไม่
-            if (p.due_date !== todayString) return false;
-
             // ⭐ ถ้าส่งแจ้งเตือนวันครบกำหนดไปแล้ว ไม่ต้องส่งซ้ำ
             if (p.due_date_reminder_sent_date) {
                 console.log(`⏭️ Skipping payment ${p.id} - already sent due date reminder`);
