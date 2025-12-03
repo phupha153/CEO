@@ -131,7 +131,7 @@ export default function AllBranchesDashboard() {
         allData = [...allData, ...batch];
         skip += batch.length;
         
-        console.log(`📊 AllBranches - Batch: got ${batch.length} payments, total so far: ${allData.length}`);
+
         
         // ถ้าดึงมาน้อยกว่า limit แสดงว่าหมดแล้ว
         if (batch.length < limit) {
@@ -144,7 +144,7 @@ export default function AllBranchesDashboard() {
         }
       }
       
-      console.log(`📊 AllBranches - Total loaded: ${allData.length} payments`);
+
       return allData;
     },
     ...retryConfig,
@@ -544,23 +544,6 @@ export default function AllBranchesDashboard() {
 
     pendingPayments = payments.filter(p => p.status !== 'paid');
     
-    console.log('💰 Summary Calculation:', {
-      dateRangeType,
-      totalPayments: payments.length,
-      paidPayments: paidPayments.length,
-      pendingPayments: pendingPayments.length,
-      totalRevenue: paidPayments.reduce((sum, p) => sum + (p.total_amount || 0), 0),
-      samplePaidPayments: paidPayments.slice(0, 3).map(p => ({ 
-        date: p.payment_date, 
-        amount: p.total_amount, 
-        status: p.status 
-      })),
-      dateRange: {
-        from: dateRange.from.toISOString(),
-        to: dateRange.to.toISOString()
-      }
-    });
-
     const totalRevenue = paidPayments.reduce((sum, p) => sum + (p.total_amount || 0), 0);
     const pendingRevenue = pendingPayments.reduce((sum, p) => {
       const baseAmount = p.total_amount || 0;
@@ -843,14 +826,16 @@ export default function AllBranchesDashboard() {
         showNotifications={true}
         actions={
           <>
-            <Button
-              onClick={() => setShowDebug(!showDebug)}
-              variant="outline"
-              size="sm"
-              className="border-orange-400 text-orange-600 hover:bg-orange-50"
-            >
-              🐛 Debug
-            </Button>
+            {userRole === 'developer' && (
+              <Button
+                onClick={() => setShowDebug(!showDebug)}
+                variant="outline"
+                size="sm"
+                className="border-orange-400 text-orange-600 hover:bg-orange-50"
+              >
+                🐛 Debug
+              </Button>
+            )}
             <Button
               onClick={() => navigate(createPageUrl('Settings'))}
               variant="outline"
@@ -872,8 +857,8 @@ export default function AllBranchesDashboard() {
 
       <div className="px-4 md:px-8 py-6 relative z-10">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Debug Panel */}
-          {showDebug && (
+          {/* Debug Panel - Developer Only */}
+          {showDebug && userRole === 'developer' && (
             <Card className="bg-orange-50 border-2 border-orange-300 rounded-xl">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-bold text-orange-800 flex items-center gap-2">

@@ -31,6 +31,8 @@ export default function PackageSelectionPage() {
     queryFn: () => base44.auth.me(),
   });
 
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
@@ -50,13 +52,6 @@ export default function PackageSelectionPage() {
     queryKey: ['crmPackages'],
     queryFn: async () => {
       const response = await base44.functions.invoke('getPackagesFromCRM', {});
-      console.log('🔍 CRM Response:', response.data);
-      console.log('🔍 Packages:', response.data?.packages);
-      if (response.data?.packages?.length > 0) {
-        response.data.packages.forEach((pkg, i) => {
-          console.log(`🔍 Package ${i}:`, pkg.package_name, 'is_active:', pkg.is_active);
-        });
-      }
       return response.data;
     },
   });
@@ -73,7 +68,6 @@ export default function PackageSelectionPage() {
 
   const selectedBranchId = localStorage.getItem('selected_branch_id');
   const appMode = getConfigValue('app_mode', 'single_tenant');
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   const userAccessibleBranches = currentUser?.accessible_branches || [];
   
   // Filter branches ที่ผู้ใช้สามารถซื้อแพ็กเกจได้
@@ -211,30 +205,12 @@ export default function PackageSelectionPage() {
         return;
       }
 
-      // 🔍 CRITICAL: Validate currentUser.email before sending
-      console.log('🔍 Frontend Payment Data Validation:');
-      console.log('   currentUser:', currentUser);
-      console.log('   currentUser.email:', currentUser.email, 'type:', typeof currentUser.email);
-      console.log('   currentUser.full_name:', currentUser.full_name);
-      
       if (!currentUser?.email || typeof currentUser.email !== 'string' || currentUser.email.trim() === '') {
-        console.error('❌ CRITICAL: currentUser.email is invalid!', currentUser);
         toast.error('ข้อมูลผู้ใช้ไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่');
         setErrorDetails('ไม่พบข้อมูล email ของผู้ใช้ กรุณา Logout และ Login ใหม่');
         setProcessingPayment(false);
         return;
       }
-      
-      console.log('✅ Frontend validation passed');
-      console.log('🔍 Sending payment request with:', {
-        user_email: currentUser.email,
-        user_name: currentUser.full_name,
-        package_id: selectedPackageId,
-        package_name: selectedPackage?.package_name,
-        billingCycle,
-        calculatePrice,
-        appMode
-      });
       
       // ✅ ไม่ส่ง branch_ids - ให้ function ใช้ owner_email หาสาขาเอง
       const result = await base44.functions.invoke('processSubscriptionPayment', {
@@ -302,14 +278,16 @@ export default function PackageSelectionPage() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           กลับ
         </Button>
-        <Button
-          onClick={() => setDebugMode(!debugMode)}
-          variant="outline"
-          size="sm"
-          className="text-xs"
-        >
-          {debugMode ? '🐛 ปิด Debug' : '🐛 เปิด Debug'}
-        </Button>
+        {userRole === 'developer' && (
+          <Button
+            onClick={() => setDebugMode(!debugMode)}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            {debugMode ? '🐛 ปิด Debug' : '🐛 เปิด Debug'}
+          </Button>
+        )}
       </div>
 
       <div className="relative z-10 min-h-[calc(100vh-80px)] flex items-center justify-center p-4">
@@ -442,7 +420,7 @@ export default function PackageSelectionPage() {
                  </div>
                 ) : (
                   <>
-                    {debugMode && (
+                    {debugMode && userRole === 'developer' && (
                       <div className="mb-6 bg-yellow-50 border-2 border-yellow-300 rounded-xl p-4 max-w-4xl mx-auto">
                         <p className="font-bold text-yellow-900 mb-3">🐛 Debug Mode</p>
                         
@@ -501,10 +479,8 @@ export default function PackageSelectionPage() {
                                : 'bg-white text-slate-800 shadow-lg hover:shadow-xl border-slate-200'
                           }`}
                           onClick={() => {
-                           if (isDisabled) return; // ⭐ ไม่ให้คลิกถ้าปิด
+                           if (isDisabled) return;
                            setSelectedPackageId(pkg.id);
-                           console.log('Selected package:', pkg);
-                           console.log('Pricing data:', pkg.pricing);
                           }}
                           >
                             {isDisabled && (
