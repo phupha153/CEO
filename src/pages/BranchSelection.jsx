@@ -62,6 +62,24 @@ export default function BranchSelection() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // ⭐ ดึงจำนวนห้องจริงจาก Room entity
+  const { data: allRooms = [] } = useQuery({
+    queryKey: ['rooms', 'all'],
+    queryFn: () => base44.entities.Room.list('-created_date', 5000),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // นับจำนวนห้องต่อสาขา
+  const roomCountByBranch = React.useMemo(() => {
+    const counts = {};
+    allRooms.forEach(room => {
+      if (room.branch_id) {
+        counts[room.branch_id] = (counts[room.branch_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [allRooms]);
+
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   
   // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้
@@ -314,7 +332,7 @@ export default function BranchSelection() {
                                 <div className="flex items-center justify-center gap-2 mb-3">
                                   <div className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-full">
                                     <Building2 className="w-4 h-4 text-blue-600" />
-                                    <span className="text-sm font-semibold text-blue-700">{branch.total_rooms || 0}</span>
+                                    <span className="text-sm font-semibold text-blue-700">{roomCountByBranch[branch.id] || 0}</span>
                                     <span className="text-xs text-blue-600">ห้อง</span>
                                   </div>
                                 </div>
