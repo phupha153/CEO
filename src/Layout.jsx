@@ -938,7 +938,8 @@ export default function Layout({ children, currentPageName }) {
         currentPageName === 'PackageSettings' ||
         currentPageName === 'PackageSelectionPage' ||
         currentPageName === 'RenewalPage' ||
-        currentPageName === 'UpdateMyBranches') {
+        currentPageName === 'UpdateMyBranches' ||
+        currentPageName === 'UserBranchAccess') {
       return;
     }
     
