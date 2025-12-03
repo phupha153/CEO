@@ -578,15 +578,17 @@ export default function UserBranchAccess() {
                               <Globe className="w-5 h-5 text-blue-600" />
                               <h4 className="font-semibold text-slate-700">สาขาที่เข้าถึงได้</h4>
                             </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleOpenBranchDialog(user)}
-                              className="text-xs"
-                            >
-                              <Edit2 className="w-3 h-3 mr-1" />
-                              แก้ไข
-                            </Button>
+                            {(isDeveloper || userRole === 'owner') && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenBranchDialog(user)}
+                                className="text-xs"
+                              >
+                                <Edit2 className="w-3 h-3 mr-1" />
+                                แก้ไข
+                              </Button>
+                            )}
                           </div>
 
                           {canAccessAllBranches ? (
