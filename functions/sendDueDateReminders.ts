@@ -139,8 +139,8 @@ Deno.serve(async (req) => {
 
         // ⭐ ดึงข้อมูล Tenant และ Room ทั้งหมดก่อนเพื่อลด API calls
         console.log('📥 Pre-fetching all tenants and rooms...');
-        const allTenants = await fetchAllWithPagination(base44.asServiceRole.entities.Tenant);
-        const allRooms = await fetchAllWithPagination(base44.asServiceRole.entities.Room);
+        const allTenants = await base44.asServiceRole.entities.Tenant.list('-created_date', 50000);
+        const allRooms = await base44.asServiceRole.entities.Room.list('-created_date', 50000);
         
         const tenantMap = new Map(allTenants.map(t => [t.id, t]));
         const roomMap = new Map(allRooms.map(r => [r.id, r]));
