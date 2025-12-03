@@ -45,9 +45,38 @@ export default function ReportsPage() {
     gcTime: 20 * 60 * 1000,
   });
 
-  const { data: allPayments = [] } = useQuery({
+  const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['allPayments', 'reports', selectedBranchId],
-    queryFn: () => base44.entities.Payment.filter({ branch_id: selectedBranchId }, '-created_date', 10000),
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      
+      let allData = [];
+      let skip = 0;
+      const limit = 5000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch = await base44.entities.Payment.filter(
+          { branch_id: selectedBranchId }, 
+          '-created_date', 
+          limit,
+          skip
+        );
+        allData = [...allData, ...batch];
+        skip += limit;
+        
+        if (batch.length < limit) {
+          hasMore = false;
+        }
+        
+        if (skip >= 1000000) {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`📊 Reports - Loaded ${allData.length} payments for branch ${selectedBranchId}`);
+      return allData;
+    },
     enabled: !!selectedBranchId,
     ...retryConfig,
     staleTime: 5 * 60 * 1000,
@@ -597,6 +626,26 @@ export default function ReportsPage() {
       default: return '';
     }
   };
+
+  if (paymentsLoading && allPayments.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
+        <PageHeader 
+          title="รายงานภาพรวม" 
+          subtitle={`สาขา ${selectedBranchName}`}
+          icon={BarChart3}
+        />
+        <div className="px-4 md:px-8 py-6">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+              <p className="text-slate-600 text-lg">กำลังโหลดข้อมูลการชำระเงิน...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
