@@ -3596,22 +3596,14 @@ export default function Settings() {
                           if (userRole === 'owner' && role === 'developer') return false;
                           if (user.id === currentUser?.id) return false;
                           
-                          // ✅ กรองเฉพาะผู้ใช้ที่มีสิทธิ์ในสาขาที่ผู้ใช้ปัจจุบัน (ผม) เข้าถึงได้
-                          const myAccessibleBranches = currentUser?.accessible_branches;
-                          const amIDeveloper = userRole === 'developer' && (!myAccessibleBranches || myAccessibleBranches.length === 0);
+                          // กรองเฉพาะผู้ใช้ที่มีสิทธิ์ในสาขาที่เลือกอยู่
+                          if (selectedBranch) {
+                            const userBranches = user.accessible_branches || [];
+                            // ถ้าผู้ใช้คนนี้ไม่มีสิทธิ์ในสาขาที่เลือก = ไม่แสดง
+                            if (!userBranches.includes(selectedBranch.id)) return false;
+                          }
                           
-                          // Developer ที่ไม่มี accessible_branches set = เห็นทุกคน
-                          if (amIDeveloper) return true;
-                          
-                          // คนอื่นๆ ต้องมีสาขาร่วมกันกับผม
-                          if (!myAccessibleBranches || myAccessibleBranches.length === 0) return false;
-                          
-                          const userBranches = user.accessible_branches || [];
-                          if (userBranches.length === 0) return false;
-                          
-                          // ต้องมีสาขาร่วมกัน
-                          const hasCommonBranch = userBranches.some(b => myAccessibleBranches.includes(b));
-                          return hasCommonBranch;
+                          return true;
                         })
                         .sort((a, b) => {
                           // เรียงตามลำดับ: pending users (ไม่มี custom_role) -> owner -> manager -> employee
