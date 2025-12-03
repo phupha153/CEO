@@ -218,12 +218,22 @@ export default function UserBranchAccess() {
   });
 
   const cancelPackageMutation = useMutation({
-    mutationFn: async (packageId) => {
-      return base44.entities.BranchPackage.update(packageId, { status: 'cancelled' });
+    mutationFn: async (ownerEmail) => {
+      // ยกเลิกแพ็กเกจทั้งหมดของ user นี้ในทุกสาขา
+      const userPackages = branchPackages.filter(bp => 
+        bp.owner_email === ownerEmail && bp.status === 'active'
+      );
+
+      const results = [];
+      for (const pkg of userPackages) {
+        const result = await base44.entities.BranchPackage.update(pkg.id, { status: 'cancelled' });
+        results.push(result);
+      }
+      return results;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['branchPackages']);
-      toast.success('ยกเลิกแพ็กเกจสำเร็จ');
+      toast.success('ยกเลิกแพ็กเกจทุกสาขาสำเร็จ');
       setShowCancelDialog(false);
       setPackageToCancel(null);
       refetchBranchPackages();
