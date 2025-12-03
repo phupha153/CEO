@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, DollarSign, CreditCard, Shield, Users, ChevronDown, ChevronUp, Check, Settings as SettingsIcon, AlertTriangle, Calendar, Globe, MessageSquare, Save, Send, ArrowLeft, Bell, DoorOpen, Wrench, Package, TrendingDown, UserPlus, AlertCircle, RefreshCw, Sparkles, Zap, Crown, Loader2 } from "lucide-react";
+import { Building2, DollarSign, CreditCard, Shield, Users, ChevronDown, ChevronUp, Check, Settings as SettingsIcon, AlertTriangle, Calendar, Globe, MessageSquare, Save, Send, ArrowLeft, Bell, DoorOpen, Wrench, Package, TrendingDown, UserPlus, AlertCircle, RefreshCw, Sparkles, Zap, Crown, Loader2, Pencil } from "lucide-react";
 import SignaturePad from "../components/shared/SignaturePad";
 import { Upload, X, Image as ImageIcon, PenTool } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -1703,9 +1703,32 @@ export default function Settings() {
                         <CardContent className="p-8">
                           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                             <div className="flex items-start gap-4 flex-1">
-                              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${daysRemaining !== null && daysRemaining < 30 ? 'bg-gradient-to-br from-orange-500 to-red-500' : daysRemaining !== null && daysRemaining < 90 ? 'bg-gradient-to-br from-yellow-500 to-orange-500' : 'bg-gradient-to-br from-blue-500 to-indigo-500'}`}>
-                                <Crown className="w-8 h-8 text-white" />
-                              </div>
+                            {(() => {
+                              const pkgName = activeSubscription?.package_name || activeSubscription?.app_name || '';
+                              const pkgIcon = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano') 
+                                ? Settings 
+                                : pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro') 
+                                ? Sparkles 
+                                : Crown;
+
+                              const pkgColor = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano')
+                                ? 'from-slate-600 to-slate-800'
+                                : pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro')
+                                ? 'from-blue-500 to-purple-500'
+                                : 'from-orange-500 to-yellow-500';
+
+                              const urgentColor = daysRemaining !== null && daysRemaining < 30 
+                                ? 'from-orange-500 to-red-500' 
+                                : daysRemaining !== null && daysRemaining < 90 
+                                ? 'from-yellow-500 to-orange-500' 
+                                : pkgColor;
+
+                              return (
+                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br ${urgentColor}`}>
+                                  {React.createElement(pkgIcon, { className: "w-8 h-8 text-white" })}
+                                </div>
+                              );
+                            })()}
                               <div className="flex-1">
                                 <h3 className="text-2xl font-bold text-slate-800 mb-2">
                                   {activeSubscription?.package_name || activeSubscription?.app_name || 'แพ็กเกจระบบจัดการหอพัก'}

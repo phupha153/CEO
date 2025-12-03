@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Crown, Check, Upload, Loader2, CheckCircle, ArrowLeft, X, AlertCircle, Building2, Users } from "lucide-react";
+import { Crown, Check, Upload, Loader2, CheckCircle, ArrowLeft, X, AlertCircle, Building2, Users, Settings, Sparkles, Pencil } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -455,7 +455,20 @@ export default function PackageSelectionPage() {
                     {packages.map((pkg, index) => {
                       const isMostPopular = pkg.popular === true || (index === packages.length - 1 && packages.length === 3);
                       const isSelected = selectedPackageId === pkg.id;
-                      const isDisabled = pkg.is_active === false; // ⭐ เช็คว่าปิดอยู่หรือไม่
+                      const isDisabled = pkg.is_active === false;
+                      
+                      // กำหนดไอคอนและสีตาม package_name
+                      const packageIcon = pkg.package_name?.toLowerCase().includes('basic') || pkg.package_name?.toLowerCase().includes('nano') 
+                        ? Settings 
+                        : pkg.package_name?.toLowerCase().includes('pro') || pkg.package_name?.toLowerCase().includes('micro') 
+                        ? Sparkles 
+                        : Pencil;
+                      
+                      const packageColor = pkg.package_name?.toLowerCase().includes('basic') || pkg.package_name?.toLowerCase().includes('nano')
+                        ? 'from-slate-700 via-slate-800 to-slate-900'
+                        : pkg.package_name?.toLowerCase().includes('pro') || pkg.package_name?.toLowerCase().includes('micro')
+                        ? 'from-blue-500 via-purple-500 to-pink-500'
+                        : 'from-orange-400 via-orange-500 to-yellow-500';
                       
                       return (
                         <motion.div
@@ -475,7 +488,7 @@ export default function PackageSelectionPage() {
                            isDisabled
                              ? 'bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 text-slate-400 shadow-lg border-slate-600'
                              : isMostPopular 
-                               ? 'bg-gradient-to-br from-slate-800 via-slate-900 to-black text-white shadow-2xl border-0' 
+                               ? `bg-gradient-to-br ${packageColor} text-white shadow-2xl border-0`
                                : 'bg-white text-slate-800 shadow-lg hover:shadow-xl border-slate-200'
                           }`}
                           onClick={() => {
@@ -499,10 +512,28 @@ export default function PackageSelectionPage() {
                             )}
 
                             <CardContent className="p-6 pt-8">
+                              <div className="flex items-center justify-between mb-6">
+                                <Badge className={`text-xs px-3 py-1 ${
+                                  isMostPopular 
+                                    ? 'bg-white/20 text-white border-white/30' 
+                                    : 'bg-slate-100 text-slate-700'
+                                }`}>
+                                  {pkg.package_name}
+                                </Badge>
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                                  isMostPopular 
+                                    ? 'bg-white/20' 
+                                    : 'bg-slate-100'
+                                }`}>
+                                  {React.createElement(packageIcon, { 
+                                    className: `w-6 h-6 ${isMostPopular ? 'text-white' : 'text-slate-700'}` 
+                                  })}
+                                </div>
+                              </div>
+                              
                               <div className="text-center mb-6">
-                                <h3 className="text-2xl font-bold mb-2">{pkg.package_name}</h3>
-                                <p className={`text-sm ${isMostPopular ? 'text-slate-400' : 'text-slate-500'}`}>
-                                  For most businesses that want to optimize
+                                <p className={`text-sm ${isMostPopular ? 'text-slate-300' : 'text-slate-500'}`}>
+                                  {pkg.description || 'For most businesses that want to optimize'}
                                 </p>
                               </div>
 
