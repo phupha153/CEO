@@ -327,6 +327,19 @@ Deno.serve(async (req) => {
                             });
                         }
 
+                        // ⭐ บันทึกว่าส่งสำเร็จเฉพาะที่ส่งได้จริง
+                        if (result.success > 0 && result.successRecipients) {
+                            for (const successRecipient of result.successRecipients) {
+                                try {
+                                    await base44.asServiceRole.entities.Payment.update(successRecipient.metadata.paymentId, {
+                                        due_date_reminder_sent_date: new Date().toISOString()
+                                    });
+                                } catch (updateErr) {
+                                    console.error(`⚠️ Failed to update sent date:`, updateErr.message);
+                                }
+                            }
+                        }
+
                         console.log(`📊 LINE reminders: ${result.success}/${lineRecipients.length} sent`);
 
                     } catch (error) {
