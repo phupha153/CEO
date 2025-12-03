@@ -236,8 +236,8 @@ export default function BranchSelection() {
               {!hasNoBranches && !hasNoAccess && (
                 <div className="flex flex-col gap-3 mb-6 items-center">
                   <div className="flex flex-wrap gap-3 justify-center">
-                    {/* ปุ่มดูภาพรวมทั้งหมด - แสดงเฉพาะเมื่อมีมากกว่า 1 สาขา */}
-                    {filteredBranches.length > 1 && (
+                    {/* ปุ่มดูภาพรวมทั้งหมด - แสดงเฉพาะเมื่อมีมากกว่า 1 สาขา และไม่ได้อยู่ใน trial mode */}
+                    {filteredBranches.length > 1 && !isTrialMode && (
                       <Button
                         onClick={handleViewAllBranches}
                         disabled={isNavigating}
@@ -260,9 +260,9 @@ export default function BranchSelection() {
                       <span>แก้ไขสาขา</span>
                     </Button>
                   </div>
-                  {!canAddMoreBranches && (
+                  {isTrialMode && (
                     <p className="text-xs text-amber-600 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
-                      ⚠️ สร้างได้สูงสุด {maxTrialBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด
+                      ⚠️ โหมดทดลอง: สร้างได้สูงสุด {maxTrialBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด
                     </p>
                   )}
                 </div>
