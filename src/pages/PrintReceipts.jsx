@@ -107,6 +107,8 @@ export default function PrintReceipts() {
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [failedPayments, setFailedPayments] = useState([]);
+  const [debugLogs, setDebugLogs] = useState([]);
+  const [showDebug, setShowDebug] = useState(true);
 
   useEffect(() => {
     const fetchReceipts = async () => {
