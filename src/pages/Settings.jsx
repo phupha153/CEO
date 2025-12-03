@@ -1714,9 +1714,9 @@ export default function Settings() {
                   {activeSubscription ? (
                     <>
                       {/* ข้อมูลการใช้งาน Package */}
-                      <div className="relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 via-indigo-100/50 to-purple-100/50 rounded-[2rem] blur-2xl" />
-                        <Card className="relative bg-white/90 backdrop-blur-xl border-0 shadow-2xl rounded-[2rem] overflow-hidden">
+                      <div className="relative max-w-sm">
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 via-indigo-100/50 to-purple-100/50 rounded-[1.5rem] blur-xl" />
+                        <Card className="relative bg-white/90 backdrop-blur-xl border-0 shadow-xl rounded-[1.5rem] overflow-hidden">
                           <CardContent className="p-0">
                             {(() => {
                               const pkgName = activeSubscription?.package_name || activeSubscription?.app_name || '';
@@ -1745,25 +1745,25 @@ export default function Settings() {
 
                               return (
                                 <>
-                                  <div className={`bg-gradient-to-br ${headerBg} p-8`}>
-                                    <div className="flex items-start justify-between mb-6">
-                                      <Badge className={`text-xs px-4 py-1.5 rounded-full font-semibold ${badgeColor}`}>
+                                  <div className={`bg-gradient-to-br ${headerBg} p-5`}>
+                                    <div className="flex items-start justify-between mb-4">
+                                      <Badge className={`text-xs px-3 py-1 rounded-full font-semibold ${badgeColor}`}>
                                         {isBasic ? 'Basic' : isPro ? 'Pro' : 'Elite'}
                                       </Badge>
-                                      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${iconBg}`}>
-                                        {React.createElement(pkgIcon, { className: `w-9 h-9 ${iconColor}` })}
+                                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}>
+                                        {React.createElement(pkgIcon, { className: `w-6 h-6 ${iconColor}` })}
                                       </div>
                                     </div>
                                     
-                                    <h3 className={`text-3xl font-bold mb-2 ${textColor}`}>
+                                    <h3 className={`text-xl font-bold mb-1 ${textColor}`}>
                                       {activeSubscription?.package_name || activeSubscription?.app_name || 'แพ็กเกจระบบจัดการหอพัก'}
                                     </h3>
                                     
                                     {activeSubscription?.subscription_end_date && (
-                                      <p className={`text-sm ${subTextColor}`}>
+                                      <p className={`text-xs ${subTextColor}`}>
                                         หมดอายุ {format(parseISO(activeSubscription.subscription_end_date), 'd MMM yyyy', { locale: th })}
                                         {daysRemaining !== null && (
-                                          <span className={`ml-2 font-bold ${
+                                          <span className={`ml-1 font-bold ${
                                             isBasic ? (daysRemaining < 7 ? 'text-red-400' : daysRemaining < 30 ? 'text-yellow-400' : 'text-green-400') :
                                             daysRemaining < 7 ? 'text-red-600' : daysRemaining < 30 ? 'text-amber-600' : 'text-green-600'
                                           }`}>
@@ -1774,10 +1774,10 @@ export default function Settings() {
                                     )}
                                   </div>
 
-                                  <div className="p-8 bg-white">
+                                  <div className="p-5 bg-white">
                                     <Button
                                       onClick={() => navigate(createPageUrl(activeSubscription.status === 'trial' ? 'PackageSelectionPage' : (appMode === 'multi_tenant' ? 'PackageSelectionPage' : 'RenewalPage')))}
-                                      className={`w-full py-6 text-base font-semibold rounded-2xl shadow-lg transition-all ${
+                                      className={`w-full py-3 text-sm font-semibold rounded-xl shadow-md transition-all ${
                                         isBasic
                                           ? 'bg-slate-900 text-white hover:bg-slate-800'
                                           : isPro
@@ -1785,8 +1785,8 @@ export default function Settings() {
                                           : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600'
                                       }`}
                                     >
-                                      <RefreshCw className="w-5 h-5 mr-2" />
-                                      {activeSubscription.status === 'trial' ? 'อัปเกรดแพ็กเกจ' : 'ต่ออายุ/อัปเกรดแพ็กเกจ'}
+                                      <RefreshCw className="w-4 h-4 mr-2" />
+                                      {activeSubscription.status === 'trial' ? 'อัปเกรดแพ็กเกจ' : 'ต่ออายุ/อัปเกรด'}
                                     </Button>
                                   </div>
                                 </>
