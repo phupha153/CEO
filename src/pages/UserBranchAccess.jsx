@@ -44,9 +44,13 @@ export default function UserBranchAccess() {
   const userAccessibleBranches = React.useMemo(() => currentUser?.accessible_branches || [], [currentUser]);
   const userRole = React.useMemo(() => currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee'), [currentUser]);
 
-  // Redirect if not authorized
+  // Redirect if not authorized - ต้องรอให้ userRole พร้อมก่อน
   useEffect(() => {
-    if (!userLoading && currentUser && userRole !== 'developer' && userRole !== 'owner') {
+    // ถ้ายังโหลด user ไม่เสร็จ หรือยังไม่มี currentUser ให้รอก่อน
+    if (userLoading || !currentUser) return;
+    
+    // เช็คสิทธิ์ - developer และ owner เท่านั้นที่เข้าได้
+    if (userRole !== 'developer' && userRole !== 'owner') {
       navigate(createPageUrl('BranchSelection'), { replace: true });
     }
   }, [userRole, currentUser, userLoading, navigate]);
