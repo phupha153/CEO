@@ -75,29 +75,25 @@ Deno.serve(async (req) => {
         // 3. หาบิลที่ครบกำหนดชำระวันนี้ (ยังไม่ชำระ)
         console.log('🔍 Fetching payments with pagination...');
         
-        // ⭐ Helper function สำหรับดึงข้อมูลแบบ pagination (รองรับมากกว่า 10,000 รายการ)
-        async function fetchAllWithPagination(entity, batchSize = 5000) {
-            let allData = [];
-            let skip = 0;
-            let hasMore = true;
-            
-            while (hasMore) {
-                const batch = await entity.list('-created_date', batchSize, skip);
-                if (!Array.isArray(batch) || batch.length === 0) {
-                    hasMore = false;
-                } else {
-                    allData = allData.concat(batch);
-                    skip += batch.length;
-                    if (batch.length < batchSize) {
-                        hasMore = false;
-                    }
-                }
-                console.log(`📊 Fetched ${allData.length} records...`);
-            }
-            return allData;
+        // ⭐ ดึง Payments ทั้งหมด
+        console.log('📥 Fetching all payments...');
+        let payments = [];
+        try {
+            payments = await base44.asServiceRole.entities.Payment.list('-created_date', 50000);
+            if (!Array.isArray(payments)) payments = [];
+        } catch (fetchErr) {
+            console.error('❌ Error fetching payments:', fetchErr);
+            payments = [];
         }
+        console.log(`✅ Fetched ${payments.length} payments`);
+
+        // ⭐ Debug: แสดงตัวอย่าง due_date ที่พบ
+        const sampleDueDates = [...new Set(payments.slice(0, 100).map(p => p.due_date).filter(Boolean))].slice(0, 10);
+        console.log(`📅 Sample due_dates found: ${sampleDueDates.join(', ')}`);
         
-        let payments = await fetchAllWithPagination(base44.asServiceRole.entities.Payment);
+        // ⭐ นับจำนวน payment ที่มี due_date = todayString
+        const matchingCount = payments.filter(p => p.due_date === todayString).length;
+        console.log(`🔍 Payments with due_date=${todayString}: ${matchingCount}`);
         
         // ⭐ แปลงเป็น array เพื่อป้องกัน error
         if (!Array.isArray(payments)) payments = [];
