@@ -840,6 +840,66 @@ export default function AllBranchesDashboard() {
 
       <div className="px-4 md:px-8 py-6 relative z-10">
         <div className="max-w-7xl mx-auto space-y-6">
+          {/* Debug Panel */}
+          {showDebug && (
+            <Card className="bg-orange-50 border-2 border-orange-300 rounded-xl">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-bold text-orange-800 flex items-center gap-2">
+                  🐛 Debug Info
+                  <Button size="sm" variant="ghost" onClick={() => setShowDebug(false)} className="ml-auto">✕</Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-xs">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                  <div className="bg-white rounded p-2">
+                    <p className="text-orange-600 font-semibold">สาขาทั้งหมด</p>
+                    <p className="text-lg font-bold">{debugInfo.allBranchesCount}</p>
+                  </div>
+                  <div className="bg-white rounded p-2">
+                    <p className="text-orange-600 font-semibold">สาขาที่เห็น</p>
+                    <p className="text-lg font-bold">{debugInfo.filteredBranchesCount}</p>
+                  </div>
+                  <div className="bg-white rounded p-2">
+                    <p className="text-orange-600 font-semibold">Payment ทั้งหมด</p>
+                    <p className="text-lg font-bold">{debugInfo.allPaymentsCount}</p>
+                  </div>
+                  <div className="bg-white rounded p-2">
+                    <p className="text-orange-600 font-semibold">Payment ที่กรองแล้ว</p>
+                    <p className="text-lg font-bold">{debugInfo.filteredPaymentsCount}</p>
+                  </div>
+                  <div className="bg-white rounded p-2">
+                    <p className="text-orange-600 font-semibold">ชำระแล้ว (paid)</p>
+                    <p className="text-lg font-bold">{debugInfo.paidPayments}</p>
+                  </div>
+                  <div className="bg-white rounded p-2">
+                    <p className="text-orange-600 font-semibold">อยู่ใน date range</p>
+                    <p className="text-lg font-bold">{debugInfo.paymentsInRange}</p>
+                  </div>
+                  <div className="bg-white rounded p-2">
+                    <p className="text-orange-600 font-semibold">Role</p>
+                    <p className="text-lg font-bold">{debugInfo.userRole}</p>
+                  </div>
+                  <div className="bg-white rounded p-2">
+                    <p className="text-orange-600 font-semibold">ดูทุกสาขา?</p>
+                    <p className="text-lg font-bold">{debugInfo.canViewAllBranches ? '✅' : '❌'}</p>
+                  </div>
+                </div>
+                <div className="bg-white rounded p-2 mb-2">
+                  <p className="text-orange-600 font-semibold mb-1">Date Range: {debugInfo.dateRangeType}</p>
+                  <p className="text-slate-600">{debugInfo.dateRange.from} → {debugInfo.dateRange.to}</p>
+                </div>
+                <div className="bg-white rounded p-2 mb-2">
+                  <p className="text-orange-600 font-semibold mb-1">สาขาที่เข้าถึงได้:</p>
+                  <p className="text-slate-600 break-all">{JSON.stringify(debugInfo.branchIds)}</p>
+                </div>
+                <div className="bg-white rounded p-2">
+                  <p className="text-orange-600 font-semibold mb-1">ตัวอย่าง Paid Payments:</p>
+                  <pre className="text-slate-600 overflow-auto max-h-32">{JSON.stringify(debugInfo.samplePaidPayments, null, 2)}</pre>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Date Range Selection - All in One Card */}
           <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-3xl overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
