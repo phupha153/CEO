@@ -95,7 +95,7 @@ export default function BranchSelection() {
   // เช็คว่าผู้ใช้อยู่ในโหมดทดลองหรือไม่
   const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
   const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
-  const maxTrialBranches = 2;
+  const maxTrialBranches = 1;
   const canAddMoreBranches = !isTrialMode || filteredBranches.length < maxTrialBranches;
 
   // ✅ เช็คว่าไม่มีสาขาเลย หรือไม่มีสิทธิ์ในสาขาใดเลย

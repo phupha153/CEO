@@ -107,7 +107,7 @@ export default function BranchManagement() {
   // เช็คว่าสามารถเพิ่มสาขาใหม่ได้หรือไม่
   const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
   const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
-  const maxTrialBranches = 2;
+  const maxTrialBranches = 1;
   const canAddMoreBranches = !isTrialMode || branches.length < maxTrialBranches;
 
   const createMutation = useMutation({
@@ -428,7 +428,7 @@ export default function BranchManagement() {
       
       const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
       const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
-      const maxTrialBranches = 2;
+      const maxTrialBranches = 1;
       const currentBranchCount = branches.length;
       
       if (isTrialMode && currentBranchCount >= maxTrialBranches) {

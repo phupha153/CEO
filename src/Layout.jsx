@@ -796,7 +796,19 @@ export default function Layout({ children, currentPageName }) {
     // ⭐ Developer ไม่ต้อง redirect ไปหน้า package pages
     if (userRole === 'developer') return { shouldRedirect: false, status: 'developer' };
     
-    if (currentPageName === 'PackageSelectionPage' || currentPageName === 'RenewalPage' || currentPageName === 'TrialExpiredPage' || currentPageName === 'PackageExpiredPage') return { shouldRedirect: false };
+    // ⭐ ไม่ redirect เมื่ออยู่ในหน้าเหล่านี้ หรือเมื่อยังไม่ได้เลือกสาขา
+    if (currentPageName === 'PackageSelectionPage' || 
+        currentPageName === 'RenewalPage' || 
+        currentPageName === 'TrialExpiredPage' || 
+        currentPageName === 'PackageExpiredPage' ||
+        currentPageName === 'BranchSelection') {
+      return { shouldRedirect: false };
+    }
+    
+    // ⭐ ถ้ายังไม่ได้เลือกสาขา = ไม่ต้อง redirect
+    if (!selectedBranch) {
+      return { shouldRedirect: false, status: 'no_branch_selected' };
+    }
     
     // ถ้าเป็น multi_tenant ให้ดูจาก BranchPackage
     if (appMode === 'multi_tenant' && selectedBranch) {
@@ -846,7 +858,7 @@ export default function Layout({ children, currentPageName }) {
         }
       }
 
-      // ถ้าไม่มี package เลย
+      // ถ้าไม่มี package เลย = กำลังสร้าง trial อัตโนมัติ
       return { shouldRedirect: false, status: 'creating_trial', daysRemaining: 999, subscription: null };
     }
 
