@@ -1767,11 +1767,14 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // กรองเฉพาะผู้ใช้ที่มี accessible_branches ซ้อนทับกับสาขาในระบบนี้
+                              // กรองเฉพาะผู้ใช้ที่มีสิทธิ์เข้าถึงสาขาในระบบนี้
                               const branchIds = branches.map(b => b.id);
                               const usersInMyBranches = users.filter(user => {
                                 const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
-                                if (role === 'developer') return true; // Developer เห็นทุกที่
+                                // Developer และ Owner ที่ยังไม่ได้ตั้ง accessible_branches = เข้าถึงได้ทุกสาขา
+                                if (role === 'developer') return true;
+                                if (role === 'owner' && (!user.accessible_branches || user.accessible_branches.length === 0)) return true;
+                                // ผู้ใช้อื่นๆ ต้องมี accessible_branches ที่ตรงกับสาขาในระบบ
                                 if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
                                 return user.accessible_branches.some(branchId => branchIds.includes(branchId));
                               });
