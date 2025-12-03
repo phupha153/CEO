@@ -1808,8 +1808,8 @@ export default function Settings() {
                             {(() => {
                               // นับจำนวนสาขาจริงในระบบ
                               const totalBranchesInSystem = branches.length;
-                              // ดึง max_branches โดยตรงจาก activeSubscription
-                              const maxBranches = activeSubscription?.max_branches;
+                              // ดึง max_branches จาก crmPackageInfo (ข้อมูลล่าสุดจาก CRM)
+                              const maxBranches = crmPackageInfo?.max_branches;
                               const hasLimit = maxBranches !== null && maxBranches !== undefined && maxBranches > 0;
                               const usagePercent = hasLimit ? Math.min((totalBranchesInSystem / maxBranches) * 100, 100) : 10;
 
