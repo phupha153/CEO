@@ -1731,11 +1731,12 @@ export default function Settings() {
                           <CardContent className="p-0">
                             {(() => {
                               const pkgName = activeSubscription?.package_name || activeSubscription?.app_name || '';
-                              const isBasic = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano');
-                              const isPro = pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro');
-                              const isElite = !isBasic && !isPro;
-                              
-                              const pkgIcon = isBasic ? SettingsIcon : isPro ? Sparkles : Crown;
+                              const isTrial = activeSubscription?.status === 'trial' || activeSubscription?.package_id === 'trial';
+                              const isBasic = !isTrial && (pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano'));
+                              const isPro = !isTrial && (pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro'));
+                              const isElite = !isTrial && !isBasic && !isPro;
+
+                              const pkgIcon = isTrial ? Package : isBasic ? SettingsIcon : isPro ? Sparkles : Crown;
 
                               return (
                                 <>
