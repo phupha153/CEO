@@ -116,19 +116,19 @@ const DEFAULT_PERMISSIONS_MAP = {
 };
 
 const CATEGORY_ICONS = {
-  'แดชบอร์ด': '📊',
-  'ห้องพัก': '🚪',
-  'ผู้เช่า': '👤',
-  'การจอง': '📅',
-  'สัญญาเช่า': '📄',
-  'การชำระเงิน': '💰',
-  'บันทึกมิเตอร์': '⚡',
-  'ค่าใช้จ่าย': '💸',
-  'แจ้งซ่อม': '🔧',
-  'รายงาน': '📈',
-  'ฐานข้อมูลบัญชี': '🏦',
-  'ข้อความประกาศ': '📢',
-  'การตั้งค่า': '⚙️',
+  'แดชบอร์ด': '',
+  'ห้องพัก': '',
+  'ผู้เช่า': '',
+  'การจอง': '',
+  'สัญญาเช่า': '',
+  'การชำระเงิน': '',
+  'บันทึกมิเตอร์': '',
+  'ค่าใช้จ่าย': '',
+  'แจ้งซ่อม': '',
+  'รายงาน': '',
+  'ฐานข้อมูลบัญชี': '',
+  'ข้อความประกาศ': '',
+  'การตั้งค่า': '',
 };
 
 const PERMISSION_CATEGORIES_DISPLAY = PERMISSIONS_LIST.reduce((acc, permission) => {
@@ -1714,7 +1714,7 @@ export default function Settings() {
                                 <div className="space-y-2">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <Badge className={`text-sm px-3 py-1 ${activeSubscription.status === 'active' ? 'bg-green-600' : activeSubscription.status === 'trial' ? 'bg-amber-600' : activeSubscription.status === 'expired' ? 'bg-red-600' : 'bg-slate-600'} text-white`}>
-                                      {activeSubscription.status === 'active' ? '✅ ใช้งานอยู่' : activeSubscription.status === 'trial' ? '🎉 ทดลองใช้' : activeSubscription.status === 'expired' ? '⚠️ หมดอายุ' : '⏸️ ยกเลิก'}
+                                      {activeSubscription.status === 'active' ? 'ใช้งานอยู่' : activeSubscription.status === 'trial' ? 'ทดลองใช้' : activeSubscription.status === 'expired' ? 'หมดอายุ' : 'ยกเลิก'}
                                     </Badge>
 
                                     {daysRemaining !== null && (
@@ -1792,42 +1792,29 @@ export default function Settings() {
                             </CardTitle>
                           </CardHeader>
                           <CardContent className="space-y-3">
-                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                              <Check className="w-5 h-5 text-green-600" />
-                              <span className="text-sm text-slate-700">จัดการห้องพัก (ไม่จำกัด)</span>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                              <Check className="w-5 h-5 text-green-600" />
-                              <span className="text-sm text-slate-700">จัดการผู้เช่า (ไม่จำกัด)</span>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                              <Check className="w-5 h-5 text-green-600" />
-                              <span className="text-sm text-slate-700">ระบบการชำระเงินอัตโนมัติ</span>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                              <Check className="w-5 h-5 text-green-600" />
-                              <span className="text-sm text-slate-700">สร้างสัญญาและใบเสร็จ</span>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                              <Check className="w-5 h-5 text-green-600" />
-                              <span className="text-sm text-slate-700">รายงานทางการเงิน</span>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                              <Check className="w-5 h-5 text-green-600" />
-                              <span className="text-sm text-slate-700">แจ้งซ่อมและบำรุงรักษา</span>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                              <Check className="w-5 h-5 text-green-600" />
-                              <span className="text-sm text-slate-700">แจ้งเตือนอัตโนมัติ</span>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                              <Check className="w-5 h-5 text-green-600" />
-                              <span className="text-sm text-slate-700">ระบบหลายสาขา</span>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                              <Sparkles className="w-5 h-5 text-purple-600" />
-                              <span className="text-sm text-purple-700 font-semibold">AI ผู้ช่วยอัจฉริยะ</span>
-                            </div>
+                            {activeSubscription.features && activeSubscription.features.length > 0 ? (
+                              activeSubscription.features.map((feature, index) => (
+                                <div key={index} className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                                  <Check className="w-5 h-5 text-green-600" />
+                                  <span className="text-sm text-slate-700">{feature}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <>
+                                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                                  <Check className="w-5 h-5 text-green-600" />
+                                  <span className="text-sm text-slate-700">จัดการห้องพัก (ไม่จำกัด)</span>
+                                </div>
+                                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                                  <Check className="w-5 h-5 text-green-600" />
+                                  <span className="text-sm text-slate-700">จัดการผู้เช่า (ไม่จำกัด)</span>
+                                </div>
+                                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                                  <Check className="w-5 h-5 text-green-600" />
+                                  <span className="text-sm text-slate-700">ระบบการชำระเงินอัตโนมัติ</span>
+                                </div>
+                              </>
+                            )}
                           </CardContent>
                         </Card>
 
@@ -1968,7 +1955,7 @@ export default function Settings() {
                             <div className="flex items-start gap-4">
                               <AlertTriangle className="w-8 h-8 text-orange-600 flex-shrink-0" />
                               <div className="flex-1">
-                                <h4 className="font-bold text-orange-900 text-lg mb-2">⚠️ แพ็กเกจใกล้หมดอายุ!</h4>
+                                <h4 className="font-bold text-orange-900 text-lg mb-2">แพ็กเกจใกล้หมดอายุ</h4>
                                 <p className="text-orange-800 mb-4">
                                   แพ็กเกจของคุณจะหมดอายุในอีก <strong>{daysRemaining} วัน</strong> ({format(parseISO(activeSubscription.subscription_end_date), 'd MMM yyyy', { locale: th })})
                                 </p>
@@ -1987,7 +1974,7 @@ export default function Settings() {
                             <div className="flex items-start gap-4">
                               <AlertCircle className="w-8 h-8 text-red-600 flex-shrink-0 animate-pulse" />
                               <div className="flex-1">
-                                <h4 className="font-bold text-red-900 text-lg mb-2">🚨 แพ็กเกจหมดอายุแล้ว!</h4>
+                                <h4 className="font-bold text-red-900 text-lg mb-2">แพ็กเกจหมดอายุแล้ว</h4>
                                 <p className="text-red-800 mb-4">
                                   แพ็กเกจของคุณหมดอายุไปแล้ว <strong>{Math.abs(daysRemaining)} วัน</strong>
                                 </p>
@@ -2068,7 +2055,7 @@ export default function Settings() {
                         <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
                           <Crown className="w-10 h-10 text-white" />
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-3">🎉 ยังไม่มีแพ็กเกจ</h3>
+                        <h3 className="text-2xl font-bold text-slate-800 mb-3">ยังไม่มีแพ็กเกจ</h3>
                         <p className="text-slate-600 mb-6 max-w-md mx-auto">
                           คุณกำลังทดลองใช้งานฟรี กรุณาเลือกแพ็กเกจที่เหมาะสมเพื่อใช้งานต่อ
                         </p>
@@ -2476,9 +2463,9 @@ export default function Settings() {
 
                       {/* ค่าขั้นต่ำสำหรับน้ำและไฟ */}
                       <div className="space-y-4 pt-4 border-t">
-                        <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                          💧⚡ ค่าขั้นต่ำสำหรับการใช้น้ำ/ไฟต่ำ
-                        </h3>
+                      <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                        ค่าขั้นต่ำสำหรับการใช้น้ำ/ไฟต่ำ
+                      </h3>
                         <p className="text-xs text-slate-600">
                           กำหนดค่าขั้นต่ำสำหรับกรณีที่ผู้เช่าใช้น้ำ/ไฟต่ำกว่าเกณฑ์ที่กำหนด
                         </p>
@@ -2493,7 +2480,7 @@ export default function Settings() {
                               className="w-5 h-5 rounded"
                             />
                             <div>
-                              <p className="text-sm font-semibold text-blue-800">💧 เปิดใช้ค่าน้ำขั้นต่ำ</p>
+                              <p className="text-sm font-semibold text-blue-800">เปิดใช้ค่าน้ำขั้นต่ำ</p>
                               <p className="text-xs text-blue-600">คิดค่าน้ำขั้นต่ำถ้าใช้ต่ำกว่าเกณฑ์</p>
                             </div>
                           </label>
@@ -2538,7 +2525,7 @@ export default function Settings() {
                               className="w-5 h-5 rounded"
                             />
                             <div>
-                              <p className="text-sm font-semibold text-yellow-800">⚡ เปิดใช้ค่าไฟขั้นต่ำ</p>
+                              <p className="text-sm font-semibold text-yellow-800">เปิดใช้ค่าไฟขั้นต่ำ</p>
                               <p className="text-xs text-yellow-600">คิดค่าไฟขั้นต่ำถ้าใช้ต่ำกว่าเกณฑ์</p>
                             </div>
                           </label>
@@ -2611,9 +2598,9 @@ export default function Settings() {
                     <form onSubmit={handleBillSettingsSubmit} className="space-y-6">
                       {/* วันที่สร้างบิลและวันครบกำหนด */}
                       <div className="space-y-4">
-                        <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                          📅 กำหนดวันที่และรูปแบบการชำระ
-                        </h3>
+                      <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                        กำหนดวันที่และรูปแบบการชำระ
+                      </h3>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
@@ -2666,7 +2653,7 @@ export default function Settings() {
                         <div className="flex items-center justify-between">
                           <div>
                             <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                              📊 ค่าปรับแบบขั้นบันได (ยิ่งช้ายิ่งปรับเพิ่ม)
+                              ค่าปรับแบบขั้นบันได (ยิ่งช้ายิ่งปรับเพิ่ม)
                             </h3>
                             <p className="text-xs text-slate-500 mt-1">
                               กำหนดอัตราค่าปรับที่แตกต่างกันตามจำนวนวันที่เกินกำหนด
@@ -2681,7 +2668,7 @@ export default function Settings() {
                         {billSettings.late_fee_tiers_enabled && (
                           <div className="space-y-3 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
                             <p className="text-xs text-amber-700 font-medium mb-3">
-                              💡 ตัวอย่าง: เกิน 1-7 วัน ปรับ 20 บาท/วัน, เกิน 8-14 วัน ปรับ 50 บาท/วัน
+                              ตัวอย่าง: เกิน 1-7 วัน ปรับ 20 บาท/วัน, เกิน 8-14 วัน ปรับ 50 บาท/วัน
                             </p>
                             
                             {billSettings.late_fee_tiers.map((tier, index) => (
@@ -2777,9 +2764,9 @@ export default function Settings() {
 
                       {/* การแจ้งเตือนอัตโนมัติ */}
                       <div className="space-y-3 pt-4 border-t">
-                        <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                          🔔 การแจ้งเตือนอัตโนมัติ
-                        </h3>
+                       <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                         การแจ้งเตือนอัตโนมัติ
+                       </h3>
 
                         <div className="space-y-3">
                           <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
@@ -3153,7 +3140,7 @@ export default function Settings() {
                           <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
                             <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
                               <Zap className="w-5 h-5" />
-                              🔗 Webhook URL สำหรับสาขานี้
+                              Webhook URL สำหรับสาขานี้
                             </h4>
                             <div className="space-y-3">
                               <p className="text-sm text-purple-800 font-semibold">
@@ -3183,7 +3170,7 @@ export default function Settings() {
                           </div>
 
                           <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                            <h4 className="font-semibold text-green-900 mb-2">📱 วิธีตั้งค่า LINE Official Account:</h4>
+                            <h4 className="font-semibold text-green-900 mb-2">วิธีตั้งค่า LINE Official Account:</h4>
                             <ol className="text-sm text-green-700 space-y-2 list-decimal ml-5">
                               <li>ไปที่ <a href="https://developers.line.biz/console/" target="_blank" className="underline font-semibold">LINE Developers Console</a></li>
                               <li>สร้าง Provider และ Messaging API Channel</li>
@@ -3249,7 +3236,7 @@ export default function Settings() {
                                   </p>
                                 </div>
                                 <div className="bg-white/60 rounded-lg p-4 border border-green-200">
-                                  <p className="text-sm text-green-900 font-semibold mb-2">✨ คุณสามารถใช้งาน:</p>
+                                  <p className="text-sm text-green-900 font-semibold mb-2">คุณสามารถใช้งาน:</p>
                                   <ul className="text-xs text-green-800 space-y-1.5">
                                     <li>• รับข้อความจากลูกค้าผ่าน Facebook Messenger</li>
                                     <li>• ส่งข้อความแจ้งเตือนการชำระเงินอัตโนมัติ</li>
@@ -3327,13 +3314,13 @@ export default function Settings() {
                               <svg className="w-7 h-7 mr-3" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                               </svg>
-                              🚀 เชื่อมต่อด้วย Facebook Login
+                              เชื่อมต่อด้วย Facebook Login
                             </Button>
                             
                             <div className="bg-blue-50 rounded-xl p-6 border-2 border-blue-200">
                               <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
                                 <Zap className="w-5 h-5" />
-                                ✨ ประโยชน์ที่คุณจะได้รับ:
+                                ประโยชน์ที่คุณจะได้รับ:
                               </h4>
                               <ul className="text-sm text-blue-800 space-y-2">
                                 <li className="flex items-start gap-2">
@@ -3397,7 +3384,7 @@ export default function Settings() {
                           <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
                             <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
                               <Zap className="w-5 h-5" />
-                              🔗 Webhook URL สำหรับ Facebook
+                              Webhook URL สำหรับ Facebook
                             </h4>
                             <div className="space-y-3">
                               <p className="text-sm text-purple-800 font-semibold">
@@ -3424,7 +3411,7 @@ export default function Settings() {
                           </div>
 
                           <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                            <h4 className="font-semibold text-blue-900 mb-2">📱 วิธีตั้งค่า Facebook Messenger:</h4>
+                            <h4 className="font-semibold text-blue-900 mb-2">วิธีตั้งค่า Facebook Messenger:</h4>
                             <ol className="text-sm text-blue-700 space-y-2 list-decimal ml-5">
                               <li>ไปที่ <a href="https://developers.facebook.com/" target="_blank" className="underline font-semibold">Facebook Developers</a></li>
                               <li>สร้าง App และเพิ่มผลิตภัณฑ์ Messenger</li>
