@@ -1799,6 +1799,7 @@ export default function Settings() {
                                           หมดอายุ {format(parseISO(activeSubscription.subscription_end_date), 'd MMM yyyy', { locale: th })}
                                           {daysRemaining !== null && (
                                             <span className={`ml-1 font-bold ${
+                                              isTrial ? (daysRemaining < 7 ? 'text-red-200' : daysRemaining < 30 ? 'text-yellow-200' : 'text-white') :
                                               isBasic ? (daysRemaining < 7 ? 'text-red-400' : daysRemaining < 30 ? 'text-yellow-400' : 'text-green-400') :
                                               daysRemaining < 7 ? 'text-red-600' : daysRemaining < 30 ? 'text-amber-600' : 'text-green-600'
                                             }`}>
