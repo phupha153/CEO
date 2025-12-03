@@ -97,9 +97,6 @@ export default function Receipt() {
 
       if (response.data.success) {
         const invoice = response.data.invoice;
-        
-        // อนุญาตให้ดูใบเสร็จได้แม้ยังไม่ชำระ (แสดงเป็น preview)
-        
         setReceiptData(invoice);
         setLoading(false);
       } else {
