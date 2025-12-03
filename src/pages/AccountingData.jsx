@@ -49,6 +49,9 @@ export default function AccountingData() {
     staleTime: 60 * 60 * 1000,
   });
 
+  // กำหนด userRole จาก currentUser
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+
   // Shared retry config
   const retryConfig = {
     retry: 0, // Changed retry to 0
