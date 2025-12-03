@@ -32,24 +32,39 @@ Deno.serve(async (req) => {
       baseURL: 'https://app.base44.com'
     });
 
-    console.log('Fetching user subscriptions from CRM...');
+    console.log('Calling CRM API to get network stats...');
 
-    // ดึงข้อมูล subscriptions ของ user นี้จาก CRM
-    const subscriptions = await crmClient.entities.Subscription.filter({
-      user_email: user.email,
-      status: 'active'
-    });
+    // เรียก CRM API endpoint ที่จะนับจำนวนผู้ใช้และสาขาทั้งหมด
+    const CRM_API_KEY = Deno.env.get('CRM_API_KEY');
+    
+    const crmApiResponse = await fetch(
+      'https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/getNetworkStats',
+      {
+        method: 'POST',
+        headers: {
+          'api_key': CRM_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: user.email })
+      }
+    );
 
-    console.log('Found subscriptions:', subscriptions?.length || 0);
-
-    let totalUsers = 0;
-    let totalBranches = 0;
-
-    // รวมจำนวนผู้ใช้และสาขาจากทุก subscription
-    for (const sub of (subscriptions || [])) {
-      totalUsers += sub.total_users_in_network || 0;
-      totalBranches += sub.total_branches_in_network || 0;
+    if (!crmApiResponse.ok) {
+      const errorText = await crmApiResponse.text();
+      console.error('❌ CRM API error:', errorText);
+      return Response.json({ 
+        error: 'ไม่สามารถเชื่อมต่อ CRM ได้',
+        total_users: 0,
+        total_branches: 0
+      }, { status: 500 });
     }
+
+    const crmData = await crmApiResponse.json();
+    
+    console.log('CRM Response:', crmData);
+
+    const totalUsers = crmData?.total_users || 0;
+    const totalBranches = crmData?.total_branches || 0;
 
     console.log('Total users in network:', totalUsers);
     console.log('Total branches in network:', totalBranches);
@@ -57,8 +72,7 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       total_users: totalUsers,
-      total_branches: totalBranches,
-      subscriptions_count: subscriptions?.length || 0
+      total_branches: totalBranches
     });
 
   } catch (error) {
