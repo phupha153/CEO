@@ -98,9 +98,14 @@ export default function PrintReceipts() {
   const paymentIdsParam = searchParams.get('paymentIds');
   const docType = searchParams.get('type') || 'receipt'; // 'receipt' หรือ 'invoice'
   
-  const paymentIds = useMemo(() => 
-    paymentIdsParam ? paymentIdsParam.split(',') : []
-  , [paymentIdsParam]);
+  const paymentIds = useMemo(() => {
+    if (!paymentIdsParam) return [];
+    // ✅ ลบ ID ซ้ำออก
+    const ids = paymentIdsParam.split(',').filter(id => id && id.trim());
+    const uniqueIds = [...new Set(ids)];
+    console.log(`📋 Total IDs: ${ids.length}, Unique: ${uniqueIds.length}`);
+    return uniqueIds;
+  }, [paymentIdsParam]);
 
   const [receiptsData, setReceiptsData] = useState([]);
   const [loading, setLoading] = useState(true);
