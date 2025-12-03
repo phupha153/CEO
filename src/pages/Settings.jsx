@@ -434,6 +434,16 @@ export default function Settings() {
     refetchOnMount: false,
   });
 
+  const { data: crmPackages } = useQuery({
+    queryKey: ['crmPackages'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getPackagesFromCRM', {});
+      return response.data;
+    },
+    enabled: !!currentUser,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const [selectedBranch] = useState(() => {
     const branchId = localStorage.getItem('selected_branch_id');
     const branchName = localStorage.getItem('selected_branch_name');
