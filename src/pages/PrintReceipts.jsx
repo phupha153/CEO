@@ -127,48 +127,71 @@ export default function PrintReceipts() {
 
         console.log(`📊 Starting to fetch ${paymentIds.length} receipts...`);
 
-        // ✅ วิธีใหม่: โหลดทีละรายการแบบ sequential (ไม่ timeout)
-        for (let i = 0; i < paymentIds.length; i++) {
-          const paymentId = paymentIds[i];
+        // ✅ ปรับลด batch size จาก 5 เป็น 3 เพื่อความเสถียร
+        const results = await fetchInBatches(
+          paymentIds, 
+          3, // ลดจาก 5 เป็น 3 รายการต่อครั้ง
+          async (paymentId) => {
+            return await fetchWithRetry(
+              async () => {
+                console.log(`🔄 Fetching invoice for payment: ${paymentId}`);
+                
+                // ✅ เพิ่ม timeout protection
+                const timeoutPromise = new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error('Request timeout')), 15000) // 15 วินาที
+                );
+                
+                const fetchPromise = base44.functions.invoke('getPublicInvoice', { 
+                  paymentId: paymentId 
+                });
+
+                const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+                setProgress(prev => ({ ...prev, current: prev.current + 1 }));
+
+                if (response.data && response.data.success && response.data.invoice) {
+                  return { success: true, data: response.data.invoice, paymentId };
+                } else {
+                  const errorMsg = response.data?.error || 'ไม่พบใบเสร็จ';
+                  return { 
+                    success: false, 
+                    error: errorMsg,
+                    paymentId 
+                  };
+                }
+              },
+              3, // retry 3 ครั้ง
+              3000 // เพิ่มจาก 2 เป็น 3 วินาที
+            );
+          }
+        );
+
+        // ✅ เพิ่ม delay 1 วินาทีระหว่างแต่ละ batch
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // ประมวลผลลัพธ์
+        results.forEach((result, index) => {
+          const paymentId = paymentIds[index];
           
-          try {
-            console.log(`🔄 [${i + 1}/${paymentIds.length}] Fetching: ${paymentId.slice(0, 8)}...`);
+          if (result.status === 'fulfilled' && result.value.success) {
+            receipts.push(result.value.data);
+          } else {
+            const errorMsg = result.status === 'rejected' 
+              ? result.reason?.message || 'เกิดข้อผิดพลาดในการโหลด'
+              : result.value?.error || 'ไม่ทราบสาเหตุ';
             
-            const response = await base44.functions.invoke('getPublicInvoice', { 
-              paymentId: paymentId 
-            });
-
-            setProgress({ current: i + 1, total: paymentIds.length });
-
-            if (response.data && response.data.success && response.data.invoice) {
-              receipts.push(response.data.invoice);
-              console.log(`✅ [${i + 1}/${paymentIds.length}] Success`);
-            } else {
-              const errorMsg = response.data?.error || 'ไม่พบใบเสร็จ';
-              failed.push({ 
-                paymentId: paymentId.slice(0, 8),
-                error: errorMsg,
-                fullId: paymentId
-              });
-              console.error(`❌ [${i + 1}/${paymentIds.length}] Failed:`, errorMsg);
-            }
-          } catch (err) {
             failed.push({ 
               paymentId: paymentId.slice(0, 8),
-              error: err.message || 'เกิดข้อผิดพลาด',
-              fullId: paymentId
+              error: errorMsg,
+              fullId: paymentId // เก็บ full ID สำหรับ debug
             });
-            console.error(`❌ [${i + 1}/${paymentIds.length}] Error:`, err.message);
+            console.error(`❌ Failed to fetch payment ${paymentId}:`, errorMsg);
           }
-
-          // ✅ หน่วงเวลา 500ms ระหว่างแต่ละรายการเพื่อไม่ให้ server overload
-          if (i < paymentIds.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        }
+        });
 
         console.log(`📊 Results: ${receipts.length} success, ${failed.length} failed`);
 
+        // ✅ เก็บ failed payments ลง sessionStorage
         if (failed.length > 0) {
           sessionStorage.setItem('failed_receipts', JSON.stringify(failed));
         }
@@ -180,12 +203,14 @@ export default function PrintReceipts() {
           setReceiptsData(receipts);
           if (failed.length > 0) {
             setFailedPayments(failed);
+            // ✅ แสดง toast แจ้งเตือนเมื่อมีรายการล้มเหลว
             toast.warning(`โหลดสำเร็จ ${receipts.length}/${paymentIds.length} รายการ`, {
               description: `มี ${failed.length} รายการที่โหลดไม่สำเร็จ`,
               duration: 5000
             });
           } else {
             toast.success(`โหลดใบเสร็จสำเร็จทั้งหมด ${receipts.length} รายการ`);
+            // ✅ ล้าง sessionStorage ถ้าสำเร็จทั้งหมด
             sessionStorage.removeItem('failed_receipts');
           }
         }
@@ -229,10 +254,10 @@ export default function PrintReceipts() {
             โหลด {progress.current} / {progress.total} รายการ
           </p>
           <p className="text-xs text-slate-400 mt-2">
-            ⚠️ กรุณาอย่าปิดหน้านี้
+            ⚠️ กรุณาอย่าปิดหน้านี้ (อาจใช้เวลา 2-3 นาที)
           </p>
           <p className="text-xs text-blue-600 mt-1">
-            💡 ระบบจะโหลดทีละรายการเพื่อความเสถียร (ช้าแต่แม่นยำ)
+            💡 ระบบจะโหลดทีละ 3 รายการเพื่อความเสถียร
           </p>
         </Card>
       </div>
