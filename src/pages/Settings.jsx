@@ -434,6 +434,21 @@ export default function Settings() {
     refetchOnMount: false,
   });
 
+  const { data: crmPackages } = useQuery({
+    queryKey: ['crmPackages'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getPackagesFromCRM', {});
+      return response.data;
+    },
+    enabled: !!currentUser,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const crmPackageInfo = React.useMemo(() => {
+    if (!activeSubscription || !crmPackages?.packages) return null;
+    return crmPackages.packages.find(p => p.id === activeSubscription.package_id);
+  }, [activeSubscription, crmPackages]);
+
 
 
   const [selectedBranch] = useState(() => {
