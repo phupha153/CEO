@@ -224,6 +224,9 @@ export default function AccountingData() {
 
   // ฟังก์ชันกรองข้อมูล - ใบเสร็จรับเงิน (แสดงทุกรายการ)
   const filteredPayments = useMemo(() => {
+    console.log('🔍 filteredPayments calculation - Total payments:', payments.length);
+    console.log('dateFilter:', dateFilter, 'searchTerm:', searchTerm);
+    
     let dateRange = null;
     
     if (dateFilter !== 'all') {
@@ -245,9 +248,10 @@ export default function AccountingData() {
           dateRange = { from: startOfMonth(subMonths(now, 11)), to: endOfMonth(now) };
           break;
       }
+      console.log('Date range:', dateRange);
     }
 
-    return payments
+    const filtered = payments
       .filter(payment => {
         const room = rooms.find(r => r.id === payment.room_id);
         const tenant = tenants.find(t => t.id === payment.tenant_id);
@@ -273,10 +277,15 @@ export default function AccountingData() {
         const dateB = b.payment_date || b.due_date || b.created_date;
         return new Date(dateB) - new Date(dateA);
       });
+    
+    console.log('✅ Filtered payments:', filtered.length);
+    return filtered;
   }, [payments, rooms, tenants, searchTerm, dateFilter]);
 
   // ฟังก์ชันกรองใบแจ้งหนี้ - แสดงทุกรายการ
   const filteredInvoices = useMemo(() => {
+    console.log('🔍 filteredInvoices calculation - Total payments:', payments.length);
+    
     let dateRange = null;
     
     if (dateFilter !== 'all') {
@@ -300,7 +309,7 @@ export default function AccountingData() {
       }
     }
 
-    return payments
+    const filtered = payments
       .filter(payment => {
         const room = rooms.find(r => r.id === payment.room_id);
         const tenant = tenants.find(t => t.id === payment.tenant_id);
@@ -326,6 +335,9 @@ export default function AccountingData() {
         const dateB = b.due_date || b.created_date;
         return new Date(dateB) - new Date(dateA);
       });
+    
+    console.log('✅ Filtered invoices:', filtered.length);
+    return filtered;
   }, [payments, rooms, tenants, searchTerm, dateFilter]);
 
   const filteredBookings = useMemo(() => {
