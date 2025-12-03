@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
 
         const actualBranchId = payment.branch_id;
 
-        // ดึงข้อมูลที่เกี่ยวข้อง - ใช้ list + find (เสถียรที่สุด)
+        // ดึงข้อมูลที่เกี่ยวข้อง - ดึงเฉพาะสาขา (รองรับ 10,000+ ต่อสาขา)
         console.log(`🔍 Looking for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}, branch_id: ${actualBranchId}`);
         
         // ดึง configs และ branches ก่อน (เล็ก ไม่ timeout)
@@ -65,23 +65,53 @@ Deno.serve(async (req) => {
         let tenant = null;
         let room = null;
         
-        // ===== ดึง TENANT - ใช้ list ทั้งหมดแล้ว find =====
+        // ===== ดึง TENANT - filter by branch ก่อน, fallback list ถ้าไม่เจอ =====
         if (payment.tenant_id) {
             try {
-                const allTenants = await base44.asServiceRole.entities.Tenant.list('-created_date', 10000);
-                tenant = allTenants.find(t => t.id === payment.tenant_id);
-                console.log(`📋 Loaded ${allTenants.length} tenants, found: ${tenant?.full_name || 'NOT FOUND'}`);
+                // ลอง filter by branch ก่อน (เร็ว + รองรับข้อมูลมาก)
+                if (actualBranchId) {
+                    const branchTenants = await base44.asServiceRole.entities.Tenant.filter(
+                        { branch_id: actualBranchId }, 
+                        '-created_date', 
+                        10000
+                    );
+                    tenant = branchTenants.find(t => t.id === payment.tenant_id);
+                    console.log(`📋 [Branch] Loaded ${branchTenants.length} tenants, found: ${tenant?.full_name || 'NOT IN BRANCH'}`);
+                }
+                
+                // Fallback: ถ้าไม่เจอในสาขา ให้ list ทั้งหมด
+                if (!tenant) {
+                    console.log(`🔄 Tenant not in branch, fallback to list all...`);
+                    const allTenants = await base44.asServiceRole.entities.Tenant.list('-created_date', 10000);
+                    tenant = allTenants.find(t => t.id === payment.tenant_id);
+                    console.log(`📋 [All] Loaded ${allTenants.length} tenants, found: ${tenant?.full_name || 'NOT FOUND'}`);
+                }
             } catch (tenantErr) {
                 console.error(`⚠️ Error loading tenants:`, tenantErr.message);
             }
         }
         
-        // ===== ดึง ROOM - ใช้ list ทั้งหมดแล้ว find =====
+        // ===== ดึง ROOM - filter by branch ก่อน, fallback list ถ้าไม่เจอ =====
         if (payment.room_id) {
             try {
-                const allRooms = await base44.asServiceRole.entities.Room.list('-created_date', 10000);
-                room = allRooms.find(r => r.id === payment.room_id);
-                console.log(`📋 Loaded ${allRooms.length} rooms, found: ${room?.room_number || 'NOT FOUND'}`);
+                // ลอง filter by branch ก่อน (เร็ว + รองรับข้อมูลมาก)
+                if (actualBranchId) {
+                    const branchRooms = await base44.asServiceRole.entities.Room.filter(
+                        { branch_id: actualBranchId }, 
+                        '-created_date', 
+                        10000
+                    );
+                    room = branchRooms.find(r => r.id === payment.room_id);
+                    console.log(`📋 [Branch] Loaded ${branchRooms.length} rooms, found: ${room?.room_number || 'NOT IN BRANCH'}`);
+                }
+                
+                // Fallback: ถ้าไม่เจอในสาขา ให้ list ทั้งหมด
+                if (!room) {
+                    console.log(`🔄 Room not in branch, fallback to list all...`);
+                    const allRooms = await base44.asServiceRole.entities.Room.list('-created_date', 10000);
+                    room = allRooms.find(r => r.id === payment.room_id);
+                    console.log(`📋 [All] Loaded ${allRooms.length} rooms, found: ${room?.room_number || 'NOT FOUND'}`);
+                }
             } catch (roomErr) {
                 console.error(`⚠️ Error loading rooms:`, roomErr.message);
             }
