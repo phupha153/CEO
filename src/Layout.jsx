@@ -1312,7 +1312,7 @@ export default function Layout({ children, currentPageName }) {
 
     const { status, daysRemaining, subscription } = subscriptionCheck;
 
-    // ถ้าเป็น multi_tenant และสาขานี้มี package active = แสดง package banner เฉพาะ trial และใกล้หมดอายุ
+    // ถ้าเป็น multi_tenant และสาขานี้มี package active = แสดง package banner
     if (appMode === 'multi_tenant' && selectedBranch) {
       const branchPackage = branchPackages.find(bp => 
         bp.branch_id === selectedBranch.id && bp.status === 'active'
@@ -1322,8 +1322,8 @@ export default function Layout({ children, currentPageName }) {
       if (branchPackage) {
         const isTrial = branchPackage.package_id === 'trial' || branchPackage.price_per_month === 0;
 
-        // ถ้าเป็น trial package
-        if (isTrial && daysRemaining !== undefined) {
+        // ✅ ถ้าเป็น trial package - แสดงเสมอ
+        if (isTrial && daysRemaining !== undefined && daysRemaining >= 0) {
           return (
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
