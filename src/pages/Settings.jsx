@@ -531,11 +531,6 @@ export default function Settings() {
 
   const daysRemaining = getDaysRemaining();
 
-  const crmPackageInfo = React.useMemo(() => {
-    if (!activeSubscription || !crmPackages?.packages) return null;
-    return crmPackages.packages.find(p => p.id === activeSubscription.package_id);
-  }, [activeSubscription, crmPackages]);
-
   useEffect(() => {
     const getConfigValue = (key, applyToAll = true) => {
       if (!selectedBranch) {
