@@ -32,6 +32,9 @@ export default function AccountingData() {
   // ✅ เพิ่ม state สำหรับ failed receipts
   const [failedReceipts, setFailedReceipts] = useState([]);
   const [showFailedBanner, setShowFailedBanner] = useState(false);
+  
+  // Debug state
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
 
   // New state for active tab and selected branch name
   const [activeTab, setActiveTab] = useState('payments');
@@ -936,6 +939,16 @@ export default function AccountingData() {
         icon={Database}
         actions={
           <>
+            {userRole === 'developer' && (
+              <Button
+                onClick={() => setShowDebugPanel(!showDebugPanel)}
+                variant="outline"
+                className="border-purple-600 text-purple-600 hover:bg-purple-50 shadow-md"
+              >
+                <AlertTriangle className="w-4 h-4 mr-2" />
+                Debug
+              </Button>
+            )}
             <Button
               onClick={handleExportSelected}
               disabled={selectedPayments.length === 0 || activeTab !== 'payments'}
@@ -954,10 +967,181 @@ export default function AccountingData() {
             </Button>
           </>
         }
-      />
+        />
 
       <div className="px-4 md:px-8 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
+          {/* Debug Panel */}
+          {showDebugPanel && userRole === 'developer' && (
+            <Card className="bg-purple-50 border-2 border-purple-300 shadow-lg">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-purple-900 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5" />
+                    Debug Info - Data Loading Analysis
+                  </h3>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowDebugPanel(false)}
+                  >
+                    ปิด
+                  </Button>
+                </div>
+
+                <div className="space-y-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white rounded-lg p-4 border border-purple-200">
+                      <p className="font-bold text-purple-800 mb-2">📊 Raw Data Counts</p>
+                      <div className="space-y-1 text-xs">
+                        <p>Payments loaded: <span className="font-mono font-bold text-blue-600">{payments.length}</span></p>
+                        <p>Rooms loaded: <span className="font-mono font-bold text-blue-600">{rooms.length}</span></p>
+                        <p>Tenants loaded: <span className="font-mono font-bold text-blue-600">{tenants.length}</span></p>
+                        <p>Bookings loaded: <span className="font-mono font-bold text-blue-600">{bookings.length}</span></p>
+                        <p>Expenses loaded: <span className="font-mono font-bold text-blue-600">{expenses.length}</span></p>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-4 border border-purple-200">
+                      <p className="font-bold text-purple-800 mb-2">🔍 Filtered Results</p>
+                      <div className="space-y-1 text-xs">
+                        <p>Filtered Payments: <span className="font-mono font-bold text-green-600">{filteredPayments.length}</span></p>
+                        <p>Filtered Invoices: <span className="font-mono font-bold text-green-600">{filteredInvoices.length}</span></p>
+                        <p>Active Tab: <span className="font-mono font-bold">{activeTab}</span></p>
+                        <p>Date Filter: <span className="font-mono font-bold">{dateFilter}</span></p>
+                        <p>Search Term: <span className="font-mono font-bold">{searchTerm || '(ไม่มี)'}</span></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg p-4 border border-purple-200">
+                    <p className="font-bold text-purple-800 mb-2">📍 Branch & User Info</p>
+                    <div className="space-y-1 text-xs">
+                      <p>Selected Branch ID: <span className="font-mono text-blue-600">{selectedBranchId}</span></p>
+                      <p>Selected Branch Name: <span className="font-mono">{selectedBranchName}</span></p>
+                      <p>User Role: <span className="font-mono">{userRole}</span></p>
+                      <p>Loading States: Payments={paymentsLoading ? '⏳' : '✅'}, PaymentsFetching={paymentsFetching ? '⏳' : '✅'}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg p-4 border border-purple-200">
+                    <p className="font-bold text-purple-800 mb-2">🎯 Payment Sample (First 5)</p>
+                    <div className="space-y-2">
+                      {payments.slice(0, 5).map((p, idx) => {
+                        const room = rooms.find(r => r.id === p.room_id);
+                        const tenant = tenants.find(t => t.id === p.tenant_id);
+                        return (
+                          <div key={idx} className="text-xs bg-purple-50 p-2 rounded border">
+                            <p className="font-mono">
+                              <span className="font-bold">#{idx + 1}</span> | 
+                              Room: {room?.room_number || '❌ NOT FOUND'} | 
+                              Tenant: {tenant?.full_name || '❌ NOT FOUND'} | 
+                              Due: {p.due_date || 'N/A'} | 
+                              Total: {p.total_amount}฿ | 
+                              Status: {p.status}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg p-4 border border-purple-200">
+                    <p className="font-bold text-purple-800 mb-2">⚠️ Missing Room/Tenant Analysis</p>
+                    <div className="space-y-2 text-xs">
+                      {(() => {
+                        const paymentsWithMissingRoom = payments.filter(p => !rooms.find(r => r.id === p.room_id));
+                        const paymentsWithMissingTenant = payments.filter(p => !tenants.find(t => t.id === p.tenant_id));
+
+                        return (
+                          <>
+                            <p>
+                              <span className="font-bold text-red-600">Missing Rooms:</span> {paymentsWithMissingRoom.length} payments
+                            </p>
+                            {paymentsWithMissingRoom.length > 0 && (
+                              <div className="bg-red-50 p-2 rounded max-h-40 overflow-y-auto">
+                                {paymentsWithMissingRoom.slice(0, 10).map((p, idx) => (
+                                  <p key={idx} className="font-mono text-xs">
+                                    Payment {p.id.substring(0, 8)} → room_id: {p.room_id}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+
+                            <p className="mt-2">
+                              <span className="font-bold text-red-600">Missing Tenants:</span> {paymentsWithMissingTenant.length} payments
+                            </p>
+                            {paymentsWithMissingTenant.length > 0 && (
+                              <div className="bg-red-50 p-2 rounded max-h-40 overflow-y-auto">
+                                {paymentsWithMissingTenant.slice(0, 10).map((p, idx) => (
+                                  <p key={idx} className="font-mono text-xs">
+                                    Payment {p.id.substring(0, 8)} → tenant_id: {p.tenant_id}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg p-4 border border-purple-200">
+                    <p className="font-bold text-purple-800 mb-2">🔧 Date Filter Debug</p>
+                    <div className="space-y-1 text-xs">
+                      {(() => {
+                        if (dateFilter === 'all') {
+                          return <p>ไม่มีการกรองตามวันที่</p>;
+                        }
+
+                        const now = new Date();
+                        let dateRange = null;
+
+                        switch(dateFilter) {
+                          case 'this_month':
+                            dateRange = { from: startOfMonth(now), to: endOfMonth(now) };
+                            break;
+                          case 'last_month':
+                            dateRange = { from: startOfMonth(subMonths(now, 1)), to: endOfMonth(subMonths(now, 1)) };
+                            break;
+                          case '3_months':
+                            dateRange = { from: startOfMonth(subMonths(now, 2)), to: endOfMonth(now) };
+                            break;
+                          case '6_months':
+                            dateRange = { from: startOfMonth(subMonths(now, 5)), to: endOfMonth(now) };
+                            break;
+                          case '12_months':
+                            dateRange = { from: startOfMonth(subMonths(now, 11)), to: endOfMonth(now) };
+                            break;
+                        }
+
+                        if (dateRange) {
+                          const paymentsInRange = payments.filter(p => {
+                            if (!p.due_date) return false;
+                            try {
+                              const dueDate = parseISO(p.due_date);
+                              return isWithinInterval(dueDate, { start: dateRange.from, end: dateRange.to });
+                            } catch {
+                              return false;
+                            }
+                          });
+
+                          return (
+                            <>
+                              <p>Date Range: {format(dateRange.from, 'd MMM yyyy', { locale: th })} - {format(dateRange.to, 'd MMM yyyy', { locale: th })}</p>
+                              <p>Payments in range: <span className="font-bold text-blue-600">{paymentsInRange.length}</span></p>
+                              <p>Payments without due_date: <span className="font-bold text-red-600">{payments.filter(p => !p.due_date).length}</span></p>
+                            </>
+                          );
+                        }
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Action buttons previously in header */}
           <div className="flex gap-2 flex-wrap justify-end">
             <Button
