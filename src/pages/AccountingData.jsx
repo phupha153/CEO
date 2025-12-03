@@ -179,12 +179,30 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ เพิ่ม limit เป็น 1000 - ดึงห้องทุกสาขา
+  // ✅ ดึงห้องทุกสาขาแบบ pagination
   const { data: rooms = [] } = useQuery({
     queryKey: ['allRooms'],
     queryFn: async () => {
-      const allRooms = await base44.entities.Room.list('-room_number', 1000);
-      return allRooms;
+      let allData = [];
+      let skip = 0;
+      const limit = 5000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch = await base44.entities.Room.list('-room_number', limit, skip);
+        allData = [...allData, ...batch];
+        skip += limit;
+        
+        if (batch.length < limit) {
+          hasMore = false;
+        }
+        if (skip >= 100000) {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`📊 AccountingData - Loaded ${allData.length} rooms (all branches)`);
+      return allData;
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
@@ -195,12 +213,30 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ เพิ่ม limit เป็น 500 - ดึงผู้เช่าทุกสาขา
+  // ✅ ดึงผู้เช่าทุกสาขาแบบ pagination
   const { data: tenants = [] } = useQuery({
     queryKey: ['allTenants'],
     queryFn: async () => {
-      const allTenants = await base44.entities.Tenant.list('-created_date', 500);
-      return allTenants;
+      let allData = [];
+      let skip = 0;
+      const limit = 5000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch = await base44.entities.Tenant.list('-created_date', limit, skip);
+        allData = [...allData, ...batch];
+        skip += limit;
+        
+        if (batch.length < limit) {
+          hasMore = false;
+        }
+        if (skip >= 100000) {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`📊 AccountingData - Loaded ${allData.length} tenants (all branches)`);
+      return allData;
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
