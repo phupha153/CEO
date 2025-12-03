@@ -183,7 +183,7 @@ export default function PaymentsPage() {
       const payments = await base44.entities.Payment.filter(
         { branch_id: selectedBranchId },
         '-created_date',
-        10000
+        50000
       );
       
       console.log('🔍 Payments Page - Fetched at:', new Date().toLocaleTimeString('th-TH'));
