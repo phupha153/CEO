@@ -2366,7 +2366,7 @@ Return JSON.`;
                       </div>
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">ยอดรวมทั้งหมด</p>
+                  <p className="text-sm font-medium text-slate-500 mb-1 hidden md:block">ยอดรวมทั้งหมด</p>
                   <motion.p 
                     className="text-3xl font-bold text-slate-800"
                     initial={{ scale: 0.5 }}
@@ -2401,7 +2401,7 @@ Return JSON.`;
                       </div>
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">รอชำระ</p>
+                  <p className="text-sm font-medium text-slate-500 mb-1 hidden md:block">รอชำระ</p>
                   <motion.p 
                     className="text-3xl font-bold text-slate-800"
                     initial={{ scale: 0.5 }}
@@ -2436,7 +2436,7 @@ Return JSON.`;
                       </div>
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">เกินกำหนด</p>
+                  <p className="text-sm font-medium text-slate-500 mb-1 hidden md:block">เกินกำหนด</p>
                   <motion.p 
                     className="text-3xl font-bold text-slate-800"
                     initial={{ scale: 0.5 }}
@@ -2471,7 +2471,7 @@ Return JSON.`;
                       </div>
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-slate-500 mb-1">ชำระแล้ว</p>
+                  <p className="text-sm font-medium text-slate-500 mb-1 hidden md:block">ชำระแล้ว</p>
                   <motion.p 
                     className="text-3xl font-bold text-slate-800"
                     initial={{ scale: 0.5 }}
