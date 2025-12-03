@@ -1771,8 +1771,8 @@ export default function Settings() {
                             {(() => {
                               // นับจำนวนผู้ใช้จริงในระบบ
                               const totalUsersInSystem = users.length;
-                              // ดึง max_users จาก crmPackageInfo (ที่ match กับ package_id ของ activeSubscription)
-                              const maxUsers = crmPackageInfo?.max_users;
+                              // ดึง max_users โดยตรงจาก activeSubscription (จาก BranchPackage ที่ดึงจาก CRM มา)
+                              const maxUsers = activeSubscription?.max_users;
                               const hasLimit = maxUsers !== null && maxUsers !== undefined && maxUsers > 0;
                               const usagePercent = hasLimit ? Math.min((totalUsersInSystem / maxUsers) * 100, 100) : 10;
 
