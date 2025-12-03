@@ -692,26 +692,25 @@ export default function Layout({ children, currentPageName }) {
         );
 
         if (!existingPackage && !anyActivePackage) {
-          // ⭐⭐⭐ ไม่ auto-copy paid package จากสาขาอื่นอีกต่อไป
-          // ถ้าสาขานี้ไม่มี package = redirect ไปหน้าเลือก package แทน
-          console.log('🚫 No active package for branch:', selectedBranch.id, '- Redirecting to package selection');
+          // ⭐⭐⭐ ไม่มี active package - เช็คว่าเคยมี *paid* package ที่หมดอายุ/ถูกยกเลิกหรือไม่
+          console.log('🚫 No active package for branch:', selectedBranch.id);
           
-          // ไม่สร้าง trial อัตโนมัติ - ให้ user เลือกซื้อ package เอง
-          // แต่ถ้าเป็นสาขาใหม่ที่ไม่เคยมี package เลย (ไม่มีแม้แต่ cancelled) = สร้าง trial
-          const everHadPackage = branchPackages.some(bp => 
-            bp.branch_id === selectedBranch.id
+          // เช็คว่าเคยมี "paid package" (ไม่ใช่ trial) ที่ถูก cancel/expire หรือไม่
+          const everHadPaidPackage = branchPackages.some(bp => 
+            bp.branch_id === selectedBranch.id &&
+            bp.package_id !== 'trial' &&
+            bp.price_per_month > 0
           );
           
-          if (everHadPackage) {
-            // เคยมี package แล้ว (แต่ถูก cancel/expire) = ต้องซื้อใหม่
-            console.log('📦 Branch had package before, redirecting to PackageSelectionPage');
+          if (everHadPaidPackage) {
+            // เคยมี paid package แล้ว (แต่ถูก cancel/expire) = ต้องซื้อใหม่
+            console.log('📦 Branch had PAID package before, redirecting to PackageSelectionPage');
             navigate(createPageUrl('PackageSelectionPage'), { replace: true });
             return;
           }
           
-          // สาขาใหม่ที่ไม่เคยมี package เลย = สร้าง trial
-            // ไม่มี paid package → สร้าง trial (เฉพาะเมื่อยังไม่มี package ใดๆ)
-            console.log('🆕 No existing package found, creating trial for branch:', selectedBranch.id);
+          // ไม่เคยมี paid package = สร้าง trial (รวมถึงกรณีที่เคยมี trial แล้วหมดอายุ)
+          console.log('🆕 No paid package history found, creating trial for branch:', selectedBranch.id);
             setIsCreatingTrial(true);
             try {
               const trialDaysConfig = configs.find(c => c.key === 'trial_days' && !c.branch_id);
