@@ -2609,6 +2609,11 @@ Return JSON.`;
                                          📤 ส่งบิลแล้ว
                                        </Badge>
                                      )}
+                                     {payment.due_date_reminder_sent_date && effectiveStatus !== 'paid' && (
+                                       <Badge className="bg-orange-100 text-orange-700 text-xs hidden md:inline-flex" title={`ส่งแจ้งครบกำหนดแล้วเมื่อ ${format(parseISO(payment.due_date_reminder_sent_date), 'd MMM HH:mm', { locale: th })}`}>
+                                         ⏰ ส่งแจ้งครบกำหนดแล้ว
+                                       </Badge>
+                                     )}
                                      {payment.receipt_sent_date && effectiveStatus === 'paid' && (
                                        <Badge className="bg-blue-100 text-blue-700 text-xs hidden md:inline-flex" title={`ส่งใบเสร็จแล้วเมื่อ ${format(parseISO(payment.receipt_sent_date), 'd MMM HH:mm', { locale: th })}`}>
                                          📄 ส่งใบเสร็จแล้ว
@@ -3417,6 +3422,11 @@ Return JSON.`;
                                              {roomPayment.bill_sent_date && effectiveStatus !== 'paid' && (
                                                <Badge className="bg-purple-100 text-purple-700 text-xs">
                                                  📤 ส่งบิล {format(parseISO(roomPayment.bill_sent_date), 'd MMM HH:mm', { locale: th })}
+                                               </Badge>
+                                             )}
+                                             {roomPayment.due_date_reminder_sent_date && effectiveStatus !== 'paid' && (
+                                               <Badge className="bg-orange-100 text-orange-700 text-xs">
+                                                 ⏰ ส่งแจ้งครบกำหนด {format(parseISO(roomPayment.due_date_reminder_sent_date), 'd MMM HH:mm', { locale: th })}
                                                </Badge>
                                              )}
                                              {roomPayment.receipt_sent_date && effectiveStatus === 'paid' && (
