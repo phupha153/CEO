@@ -112,7 +112,7 @@ export default function AccountingData() {
   };
 
   // ✅ เพิ่ม limit เป็น 1000
-  const { data: payments = [], isLoading: paymentsLoading } = useQuery({
+  const { data: payments = [], isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
     queryKey: ['payments', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
@@ -808,6 +808,26 @@ export default function AccountingData() {
           toast.error('เลือกได้เฉพาะรายการใบเสร็จรับเงินเท่านั้น');
       }
   };
+
+  if (paymentsLoading && payments.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
+        <PageHeader 
+          title="ฐานข้อมูลบัญชี" 
+          subtitle={`สาขา ${selectedBranchName}`}
+          icon={Database}
+        />
+        <div className="px-4 md:px-8 py-6">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+              <p className="text-slate-600 text-lg">กำลังโหลดข้อมูลการชำระเงิน...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">

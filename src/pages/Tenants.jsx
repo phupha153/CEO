@@ -2236,9 +2236,9 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     );
   }
 
-  if (tenantsLoading) {
+  if (tenantsLoading && tenants.length === 0) {
     return (
-      <div className="p-4 md:p-8 min-h-screen">
+      <div className="p-4 md:p-8 min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center py-20">
             <div className="text-center">

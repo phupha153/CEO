@@ -121,7 +121,7 @@ export default function BookingsPage() {
   const canCheckIn = userRole === 'developer' || userPermissions.includes('bookings_checkin');
   const canCheckOut = userRole === 'developer' || userPermissions.includes('bookings_checkout');
 
-  const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
+  const { data: bookings = [], isLoading: bookingsLoading, isFetching: bookingsFetching } = useQuery({
     queryKey: ['bookings', selectedBranchId],
     queryFn: () => base44.entities.Booking.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
     enabled: canView && !!selectedBranchId,
@@ -982,13 +982,13 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
     );
   }
 
-  if (bookingsLoading) {
+  if (bookingsLoading && bookings.length === 0) {
     return (
       <div className="p-4 md:p-8 min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center py-20">
             <div className="text-center">
-              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
               <p className="text-slate-600 text-lg">กำลังโหลดข้อมูลการจอง...</p>
             </div>
           </div>

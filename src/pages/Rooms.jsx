@@ -1513,11 +1513,11 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     );
   }
 
-  if (roomsLoading || (roomsFetching && rooms.length === 0)) {
+  if ((roomsLoading || roomsFetching) && rooms.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
           <p className="text-slate-700 text-lg font-medium">กำลังโหลดข้อมูลห้องพัก...</p>
           <p className="text-slate-500 text-sm mt-1">กรุณารอสักครู่</p>
         </div>
