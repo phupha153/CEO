@@ -74,7 +74,7 @@ export default function ReportsPage() {
         }
       }
       
-      console.log(`📊 Reports - Loaded ${allData.length} payments for branch ${selectedBranchId}`);
+
       return allData;
     },
     enabled: !!selectedBranchId,
