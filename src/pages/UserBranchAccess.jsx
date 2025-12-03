@@ -376,29 +376,13 @@ export default function UserBranchAccess() {
     );
   });
 
-  // แสดง loading หรือ access denied
+  // แสดง loading
   if (userLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
           <Users className="w-12 h-12 text-slate-400 mx-auto mb-4 animate-pulse" />
           <p className="text-slate-600">กำลังโหลด...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // ถ้าไม่ใช่ developer หรือ owner แสดง access denied
-  if (currentUser && userRole !== 'developer' && userRole !== 'owner') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-50 flex items-center justify-center">
-        <div className="text-center max-w-md px-4">
-          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">ไม่มีสิทธิ์เข้าถึง</h2>
-          <p className="text-slate-600 mb-6">หน้านี้สำหรับ Developer และเจ้าของหอพักเท่านั้น</p>
-          <Button onClick={() => navigate(createPageUrl('Dashboard'))} className="bg-blue-600 hover:bg-blue-700">
-            กลับหน้าหลัก
-          </Button>
         </div>
       </div>
     );
