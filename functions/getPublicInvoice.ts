@@ -33,13 +33,11 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // ดึง Payment โดยตรงจาก list แล้ว find (เพราะ id เป็น field พิเศษ filter ไม่ได้)
-        const allPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 50000);
-        const payment = allPayments.find(p => p.id === paymentId);
+        // ดึงข้อมูล Payment โดยตรงด้วย filter
+        const paymentResults = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
+        const payment = Array.isArray(paymentResults) ? paymentResults[0] : paymentResults;
 
         if (!payment) {
-            console.log(`❌ Payment not found: ${paymentId}`);
-            console.log(`📊 Total payments loaded: ${allPayments.length}`);
             return Response.json({ 
                 success: false, 
                 error: 'ไม่พบใบแจ้งหนี้' 
@@ -56,20 +54,21 @@ Deno.serve(async (req) => {
 
         const actualBranchId = payment.branch_id;
 
-        // ดึงข้อมูลที่เกี่ยวข้องพร้อมกัน แล้วใช้ find
+        // ดึงข้อมูลที่เกี่ยวข้อง - ใช้ list แล้ว filter เองเพื่อความเสถียร
+        console.log(`🔍 Looking for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}`);
+        
         const [allTenants, allRooms, allBranches, configs] = await Promise.all([
-            base44.asServiceRole.entities.Tenant.list('-created_date', 10000),
-            base44.asServiceRole.entities.Room.list('-room_number', 10000),
+            base44.asServiceRole.entities.Tenant.list('-created_date', 5000),
+            base44.asServiceRole.entities.Room.list('-created_date', 5000),
             base44.asServiceRole.entities.Branch.list(),
             base44.asServiceRole.entities.Config.list()
         ]);
 
-        // หาข้อมูลที่เกี่ยวข้องจาก arrays ที่โหลดมาแล้ว
         const tenant = payment.tenant_id ? allTenants.find(t => t.id === payment.tenant_id) : null;
         const room = payment.room_id ? allRooms.find(r => r.id === payment.room_id) : null;
         const branch = actualBranchId ? allBranches.find(b => b.id === actualBranchId) : null;
 
-        console.log(`📋 Found - Payment: ✅, Tenant: ${tenant ? '✅' : '❌'}, Room: ${room ? '✅' : '❌'}, Branch: ${branch ? '✅' : '❌'}`);
+        console.log(`📋 Found: room=${room?.room_number || 'NOT FOUND'}, tenant=${tenant?.full_name || 'NOT FOUND'}, branch=${branch?.branch_name || 'NOT FOUND'}`);
 
         // ดึง config ของสาขา
         const getConfigValue = (key) => {

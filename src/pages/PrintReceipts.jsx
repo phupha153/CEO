@@ -98,22 +98,15 @@ export default function PrintReceipts() {
   const paymentIdsParam = searchParams.get('paymentIds');
   const docType = searchParams.get('type') || 'receipt'; // 'receipt' หรือ 'invoice'
   
-  const paymentIds = useMemo(() => {
-    if (!paymentIdsParam) return [];
-    // ✅ ลบ ID ซ้ำออก
-    const ids = paymentIdsParam.split(',').filter(id => id && id.trim());
-    const uniqueIds = [...new Set(ids)];
-    console.log(`📋 Total IDs: ${ids.length}, Unique: ${uniqueIds.length}`);
-    return uniqueIds;
-  }, [paymentIdsParam]);
+  const paymentIds = useMemo(() => 
+    paymentIdsParam ? paymentIdsParam.split(',') : []
+  , [paymentIdsParam]);
 
   const [receiptsData, setReceiptsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [failedPayments, setFailedPayments] = useState([]);
-  const [debugLogs, setDebugLogs] = useState([]);
-  const [showDebug, setShowDebug] = useState(true);
 
   useEffect(() => {
     const fetchReceipts = async () => {
@@ -134,33 +127,47 @@ export default function PrintReceipts() {
 
         console.log(`📊 Starting to fetch ${paymentIds.length} receipts...`);
 
-        // ✅ ใช้ Promise.all โดยตรงสำหรับความเร็ว (ไม่ต้อง batch เพราะ API รองรับได้)
-        console.log(`🚀 Fetching ${paymentIds.length} receipts in parallel...`);
-        setDebugLogs(prev => [...prev, `🚀 เริ่มโหลด ${paymentIds.length} รายการพร้อมกัน`]);
+        // ✅ ปรับลด batch size จาก 5 เป็น 3 เพื่อความเสถียร
+        const results = await fetchInBatches(
+          paymentIds, 
+          3, // ลดจาก 5 เป็น 3 รายการต่อครั้ง
+          async (paymentId) => {
+            return await fetchWithRetry(
+              async () => {
+                console.log(`🔄 Fetching invoice for payment: ${paymentId}`);
+                
+                // ✅ เพิ่ม timeout protection
+                const timeoutPromise = new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error('Request timeout')), 15000) // 15 วินาที
+                );
+                
+                const fetchPromise = base44.functions.invoke('getPublicInvoice', { 
+                  paymentId: paymentId 
+                });
 
-        const results = await Promise.allSettled(
-          paymentIds.map(async (paymentId) => {
-            const logMsg = `🔄 ${paymentId.slice(0,8)}`;
-            setDebugLogs(prev => [...prev, logMsg]);
+                const response = await Promise.race([fetchPromise, timeoutPromise]);
 
-            const response = await base44.functions.invoke('getPublicInvoice', { 
-              paymentId: paymentId 
-            });
+                setProgress(prev => ({ ...prev, current: prev.current + 1 }));
 
-            setProgress(prev => ({ ...prev, current: prev.current + 1 }));
-
-            if (response.data && response.data.success && response.data.invoice) {
-              const successMsg = `✅ ${paymentId.slice(0,8)}: ${response.data.invoice.room?.room_number || 'N/A'}`;
-              setDebugLogs(prev => [...prev, successMsg]);
-              return { success: true, data: response.data.invoice, paymentId };
-            } else {
-              const errorMsg = response.data?.error || 'ไม่พบ';
-              const failMsg = `❌ ${paymentId.slice(0,8)}: ${errorMsg}`;
-              setDebugLogs(prev => [...prev, failMsg]);
-              return { success: false, error: errorMsg, paymentId };
-            }
-          })
+                if (response.data && response.data.success && response.data.invoice) {
+                  return { success: true, data: response.data.invoice, paymentId };
+                } else {
+                  const errorMsg = response.data?.error || 'ไม่พบใบเสร็จ';
+                  return { 
+                    success: false, 
+                    error: errorMsg,
+                    paymentId 
+                  };
+                }
+              },
+              3, // retry 3 ครั้ง
+              3000 // เพิ่มจาก 2 เป็น 3 วินาที
+            );
+          }
         );
+
+        // ✅ เพิ่ม delay 1 วินาทีระหว่างแต่ละ batch
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         // ประมวลผลลัพธ์
         results.forEach((result, index) => {
@@ -234,7 +241,7 @@ export default function PrintReceipts() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-        <Card className="p-8 text-center max-w-2xl w-full">
+        <Card className="p-8 text-center max-w-sm w-full">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
           <p className="text-lg font-semibold text-slate-700 mb-2">กำลังโหลดใบเสร็จ...</p>
           <div className="w-full bg-slate-200 rounded-full h-2 mb-2">
@@ -252,30 +259,6 @@ export default function PrintReceipts() {
           <p className="text-xs text-blue-600 mt-1">
             💡 ระบบจะโหลดทีละ 3 รายการเพื่อความเสถียร
           </p>
-
-          {/* Debug Panel */}
-          {debugLogs.length > 0 && (
-            <div className="mt-4 text-left">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-purple-700">🔧 Debug Log:</p>
-                <button 
-                  onClick={() => setShowDebug(!showDebug)}
-                  className="text-xs text-purple-600 hover:underline"
-                >
-                  {showDebug ? 'ซ่อน' : 'แสดง'}
-                </button>
-              </div>
-              {showDebug && (
-                <div className="bg-slate-900 text-green-400 rounded-lg p-3 max-h-60 overflow-y-auto text-xs font-mono">
-                  {debugLogs.slice(-20).map((log, idx) => (
-                    <div key={idx} className={log.startsWith('❌') ? 'text-red-400' : log.startsWith('✅') ? 'text-green-400' : 'text-yellow-400'}>
-                      {log}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
         </Card>
       </div>
     );
