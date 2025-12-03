@@ -1792,20 +1792,33 @@ export default function Settings() {
                                     {!hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInSystem)} ที่นั่ง`}
                                   </p>
 
-                                  {users.length > 0 && (
-                                    <div className="pt-3 border-t border-slate-200 space-y-1">
-                                      <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อผู้ใช้ทั้งหมด:</p>
-                                      {users.slice(0, 5).map(user => (
-                                        <div key={user.id} className="text-xs text-slate-600 flex items-center gap-1">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                          {user.full_name || user.email}
-                                        </div>
-                                      ))}
-                                      {users.length > 5 && (
-                                        <p className="text-xs text-slate-500 italic">และอีก {users.length - 5} คน</p>
-                                      )}
-                                    </div>
-                                  )}
+                                  {(() => {
+                                    // กรองเฉพาะผู้ใช้ที่มี accessible_branches ซ้อนทับกับสาขาในระบบนี้
+                                    const branchIds = branches.map(b => b.id);
+                                    const usersInMyBranches = users.filter(user => {
+                                      // ถ้าไม่มี accessible_branches = ไม่อยู่ในสาขาใด (ยกเว้น developer/owner ที่ไม่ set)
+                                      const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                                      if (role === 'developer') return true; // Developer เห็นทุกที่
+                                      if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
+                                      // เช็คว่ามี branch ที่ซ้อนทับกันไหม
+                                      return user.accessible_branches.some(branchId => branchIds.includes(branchId));
+                                    });
+
+                                    return usersInMyBranches.length > 0 && (
+                                      <div className="pt-3 border-t border-slate-200 space-y-1">
+                                        <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อผู้ใช้ในสาขา:</p>
+                                        {usersInMyBranches.slice(0, 5).map(user => (
+                                          <div key={user.id} className="text-xs text-slate-600 flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                            {user.full_name || user.email}
+                                          </div>
+                                        ))}
+                                        {usersInMyBranches.length > 5 && (
+                                          <p className="text-xs text-slate-500 italic">และอีก {usersInMyBranches.length - 5} คน</p>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               );
                             })()}
