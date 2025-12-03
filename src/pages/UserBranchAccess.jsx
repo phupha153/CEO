@@ -31,7 +31,6 @@ export default function UserBranchAccess() {
     duration_months: '1',
   });
   const [isEditingPackage, setIsEditingPackage] = useState(false);
-
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [packageToCancel, setPackageToCancel] = useState(null);
 
