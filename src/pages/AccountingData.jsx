@@ -145,13 +145,12 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ เพิ่ม limit เป็น 1000
+  // ✅ เพิ่ม limit เป็น 1000 - ดึงห้องทุกสาขา
   const { data: rooms = [] } = useQuery({
-    queryKey: ['rooms', selectedBranchId],
+    queryKey: ['allRooms'],
     queryFn: async () => {
-      if (!selectedBranchId) return [];
       const allRooms = await base44.entities.Room.list('-room_number', 1000);
-      return allRooms.filter(room => room.branch_id === selectedBranchId);
+      return allRooms;
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
@@ -162,13 +161,12 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ เพิ่ม limit เป็น 500
+  // ✅ เพิ่ม limit เป็น 500 - ดึงผู้เช่าทุกสาขา
   const { data: tenants = [] } = useQuery({
-    queryKey: ['tenants', selectedBranchId],
+    queryKey: ['allTenants'],
     queryFn: async () => {
-      if (!selectedBranchId) return [];
       const allTenants = await base44.entities.Tenant.list('-created_date', 500);
-      return allTenants.filter(tenant => tenant.branch_id === selectedBranchId);
+      return allTenants;
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
