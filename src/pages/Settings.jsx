@@ -1767,19 +1767,28 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // นับจำนวนผู้ใช้จริงในระบบ
-                              const totalUsersInSystem = users.length;
+                              // กรองเฉพาะผู้ใช้ที่มี accessible_branches ซ้อนทับกับสาขาในระบบนี้
+                              const branchIds = branches.map(b => b.id);
+                              const usersInMyBranches = users.filter(user => {
+                                const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                                if (role === 'developer') return true; // Developer เห็นทุกที่
+                                if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
+                                return user.accessible_branches.some(branchId => branchIds.includes(branchId));
+                              });
+
+                              // นับจำนวนผู้ใช้เฉพาะในสาขาของเรา
+                              const totalUsersInMyBranches = usersInMyBranches.length;
                               // ดึง max_users จาก crmPackageInfo (ข้อมูลล่าสุดจาก CRM)
                               const maxUsers = crmPackageInfo?.max_users;
                               const hasLimit = maxUsers !== null && maxUsers !== undefined && maxUsers > 0;
-                              const usagePercent = hasLimit ? Math.min((totalUsersInSystem / maxUsers) * 100, 100) : 10;
+                              const usagePercent = hasLimit ? Math.min((totalUsersInMyBranches / maxUsers) * 100, 100) : 10;
 
                               return (
                                 <div className="space-y-4">
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm text-slate-600">ผู้ใช้งานทั้งหมด</span>
                                     <span className="text-2xl font-bold text-blue-600">
-                                      {totalUsersInSystem} {hasLimit && `/ ${maxUsers}`}
+                                      {totalUsersInMyBranches} {hasLimit && `/ ${maxUsers}`}
                                     </span>
                                   </div>
                                   <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
@@ -1789,36 +1798,23 @@ export default function Settings() {
                                     />
                                   </div>
                                   <p className="text-xs text-slate-500">
-                                    {!hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInSystem)} ที่นั่ง`}
+                                    {!hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInMyBranches)} ที่นั่ง`}
                                   </p>
 
-                                  {(() => {
-                                    // กรองเฉพาะผู้ใช้ที่มี accessible_branches ซ้อนทับกับสาขาในระบบนี้
-                                    const branchIds = branches.map(b => b.id);
-                                    const usersInMyBranches = users.filter(user => {
-                                      // ถ้าไม่มี accessible_branches = ไม่อยู่ในสาขาใด (ยกเว้น developer/owner ที่ไม่ set)
-                                      const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
-                                      if (role === 'developer') return true; // Developer เห็นทุกที่
-                                      if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
-                                      // เช็คว่ามี branch ที่ซ้อนทับกันไหม
-                                      return user.accessible_branches.some(branchId => branchIds.includes(branchId));
-                                    });
-
-                                    return usersInMyBranches.length > 0 && (
-                                      <div className="pt-3 border-t border-slate-200 space-y-1">
-                                        <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อผู้ใช้ในสาขา:</p>
-                                        {usersInMyBranches.slice(0, 5).map(user => (
-                                          <div key={user.id} className="text-xs text-slate-600 flex items-center gap-1">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                            {user.full_name || user.email}
-                                          </div>
-                                        ))}
-                                        {usersInMyBranches.length > 5 && (
-                                          <p className="text-xs text-slate-500 italic">และอีก {usersInMyBranches.length - 5} คน</p>
-                                        )}
-                                      </div>
-                                    );
-                                  })()}
+                                  {usersInMyBranches.length > 0 && (
+                                    <div className="pt-3 border-t border-slate-200 space-y-1">
+                                      <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อผู้ใช้ในสาขา:</p>
+                                      {usersInMyBranches.slice(0, 5).map(user => (
+                                        <div key={user.id} className="text-xs text-slate-600 flex items-center gap-1">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                          {user.full_name || user.email}
+                                        </div>
+                                      ))}
+                                      {usersInMyBranches.length > 5 && (
+                                        <p className="text-xs text-slate-500 italic">และอีก {usersInMyBranches.length - 5} คน</p>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })()}
