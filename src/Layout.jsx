@@ -746,7 +746,6 @@ export default function Layout({ children, currentPageName }) {
           }
           // ⭐⭐⭐ ไม่ auto-upgrade จาก trial เป็น paid package อีกต่อไป
         // แต่ละสาขาต้องซื้อ package เอง หรือถูกกำหนดโดย admin
-        }
       } else if (currentAppMode === 'single_tenant') {
         // Single tenant - ใช้ logic เดิม
         if (appSubscriptions.length === 0) {
