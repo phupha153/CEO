@@ -454,26 +454,16 @@ export default function AccountingData() {
     setShowReceiptLinks(true);
   };
 
-  // ฟังก์ชันพิมพ์ใบเสร็จทั้งหมดในหน้าเดียว - แก้ไขใหม่: เปิดในหน้าเดียวกัน
+  // ฟังก์ชันพิมพ์ใบเสร็จ/ใบแจ้งหนี้ทั้งหมด - ดาวน์โหลดได้ทุกรายการ
   const handlePrintAllReceipts = async () => {
     if (selectedPayments.length === 0) {
       toast.error('กรุณาเลือกรายการก่อน');
       return;
     }
 
-    const paidPayments = selectedPayments.filter(paymentId => {
-      const payment = payments.find(p => p.id === paymentId);
-      return payment && payment.status === 'paid';
-    });
-
-    if (paidPayments.length === 0) {
-      toast.error('ไม่มีรายการที่ชำระแล้วในที่เลือก');
-      return;
-    }
-
     // บันทึกประวัติ
     try {
-      const roomNumbers = paidPayments.map(paymentId => {
+      const roomNumbers = selectedPayments.map(paymentId => {
         const payment = payments.find(p => p.id === paymentId);
         const room = rooms.find(r => r.id === payment?.room_id);
         return room?.room_number || 'N/A';
@@ -484,18 +474,18 @@ export default function AccountingData() {
         action_type: 'create',
         entity_type: 'Receipt',
         entity_id: `receipts_${Date.now()}`,
-        entity_name: `ใบเสร็จ ${paidPayments.length} รายการ`,
+        entity_name: `ใบเสร็จ/ใบแจ้งหนี้ ${selectedPayments.length} รายการ`,
         user_email: currentUser?.email || 'unknown',
         user_name: currentUser?.full_name || 'ไม่ระบุ',
-        description: `พิมพ์/บันทึกใบเสร็จ PDF ${paidPayments.length} รายการ (ห้อง: ${roomNumbers})`,
-        changes: { count: paidPayments.length, payment_ids: paidPayments }
+        description: `พิมพ์/บันทึก PDF ${selectedPayments.length} รายการ (ห้อง: ${roomNumbers})`,
+        changes: { count: selectedPayments.length, payment_ids: selectedPayments }
       });
     } catch (error) {
       console.error('Failed to log activity:', error);
     }
 
-    // เปิดในหน้าเดียวกัน (ไม่เปิด tab ใหม่)
-    const paymentIdsString = paidPayments.join(',');
+    // เปิดทุกรายการที่เลือก (ไม่จำกัดเฉพาะที่ชำระแล้ว)
+    const paymentIdsString = selectedPayments.join(',');
     navigate(`${createPageUrl('PrintReceipts')}?paymentIds=${paymentIdsString}`);
   };
 
@@ -1051,6 +1041,7 @@ export default function AccountingData() {
                           <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">วันที่</th>
                           <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">ห้อง</th>
                           <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">ผู้เช่า</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">เบอร์โทร</th>
                           <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">ค่าเช่า</th>
                           <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">ค่าไฟ</th>
                           <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">ค่าน้ำ</th>
@@ -1089,6 +1080,7 @@ export default function AccountingData() {
                               </td>
                               <td className="px-4 py-3 text-sm font-medium">{room?.room_number || '-'}</td>
                               <td className="px-4 py-3 text-sm">{tenant?.full_name || '-'}</td>
+                              <td className="px-4 py-3 text-sm">{tenant?.phone || '-'}</td>
                               <td className="px-4 py-3 text-sm text-right">{(payment.rent_amount || 0).toLocaleString()}</td>
                               <td className="px-4 py-3 text-sm text-right">{(payment.electricity_amount || 0).toLocaleString()}</td>
                               <td className="px-4 py-3 text-sm text-right">{(payment.water_amount || 0).toLocaleString()}</td>
