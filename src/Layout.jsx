@@ -712,23 +712,9 @@ export default function Layout({ children, currentPageName }) {
         );
 
         if (!existingPackage && !anyActivePackage) {
-          // ⭐⭐⭐ ไม่มี active package - เช็คว่าเคยมี package ใดๆ ที่หมดอายุ/ถูกยกเลิกหรือไม่
+          // ⭐⭐⭐ ไม่มี active package - สร้าง trial ใหม่อัตโนมัติ
           console.log('🚫 No active package for branch:', selectedBranch.id);
-          
-          // เช็คว่าเคยมี package ใดๆ (รวม trial) ที่ถูก cancel/expire หรือไม่
-          const everHadAnyPackage = branchPackages.some(bp => 
-            bp.branch_id === selectedBranch.id
-          );
-          
-          if (everHadAnyPackage) {
-            // เคยมี package แล้ว (รวม trial ที่หมดอายุ) = ต้องซื้อใหม่
-            console.log('📦 Branch had package before (including expired trial), redirecting to PackageSelectionPage');
-            navigate(createPageUrl('PackageSelectionPage'), { replace: true });
-            return;
-          }
-          
-          // ไม่เคยมี package ใดๆ เลย = สร้าง trial ครั้งแรก
-          console.log('🆕 Brand new branch, creating first trial for branch:', selectedBranch.id);
+          console.log('🆕 Creating trial for branch:', selectedBranch.id);
             setIsCreatingTrial(true);
             try {
               const trialDaysConfig = configs.find(c => c.key === 'trial_days' && !c.branch_id);
