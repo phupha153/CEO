@@ -580,25 +580,25 @@ export default function Dashboard() {
   };
 
   if (roomsFetching && rooms.length === 0) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
-        <PageHeader 
-          title="แดชบอร์ด" 
-          subtitle={`สาขา ${selectedBranchName}`}
-          icon={LayoutDashboard}
-        />
-        <div className="px-4 md:px-8 py-6">
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center max-w-md">
-              <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-              <p className="text-slate-600 text-lg mb-2">กำลังโหลดข้อมูล...</p>
-              <p className="text-slate-500 text-sm">กรุณารอสักครู่</p>
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
+          <PageHeader 
+            title="แดชบอร์ด" 
+            subtitle={`สาขา ${selectedBranchName}`}
+            icon={LayoutDashboard}
+          />
+          <div className="px-4 md:px-8 py-6">
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center max-w-md">
+                <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+                <p className="text-slate-600 text-lg mb-2">กำลังโหลดข้อมูลห้องพัก...</p>
+                <p className="text-slate-500 text-sm">กรุณารอสักครู่</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
   if (roomsError) {
     return (
