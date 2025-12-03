@@ -54,26 +54,39 @@ Deno.serve(async (req) => {
 
         const actualBranchId = payment.branch_id;
 
-        // ดึงข้อมูลที่เกี่ยวข้อง - ดึงเฉพาะ branch เดียวกันเพื่อประสิทธิภาพ
+        // ดึงข้อมูลที่เกี่ยวข้อง - ทีละตัวเพื่อความเสถียร (ไม่ timeout)
         console.log(`🔍 Looking for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}, branch_id: ${actualBranchId}`);
         
-        const [branchTenants, branchRooms, allBranches, configs] = await Promise.all([
-            actualBranchId 
-                ? base44.asServiceRole.entities.Tenant.filter({ branch_id: actualBranchId }, '-created_date', 2000)
-                : base44.asServiceRole.entities.Tenant.list('-created_date', 500),
-            actualBranchId 
-                ? base44.asServiceRole.entities.Room.filter({ branch_id: actualBranchId }, '-created_date', 2000)
-                : base44.asServiceRole.entities.Room.list('-created_date', 500),
-            base44.asServiceRole.entities.Branch.list(),
-            base44.asServiceRole.entities.Config.list()
-        ]);
-
-        const tenant = payment.tenant_id ? branchTenants.find(t => t.id === payment.tenant_id) : null;
-        const room = payment.room_id ? branchRooms.find(r => r.id === payment.room_id) : null;
+        // ดึง configs และ branches ก่อน (เล็ก)
+        const configs = await base44.asServiceRole.entities.Config.list();
+        const allBranches = await base44.asServiceRole.entities.Branch.list();
         const branch = actualBranchId ? allBranches.find(b => b.id === actualBranchId) : null;
+        
+        // ดึง tenant และ room แยกกัน - ใช้ try/catch แต่ละตัว
+        let tenant = null;
+        let room = null;
+        
+        if (payment.tenant_id) {
+            try {
+                const tenantResults = await base44.asServiceRole.entities.Tenant.list('-created_date', 10000);
+                tenant = tenantResults.find(t => t.id === payment.tenant_id);
+                console.log(`📋 Loaded ${tenantResults.length} tenants, found: ${tenant?.full_name || 'NOT FOUND'}`);
+            } catch (tenantErr) {
+                console.error(`⚠️ Error loading tenants:`, tenantErr.message);
+            }
+        }
+        
+        if (payment.room_id) {
+            try {
+                const roomResults = await base44.asServiceRole.entities.Room.list('-created_date', 10000);
+                room = roomResults.find(r => r.id === payment.room_id);
+                console.log(`📋 Loaded ${roomResults.length} rooms, found: ${room?.room_number || 'NOT FOUND'}`);
+            } catch (roomErr) {
+                console.error(`⚠️ Error loading rooms:`, roomErr.message);
+            }
+        }
 
-        console.log(`📋 Loaded ${branchRooms.length} rooms, ${branchTenants.length} tenants for branch`);
-        console.log(`📋 Found: room=${room?.room_number || 'NOT FOUND'}, tenant=${tenant?.full_name || 'NOT FOUND'}, branch=${branch?.branch_name || 'NOT FOUND'}`);
+        console.log(`📋 Final: room=${room?.room_number || 'N/A'}, tenant=${tenant?.full_name || 'ไม่ระบุ'}, branch=${branch?.branch_name || 'N/A'}`);
 
         // ดึง config ของสาขา
         const getConfigValue = (key) => {
