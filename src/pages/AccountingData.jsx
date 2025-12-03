@@ -476,26 +476,27 @@ export default function AccountingData() {
         return room?.room_number || 'N/A';
       }).join(', ');
 
-      const docType = activeTab === 'invoices' ? 'ใบแจ้งหนี้' : 'ใบเสร็จ';
+      const docTypeName = activeTab === 'invoices' ? 'ใบแจ้งหนี้' : 'ใบเสร็จ';
 
       await base44.entities.ActivityLog.create({
         branch_id: selectedBranchId,
         action_type: 'create',
         entity_type: activeTab === 'invoices' ? 'Invoice' : 'Receipt',
         entity_id: `${activeTab}_${Date.now()}`,
-        entity_name: `${docType} ${selectedIds.length} รายการ`,
+        entity_name: `${docTypeName} ${selectedIds.length} รายการ`,
         user_email: currentUser?.email || 'unknown',
         user_name: currentUser?.full_name || 'ไม่ระบุ',
-        description: `พิมพ์/บันทึก PDF ${docType} ${selectedIds.length} รายการ (ห้อง: ${roomNumbers})`,
+        description: `พิมพ์/บันทึก PDF ${docTypeName} ${selectedIds.length} รายการ (ห้อง: ${roomNumbers})`,
         changes: { count: selectedIds.length, payment_ids: selectedIds }
       });
     } catch (error) {
       console.error('Failed to log activity:', error);
     }
 
-    // เปิดทุกรายการที่เลือก
+    // เปิดทุกรายการที่เลือก - ส่ง type parameter เพื่อระบุว่าเป็นใบเสร็จหรือใบแจ้งหนี้
     const paymentIdsString = selectedIds.join(',');
-    navigate(`${createPageUrl('PrintReceipts')}?paymentIds=${paymentIdsString}`);
+    const docType = activeTab === 'invoices' ? 'invoice' : 'receipt';
+    navigate(`${createPageUrl('PrintReceipts')}?paymentIds=${paymentIdsString}&type=${docType}`);
   };
 
   // ฟังก์ชัน Export ข้อมูล (All filtered payments)

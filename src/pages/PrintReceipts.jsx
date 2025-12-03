@@ -96,6 +96,7 @@ export default function PrintReceipts() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const paymentIdsParam = searchParams.get('paymentIds');
+  const docType = searchParams.get('type') || 'receipt'; // 'receipt' หรือ 'invoice'
   
   const paymentIds = useMemo(() => 
     paymentIdsParam ? paymentIdsParam.split(',') : []
@@ -348,17 +349,10 @@ export default function PrintReceipts() {
             </Button>
             <div>
               <h2 className="font-bold text-slate-800">
-                {(() => {
-                  const paidCount = receiptsData.filter(r => r.status === 'paid').length;
-                  const pendingCount = receiptsData.filter(r => r.status !== 'paid').length;
-                  if (paidCount > 0 && pendingCount > 0) {
-                    return `ใบเสร็จ ${paidCount} รายการ + ใบแจ้งหนี้ ${pendingCount} รายการ`;
-                  } else if (paidCount > 0) {
-                    return `ใบเสร็จรับเงิน ${paidCount} รายการ`;
-                  } else {
-                    return `ใบแจ้งหนี้ ${pendingCount} รายการ`;
-                  }
-                })()}
+                {docType === 'invoice' 
+                  ? `ใบแจ้งหนี้ ${receiptsData.length} รายการ`
+                  : `ใบเสร็จรับเงิน ${receiptsData.length} รายการ`
+                }
                 {failedPayments.length > 0 && (
                   <span className="text-sm font-normal text-orange-600 ml-2">
                     (โหลดสำเร็จ {receiptsData.length}/{paymentIds.length} รายการ)
@@ -419,7 +413,8 @@ export default function PrintReceipts() {
           const paymentDate = receiptData.payment_date 
             ? format(parseISO(receiptData.payment_date), 'd MMMM yyyy', { locale: th })
             : format(new Date(), 'd MMMM yyyy', { locale: th });
-          const isPaid = receiptData.status === 'paid';
+          // ถ้าเป็น docType = invoice ให้แสดงเป็นใบแจ้งหนี้เสมอ, ถ้าเป็น receipt ให้แสดงเป็นใบเสร็จเสมอ
+          const isPaid = docType === 'receipt';
 
           const lineItems = [];
           if (receiptData.rent_amount > 0) {
