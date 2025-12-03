@@ -232,7 +232,7 @@ export default function BranchSelection() {
                 <p className="text-slate-600">เลือกสาขาที่ต้องการจัดการ</p>
               </div>
 
-              {/* ✅ ถ้ามีสาขา → แสดงปุ่มดูภาพรวม + แก้ไขสาขา */}
+              {/* ✅ ถ้ามีสาขา → แสดงปุ่มดูภาพรวม + แก้ไขสาขา (เฉพาะ developer/owner) */}
               {!hasNoBranches && !hasNoAccess && (
                 <div className="flex flex-col gap-3 mb-6 items-center">
                   <div className="flex flex-wrap gap-3 justify-center">
@@ -248,17 +248,19 @@ export default function BranchSelection() {
                       </Button>
                     )}
                     
-                    {/* ปุ่มแก้ไขสาขา */}
-                    <Button
-                      onClick={handleManageBranches}
-                      disabled={isNavigating}
-                      variant="outline"
-                      className="border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-700 h-auto py-4 px-6 text-sm rounded-2xl font-medium"
-                      data-onboarding="add-branch-button"
-                    >
-                      <Pencil className="w-5 h-5 mr-2 flex-shrink-0" />
-                      <span>แก้ไขสาขา</span>
-                    </Button>
+                    {/* ปุ่มแก้ไขสาขา - เฉพาะ developer และ owner เท่านั้น */}
+                    {(userRole === 'developer' || userRole === 'owner') && (
+                      <Button
+                        onClick={handleManageBranches}
+                        disabled={isNavigating}
+                        variant="outline"
+                        className="border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-700 h-auto py-4 px-6 text-sm rounded-2xl font-medium"
+                        data-onboarding="add-branch-button"
+                      >
+                        <Pencil className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <span>แก้ไขสาขา</span>
+                      </Button>
+                    )}
                   </div>
                   {isTrialMode && (
                     <p className="text-xs text-amber-600 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
