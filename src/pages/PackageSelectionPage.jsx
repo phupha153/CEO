@@ -69,15 +69,8 @@ export default function PackageSelectionPage() {
   }, [branchPackages, selectedBranchId]);
 
   const handleGoBack = () => {
-    // ดูว่า package ที่หมดอายุเป็น trial หรือ paid แล้ว redirect ไปหน้าที่ถูกต้อง
-    if (expiredPackageType === 'trial') {
-      navigate(createPageUrl('TrialExpiredPage'));
-    } else if (expiredPackageType === 'paid') {
-      navigate(createPageUrl('PackageExpiredPage'));
-    } else {
-      // ถ้าไม่มี package เลย (สาขาใหม่) = ไปหน้าเลือกสาขา
-      navigate(createPageUrl('BranchSelection'));
-    }
+    // ⭐ กลับไปหน้าเลือกสาขาเสมอ (ไม่กลับไปหน้าหมดอายุ)
+    navigate(createPageUrl('BranchSelection'));
   };
 
   const { data: crmPackages, isLoading: loadingPackages } = useQuery({
