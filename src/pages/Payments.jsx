@@ -22,6 +22,7 @@ import AISearchBox from "../components/shared/AISearchBox";
 import AIResultCard from "../components/shared/AIResultCard";
 import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import SendAdvanceReminderButton from "@/components/settings/SendAdvanceReminderButton";
+import SendDueDateReminderButton from "@/components/settings/SendDueDateReminderButton";
 import GenerateMonthlyBillsButton from "@/components/payments/GenerateMonthlyBillsButton";
 import SlipPreviewDialog from "@/components/shared/SlipPreviewDialog";
 
@@ -2321,25 +2322,28 @@ Return JSON.`;
                 <GenerateMonthlyBillsButton branchId={selectedBranchId} onSuccess={() => queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] })} compact />
               )}
               {canSendReminder && (
-                <Button
-                  onClick={() => handleSendReminder()}
-                  disabled={sendingAll || tenantsWithLine === 0}
-                  size="sm"
-                  variant="outline"
-                  className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap"
-                >
-                  {sendingAll ? (
-                    <>
-                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                      กำลังส่ง...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-3 h-3 mr-1" />
-                      ส่งบิลทุกห้อง {tenantsWithLine > 0 && `(${tenantsWithLine})`}
-                    </>
-                  )}
-                </Button>
+                <>
+                  <Button
+                    onClick={() => handleSendReminder()}
+                    disabled={sendingAll || tenantsWithLine === 0}
+                    size="sm"
+                    variant="outline"
+                    className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap"
+                  >
+                    {sendingAll ? (
+                      <>
+                        <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                        กำลังส่ง...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3 h-3 mr-1" />
+                        ส่งบิลทุกห้อง {tenantsWithLine > 0 && `(${tenantsWithLine})`}
+                      </>
+                    )}
+                  </Button>
+                  <SendDueDateReminderButton branchId={selectedBranchId} compact />
+                </>
               )}
             </div>
           </div>
