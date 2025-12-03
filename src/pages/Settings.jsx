@@ -1870,15 +1870,6 @@ export default function Settings() {
                                 // ⭐ ไม่นับ Developer
                                 if (role === 'developer') return false;
                                 
-                                // ⭐ โหมด trial: นับเฉพาะ owner (currentUser)
-                                const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
-                                const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
-                                
-                                if (isTrialMode) {
-                                  // นับเฉพาะผู้ใช้คนปัจจุบัน (owner)
-                                  return user.email === currentUser?.email;
-                                }
-                                
                                 // ⭐ Owner ที่ยังไม่ set accessible_branches ต้องเช็คว่าเป็น owner จริงๆ (ผ่าน owner_email)
                                 if (role === 'owner' && (!user.accessible_branches || user.accessible_branches.length === 0)) {
                                   return packageOwnersInMyBranches.has(user.email);
