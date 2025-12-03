@@ -115,7 +115,7 @@ export default function UserBranchAccess() {
   // Developer can see all users
   // Owner can see users in their accessible branches (excluding other developers)
   const getVisibleUsers = () => {
-    if (userRole === 'developer') return users;
+    if (isDeveloper) return users;
     
     // Owner: show only users that belong to branches they have access to
     return users.filter(user => {
