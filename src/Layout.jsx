@@ -902,11 +902,12 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     // Redirect if subscription check indicates it and user/data is loaded
     // ⭐ Developer ไม่ต้อง redirect - ข้าม subscription check
-    if (subscriptionCheck.shouldRedirect && !isLoading && currentUser && userRole !== 'developer') {
+    const currentUserRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+    if (subscriptionCheck.shouldRedirect && !isLoading && currentUser && currentUserRole !== 'developer') {
       const targetPage = subscriptionCheck.redirectTo || 'RenewalPage';
       navigate(createPageUrl(targetPage), { replace: true });
     }
-  }, [subscriptionCheck.shouldRedirect, subscriptionCheck.redirectTo, isLoading, currentUser, navigate, currentPageName, userRole]);
+  }, [subscriptionCheck.shouldRedirect, subscriptionCheck.redirectTo, isLoading, currentUser, navigate, currentPageName]);
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   const userPermissions = currentUser?.permissions || [];
