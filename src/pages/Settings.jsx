@@ -1756,12 +1756,9 @@ export default function Settings() {
                             {(() => {
                               // นับจำนวนผู้ใช้จริงในระบบ
                               const totalUsersInSystem = users.length;
-                              // ดึง max_users จาก features หรือ package
-                              const maxUsersFromFeatures = activeSubscription?.features?.find(f => 
-                                typeof f === 'string' && f.includes('ผู้ใช้')
-                              )?.match(/\d+/)?.[0];
-                              const maxUsers = activeSubscription?.max_users || (maxUsersFromFeatures ? parseInt(maxUsersFromFeatures) : null);
-                              const hasLimit = maxUsers !== null && maxUsers !== undefined;
+                              // ดึง max_users จาก crmPackageInfo (ที่ match กับ package_id ของ activeSubscription)
+                              const maxUsers = crmPackageInfo?.max_users;
+                              const hasLimit = maxUsers !== null && maxUsers !== undefined && maxUsers > 0;
                               const usagePercent = hasLimit ? Math.min((totalUsersInSystem / maxUsers) * 100, 100) : 10;
 
                               return (
@@ -1798,12 +1795,9 @@ export default function Settings() {
                             {(() => {
                               // นับจำนวนสาขาจริงในระบบ
                               const totalBranchesInSystem = branches.length;
-                              // ดึง max_branches จาก features หรือ package
-                              const maxBranchesFromFeatures = activeSubscription?.features?.find(f => 
-                                typeof f === 'string' && f.includes('สาขา')
-                              )?.match(/\d+/)?.[0];
-                              const maxBranches = activeSubscription?.max_branches || (maxBranchesFromFeatures ? parseInt(maxBranchesFromFeatures) : null);
-                              const hasLimit = maxBranches !== null && maxBranches !== undefined;
+                              // ดึง max_branches จาก crmPackageInfo
+                              const maxBranches = crmPackageInfo?.max_branches;
+                              const hasLimit = maxBranches !== null && maxBranches !== undefined && maxBranches > 0;
                               const usagePercent = hasLimit ? Math.min((totalBranchesInSystem / maxBranches) * 100, 100) : 10;
 
                               return (
