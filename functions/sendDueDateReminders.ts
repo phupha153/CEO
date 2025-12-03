@@ -58,18 +58,18 @@ Deno.serve(async (req) => {
 
         // ⭐ ดึงวันที่จาก test_current_date ถ้ามี (สำหรับทดสอบ)
         const testDateConfig = configs.find(c => c.key === 'test_current_date' && !c.branch_id);
-        let currentDate;
-        if (testDateConfig && testDateConfig.value) {
-            try {
-                currentDate = new Date(testDateConfig.value);
-                console.log(`🧪 TEST MODE: Using test_current_date = ${testDateConfig.value}`);
-            } catch {
-                currentDate = new Date();
-                console.log('⚠️ Invalid test_current_date, using real date');
-            }
+        let todayString;
+        
+        if (testDateConfig && testDateConfig.value && testDateConfig.value.trim() !== '') {
+            // ใช้วันที่ทดสอบ
+            todayString = testDateConfig.value.trim();
+            console.log(`🧪 TEST MODE: Using test_current_date = ${todayString}`);
         } else {
-            currentDate = new Date();
-            console.log('📅 Using real current date');
+            // ⭐ ใช้เวลาไทย (UTC+7) แทน UTC
+            const now = new Date();
+            const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // เพิ่ม 7 ชม.
+            todayString = thailandTime.toISOString().split('T')[0];
+            console.log(`📅 Using Thailand date: ${todayString} (UTC: ${now.toISOString()})`);
         }
 
         // 3. หาบิลที่ครบกำหนดชำระวันนี้ (ยังไม่ชำระ)
