@@ -200,8 +200,8 @@ export default function PaymentsPage() {
           hasMore = false;
         }
         
-        // สูงสุด 50,000 records
-        if (skip >= 50000) {
+        // สูงสุด 100,000 records
+        if (skip >= 100000) {
           hasMore = false;
         }
       }
