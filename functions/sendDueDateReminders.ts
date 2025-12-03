@@ -75,64 +75,31 @@ Deno.serve(async (req) => {
         // 3. หาบิลที่ครบกำหนดชำระวันนี้ (ยังไม่ชำระ)
         console.log('🔍 Fetching payments with pagination...');
         
-        // ⭐ ดึง Payments ทั้งหมด - ลองหลายวิธี
+        // ⭐ Helper: แปลง result เป็น array (รองรับกรณี SDK return string)
+        const parseResult = (result) => {
+            if (Array.isArray(result)) return result;
+            if (typeof result === 'string') {
+                try {
+                    const parsed = JSON.parse(result);
+                    if (Array.isArray(parsed)) return parsed;
+                } catch (e) {
+                    console.error('❌ JSON parse error:', e.message);
+                }
+            }
+            return [];
+        };
+
+        // ⭐ ดึง Payments ทั้งหมด
         console.log('📥 Fetching all payments...');
         let payments = [];
         
-        // วิธีที่ 1: list ปกติ
         try {
-            console.log('📥 Method 1: list with limit 50000...');
-            const result1 = await base44.asServiceRole.entities.Payment.list('-created_date', 50000);
-            console.log(`📊 Method 1 result type: ${typeof result1}, isArray: ${Array.isArray(result1)}`);
-            if (Array.isArray(result1)) {
-                payments = result1;
-                console.log(`✅ Method 1 success: ${payments.length} payments`);
-            } else {
-                console.log(`⚠️ Method 1 returned non-array:`, JSON.stringify(result1).substring(0, 500));
-            }
-        } catch (err1) {
-            console.error('❌ Method 1 error:', err1.message);
+            const result = await base44.asServiceRole.entities.Payment.list('-created_date', 50000);
+            payments = parseResult(result);
+            console.log(`✅ Fetched ${payments.length} payments`);
+        } catch (err) {
+            console.error('❌ Error fetching payments:', err.message);
         }
-
-        // วิธีที่ 2: ถ้าไม่ได้ผล ลอง filter แทน
-        if (payments.length === 0) {
-            try {
-                console.log('📥 Method 2: filter with empty query...');
-                const result2 = await base44.asServiceRole.entities.Payment.filter({}, '-created_date', 50000);
-                console.log(`📊 Method 2 result type: ${typeof result2}, isArray: ${Array.isArray(result2)}`);
-                if (Array.isArray(result2)) {
-                    payments = result2;
-                    console.log(`✅ Method 2 success: ${payments.length} payments`);
-                } else {
-                    console.log(`⚠️ Method 2 returned non-array:`, JSON.stringify(result2).substring(0, 500));
-                }
-            } catch (err2) {
-                console.error('❌ Method 2 error:', err2.message);
-            }
-        }
-
-        // วิธีที่ 3: ลอง filter by enabled branches เฉพาะ
-        if (payments.length === 0 && enabledBranches.length > 0) {
-            try {
-                console.log(`📥 Method 3: filter by enabled branches (${enabledBranches.length})...`);
-                for (const branchId of enabledBranches.slice(0, 5)) {
-                    const branchPayments = await base44.asServiceRole.entities.Payment.filter(
-                        { branch_id: branchId }, 
-                        '-created_date', 
-                        1000
-                    );
-                    if (Array.isArray(branchPayments)) {
-                        payments = payments.concat(branchPayments);
-                        console.log(`📊 Branch ${branchId}: ${branchPayments.length} payments`);
-                    }
-                }
-                console.log(`✅ Method 3 total: ${payments.length} payments`);
-            } catch (err3) {
-                console.error('❌ Method 3 error:', err3.message);
-            }
-        }
-
-        console.log(`📦 Final payment count: ${payments.length}`);
 
         // ⭐ Debug: แสดงตัวอย่าง payment ถ้ามี
         if (payments.length > 0) {
