@@ -558,12 +558,18 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     const roomBookings = bookings.filter(b => b.room_id === roomId);
     if (roomBookings.length === 0) return null;
     
-    // 1. หา active booking ที่มี tenant_id และ tenant ยังไม่ย้ายออก
+    // 1. หา active booking ที่มี tenant_id
     const activeWithTenant = roomBookings.filter(b => {
       if (b.status !== 'active' || !b.tenant_id) return false;
+      
+      // ⭐ แก้ไข: ถ้าหา tenant ไม่เจอ ให้ถือว่า booking active (ป้องกันกรณี tenant ยังไม่โหลด)
       const tenant = getTenantInfo(b.tenant_id);
-      // เช็คว่า tenant ยังมีสถานะ active (ไม่ได้ย้ายออก)
-      return tenant && tenant.status === 'active';
+      
+      // ถ้าหา tenant ไม่เจอ = ยังไม่โหลด = ให้ถือว่า active
+      if (!tenant) return true;
+      
+      // ถ้าหา tenant เจอแล้ว = เช็คว่ายังไม่ย้ายออก
+      return tenant.status === 'active';
     });
     
     if (activeWithTenant.length > 0) {
