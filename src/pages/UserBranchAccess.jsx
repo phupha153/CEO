@@ -41,8 +41,12 @@ export default function UserBranchAccess() {
     queryFn: () => base44.auth.me(),
   });
 
-  const userAccessibleBranches = React.useMemo(() => currentUser?.accessible_branches || [], [currentUser]);
   const userRole = React.useMemo(() => currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee'), [currentUser]);
+  // Developer เห็นทุกสาขา (ไม่สนใจ accessible_branches)
+  const userAccessibleBranches = React.useMemo(() => {
+    if (userRole === 'developer') return []; // Developer ไม่ใช้ filter
+    return currentUser?.accessible_branches || [];
+  }, [currentUser, userRole]);
 
   const { data: allUsers = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users'],
@@ -72,9 +76,10 @@ export default function UserBranchAccess() {
     queryFn: () => base44.entities.Payment.list('-payment_date', 500),
   });
 
-  // กรองสาขาที่ผู้ใช้มีสิทธิ์เข้าถึง
+  // Developer เห็นทุกสาขา, คนอื่นเห็นเฉพาะสาขาที่ตัวเองมีสิทธิ์
   const branches = React.useMemo(() => {
     if (userRole === 'developer') return allBranches;
+    if (!userAccessibleBranches || userAccessibleBranches.length === 0) return [];
     return allBranches.filter(branch => userAccessibleBranches.includes(branch.id));
   }, [allBranches, userRole, userAccessibleBranches]);
 
