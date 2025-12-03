@@ -103,11 +103,7 @@ Deno.serve(async (req) => {
         if (!Array.isArray(payments)) payments = [];
         
         console.log(`📦 Loaded ${payments.length} payments`);
-
-        // ⭐ ใช้ currentDate ที่ได้จาก test_current_date หรือเวลาจริง
-        const todayString = currentDate.toISOString().split('T')[0]; // "YYYY-MM-DD"
-
-        console.log(`📅 Today (${testDateConfig ? 'TEST' : 'REAL'}): ${todayString}`);
+        console.log(`📅 Checking for due_date = ${todayString}`);
 
         // กรองบิลที่ครบกำหนดชำระวันนี้ - เช็คจาก due_date จริงของบิล
         // ⭐ กรองเฉพาะสาขาที่เปิดการแจ้งเตือน
