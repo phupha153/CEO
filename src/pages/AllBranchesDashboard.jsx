@@ -315,17 +315,25 @@ export default function AllBranchesDashboard() {
         from: dateRange.from.toISOString(),
         to: dateRange.to.toISOString()
       },
+      userRole,
+      canViewAllBranches,
+      userAccessibleBranches,
+      allBranchesCount: allBranches.length,
+      filteredBranchesCount: branches.length,
+      branchIds: branches.map(b => ({ id: b.id, name: b.branch_name })),
+      accessibleBranchIds: Array.from(accessibleBranchIds),
+      allPaymentsCount: allPayments.length,
+      filteredPaymentsCount: payments.length,
       totalPayments: payments.length,
       paidPayments: payments.filter(p => p.status === 'paid').length,
       paymentsWithDate: payments.filter(p => p.payment_date).length,
-      samplePayments: payments.filter(p => p.status === 'paid' && p.payment_date).slice(0, 3),
-      paymentsSortedByDate: payments
-        .filter(p => p.payment_date)
-        .sort((a, b) => new Date(b.payment_date) - new Date(a.payment_date))
-        .slice(0, 5)
-        .map(p => ({ date: p.payment_date, amount: p.total_amount, status: p.status }))
+      samplePayments: payments.filter(p => p.status === 'paid' && p.payment_date).slice(0, 3).map(p => ({ 
+        branch_id: p.branch_id, 
+        date: p.payment_date, 
+        amount: p.total_amount 
+      })),
     });
-  }, [dateRangeType, dateRange, payments.length]);
+  }, [dateRangeType, dateRange, payments.length, branches.length, userRole, canViewAllBranches, userAccessibleBranches, allBranches.length, allPayments.length, accessibleBranchIds]);
 
   const getMonthsForChart = () => {
     switch(dateRangeType) {
