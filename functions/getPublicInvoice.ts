@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
 
         const actualBranchId = payment.branch_id;
 
-        // ดึงข้อมูลที่เกี่ยวข้อง - เสถียรสูงสุด (ดึงเฉพาะสาขา + fallback)
+        // ดึงข้อมูลที่เกี่ยวข้อง - ใช้ list + find (เสถียรที่สุด)
         console.log(`🔍 Looking for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}, branch_id: ${actualBranchId}`);
         
         // ดึง configs และ branches ก่อน (เล็ก ไม่ timeout)
@@ -62,65 +62,28 @@ Deno.serve(async (req) => {
         const allBranches = await base44.asServiceRole.entities.Branch.list();
         const branch = actualBranchId ? allBranches.find(b => b.id === actualBranchId) : null;
         
-        // ดึง tenant และ room - ลอง filter by branch ก่อน (เร็วกว่า), ถ้าไม่เจอให้ลอง filter by ID โดยตรง
         let tenant = null;
         let room = null;
         
-        // ===== ดึง TENANT =====
+        // ===== ดึง TENANT - ใช้ list ทั้งหมดแล้ว find =====
         if (payment.tenant_id) {
             try {
-                // วิธี 1: ดึงเฉพาะสาขา (เร็ว)
-                if (actualBranchId) {
-                    const branchTenants = await base44.asServiceRole.entities.Tenant.filter(
-                        { branch_id: actualBranchId }, 
-                        '-created_date', 
-                        5000
-                    );
-                    tenant = branchTenants.find(t => t.id === payment.tenant_id);
-                    console.log(`📋 [Branch] Loaded ${branchTenants.length} tenants, found: ${tenant?.full_name || 'NOT IN BRANCH'}`);
-                }
-                
-                // วิธี 2: ถ้าไม่เจอ ลอง filter by ID โดยตรง
-                if (!tenant) {
-                    console.log(`🔄 Tenant not in branch, trying direct filter...`);
-                    const directTenant = await base44.asServiceRole.entities.Tenant.filter(
-                        { id: payment.tenant_id }
-                    );
-                    tenant = Array.isArray(directTenant) ? directTenant[0] : directTenant;
-                    console.log(`📋 [Direct] Found tenant: ${tenant?.full_name || 'NOT FOUND'}`);
-                }
+                const allTenants = await base44.asServiceRole.entities.Tenant.list('-created_date', 10000);
+                tenant = allTenants.find(t => t.id === payment.tenant_id);
+                console.log(`📋 Loaded ${allTenants.length} tenants, found: ${tenant?.full_name || 'NOT FOUND'}`);
             } catch (tenantErr) {
-                console.error(`⚠️ Error loading tenant:`, tenantErr.message);
-                // ไม่ throw - ให้ดำเนินการต่อ
+                console.error(`⚠️ Error loading tenants:`, tenantErr.message);
             }
         }
         
-        // ===== ดึง ROOM =====
+        // ===== ดึง ROOM - ใช้ list ทั้งหมดแล้ว find =====
         if (payment.room_id) {
             try {
-                // วิธี 1: ดึงเฉพาะสาขา (เร็ว)
-                if (actualBranchId) {
-                    const branchRooms = await base44.asServiceRole.entities.Room.filter(
-                        { branch_id: actualBranchId }, 
-                        '-room_number', 
-                        5000
-                    );
-                    room = branchRooms.find(r => r.id === payment.room_id);
-                    console.log(`📋 [Branch] Loaded ${branchRooms.length} rooms, found: ${room?.room_number || 'NOT IN BRANCH'}`);
-                }
-                
-                // วิธี 2: ถ้าไม่เจอ ลอง filter by ID โดยตรง
-                if (!room) {
-                    console.log(`🔄 Room not in branch, trying direct filter...`);
-                    const directRoom = await base44.asServiceRole.entities.Room.filter(
-                        { id: payment.room_id }
-                    );
-                    room = Array.isArray(directRoom) ? directRoom[0] : directRoom;
-                    console.log(`📋 [Direct] Found room: ${room?.room_number || 'NOT FOUND'}`);
-                }
+                const allRooms = await base44.asServiceRole.entities.Room.list('-created_date', 10000);
+                room = allRooms.find(r => r.id === payment.room_id);
+                console.log(`📋 Loaded ${allRooms.length} rooms, found: ${room?.room_number || 'NOT FOUND'}`);
             } catch (roomErr) {
-                console.error(`⚠️ Error loading room:`, roomErr.message);
-                // ไม่ throw - ให้ดำเนินการต่อ
+                console.error(`⚠️ Error loading rooms:`, roomErr.message);
             }
         }
 
