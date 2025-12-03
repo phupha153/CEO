@@ -319,24 +319,29 @@ Deno.serve(async (req) => {
 
                         const result = batchResult.data;
                         sentCount += result.success || 0;
-                    
+                        
+                        // ⭐ รวบรวม paymentId ที่ส่งไม่สำเร็จ
+                        const failedPaymentIds = new Set();
                         if (result.errors && result.errors.length > 0) {
                             result.errors.forEach(err => {
                                 const meta = err.metadata;
                                 sendErrors.push(`LINE ห้อง ${meta?.roomNumber || 'N/A'}: ${err.error}`);
+                                if (meta?.paymentId) failedPaymentIds.add(meta.paymentId);
                             });
                         }
 
-                        // ⭐ บันทึกว่าส่งสำเร็จเฉพาะที่ส่งได้จริง
-                        if (result.success > 0 && result.successRecipients) {
-                            for (const successRecipient of result.successRecipients) {
-                                try {
-                                    await base44.asServiceRole.entities.Payment.update(successRecipient.metadata.paymentId, {
-                                        due_date_reminder_sent_date: new Date().toISOString()
-                                    });
-                                } catch (updateErr) {
-                                    console.error(`⚠️ Failed to update sent date:`, updateErr.message);
-                                }
+                        // ⭐ บันทึกว่าส่งสำเร็จ - ใช้ lineRecipients ที่ไม่อยู่ใน failedPaymentIds
+                        const successfulRecipients = lineRecipients.filter(r => !failedPaymentIds.has(r.metadata.paymentId));
+                        console.log(`📝 Updating ${successfulRecipients.length} payments as sent...`);
+                        
+                        for (const recipient of successfulRecipients) {
+                            try {
+                                await base44.asServiceRole.entities.Payment.update(recipient.metadata.paymentId, {
+                                    due_date_reminder_sent_date: new Date().toISOString()
+                                });
+                                console.log(`✅ Updated payment ${recipient.metadata.paymentId}`);
+                            } catch (updateErr) {
+                                console.error(`⚠️ Failed to update sent date for ${recipient.metadata.paymentId}:`, updateErr.message);
                             }
                         }
 
