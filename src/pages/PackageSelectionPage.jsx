@@ -454,7 +454,7 @@ export default function PackageSelectionPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                     {packages.map((pkg, index) => {
-                      const isMostPopular = pkg.popular === true || (index === packages.length - 1 && packages.length === 3);
+                      const isMostPopular = pkg.popular === true;
                       const isSelected = selectedPackageId === pkg.id;
                       const isDisabled = pkg.is_active === false;
                       
