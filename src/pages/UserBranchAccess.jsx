@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, Search, Globe, AlertTriangle, Edit2, Check, Shield, Package, Calendar, CreditCard, Loader2 } from "lucide-react";
+import { Users, Search, Globe, AlertTriangle, Edit2, Check, Shield, Package, Calendar, CreditCard, Loader2, Crown, Sparkles, Settings as SettingsIcon, X, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "../components/shared/PageHeader";
 import { useNavigate } from "react-router-dom";
@@ -25,11 +25,14 @@ export default function UserBranchAccess() {
   const [userBranchAccess, setUserBranchAccess] = useState({});
   const [userPermissions, setUserPermissions] = useState({});
   const [packageFormData, setPackageFormData] = useState({
-    package_type: 'trial',
+    package_id: '',
     subscription_start_date: '',
     subscription_end_date: '',
-    package_name: '',
+    duration_months: '1',
   });
+
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [packageToCancel, setPackageToCancel] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -58,9 +61,17 @@ export default function UserBranchAccess() {
     queryFn: () => base44.entities.Branch.list(),
   });
 
-  const { data: branchPackages = [] } = useQuery({
+  const { data: branchPackages = [], refetch: refetchBranchPackages } = useQuery({
     queryKey: ['branchPackages'],
     queryFn: () => base44.entities.BranchPackage.list('-created_date', 500),
+  });
+
+  const { data: crmPackages } = useQuery({
+    queryKey: ['crmPackages'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getPackagesFromCRM', {});
+      return response.data;
+    },
   });
 
   const { data: allPayments = [] } = useQuery({
@@ -143,29 +154,54 @@ export default function UserBranchAccess() {
   });
 
   const createOrUpdatePackageMutation = useMutation({
-    mutationFn: async ({ branchId, ownerEmail, packageData }) => {
-      const existingPackage = branchPackages.find(
-        bp => bp.branch_id === branchId && bp.owner_email === ownerEmail
-      );
+    mutationFn: async ({ ownerEmail, packageData }) => {
+      const userBranches = selectedUser?.accessible_branches || [];
+      const targetBranches = userBranches.length > 0 ? userBranches : branches.map(b => b.id);
 
-      if (existingPackage) {
-        return base44.entities.BranchPackage.update(existingPackage.id, packageData);
-      } else {
-        return base44.entities.BranchPackage.create({
+      const results = [];
+      for (const branchId of targetBranches) {
+        const existingPackages = branchPackages.filter(
+          bp => bp.branch_id === branchId && bp.owner_email === ownerEmail
+        );
+
+        // ลบ package เก่าทั้งหมดในสาขานี้ก่อน
+        for (const oldPkg of existingPackages) {
+          await base44.entities.BranchPackage.delete(oldPkg.id);
+        }
+
+        // สร้าง package ใหม่
+        const result = await base44.entities.BranchPackage.create({
           branch_id: branchId,
           owner_email: ownerEmail,
           ...packageData,
         });
+        results.push(result);
       }
+      return results;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['branchPackages']);
       toast.success('บันทึกแพ็กเกจสำเร็จ');
       setShowPackageDialog(false);
+      refetchBranchPackages();
     },
     onError: (error) => {
       toast.error('เกิดข้อผิดพลาด: ' + error.message);
     },
+  });
+
+  const cancelPackageMutation = useMutation({
+    mutationFn: async (packageId) => {
+      return base44.entities.BranchPackage.update(packageId, { status: 'cancelled' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['branchPackages']);
+      toast.success('ยกเลิกแพ็กเกจสำเร็จ');
+      setShowCancelDialog(false);
+      setPackageToCancel(null);
+      refetchBranchPackages();
+    },
+    onError: () => toast.error('เกิดข้อผิดพลาด'),
   });
 
   const handleOpenBranchDialog = (user) => {
@@ -188,10 +224,10 @@ export default function UserBranchAccess() {
 
     if (existingPackage) {
       setPackageFormData({
-        package_type: existingPackage.package_id === 'trial' ? 'trial' : 'paid',
+        package_id: existingPackage.package_id || '',
         subscription_start_date: existingPackage.subscription_start_date || '',
         subscription_end_date: existingPackage.subscription_end_date || '',
-        package_name: existingPackage.package_name || '',
+        duration_months: '1',
       });
     } else {
       const today = new Date().toISOString().split('T')[0];
@@ -199,10 +235,10 @@ export default function UserBranchAccess() {
       trialEnd.setDate(trialEnd.getDate() + 14);
       
       setPackageFormData({
-        package_type: 'trial',
+        package_id: 'trial',
         subscription_start_date: today,
         subscription_end_date: trialEnd.toISOString().split('T')[0],
-        package_name: 'Trial Package',
+        duration_months: '1',
       });
     }
     
@@ -210,34 +246,40 @@ export default function UserBranchAccess() {
   };
 
   const handleSavePackage = async () => {
-    if (!selectedUser) return;
+    if (!selectedUser || !packageFormData.package_id) return;
+
+    const selectedCrmPackage = (crmPackages?.packages || []).find(p => p.id === packageFormData.package_id);
+    if (!selectedCrmPackage) {
+      toast.error('ไม่พบแพ็กเกจที่เลือก');
+      return;
+    }
+
+    const months = parseInt(packageFormData.duration_months);
+    const pricing = selectedCrmPackage.pricing || {};
+    let pricePerMonth = pricing.monthly || selectedCrmPackage.price_monthly || 0;
+
+    if (months === 3) {
+      pricePerMonth = pricing.three_months_per_month || pricePerMonth;
+    } else if (months === 6) {
+      pricePerMonth = pricing.six_months_per_month || pricePerMonth;
+    } else if (months === 12) {
+      pricePerMonth = pricing.yearly_per_month || pricePerMonth;
+    }
 
     const packageData = {
-      package_id: packageFormData.package_type === 'trial' ? 'trial' : 'paid',
-      package_name: packageFormData.package_name || (packageFormData.package_type === 'trial' ? 'Trial Package' : 'Paid Package'),
+      package_id: selectedCrmPackage.id,
+      package_name: selectedCrmPackage.package_name,
       subscription_start_date: packageFormData.subscription_start_date,
       subscription_end_date: packageFormData.subscription_end_date,
       status: 'active',
-      price_per_month: packageFormData.package_type === 'trial' ? 0 : 1,
-      features: [],
+      price_per_month: pricePerMonth,
+      features: selectedCrmPackage.features || [],
     };
 
-    const userBranches = selectedUser.accessible_branches || [];
-    const targetBranches = userBranches.length > 0 ? userBranches : branches.map(b => b.id);
-
-    try {
-      for (const branchId of targetBranches) {
-        await createOrUpdatePackageMutation.mutateAsync({
-          branchId,
-          ownerEmail: selectedUser.email,
-          packageData,
-        });
-      }
-      toast.success(`บันทึกแพ็กเกจสำเร็จ (${targetBranches.length} สาขา)`);
-      setShowPackageDialog(false);
-    } catch (error) {
-      toast.error('เกิดข้อผิดพลาด');
-    }
+    createOrUpdatePackageMutation.mutate({
+      ownerEmail: selectedUser.email,
+      packageData,
+    });
   };
 
   const getBranchPackageInfo = (branchId, userEmail) => {
@@ -464,17 +506,17 @@ export default function UserBranchAccess() {
                           )}
                         </div>
 
-                        {/* Package & Payment Info */}
+                        {/* Package Info - Enhanced */}
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-3">
                             <div className="flex items-center gap-2">
                               <Package className="w-5 h-5 text-green-600" />
-                              <h4 className="font-semibold text-slate-700">แพ็กเกจ</h4>
+                              <h4 className="font-semibold text-slate-700">แพ็กเกจปัจจุบัน</h4>
                             </div>
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleOpenPackageDialog(user, accessibleBranches[0] || branches[0]?.id)}
+                              onClick={() => handleOpenPackageDialog(user)}
                               className="text-xs"
                             >
                               <Edit2 className="w-3 h-3 mr-1" />
@@ -487,31 +529,63 @@ export default function UserBranchAccess() {
                             const activePackage = userPackages[0];
                             
                             if (activePackage) {
+                              const pkgName = activePackage.package_name || '';
+                              const isBasic = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano');
+                              const isPro = pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro');
+                              const isElite = !isBasic && !isPro;
                               const isTrial = activePackage.package_id === 'trial';
+                              
+                              const pkgIcon = isTrial ? Package : isBasic ? SettingsIcon : isPro ? Sparkles : Crown;
+                              
                               return (
-                                <div className={`p-3 rounded-lg border-2 ${
-                                  isTrial ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'
+                                <div className={`rounded-xl border-2 overflow-hidden ${
+                                  isTrial ? 'bg-amber-50 border-amber-300' : 
+                                  isBasic ? 'bg-slate-100 border-slate-300' :
+                                  isPro ? 'bg-gradient-to-br from-blue-100 to-purple-100 border-blue-300' :
+                                  'bg-gradient-to-br from-amber-100 to-yellow-100 border-amber-400'
                                 }`}>
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <Package className={`w-4 h-4 ${isTrial ? 'text-amber-600' : 'text-green-600'}`} />
-                                    <span className={`text-sm font-semibold ${isTrial ? 'text-amber-700' : 'text-green-700'}`}>
-                                      {isTrial ? '🎉 ทดลองใช้' : activePackage.package_name}
-                                    </span>
-                                  </div>
-                                  {activePackage.subscription_end_date && (
-                                    <div className="flex items-center gap-1 text-xs text-slate-600 mb-1">
-                                      <Calendar className="w-3 h-3" />
-                                      <span>ถึง {format(parseISO(activePackage.subscription_end_date), 'dd/MM/yyyy')}</span>
+                                  <div className={`p-3 ${
+                                    isTrial ? 'bg-amber-200/50' :
+                                    isBasic ? 'bg-slate-200/50' :
+                                    isPro ? 'bg-gradient-to-r from-blue-200 to-purple-200' :
+                                    'bg-gradient-to-r from-amber-300 to-yellow-300'
+                                  }`}>
+                                    <div className="flex items-center gap-2">
+                                      {React.createElement(pkgIcon, { 
+                                        className: `w-5 h-5 ${
+                                          isTrial ? 'text-amber-700' :
+                                          isBasic ? 'text-slate-600' :
+                                          isPro ? 'text-blue-700' :
+                                          'text-amber-800'
+                                        }` 
+                                      })}
+                                      <span className={`text-sm font-bold ${
+                                        isTrial ? 'text-amber-800' :
+                                        isBasic ? 'text-slate-800' :
+                                        isPro ? 'text-blue-800' :
+                                        'text-amber-900'
+                                      }`}>
+                                        {isTrial ? '🎉 ทดลองใช้' : activePackage.package_name}
+                                      </span>
                                     </div>
-                                  )}
-                                  <div className="text-xs text-slate-500">
-                                    ใช้ได้ทุกสาขา ({userPackages.length} สาขา)
+                                  </div>
+                                  <div className="p-3 bg-white/50">
+                                    {activePackage.subscription_end_date && (
+                                      <div className="flex items-center gap-1 text-xs text-slate-700 mb-2">
+                                        <Calendar className="w-3 h-3" />
+                                        <span>หมดอายุ {format(parseISO(activePackage.subscription_end_date), 'dd/MM/yyyy')}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-1 text-xs text-slate-600">
+                                      <Globe className="w-3 h-3" />
+                                      <span>{userPackages.length} สาขา</span>
+                                    </div>
                                   </div>
                                 </div>
                               );
                             } else {
                               return (
-                                <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                                <div className="p-4 rounded-lg bg-slate-50 border-2 border-dashed border-slate-300">
                                   <p className="text-xs text-slate-600 text-center">ยังไม่มีแพ็กเกจ</p>
                                 </div>
                               );
@@ -617,185 +691,142 @@ export default function UserBranchAccess() {
             </DialogContent>
           </Dialog>
 
-          {/* Package Management Dialog */}
-          <Dialog open={showPackageDialog} onOpenChange={setShowPackageDialog}>
-            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                        {/* Package Info - Enhanced */}
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            <div className="flex items-center gap-2">
+                              <Package className="w-5 h-5 text-green-600" />
+                              <h4 className="font-semibold text-slate-700">แพ็กเกจปัจจุบัน</h4>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenPackageDialog(user)}
+                              className="text-xs"
+                            >
+                              <Edit2 className="w-3 h-3 mr-1" />
+                              จัดการ
+                            </Button>
+                          </div>
+
+                          {(() => {
+                            const userPackages = branchPackages.filter(bp => bp.owner_email === user.email && bp.status === 'active');
+                            const activePackage = userPackages[0];
+                            
+                            if (activePackage) {
+                              const pkgName = activePackage.package_name || '';
+                              const isBasic = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano');
+                              const isPro = pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro');
+                              const isElite = !isBasic && !isPro;
+                              const isTrial = activePackage.package_id === 'trial';
+                              
+                              const pkgIcon = isTrial ? Package : isBasic ? SettingsIcon : isPro ? Sparkles : Crown;
+                              
+                              return (
+                                <div className={`rounded-xl border-2 overflow-hidden ${
+                                  isTrial ? 'bg-amber-50 border-amber-300' : 
+                                  isBasic ? 'bg-slate-100 border-slate-300' :
+                                  isPro ? 'bg-gradient-to-br from-blue-100 to-purple-100 border-blue-300' :
+                                  'bg-gradient-to-br from-amber-100 to-yellow-100 border-amber-400'
+                                }`}>
+                                  <div className={`p-3 ${
+                                    isTrial ? 'bg-amber-200/50' :
+                                    isBasic ? 'bg-slate-200/50' :
+                                    isPro ? 'bg-gradient-to-r from-blue-200 to-purple-200' :
+                                    'bg-gradient-to-r from-amber-300 to-yellow-300'
+                                  }`}>
+                                    <div className="flex items-center gap-2">
+                                      {React.createElement(pkgIcon, { 
+                                        className: `w-5 h-5 ${
+                                          isTrial ? 'text-amber-700' :
+                                          isBasic ? 'text-slate-600' :
+                                          isPro ? 'text-blue-700' :
+                                          'text-amber-800'
+                                        }` 
+                                      })}
+                                      <span className={`text-sm font-bold ${
+                                        isTrial ? 'text-amber-800' :
+                                        isBasic ? 'text-slate-800' :
+                                        isPro ? 'text-blue-800' :
+                                        'text-amber-900'
+                                      }`}>
+                                        {isTrial ? '🎉 ทดลองใช้' : activePackage.package_name}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="p-3 bg-white/50">
+                                    {activePackage.subscription_end_date && (
+                                      <div className="flex items-center gap-1 text-xs text-slate-700 mb-2">
+                                        <Calendar className="w-3 h-3" />
+                                        <span>หมดอายุ {format(parseISO(activePackage.subscription_end_date), 'dd/MM/yyyy')}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-1 text-xs text-slate-600">
+                                      <Globe className="w-3 h-3" />
+                                      <span>{userPackages.length} สาขา</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            } else {
+                              return (
+                                <div className="p-4 rounded-lg bg-slate-50 border-2 border-dashed border-slate-300">
+                                  <p className="text-xs text-slate-600 text-center">ยังไม่มีแพ็กเกจ</p>
+                                </div>
+                              );
+                            }
+                          })()}
+                        </div>
+
+          {/* Cancel Package Dialog */}
+          <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+            <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <Package className="w-5 h-5 text-green-600" />
-                  จัดการแพ็กเกจ: {selectedUser?.full_name}
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                  ยืนยันการยกเลิก
                 </DialogTitle>
               </DialogHeader>
-              {selectedUser && (
-                <div className="space-y-6">
-                  <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                    <p className="text-sm text-blue-800">
-                      <strong>ผู้ใช้:</strong> {selectedUser.email}
+              {packageToCancel && (
+                <div className="space-y-4">
+                  <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                    <p className="text-sm text-red-800 mb-2">
+                      คุณกำลังจะยกเลิกแพ็กเกจ:
                     </p>
-                    <p className="text-xs text-blue-600 mt-1">
-                      💡 แพ็กเกจจะใช้ได้กับทุกสาขาที่ผู้ใช้มีสิทธิ์เข้าถึง
+                    <p className="font-bold text-red-900">
+                      {packageToCancel.package_name}
+                    </p>
+                    <p className="text-xs text-red-700 mt-1">
+                      สาขา: {getBranchName(packageToCancel.branch_id)}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Form Section */}
-                    <div className="space-y-3">
-                      <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm">
-                        <Edit2 className="w-4 h-4" />
-                        ตั้งค่าแพ็กเกจ
-                      </h3>
-
-                      <div>
-                        <label className="text-xs font-semibold text-slate-700 block mb-1">
-                          ประเภท
-                        </label>
-                        <Select
-                          value={packageFormData.package_type}
-                          onValueChange={(value) => setPackageFormData({ ...packageFormData, package_type: value })}
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="trial">🎉 Trial</SelectItem>
-                            <SelectItem value="paid">💎 Paid</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {packageFormData.package_type === 'paid' && (
-                        <div>
-                          <label className="text-xs font-semibold text-slate-700 block mb-1">
-                            ชื่อแพ็กเกจ
-                          </label>
-                          <Input
-                            value={packageFormData.package_name}
-                            onChange={(e) => setPackageFormData({ ...packageFormData, package_name: e.target.value })}
-                            placeholder="Premium"
-                            className="h-9"
-                          />
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="text-xs font-semibold text-slate-700 block mb-1">
-                          วันเริ่มต้น
-                        </label>
-                        <Input
-                          type="date"
-                          value={packageFormData.subscription_start_date}
-                          onChange={(e) => setPackageFormData({ ...packageFormData, subscription_start_date: e.target.value })}
-                          className="h-9"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="text-xs font-semibold text-slate-700 block mb-1">
-                          วันสิ้นสุด
-                        </label>
-                        <Input
-                          type="date"
-                          value={packageFormData.subscription_end_date}
-                          onChange={(e) => setPackageFormData({ ...packageFormData, subscription_end_date: e.target.value })}
-                          className="h-9"
-                        />
-                      </div>
-
-                      {packageFormData.subscription_start_date && packageFormData.subscription_end_date && (
-                        <div className="bg-green-50 rounded-lg p-2 border border-green-200">
-                          <p className="text-xs text-green-700 font-semibold">
-                            📅 {Math.ceil((new Date(packageFormData.subscription_end_date) - new Date(packageFormData.subscription_start_date)) / (1000 * 60 * 60 * 24))} วัน
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Package History */}
-                    <div className="space-y-3">
-                      <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm">
-                        <Calendar className="w-4 h-4" />
-                        ประวัติแพ็กเกจ
-                      </h3>
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {getUserPackageHistory(selectedUser.email).length > 0 ? (
-                          getUserPackageHistory(selectedUser.email).map((pkg) => (
-                            <div key={pkg.id} className={`p-2 rounded-lg border ${
-                              pkg.status === 'active' ? 'bg-green-50 border-green-300' : 'bg-slate-50 border-slate-200'
-                            }`}>
-                              <div className="flex items-start justify-between gap-2 mb-1">
-                                <p className="text-xs font-semibold text-slate-700 truncate">
-                                  {getBranchName(pkg.branch_id)}
-                                </p>
-                                <Badge variant={pkg.status === 'active' ? 'default' : 'secondary'} className="text-xs h-5">
-                                  {pkg.status}
-                                </Badge>
-                              </div>
-                              <p className="text-xs text-slate-600">{pkg.package_name || 'Trial'}</p>
-                              {pkg.subscription_end_date && (
-                                <p className="text-xs text-slate-500">
-                                  ถึง {format(parseISO(pkg.subscription_end_date), 'dd/MM/yy')}
-                                </p>
-                              )}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-4 text-slate-500 text-xs">
-                            ไม่พบประวัติ
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Payment History */}
-                    <div className="space-y-3">
-                      <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm">
-                        <CreditCard className="w-4 h-4" />
-                        ประวัติการชำระเงิน
-                      </h3>
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {getUserPaymentHistory(selectedUser.email).length > 0 ? (
-                          getUserPaymentHistory(selectedUser.email).slice(0, 10).map((payment) => (
-                            <div key={payment.id} className="p-2 rounded-lg bg-white border border-slate-200">
-                              <div className="flex items-start justify-between gap-2 mb-1">
-                                <p className="text-xs font-semibold text-slate-700">
-                                  {payment.total_amount?.toLocaleString()} ฿
-                                </p>
-                                <Badge variant={payment.status === 'paid' ? 'default' : 'secondary'} className="text-xs h-5">
-                                  {payment.status}
-                                </Badge>
-                              </div>
-                              {payment.payment_date && (
-                                <p className="text-xs text-slate-500">
-                                  {format(parseISO(payment.payment_date), 'dd/MM/yy')}
-                                </p>
-                              )}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-4 text-slate-500 text-xs">
-                            ไม่พบประวัติ
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
+                  <p className="text-sm text-slate-600">
+                    การยกเลิกจะมีผลทันที และผู้ใช้จะไม่สามารถเข้าถึงฟีเจอร์ของแพ็กเกจนี้ได้อีก
+                  </p>
 
                   <div className="flex justify-end gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={() => setShowPackageDialog(false)}>
-                      ปิด
+                    <Button variant="outline" onClick={() => {
+                      setShowCancelDialog(false);
+                      setPackageToCancel(null);
+                    }}>
+                      ยกเลิก
                     </Button>
                     <Button
-                      onClick={handleSavePackage}
-                      disabled={!packageFormData.subscription_start_date || !packageFormData.subscription_end_date || createOrUpdatePackageMutation.isPending}
-                      className="bg-gradient-to-r from-green-600 to-emerald-600"
+                      onClick={() => cancelPackageMutation.mutate(packageToCancel.id)}
+                      disabled={cancelPackageMutation.isPending}
+                      className="bg-red-600 hover:bg-red-700"
                     >
-                      {createOrUpdatePackageMutation.isPending ? (
+                      {cancelPackageMutation.isPending ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          กำลังบันทึก...
+                          กำลังยกเลิก...
                         </>
                       ) : (
-                        'บันทึกทุกสาขา'
+                        <>
+                          <X className="w-4 h-4 mr-2" />
+                          ยืนยันยกเลิก
+                        </>
                       )}
                     </Button>
                   </div>
