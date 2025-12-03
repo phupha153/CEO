@@ -1698,8 +1698,8 @@ export default function Settings() {
                 <div className="space-y-6">
                   {activeSubscription ? (
                     <>
-                      {/* สถานะแพ็กเกจหลัก */}
-                      <Card className={`bg-gradient-to-br ${daysRemaining !== null && daysRemaining < 30 ? 'from-orange-50 to-red-50 border-orange-300' : daysRemaining !== null && daysRemaining < 90 ? 'from-yellow-50 to-orange-50 border-yellow-300' : 'from-blue-50 to-indigo-50 border-blue-200'} shadow-xl`}>
+                      {/* ข้อมูลการใช้งาน Package */}
+                      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-xl">
                         <CardContent className="p-8">
                           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                             <div className="flex items-start gap-4 flex-1">
@@ -1717,14 +1717,8 @@ export default function Settings() {
                                 ? 'from-blue-500 to-purple-500'
                                 : 'from-orange-500 to-yellow-500';
 
-                              const urgentColor = daysRemaining !== null && daysRemaining < 30 
-                                ? 'from-orange-500 to-red-500' 
-                                : daysRemaining !== null && daysRemaining < 90 
-                                ? 'from-yellow-500 to-orange-500' 
-                                : pkgColor;
-
                               return (
-                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br ${urgentColor}`}>
+                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br ${pkgColor}`}>
                                   {React.createElement(pkgIcon, { className: "w-8 h-8 text-white" })}
                                 </div>
                               );
@@ -1733,64 +1727,6 @@ export default function Settings() {
                                 <h3 className="text-2xl font-bold text-slate-800 mb-2">
                                   {activeSubscription?.package_name || activeSubscription?.app_name || 'แพ็กเกจระบบจัดการหอพัก'}
                                 </h3>
-
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <Badge className={`text-sm px-3 py-1 ${activeSubscription.status === 'active' ? 'bg-green-600' : activeSubscription.status === 'trial' ? 'bg-amber-600' : activeSubscription.status === 'expired' ? 'bg-red-600' : 'bg-slate-600'} text-white`}>
-                                      {activeSubscription.status === 'active' ? 'ใช้งานอยู่' : activeSubscription.status === 'trial' ? 'ทดลองใช้' : activeSubscription.status === 'expired' ? 'หมดอายุ' : 'ยกเลิก'}
-                                    </Badge>
-
-                                    {daysRemaining !== null && (
-                                      <Badge className={`text-sm px-3 py-1 ${
-                                        daysRemaining < 0 ? 'bg-red-600 text-white' :
-                                        daysRemaining < 30 ? 'bg-orange-600 text-white' :
-                                        daysRemaining < 90 ? 'bg-yellow-600 text-white' :
-                                        'bg-blue-600 text-white'
-                                      }`}>
-                                        {daysRemaining < 0
-                                          ? `หมดอายุแล้ว ${Math.abs(daysRemaining)} วัน`
-                                          : `เหลืออีก ${daysRemaining} วัน`}
-                                      </Badge>
-                                    )}
-                                  </div>
-
-                                  {activeSubscription.subscription_start_date && activeSubscription.subscription_end_date && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-700 mt-4">
-                                      <div className="flex items-center gap-2">
-                                        <Calendar className="w-4 h-4 text-blue-600" />
-                                        <span className="text-slate-600">เริ่มใช้งาน:</span>
-                                        <span className="font-semibold">
-                                          {format(parseISO(activeSubscription.subscription_start_date), 'd MMM yyyy', { locale: th })}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <Calendar className="w-4 h-4 text-red-600" />
-                                        <span className="text-slate-600">หมดอายุ:</span>
-                                        <span className="font-semibold">
-                                          {format(parseISO(activeSubscription.subscription_end_date), 'd MMM yyyy', { locale: th })}
-                                        </span>
-                                      </div>
-                                      {activeSubscription.price_per_month > 0 && (
-                                        <>
-                                          <div className="flex items-center gap-2">
-                                            <DollarSign className="w-4 h-4 text-green-600" />
-                                            <span className="text-slate-600">ราคา/เดือน:</span>
-                                            <span className="font-semibold">
-                                              {activeSubscription.price_per_month?.toLocaleString() || 'N/A'} บาท
-                                            </span>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            <DollarSign className="w-4 h-4 text-purple-600" />
-                                            <span className="text-slate-600">ราคารวม:</span>
-                                            <span className="font-semibold">
-                                              {activeSubscription.total_price?.toLocaleString() || 'N/A'} บาท
-                                            </span>
-                                          </div>
-                                        </>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
                               </div>
                             </div>
 
@@ -1805,171 +1741,103 @@ export default function Settings() {
                         </CardContent>
                       </Card>
 
-                      {/* รายละเอียดแพ็กเกจ */}
+                      {/* การใช้งานผู้ใช้และสาขา */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Card className="bg-white border-slate-200 shadow-lg">
                           <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-lg">
-                              <Package className="w-5 h-5 text-blue-600" />
-                              ฟีเจอร์ในแพ็กเกจ
+                              <Users className="w-5 h-5 text-blue-600" />
+                              ผู้ใช้งาน
                             </CardTitle>
                           </CardHeader>
-                          <CardContent className="space-y-3">
-                            {activeSubscription.features && activeSubscription.features.length > 0 ? (
-                              activeSubscription.features.map((feature, index) => (
-                                <div key={index} className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                                  <Check className="w-5 h-5 text-green-600" />
-                                  <span className="text-sm text-slate-700">{feature}</span>
+                          <CardContent>
+                            {(() => {
+                              const userAccessibleBranches = currentUser?.accessible_branches || [];
+                              const isDeveloper = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+                              
+                              // นับจำนวนผู้ใช้ที่มีสิทธิ์ในสาขาที่ owner ดูแล
+                              const totalUsers = isDeveloper 
+                                ? users.length 
+                                : users.filter(u => {
+                                    const uAccessibleBranches = u.accessible_branches || [];
+                                    const uRole = u.custom_role || (u.role === 'admin' ? 'owner' : 'employee');
+                                    // Developer/Owner เห็นทุกคน
+                                    if (uRole === 'developer' || uRole === 'owner') return true;
+                                    // คนอื่นต้องมีสาขาที่ทับกับ owner
+                                    return uAccessibleBranches.some(b => userAccessibleBranches.includes(b));
+                                  }).length;
+
+                              const maxUsers = activeSubscription?.max_users || 999;
+                              const usagePercent = maxUsers === 999 ? 0 : Math.min((totalUsers / maxUsers) * 100, 100);
+
+                              return (
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-slate-600">ผู้ใช้งานทั้งหมด</span>
+                                    <span className="text-2xl font-bold text-blue-600">
+                                      {totalUsers} {maxUsers !== 999 && `/ ${maxUsers}`}
+                                    </span>
+                                  </div>
+                                  <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
+                                      style={{ width: `${maxUsers === 999 ? 10 : usagePercent}%` }}
+                                    />
+                                  </div>
+                                  <p className="text-xs text-slate-500">
+                                    {maxUsers === 999 ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${maxUsers - totalUsers} ที่นั่ง`}
+                                  </p>
                                 </div>
-                              ))
-                            ) : (
-                              <>
-                                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                                  <Check className="w-5 h-5 text-green-600" />
-                                  <span className="text-sm text-slate-700">จัดการห้องพัก (ไม่จำกัด)</span>
-                                </div>
-                                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                                  <Check className="w-5 h-5 text-green-600" />
-                                  <span className="text-sm text-slate-700">จัดการผู้เช่า (ไม่จำกัด)</span>
-                                </div>
-                                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                                  <Check className="w-5 h-5 text-green-600" />
-                                  <span className="text-sm text-slate-700">ระบบการชำระเงินอัตโนมัติ</span>
-                                </div>
-                              </>
-                            )}
+                              );
+                            })()}
                           </CardContent>
                         </Card>
 
                         <Card className="bg-white border-slate-200 shadow-lg">
                           <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-lg">
-                              <Zap className="w-5 h-5 text-purple-600" />
-                              การใช้งาน AI
+                              <Building2 className="w-5 h-5 text-purple-600" />
+                              สาขา
                             </CardTitle>
                           </CardHeader>
-                          <CardContent className="space-y-4">
-                            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border-2 border-purple-200">
-                              <div className="flex items-center justify-between mb-4">
-                                <span className="text-sm text-purple-700 font-semibold">การใช้งานในเดือนนี้</span>
-                                <Badge className="bg-purple-600 text-white">
-                                  Active
-                                </Badge>
-                              </div>
+                          <CardContent>
+                            {(() => {
+                              const userAccessibleBranches = currentUser?.accessible_branches || [];
+                              const isDeveloper = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+                              
+                              // นับจำนวนสาขาที่ owner ดูแล
+                              const totalBranches = isDeveloper 
+                                ? branches.length 
+                                : userAccessibleBranches.length;
 
-                              <div className="space-y-4">
-                                <div>
-                                  <div className="flex justify-between items-center mb-2">
-                                    <span className="text-xs text-slate-600">คำขอ AI (Requests)</span>
-                                    <span className="text-sm font-bold text-purple-700">ไม่จำกัด</span>
-                                  </div>
-                                  <div className="h-2 bg-white/80 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style={{ width: '0%' }}></div>
-                                  </div>
-                                </div>
+                              const maxBranches = activeSubscription?.max_branches || 999;
+                              const usagePercent = maxBranches === 999 ? 0 : Math.min((totalBranches / maxBranches) * 100, 100);
 
-                                <div>
-                                  <div className="flex justify-between items-center mb-2">
-                                    <span className="text-xs text-slate-600">การค้นหาด้วย AI</span>
-                                    <span className="text-sm font-bold text-purple-700">ไม่จำกัด</span>
+                              return (
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-sm text-slate-600">สาขาทั้งหมด</span>
+                                    <span className="text-2xl font-bold text-purple-600">
+                                      {totalBranches} {maxBranches !== 999 && `/ ${maxBranches}`}
+                                    </span>
                                   </div>
-                                  <div className="h-2 bg-white/80 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" style={{ width: '0%' }}></div>
+                                  <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
+                                      style={{ width: `${maxBranches === 999 ? 10 : usagePercent}%` }}
+                                    />
                                   </div>
+                                  <p className="text-xs text-slate-500">
+                                    {maxBranches === 999 ? 'ไม่จำกัดจำนวนสาขา' : `เหลือ ${maxBranches - totalBranches} สาขา`}
+                                  </p>
                                 </div>
-
-                                <div>
-                                  <div className="flex justify-between items-center mb-2">
-                                    <span className="text-xs text-slate-600">AI ผู้ช่วยในระบบ</span>
-                                    <span className="text-sm font-bold text-purple-700">ไม่จำกัด</span>
-                                  </div>
-                                  <div className="h-2 bg-white/80 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-pink-500 to-purple-500 rounded-full" style={{ width: '0%' }}></div>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="mt-6 pt-4 border-t border-purple-200">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-purple-600 font-semibold">✨ สิทธิพิเศษ</span>
-                                  <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs">
-                                    Unlimited AI
-                                  </Badge>
-                                </div>
-                                <p className="text-xs text-slate-600 mt-2">
-                                  แพ็กเกจของคุณมีการใช้งาน AI ไม่จำกัด
-                                </p>
-                              </div>
-                            </div>
+                              );
+                            })()}
                           </CardContent>
                         </Card>
                       </div>
 
-                      {/* ข้อมูลการชำระเงิน */}
-                      {activeSubscription.status !== 'trial' && (
-                        <Card className="bg-white border-slate-200 shadow-lg">
-                          <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-lg">
-                              <CreditCard className="w-5 h-5 text-green-600" />
-                              ข้อมูลการชำระเงิน
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                                <p className="text-xs text-slate-600 mb-2">ระยะเวลาสัญญา</p>
-                                <p className="text-2xl font-bold text-slate-800">
-                                  {activeSubscription.subscription_duration_months || 3} <span className="text-lg">เดือน</span>
-                                </p>
-                              </div>
 
-                              <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-                                <p className="text-xs text-green-700 mb-2">ราคาต่อเดือน</p>
-                                <p className="text-2xl font-bold text-green-700">
-                                  {activeSubscription.price_per_month?.toLocaleString() || 'N/A'} <span className="text-lg">฿</span>
-                                </p>
-                              </div>
-
-                              <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                                <p className="text-xs text-blue-700 mb-2">ราคารวมทั้งหมด</p>
-                                <p className="text-2xl font-bold text-blue-700">
-                                  {activeSubscription.total_price?.toLocaleString() || 'N/A'} <span className="text-lg">฿</span>
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="mt-6 space-y-3">
-                              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                                <span className="text-sm text-slate-700">สถานะการชำระเงิน:</span>
-                                <Badge className={`${
-                                  activeSubscription.payment_status === 'paid' ? 'bg-green-600' :
-                                  activeSubscription.payment_status === 'pending' ? 'bg-yellow-600' :
-                                  'bg-red-600'
-                                } text-white`}>
-                                  {activeSubscription.payment_status === 'paid' ? 'ชำระแล้ว' :
-                                   activeSubscription.payment_status === 'pending' ? 'รอชำระ' :
-                                   'เกินกำหนด'}
-                                </Badge>
-                              </div>
-
-                              {activeSubscription.auto_renew && (
-                                <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                  <RefreshCw className="w-4 h-4 text-blue-600" />
-                                  <span className="text-sm text-blue-700 font-semibold">เปิดใช้งานต่ออายุอัตโนมัติ</span>
-                                </div>
-                              )}
-
-                              {activeSubscription.notes && (
-                                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                                  <p className="text-xs text-amber-800">
-                                    <strong>หมายเหตุ:</strong> {activeSubscription.notes}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
 
                       {/* คำเตือนหมดอายุ */}
                       {daysRemaining !== null && daysRemaining < 30 && daysRemaining >= 0 && (
