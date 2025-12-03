@@ -1461,12 +1461,12 @@ export default function Layout({ children, currentPageName }) {
     return null;
   };
 
-  // If no branch is selected, show branch selection page WITHOUT sidebar
-  if (!selectedBranch) {
+  // If no branch is selected, show branch selection page WITHOUT sidebar and subscription banner
+  if (!selectedBranch || currentPageName === 'BranchSelection') {
     return (
       <>
         <Toaster richColors position="top-center" />
-        <BranchSelection />
+        {currentPageName === 'BranchSelection' ? children : <BranchSelection />}
       </>
     );
   }
