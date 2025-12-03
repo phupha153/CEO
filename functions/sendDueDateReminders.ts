@@ -271,13 +271,16 @@ Deno.serve(async (req) => {
                 message += `ขอบคุณค่ะ 🙏`;
 
                 recipients.push({
-                    lineUserId: tenant.line_user_id,
+                    lineUserId: hasLine ? tenant.line_user_id : null,
+                    facebookUserId: hasFacebook ? tenant.facebook_user_id : null,
                     message: message,
                     metadata: {
                         paymentId: payment.id,
                         tenantId: tenant.id,
+                        tenantName: tenant.full_name,
                         roomNumber: room?.room_number,
-                        branchId: paymentBranchId
+                        branchId: paymentBranchId,
+                        channel: hasLine ? 'line' : 'facebook'
                     }
                 });
 
