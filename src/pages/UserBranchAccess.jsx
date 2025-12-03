@@ -749,18 +749,36 @@ export default function UserBranchAccess() {
                                   </div>
                                 </div>
                               </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setPackageToCancel(activePackage);
-                                  setShowCancelDialog(true);
-                                }}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <X className="w-4 h-4 mr-1" />
-                                ยกเลิก
-                              </Button>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setPackageFormData({
+                                      package_id: activePackage.package_id,
+                                      subscription_start_date: activePackage.subscription_start_date || '',
+                                      subscription_end_date: activePackage.subscription_end_date || '',
+                                      duration_months: '1',
+                                    });
+                                  }}
+                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                >
+                                  <Edit2 className="w-4 h-4 mr-1" />
+                                  แก้ไข
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setPackageToCancel(activePackage);
+                                    setShowCancelDialog(true);
+                                  }}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <X className="w-4 h-4 mr-1" />
+                                  ยกเลิก
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
