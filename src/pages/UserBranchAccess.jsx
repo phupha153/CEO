@@ -30,6 +30,7 @@ export default function UserBranchAccess() {
     subscription_end_date: '',
     duration_months: '1',
   });
+  const [isEditingPackage, setIsEditingPackage] = useState(false);
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [packageToCancel, setPackageToCancel] = useState(null);
@@ -154,35 +155,45 @@ export default function UserBranchAccess() {
   });
 
   const createOrUpdatePackageMutation = useMutation({
-    mutationFn: async ({ ownerEmail, packageData }) => {
+    mutationFn: async ({ ownerEmail, packageData, isEditing }) => {
       const userBranches = selectedUser?.accessible_branches || [];
       const targetBranches = userBranches.length > 0 ? userBranches : branches.map(b => b.id);
 
       const results = [];
       for (const branchId of targetBranches) {
-        const existingPackages = branchPackages.filter(
-          bp => bp.branch_id === branchId && bp.owner_email === ownerEmail
+        const existingPackage = branchPackages.find(
+          bp => bp.branch_id === branchId && bp.owner_email === ownerEmail && bp.status === 'active'
         );
 
-        // ลบ package เก่าทั้งหมดในสาขานี้ก่อน
-        for (const oldPkg of existingPackages) {
-          await base44.entities.BranchPackage.delete(oldPkg.id);
-        }
+        if (isEditing && existingPackage) {
+          // อัปเดตแพ็กเกจที่มีอยู่
+          const result = await base44.entities.BranchPackage.update(existingPackage.id, packageData);
+          results.push(result);
+        } else {
+          // ลบ package เก่าทั้งหมดในสาขานี้ก่อน แล้วสร้างใหม่
+          const existingPackages = branchPackages.filter(
+            bp => bp.branch_id === branchId && bp.owner_email === ownerEmail
+          );
+          for (const oldPkg of existingPackages) {
+            await base44.entities.BranchPackage.delete(oldPkg.id);
+          }
 
-        // สร้าง package ใหม่
-        const result = await base44.entities.BranchPackage.create({
-          branch_id: branchId,
-          owner_email: ownerEmail,
-          ...packageData,
-        });
-        results.push(result);
+          // สร้าง package ใหม่
+          const result = await base44.entities.BranchPackage.create({
+            branch_id: branchId,
+            owner_email: ownerEmail,
+            ...packageData,
+          });
+          results.push(result);
+        }
       }
       return results;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['branchPackages']);
-      toast.success('บันทึกแพ็กเกจสำเร็จ');
+      toast.success(isEditingPackage ? 'แก้ไขแพ็กเกจสำเร็จ' : 'บันทึกแพ็กเกจสำเร็จ');
       setShowPackageDialog(false);
+      setIsEditingPackage(false);
       refetchBranchPackages();
     },
     onError: (error) => {
@@ -283,6 +294,7 @@ export default function UserBranchAccess() {
     createOrUpdatePackageMutation.mutate({
       ownerEmail: selectedUser.email,
       packageData,
+      isEditing: isEditingPackage,
     });
   };
 
@@ -765,11 +777,12 @@ export default function UserBranchAccess() {
                                       subscription_end_date: activePackage.subscription_end_date || '',
                                       duration_months: '1',
                                     });
+                                    setIsEditingPackage(true);
                                     // Scroll to form section
                                     setTimeout(() => {
                                       document.getElementById('package-form-section')?.scrollIntoView({ behavior: 'smooth' });
                                     }, 100);
-                                    toast.info('กรุณาเลือกแพ็กเกจและระยะเวลาใหม่ด้านล่าง');
+                                    toast.info('กำลังแก้ไขแพ็กเกจปัจจุบัน');
                                   }}
                                   className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                 >
@@ -802,8 +815,23 @@ export default function UserBranchAccess() {
                     <div id="package-form-section" className="space-y-4">
                       <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
                         <Edit2 className="w-5 h-5" />
-                        เปลี่ยน/ต่ออายุแพ็กเกจ
+                        {isEditingPackage ? '✏️ แก้ไขแพ็กเกจปัจจุบัน' : 'เปลี่ยน/ต่ออายุแพ็กเกจ'}
                       </h3>
+                      {isEditingPackage && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                          <p className="text-sm text-blue-800">
+                            กำลังแก้ไขแพ็กเกจที่มีอยู่ - การเปลี่ยนแปลงจะมีผลกับทุกสาขาที่ผู้ใช้ดูแล
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setIsEditingPackage(false)}
+                            className="mt-2 text-blue-600 hover:text-blue-700"
+                          >
+                            ยกเลิกการแก้ไข → สร้างใหม่แทน
+                          </Button>
+                        </div>
+                      )}
 
                       <div>
                         <label className="text-sm font-semibold text-slate-700 block mb-2">
@@ -1082,7 +1110,10 @@ export default function UserBranchAccess() {
                   </div>
 
                   <div className="flex justify-end gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={() => setShowPackageDialog(false)}>
+                    <Button variant="outline" onClick={() => {
+                      setShowPackageDialog(false);
+                      setIsEditingPackage(false);
+                    }}>
                       ปิด
                     </Button>
                     <Button
@@ -1098,7 +1129,7 @@ export default function UserBranchAccess() {
                       ) : (
                         <>
                           <Check className="w-4 h-4 mr-2" />
-                          บันทึกแพ็กเกจใหม่
+                          {isEditingPackage ? 'บันทึกการแก้ไข' : 'บันทึกแพ็กเกจใหม่'}
                         </>
                       )}
                     </Button>
