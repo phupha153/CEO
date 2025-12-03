@@ -111,11 +111,11 @@ export default function PageHeader({
                   variant="ghost"
                   size="icon"
                   onClick={() => setNotificationsPanelOpen(true)}
-                  className="relative hover:bg-white/50 hover:bg-blue-100/50"
+                  className={`relative hover:bg-white/50 hover:bg-blue-100/50 ${unreadCount > 0 ? 'animate-pulse' : ''}`}
                 >
-                  <Bell className="w-5 h-5 text-slate-700" />
+                  <Bell className={`w-5 h-5 text-slate-700 ${unreadCount > 0 ? 'animate-[shake_0.5s_ease-in-out_infinite]' : ''}`} />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center animate-bounce">
                       <span className="text-white text-xs font-bold">
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </span>
