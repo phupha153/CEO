@@ -1057,8 +1057,14 @@ export default function Layout({ children, currentPageName }) {
       currentPageName === 'RenewalPage' ||
       currentPageName === 'PackageSelectionPage' ||
       currentPageName === 'TrialExpiredPage' ||
-      currentPageName === 'PackageExpiredPage') {
-    return children;
+      currentPageName === 'PackageExpiredPage' ||
+      currentPageName === 'BranchSelection') {
+    return (
+      <>
+        <Toaster richColors position="top-center" />
+        {children}
+      </>
+    );
   }
 
   // Settings page - allow render with tutorial
