@@ -693,13 +693,23 @@ export default function Layout({ children, currentPageName }) {
 
         if (!existingPackage && !anyActivePackage) {
           // ⭐ เช็คว่า user มี paid package ในสาขาอื่นๆ ที่ตัวเองมีสิทธิ์หรือไม่
+          // ถ้า accessible_branches เป็น null/undefined = developer ที่ยังไม่ set ให้ดูจาก email
           const userAccessibleBranchIds = currentUser?.accessible_branches || [];
           const userPaidPackages = branchPackages.filter(bp => 
-            userAccessibleBranchIds.includes(bp.branch_id) && 
             bp.status === 'active' && 
             bp.package_id !== 'trial' && 
-            bp.price_per_month > 0
+            bp.price_per_month > 0 &&
+            (userAccessibleBranchIds.length === 0 
+              ? bp.owner_email === currentUser.email  // developer: ดูจาก email
+              : userAccessibleBranchIds.includes(bp.branch_id))  // user ปกติ: ดูจากสาขา
           );
+
+          console.log('🔍 Checking for paid packages:', { 
+            email: currentUser.email, 
+            userAccessibleBranchIds, 
+            userPaidPackages: userPaidPackages.length,
+            branchId: selectedBranch.id
+          });
 
           if (userPaidPackages.length > 0) {
             // มี paid package ในสาขาอื่น → ใช้ package เดียวกัน
