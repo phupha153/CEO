@@ -1763,17 +1763,17 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // ดึงข้อมูลจำนวนผู้ใช้ทั้งหมดจาก CRM
-                              const totalUsersInCRM = networkStats?.total_users || 0;
+                              // นับจำนวนผู้ใช้จริงในระบบ
+                              const totalUsersInSystem = users.length;
                               const maxUsers = activeSubscription?.max_users || 999;
-                              const usagePercent = maxUsers === 999 ? 10 : Math.min((totalUsersInCRM / maxUsers) * 100, 100);
+                              const usagePercent = maxUsers === 999 ? 10 : Math.min((totalUsersInSystem / maxUsers) * 100, 100);
 
                               return (
                                 <div className="space-y-4">
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm text-slate-600">ผู้ใช้งานทั้งหมด</span>
                                     <span className="text-2xl font-bold text-blue-600">
-                                      {networkStatsLoading ? '...' : totalUsersInCRM} {maxUsers !== 999 && `/ ${maxUsers}`}
+                                      {totalUsersInSystem} {maxUsers !== 999 && `/ ${maxUsers}`}
                                     </span>
                                   </div>
                                   <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
@@ -1783,7 +1783,7 @@ export default function Settings() {
                                     />
                                   </div>
                                   <p className="text-xs text-slate-500">
-                                    {maxUsers === 999 ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInCRM)} ที่นั่ง`}
+                                    {maxUsers === 999 ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInSystem)} ที่นั่ง`}
                                   </p>
                                 </div>
                               );
@@ -1800,17 +1800,17 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // ดึงข้อมูลจำนวนสาขาทั้งหมดจาก CRM
-                              const totalBranchesInCRM = networkStats?.total_branches || 0;
+                              // นับจำนวนสาขาจริงในระบบ
+                              const totalBranchesInSystem = branches.length;
                               const maxBranches = activeSubscription?.max_branches || 999;
-                              const usagePercent = maxBranches === 999 ? 10 : Math.min((totalBranchesInCRM / maxBranches) * 100, 100);
+                              const usagePercent = maxBranches === 999 ? 10 : Math.min((totalBranchesInSystem / maxBranches) * 100, 100);
 
                               return (
                                 <div className="space-y-4">
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm text-slate-600">สาขาที่ดูแลทั้งหมด</span>
                                     <span className="text-2xl font-bold text-purple-600">
-                                      {networkStatsLoading ? '...' : totalBranchesInCRM} {maxBranches !== 999 && `/ ${maxBranches}`}
+                                      {totalBranchesInSystem} {maxBranches !== 999 && `/ ${maxBranches}`}
                                     </span>
                                   </div>
                                   <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
@@ -1820,7 +1820,7 @@ export default function Settings() {
                                     />
                                   </div>
                                   <p className="text-xs text-slate-500">
-                                    {maxBranches === 999 ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInCRM)} สาขา`}
+                                    {maxBranches === 999 ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInSystem)} สาขา`}
                                   </p>
                                 </div>
                               );
