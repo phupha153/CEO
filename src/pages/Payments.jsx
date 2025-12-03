@@ -3195,7 +3195,7 @@ Return JSON.`;
                           <ChevronRight className="w-4 h-4" />
                         </Button>
                       </div>
-                      <div className="flex items-center gap-4 text-sm">
+                      <div className="hidden md:flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 rounded bg-green-500"></div>
                           <span>ชำระแล้ว</span>
