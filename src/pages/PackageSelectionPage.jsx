@@ -451,24 +451,18 @@ export default function PackageSelectionPage() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                     {packages.map((pkg, index) => {
                       const isMostPopular = pkg.popular === true || (index === packages.length - 1 && packages.length === 3);
                       const isSelected = selectedPackageId === pkg.id;
                       const isDisabled = pkg.is_active === false;
                       
                       // กำหนดไอคอนและสีตาม package_name
-                      const packageIcon = pkg.package_name?.toLowerCase().includes('basic') || pkg.package_name?.toLowerCase().includes('nano') 
-                        ? Settings 
-                        : pkg.package_name?.toLowerCase().includes('pro') || pkg.package_name?.toLowerCase().includes('micro') 
-                        ? Sparkles 
-                        : Pencil;
+                      const isBasic = pkg.package_name?.toLowerCase().includes('basic') || pkg.package_name?.toLowerCase().includes('nano');
+                      const isPro = pkg.package_name?.toLowerCase().includes('pro') || pkg.package_name?.toLowerCase().includes('micro');
+                      const isElite = !isBasic && !isPro;
                       
-                      const packageColor = pkg.package_name?.toLowerCase().includes('basic') || pkg.package_name?.toLowerCase().includes('nano')
-                        ? 'from-slate-700 via-slate-800 to-slate-900'
-                        : pkg.package_name?.toLowerCase().includes('pro') || pkg.package_name?.toLowerCase().includes('micro')
-                        ? 'from-blue-500 via-purple-500 to-pink-500'
-                        : 'from-orange-400 via-orange-500 to-yellow-500';
+                      const packageIcon = isBasic ? Settings : isPro ? Sparkles : Crown;
                       
                       return (
                         <motion.div
@@ -476,20 +470,18 @@ export default function PackageSelectionPage() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.1 }}
-                          className={`relative ${isMostPopular && !isDisabled ? 'md:scale-105' : ''}`}
+                          className="relative"
                         >
-                          <Card className={`h-full transition-all ${
+                          <Card className={`h-full transition-all overflow-hidden ${
                            isDisabled 
                              ? 'cursor-not-allowed opacity-60 grayscale' 
-                             : 'cursor-pointer'
+                             : 'cursor-pointer hover:shadow-2xl'
                           } ${
-                           isSelected && !isDisabled ? 'ring-4 ring-blue-500 ring-offset-4' : ''
+                           isSelected && !isDisabled ? 'ring-4 ring-blue-500 ring-offset-4' : 'shadow-xl'
                           } ${
-                           isDisabled
-                             ? 'bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 text-slate-400 shadow-lg border-slate-600'
-                             : isMostPopular 
-                               ? `bg-gradient-to-br ${packageColor} text-white shadow-2xl border-0`
-                               : 'bg-white text-slate-800 shadow-lg hover:shadow-xl border-slate-200'
+                           isBasic && !isDisabled
+                             ? 'bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 border-0'
+                             : 'bg-white border border-slate-200'
                           }`}
                           onClick={() => {
                            if (isDisabled) return;
