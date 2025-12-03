@@ -569,8 +569,8 @@ export default function PackageSelectionPage() {
                                 </p>
                               </div>
 
-                              {/* Bottom Section with white background */}
-                              <div className="p-6 bg-white rounded-b-[1.75rem] flex-1 flex flex-col">
+                              {/* Bottom Section with white background and border */}
+                              <div className="p-6 bg-white rounded-[1.5rem] border-2 border-slate-200 mx-3 mb-3 -mt-2 flex-1 flex flex-col shadow-sm">
                                 {/* Button */}
                                 <Button
                                   onClick={(e) => {
@@ -600,6 +600,18 @@ export default function PackageSelectionPage() {
                                       <span className="text-sm text-slate-600">{feature}</span>
                                     </div>
                                   ))}
+                                </div>
+
+                                {/* Branch and User limits */}
+                                <div className="mt-4 pt-4 border-t border-slate-200 flex items-center justify-center gap-6 text-xs text-slate-500">
+                                  <div className="flex items-center gap-1.5">
+                                    <Building2 className="w-4 h-4" />
+                                    <span>{pkg.max_branches || '∞'} สาขา</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <Users className="w-4 h-4" />
+                                    <span>{pkg.max_users || '∞'} ผู้ใช้</span>
+                                  </div>
                                 </div>
                               </div>
                             </CardContent>
