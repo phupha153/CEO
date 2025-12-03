@@ -252,9 +252,9 @@ const adminOnlyItems = [
     url: createPageUrl("UserBranchAccess"),
     icon: Users,
     badge: "Admin",
-    showOnlyForDeveloper: false, // Allow both developer and owner
-    requiredPermission: "settings_view",
-    requiredFeature: "settings_view"
+    showOnlyForDeveloper: false,
+    requiredPermission: null, // ไม่ต้องเช็คสิทธิ์ - หน้านี้จัดการเองภายใน
+    requiredFeature: null
   },
   {
     title: "ดูข้อมูล Lists",
