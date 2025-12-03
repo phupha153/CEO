@@ -25,18 +25,49 @@ Deno.serve(async (req) => {
       }, { status: 500 });
     }
 
-    // ⭐ นับจำนวนผู้ใช้และสาขาจากระบบหอพักโดยตรง (ไม่ต้องพึ่ง CRM API)
-    
-    // 1. นับจำนวน Users ทั้งหมดในระบบ
-    const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 1000);
-    const totalUsers = allUsers?.length || 0;
-    
-    // 2. นับจำนวน Branches ทั้งหมดในระบบ
-    const allBranches = await base44.asServiceRole.entities.Branch.list('-created_date', 1000);
-    const totalBranches = allBranches?.length || 0;
+    // Connect to CRM
+    const crmClient = createClient({
+      appId: crmAppId,
+      serviceRoleKey: crmServiceRoleKey,
+      baseURL: 'https://app.base44.com'
+    });
 
-    console.log('Total users in system:', totalUsers);
-    console.log('Total branches in system:', totalBranches);
+    console.log('Calling CRM API to get network stats...');
+
+    // เรียก CRM API endpoint ที่จะนับจำนวนผู้ใช้และสาขาทั้งหมด
+    const CRM_API_KEY = Deno.env.get('CRM_API_KEY');
+    
+    const crmApiResponse = await fetch(
+      'https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/getNetworkStats',
+      {
+        method: 'POST',
+        headers: {
+          'api_key': CRM_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: user.email })
+      }
+    );
+
+    if (!crmApiResponse.ok) {
+      const errorText = await crmApiResponse.text();
+      console.error('❌ CRM API error:', errorText);
+      return Response.json({ 
+        error: 'ไม่สามารถเชื่อมต่อ CRM ได้',
+        total_users: 0,
+        total_branches: 0
+      }, { status: 500 });
+    }
+
+    const crmData = await crmApiResponse.json();
+    
+    console.log('CRM Response:', crmData);
+
+    const totalUsers = crmData?.total_users || 0;
+    const totalBranches = crmData?.total_branches || 0;
+
+    console.log('Total users in network:', totalUsers);
+    console.log('Total branches in network:', totalBranches);
 
     return Response.json({
       success: true,
