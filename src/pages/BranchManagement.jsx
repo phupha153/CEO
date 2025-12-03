@@ -20,6 +20,7 @@ export default function BranchManagement() {
   const [deletingBranch, setDeletingBranch] = useState(null);
   const [editingBranch, setEditingBranch] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // ป้องกันกดซ้ำ
   const [formData, setFormData] = useState({
     branch_name: '',
     branch_code: '',
@@ -267,9 +268,13 @@ export default function BranchManagement() {
       
       setShowDialog(false);
       resetForm();
+      setIsSubmitting(false); // ⭐ ปลดล็อค
       toast.success('เพิ่มสาขาสำเร็จ');
     },
-    onError: () => toast.error('เกิดข้อผิดพลาด'),
+    onError: () => {
+      setIsSubmitting(false); // ⭐ ปลดล็อค
+      toast.error('เกิดข้อผิดพลาด');
+    },
   });
 
   const updateMutation = useMutation({
@@ -329,9 +334,13 @@ export default function BranchManagement() {
       queryClient.invalidateQueries(['configs']);
       setShowDialog(false);
       resetForm();
+      setIsSubmitting(false); // ⭐ ปลดล็อค
       toast.success('อัปเดตสาขาสำเร็จ');
     },
-    onError: () => toast.error('เกิดข้อผิดพลาด'),
+    onError: () => {
+      setIsSubmitting(false); // ⭐ ปลดล็อค
+      toast.error('เกิดข้อผิดพลาด');
+    },
   });
 
   const deleteMutation = useMutation({
@@ -382,8 +391,23 @@ export default function BranchManagement() {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // ⭐ ป้องกันกดซ้ำ
+    if (isSubmitting) {
+      toast.warning('กำลังดำเนินการ กรุณารอสักครู่...');
+      return;
+    }
+    
     // เช็คจำนวนสาขาก่อนสร้าง
     if (!editingBranch) {
+      // ⭐ เช็ค branch_code ซ้ำ
+      const existingBranch = allBranches.find(b => 
+        b.branch_code.toLowerCase() === formData.branch_code.toLowerCase()
+      );
+      if (existingBranch) {
+        toast.error(`รหัสสาขา "${formData.branch_code}" มีอยู่แล้ว กรุณาใช้รหัสอื่น`);
+        return;
+      }
+      
       const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
       const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
       const maxTrialBranches = 2;
@@ -394,6 +418,8 @@ export default function BranchManagement() {
         return;
       }
     }
+    
+    setIsSubmitting(true); // ⭐ ล็อคปุ่ม
     
     const data = {
       ...formData
@@ -873,11 +899,15 @@ export default function BranchManagement() {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setShowDialog(false)}>
+                  <Button type="button" variant="outline" onClick={() => setShowDialog(false)} disabled={isSubmitting}>
                     ยกเลิก
                   </Button>
-                  <Button type="submit" className="bg-gradient-to-r from-purple-600 to-indigo-600">
-                    {editingBranch ? 'อัปเดต' : 'เพิ่มสาขา'}
+                  <Button 
+                    type="submit" 
+                    className="bg-gradient-to-r from-purple-600 to-indigo-600"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'กำลังดำเนินการ...' : (editingBranch ? 'อัปเดต' : 'เพิ่มสาขา')}
                   </Button>
                 </div>
               </form>
