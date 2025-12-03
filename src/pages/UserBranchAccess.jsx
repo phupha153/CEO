@@ -216,30 +216,34 @@ export default function UserBranchAccess() {
     setShowPermissionsDialog(true);
   };
 
-  const handleOpenPackageDialog = (user) => {
+  const handleOpenPackageDialog = (user, prefillData = null) => {
     setSelectedUser(user);
     
-    const existingPackages = branchPackages.filter(bp => bp.owner_email === user.email && bp.status === 'active');
-    const existingPackage = existingPackages[0];
-
-    if (existingPackage) {
-      setPackageFormData({
-        package_id: existingPackage.package_id || '',
-        subscription_start_date: existingPackage.subscription_start_date || '',
-        subscription_end_date: existingPackage.subscription_end_date || '',
-        duration_months: '1',
-      });
+    if (prefillData) {
+      setPackageFormData(prefillData);
     } else {
-      const today = new Date().toISOString().split('T')[0];
-      const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 14);
-      
-      setPackageFormData({
-        package_id: 'trial',
-        subscription_start_date: today,
-        subscription_end_date: trialEnd.toISOString().split('T')[0],
-        duration_months: '1',
-      });
+      const existingPackages = branchPackages.filter(bp => bp.owner_email === user.email && bp.status === 'active');
+      const existingPackage = existingPackages[0];
+
+      if (existingPackage) {
+        setPackageFormData({
+          package_id: existingPackage.package_id || '',
+          subscription_start_date: existingPackage.subscription_start_date || '',
+          subscription_end_date: existingPackage.subscription_end_date || '',
+          duration_months: '1',
+        });
+      } else {
+        const today = new Date().toISOString().split('T')[0];
+        const trialEnd = new Date();
+        trialEnd.setDate(trialEnd.getDate() + 14);
+        
+        setPackageFormData({
+          package_id: 'trial',
+          subscription_start_date: today,
+          subscription_end_date: trialEnd.toISOString().split('T')[0],
+          duration_months: '1',
+        });
+      }
     }
     
     setShowPackageDialog(true);
@@ -754,7 +758,7 @@ export default function UserBranchAccess() {
                                   size="sm"
                                   variant="outline"
                                   onClick={() => {
-                                    setPackageFormData({
+                                    handleOpenPackageDialog(selectedUser, {
                                       package_id: activePackage.package_id,
                                       subscription_start_date: activePackage.subscription_start_date || '',
                                       subscription_end_date: activePackage.subscription_end_date || '',
