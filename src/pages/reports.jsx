@@ -15,6 +15,11 @@ import { toast } from "sonner";
 import AIInsights from "../components/dashboard/AIInsights";
 
 export default function ReportsPage() {
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+    staleTime: 60 * 60 * 1000,
+  });
   const [reportType, setReportType] = useState('monthly');
   const [dateRangeMonths, setDateRangeMonths] = useState(6);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -797,36 +802,38 @@ export default function ReportsPage() {
             </Card>
           </motion.div>
 
-          {/* AI Insights */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-            <AIInsights
-              payments={filteredData.payments}
-              expenses={filteredData.expenses}
-              maintenanceRequests={allMaintenance}
-              tenants={allTenants}
-              rooms={filteredData.rooms}
-              bookings={allBookings}
-              branches={[{ id: selectedBranchId, branch_name: selectedBranchName }]}
-              materialDeliveries={[]}
-              dateRangeLabel={reportType === 'monthly' ? `${dateRangeMonths} เดือนล่าสุด` : `${months.find(m => m.value === selectedDailyMonth)?.label} ${selectedDailyYear}`}
-              dateRange={
-                reportType === 'monthly'
-                  ? {
-                      from: startOfMonth(subMonths(new Date(selectedYear, selectedMonth - 1, 1), dateRangeMonths - 1)),
-                      to: endOfMonth(new Date(selectedYear, selectedMonth - 1, 1))
-                    }
-                  : {
-                      from: startOfMonth(new Date(selectedDailyYear, selectedDailyMonth - 1, 1)),
-                      to: endOfMonth(new Date(selectedDailyYear, selectedDailyMonth - 1, 1))
-                    }
-              }
-              configs={configs}
-              showPredictiveMaintenance={true}
-              showTenantBehavior={true}
-              showFinancialForecast={true}
-              showAnomalyDetection={true}
-            />
-          </motion.div>
+          {/* AI Insights - เฉพาะ Developer */}
+          {currentUser?.custom_role === 'developer' && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+              <AIInsights
+                payments={filteredData.payments}
+                expenses={filteredData.expenses}
+                maintenanceRequests={allMaintenance}
+                tenants={allTenants}
+                rooms={filteredData.rooms}
+                bookings={allBookings}
+                branches={[{ id: selectedBranchId, branch_name: selectedBranchName }]}
+                materialDeliveries={[]}
+                dateRangeLabel={reportType === 'monthly' ? `${dateRangeMonths} เดือนล่าสุด` : `${months.find(m => m.value === selectedDailyMonth)?.label} ${selectedDailyYear}`}
+                dateRange={
+                  reportType === 'monthly'
+                    ? {
+                        from: startOfMonth(subMonths(new Date(selectedYear, selectedMonth - 1, 1), dateRangeMonths - 1)),
+                        to: endOfMonth(new Date(selectedYear, selectedMonth - 1, 1))
+                      }
+                    : {
+                        from: startOfMonth(new Date(selectedDailyYear, selectedDailyMonth - 1, 1)),
+                        to: endOfMonth(new Date(selectedDailyYear, selectedDailyMonth - 1, 1))
+                      }
+                }
+                configs={configs}
+                showPredictiveMaintenance={true}
+                showTenantBehavior={true}
+                showFinancialForecast={true}
+                showAnomalyDetection={true}
+              />
+            </motion.div>
+          )}
 
           {/* Stats Cards */}
           {reportType === 'monthly' ? (
