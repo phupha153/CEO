@@ -710,7 +710,7 @@ export default function UserBranchAccess() {
                       </div>
 
                       {/* Quick Actions */}
-                      <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-2">
+                      <div className="mt-4 pt-4 border-t grid grid-cols-3 gap-2">
                         <Button
                           size="sm"
                           variant="outline"
@@ -727,6 +727,26 @@ export default function UserBranchAccess() {
                           <Globe className="w-4 h-4 mr-1" />
                           สาขา
                         </Button>
+                        {(() => {
+                          const userBranches = user.accessible_branches || [];
+                          const hasDeletedBranches = userBranches.some(branchId => 
+                            !allBranches.some(b => b.id === branchId)
+                          );
+                          if (hasDeletedBranches) {
+                            return (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => cleanupDeletedBranches(user)}
+                                className="text-red-600 hover:bg-red-50 border-red-200"
+                              >
+                                <Trash2 className="w-4 h-4 mr-1" />
+                                ลบสาขาเก่า
+                              </Button>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     </CardContent>
                   </Card>
