@@ -254,7 +254,7 @@ export default function PrintReceipts() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
-        <Card className="p-8 text-center max-w-sm w-full">
+        <Card className="p-8 text-center max-w-2xl w-full">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
           <p className="text-lg font-semibold text-slate-700 mb-2">กำลังโหลดใบเสร็จ...</p>
           <div className="w-full bg-slate-200 rounded-full h-2 mb-2">
@@ -272,6 +272,30 @@ export default function PrintReceipts() {
           <p className="text-xs text-blue-600 mt-1">
             💡 ระบบจะโหลดทีละ 3 รายการเพื่อความเสถียร
           </p>
+
+          {/* Debug Panel */}
+          {debugLogs.length > 0 && (
+            <div className="mt-4 text-left">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-purple-700">🔧 Debug Log:</p>
+                <button 
+                  onClick={() => setShowDebug(!showDebug)}
+                  className="text-xs text-purple-600 hover:underline"
+                >
+                  {showDebug ? 'ซ่อน' : 'แสดง'}
+                </button>
+              </div>
+              {showDebug && (
+                <div className="bg-slate-900 text-green-400 rounded-lg p-3 max-h-60 overflow-y-auto text-xs font-mono">
+                  {debugLogs.slice(-20).map((log, idx) => (
+                    <div key={idx} className={log.startsWith('❌') ? 'text-red-400' : log.startsWith('✅') ? 'text-green-400' : 'text-yellow-400'}>
+                      {log}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       </div>
     );
