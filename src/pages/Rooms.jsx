@@ -2203,8 +2203,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
                                   {isReserved && (
                                     <div className="absolute top-0 left-0 right-0 z-20 pointer-events-none">
-                                      <div className="bg-red-500/90 backdrop-blur-sm text-white text-[10px] font-bold py-1 px-2 text-center">
-                                        ติดจอง
+                                      <div className="bg-orange-500/95 backdrop-blur-sm text-white text-[10px] font-bold py-1 px-2 text-center shadow-lg animate-pulse">
+                                        🔒 ติดจอง
                                       </div>
                                     </div>
                                   )}
