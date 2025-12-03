@@ -1028,6 +1028,11 @@ export default function Layout({ children, currentPageName }) {
   // Developer สามารถเข้าถึงทุกหน้าได้แม้แพ็กเกจหมดอายุ
   const isDeveloper = userRole === 'developer';
 
+  // Developer สามารถเข้าถึงทุกหน้าได้โดยไม่ต้องเช็ค package
+  if (isDeveloper) {
+    return children;
+  }
+
   if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
       currentPageName === 'PrintReceipts' || currentPageName === 'BranchSelection' || 
       currentPageName === 'AllBranchesDashboard' || currentPageName === 'BranchManagement' ||
@@ -1037,8 +1042,7 @@ export default function Layout({ children, currentPageName }) {
       currentPageName === 'RenewalPage' ||
       currentPageName === 'PackageSelectionPage' ||
       currentPageName === 'TrialExpiredPage' ||
-      currentPageName === 'PackageExpiredPage' ||
-      isDeveloper) {
+      currentPageName === 'PackageExpiredPage') {
     return children;
   }
 
