@@ -1719,7 +1719,6 @@ export default function Settings() {
                         const isBasicPkg = pkgNameCheck.toLowerCase().includes('basic') || pkgNameCheck.toLowerCase().includes('nano');
                         const isProPkg = pkgNameCheck.toLowerCase().includes('pro') || pkgNameCheck.toLowerCase().includes('micro');
                         const isElitePkg = !isBasicPkg && !isProPkg;
-                        const hasShimmer = isProPkg || isElitePkg;
                         
                         return (
                       <div className="relative max-w-sm group">
@@ -1736,7 +1735,7 @@ export default function Settings() {
                               const isPro = pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro');
                               const isElite = !isBasic && !isPro;
                               
-                              const pkgIcon = isBasic ? Settings : isPro ? Sparkles : Crown;
+                              const pkgIcon = isBasic ? SettingsIcon : isPro ? Sparkles : Crown;
 
                               return (
                                 <>
