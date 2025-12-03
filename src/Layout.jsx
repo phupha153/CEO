@@ -681,17 +681,17 @@ export default function Layout({ children, currentPageName }) {
 
       // ถ้าเป็น multi_tenant ให้สร้าง trial แยกตามสาขา
       if (currentAppMode === 'multi_tenant' && selectedBranch) {
-        // เช็คว่าสาขานี้มี BranchPackage หรือยัง
+        // เช็คว่าสาขานี้มี BranchPackage ที่ active อยู่หรือไม่
         const existingPackage = branchPackages.find(bp => 
           bp.branch_id === selectedBranch.id && bp.status === 'active'
         );
         
-        // ⭐ เช็คว่าสาขานี้มี package อยู่แล้วหรือไม่ (ทุกประเภท)
-        const anyExistingPackage = branchPackages.find(bp => 
-          bp.branch_id === selectedBranch.id
+        // ⭐ เช็คเฉพาะ package ที่ active เท่านั้น (ไม่นับที่ cancelled/expired)
+        const anyActivePackage = branchPackages.find(bp => 
+          bp.branch_id === selectedBranch.id && bp.status === 'active'
         );
 
-        if (!existingPackage && !anyExistingPackage) {
+        if (!existingPackage && !anyActivePackage) {
           // ⭐ เช็คว่า user มี paid package ในสาขาอื่นๆ ที่ตัวเองมีสิทธิ์หรือไม่
           const userAccessibleBranchIds = currentUser?.accessible_branches || [];
           const userPaidPackages = branchPackages.filter(bp => 
