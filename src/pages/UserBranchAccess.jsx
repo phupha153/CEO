@@ -153,19 +153,30 @@ export default function UserBranchAccess() {
     onError: () => toast.error('เกิดข้อผิดพลาด'),
   });
 
-  const createOrUpdatePackageMutation = useMutation({
+  const updatePackageMutation = useMutation({
     mutationFn: async ({ ownerEmail, packageData, isEditing }) => {
+      console.log('Mutation started:', { ownerEmail, packageData, isEditing });
+      
       const userBranches = selectedUser?.accessible_branches || [];
       const targetBranches = userBranches.length > 0 ? userBranches : branches.map(b => b.id);
+      
+      console.log('Target branches:', targetBranches);
+
+      if (targetBranches.length === 0) {
+        throw new Error('ไม่พบสาขาที่ต้องอัปเดต');
+      }
 
       const results = [];
       for (const branchId of targetBranches) {
         const existingPackage = branchPackages.find(
           bp => bp.branch_id === branchId && bp.owner_email === ownerEmail && bp.status === 'active'
         );
+        
+        console.log('Processing branch:', branchId, 'existingPackage:', existingPackage?.id);
 
         if (isEditing && existingPackage) {
           // อัปเดตแพ็กเกจที่มีอยู่
+          console.log('Updating package:', existingPackage.id);
           const result = await base44.entities.BranchPackage.update(existingPackage.id, packageData);
           results.push(result);
         } else {
@@ -174,10 +185,12 @@ export default function UserBranchAccess() {
             bp => bp.branch_id === branchId && bp.owner_email === ownerEmail
           );
           for (const oldPkg of existingPackages) {
+            console.log('Deleting old package:', oldPkg.id);
             await base44.entities.BranchPackage.delete(oldPkg.id);
           }
 
           // สร้าง package ใหม่
+          console.log('Creating new package for branch:', branchId);
           const result = await base44.entities.BranchPackage.create({
             branch_id: branchId,
             owner_email: ownerEmail,
@@ -186,16 +199,20 @@ export default function UserBranchAccess() {
           results.push(result);
         }
       }
+      
+      console.log('Mutation completed, results:', results.length);
       return results;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['branchPackages']);
-      toast.success(isEditingPackage ? 'แก้ไขแพ็กเกจสำเร็จ' : 'บันทึกแพ็กเกจสำเร็จ');
+    onSuccess: (data, variables) => {
+      console.log('Mutation success:', data);
+      queryClient.invalidateQueries({ queryKey: ['branchPackages'] });
+      toast.success(variables.isEditing ? 'แก้ไขแพ็กเกจสำเร็จ' : 'บันทึกแพ็กเกจสำเร็จ');
       setShowPackageDialog(false);
       setIsEditingPackage(false);
       refetchBranchPackages();
     },
     onError: (error) => {
+      console.error('Mutation error:', error);
       toast.error('เกิดข้อผิดพลาด: ' + error.message);
     },
   });
