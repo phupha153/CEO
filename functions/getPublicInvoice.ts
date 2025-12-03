@@ -67,31 +67,31 @@ Deno.serve(async (req) => {
         const branch = actualBranchId ? allBranches.find(b => b.id === actualBranchId) : null;
         console.log(`⏱️ [${Date.now() - startTime}ms] Loaded ${configs.length} configs, ${allBranches.length} branches`);
 
-        // ===== STEP 3: ดึง Tenant และ Room (ใช้ list + find) =====
+        // ===== STEP 3: ดึง Tenant และ Room โดยตรง (ใช้ filter by ID - เร็วที่สุด) =====
         let tenant = null;
         let room = null;
         
-        console.log(`⏱️ [${Date.now() - startTime}ms] Fetching tenant and room...`);
+        console.log(`⏱️ [${Date.now() - startTime}ms] Fetching tenant and room by ID...`);
         console.log(`🔍 Looking for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}`);
         
-        // ดึง Tenant และ Room พร้อมกัน (parallel)
-        const [allTenants, allRooms] = await Promise.all([
+        // ดึง Tenant และ Room พร้อมกัน (parallel) - ใช้ filter by ID โดยตรง
+        const [tenantResults, roomResults] = await Promise.all([
             payment.tenant_id 
-                ? base44.asServiceRole.entities.Tenant.list('-created_date', 10000)
+                ? base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id })
                 : Promise.resolve([]),
             payment.room_id 
-                ? base44.asServiceRole.entities.Room.list('-created_date', 10000)
+                ? base44.asServiceRole.entities.Room.filter({ id: payment.room_id })
                 : Promise.resolve([])
         ]);
         
-        if (payment.tenant_id) {
-            tenant = allTenants.find(t => t.id === payment.tenant_id);
-            console.log(`📋 Loaded ${allTenants.length} tenants, found: ${tenant?.full_name || 'NOT FOUND'}`);
+        if (payment.tenant_id && Array.isArray(tenantResults) && tenantResults.length > 0) {
+            tenant = tenantResults[0];
+            console.log(`📋 Found tenant: ${tenant?.full_name || 'NOT FOUND'}`);
         }
         
-        if (payment.room_id) {
-            room = allRooms.find(r => r.id === payment.room_id);
-            console.log(`📋 Loaded ${allRooms.length} rooms, found: ${room?.room_number || 'NOT FOUND'}`);
+        if (payment.room_id && Array.isArray(roomResults) && roomResults.length > 0) {
+            room = roomResults[0];
+            console.log(`📋 Found room: ${room?.room_number || 'NOT FOUND'}`);
         }
 
         console.log(`⏱️ [${Date.now() - startTime}ms] Final: room=${room?.room_number || 'N/A'}, tenant=${tenant?.full_name || 'ไม่ระบุ'}, branch=${branch?.branch_name || 'N/A'}`);
