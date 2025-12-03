@@ -58,6 +58,20 @@ export default function AddEmployeeDialog({ isOpen, onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // ⭐ เช็ค trial mode - ห้ามเพิ่มพนักงาน
+    try {
+      const branchPackagesData = await base44.entities.BranchPackage.list('-created_date', 200);
+      const userPackages = currentUser?.email ? branchPackagesData.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
+      const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
+      
+      if (isTrialMode) {
+        toast.error('โหมดทดลองใช้งานได้แค่ 1 คน - อัปเกรดเพื่อเพิ่มพนักงาน');
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking trial mode:', error);
+    }
+
     // ⭐ ตรวจสอบว่าเลือกสาขาอย่างน้อย 1 สาขา
     if (!formData.accessible_branches || formData.accessible_branches.length === 0) {
       toast.error('กรุณาเลือกอย่างน้อย 1 สาขาที่พนักงานสามารถเข้าถึงได้');
