@@ -765,6 +765,10 @@ export default function UserBranchAccess() {
                                       subscription_end_date: activePackage.subscription_end_date || '',
                                       duration_months: '1',
                                     });
+                                    // Scroll to form section
+                                    setTimeout(() => {
+                                      document.getElementById('package-form-section')?.scrollIntoView({ behavior: 'smooth' });
+                                    }, 100);
                                     toast.info('กรุณาเลือกแพ็กเกจและระยะเวลาใหม่ด้านล่าง');
                                   }}
                                   className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
@@ -795,7 +799,7 @@ export default function UserBranchAccess() {
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Form Section */}
-                    <div className="space-y-4">
+                    <div id="package-form-section" className="space-y-4">
                       <h3 className="font-bold text-slate-800 flex items-center gap-2 border-b pb-2">
                         <Edit2 className="w-5 h-5" />
                         เปลี่ยน/ต่ออายุแพ็กเกจ
