@@ -801,7 +801,11 @@ export default function Layout({ children, currentPageName }) {
         currentPageName === 'RenewalPage' || 
         currentPageName === 'TrialExpiredPage' || 
         currentPageName === 'PackageExpiredPage' ||
-        currentPageName === 'BranchSelection') {
+        currentPageName === 'BranchSelection' ||
+        currentPageName === 'BranchManagement' ||
+        currentPageName === 'Settings' ||
+        currentPageName === 'UserBranchAccess' ||
+        currentPageName === 'AllBranchesDashboard') {
       return { shouldRedirect: false };
     }
     

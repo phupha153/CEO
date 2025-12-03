@@ -1670,15 +1670,20 @@ export default function Settings() {
               <AlertCircle className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">รายงานปัญหา</span>
             </Button>
-            {canManagePermissions && (
-              <Button
-                onClick={() => setShowAddEmployeeDialog(true)}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600"
-              >
-                <UserPlus className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">เพิ่มพนักงาน</span>
-              </Button>
-            )}
+            {canManagePermissions && (() => {
+              const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
+              const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
+
+              return !isTrialMode && (
+                <Button
+                  onClick={() => setShowAddEmployeeDialog(true)}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600"
+                >
+                  <UserPlus className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">เพิ่มพนักงาน</span>
+                </Button>
+              );
+            })()}
           </>
         }
       />
@@ -1886,8 +1891,13 @@ export default function Settings() {
 
                               // นับจำนวนผู้ใช้เฉพาะในสาขาของเรา
                               const totalUsersInMyBranches = usersInMyBranches.length;
-                              // ดึง max_users จาก crmPackageInfo (ข้อมูลล่าสุดจาก CRM)
-                              const maxUsers = crmPackageInfo?.max_users;
+                              
+                              // ⭐ เช็ค trial mode - แสดง 1/1
+                              const userPackagesCheck = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
+                              const isTrialModeCheck = userPackagesCheck.length > 0 && userPackagesCheck.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
+                              
+                              // ดึง max_users จาก crmPackageInfo (ข้อมูลล่าสุดจาก CRM) หรือใช้ 1 ถ้าเป็น trial
+                              const maxUsers = isTrialModeCheck ? 1 : crmPackageInfo?.max_users;
                               const hasLimit = maxUsers !== null && maxUsers !== undefined && maxUsers > 0;
                               const usagePercent = hasLimit ? Math.min((totalUsersInMyBranches / maxUsers) * 100, 100) : 10;
 
@@ -1940,8 +1950,13 @@ export default function Settings() {
                             {(() => {
                               // นับจำนวนสาขาจริงในระบบ
                               const totalBranchesInSystem = branches.length;
-                              // ดึง max_branches จาก crmPackageInfo (ข้อมูลล่าสุดจาก CRM)
-                              const maxBranches = crmPackageInfo?.max_branches;
+                              
+                              // ⭐ เช็ค trial mode - แสดง 1/1
+                              const userPackagesCheck = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
+                              const isTrialModeCheck = userPackagesCheck.length > 0 && userPackagesCheck.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
+                              
+                              // ดึง max_branches จาก crmPackageInfo (ข้อมูลล่าสุดจาก CRM) หรือใช้ 1 ถ้าเป็น trial
+                              const maxBranches = isTrialModeCheck ? 1 : crmPackageInfo?.max_branches;
                               const hasLimit = maxBranches !== null && maxBranches !== undefined && maxBranches > 0;
                               const usagePercent = hasLimit ? Math.min((totalBranchesInSystem / maxBranches) * 100, 100) : 10;
 
