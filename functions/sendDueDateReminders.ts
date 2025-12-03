@@ -56,6 +56,22 @@ Deno.serve(async (req) => {
             return globalConfig?.value || defaultValue;
         };
 
+        // ⭐ ดึงวันที่จาก test_current_date ถ้ามี (สำหรับทดสอบ)
+        const testDateConfig = configs.find(c => c.key === 'test_current_date' && !c.branch_id);
+        let currentDate;
+        if (testDateConfig && testDateConfig.value) {
+            try {
+                currentDate = new Date(testDateConfig.value);
+                console.log(`🧪 TEST MODE: Using test_current_date = ${testDateConfig.value}`);
+            } catch {
+                currentDate = new Date();
+                console.log('⚠️ Invalid test_current_date, using real date');
+            }
+        } else {
+            currentDate = new Date();
+            console.log('📅 Using real current date');
+        }
+
         // 3. หาบิลที่ครบกำหนดชำระวันนี้ (ยังไม่ชำระ)
         console.log('🔍 Fetching payments with pagination...');
         
@@ -88,13 +104,10 @@ Deno.serve(async (req) => {
         
         console.log(`📦 Loaded ${payments.length} payments`);
 
-        // ใช้เวลาไทย
-        const now = new Date();
-        const thailandTimeString = now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
-        const thailandTime = new Date(thailandTimeString);
-        const todayString = thailandTime.toISOString().split('T')[0]; // "YYYY-MM-DD"
+        // ⭐ ใช้ currentDate ที่ได้จาก test_current_date หรือเวลาจริง
+        const todayString = currentDate.toISOString().split('T')[0]; // "YYYY-MM-DD"
 
-        console.log(`📅 Today (Thailand): ${todayString}`);
+        console.log(`📅 Today (${testDateConfig ? 'TEST' : 'REAL'}): ${todayString}`);
 
         // กรองบิลที่ครบกำหนดชำระวันนี้ - เช็คจาก due_date จริงของบิล
         // ⭐ กรองเฉพาะสาขาที่เปิดการแจ้งเตือน
@@ -357,7 +370,8 @@ Deno.serve(async (req) => {
             testMode: !!testLineUserId,
             enabledBranches: enabledBranches,
             errors: sendErrors.length > 0 ? sendErrors : undefined,
-            thailandTime: thailandTime.toLocaleString('th-TH')
+            currentDate: todayString,
+            usingTestDate: !!testDateConfig
         };
 
         console.log('🎉 Due date reminder completed:', result);
