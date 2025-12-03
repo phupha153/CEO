@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Download, Search, Calendar, DollarSign, Home, Camera, Shield, Banknote, AlertTriangle, RefreshCw, Database } from "lucide-react"; // Added AlertTriangle, RefreshCw, Database
+import { FileText, Download, Search, Calendar, DollarSign, Home, Camera, Shield, Banknote, AlertTriangle, RefreshCw, Database, Loader2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { toast } from "sonner";
