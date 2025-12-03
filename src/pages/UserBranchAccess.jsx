@@ -42,11 +42,11 @@ export default function UserBranchAccess() {
   });
 
   const userRole = React.useMemo(() => currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee'), [currentUser]);
+  const isDeveloper = userRole === 'developer';
   // Developer เห็นทุกสาขา (ไม่สนใจ accessible_branches)
   const userAccessibleBranches = React.useMemo(() => {
-    if (userRole === 'developer') return []; // Developer ไม่ใช้ filter
     return currentUser?.accessible_branches || [];
-  }, [currentUser, userRole]);
+  }, [currentUser]);
 
   const { data: allUsers = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users'],
