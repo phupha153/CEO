@@ -987,10 +987,11 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent className="relative">
                   {paymentsLoading ? (
-                    <div className="flex items-center justify-center h-[200px] text-slate-500">
-                      <Loader2 className="w-8 h-8 animate-spin" />
-                    </div>
-                  ) : (
+                      <div className="flex flex-col items-center justify-center h-[200px] text-slate-500">
+                        <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                        <p className="text-sm">กำลังโหลดข้อมูลการเงิน...</p>
+                      </div>
+                    ) : (
                     <div className="space-y-3 md:space-y-4">
                       {recentPayments.length > 0 ? (
                         recentPayments.map((payment) => {
