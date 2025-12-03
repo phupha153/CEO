@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, ChevronRight, Settings, BarChart3, Check, Loader2, MapPin } from "lucide-react";
+import { Building2, ChevronRight, Settings, BarChart3, Check, Loader2, MapPin, Globe, Pencil } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -200,18 +200,34 @@ export default function BranchSelection() {
                 <p className="text-slate-600">เลือกสาขาที่ต้องการจัดการ</p>
               </div>
 
-              {/* ✅ ถ้ามีสาขา → แสดงปุ่มเพิ่มสาขา */}
+              {/* ✅ ถ้ามีสาขา → แสดงปุ่มดูภาพรวม + แก้ไขสาขา */}
               {!hasNoBranches && !hasNoAccess && (
                 <div className="flex flex-col gap-3 mb-6 items-center">
-                  <Button
-                     onClick={handleManageBranches}
-                     disabled={isNavigating || !canAddMoreBranches}
-                     className="bg-gradient-to-r from-blue-500 to-sky-600 hover:from-blue-600 hover:to-sky-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                     data-onboarding="add-branch-button"
-                   >
-                     <Building2 className="w-5 h-5 mr-2 flex-shrink-0" />
-                     <span>เพิ่มสาขา</span>
-                   </Button>
+                  <div className="flex flex-wrap gap-3 justify-center">
+                    {/* ปุ่มดูภาพรวมทั้งหมด - แสดงเฉพาะเมื่อมีมากกว่า 1 สาขา */}
+                    {filteredBranches.length > 1 && (
+                      <Button
+                        onClick={handleViewAllBranches}
+                        disabled={isNavigating}
+                        className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
+                      >
+                        <Globe className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <span>ดูภาพรวมทั้งหมด</span>
+                      </Button>
+                    )}
+                    
+                    {/* ปุ่มแก้ไขสาขา */}
+                    <Button
+                      onClick={handleManageBranches}
+                      disabled={isNavigating}
+                      variant="outline"
+                      className="border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-700 h-auto py-4 px-6 text-sm rounded-2xl font-medium"
+                      data-onboarding="add-branch-button"
+                    >
+                      <Pencil className="w-5 h-5 mr-2 flex-shrink-0" />
+                      <span>แก้ไขสาขา</span>
+                    </Button>
+                  </div>
                   {!canAddMoreBranches && (
                     <p className="text-xs text-amber-600 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
                       ⚠️ สร้างได้สูงสุด {maxTrialBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด
