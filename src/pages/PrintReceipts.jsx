@@ -229,10 +229,10 @@ export default function PrintReceipts() {
             โหลด {progress.current} / {progress.total} รายการ
           </p>
           <p className="text-xs text-slate-400 mt-2">
-            ⚠️ กรุณาอย่าปิดหน้านี้ (อาจใช้เวลา 2-3 นาที)
+            ⚠️ กรุณาอย่าปิดหน้านี้
           </p>
           <p className="text-xs text-blue-600 mt-1">
-            💡 ระบบจะโหลดทีละ 3 รายการเพื่อความเสถียร
+            💡 ระบบจะโหลดทีละรายการเพื่อความเสถียร (ช้าแต่แม่นยำ)
           </p>
         </Card>
       </div>
