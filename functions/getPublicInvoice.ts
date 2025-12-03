@@ -210,10 +210,11 @@ Deno.serve(async (req) => {
             },
             _debug: {
                 totalTime: `${Date.now() - startTime}ms`,
+                method: 'filter_by_id',
                 recordCounts: {
-                    payments: allPayments.length,
-                    tenants: allTenants.length,
-                    rooms: allRooms.length,
+                    payment: payment ? 1 : 0,
+                    tenant: tenant ? 1 : 0,
+                    room: room ? 1 : 0,
                     configs: configs.length
                 }
             }
