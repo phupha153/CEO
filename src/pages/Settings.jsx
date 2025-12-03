@@ -1827,6 +1827,8 @@ export default function Settings() {
                           </CardContent>
                         </Card>
                       </div>
+                        );
+                      })()}
 
                       {/* การใช้งานผู้ใช้และสาขา */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
