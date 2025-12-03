@@ -78,10 +78,11 @@ export default function UserBranchAccess() {
 
   // Developer เห็นทุกสาขา, คนอื่นเห็นเฉพาะสาขาที่ตัวเองมีสิทธิ์
   const branches = React.useMemo(() => {
-    if (userRole === 'developer') return allBranches;
+    // Developer เห็นทุกสาขาเสมอ
+    if (isDeveloper) return allBranches;
     if (!userAccessibleBranches || userAccessibleBranches.length === 0) return [];
     return allBranches.filter(branch => userAccessibleBranches.includes(branch.id));
-  }, [allBranches, userRole, userAccessibleBranches]);
+  }, [allBranches, isDeveloper, userAccessibleBranches]);
 
   // กรองผู้ใช้ให้แสดงเฉพาะที่เกี่ยวข้องกับสาขาที่ตัวเองมีสิทธิ์
   const users = React.useMemo(() => {
