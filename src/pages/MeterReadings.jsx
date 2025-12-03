@@ -1875,7 +1875,7 @@ export default function MeterReadings() {
                           <thead className="bg-slate-50 border-b">
                             <tr>
                               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">ห้อง</th>
-                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">ผู้เช่า</th>
+                              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 hidden md:table-cell">ผู้เช่า</th>
                               <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์น้ำก่อน</th>
                               <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์น้ำปัจจุบัน</th>
                               <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์ไฟก่อน</th>
@@ -1910,7 +1910,7 @@ export default function MeterReadings() {
                                         )}
                                       </div>
                                     </td>
-                                    <td className="px-4 py-3 text-sm text-slate-600">
+                                    <td className="px-4 py-3 text-sm text-slate-600 hidden md:table-cell">
                                       {tenant?.full_name || '-'}
                                     </td>
                                     {isViewMode ? (
