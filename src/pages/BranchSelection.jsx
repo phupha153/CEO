@@ -92,9 +92,23 @@ export default function BranchSelection() {
     ? branches
     : branches.filter(branch => userAccessibleBranches && userAccessibleBranches.includes(branch.id));
 
-  // เช็คว่าผู้ใช้อยู่ในโหมดทดลองหรือไม่
+  // เช็คว่าผู้ใช้อยู่ในโหมดทดลองหรือไม่ (ต้องมี package active และยังไม่หมดอายุ)
   const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
-  const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
+  
+  // ⭐ เช็คว่าเป็น trial และยังไม่หมดอายุ
+  const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => {
+    const isTrial = pkg.package_id === 'trial' || pkg.price_per_month === 0 || !pkg.price_per_month;
+    if (!isTrial) return false;
+    
+    // เช็คว่ายังไม่หมดอายุ
+    if (pkg.subscription_end_date) {
+      const endDate = new Date(pkg.subscription_end_date);
+      endDate.setHours(23, 59, 59, 999);
+      return new Date() <= endDate;
+    }
+    return true;
+  });
+  
   const maxTrialBranches = 1;
   const canAddMoreBranches = !isTrialMode || filteredBranches.length < maxTrialBranches;
 
