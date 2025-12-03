@@ -673,13 +673,14 @@ export default function Layout({ children, currentPageName }) {
   // ตรวจสอบสถานะ subscription และจัดการ trial อัตโนมัติ - แก้ให้รองรับ multi_tenant
   useEffect(() => {
     // Only proceed if user is loaded and not currently loading, and not on exempt pages
-    // ⭐ เพิ่ม BranchSelection เพื่อไม่ให้ redirect ตอนอยู่หน้าเลือกสาขา
     if (!currentUser || isLoading || branchPackagesLoading || 
         currentPageName === 'PackageSelectionPage' || 
         currentPageName === 'RenewalPage' ||
-        currentPageName === 'BranchSelection' ||
         currentPageName === 'TrialExpiredPage' ||
         currentPageName === 'PackageExpiredPage') return;
+    
+    // ⭐ ถ้าอยู่หน้า BranchSelection และยังไม่ได้เลือกสาขา = ไม่ต้อง redirect
+    if (currentPageName === 'BranchSelection' && !selectedBranch) return;
 
     const checkAndCreateTrial = async () => {
       const appModeConfig = configs.find(c => c.key === 'app_mode' && !c.branch_id);
