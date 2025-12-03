@@ -994,38 +994,38 @@ export default function Dashboard() {
                     <div className="space-y-3 md:space-y-4">
                       {recentPayments.length > 0 ? (
                         recentPayments.map((payment) => {
-                          const room = rooms.find(r => r.id === payment.room_id);
-                          return (
-                            <div key={payment.id} className="flex justify-between items-center p-2 md:p-3 bg-white/70 backdrop-blur-sm rounded-xl border border-blue-100/50 shadow-sm">
-                              <div>
-                                <p className="font-medium text-slate-800 text-sm md:text-base">ห้อง {room?.room_number || 'N/A'}</p>
-                                <p className="text-xs text-slate-500">
-                                  {(() => {
-                                    if (!payment.payment_date) return 'N/A';
-                                    try {
-                                      const date = parseISO(payment.payment_date);
-                                      if (isNaN(date.getTime())) return 'ข้อมูลไม่ถูกต้อง';
-                                      return format(date, 'd MMM yyyy', { locale: th });
-                                    } catch {
-                                      return 'ข้อมูลไม่ถูกต้อง';
-                                    }
-                                  })()}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold text-slate-800 text-sm md:text-base">{payment.total_amount.toLocaleString()} ฿</p>
-                                <span className={`text-xs px-2 py-1 rounded-full ${
-                                  getEffectiveStatus(payment) === 'paid' ? 'bg-green-100 text-green-700' : 
-                                  getEffectiveStatus(payment) === 'overdue' ? 'bg-red-100 text-red-700' :
-                                  'bg-orange-100 text-orange-700'
-                                }`}>
-                                  {getEffectiveStatus(payment) === 'paid' ? 'ชำระแล้ว' : 
-                                   getEffectiveStatus(payment) === 'overdue' ? 'เกินกำหนด' : 'รอชำระ'}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })
+                                      const room = rooms.find(r => r.id === payment.room_id);
+                                      return (
+                                        <div key={payment.id} className="flex justify-between items-center p-2 md:p-3 bg-white/70 backdrop-blur-sm rounded-xl border border-blue-100/50 shadow-sm">
+                                          <div>
+                                            <p className="font-medium text-slate-800 text-sm md:text-base">ห้อง {room?.room_number || 'N/A'}</p>
+                                            <p className="text-xs text-slate-500">
+                                              {(() => {
+                                                if (!payment.payment_date) return 'N/A';
+                                                try {
+                                                  const date = parseISO(payment.payment_date);
+                                                  if (isNaN(date.getTime())) return 'ข้อมูลไม่ถูกต้อง';
+                                                  return format(date, 'd MMM yyyy HH:mm น.', { locale: th });
+                                                } catch {
+                                                  return 'ข้อมูลไม่ถูกต้อง';
+                                                }
+                                              })()}
+                                            </p>
+                                          </div>
+                                          <div className="text-right">
+                                            <p className="font-bold text-slate-800 text-sm md:text-base">{payment.total_amount.toLocaleString()} ฿</p>
+                                            <span className={`text-xs px-2 py-1 rounded-full ${
+                                              getEffectiveStatus(payment) === 'paid' ? 'bg-green-100 text-green-700' : 
+                                              getEffectiveStatus(payment) === 'overdue' ? 'bg-red-100 text-red-700' :
+                                              'bg-orange-100 text-orange-700'
+                                            }`}>
+                                              {getEffectiveStatus(payment) === 'paid' ? 'ชำระแล้ว' : 
+                                               getEffectiveStatus(payment) === 'overdue' ? 'เกินกำหนด' : 'รอชำระ'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      );
+                                    })
                       ) : (
                         <p className="text-center text-slate-500 py-8 text-sm">ยังไม่มีข้อมูลการชำระเงิน</p>
                       )}
