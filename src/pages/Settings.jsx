@@ -3600,11 +3600,13 @@ export default function Settings() {
                           const myAccessibleBranches = currentUser?.accessible_branches;
                           const amIDeveloper = userRole === 'developer' && (!myAccessibleBranches || myAccessibleBranches.length === 0);
                           
+                          // ถ้าไม่ใช่ developer = ต้องกรองเฉพาะผู้ใช้ที่มีสาขาร่วมกัน
                           if (!amIDeveloper && myAccessibleBranches && myAccessibleBranches.length > 0) {
                             const userBranches = user.accessible_branches || [];
-                            // ถ้าผู้ใช้คนนี้ไม่มีสิทธิ์ในสาขาใดเลยที่ผมดูแล = ไม่แสดง
+                            // ถ้าผู้ใช้คนนี้ไม่มี accessible_branches เลย หรือไม่มีสาขาร่วมกับผม = ไม่แสดง
+                            if (userBranches.length === 0) return false;
                             const hasCommonBranch = userBranches.some(b => myAccessibleBranches.includes(b));
-                            if (!hasCommonBranch && userBranches.length > 0) return false;
+                            if (!hasCommonBranch) return false;
                           }
                           
                           return true;
