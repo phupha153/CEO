@@ -1769,11 +1769,26 @@ export default function Settings() {
                             {(() => {
                               // กรองเฉพาะผู้ใช้ที่มีสิทธิ์เข้าถึงสาขาในระบบนี้
                               const branchIds = branches.map(b => b.id);
+                              
+                              // ⭐ หา owner_email จาก BranchPackages ที่เป็นของสาขาในระบบนี้
+                              const packageOwnersInMyBranches = new Set(
+                                branchPackages
+                                  .filter(bp => branchIds.includes(bp.branch_id))
+                                  .map(bp => bp.owner_email)
+                                  .filter(Boolean)
+                              );
+                              
                               const usersInMyBranches = users.filter(user => {
                                 const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
-                                // Developer และ Owner ที่ยังไม่ได้ตั้ง accessible_branches = เข้าถึงได้ทุกสาขา
+                                
+                                // Developer = เข้าถึงทุกสาขา
                                 if (role === 'developer') return true;
-                                if (role === 'owner' && (!user.accessible_branches || user.accessible_branches.length === 0)) return true;
+                                
+                                // ⭐ Owner ที่ยังไม่ set accessible_branches ต้องเช็คว่าเป็น owner จริงๆ (ผ่าน owner_email)
+                                if (role === 'owner' && (!user.accessible_branches || user.accessible_branches.length === 0)) {
+                                  return packageOwnersInMyBranches.has(user.email);
+                                }
+                                
                                 // ผู้ใช้อื่นๆ ต้องมี accessible_branches ที่ตรงกับสาขาในระบบ
                                 if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
                                 return user.accessible_branches.some(branchId => branchIds.includes(branchId));
