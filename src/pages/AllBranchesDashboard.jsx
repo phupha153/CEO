@@ -113,7 +113,7 @@ export default function AllBranchesDashboard() {
 
   const { data: allPayments = [] } = useQuery({
     queryKey: ['allPayments', 'v3'],
-    queryFn: () => base44.entities.Payment.list('-created_date', 10000),
+    queryFn: () => base44.entities.Payment.list('-created_date', 50000),
     ...retryConfig,
     staleTime: 2 * 60 * 60 * 1000,
     gcTime: 4 * 60 * 60 * 1000,
