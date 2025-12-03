@@ -434,16 +434,7 @@ export default function Settings() {
     refetchOnMount: false,
   });
 
-  const { data: networkStats, isLoading: networkStatsLoading } = useQuery({
-    queryKey: ['networkStats', currentUser?.email],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getMyNetworkStats', {});
-      return response.data;
-    },
-    enabled: !!currentUser,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-  });
+
 
   const [selectedBranch] = useState(() => {
     const branchId = localStorage.getItem('selected_branch_id');
