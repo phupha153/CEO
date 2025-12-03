@@ -201,17 +201,27 @@ export default function ReportsPage() {
   const monthlyChartData = useMemo(() => {
     const monthsData = [];
     const baseMonth = new Date(selectedYear, selectedMonth - 1, 1);
+    
+    // ดึง config สำหรับวันสร้างบิล
+    const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
 
     for (let i = dateRangeMonths - 1; i >= 0; i--) {
-      const monthStart = startOfMonth(subMonths(baseMonth, i));
-      const monthEnd = endOfMonth(subMonths(baseMonth, i));
+      const targetMonth = subMonths(baseMonth, i);
+      const cycleMonth = targetMonth.getMonth();
+      const cycleYear = targetMonth.getFullYear();
+      
+      // งวดบิลเริ่มวันที่ billGenerationDay ของเดือนนี้ ถึงวันที่ billGenerationDay ของเดือนถัดไป
+      const monthStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+      const monthEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
 
       const monthPayments = filteredData.payments.filter(p => {
-        if (!p.payment_date || p.status !== 'paid') return false;
+        if (!p.due_date) return false; // ใช้ due_date แทน payment_date
+        if (p.status !== 'paid') return false;
         try {
-          const paymentDate = parseISO(p.payment_date);
-          if (isNaN(paymentDate.getTime())) return false;
-          return isWithinInterval(paymentDate, { start: monthStart, end: monthEnd });
+          const dueDate = parseISO(p.due_date);
+          if (isNaN(dueDate.getTime())) return false;
+          return isWithinInterval(dueDate, { start: monthStart, end: monthEnd });
         } catch {
           return false;
         }
@@ -259,67 +269,51 @@ export default function ReportsPage() {
     if (!compareEnabled || reportType !== 'monthly') return [];
     
     const monthsData = [];
-    const currentBaseDate = new Date(selectedYear, selectedMonth - 1, 1); // The last month of the current selected range
-    const numberOfMonths = dateRangeMonths; // Comparison period length always matches current period length
+    const currentBaseDate = new Date(selectedYear, selectedMonth - 1, 1);
+    const numberOfMonths = dateRangeMonths;
+    const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
 
-    let compareStartDate;
-    let compareEndDate;
+    let compareStartMonth;
+    let compareEndMonth;
 
     switch(compareType) {
       case 'last_3_months':
       case 'last_6_months':
       case 'last_12_months':
-        // The comparison period should be the 'dateRangeMonths' directly preceding the 'current' range.
-        const currentRangeStartDate = startOfMonth(subMonths(currentBaseDate, dateRangeMonths - 1));
-        const compareBaseDateForPrecedingPeriod = subMonths(currentRangeStartDate, 1);
-        
-        compareStartDate = startOfMonth(subMonths(compareBaseDateForPrecedingPeriod, dateRangeMonths - 1));
-        compareEndDate = endOfMonth(compareBaseDateForPrecedingPeriod);
+        const currentRangeStartMonth = subMonths(currentBaseDate, dateRangeMonths - 1);
+        compareEndMonth = subMonths(currentRangeStartMonth, 1);
+        compareStartMonth = subMonths(compareEndMonth, dateRangeMonths - 1);
         break;
       case 'last_year':
-        // Compare same period, but in the previous year
-        compareStartDate = startOfMonth(subYears(subMonths(currentBaseDate, dateRangeMonths - 1), 1));
-        compareEndDate = endOfMonth(subYears(currentBaseDate, 1));
+        compareStartMonth = subYears(subMonths(currentBaseDate, dateRangeMonths - 1), 1);
+        compareEndMonth = subYears(currentBaseDate, 1);
         break;
-      case 'this_year': 
-        // Compare with the period immediately preceding the current selected range, within the same year.
-        const currentRangeStartForThisYear = startOfMonth(subMonths(currentBaseDate, dateRangeMonths - 1));
-        const currentRangeEndForThisYear = endOfMonth(currentBaseDate);
-
-        compareStartDate = startOfMonth(subMonths(currentRangeStartForThisYear, dateRangeMonths));
-        compareEndDate = endOfMonth(subMonths(currentRangeEndForThisYear, dateRangeMonths));
-        // If the calculated compareEndDate falls into a different year, we might adjust or handle differently
-        // For simplicity, we'll let it span years if the math dictates, but the label is "this year".
-        // A more robust solution might cap it to the start of the current year if compareStartDate goes into previous year
-        if (compareStartDate.getFullYear() !== currentBaseDate.getFullYear()) {
-          // If comparison period starts before the current year, adjust to start of current year
-          compareStartDate = startOfYear(currentBaseDate);
-          compareEndDate = endOfMonth(subMonths(currentRangeStartForThisYear, 1)); // End before current period begins
-          // This would change numberOfMonths dynamically, which complicates `combinedChartData` mapping.
-          // For now, we adhere to `numberOfMonths` being `dateRangeMonths`.
-          // This case (`this_year` comparison period starting in previous year) will mean
-          // the comparison data will show months from previous year, even if labeled "this year".
-          // The current approach attempts to find a *preceding* period of the same length *relative to the current period*.
-        }
+      case 'this_year':
+        const currentRangeStartForThisYear = subMonths(currentBaseDate, dateRangeMonths - 1);
+        compareStartMonth = subMonths(currentRangeStartForThisYear, dateRangeMonths);
+        compareEndMonth = subMonths(currentBaseDate, dateRangeMonths);
         break;
       default:
-        // Fallback for unexpected compareType, should not be hit with defined cases
-        compareStartDate = startOfMonth(subMonths(currentBaseDate, numberOfMonths - 1 + numberOfMonths)); 
-        compareEndDate = endOfMonth(subMonths(currentBaseDate, numberOfMonths));
+        compareStartMonth = subMonths(currentBaseDate, dateRangeMonths * 2 - 1);
+        compareEndMonth = subMonths(currentBaseDate, dateRangeMonths);
         break;
     }
     
-    // Iterate backwards from compareEndDate to get the data for numberOfMonths
     for (let i = numberOfMonths - 1; i >= 0; i--) {
-      const monthStart = startOfMonth(subMonths(compareEndDate, i));
-      const monthEnd = endOfMonth(subMonths(compareEndDate, i));
+      const targetMonth = subMonths(compareEndMonth, i);
+      const cycleMonth = targetMonth.getMonth();
+      const cycleYear = targetMonth.getFullYear();
+      
+      const monthStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+      const monthEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
 
       const monthPayments = filteredData.payments.filter(p => {
-        if (!p.payment_date || p.status !== 'paid') return false;
+        if (!p.due_date || p.status !== 'paid') return false;
         try {
-          const paymentDate = parseISO(p.payment_date);
-          if (isNaN(paymentDate.getTime())) return false;
-          return isWithinInterval(paymentDate, { start: monthStart, end: monthEnd });
+          const dueDate = parseISO(p.due_date);
+          if (isNaN(dueDate.getTime())) return false;
+          return isWithinInterval(dueDate, { start: monthStart, end: monthEnd });
         } catch {
           return false;
         }
@@ -497,15 +491,21 @@ export default function ReportsPage() {
     if (reportType !== 'monthly') return [];
     
     const baseMonth = new Date(selectedYear, selectedMonth - 1, 1);
-    const rangeStart = startOfMonth(subMonths(baseMonth, dateRangeMonths - 1));
-    const rangeEnd = endOfMonth(baseMonth);
+    const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
+    
+    // งวดบิลแรก
+    const firstCycleMonth = subMonths(baseMonth, dateRangeMonths - 1);
+    const rangeStart = new Date(firstCycleMonth.getFullYear(), firstCycleMonth.getMonth(), billGenerationDay);
+    // งวดบิลสุดท้าย
+    const rangeEnd = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + 1, billGenerationDay);
 
     const rangePayments = filteredData.payments.filter(p => {
-      if (!p.payment_date || p.status !== 'paid') return false;
+      if (!p.due_date || p.status !== 'paid') return false;
       try {
-        const paymentDate = parseISO(p.payment_date);
-        if (isNaN(paymentDate.getTime())) return false;
-        return isWithinInterval(paymentDate, { start: rangeStart, end: rangeEnd });
+        const dueDate = parseISO(p.due_date);
+        if (isNaN(dueDate.getTime())) return false;
+        return isWithinInterval(dueDate, { start: rangeStart, end: rangeEnd });
       } catch {
         return false;
       }
