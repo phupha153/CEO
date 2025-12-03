@@ -511,33 +511,33 @@ export default function PackageSelectionPage() {
                               </div>
                             )}
 
-                            <CardContent className="p-6 pt-8">
-                              <div className="flex items-center justify-between mb-6">
-                                <Badge className={`text-xs px-3 py-1 ${
-                                  isMostPopular 
+                            <CardContent className="p-8">
+                              <div className="flex items-center justify-between mb-8">
+                                <Badge className={`text-sm px-4 py-1.5 rounded-full ${
+                                  isDisabled
+                                    ? 'bg-slate-600 text-slate-300'
+                                    : isMostPopular 
                                     ? 'bg-white/20 text-white border-white/30' 
                                     : 'bg-slate-100 text-slate-700'
                                 }`}>
                                   {pkg.package_name}
                                 </Badge>
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                                  isMostPopular 
+                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
+                                  isDisabled
+                                    ? 'bg-slate-700'
+                                    : isMostPopular 
                                     ? 'bg-white/20' 
                                     : 'bg-slate-100'
                                 }`}>
                                   {React.createElement(packageIcon, { 
-                                    className: `w-6 h-6 ${isMostPopular ? 'text-white' : 'text-slate-700'}` 
+                                    className: `w-8 h-8 ${
+                                      isDisabled ? 'text-slate-500' : isMostPopular ? 'text-white' : 'text-slate-700'
+                                    }` 
                                   })}
                                 </div>
                               </div>
-                              
-                              <div className="text-center mb-6">
-                                <p className={`text-sm ${isMostPopular ? 'text-slate-300' : 'text-slate-500'}`}>
-                                  {pkg.description || 'For most businesses that want to optimize'}
-                                </p>
-                              </div>
 
-                              <div className="text-center mb-6">
+                              <div className="text-center mb-8">
                                 {(() => {
                                   const months = parseInt(billingCycle);
                                   const pricing = pkg.pricing || {};
@@ -582,31 +582,24 @@ export default function PackageSelectionPage() {
                                   
                                   const hasDiscount = savings > 0;
                                   
-                                  return hasDiscount ? (
-                                    <div>
-                                      <div className="flex items-baseline justify-center gap-2 mb-1">
-                                        <span className={`text-xl line-through ${isMostPopular ? 'text-slate-400' : 'text-slate-400'}`}>
-                                          ฿{basePrice.toLocaleString()}
-                                        </span>
-                                      </div>
-                                      <div className="flex items-baseline justify-center gap-1">
-                                        <span className="text-5xl font-bold">
-                                          ฿{Math.round(displayPrice).toLocaleString()}
-                                        </span>
-                                        <span className={`text-base ${isMostPopular ? 'text-slate-400' : 'text-slate-500'}`}>
-                                          /month
-                                        </span>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-baseline justify-center gap-1">
-                                      <span className="text-5xl font-bold">
-                                        ฿{Math.round(displayPrice).toLocaleString()}
-                                      </span>
-                                      <span className={`text-base ${isMostPopular ? 'text-slate-400' : 'text-slate-500'}`}>
-                                        /month
-                                      </span>
-                                    </div>
+                                  return (
+                                   <div className="mb-6">
+                                     <div className="flex items-baseline justify-center gap-2">
+                                       <span className="text-6xl font-bold">
+                                         ฿{Math.round(displayPrice).toLocaleString()}
+                                       </span>
+                                       <span className={`text-lg ${
+                                         isDisabled ? 'text-slate-500' : isMostPopular ? 'text-slate-300' : 'text-slate-500'
+                                       }`}>
+                                         /mo
+                                       </span>
+                                     </div>
+                                     {hasDiscount && (
+                                       <p className={`text-sm mt-2 ${isMostPopular ? 'text-slate-300' : 'text-slate-500'}`}>
+                                         ปกติ ฿{basePrice.toLocaleString()}/mo
+                                       </p>
+                                     )}
+                                   </div>
                                   );
                                 })()}
                               </div>
@@ -614,62 +607,30 @@ export default function PackageSelectionPage() {
                               <Button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (isDisabled) return; // ⭐ ไม่ให้คลิกถ้าปิด
+                                  if (isDisabled) return;
                                   setSelectedPackageId(pkg.id);
                                 }}
                                 disabled={isDisabled}
-                                className={`w-full py-5 text-sm font-semibold rounded-xl mb-6 ${
+                                className={`w-full py-6 text-base font-bold rounded-2xl mb-8 shadow-lg transition-all ${
                                   isDisabled
                                     ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                                    : isSelected
-                                    ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg'
                                     : isMostPopular
-                                    ? 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-white/20'
+                                    ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700'
                                     : 'bg-white hover:bg-slate-50 text-slate-900 border border-slate-200'
                                 }`}
                               >
-                                {isDisabled ? (
-                                  'ปิดการขาย'
-                                ) : isSelected ? (
-                                  <>
-                                    <Check className="w-4 h-4 mr-2" />
-                                    เลือกแล้ว
-                                  </>
-                                ) : (
-                                  `Buy ${pkg.package_name} License`
-                                )}
+                                {isDisabled ? 'ปิดการขาย' : 'Start Hiring'}
                               </Button>
 
-                              <div className="space-y-2.5 mb-4">
-                                <div className={`flex items-center gap-2 p-2.5 rounded-lg ${
-                                  isMostPopular ? 'bg-white/10' : 'bg-slate-50'
-                                }`}>
-                                  <Building2 className={`w-5 h-5 ${isMostPopular ? 'text-white' : 'text-slate-700'}`} />
-                                  <span className="text-sm font-medium">
-                                    {!pkg.max_branches || pkg.max_branches === 0
-                                      ? 'ไม่จำกัดสาขา'
-                                      : `${pkg.max_branches} สาขา`}
-                                  </span>
-                                </div>
-                                <div className={`flex items-center gap-2 p-2.5 rounded-lg ${
-                                  isMostPopular ? 'bg-white/10' : 'bg-slate-50'
-                                }`}>
-                                  <Users className={`w-5 h-5 ${isMostPopular ? 'text-white' : 'text-slate-700'}`} />
-                                  <span className="text-sm font-medium">
-                                    {!pkg.max_users || pkg.max_users === 0
-                                      ? 'ไม่จำกัดผู้ใช้'
-                                      : `${pkg.max_users} ผู้ใช้`}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="space-y-2.5 min-h-[200px]">
+                              <div className="space-y-3 min-h-[200px]">
                                 {(pkg.features || []).map((feature, idx) => (
-                                  <div key={idx} className="flex items-start gap-2">
+                                  <div key={idx} className="flex items-start gap-3">
                                     <Check className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-                                      isMostPopular ? 'text-white' : 'text-blue-600'
+                                      isDisabled ? 'text-slate-500' : isMostPopular ? 'text-white' : 'text-slate-700'
                                     }`} />
-                                    <span className="text-sm leading-tight">{feature}</span>
+                                    <span className={`text-sm leading-relaxed ${
+                                      isDisabled ? 'text-slate-500' : ''
+                                    }`}>{feature}</span>
                                   </div>
                                 ))}
                               </div>
