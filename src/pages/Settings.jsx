@@ -1846,13 +1846,13 @@ export default function Settings() {
                                     {!hasLimit ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInSystem)} สาขา`}
                                   </p>
 
-                                  {branches.length > 0 && (
+                                  {networkStats?.branches?.length > 0 && (
                                     <div className="pt-3 border-t border-slate-200 space-y-1">
-                                      <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อสาขา:</p>
-                                      {branches.map(branch => (
-                                        <div key={branch.id} className="text-xs text-slate-600 flex items-center gap-1">
+                                      <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อสาขาในเครือข่าย:</p>
+                                      {networkStats.branches.map((branch, idx) => (
+                                        <div key={idx} className="text-xs text-slate-600 flex items-center gap-1">
                                           <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                                          {branch.branch_name}
+                                          {branch.branch_name || branch.name || branch}
                                         </div>
                                       ))}
                                     </div>
