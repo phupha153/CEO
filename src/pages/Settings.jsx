@@ -1767,7 +1767,7 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // กรองเฉพาะผู้ใช้ที่มีสิทธิ์เข้าถึงสาขาในระบบนี้
+                              // กรองเฉพาะผู้ใช้ที่มีสิทธิ์เข้าถึงสาขาในระบบนี้ (ยกเว้น developer)
                               const branchIds = branches.map(b => b.id);
                               
                               // ⭐ หา owner_email จาก BranchPackages ที่เป็นของสาขาในระบบนี้
@@ -1781,8 +1781,8 @@ export default function Settings() {
                               const usersInMyBranches = users.filter(user => {
                                 const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
                                 
-                                // Developer = เข้าถึงทุกสาขา
-                                if (role === 'developer') return true;
+                                // ⭐ ไม่นับ Developer
+                                if (role === 'developer') return false;
                                 
                                 // ⭐ Owner ที่ยังไม่ set accessible_branches ต้องเช็คว่าเป็น owner จริงๆ (ผ่าน owner_email)
                                 if (role === 'owner' && (!user.accessible_branches || user.accessible_branches.length === 0)) {
