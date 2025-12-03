@@ -98,8 +98,7 @@ Deno.serve(async (req) => {
         // ⭐ แปลงเป็น array เพื่อป้องกัน error
         if (!Array.isArray(payments)) payments = [];
         
-        console.log(`📦 Loaded ${payments.length} payments`);
-        console.log(`📅 Checking for due_date = ${todayString}`);
+
 
         // กรองบิลที่ครบกำหนดชำระวันนี้ - เช็คจาก due_date จริงของบิล
         // ⭐ กรองเฉพาะสาขาที่เปิดการแจ้งเตือน
