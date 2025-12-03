@@ -3596,17 +3596,6 @@ export default function Settings() {
                           if (userRole === 'owner' && role === 'developer') return false;
                           if (user.id === currentUser?.id) return false;
                           
-                          // Filter users by selected branch in multi_tenant mode
-                          if (appMode === 'multi_tenant' && selectedBranch) {
-                            const accessibleBranches = user.accessible_branches || [];
-                            const canAccessAllBranches = role === 'developer' || role === 'owner';
-                            
-                            // Show only users who can access the current branch
-                            if (!canAccessAllBranches && !accessibleBranches.includes(selectedBranch.id)) {
-                              return false;
-                            }
-                          }
-                          
                           return true;
                         })
                         .sort((a, b) => {
@@ -3712,17 +3701,15 @@ export default function Settings() {
                                       จัดการสิทธิ์ย่อย
                                     </Button>
 
-                                    {!canAccessAllBranches && (
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => handleOpenBranchAccessDialog(user)}
-                                        className="border-blue-600 text-blue-700 hover:bg-blue-50 flex-1 md:flex-none"
-                                      >
-                                        <Globe className="w-4 h-4 mr-2" />
-                                        จัดการสาขา
-                                      </Button>
-                                    )}
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => handleOpenBranchAccessDialog(user)}
+                                      className="border-blue-600 text-blue-700 hover:bg-blue-50 flex-1 md:flex-none"
+                                    >
+                                      <Globe className="w-4 h-4 mr-2" />
+                                      จัดการสาขา
+                                    </Button>
                                   </div>
                                 </div>
                               </CardContent>
