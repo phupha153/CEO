@@ -69,13 +69,7 @@ export default function PackageSelectionPage() {
   }, [branchPackages, selectedBranchId]);
 
   const handleGoBack = () => {
-    if (expiredPackageType === 'trial') {
-      navigate(createPageUrl('TrialExpiredPage'));
-    } else if (expiredPackageType === 'paid') {
-      navigate(createPageUrl('PackageExpiredPage'));
-    } else {
-      navigate(createPageUrl('BranchSelection'));
-    }
+    navigate(createPageUrl('BranchSelection'));
   };
 
   const { data: crmPackages, isLoading: loadingPackages } = useQuery({
