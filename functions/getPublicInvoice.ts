@@ -1,9 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 // Public API สำหรับดึงข้อมูลใบแจ้งหนี้ (ไม่ต้อง login)
-// ⭐ ใช้วิธี list().find() ซึ่งเสถียรที่สุด (ช้ากว่า filter แต่ไม่มีปัญหา)
 Deno.serve(async (req) => {
-    const startTime = Date.now();
     console.log('========================================');
     console.log('📄 GET PUBLIC INVOICE');
     console.log(`📅 Timestamp: ${new Date().toISOString()}`);
@@ -35,11 +33,9 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // ===== STEP 1: ดึง Payment โดยตรง (ใช้ filter by ID - เร็วที่สุด) =====
-        console.log(`⏱️ [${Date.now() - startTime}ms] Fetching payment by ID...`);
+        // ดึงข้อมูล Payment โดยตรงด้วย filter
         const paymentResults = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
-        const payment = Array.isArray(paymentResults) && paymentResults.length > 0 ? paymentResults[0] : null;
-        console.log(`⏱️ [${Date.now() - startTime}ms] Payment found: ${payment ? 'YES' : 'NO'}`);
+        const payment = Array.isArray(paymentResults) ? paymentResults[0] : paymentResults;
 
         if (!payment) {
             return Response.json({ 
@@ -58,45 +54,19 @@ Deno.serve(async (req) => {
 
         const actualBranchId = payment.branch_id;
 
-        // ===== STEP 2: ดึง Configs และ Branches (เล็ก ไม่ timeout) =====
-        console.log(`⏱️ [${Date.now() - startTime}ms] Fetching configs and branches...`);
-        const [configs, allBranches] = await Promise.all([
-            base44.asServiceRole.entities.Config.list(),
-            base44.asServiceRole.entities.Branch.list()
+        // ดึงข้อมูลที่เกี่ยวข้องโดยตรงด้วย filter
+        const [tenantResults, roomResults, branchResults, configs] = await Promise.all([
+            payment.tenant_id ? base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id }) : Promise.resolve([]),
+            payment.room_id ? base44.asServiceRole.entities.Room.filter({ id: payment.room_id }) : Promise.resolve([]),
+            actualBranchId ? base44.asServiceRole.entities.Branch.filter({ id: actualBranchId }) : Promise.resolve([]),
+            base44.asServiceRole.entities.Config.list()
         ]);
-        const branch = actualBranchId ? allBranches.find(b => b.id === actualBranchId) : null;
-        console.log(`⏱️ [${Date.now() - startTime}ms] Loaded ${configs.length} configs, ${allBranches.length} branches`);
 
-        // ===== STEP 3: ดึง Tenant และ Room โดยตรง (ใช้ filter by ID - เร็วที่สุด) =====
-        let tenant = null;
-        let room = null;
-        
-        console.log(`⏱️ [${Date.now() - startTime}ms] Fetching tenant and room by ID...`);
-        console.log(`🔍 Looking for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}`);
-        
-        // ดึง Tenant และ Room พร้อมกัน (parallel) - ใช้ filter by ID โดยตรง
-        const [tenantResults, roomResults] = await Promise.all([
-            payment.tenant_id 
-                ? base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id })
-                : Promise.resolve([]),
-            payment.room_id 
-                ? base44.asServiceRole.entities.Room.filter({ id: payment.room_id })
-                : Promise.resolve([])
-        ]);
-        
-        if (payment.tenant_id && Array.isArray(tenantResults) && tenantResults.length > 0) {
-            tenant = tenantResults[0];
-            console.log(`📋 Found tenant: ${tenant?.full_name || 'NOT FOUND'}`);
-        }
-        
-        if (payment.room_id && Array.isArray(roomResults) && roomResults.length > 0) {
-            room = roomResults[0];
-            console.log(`📋 Found room: ${room?.room_number || 'NOT FOUND'}`);
-        }
+        const tenant = Array.isArray(tenantResults) ? tenantResults[0] : tenantResults;
+        const room = Array.isArray(roomResults) ? roomResults[0] : roomResults;
+        const branch = Array.isArray(branchResults) ? branchResults[0] : branchResults;
 
-        console.log(`⏱️ [${Date.now() - startTime}ms] Final: room=${room?.room_number || 'N/A'}, tenant=${tenant?.full_name || 'ไม่ระบุ'}, branch=${branch?.branch_name || 'N/A'}`);
-
-        // ===== STEP 4: ดึง Config Values =====
+        // ดึง config ของสาขา
         const getConfigValue = (key) => {
             const branchConfig = configs.find(c => c.key === key && c.branch_id === actualBranchId);
             if (branchConfig) return branchConfig.value;
@@ -115,7 +85,27 @@ Deno.serve(async (req) => {
             contact_phone: getConfigValue('contact_phone')
         };
 
-        // ===== STEP 5: สร้าง Response =====
+        console.log('✅ Invoice data fetched successfully');
+        
+        // ⭐ Debug: Log all config keys
+        console.log('📋 ALL CONFIGS COUNT:', configs.length);
+        console.log('📋 CONFIGS FOR BRANCH:', actualBranchId);
+        const relevantConfigs = configs.filter(c => 
+            ['company_name', 'company_tax_id', 'company_registration_number', 'company_address', 'lessor_name', 'lessor_address', 'bank_account_name'].includes(c.key)
+        );
+        console.log('📋 RELEVANT CONFIGS:', JSON.stringify(relevantConfigs, null, 2));
+        
+        // Debug extracted values
+        console.log('📋 EXTRACTED CONFIG VALUES:');
+        console.log('  - company_name:', getConfigValue('company_name'));
+        console.log('  - company_tax_id:', getConfigValue('company_tax_id'));
+        console.log('  - company_registration_number:', getConfigValue('company_registration_number'));
+        console.log('  - company_address:', getConfigValue('company_address'));
+        console.log('  - lessor_name:', getConfigValue('lessor_name'));
+        console.log('  - lessor_address:', getConfigValue('lessor_address'));
+        console.log('  - bank_account_name:', configData.bank_account_name);
+
+        // ⭐ สร้าง invoice object สำหรับ generateInvoiceImage
         const invoiceObject = {
             id: payment.id,
             status: payment.status,
@@ -138,6 +128,7 @@ Deno.serve(async (req) => {
             parking_fee_amount: payment.parking_fee_amount,
             other_amount: payment.other_amount,
             total_amount: payment.total_amount,
+            // ⭐ รวม room, tenant, bank, recipient ไว้ในตัว invoice
             room: room ? {
                 room_number: room.room_number,
                 floor: room.floor
@@ -169,10 +160,9 @@ Deno.serve(async (req) => {
             }
         };
 
-        console.log(`✅ [${Date.now() - startTime}ms] Invoice data fetched successfully`);
-
         return Response.json({
             success: true,
+            // ⭐ ส่งทั้ง invoice (สำหรับ generateInvoiceImage) และ data (สำหรับ PublicInvoice page)
             invoice: invoiceObject,
             data: {
                 payment: {
@@ -207,16 +197,6 @@ Deno.serve(async (req) => {
                     phone: branch.phone
                 } : null,
                 configs: configData
-            },
-            _debug: {
-                totalTime: `${Date.now() - startTime}ms`,
-                method: 'filter_by_id',
-                recordCounts: {
-                    payment: payment ? 1 : 0,
-                    tenant: tenant ? 1 : 0,
-                    room: room ? 1 : 0,
-                    configs: configs.length
-                }
             }
         });
 

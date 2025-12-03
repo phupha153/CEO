@@ -181,9 +181,9 @@ export default function PrintReceipts() {
               : result.value?.error || 'ไม่ทราบสาเหตุ';
             
             failed.push({ 
-              paymentId: paymentId.slice(0, 8), // ID สั้นสำหรับแสดงผล
+              paymentId: paymentId.slice(0, 8),
               error: errorMsg,
-              fullId: paymentId // ⚠️ เก็บ full ID สำหรับ retry - สำคัญมาก!
+              fullId: paymentId // เก็บ full ID สำหรับ debug
             });
             console.error(`❌ Failed to fetch payment ${paymentId}:`, errorMsg);
           }

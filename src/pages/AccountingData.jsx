@@ -110,10 +110,9 @@ export default function AccountingData() {
     setFailedReceipts([]);
   };
 
-  // ✅ ฟังก์ชันสำหรับ retry failed receipts - ใช้ fullId แทน paymentId ที่ถูกตัด
+  // ✅ ฟังก์ชันสำหรับ retry failed receipts
   const handleRetryFailed = () => {
-    // ⚠️ ใช้ fullId (ID เต็ม) ไม่ใช่ paymentId (ID ที่ถูก slice)
-    const failedIds = failedReceipts.map(f => f.fullId || f.paymentId).join(',');
+    const failedIds = failedReceipts.map(f => f.paymentId).join(','); // Corrected to paymentId as per previous pattern
     // Clear banner before navigating
     handleDismissFailedBanner(); 
     navigate(`${createPageUrl('PrintReceipts')}?paymentIds=${failedIds}`);
