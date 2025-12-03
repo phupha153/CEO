@@ -446,6 +446,18 @@ export default function UserBranchAccess() {
         subtitle="แสดงรายชื่อผู้ใช้และสาขาที่สามารถเข้าถึงได้"
         icon={Users}
         showBackButton={true}
+        actions={
+          isDeveloper && (
+            <Button
+              onClick={cleanupAllUsers}
+              variant="outline"
+              className="text-red-600 hover:bg-red-50 border-red-200"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              ลบสาขาที่ไม่มีแล้ว (ทุกคน)
+            </Button>
+          )
+        }
       />
 
       <div className="px-4 md:px-8 py-6">
