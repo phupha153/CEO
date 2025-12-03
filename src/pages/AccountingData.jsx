@@ -221,10 +221,9 @@ export default function AccountingData() {
       });
   }, [payments, rooms, tenants, searchTerm, dateFilter]);
 
-  // ฟังก์ชันกรองใบแจ้งหนี้ - แสดงเฉพาะที่ยังไม่ชำระ
+  // ฟังก์ชันกรองใบแจ้งหนี้ - แสดงทุกรายการ (ทั้งที่ชำระและยังไม่ชำระ)
   const filteredInvoices = useMemo(() => {
     return payments
-      .filter(payment => payment.status === 'pending' || payment.status === 'overdue')
       .filter(payment => {
         const room = rooms.find(r => r.id === payment.room_id);
         const tenant = tenants.find(t => t.id === payment.tenant_id);
@@ -237,6 +236,12 @@ export default function AccountingData() {
           payment.due_date?.startsWith(dateFilter);
         
         return matchSearch && matchDate;
+      })
+      .sort((a, b) => {
+        // เรียงตามวันครบกำหนด
+        const dateA = a.due_date || a.created_date;
+        const dateB = b.due_date || b.created_date;
+        return new Date(dateB) - new Date(dateA);
       });
   }, [payments, rooms, tenants, searchTerm, dateFilter]);
 
@@ -427,21 +432,24 @@ export default function AccountingData() {
     }
   };
 
-  // ฟังก์ชันเปิดใบเสร็จทั้งหมด
+  // ฟังก์ชันเปิดใบเสร็จ/ใบแจ้งหนี้ทั้งหมด
   const handleOpenAllReceipts = () => {
-    if (selectedPayments.length === 0) {
+    const selectedIds = activeTab === 'invoices' ? selectedInvoices : selectedPayments;
+    const docType = activeTab === 'invoices' ? 'ใบแจ้งหนี้' : 'ใบเสร็จ';
+    const pageName = activeTab === 'invoices' ? 'Invoice' : 'Receipt';
+    
+    if (selectedIds.length === 0) {
       toast.error('กรุณาเลือกรายการก่อน');
       return;
     }
 
-    if (selectedPayments.length === 1) {
+    if (selectedIds.length === 1) {
       // ถ้าเลือกแค่ 1 รายการ เปิดในหน้าเดียวกันเลย
-      navigate(`${createPageUrl('Receipt')}?paymentId=${selectedPayments[0]}`);
-      // Removed toast.success('เปิดใบเสร็จแล้ว'); as per outline
+      navigate(`${createPageUrl(pageName)}?paymentId=${selectedIds[0]}`);
     } else {
       // ถ้าเลือกหลายรายการ แสดง dialog ให้เลือกทีละรายการ
       setShowReceiptLinks(true);
-      toast.info(`มี ${selectedPayments.length} ใบเสร็จให้เลือกเปิด`);
+      toast.info(`มี ${selectedIds.length} ${docType}ให้เลือกเปิด`);
     }
   };
 
@@ -456,36 +464,41 @@ export default function AccountingData() {
 
   // ฟังก์ชันพิมพ์ใบเสร็จ/ใบแจ้งหนี้ทั้งหมด - ดาวน์โหลดได้ทุกรายการ
   const handlePrintAllReceipts = async () => {
-    if (selectedPayments.length === 0) {
+    // ใช้รายการที่เลือกตาม tab ที่ active อยู่
+    const selectedIds = activeTab === 'invoices' ? selectedInvoices : selectedPayments;
+    
+    if (selectedIds.length === 0) {
       toast.error('กรุณาเลือกรายการก่อน');
       return;
     }
 
     // บันทึกประวัติ
     try {
-      const roomNumbers = selectedPayments.map(paymentId => {
+      const roomNumbers = selectedIds.map(paymentId => {
         const payment = payments.find(p => p.id === paymentId);
         const room = rooms.find(r => r.id === payment?.room_id);
         return room?.room_number || 'N/A';
       }).join(', ');
 
+      const docType = activeTab === 'invoices' ? 'ใบแจ้งหนี้' : 'ใบเสร็จ';
+
       await base44.entities.ActivityLog.create({
         branch_id: selectedBranchId,
         action_type: 'create',
-        entity_type: 'Receipt',
-        entity_id: `receipts_${Date.now()}`,
-        entity_name: `ใบเสร็จ/ใบแจ้งหนี้ ${selectedPayments.length} รายการ`,
+        entity_type: activeTab === 'invoices' ? 'Invoice' : 'Receipt',
+        entity_id: `${activeTab}_${Date.now()}`,
+        entity_name: `${docType} ${selectedIds.length} รายการ`,
         user_email: currentUser?.email || 'unknown',
         user_name: currentUser?.full_name || 'ไม่ระบุ',
-        description: `พิมพ์/บันทึก PDF ${selectedPayments.length} รายการ (ห้อง: ${roomNumbers})`,
-        changes: { count: selectedPayments.length, payment_ids: selectedPayments }
+        description: `พิมพ์/บันทึก PDF ${docType} ${selectedIds.length} รายการ (ห้อง: ${roomNumbers})`,
+        changes: { count: selectedIds.length, payment_ids: selectedIds }
       });
     } catch (error) {
       console.error('Failed to log activity:', error);
     }
 
-    // เปิดทุกรายการที่เลือก (ไม่จำกัดเฉพาะที่ชำระแล้ว)
-    const paymentIdsString = selectedPayments.join(',');
+    // เปิดทุกรายการที่เลือก
+    const paymentIdsString = selectedIds.join(',');
     navigate(`${createPageUrl('PrintReceipts')}?paymentIds=${paymentIdsString}`);
   };
 
@@ -853,19 +866,22 @@ export default function AccountingData() {
           <div className="flex gap-2 flex-wrap justify-end">
             <Button
               onClick={handlePrintAllReceipts}
-              disabled={selectedPayments.length === 0}
+              disabled={selectedPayments.length === 0 && selectedInvoices.length === 0}
               className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
             >
               <Download className="w-4 h-4 mr-2" />
-              📄 พิมพ์/บันทึก PDF ({selectedPayments.length})
+              📄 พิมพ์/บันทึก PDF ({activeTab === 'invoices' ? selectedInvoices.length : selectedPayments.length})
             </Button>
             <Button
               onClick={handleOpenAllReceipts}
-              disabled={selectedPayments.length === 0}
+              disabled={selectedPayments.length === 0 && selectedInvoices.length === 0}
               className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
             >
               <FileText className="w-4 h-4 mr-2" />
-              {selectedPayments.length === 1 ? 'เปิดใบเสร็จ' : `เลือกใบเสร็จ (${selectedPayments.length})`}
+              {activeTab === 'invoices' 
+                ? (selectedInvoices.length === 1 ? 'เปิดใบแจ้งหนี้' : `เลือกใบแจ้งหนี้ (${selectedInvoices.length})`)
+                : (selectedPayments.length === 1 ? 'เปิดใบเสร็จ' : `เลือกใบเสร็จ (${selectedPayments.length})`)
+              }
             </Button>
           </div>
 
@@ -1148,7 +1164,7 @@ export default function AccountingData() {
             <TabsContent value="invoices" className="space-y-4">
               <div className="flex justify-between items-center flex-wrap gap-2">
                 <p className="text-sm text-slate-600">
-                  พบ {filteredInvoices.length} รายการ (ยังไม่ชำระ)
+                  พบ {filteredInvoices.length} รายการ (ทั้งหมด)
                 </p>
                 {filteredInvoices.length > 0 && (
                   <Button
@@ -1228,11 +1244,13 @@ export default function AccountingData() {
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                  payment.status === 'overdue' 
+                                  payment.status === 'paid'
+                                    ? 'bg-green-100 text-green-700'
+                                    : payment.status === 'overdue' 
                                     ? 'bg-red-100 text-red-700' 
                                     : 'bg-yellow-100 text-yellow-700'
                                 }`}>
-                                  {payment.status === 'overdue' ? 'เกินกำหนด' : 'รอชำระ'}
+                                  {payment.status === 'paid' ? 'ชำระแล้ว' : payment.status === 'overdue' ? 'เกินกำหนด' : 'รอชำระ'}
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-center">
@@ -1254,7 +1272,7 @@ export default function AccountingData() {
                   {filteredInvoices.length === 0 && (
                     <div className="text-center py-12">
                       <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                      <p className="text-slate-600">ไม่มีใบแจ้งหนี้ที่รอชำระ</p>
+                      <p className="text-slate-600">ไม่มีใบแจ้งหนี้</p>
                     </div>
                   )}
                 </CardContent>
@@ -1511,19 +1529,22 @@ export default function AccountingData() {
             </TabsContent>
           </Tabs>
 
-          {/* Receipt Links Dialog */}
+          {/* Receipt/Invoice Links Dialog */}
           <Dialog open={showReceiptLinks} onOpenChange={setShowReceiptLinks}>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>เลือกใบเสร็จที่ต้องการเปิด ({selectedPayments.length} รายการ)</DialogTitle>
+                <DialogTitle>
+                  เลือก{activeTab === 'invoices' ? 'ใบแจ้งหนี้' : 'ใบเสร็จ'}ที่ต้องการเปิด ({activeTab === 'invoices' ? selectedInvoices.length : selectedPayments.length} รายการ)
+                </DialogTitle>
               </DialogHeader>
               <div className="space-y-3">
-                {selectedPayments.map((paymentId) => {
+                {(activeTab === 'invoices' ? selectedInvoices : selectedPayments).map((paymentId) => {
                   const payment = payments.find(p => p.id === paymentId);
                   if (!payment) return null;
                   const room = rooms.find(r => r.id === payment.room_id);
                   const tenant = tenants.find(t => t.id === payment.tenant_id);
-                  const url = `${window.location.origin}${createPageUrl('Receipt')}?paymentId=${paymentId}`;
+                  const pageName = activeTab === 'invoices' ? 'Invoice' : 'Receipt';
+                  const url = `${window.location.origin}${createPageUrl(pageName)}?paymentId=${paymentId}`;
                   
                   return (
                     <Card key={paymentId} className="p-3 hover:bg-slate-50">
@@ -1533,7 +1554,10 @@ export default function AccountingData() {
                             ห้อง {room?.room_number || 'N/A'} - {tenant?.full_name || 'N/A'}
                           </p>
                           <p className="text-xs text-slate-500">
-                            {payment.payment_date ? format(parseISO(payment.payment_date), 'd MMMM yyyy', { locale: th }) : 'N/A'}
+                            {activeTab === 'invoices' 
+                              ? (payment.due_date ? `ครบกำหนด: ${format(parseISO(payment.due_date), 'd MMMM yyyy', { locale: th })}` : 'N/A')
+                              : (payment.payment_date ? format(parseISO(payment.payment_date), 'd MMMM yyyy', { locale: th }) : 'N/A')
+                            }
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -1547,9 +1571,9 @@ export default function AccountingData() {
                           >
                             คัดลอก
                           </Button>
-                          <Link to={`${createPageUrl('Receipt')}?paymentId=${paymentId}`} target="_blank">
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                              เปิดใบเสร็จ
+                          <Link to={`${createPageUrl(pageName)}?paymentId=${paymentId}`} target="_blank">
+                            <Button size="sm" className={activeTab === 'invoices' ? "bg-orange-600 hover:bg-orange-700" : "bg-green-600 hover:bg-green-700"}>
+                              เปิด{activeTab === 'invoices' ? 'ใบแจ้งหนี้' : 'ใบเสร็จ'}
                             </Button>
                           </Link>
                         </div>
@@ -1562,11 +1586,13 @@ export default function AccountingData() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    const allUrls = selectedPayments
+                    const selectedIds = activeTab === 'invoices' ? selectedInvoices : selectedPayments;
+                    const pageName = activeTab === 'invoices' ? 'Invoice' : 'Receipt';
+                    const allUrls = selectedIds
                       .map(id => {
                           const payment = payments.find(p => p.id === id);
                           const room = rooms.find(r => r.id === payment?.room_id);
-                          return `ห้อง ${room?.room_number || 'N/A'}: ${window.location.origin}${createPageUrl('Receipt')}?paymentId=${id}`;
+                          return `ห้อง ${room?.room_number || 'N/A'}: ${window.location.origin}${createPageUrl(pageName)}?paymentId=${id}`;
                       })
                       .join('\n');
                     navigator.clipboard.writeText(allUrls);
