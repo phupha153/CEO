@@ -3311,12 +3311,9 @@ Return JSON.`;
                                        >
                                          <p className="font-bold text-sm">{room.room_number}</p>
                                          {roomPayment && (
-                                           <>
-                                             <p className="text-xs opacity-90">
-                                               {(roomPayment.total_amount || 0).toLocaleString()}฿
-                                             </p>
-                                             <p className="text-xs font-medium mt-0.5">{statusLabel}</p>
-                                           </>
+                                           <p className="text-xs opacity-90">
+                                             {(roomPayment.total_amount || 0).toLocaleString()}฿
+                                           </p>
                                          )}
                                          {hasNotSentBill && (
                                            <div className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full border-2 border-white" title="ยังไม่ส่งบิล" />
