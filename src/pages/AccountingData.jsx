@@ -221,10 +221,13 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ฟังก์ชันกรองข้อมูล - ใบเสร็จรับเงิน (แสดงทุกรายการ)
+  // ฟังก์ชันกรองข้อมูล - ใบเสร็จรับเงิน (แสดงทุกรายการที่ชำระแล้ว)
   const filteredPayments = useMemo(() => {
     return payments
       .filter(payment => {
+        // กรองเฉพาะที่ชำระแล้ว (มี payment_date)
+        if (!payment.payment_date) return false;
+        
         const room = rooms.find(r => r.id === payment.room_id);
         const tenant = tenants.find(t => t.id === payment.tenant_id);
         
@@ -233,22 +236,24 @@ export default function AccountingData() {
           tenant?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
         
         const matchDate = !dateFilter || 
-          payment.payment_date?.startsWith(dateFilter) ||
-          payment.due_date?.startsWith(dateFilter);
+          payment.payment_date?.startsWith(dateFilter);
         
         return matchSearch && matchDate;
       })
       .sort((a, b) => {
-        const dateA = a.payment_date || a.due_date || a.created_date;
-        const dateB = b.payment_date || b.due_date || b.created_date;
+        const dateA = a.payment_date || a.created_date;
+        const dateB = b.payment_date || b.created_date;
         return new Date(dateB) - new Date(dateA);
       });
   }, [payments, rooms, tenants, searchTerm, dateFilter]);
 
-  // ฟังก์ชันกรองใบแจ้งหนี้ - แสดงทุกรายการ
+  // ฟังก์ชันกรองใบแจ้งหนี้ - แสดงทุกรายการที่ยังไม่ชำระ
   const filteredInvoices = useMemo(() => {
     return payments
       .filter(payment => {
+        // กรองเฉพาะที่ยังไม่ชำระ (ไม่มี payment_date หรือ status ไม่ใช่ paid)
+        if (payment.payment_date || payment.status === 'paid') return false;
+        
         const room = rooms.find(r => r.id === payment.room_id);
         const tenant = tenants.find(t => t.id === payment.tenant_id);
         
