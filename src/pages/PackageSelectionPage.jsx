@@ -472,13 +472,19 @@ export default function PackageSelectionPage() {
                           transition={{ delay: index * 0.1 }}
                           className="relative"
                         >
-                          <Card className={`h-full transition-all overflow-hidden rounded-3xl ${
+                          <Card className={`h-full transition-all overflow-hidden rounded-[2rem] ${
                            isDisabled 
                              ? 'cursor-not-allowed opacity-60 grayscale' 
                              : 'cursor-pointer hover:shadow-2xl'
                           } ${
                            isSelected && !isDisabled ? 'ring-4 ring-blue-500 ring-offset-4' : 'shadow-lg'
-                          } bg-white border border-slate-200`}
+                          } ${
+                           isBasic
+                             ? 'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 border-0'
+                             : isPro
+                             ? 'bg-gradient-to-br from-blue-100 via-purple-50 to-pink-50 border border-purple-200'
+                             : 'bg-gradient-to-br from-amber-100 via-yellow-50 to-orange-50 border border-amber-200'
+                          }`}
                           onClick={() => {
                            if (isDisabled) return;
                            setSelectedPackageId(pkg.id);
@@ -499,28 +505,35 @@ export default function PackageSelectionPage() {
                               </div>
                             )}
 
-                            <CardContent className="p-6">
-                              {/* Badge */}
-                              <div className="flex items-center justify-between mb-4">
-                                <Badge className={`text-xs px-3 py-1 rounded-full font-medium ${
+                            <CardContent className="p-6 h-full flex flex-col">
+                              {/* Header: Badge + Icon */}
+                              <div className="flex items-start justify-between mb-4">
+                                <Badge className={`text-xs px-4 py-1.5 rounded-full font-semibold ${
                                   isBasic
-                                    ? 'bg-slate-100 text-slate-700 border border-slate-200' 
+                                    ? 'bg-slate-700 text-white' 
                                     : isPro
-                                    ? 'bg-gradient-to-r from-blue-100 to-purple-100 text-purple-700 border border-purple-200'
-                                    : 'bg-slate-100 text-slate-600 border border-slate-200'
+                                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                                    : 'bg-gradient-to-r from-amber-600 to-yellow-500 text-white'
                                 }`}>
-                                  {isBasic ? 'Starter' : isPro ? 'PROFESSIONAL' : 'ENTERPRISE'}
+                                  {isBasic ? 'Basic' : isPro ? 'Pro' : 'Elite'}
                                 </Badge>
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
+                                  isBasic
+                                    ? 'bg-slate-700/50'
+                                    : isPro
+                                    ? 'bg-blue-500/20'
+                                    : 'bg-amber-500/20'
+                                }`}>
+                                  {React.createElement(packageIcon, { 
+                                    className: `w-8 h-8 ${
+                                      isBasic ? 'text-blue-400' : isPro ? 'text-blue-600' : 'text-amber-600'
+                                    }` 
+                                  })}
+                                </div>
                               </div>
 
-                              {/* Price Box with border */}
-                              <div className={`rounded-2xl p-5 mb-5 border ${
-                                isBasic
-                                  ? 'bg-white border-slate-200'
-                                  : isPro
-                                  ? 'bg-gradient-to-br from-blue-50 to-purple-50 border-purple-200'
-                                  : 'bg-slate-50 border-slate-200'
-                              }`}>
+                              {/* Price */}
+                              <div className="mb-2">
                                 {(() => {
                                   const months = parseInt(billingCycle);
                                   const pricing = pkg.pricing || {};
@@ -530,43 +543,34 @@ export default function PackageSelectionPage() {
                                   let displayPrice = basePrice;
                                   
                                   if (months === 3) {
-                                    if (hasNewStructure) {
-                                      displayPrice = pricing.three_months_per_month || basePrice;
-                                    } else {
-                                      const totalPrice = pkg.price_3_months || (basePrice * 3);
-                                      displayPrice = totalPrice / 3;
-                                    }
+                                    displayPrice = hasNewStructure ? (pricing.three_months_per_month || basePrice) : ((pkg.price_3_months || (basePrice * 3)) / 3);
                                   } else if (months === 6) {
-                                    if (hasNewStructure) {
-                                      displayPrice = pricing.six_months_per_month || basePrice;
-                                    } else {
-                                      const totalPrice = pkg.price_6_months || (basePrice * 6);
-                                      displayPrice = totalPrice / 6;
-                                    }
+                                    displayPrice = hasNewStructure ? (pricing.six_months_per_month || basePrice) : ((pkg.price_6_months || (basePrice * 6)) / 6);
                                   } else if (months === 12) {
-                                    if (hasNewStructure) {
-                                      displayPrice = pricing.yearly_per_month || basePrice;
-                                    } else {
-                                      const totalPrice = pkg.price_yearly || (basePrice * 12);
-                                      displayPrice = totalPrice / 12;
-                                    }
+                                    displayPrice = hasNewStructure ? (pricing.yearly_per_month || basePrice) : ((pkg.price_yearly || (basePrice * 12)) / 12);
                                   }
                                   
-                                  return (
+                                  return isElite ? (
                                     <div>
-                                      <div className="flex items-baseline gap-1">
-                                        <span className="text-4xl font-bold text-slate-900">
-                                          ฿{Math.round(displayPrice).toLocaleString()}
-                                        </span>
-                                        <span className="text-sm text-slate-500">/month</span>
-                                      </div>
-                                      <p className="text-sm text-slate-500 mt-2">
-                                        {pkg.description || (isBasic ? 'Perfect For Small Teams' : isPro ? 'Perfect For Growing Teams' : 'For Large Organizations')}
-                                      </p>
+                                      <span className={`text-4xl font-bold ${isBasic ? 'text-white' : 'text-slate-900'}`}>
+                                        Elite
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-baseline gap-1">
+                                      <span className={`text-4xl font-bold ${isBasic ? 'text-white' : 'text-slate-900'}`}>
+                                        ฿{Math.round(displayPrice).toLocaleString()}
+                                      </span>
+                                      <span className={`text-sm ${isBasic ? 'text-slate-400' : 'text-slate-500'}`}>/month</span>
                                     </div>
                                   );
                                 })()}
                               </div>
+
+                              {/* Description */}
+                              <p className={`text-sm mb-4 ${isBasic ? 'text-slate-400' : 'text-slate-600'}`}>
+                                {pkg.description || (isBasic ? 'Perfect For Small Teams' : isPro ? 'Perfect For Growing Teams' : 'For Large Organizations')}
+                              </p>
 
                               {/* Button */}
                               <Button
@@ -576,23 +580,25 @@ export default function PackageSelectionPage() {
                                   setSelectedPackageId(pkg.id);
                                 }}
                                 disabled={isDisabled}
-                                className={`w-full py-4 text-sm font-semibold rounded-full mb-6 transition-all ${
+                                className={`w-full py-4 text-sm font-semibold rounded-2xl mb-6 transition-all ${
                                   isDisabled
                                     ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                                    : isBasic
+                                    ? 'bg-white text-slate-900 hover:bg-slate-100'
                                     : isPro
                                     ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-md'
-                                    : 'bg-slate-900 text-white hover:bg-slate-800'
+                                    : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600 shadow-md'
                                 }`}
                               >
                                 {isElite ? 'Contact Us' : 'Start Hiring'}
                               </Button>
 
                               {/* Features */}
-                              <div className="space-y-3">
+                              <div className="space-y-3 flex-1">
                                 {(pkg.features || []).map((feature, idx) => (
                                   <div key={idx} className="flex items-start gap-2">
-                                    <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-500" />
-                                    <span className="text-sm text-slate-600">{feature}</span>
+                                    <Check className={`w-4 h-4 mt-0.5 flex-shrink-0 ${isBasic ? 'text-slate-400' : 'text-slate-500'}`} />
+                                    <span className={`text-sm ${isBasic ? 'text-slate-300' : 'text-slate-600'}`}>{feature}</span>
                                   </div>
                                 ))}
                               </div>
