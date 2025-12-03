@@ -142,6 +142,50 @@ export default function UserBranchAccess() {
     onError: () => toast.error('เกิดข้อผิดพลาด'),
   });
 
+  // ฟังก์ชันลบสาขาที่ไม่มีอยู่แล้วออกจาก accessible_branches
+  const cleanupDeletedBranches = async (user) => {
+    const userBranches = user.accessible_branches || [];
+    const validBranches = userBranches.filter(branchId => 
+      allBranches.some(b => b.id === branchId)
+    );
+    
+    if (validBranches.length !== userBranches.length) {
+      const removedCount = userBranches.length - validBranches.length;
+      await base44.entities.User.update(user.id, { accessible_branches: validBranches });
+      queryClient.invalidateQueries(['users']);
+      toast.success(`ลบ ${removedCount} สาขาที่ไม่มีอยู่แล้วออกจาก ${user.full_name}`);
+    } else {
+      toast.info('ไม่พบสาขาที่ต้องลบ');
+    }
+  };
+
+  // ลบสาขาที่ไม่มีอยู่แล้วจากทุกผู้ใช้
+  const cleanupAllUsers = async () => {
+    let totalRemoved = 0;
+    let usersUpdated = 0;
+    
+    for (const user of allUsers) {
+      const userBranches = user.accessible_branches || [];
+      const validBranches = userBranches.filter(branchId => 
+        allBranches.some(b => b.id === branchId)
+      );
+      
+      if (validBranches.length !== userBranches.length) {
+        const removedCount = userBranches.length - validBranches.length;
+        await base44.entities.User.update(user.id, { accessible_branches: validBranches });
+        totalRemoved += removedCount;
+        usersUpdated++;
+      }
+    }
+    
+    queryClient.invalidateQueries(['users']);
+    if (totalRemoved > 0) {
+      toast.success(`ลบ ${totalRemoved} สาขาที่ไม่มีอยู่แล้วจาก ${usersUpdated} ผู้ใช้`);
+    } else {
+      toast.info('ไม่พบสาขาที่ต้องลบ');
+    }
+  };
+
   const updateUserPermissionsMutation = useMutation({
     mutationFn: ({ userId, permissions }) =>
       base44.entities.User.update(userId, { permissions }),
