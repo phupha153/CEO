@@ -3596,6 +3596,17 @@ export default function Settings() {
                           if (userRole === 'owner' && role === 'developer') return false;
                           if (user.id === currentUser?.id) return false;
                           
+                          // กรองเฉพาะผู้ใช้ที่มีสิทธิ์ในสาขาที่ผมดูแล
+                          const myAccessibleBranches = currentUser?.accessible_branches;
+                          const amIDeveloper = userRole === 'developer' && (!myAccessibleBranches || myAccessibleBranches.length === 0);
+                          
+                          if (!amIDeveloper && myAccessibleBranches && myAccessibleBranches.length > 0) {
+                            const userBranches = user.accessible_branches || [];
+                            // ถ้าผู้ใช้คนนี้ไม่มีสิทธิ์ในสาขาใดเลยที่ผมดูแล = ไม่แสดง
+                            const hasCommonBranch = userBranches.some(b => myAccessibleBranches.includes(b));
+                            if (!hasCommonBranch && userBranches.length > 0) return false;
+                          }
+                          
                           return true;
                         })
                         .sort((a, b) => {
