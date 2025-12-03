@@ -2144,13 +2144,14 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             const paymentStatus = getPaymentStatus(room.id);
                             const acNeedsCleaning = needsACCleaning(room);
                             
-                            // Check for future reservations
+                            // Check for future reservations (ติดจอง)
                             const futureBookings = bookings.filter(b => 
                               b.room_id === room.id && 
                               b.status === 'active' && 
+                              b.check_in_date &&
                               new Date(b.check_in_date) > new Date()
                             );
-                            const isReserved = futureBookings.length > 0;
+                            const isReserved = room.status === 'reserved' || futureBookings.length > 0;
 
                             return (
                               <motion.div
