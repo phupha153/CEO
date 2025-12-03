@@ -160,10 +160,46 @@ Deno.serve(async (req) => {
             });
         }
 
-        // ⭐ ดึงข้อมูล Tenant และ Room ทั้งหมดก่อนเพื่อลด API calls
-        console.log('📥 Pre-fetching all tenants and rooms...');
-        const allTenants = parseResult(await base44.asServiceRole.entities.Tenant.list('-created_date', 50000));
-        const allRooms = parseResult(await base44.asServiceRole.entities.Room.list('-created_date', 50000));
+        // ⭐ Helper: แปลง result เป็น array
+        const parseResult = (result) => {
+            if (Array.isArray(result)) return result;
+            if (typeof result === 'string') {
+                try {
+                    const parsed = JSON.parse(result);
+                    if (Array.isArray(parsed)) return parsed;
+                } catch (e) {
+                    console.error('❌ JSON parse error:', e.message);
+                }
+            }
+            return [];
+        };
+
+        // ⭐ ดึงข้อมูล Tenant และ Room เฉพาะที่เกี่ยวข้อง
+        console.log('📥 Pre-fetching tenants and rooms...');
+        const tenantIds = [...new Set(payments.map(p => p.tenant_id).filter(Boolean))];
+        const roomIds = [...new Set(payments.map(p => p.room_id).filter(Boolean))];
+        
+        let allTenants = [];
+        let allRooms = [];
+        
+        // ดึง tenant ทีละ batch เพื่อหลีกเลี่ยงปัญหา JSON ใหญ่เกิน
+        for (const tenantId of tenantIds) {
+            try {
+                const tenants = await base44.asServiceRole.entities.Tenant.filter({ id: tenantId }, '-created_date', 1);
+                allTenants = allTenants.concat(parseResult(tenants));
+            } catch (e) {
+                console.error(`❌ Error fetching tenant ${tenantId}:`, e.message);
+            }
+        }
+        
+        for (const roomId of roomIds) {
+            try {
+                const rooms = await base44.asServiceRole.entities.Room.filter({ id: roomId }, '-created_date', 1);
+                allRooms = allRooms.concat(parseResult(rooms));
+            } catch (e) {
+                console.error(`❌ Error fetching room ${roomId}:`, e.message);
+            }
+        }
         
         const tenantMap = new Map(allTenants.map(t => [t.id, t]));
         const roomMap = new Map(allRooms.map(r => [r.id, r]));
