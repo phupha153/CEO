@@ -812,6 +812,14 @@ export default function AllBranchesDashboard() {
         actions={
           <>
             <Button
+              onClick={() => setShowDebug(!showDebug)}
+              variant="outline"
+              size="sm"
+              className="border-orange-400 text-orange-600 hover:bg-orange-50"
+            >
+              🐛 Debug
+            </Button>
+            <Button
               onClick={() => navigate(createPageUrl('Settings'))}
               variant="outline"
               className="border-indigo-600 text-indigo-600 hover:bg-indigo-50 shadow-md"
