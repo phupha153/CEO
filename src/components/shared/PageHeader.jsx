@@ -96,8 +96,8 @@ export default function PageHeader({
                   <Icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
                 </div>
               )}
-              
-              <div className="flex-1 min-w-0">
+
+              <div className="flex-1 min-w-0 hidden md:block">
                 <h1 className="text-xl md:text-2xl font-bold text-slate-800 truncate">{title}</h1>
                 {subtitle && (
                   <p className="text-xs md:text-sm text-slate-600 truncate">{subtitle}</p>
