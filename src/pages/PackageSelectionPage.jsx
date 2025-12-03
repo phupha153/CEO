@@ -271,14 +271,7 @@ export default function PackageSelectionPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="relative z-10 p-4 flex items-center justify-between">
-        <Button
-          onClick={() => navigate(createPageUrl('Dashboard'))}
-          variant="ghost"
-          className="text-slate-600 hover:text-slate-800"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          กลับ
-        </Button>
+        {/* ซ่อนปุ่มกลับ - ถ้า package หมดอายุต้องซื้อใหม่ก่อนถึงจะใช้งานได้ */}
         {userRole === 'developer' && (
           <Button
             onClick={() => setDebugMode(!debugMode)}
