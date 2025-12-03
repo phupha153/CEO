@@ -135,12 +135,12 @@ export default function PrintReceipts() {
             return await fetchWithRetry(
               async () => {
                 console.log(`🔄 Fetching invoice for payment: ${paymentId}`);
-                
+
                 // ✅ เพิ่ม timeout protection
                 const timeoutPromise = new Promise((_, reject) => 
                   setTimeout(() => reject(new Error('Request timeout')), 15000) // 15 วินาที
                 );
-                
+
                 const fetchPromise = base44.functions.invoke('getPublicInvoice', { 
                   paymentId: paymentId 
                 });
@@ -149,10 +149,15 @@ export default function PrintReceipts() {
 
                 setProgress(prev => ({ ...prev, current: prev.current + 1 }));
 
+                // ✅ Debug log
+                console.log(`📋 Response for ${paymentId}:`, JSON.stringify(response.data, null, 2));
+
                 if (response.data && response.data.success && response.data.invoice) {
+                  console.log(`✅ Success for ${paymentId}: Room=${response.data.invoice.room?.room_number}, Tenant=${response.data.invoice.tenant?.full_name}`);
                   return { success: true, data: response.data.invoice, paymentId };
                 } else {
                   const errorMsg = response.data?.error || 'ไม่พบใบเสร็จ';
+                  console.log(`❌ Failed for ${paymentId}: ${errorMsg}`);
                   return { 
                     success: false, 
                     error: errorMsg,
