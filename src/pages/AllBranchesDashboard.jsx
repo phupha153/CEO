@@ -111,7 +111,7 @@ export default function AllBranchesDashboard() {
     [allBookings, accessibleBranchIds]
   );
 
-  const { data: allPayments = [] } = useQuery({
+  const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['allPayments', 'v4'],
     queryFn: async () => {
       // ดึงข้อมูลแบบ pagination เพื่อหลีกเลี่ยง 5000 limit
@@ -1058,7 +1058,7 @@ export default function AllBranchesDashboard() {
                   <div className="p-2 md:p-3 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg">
                     <CreditCard className="w-4 h-4 md:w-6 md:h-6 text-white" />
                   </div>
-                  {compareEnabled && compareStats && (
+                  {compareEnabled && compareStats && !paymentsLoading && (
                     <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${
                       revenueChange > 0 ? 'bg-green-100 text-green-700' : revenueChange < 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'
                     }`}>
@@ -1072,9 +1072,18 @@ export default function AllBranchesDashboard() {
                   )}
                 </div>
                 <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">รายได้ (ชำระแล้ว)</p>
-                <p className="text-xl md:text-3xl font-bold text-slate-800">{summary.totalRevenue.toLocaleString('th-TH')} ฿</p>
-                <p className="text-xs text-slate-500 mt-1">({summary.paidCount} รายการ)</p>
-                {compareEnabled && compareStats && (
+                {paymentsLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-5 h-5 text-emerald-600 animate-spin" />
+                    <span className="text-sm text-slate-500">กำลังโหลด...</span>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xl md:text-3xl font-bold text-slate-800">{summary.totalRevenue.toLocaleString('th-TH')} ฿</p>
+                    <p className="text-xs text-slate-500 mt-1">({summary.paidCount} รายการ)</p>
+                  </>
+                )}
+                {compareEnabled && compareStats && !paymentsLoading && (
                   <p className="text-xs text-slate-500 mt-2">
                     เทียบกับ: {compareStats.totalRevenue.toLocaleString('th-TH')} ฿
                   </p>
@@ -1091,8 +1100,17 @@ export default function AllBranchesDashboard() {
                   </div>
                 </div>
                 <p className="text-xs md:text-sm font-medium text-slate-500 mb-1">รอชำระ (รวมค่าปรับ)</p>
-                <p className="text-xl md:text-3xl font-bold text-slate-800">{summary.pendingRevenue.toLocaleString('th-TH')} ฿</p>
-                <p className="text-xs text-slate-500 mt-1">({summary.pendingCount} รายการ)</p>
+                {paymentsLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-5 h-5 text-orange-600 animate-spin" />
+                    <span className="text-sm text-slate-500">กำลังโหลด...</span>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xl md:text-3xl font-bold text-slate-800">{summary.pendingRevenue.toLocaleString('th-TH')} ฿</p>
+                    <p className="text-xs text-slate-500 mt-1">({summary.pendingCount} รายการ)</p>
+                  </>
+                )}
               </div>
             </Card>
           </div>
