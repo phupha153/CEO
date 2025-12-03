@@ -227,92 +227,20 @@ Deno.serve(async (req) => {
                 const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', paymentBranchId);
                 const branchLateFeePerDay = parseFloat(getConfigValue('late_payment_fee_per_day', '0', paymentBranchId));
 
-                console.log(`💰 Late fee for branch ${paymentBranchId}: ${branchLateFeePerDay} บาท/วัน`);
-
-                // ใช้ due_date จากบิลโดยตรง
-                const dueDateStr = new Date(payment.due_date).toLocaleDateString('th-TH', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-
-                let message = `⏰ แจ้งเตือน: วันนี้เป็นวันครบกำหนดชำระค่าเช่า\n\n`;
+                // ⭐ ข้อความสั้นกระชับ - วันครบกำหนดชำระ
+                let message = `⏰ วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
                 message += `🏠 ${branchBuildingName}\n`;
-                message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-                message += `สวัสดีคุณ ${tenant.full_name}\n`;
-                message += `ห้อง ${room?.room_number || 'N/A'}\n\n`;
+                message += `👤 คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n`;
+                message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
                 
-                message += `📋 รายละเอียดบิล:\n`;
-                message += `━━━━━━━━━━━━━━━━━━━━\n`;
-                
-                if (payment.rent_amount > 0) {
-                    message += `🏠 ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
-                }
-                if (payment.electricity_amount > 0) {
-                    message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-                }
-                if (payment.water_amount > 0) {
-                    message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
-                }
-                if (payment.internet_amount > 0) {
-                    message += `📡 ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
-                }
-                if (payment.common_fee_amount > 0) {
-                    message += `🏢 ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
-                }
-                if (payment.parking_fee_amount > 0) {
-                    message += `🚗 ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
-                }
-                if (payment.other_amount > 0) {
-                    message += `📌 ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
-                }
-                
-                message += `━━━━━━━━━━━━━━━━━━━━\n`;
-                message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n\n`;
-                
-                message += `📅 ครบกำหนดชำระ: ${dueDateStr} (วันนี้)\n`;
-                message += `⚠️ สถานะ: รอชำระ\n\n`;
-
-                // แสดงข้อมูลค่าปรับถ้ามี (ใช้ค่าของสาขา)
                 if (branchLateFeePerDay > 0) {
-                    message += `⚠️ หมายเหตุ:\n`;
-                    message += `หากชำระหลังวันครบกำหนด จะมีค่าปรับ ${branchLateFeePerDay} บาท/วัน\n\n`;
+                    message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน\n\n`;
                 }
                 
                 message += `💳 โอนเงินได้ที่:\n`;
-                message += `ธนาคาร: ${branchBankName}\n`;
-                message += `เลขบัญชี: ${branchBankAccountNumber}\n`;
-                message += `ชื่อบัญชี: ${branchBankAccountName}\n\n`;
-
-                // สร้างรูปใบแจ้งหนี้ใหม่ทุกครั้งเพื่อให้ข้อมูลตรงกับแอป (รวมที่อยู่ลูกค้า)
-                let invoiceImageUrl = null;
-                try {
-                    // ลบ invoice_image_url เก่าออกก่อนเพื่อบังคับสร้างใหม่
-                    if (payment.invoice_image_url) {
-                        await base44.asServiceRole.entities.Payment.update(payment.id, {
-                            invoice_image_url: null
-                        });
-                        console.log(`🗑️ Cleared old invoice_image_url for payment ${payment.id}`);
-                    }
-                    
-                    console.log(`🖼️ Generating invoice image for payment ${payment.id}...`);
-                    const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
-                        paymentId: payment.id
-                    });
-                    if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
-                        invoiceImageUrl = invoiceResult.data.invoice_image_url;
-                        console.log(`✅ Invoice image generated: ${invoiceImageUrl}`);
-                    }
-                } catch (invoiceError) {
-                    console.error(`❌ Error generating invoice image:`, invoiceError);
-                }
-
-                if (invoiceImageUrl) {
-                    message += `📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}\n\n`;
-                }
-
-                message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
-                message += `ขอบคุณค่ะ 🙏`;
+                message += `${branchBankName} ${branchBankAccountNumber}\n`;
+                message += `ชื่อ: ${branchBankAccountName}\n\n`;
+                message += `📸 ส่งสลิปหลังโอนค่ะ`;
 
                 recipients.push({
                     lineUserId: hasLine ? tenant.line_user_id : null,
