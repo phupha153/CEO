@@ -744,56 +744,8 @@ export default function Layout({ children, currentPageName }) {
               setIsCreatingTrial(false);
             }
           }
-          } else if (existingPackage && existingPackage.status === 'active' && (existingPackage.package_id === 'trial' || existingPackage.price_per_month === 0)) {
-          // ⭐⭐⭐ กรณีพิเศษ: มี trial/free package อยู่แล้ว แต่ user มี paid package ในสาขาอื่น
-          const userAccessibleBranchIds = currentUser?.accessible_branches || [];
-          const userPaidPackages = branchPackages.filter(bp => 
-            userAccessibleBranchIds.includes(bp.branch_id) && 
-            bp.status === 'active' && 
-            bp.package_id !== 'trial' && 
-            bp.price_per_month > 0
-          );
-
-          if (userPaidPackages.length > 0) {
-            // อัปเกรดจาก trial เป็น paid package และลบ package เก่า
-            const sourcePkg = userPaidPackages[0];
-            setIsCreatingTrial(true);
-            try {
-              // ⭐ ลบ package เก่าทั้งหมดในสาขานี้ก่อน (รวมถึง trial)
-              const oldPackagesInBranch = branchPackages.filter(bp => 
-                bp.branch_id === selectedBranch.id
-              );
-              for (const oldPkg of oldPackagesInBranch) {
-                try {
-                  await base44.entities.BranchPackage.delete(oldPkg.id);
-                  console.log('🗑️ Deleted old package in branch:', oldPkg.id, oldPkg.package_name);
-                } catch (e) {
-                  console.warn('Failed to delete old package:', e);
-                }
-              }
-
-              // สร้าง package ใหม่จาก paid package
-              await base44.entities.BranchPackage.create({
-                branch_id: selectedBranch.id,
-                package_id: sourcePkg.package_id,
-                package_name: sourcePkg.package_name,
-                owner_email: currentUser.email,
-                subscription_start_date: sourcePkg.subscription_start_date,
-                subscription_end_date: sourcePkg.subscription_end_date,
-                status: 'active',
-                price_per_month: sourcePkg.price_per_month,
-                features: sourcePkg.features || [],
-                notes: `อัปเกรดจาก ${existingPackage.package_name || 'Trial'} → ${sourcePkg.package_name}`
-              });
-
-              console.log('✅ Upgraded to paid package for branch:', selectedBranch.id);
-              await refetchBranchPackages();
-            } catch (error) {
-              console.error('Failed to upgrade to paid package:', error);
-            } finally {
-              setIsCreatingTrial(false);
-            }
-          }
+          // ⭐⭐⭐ ไม่ auto-upgrade จาก trial เป็น paid package อีกต่อไป
+        // แต่ละสาขาต้องซื้อ package เอง หรือถูกกำหนดโดย admin
         }
       } else if (currentAppMode === 'single_tenant') {
         // Single tenant - ใช้ logic เดิม
