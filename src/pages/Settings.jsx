@@ -1751,8 +1751,8 @@ export default function Settings() {
                                         ? 'bg-gradient-to-br from-blue-300 via-indigo-200 to-purple-200'
                                         : 'bg-gradient-to-br from-amber-300 via-yellow-200 to-orange-200'
                                     }`}>
-                                      {/* Shimmer overlay - only for Pro and Elite */}
-                                      {(isPro || isElite) && (
+                                      {/* Shimmer overlay - only for Pro and Elite (not Trial) */}
+                                      {!isTrial && (isPro || isElite) && (
                                         <>
                                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" 
                                             style={{ animation: 'shimmer 3s infinite' }} />
