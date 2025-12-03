@@ -434,6 +434,17 @@ export default function Settings() {
     refetchOnMount: false,
   });
 
+  const { data: networkStats, isLoading: networkStatsLoading } = useQuery({
+    queryKey: ['networkStats', currentUser?.email],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getMyNetworkStats', {});
+      return response.data;
+    },
+    enabled: !!currentUser,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
   const [selectedBranch] = useState(() => {
     const branchId = localStorage.getItem('selected_branch_id');
     const branchName = localStorage.getItem('selected_branch_name');
@@ -1753,7 +1764,7 @@ export default function Settings() {
                           <CardContent>
                             {(() => {
                               // ดึงข้อมูลจำนวนผู้ใช้ทั้งหมดจาก CRM
-                              const totalUsersInCRM = activeSubscription?.total_users_count || 0;
+                              const totalUsersInCRM = networkStats?.total_users || 0;
                               const maxUsers = activeSubscription?.max_users || 999;
                               const usagePercent = maxUsers === 999 ? 10 : Math.min((totalUsersInCRM / maxUsers) * 100, 100);
 
@@ -1762,7 +1773,7 @@ export default function Settings() {
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm text-slate-600">ผู้ใช้งานทั้งหมด</span>
                                     <span className="text-2xl font-bold text-blue-600">
-                                      {totalUsersInCRM} {maxUsers !== 999 && `/ ${maxUsers}`}
+                                      {networkStatsLoading ? '...' : totalUsersInCRM} {maxUsers !== 999 && `/ ${maxUsers}`}
                                     </span>
                                   </div>
                                   <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
@@ -1790,7 +1801,7 @@ export default function Settings() {
                           <CardContent>
                             {(() => {
                               // ดึงข้อมูลจำนวนสาขาทั้งหมดจาก CRM
-                              const totalBranchesInCRM = activeSubscription?.total_branches_count || 0;
+                              const totalBranchesInCRM = networkStats?.total_branches || 0;
                               const maxBranches = activeSubscription?.max_branches || 999;
                               const usagePercent = maxBranches === 999 ? 10 : Math.min((totalBranchesInCRM / maxBranches) * 100, 100);
 
@@ -1799,7 +1810,7 @@ export default function Settings() {
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm text-slate-600">สาขาที่ดูแลทั้งหมด</span>
                                     <span className="text-2xl font-bold text-purple-600">
-                                      {totalBranchesInCRM} {maxBranches !== 999 && `/ ${maxBranches}`}
+                                      {networkStatsLoading ? '...' : totalBranchesInCRM} {maxBranches !== 999 && `/ ${maxBranches}`}
                                     </span>
                                   </div>
                                   <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
