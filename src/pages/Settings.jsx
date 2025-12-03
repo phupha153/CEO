@@ -1752,40 +1752,27 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              const userAccessibleBranches = currentUser?.accessible_branches || [];
-                              const isDeveloper = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
-                              
-                              // นับจำนวนผู้ใช้ที่มีสิทธิ์ในสาขาที่ owner ดูแล
-                              const totalUsers = isDeveloper 
-                                ? users.length 
-                                : users.filter(u => {
-                                    const uAccessibleBranches = u.accessible_branches || [];
-                                    const uRole = u.custom_role || (u.role === 'admin' ? 'owner' : 'employee');
-                                    // Developer/Owner เห็นทุกคน
-                                    if (uRole === 'developer' || uRole === 'owner') return true;
-                                    // คนอื่นต้องมีสาขาที่ทับกับ owner
-                                    return uAccessibleBranches.some(b => userAccessibleBranches.includes(b));
-                                  }).length;
-
+                              // ดึงข้อมูลจำนวนผู้ใช้ทั้งหมดจาก CRM
+                              const totalUsersInCRM = activeSubscription?.total_users_count || 0;
                               const maxUsers = activeSubscription?.max_users || 999;
-                              const usagePercent = maxUsers === 999 ? 0 : Math.min((totalUsers / maxUsers) * 100, 100);
+                              const usagePercent = maxUsers === 999 ? 10 : Math.min((totalUsersInCRM / maxUsers) * 100, 100);
 
                               return (
                                 <div className="space-y-4">
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm text-slate-600">ผู้ใช้งานทั้งหมด</span>
                                     <span className="text-2xl font-bold text-blue-600">
-                                      {totalUsers} {maxUsers !== 999 && `/ ${maxUsers}`}
+                                      {totalUsersInCRM} {maxUsers !== 999 && `/ ${maxUsers}`}
                                     </span>
                                   </div>
                                   <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
                                     <div 
                                       className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
-                                      style={{ width: `${maxUsers === 999 ? 10 : usagePercent}%` }}
+                                      style={{ width: `${usagePercent}%` }}
                                     />
                                   </div>
                                   <p className="text-xs text-slate-500">
-                                    {maxUsers === 999 ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${maxUsers - totalUsers} ที่นั่ง`}
+                                    {maxUsers === 999 ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInCRM)} ที่นั่ง`}
                                   </p>
                                 </div>
                               );
@@ -1802,33 +1789,27 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              const userAccessibleBranches = currentUser?.accessible_branches || [];
-                              const isDeveloper = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
-                              
-                              // นับจำนวนสาขาที่ owner ดูแล
-                              const totalBranches = isDeveloper 
-                                ? branches.length 
-                                : userAccessibleBranches.length;
-
+                              // ดึงข้อมูลจำนวนสาขาทั้งหมดจาก CRM
+                              const totalBranchesInCRM = activeSubscription?.total_branches_count || 0;
                               const maxBranches = activeSubscription?.max_branches || 999;
-                              const usagePercent = maxBranches === 999 ? 0 : Math.min((totalBranches / maxBranches) * 100, 100);
+                              const usagePercent = maxBranches === 999 ? 10 : Math.min((totalBranchesInCRM / maxBranches) * 100, 100);
 
                               return (
                                 <div className="space-y-4">
                                   <div className="flex items-center justify-between">
-                                    <span className="text-sm text-slate-600">สาขาทั้งหมด</span>
+                                    <span className="text-sm text-slate-600">สาขาที่ดูแลทั้งหมด</span>
                                     <span className="text-2xl font-bold text-purple-600">
-                                      {totalBranches} {maxBranches !== 999 && `/ ${maxBranches}`}
+                                      {totalBranchesInCRM} {maxBranches !== 999 && `/ ${maxBranches}`}
                                     </span>
                                   </div>
                                   <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
                                     <div 
                                       className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all"
-                                      style={{ width: `${maxBranches === 999 ? 10 : usagePercent}%` }}
+                                      style={{ width: `${usagePercent}%` }}
                                     />
                                   </div>
                                   <p className="text-xs text-slate-500">
-                                    {maxBranches === 999 ? 'ไม่จำกัดจำนวนสาขา' : `เหลือ ${maxBranches - totalBranches} สาขา`}
+                                    {maxBranches === 999 ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInCRM)} สาขา`}
                                   </p>
                                 </div>
                               );
