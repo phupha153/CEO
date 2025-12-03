@@ -338,23 +338,33 @@ Deno.serve(async (req) => {
                 // ส่งจริง - Facebook
                 if (facebookRecipients.length > 0) {
                     console.log(`📤 Sending ${facebookRecipients.length} Facebook reminders...`);
-                    
+
                     for (const recipient of facebookRecipients) {
                         try {
                             await base44.asServiceRole.functions.invoke('sendFacebookMessage', {
-                                recipientId: recipient.facebookUserId,
-                                message: recipient.message
+                                to: recipient.facebookUserId,
+                                message: recipient.message,
+                                branch_id: recipient.metadata.branchId
                             });
                             sentCount++;
                             console.log(`✅ Facebook sent to ${recipient.metadata.tenantName}`);
+
+                            // ⭐ บันทึกว่าส่งสำเร็จแล้ว
+                            try {
+                                await base44.asServiceRole.entities.Payment.update(recipient.metadata.paymentId, {
+                                    due_date_reminder_sent_date: new Date().toISOString()
+                                });
+                            } catch (updateErr) {
+                                console.error(`⚠️ Failed to update sent date:`, updateErr.message);
+                            }
                         } catch (error) {
                             console.error(`❌ Facebook error for ${recipient.metadata.tenantName}:`, error);
                             sendErrors.push(`Facebook ห้อง ${recipient.metadata.roomNumber}: ${error.message}`);
                         }
                     }
                 }
-            }
-        }
+                }
+                }
 
         const result = {
             success: true,
