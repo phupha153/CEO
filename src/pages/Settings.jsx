@@ -1794,7 +1794,7 @@ export default function Settings() {
                                       
                                       {activeSubscription?.subscription_end_date && (
                                         <p className={`relative z-10 text-xs ${
-                                          isBasic ? 'text-slate-300' : isElite ? 'text-amber-800' : 'text-slate-600'
+                                          isTrial ? 'text-white/90' : isBasic ? 'text-slate-300' : isElite ? 'text-amber-800' : 'text-slate-600'
                                         }`}>
                                           หมดอายุ {format(parseISO(activeSubscription.subscription_end_date), 'd MMM yyyy', { locale: th })}
                                           {daysRemaining !== null && (
