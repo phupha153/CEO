@@ -22,6 +22,7 @@ export default function PackageSelectionPage() {
   const [slipUrl, setSlipUrl] = useState('');
   const [errorDetails, setErrorDetails] = useState(null);
   const [debugMode, setDebugMode] = useState(false);
+  const [expandedPackageId, setExpandedPackageId] = useState(null);
   
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -606,12 +607,64 @@ export default function PackageSelectionPage() {
 
                                 {/* Features */}
                                 <div className="space-y-3 flex-1">
-                                  {(pkg.features || []).map((feature, idx) => (
-                                    <div key={idx} className="flex items-start gap-2">
-                                      <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
-                                      <span className="text-sm text-slate-600">{feature}</span>
+                                  {(() => {
+                                    // รองรับทั้ง array ของ string และ array ของ object
+                                    const featureList = pkg.features || [];
+                                    const highlightedNames = pkg.highlighted_features || [];
+                                    
+                                    // แสดงเฉพาะ highlighted features (สูงสุด 5 รายการ)
+                                    const displayFeatures = featureList
+                                      .filter(f => {
+                                        const name = typeof f === 'string' ? f : f.name;
+                                        const isHighlighted = typeof f === 'object' ? f.is_highlighted : highlightedNames.includes(name);
+                                        return isHighlighted;
+                                      })
+                                      .slice(0, 5);
+                                    
+                                    return displayFeatures.map((feature, idx) => {
+                                      const featureName = typeof feature === 'string' ? feature : feature.name;
+                                      return (
+                                        <div key={idx} className="flex items-start gap-2">
+                                          <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
+                                          <span className="text-sm text-slate-600">{featureName}</span>
+                                        </div>
+                                      );
+                                    });
+                                  })()}
+                                  
+                                  {/* ปุ่มดูเพิ่มเติม */}
+                                  {(pkg.features || []).length > 0 && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setExpandedPackageId(expandedPackageId === pkg.id ? null : pkg.id);
+                                      }}
+                                      className="text-xs text-blue-600 hover:text-blue-700 font-medium mt-2"
+                                    >
+                                      {expandedPackageId === pkg.id ? 'ซ่อน' : 'ดูเพิ่มเติม'}
+                                    </button>
+                                  )}
+                                  
+                                  {/* แสดง features ทั้งหมดเมื่อกด expand */}
+                                  {expandedPackageId === pkg.id && (
+                                    <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
+                                      {(pkg.features || []).map((feature, idx) => {
+                                        const featureName = typeof feature === 'string' ? feature : feature.name;
+                                        const highlightedNames = pkg.highlighted_features || [];
+                                        const isHighlighted = typeof feature === 'object' ? feature.is_highlighted : highlightedNames.includes(featureName);
+                                        
+                                        // ข้าม highlighted features ที่แสดงไปแล้ว
+                                        if (isHighlighted) return null;
+                                        
+                                        return (
+                                          <div key={idx} className="flex items-start gap-2">
+                                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-300" />
+                                            <span className="text-sm text-slate-500">{featureName}</span>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
-                                  ))}
+                                  )}
                                 </div>
                               </div>
                             </CardContent>
