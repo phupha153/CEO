@@ -571,6 +571,18 @@ export default function PackageSelectionPage() {
 
                               {/* Bottom Section with white background */}
                               <div className="p-6 bg-white rounded-b-[1.75rem] flex-1 flex flex-col">
+                                {/* Users & Branches info */}
+                                <div className="flex items-center gap-4 mb-4 text-sm">
+                                  <div className="flex items-center gap-1.5">
+                                    <Users className="w-4 h-4 text-slate-400" />
+                                    <span className="text-slate-600">{pkg.max_users || 'ไม่จำกัด'} ผู้ใช้</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <Building2 className="w-4 h-4 text-slate-400" />
+                                    <span className="text-slate-600">{pkg.max_branches || 'ไม่จำกัด'} สาขา</span>
+                                  </div>
+                                </div>
+
                                 {/* Button */}
                                 <Button
                                   onClick={(e) => {
@@ -589,7 +601,7 @@ export default function PackageSelectionPage() {
                                       : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600 shadow-md'
                                   }`}
                                 >
-                                  {isElite ? 'Contact Us' : 'Start Hiring'}
+                                  เลือกแพ็กเกจนี้
                                 </Button>
 
                                 {/* Features */}
