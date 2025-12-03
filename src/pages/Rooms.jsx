@@ -2150,14 +2150,22 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             const paymentStatus = getPaymentStatus(room.id);
                             const acNeedsCleaning = needsACCleaning(room);
                             
-                            // Check for future reservations (ติดจอง)
+                            // ⭐ แก้ไข: เช็คว่ามี active booking หรือไม่ (ไม่ว่าจะอดีตหรืออนาคต)
+                            const hasActiveBooking = bookings.some(b => 
+                              b.room_id === room.id && 
+                              b.status === 'active'
+                            );
+                            
+                            // Check for future reservations (ติดจองล่วงหน้า)
                             const futureBookings = bookings.filter(b => 
                               b.room_id === room.id && 
                               b.status === 'active' && 
                               b.check_in_date &&
                               new Date(b.check_in_date) > new Date()
                             );
-                            const isReserved = room.status === 'reserved' || futureBookings.length > 0;
+                            
+                            // แสดง "ติดจอง" ถ้า: room status = reserved หรือมี future booking หรือมี active booking แต่ room status ไม่ใช่ occupied
+                            const isReserved = room.status === 'reserved' || futureBookings.length > 0 || (hasActiveBooking && room.status !== 'occupied');
 
                             return (
                               <motion.div
