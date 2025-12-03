@@ -134,11 +134,11 @@ export default function PaymentsPage() {
 
   const getTodayDateString = () => {
     try {
-      const dateStr = new Date().toISOString();
-      if (typeof dateStr === 'string' && dateStr.includes('T')) {
-        return dateStr.split('T')[0];
-      }
-      return new Date().toISOString().substring(0, 10);
+      const currentDate = getCurrentDate();
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(currentDate.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     } catch {
       const d = new Date();
       const year = d.getFullYear();
@@ -3459,9 +3459,25 @@ Return JSON.`;
                                                <Button 
                                                  size="sm" 
                                                  className="w-full text-xs bg-green-600 hover:bg-green-700"
-                                                 onClick={() => updateStatusMutation.mutate({ id: roomPayment.id, status: 'paid', payment_date: getTodayDateString() })}
+                                                 onClick={(e) => {
+                                                   e.stopPropagation();
+                                                   console.log('🔘 Room View Dialog: Confirm clicked', { paymentId: roomPayment.id, canConfirmPaid });
+                                                   const todayStr = getTodayDateString();
+                                                   console.log('Today date string:', todayStr);
+                                                   const confirmed = confirm(`ยืนยันชำระเงิน ${(roomPayment.total_amount || 0).toLocaleString()} บาท?`);
+                                                   console.log('Confirm result:', confirmed);
+                                                   if (confirmed) {
+                                                     console.log('✅ Executing mutation with:', { id: roomPayment.id, status: 'paid', payment_date: todayStr });
+                                                     updateStatusMutation.mutate({ id: roomPayment.id, status: 'paid', payment_date: todayStr });
+                                                   }
+                                                 }}
+                                                 disabled={updateStatusMutation.isPending}
                                                >
-                                                 <CheckCircle2 className="w-3 h-3 mr-1" />
+                                                 {updateStatusMutation.isPending ? (
+                                                   <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                                 ) : (
+                                                   <CheckCircle2 className="w-3 h-3 mr-1" />
+                                                 )}
                                                  ยืนยันชำระ
                                                </Button>
                                              )}
