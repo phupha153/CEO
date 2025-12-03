@@ -299,16 +299,21 @@ Deno.serve(async (req) => {
             }
         }
 
-        // 5. ส่งข้อความ (ใช้ test mode ถ้ามี testLineUserId)
+        // 5. ส่งข้อความ (แยก LINE และ Facebook)
         let sentCount = 0;
         let sendErrors = [];
+
+        // แยก recipients ตาม channel
+        const lineRecipients = recipients.filter(r => r.lineUserId);
+        const facebookRecipients = recipients.filter(r => !r.lineUserId && r.facebookUserId);
+
+        console.log(`📊 Recipients: ${lineRecipients.length} LINE, ${facebookRecipients.length} Facebook`);
 
         if (recipients.length > 0) {
             // ⭐ TEST MODE: ถ้ามี test_line_user_id ให้ส่งไปหาคนเดียวแทน
             if (testLineUserId) {
                 console.log(`🧪 TEST MODE: Sending sample to ${testLineUserId}`);
                 
-                // เลือกบิลตัวอย่างตัวแรก
                 const sampleRecipient = recipients[0];
                 
                 try {
@@ -335,35 +340,56 @@ Deno.serve(async (req) => {
                     sendErrors.push(`Test mode error: ${error.message}`);
                 }
             } else {
-                // ส่งจริง
-                try {
-                    console.log(`📤 Sending ${recipients.length} due date reminders via batch...`);
-                    
-                    const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                        recipients: recipients,
-                        options: {
-                            batchSize: 20,
-                            delayBetweenBatches: 2000,
-                            delayBetweenMessages: 100,
-                            retryAttempts: 3
-                        }
-                    });
+                // ส่งจริง - LINE
+                if (lineRecipients.length > 0) {
+                    try {
+                        console.log(`📤 Sending ${lineRecipients.length} LINE reminders...`);
+                        
+                        const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                            recipients: lineRecipients,
+                            options: {
+                                batchSize: 20,
+                                delayBetweenBatches: 2000,
+                                delayBetweenMessages: 100,
+                                retryAttempts: 3
+                            }
+                        });
 
-                    const result = batchResult.data;
-                    sentCount = result.success;
-                
-                if (result.errors && result.errors.length > 0) {
-                    result.errors.forEach(err => {
-                        const meta = err.metadata;
-                        sendErrors.push(`ห้อง ${meta?.roomNumber || 'N/A'}: ${err.error}`);
-                    });
+                        const result = batchResult.data;
+                        sentCount += result.success || 0;
+                    
+                        if (result.errors && result.errors.length > 0) {
+                            result.errors.forEach(err => {
+                                const meta = err.metadata;
+                                sendErrors.push(`LINE ห้อง ${meta?.roomNumber || 'N/A'}: ${err.error}`);
+                            });
+                        }
+
+                        console.log(`📊 LINE reminders: ${result.success}/${lineRecipients.length} sent`);
+
+                    } catch (error) {
+                        console.error('❌ Error sending LINE messages:', error);
+                        sendErrors.push(`LINE error: ${error.message}`);
+                    }
                 }
 
-                    console.log(`📊 Due date reminders: ${sentCount}/${recipients.length} sent successfully`);
-
-                } catch (error) {
-                    console.error('❌ Error sending batch messages:', error);
-                    sendErrors.push(`Batch sending error: ${error.message}`);
+                // ส่งจริง - Facebook
+                if (facebookRecipients.length > 0) {
+                    console.log(`📤 Sending ${facebookRecipients.length} Facebook reminders...`);
+                    
+                    for (const recipient of facebookRecipients) {
+                        try {
+                            await base44.asServiceRole.functions.invoke('sendFacebookMessage', {
+                                recipientId: recipient.facebookUserId,
+                                message: recipient.message
+                            });
+                            sentCount++;
+                            console.log(`✅ Facebook sent to ${recipient.metadata.tenantName}`);
+                        } catch (error) {
+                            console.error(`❌ Facebook error for ${recipient.metadata.tenantName}:`, error);
+                            sendErrors.push(`Facebook ห้อง ${recipient.metadata.roomNumber}: ${error.message}`);
+                        }
+                    }
                 }
             }
         }
