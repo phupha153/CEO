@@ -1778,10 +1778,10 @@ export default function Settings() {
                                           {isTrial ? '🎉 Trial' : isBasic ? 'Basic' : isPro ? 'Pro' : 'Elite'}
                                         </Badge>
                                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg ${
-                                          isBasic ? 'bg-slate-700/60' : isPro ? 'bg-white/40' : 'bg-white/50'
+                                          isTrial ? 'bg-white/50' : isBasic ? 'bg-slate-700/60' : isPro ? 'bg-white/40' : 'bg-white/50'
                                         }`}>
                                           {React.createElement(pkgIcon, { 
-                                            className: `w-6 h-6 ${isBasic ? 'text-blue-400' : isPro ? 'text-blue-600' : 'text-amber-700'}` 
+                                            className: `w-6 h-6 ${isTrial ? 'text-amber-700' : isBasic ? 'text-blue-400' : isPro ? 'text-blue-600' : 'text-amber-700'}` 
                                           })}
                                         </div>
                                       </div>
