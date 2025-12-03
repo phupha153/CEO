@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileText, Download, Search, Calendar, DollarSign, Home, Camera, Shield, Banknote, AlertTriangle, RefreshCw, Database, Loader2 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, subMonths, startOfMonth, endOfMonth, subYears, isWithinInterval } from "date-fns";
 import { th } from "date-fns/locale";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
@@ -19,7 +20,7 @@ export default function AccountingData() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('all');
   const [selectedPayments, setSelectedPayments] = useState([]);
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [showReceiptLinks, setShowReceiptLinks] = useState(false);
@@ -221,13 +222,33 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ฟังก์ชันกรองข้อมูล - ใบเสร็จรับเงิน (แสดงทุกรายการที่ชำระแล้ว)
+  // ฟังก์ชันกรองข้อมูล - ใบเสร็จรับเงิน (แสดงทุกรายการ)
   const filteredPayments = useMemo(() => {
+    let dateRange = null;
+    
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      switch(dateFilter) {
+        case 'this_month':
+          dateRange = { from: startOfMonth(now), to: endOfMonth(now) };
+          break;
+        case 'last_month':
+          dateRange = { from: startOfMonth(subMonths(now, 1)), to: endOfMonth(subMonths(now, 1)) };
+          break;
+        case '3_months':
+          dateRange = { from: startOfMonth(subMonths(now, 2)), to: endOfMonth(now) };
+          break;
+        case '6_months':
+          dateRange = { from: startOfMonth(subMonths(now, 5)), to: endOfMonth(now) };
+          break;
+        case '12_months':
+          dateRange = { from: startOfMonth(subMonths(now, 11)), to: endOfMonth(now) };
+          break;
+      }
+    }
+
     return payments
       .filter(payment => {
-        // กรองเฉพาะที่ชำระแล้ว (มี payment_date)
-        if (!payment.payment_date) return false;
-        
         const room = rooms.find(r => r.id === payment.room_id);
         const tenant = tenants.find(t => t.id === payment.tenant_id);
         
@@ -235,25 +256,52 @@ export default function AccountingData() {
           room?.room_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           tenant?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
         
-        const matchDate = !dateFilter || 
-          payment.payment_date?.startsWith(dateFilter);
+        let matchDate = true;
+        if (dateRange && payment.due_date) {
+          try {
+            const dueDate = parseISO(payment.due_date);
+            matchDate = isWithinInterval(dueDate, { start: dateRange.from, end: dateRange.to });
+          } catch {
+            matchDate = false;
+          }
+        }
         
         return matchSearch && matchDate;
       })
       .sort((a, b) => {
-        const dateA = a.payment_date || a.created_date;
-        const dateB = b.payment_date || b.created_date;
+        const dateA = a.payment_date || a.due_date || a.created_date;
+        const dateB = b.payment_date || b.due_date || b.created_date;
         return new Date(dateB) - new Date(dateA);
       });
   }, [payments, rooms, tenants, searchTerm, dateFilter]);
 
-  // ฟังก์ชันกรองใบแจ้งหนี้ - แสดงทุกรายการที่ยังไม่ชำระ
+  // ฟังก์ชันกรองใบแจ้งหนี้ - แสดงทุกรายการ
   const filteredInvoices = useMemo(() => {
+    let dateRange = null;
+    
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      switch(dateFilter) {
+        case 'this_month':
+          dateRange = { from: startOfMonth(now), to: endOfMonth(now) };
+          break;
+        case 'last_month':
+          dateRange = { from: startOfMonth(subMonths(now, 1)), to: endOfMonth(subMonths(now, 1)) };
+          break;
+        case '3_months':
+          dateRange = { from: startOfMonth(subMonths(now, 2)), to: endOfMonth(now) };
+          break;
+        case '6_months':
+          dateRange = { from: startOfMonth(subMonths(now, 5)), to: endOfMonth(now) };
+          break;
+        case '12_months':
+          dateRange = { from: startOfMonth(subMonths(now, 11)), to: endOfMonth(now) };
+          break;
+      }
+    }
+
     return payments
       .filter(payment => {
-        // กรองเฉพาะที่ยังไม่ชำระ (ไม่มี payment_date หรือ status ไม่ใช่ paid)
-        if (payment.payment_date || payment.status === 'paid') return false;
-        
         const room = rooms.find(r => r.id === payment.room_id);
         const tenant = tenants.find(t => t.id === payment.tenant_id);
         
@@ -261,8 +309,15 @@ export default function AccountingData() {
           room?.room_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           tenant?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
         
-        const matchDate = !dateFilter || 
-          payment.due_date?.startsWith(dateFilter);
+        let matchDate = true;
+        if (dateRange && payment.due_date) {
+          try {
+            const dueDate = parseISO(payment.due_date);
+            matchDate = isWithinInterval(dueDate, { start: dateRange.from, end: dateRange.to });
+          } catch {
+            matchDate = false;
+          }
+        }
         
         return matchSearch && matchDate;
       })
@@ -986,36 +1041,44 @@ export default function AccountingData() {
           {/* Filters */}
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
             <CardContent className="p-4">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <Input
-                    placeholder="ค้นหา (ห้อง, ชื่อผู้เช่า, รายการ...)"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Input
+                      placeholder="ค้นหา (ห้อง, ชื่อผู้เช่า, รายการ...)"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Select value={dateFilter} onValueChange={setDateFilter}>
+                      <SelectTrigger className="w-full md:w-48">
+                        <SelectValue placeholder="เลือกช่วงเวลา" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">ทั้งหมด</SelectItem>
+                        <SelectItem value="this_month">{format(new Date(), 'MMMM yyyy', { locale: th })}</SelectItem>
+                        <SelectItem value="last_month">{format(subMonths(new Date(), 1), 'MMMM yyyy', { locale: th })}</SelectItem>
+                        <SelectItem value="3_months">3 เดือนล่าสุด</SelectItem>
+                        <SelectItem value="6_months">6 เดือนล่าสุด</SelectItem>
+                        <SelectItem value="12_months">12 เดือนล่าสุด</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {(searchTerm || (dateFilter && dateFilter !== 'all')) && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSearchTerm('');
+                        setDateFilter('all');
+                      }}
+                    >
+                      ล้างตัวกรอง
+                    </Button>
+                  )}
                 </div>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <Input
-                    type="month"
-                    value={dateFilter}
-                    onChange={(e) => setDateFilter(e.target.value)}
-                    className="pl-10 w-full md:w-48"
-                  />
-                </div>
-                {(searchTerm || dateFilter) && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSearchTerm('');
-                      setDateFilter('');
-                    }}
-                  >
-                    ล้างตัวกรอง
-                  </Button>
-                )}
               </div>
             </CardContent>
           </Card>
