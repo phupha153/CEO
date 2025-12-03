@@ -275,11 +275,12 @@ export default function Receipt() {
             background: white !important;
             margin: 0 !important;
             padding: 0 !important;
+            font-size: 11px !important;
           }
           
           @page {
             size: A4;
-            margin: 10mm;
+            margin: 8mm;
           }
           
           .print\\:hidden {
@@ -306,8 +307,31 @@ export default function Receipt() {
           }
           
           .receipt-card > div {
-            padding: 15px !important;
+            padding: 10px !important;
           }
+          
+          /* ลดขนาด font ทั้งหมด */
+          h1, h2, h3 { font-size: 14px !important; }
+          p, span, td, th { font-size: 10px !important; }
+          .text-lg { font-size: 12px !important; }
+          .text-xl { font-size: 14px !important; }
+          .text-2xl { font-size: 16px !important; }
+          .text-xs { font-size: 9px !important; }
+          .text-sm { font-size: 10px !important; }
+          
+          /* ลดระยะห่าง */
+          .mb-4, .mb-5 { margin-bottom: 8px !important; }
+          .mb-3 { margin-bottom: 6px !important; }
+          .p-3 { padding: 6px !important; }
+          .p-2 { padding: 4px !important; }
+          .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
+          .gap-3 { gap: 6px !important; }
+          .gap-4 { gap: 8px !important; }
+          
+          /* ลดขนาดโลโก้ */
+          .w-10 { width: 28px !important; }
+          .h-10 { height: 28px !important; }
+          .h-12 { height: 32px !important; }
         }
         
         /* สำหรับหน้าจอ - ให้เห็นเป็น A4 */

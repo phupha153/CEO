@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -96,12 +95,10 @@ export default function PrintReceipts() {
 
                 setProgress(prev => ({ ...prev, current: prev.current + 1 }));
 
-                if (response.data && response.data.success && response.data.invoice.status === 'paid') {
-                  console.log(`✅ Successfully fetched invoice: ${paymentId}`);
+                if (response.data && response.data.success && response.data.invoice) {
                   return { success: true, data: response.data.invoice, paymentId };
                 } else {
-                  const errorMsg = response.data?.error || 'ไม่พบใบเสร็จที่ชำระแล้ว';
-                  console.warn(`⚠️ Invoice not available: ${paymentId} - ${errorMsg}`);
+                  const errorMsg = response.data?.error || 'ไม่พบใบเสร็จ';
                   return { 
                     success: false, 
                     error: errorMsg,
@@ -557,11 +554,12 @@ export default function PrintReceipts() {
         })}
       </div>
 
-      {/* Print Styles */}
+      {/* Print Styles - ปรับขนาดให้พอดี A4 */}
       <style>{`
         @media print {
           body {
             background: white !important;
+            font-size: 10px !important;
           }
           .print\\:hidden {
             display: none !important;
@@ -580,8 +578,30 @@ export default function PrintReceipts() {
           }
           @page {
             size: A4;
-            margin: 1cm;
+            margin: 8mm;
           }
+          
+          /* ลดขนาด font ทั้งหมด */
+          h1, h2, h3 { font-size: 14px !important; }
+          p, span, td, th { font-size: 10px !important; }
+          .text-lg { font-size: 12px !important; }
+          .text-xl { font-size: 14px !important; }
+          .text-2xl { font-size: 16px !important; }
+          .text-xs { font-size: 9px !important; }
+          .text-sm { font-size: 10px !important; }
+          .text-base { font-size: 11px !important; }
+          
+          /* ลดระยะห่าง */
+          .mb-4 { margin-bottom: 8px !important; }
+          .mb-3 { margin-bottom: 6px !important; }
+          .p-6 { padding: 12px !important; }
+          .p-3 { padding: 6px !important; }
+          .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
+          .gap-3 { gap: 6px !important; }
+          
+          /* ลดขนาดโลโก้ */
+          .w-12 { width: 32px !important; }
+          .h-12 { height: 32px !important; }
         }
       `}</style>
     </div>
