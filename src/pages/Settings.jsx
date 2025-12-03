@@ -1792,17 +1792,17 @@ export default function Settings() {
                                     {!hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInSystem)} ที่นั่ง`}
                                   </p>
 
-                                  {users.length > 0 && (
+                                  {networkStats?.users?.length > 0 && (
                                     <div className="pt-3 border-t border-slate-200 space-y-1">
-                                      <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อผู้ใช้ทั้งหมด:</p>
-                                      {users.slice(0, 5).map(user => (
-                                        <div key={user.id} className="text-xs text-slate-600 flex items-center gap-1">
+                                      <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อผู้ใช้ในเครือข่าย:</p>
+                                      {networkStats.users.slice(0, 5).map((user, idx) => (
+                                        <div key={idx} className="text-xs text-slate-600 flex items-center gap-1">
                                           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                          {user.full_name || user.email}
+                                          {user.full_name || user.email || user}
                                         </div>
                                       ))}
-                                      {users.length > 5 && (
-                                        <p className="text-xs text-slate-500 italic">และอีก {users.length - 5} คน</p>
+                                      {networkStats.users.length > 5 && (
+                                        <p className="text-xs text-slate-500 italic">และอีก {networkStats.users.length - 5} คน</p>
                                       )}
                                     </div>
                                   )}
