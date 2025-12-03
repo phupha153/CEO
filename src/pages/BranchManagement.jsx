@@ -76,6 +76,24 @@ export default function BranchManagement() {
     enabled: !!currentUser,
   });
 
+  // ⭐ ดึงจำนวนห้องจริงจาก Room entity
+  const { data: allRooms = [] } = useQuery({
+    queryKey: ['rooms', 'all'],
+    queryFn: () => base44.entities.Room.list('-created_date', 5000),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // นับจำนวนห้องต่อสาขา
+  const roomCountByBranch = React.useMemo(() => {
+    const counts = {};
+    allRooms.forEach(room => {
+      if (room.branch_id) {
+        counts[room.branch_id] = (counts[room.branch_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [allRooms]);
+
   // กรองสาขาตามสิทธิ์: แสดงเฉพาะสาขาที่มีสิทธิ์เข้าถึง (ถ้า set accessible_branches)
   const branches = React.useMemo(() => {
     // ⭐ ถ้าไม่ได้ set accessible_branches (null/undefined) = แสดงทุกสาขา
@@ -654,10 +672,10 @@ export default function BranchManagement() {
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-slate-600">ห้องพักในสาขา:</span>
                           <span className="text-lg font-bold text-slate-800">
-                            {branch.total_rooms || 0} ห้อง
+                            {roomCountByBranch[branch.id] || 0} ห้อง
                           </span>
                         </div>
-                        {(!branch.total_rooms || branch.total_rooms === 0) && (
+                        {(!roomCountByBranch[branch.id] || roomCountByBranch[branch.id] === 0) && (
                           <div className="mt-2 flex items-center gap-2 text-xs text-amber-600">
                             <AlertTriangle className="w-3 h-3" />
                             <span>ยังไม่มีห้องพัก - กรุณาเพิ่มห้อง</span>
