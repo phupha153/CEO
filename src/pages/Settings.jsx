@@ -3943,63 +3943,66 @@ export default function Settings() {
                     </p>
                   </div>
 
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {(() => {
-                      // กรองเฉพาะสาขาที่ผู้ใช้ปัจจุบันเข้าถึงได้
-                      const userAccessibleBranches = currentUser?.accessible_branches;
-                      const isDeveloper = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
-                      
-                      const filteredBranches = isDeveloper
-                        ? branches
-                        : branches.filter(b => userAccessibleBranches && userAccessibleBranches.includes(b.id));
-
-                      return filteredBranches.map((branch) => {
-                        const userId = selectedUserForBranches.id;
-                        const currentBranches = userBranchAccess[userId] || [];
-                        const isChecked = currentBranches.includes(branch.id);
-
-                        return (
-                          <label
-                            key={branch.id}
-                            className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer transition-colors border-2 ${
-                              isChecked
-                                ? 'bg-blue-50 border-blue-300'
-                                : 'hover:bg-slate-50 border-slate-200'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => toggleBranchAccess(userId, branch.id)}
-                              className="w-5 h-5 rounded"
-                            />
-                            <div className="flex-1">
-                              <p className={`font-semibold ${isChecked ? 'text-blue-700' : 'text-slate-800'}`}>
-                                {branch.branch_name}
-                              </p>
-                              {branch.address && (
-                                <p className="text-xs text-slate-500 mt-1">{branch.address}</p>
-                              )}
-                            </div>
-                            {isChecked && <Check className="w-5 h-5 text-blue-600" />}
-                          </label>
-                        );
-                      });
-                    })()}
-                  </div>
-
                   {(() => {
-                    const userAccessibleBranches = currentUser?.accessible_branches;
-                    const isDeveloper = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+                    // กรองเฉพาะสาขาที่ผู้ใช้ปัจจุบัน (ผมเอง) เข้าถึงได้
+                    const myAccessibleBranches = currentUser?.accessible_branches;
+                    const isDeveloper = userRole === 'developer' && (!myAccessibleBranches || myAccessibleBranches.length === 0);
+                    
                     const filteredBranches = isDeveloper
                       ? branches
-                      : branches.filter(b => userAccessibleBranches && userAccessibleBranches.includes(b.id));
-                    
-                    return filteredBranches.length === 0 && (
-                      <div className="text-center py-8 text-slate-500">
-                        <Globe className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p>ไม่มีสาขาที่คุณดูแล</p>
-                      </div>
+                      : branches.filter(b => myAccessibleBranches && myAccessibleBranches.includes(b.id));
+
+                    if (filteredBranches.length === 0) {
+                      return (
+                        <div className="text-center py-8 text-slate-500">
+                          <Globe className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p>ไม่มีสาขาที่คุณดูแล</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <>
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+                          <p className="text-sm text-amber-700">
+                            💡 หมายเหตุ: แสดงเฉพาะสาขาที่คุณมีสิทธิ์เข้าถึง ({filteredBranches.length} สาขา)
+                          </p>
+                        </div>
+                        <div className="space-y-2 max-h-96 overflow-y-auto">
+                          {filteredBranches.map((branch) => {
+                            const userId = selectedUserForBranches.id;
+                            const currentBranches = userBranchAccess[userId] || [];
+                            const isChecked = currentBranches.includes(branch.id);
+
+                            return (
+                              <label
+                                key={branch.id}
+                                className={`flex items-center gap-3 p-4 rounded-lg cursor-pointer transition-colors border-2 ${
+                                  isChecked
+                                    ? 'bg-blue-50 border-blue-300'
+                                    : 'hover:bg-slate-50 border-slate-200'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleBranchAccess(userId, branch.id)}
+                                  className="w-5 h-5 rounded"
+                                />
+                                <div className="flex-1">
+                                  <p className={`font-semibold ${isChecked ? 'text-blue-700' : 'text-slate-800'}`}>
+                                    {branch.branch_name}
+                                  </p>
+                                  {branch.address && (
+                                    <p className="text-xs text-slate-500 mt-1">{branch.address}</p>
+                                  )}
+                                </div>
+                                {isChecked && <Check className="w-5 h-5 text-blue-600" />}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </>
                     );
                   })()}
 
