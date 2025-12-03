@@ -1756,15 +1756,20 @@ export default function Settings() {
                             {(() => {
                               // นับจำนวนผู้ใช้จริงในระบบ
                               const totalUsersInSystem = users.length;
-                              const maxUsers = activeSubscription?.max_users || 999;
-                              const usagePercent = maxUsers === 999 ? 10 : Math.min((totalUsersInSystem / maxUsers) * 100, 100);
+                              // ดึง max_users จาก features หรือ package
+                              const maxUsersFromFeatures = activeSubscription?.features?.find(f => 
+                                typeof f === 'string' && f.includes('ผู้ใช้')
+                              )?.match(/\d+/)?.[0];
+                              const maxUsers = activeSubscription?.max_users || (maxUsersFromFeatures ? parseInt(maxUsersFromFeatures) : null);
+                              const hasLimit = maxUsers !== null && maxUsers !== undefined;
+                              const usagePercent = hasLimit ? Math.min((totalUsersInSystem / maxUsers) * 100, 100) : 10;
 
                               return (
                                 <div className="space-y-4">
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm text-slate-600">ผู้ใช้งานทั้งหมด</span>
                                     <span className="text-2xl font-bold text-blue-600">
-                                      {totalUsersInSystem} {maxUsers !== 999 && `/ ${maxUsers}`}
+                                      {totalUsersInSystem} {hasLimit && `/ ${maxUsers}`}
                                     </span>
                                   </div>
                                   <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
@@ -1774,7 +1779,7 @@ export default function Settings() {
                                     />
                                   </div>
                                   <p className="text-xs text-slate-500">
-                                    {maxUsers === 999 ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInSystem)} ที่นั่ง`}
+                                    {!hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInSystem)} ที่นั่ง`}
                                   </p>
                                 </div>
                               );
@@ -1793,15 +1798,20 @@ export default function Settings() {
                             {(() => {
                               // นับจำนวนสาขาจริงในระบบ
                               const totalBranchesInSystem = branches.length;
-                              const maxBranches = activeSubscription?.max_branches || 999;
-                              const usagePercent = maxBranches === 999 ? 10 : Math.min((totalBranchesInSystem / maxBranches) * 100, 100);
+                              // ดึง max_branches จาก features หรือ package
+                              const maxBranchesFromFeatures = activeSubscription?.features?.find(f => 
+                                typeof f === 'string' && f.includes('สาขา')
+                              )?.match(/\d+/)?.[0];
+                              const maxBranches = activeSubscription?.max_branches || (maxBranchesFromFeatures ? parseInt(maxBranchesFromFeatures) : null);
+                              const hasLimit = maxBranches !== null && maxBranches !== undefined;
+                              const usagePercent = hasLimit ? Math.min((totalBranchesInSystem / maxBranches) * 100, 100) : 10;
 
                               return (
                                 <div className="space-y-4">
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm text-slate-600">สาขาที่ดูแลทั้งหมด</span>
                                     <span className="text-2xl font-bold text-purple-600">
-                                      {totalBranchesInSystem} {maxBranches !== 999 && `/ ${maxBranches}`}
+                                      {totalBranchesInSystem} {hasLimit && `/ ${maxBranches}`}
                                     </span>
                                   </div>
                                   <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
@@ -1811,7 +1821,7 @@ export default function Settings() {
                                     />
                                   </div>
                                   <p className="text-xs text-slate-500">
-                                    {maxBranches === 999 ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInSystem)} สาขา`}
+                                    {!hasLimit ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInSystem)} สาขา`}
                                   </p>
                                 </div>
                               );
