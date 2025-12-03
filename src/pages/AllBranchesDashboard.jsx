@@ -400,16 +400,25 @@ export default function AllBranchesDashboard() {
     const monthsData = [];
     const now = new Date();
     
+    // ดึง config สำหรับวันสร้างบิล
+    const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
+    
     for (let i = dateRangeMonths - 1; i >= 0; i--) {
-      const monthStart = startOfMonth(subMonths(now, i));
-      const monthEnd = endOfMonth(subMonths(now, i));
+      const targetMonth = subMonths(now, i);
+      const cycleMonth = targetMonth.getMonth();
+      const cycleYear = targetMonth.getFullYear();
+      
+      // งวดบิลเริ่มวันที่ billGenerationDay ของเดือนนี้ ถึงวันที่ billGenerationDay ของเดือนถัดไป
+      const monthStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+      const monthEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
 
       const monthPayments = payments.filter(p => {
-        if (!p.payment_date || p.status !== 'paid') return false;
+        if (!p.due_date || p.status !== 'paid') return false;
         try {
-          const paymentDate = parseISO(p.payment_date);
-          if (isNaN(paymentDate.getTime())) return false;
-          return isWithinInterval(paymentDate, { start: monthStart, end: monthEnd });
+          const dueDate = parseISO(p.due_date);
+          if (isNaN(dueDate.getTime())) return false;
+          return isWithinInterval(dueDate, { start: monthStart, end: monthEnd });
         } catch {
           return false;
         }
@@ -433,8 +442,8 @@ export default function AllBranchesDashboard() {
       const totalRoomsCount = rooms.length;
 
       monthsData.push({
-        month: format(monthStart, 'MMM', { locale: th }),
-        fullMonth: format(monthStart, 'MMMM yyyy', { locale: th }),
+        month: format(targetMonth, 'MMM', { locale: th }),
+        fullMonth: format(targetMonth, 'MMMM yyyy', { locale: th }),
         revenue,
         expense,
         profit,
@@ -444,25 +453,31 @@ export default function AllBranchesDashboard() {
     }
 
     return monthsData;
-  }, [payments, expenses, rooms, dateRangeMonths]);
+  }, [payments, expenses, rooms, dateRangeMonths, configs]);
 
   const compareChartData = useMemo(() => {
     if (!compareEnabled) return [];
     
     const monthsData = [];
+    const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
     
     const monthsBetween = (compareRange.to.getFullYear() - compareRange.from.getFullYear()) * 12 + (compareRange.to.getMonth() - compareRange.from.getMonth() + 1);
     
     for (let i = 0; i < monthsBetween; i++) {
-      const monthStart = startOfMonth(new Date(compareRange.from.getFullYear(), compareRange.from.getMonth() + i, 1));
-      const monthEnd = endOfMonth(monthStart);
+      const targetMonth = new Date(compareRange.from.getFullYear(), compareRange.from.getMonth() + i, 1);
+      const cycleMonth = targetMonth.getMonth();
+      const cycleYear = targetMonth.getFullYear();
+      
+      const monthStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+      const monthEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
 
       const monthPayments = payments.filter(p => {
-        if (!p.payment_date || p.status !== 'paid') return false;
+        if (!p.due_date || p.status !== 'paid') return false;
         try {
-          const paymentDate = parseISO(p.payment_date);
-          if (isNaN(paymentDate.getTime())) return false;
-          return isWithinInterval(paymentDate, { start: monthStart, end: monthEnd });
+          const dueDate = parseISO(p.due_date);
+          if (isNaN(dueDate.getTime())) return false;
+          return isWithinInterval(dueDate, { start: monthStart, end: monthEnd });
         } catch {
           return false;
         }
@@ -483,15 +498,15 @@ export default function AllBranchesDashboard() {
       const expense = monthExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
 
       monthsData.push({
-        month: format(monthStart, 'MMM', { locale: th }),
-        fullMonth: format(monthStart, 'MMMM yyyy', { locale: th }),
+        month: format(targetMonth, 'MMM', { locale: th }),
+        fullMonth: format(targetMonth, 'MMMM yyyy', { locale: th }),
         revenue,
         expense
       });
     }
 
     return monthsData;
-  }, [payments, expenses, compareEnabled, compareRange]);
+  }, [payments, expenses, compareEnabled, compareRange, configs]);
 
   const combinedChartData = useMemo(() => {
     if (!compareEnabled) return monthlyChartData;
@@ -531,12 +546,20 @@ export default function AllBranchesDashboard() {
     let paidPayments = [];
     let pendingPayments = [];
     
+    // ดึง config สำหรับวันสร้างบิล
+    const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
+    
+    // คำนวณงวดบิลตาม dateRange
+    const cycleStart = new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), billGenerationDay);
+    const cycleEnd = new Date(dateRange.to.getFullYear(), dateRange.to.getMonth() + 1, billGenerationDay);
+    
     paidPayments = payments.filter(p => {
-      if (p.status !== 'paid' || !p.payment_date) return false;
+      if (p.status !== 'paid' || !p.due_date) return false;
       try {
-        const paymentDate = parseISO(p.payment_date);
-        if (isNaN(paymentDate.getTime())) return false;
-        return isWithinInterval(paymentDate, { start: dateRange.from, end: dateRange.to });
+        const dueDate = parseISO(p.due_date);
+        if (isNaN(dueDate.getTime())) return false;
+        return isWithinInterval(dueDate, { start: cycleStart, end: cycleEnd });
       } catch {
         return false;
       }
@@ -593,11 +616,17 @@ export default function AllBranchesDashboard() {
   const compareStats = useMemo(() => {
     if (!compareEnabled) return null;
 
+    // คำนวณงวดบิลตาม config
+    const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
+    const cycleStart = new Date(compareRange.from.getFullYear(), compareRange.from.getMonth(), billGenerationDay);
+    const cycleEnd = new Date(compareRange.to.getFullYear(), compareRange.to.getMonth() + 1, billGenerationDay);
+
     const comparePayments = payments.filter(payment => {
-      if (!payment.payment_date || payment.status !== 'paid') return false;
+      if (!payment.due_date || payment.status !== 'paid') return false;
       try {
-        const paymentDate = parseISO(payment.payment_date);
-        return isWithinInterval(paymentDate, { start: compareRange.from, end: compareRange.to });
+        const dueDate = parseISO(payment.due_date);
+        return isWithinInterval(dueDate, { start: cycleStart, end: cycleEnd });
       } catch {
         return false;
       }
@@ -606,7 +635,7 @@ export default function AllBranchesDashboard() {
     const totalRevenue = comparePayments.reduce((sum, p) => sum + (p.total_amount || 0), 0);
 
     return { totalRevenue };
-  }, [payments, compareRange, compareEnabled, compareType]);
+  }, [payments, compareRange, compareEnabled, compareType, configs]);
 
   const calculateChange = (current, previous) => {
     if (!previous || previous === 0) return 0;
@@ -627,11 +656,17 @@ export default function AllBranchesDashboard() {
       const total = branchRooms.length;
       const occupancyRate = total > 0 ? ((occupied / total) * 100).toFixed(1) : 0;
 
+      // คำนวณงวดบิลตาม config
+      const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+      const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
+      const cycleStart = new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), billGenerationDay);
+      const cycleEnd = new Date(dateRange.to.getFullYear(), dateRange.to.getMonth() + 1, billGenerationDay);
+
       const paidPayments = branchPayments.filter(p => {
-        if (p.status !== 'paid' || !p.payment_date) return false;
+        if (p.status !== 'paid' || !p.due_date) return false;
         try {
-          const paymentDate = parseISO(p.payment_date);
-          return isWithinInterval(paymentDate, { start: dateRange.from, end: dateRange.to });
+          const dueDate = parseISO(p.due_date);
+          return isWithinInterval(dueDate, { start: cycleStart, end: cycleEnd });
         } catch {
           return false;
         }
@@ -663,7 +698,7 @@ export default function AllBranchesDashboard() {
         occupiedRooms: occupied
       };
     }).sort((a, b) => b.revenue - a.revenue);
-  }, [branches, rooms, payments, expenses, dateRange]);
+  }, [branches, rooms, payments, expenses, dateRange, configs]);
 
   const branchStats = useMemo(() => {
     return branches.map(branch => {
@@ -678,11 +713,17 @@ export default function AllBranchesDashboard() {
       let paidPayments = [];
       let pendingPayments = [];
 
+      // คำนวณงวดบิลตาม config
+      const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+      const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
+      const cycleStart = new Date(dateRange.from.getFullYear(), dateRange.from.getMonth(), billGenerationDay);
+      const cycleEnd = new Date(dateRange.to.getFullYear(), dateRange.to.getMonth() + 1, billGenerationDay);
+
       paidPayments = branchPayments.filter(p => {
-        if (p.status !== 'paid' || !p.payment_date) return false;
+        if (p.status !== 'paid' || !p.due_date) return false;
         try {
-          const paymentDate = parseISO(p.payment_date);
-          return isWithinInterval(paymentDate, { start: dateRange.from, end: dateRange.to });
+          const dueDate = parseISO(p.due_date);
+          return isWithinInterval(dueDate, { start: cycleStart, end: cycleEnd });
         } catch {
           return false;
         }
@@ -709,7 +750,7 @@ export default function AllBranchesDashboard() {
         pendingCount: pendingPayments.length
       };
     });
-  }, [branches, rooms, bookings, payments, dateRange, calculateLateFee]);
+  }, [branches, rooms, bookings, payments, dateRange, calculateLateFee, configs]);
 
   const dateRangeLabel = () => {
     switch(dateRangeType) {
