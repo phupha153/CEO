@@ -179,31 +179,44 @@ export default function PaymentsPage() {
     queryKey: ['payments', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // Query เฉพาะ branch และจำกัด 10000 รายการล่าสุด (เท่ากับ Dashboard)
-      const payments = await base44.entities.Payment.filter(
-        { branch_id: selectedBranchId },
-        '-created_date',
-        50000
-      );
+      
+      // ดึงข้อมูลแบบ pagination
+      let allData = [];
+      let skip = 0;
+      const limit = 5000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch = await base44.entities.Payment.filter(
+          { branch_id: selectedBranchId },
+          '-created_date',
+          limit,
+          skip
+        );
+        allData = [...allData, ...batch];
+        skip += limit;
+        
+        if (batch.length < limit) {
+          hasMore = false;
+        }
+        
+        // สูงสุด 50,000 records
+        if (skip >= 50000) {
+          hasMore = false;
+        }
+      }
       
       console.log('🔍 Payments Page - Fetched at:', new Date().toLocaleTimeString('th-TH'));
       console.log('Selected Branch ID:', selectedBranchId);
-      console.log('Total Payments Fetched:', payments.length);
-      console.log('Sample payments (first 3):', payments.slice(0, 3).map(p => ({
+      console.log('Total Payments Fetched:', allData.length);
+      console.log('Sample payments (first 3):', allData.slice(0, 3).map(p => ({
         id: p.id.substring(0, 8),
         status: p.status,
         total_amount: p.total_amount,
         updated_date: p.updated_date
       })));
       
-      // เช็คว่ามี payment ที่ branch_id ไม่ตรงหรือไม่
-      const wrongBranch = payments.filter(p => p.branch_id !== selectedBranchId);
-      if (wrongBranch.length > 0) {
-        console.warn('⚠️ Found payments with wrong branch_id:', wrongBranch.length);
-        console.warn('Sample wrong branch payments:', wrongBranch.slice(0, 3));
-      }
-      
-      return payments;
+      return allData;
     },
     enabled: canView && !!selectedBranchId,
     ...retryConfig,

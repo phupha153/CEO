@@ -113,7 +113,32 @@ export default function AllBranchesDashboard() {
 
   const { data: allPayments = [] } = useQuery({
     queryKey: ['allPayments', 'v3'],
-    queryFn: () => base44.entities.Payment.list('-created_date', 50000),
+    queryFn: async () => {
+      // ดึงข้อมูลแบบ pagination เพื่อหลีกเลี่ยง 5000 limit
+      let allData = [];
+      let skip = 0;
+      const limit = 5000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch = await base44.entities.Payment.list('-created_date', limit, skip);
+        allData = [...allData, ...batch];
+        skip += limit;
+        
+        // ถ้าดึงมาน้อยกว่า limit แสดงว่าหมดแล้ว
+        if (batch.length < limit) {
+          hasMore = false;
+        }
+        
+        // ป้องกัน infinite loop - สูงสุด 10 รอบ (50,000 records)
+        if (skip >= 50000) {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`📊 Loaded ${allData.length} payments in total`);
+      return allData;
+    },
     ...retryConfig,
     staleTime: 2 * 60 * 60 * 1000,
     gcTime: 4 * 60 * 60 * 1000,

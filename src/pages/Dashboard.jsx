@@ -246,7 +246,35 @@ export default function Dashboard() {
     queryKey: ['payments', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      return await base44.entities.Payment.filter({ branch_id: selectedBranchId }, '-created_date', 50000);
+      
+      // ดึงข้อมูลแบบ pagination
+      let allData = [];
+      let skip = 0;
+      const limit = 5000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch = await base44.entities.Payment.filter(
+          { branch_id: selectedBranchId }, 
+          '-created_date', 
+          limit,
+          skip
+        );
+        allData = [...allData, ...batch];
+        skip += limit;
+        
+        if (batch.length < limit) {
+          hasMore = false;
+        }
+        
+        // สูงสุด 50,000 records
+        if (skip >= 50000) {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`📊 Dashboard - Loaded ${allData.length} payments for branch ${selectedBranchId}`);
+      return allData;
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
