@@ -75,28 +75,39 @@ Deno.serve(async (req) => {
         // 3. หาบิลที่ครบกำหนดชำระวันนี้ (ยังไม่ชำระ)
         console.log('🔍 Fetching payments with pagination...');
         
-        // ⭐ Helper: แปลง result เป็น array (รองรับกรณี SDK return string)
-        const parseResult = (result) => {
-            if (Array.isArray(result)) return result;
-            if (typeof result === 'string') {
-                try {
-                    const parsed = JSON.parse(result);
-                    if (Array.isArray(parsed)) return parsed;
-                } catch (e) {
-                    console.error('❌ JSON parse error:', e.message);
-                }
-            }
-            return [];
-        };
-
-        // ⭐ ดึง Payments ทั้งหมด
-        console.log('📥 Fetching all payments...');
+        // ⭐ ดึง Payments เฉพาะที่ due_date = วันนี้ และยังไม่ชำระ (ลดขนาดข้อมูล)
+        console.log(`📥 Fetching payments with due_date=${todayString} and pending/overdue status...`);
         let payments = [];
         
         try {
-            const result = await base44.asServiceRole.entities.Payment.list('-created_date', 50000);
-            payments = parseResult(result);
-            console.log(`✅ Fetched ${payments.length} payments`);
+            // ดึงเฉพาะ payment ที่ครบกำหนดวันนี้
+            const pendingPayments = await base44.asServiceRole.entities.Payment.filter(
+                { due_date: todayString, status: 'pending' },
+                '-created_date',
+                1000
+            );
+            const overduePayments = await base44.asServiceRole.entities.Payment.filter(
+                { due_date: todayString, status: 'overdue' },
+                '-created_date',
+                1000
+            );
+            
+            // รวมผลลัพธ์
+            const parseResult = (result) => {
+                if (Array.isArray(result)) return result;
+                if (typeof result === 'string') {
+                    try {
+                        const parsed = JSON.parse(result);
+                        if (Array.isArray(parsed)) return parsed;
+                    } catch (e) {
+                        console.error('❌ JSON parse error:', e.message);
+                    }
+                }
+                return [];
+            };
+            
+            payments = [...parseResult(pendingPayments), ...parseResult(overduePayments)];
+            console.log(`✅ Fetched ${payments.length} payments (pending: ${parseResult(pendingPayments).length}, overdue: ${parseResult(overduePayments).length})`);
         } catch (err) {
             console.error('❌ Error fetching payments:', err.message);
         }
@@ -106,14 +117,6 @@ Deno.serve(async (req) => {
             const sample = payments[0];
             console.log(`📝 Sample payment: id=${sample.id}, due_date=${sample.due_date}, status=${sample.status}, branch_id=${sample.branch_id}`);
         }
-
-        // ⭐ Debug: แสดงตัวอย่าง due_date ที่พบ
-        const sampleDueDates = [...new Set(payments.slice(0, 100).map(p => p.due_date).filter(Boolean))].slice(0, 10);
-        console.log(`📅 Sample due_dates found: ${sampleDueDates.join(', ')}`);
-        
-        // ⭐ นับจำนวน payment ที่มี due_date = todayString
-        const matchingCount = payments.filter(p => p.due_date === todayString).length;
-        console.log(`🔍 Payments with due_date=${todayString}: ${matchingCount}`);
         
         // ⭐ แปลงเป็น array เพื่อป้องกัน error
         if (!Array.isArray(payments)) payments = [];
