@@ -48,9 +48,9 @@ export default function AllBranchesDashboard() {
   });
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
-  const userAccessibleBranches = currentUser?.accessible_branches || [];
-  // Developer เห็นทุกสาขาเฉพาะเมื่อไม่มีการตั้งค่า accessible_branches
-  const canViewAllBranches = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+  const userAccessibleBranches = currentUser?.accessible_branches;
+  // Developer เห็นทุกสาขาเสมอ (ไม่สน accessible_branches)
+  const canViewAllBranches = userRole === 'developer' || userRole === 'owner';
 
   const retryConfig = {
     retry: 0,
@@ -113,7 +113,7 @@ export default function AllBranchesDashboard() {
 
   const { data: allPayments = [] } = useQuery({
     queryKey: ['allPayments', 'v3'],
-    queryFn: () => base44.entities.Payment.list('-created_date', 10000),
+    queryFn: () => base44.entities.Payment.list('-created_date', 50000),
     ...retryConfig,
     staleTime: 2 * 60 * 60 * 1000,
     gcTime: 4 * 60 * 60 * 1000,
