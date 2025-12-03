@@ -444,16 +444,6 @@ export default function Settings() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: networkStats } = useQuery({
-    queryKey: ['networkStats'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getMyNetworkStats', {});
-      return response.data;
-    },
-    enabled: !!currentUser,
-    staleTime: 5 * 60 * 1000,
-  });
-
   const [selectedBranch] = useState(() => {
     const branchId = localStorage.getItem('selected_branch_id');
     const branchName = localStorage.getItem('selected_branch_name');
@@ -1802,17 +1792,17 @@ export default function Settings() {
                                     {!hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInSystem)} ที่นั่ง`}
                                   </p>
 
-                                  {networkStats?.users?.length > 0 && (
+                                  {users.length > 0 && (
                                     <div className="pt-3 border-t border-slate-200 space-y-1">
-                                      <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อผู้ใช้ในเครือข่าย:</p>
-                                      {networkStats.users.slice(0, 5).map((user, idx) => (
-                                        <div key={idx} className="text-xs text-slate-600 flex items-center gap-1">
+                                      <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อผู้ใช้ทั้งหมด:</p>
+                                      {users.slice(0, 5).map(user => (
+                                        <div key={user.id} className="text-xs text-slate-600 flex items-center gap-1">
                                           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                          {user.full_name || user.email || user}
+                                          {user.full_name || user.email}
                                         </div>
                                       ))}
-                                      {networkStats.users.length > 5 && (
-                                        <p className="text-xs text-slate-500 italic">และอีก {networkStats.users.length - 5} คน</p>
+                                      {users.length > 5 && (
+                                        <p className="text-xs text-slate-500 italic">และอีก {users.length - 5} คน</p>
                                       )}
                                     </div>
                                   )}
@@ -1856,13 +1846,13 @@ export default function Settings() {
                                     {!hasLimit ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInSystem)} สาขา`}
                                   </p>
 
-                                  {networkStats?.branches?.length > 0 && (
+                                  {branches.length > 0 && (
                                     <div className="pt-3 border-t border-slate-200 space-y-1">
-                                      <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อสาขาในเครือข่าย:</p>
-                                      {networkStats.branches.map((branch, idx) => (
-                                        <div key={idx} className="text-xs text-slate-600 flex items-center gap-1">
+                                      <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อสาขา:</p>
+                                      {branches.map(branch => (
+                                        <div key={branch.id} className="text-xs text-slate-600 flex items-center gap-1">
                                           <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                                          {branch.branch_name || branch.name || branch}
+                                          {branch.branch_name}
                                         </div>
                                       ))}
                                     </div>

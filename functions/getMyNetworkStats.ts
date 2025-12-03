@@ -65,8 +65,6 @@ Deno.serve(async (req) => {
 
     const totalUsers = crmData?.total_users || 0;
     const totalBranches = crmData?.total_branches || 0;
-    const usersList = crmData?.users || [];
-    const branchesList = crmData?.branches || [];
 
     console.log('Total users in network:', totalUsers);
     console.log('Total branches in network:', totalBranches);
@@ -74,9 +72,7 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       total_users: totalUsers,
-      total_branches: totalBranches,
-      users: usersList,
-      branches: branchesList
+      total_branches: totalBranches
     });
 
   } catch (error) {
