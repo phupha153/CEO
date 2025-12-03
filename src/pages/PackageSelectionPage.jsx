@@ -565,25 +565,27 @@ export default function PackageSelectionPage() {
                                 </div>
 
                                 {/* Description */}
-                                <p className={`text-sm ${isBasic ? 'text-slate-400' : isElite ? 'text-amber-800' : 'text-slate-600'}`}>
+                                <p className={`text-sm mb-4 ${isBasic ? 'text-slate-400' : isElite ? 'text-amber-800' : 'text-slate-600'}`}>
                                   {pkg.description || (isBasic ? 'Perfect For Small Teams' : isPro ? 'Perfect For Growing Teams' : 'For Large Organizations')}
                                 </p>
+                                
+                                {/* Users & Branches info */}
+                                <div className={`flex items-center gap-4 text-sm ${isBasic ? 'text-slate-400' : isElite ? 'text-amber-700' : 'text-slate-600'}`}>
+                                  <div className="flex items-center gap-1.5">
+                                    <Users className={`w-4 h-4 ${isBasic ? 'text-slate-500' : isElite ? 'text-amber-600' : 'text-slate-400'}`} />
+                                    <span>{pkg.max_users || 'ไม่จำกัด'} ผู้ใช้</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <Building2 className={`w-4 h-4 ${isBasic ? 'text-slate-500' : isElite ? 'text-amber-600' : 'text-slate-400'}`} />
+                                    <span>{pkg.max_branches || 'ไม่จำกัด'} สาขา</span>
+                                  </div>
+                                </div>
                               </div>
 
                               {/* Bottom Section with white background */}
                               <div className="p-6 bg-white rounded-b-[1.75rem] flex-1 flex flex-col">
-                                {/* Users & Branches info */}
-                                <div className="flex items-center gap-4 mb-4 text-sm">
-                                  <div className="flex items-center gap-1.5">
-                                    <Users className="w-4 h-4 text-slate-400" />
-                                    <span className="text-slate-600">{pkg.max_users || 'ไม่จำกัด'} ผู้ใช้</span>
-                                  </div>
-                                  <div className="flex items-center gap-1.5">
-                                    <Building2 className="w-4 h-4 text-slate-400" />
-                                    <span className="text-slate-600">{pkg.max_branches || 'ไม่จำกัด'} สาขา</span>
-                                  </div>
-                                </div>
-
+                                {/* Users & Branches info - ย้ายไว้บนส่วน gradient */}
+                                
                                 {/* Button */}
                                 <Button
                                   onClick={(e) => {
