@@ -1320,17 +1320,34 @@ export default function Layout({ children, currentPageName }) {
 
       // มี package active - แสดงสถานะ package ของสาขา
       if (branchPackage) {
-        const isTrial = branchPackage.package_id === 'trial' || branchPackage.price_per_month === 0;
+        const isTrial = branchPackage.package_id === 'trial' || 
+                       branchPackage.price_per_month === 0 || 
+                       !branchPackage.price_per_month;
 
-        // ✅ ถ้าเป็น trial package - แสดงเสมอ
-        if (isTrial && daysRemaining !== undefined && daysRemaining >= 0) {
+        console.log('🔍 Banner Check:', {
+          branchId: selectedBranch.id,
+          packageId: branchPackage.package_id,
+          pricePerMonth: branchPackage.price_per_month,
+          isTrial,
+          daysRemaining,
+          subscriptionEndDate: branchPackage.subscription_end_date
+        });
+
+        // ✅ ถ้าเป็น trial package - แสดงเสมอ (ไม่เช็ค daysRemaining >= 0)
+        if (isTrial) {
+          const displayDays = daysRemaining !== null && daysRemaining !== undefined && daysRemaining < 999
+            ? daysRemaining
+            : null;
+
           return (
             <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Crown className="w-5 h-5" />
                 <div>
                   <p className="font-semibold text-sm">🎉 กำลังทดลองใช้งาน</p>
-                  <p className="text-xs opacity-90">เหลืออีก {daysRemaining} วัน</p>
+                  {displayDays !== null && (
+                    <p className="text-xs opacity-90">เหลืออีก {displayDays} วัน</p>
+                  )}
                 </div>
               </div>
               <Button
