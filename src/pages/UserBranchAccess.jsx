@@ -1193,18 +1193,21 @@ export default function UserBranchAccess() {
                 <div className="space-y-4">
                   <div className="bg-red-50 rounded-lg p-4 border border-red-200">
                     <p className="text-sm text-red-800 mb-2">
-                      คุณกำลังจะยกเลิกแพ็กเกจ:
+                      คุณกำลังจะยกเลิกแพ็กเกจของผู้ใช้นี้ในทุกสาขา:
                     </p>
                     <p className="font-bold text-red-900">
                       {packageToCancel.package_name}
                     </p>
                     <p className="text-xs text-red-700 mt-1">
-                      สาขา: {getBranchName(packageToCancel.branch_id)}
+                      ผู้ใช้: {packageToCancel.owner_email}
+                    </p>
+                    <p className="text-xs text-red-700 mt-1">
+                      จำนวนสาขาที่จะถูกยกเลิก: {branchPackages.filter(bp => bp.owner_email === packageToCancel.owner_email && bp.status === 'active').length} สาขา
                     </p>
                   </div>
 
                   <p className="text-sm text-slate-600">
-                    การยกเลิกจะมีผลทันที และผู้ใช้จะไม่สามารถเข้าถึงฟีเจอร์ของแพ็กเกจนี้ได้อีก
+                    การยกเลิกจะมีผลทันทีกับทุกสาขา และผู้ใช้จะไม่สามารถเข้าถึงฟีเจอร์ของแพ็กเกจนี้ได้อีก
                   </p>
 
                   <div className="flex justify-end gap-2 pt-4 border-t">
