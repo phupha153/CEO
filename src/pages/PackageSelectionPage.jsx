@@ -309,16 +309,29 @@ export default function PackageSelectionPage() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           กลับ
         </Button>
-        {userRole === 'developer' && (
-          <Button
-            onClick={() => setDebugMode(!debugMode)}
-            variant="outline"
-            size="sm"
-            className="text-xs"
-          >
-            {debugMode ? '🐛 ปิด Debug' : '🐛 เปิด Debug'}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {userRole === 'developer' && (
+            <>
+              <Button
+                onClick={() => navigate(createPageUrl('UserBranchAccess'))}
+                variant="outline"
+                size="sm"
+                className="text-purple-600 border-purple-300 hover:bg-purple-50"
+              >
+                <Settings className="w-4 h-4 mr-1" />
+                ตั้งค่าสิทธิ์สาขา
+              </Button>
+              <Button
+                onClick={() => setDebugMode(!debugMode)}
+                variant="outline"
+                size="sm"
+                className="text-xs"
+              >
+                {debugMode ? '🐛 ปิด Debug' : '🐛 เปิด Debug'}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="relative z-10 min-h-[calc(100vh-80px)] flex items-center justify-center p-4">
