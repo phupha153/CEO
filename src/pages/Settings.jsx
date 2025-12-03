@@ -1714,9 +1714,9 @@ export default function Settings() {
                   {activeSubscription ? (
                     <>
                       {/* ข้อมูลการใช้งาน Package */}
-                      <div className="relative max-w-sm">
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-100/50 via-indigo-100/50 to-purple-100/50 rounded-[1.5rem] blur-xl" />
-                        <Card className="relative bg-white/90 backdrop-blur-xl border-0 shadow-xl rounded-[1.5rem] overflow-hidden">
+                      <div className="relative max-w-sm group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-amber-200/60 via-yellow-200/60 to-orange-200/60 rounded-[1.5rem] blur-xl opacity-80 group-hover:opacity-100 transition-opacity" />
+                        <Card className="relative bg-gradient-to-br from-stone-50 to-amber-50/50 backdrop-blur-xl border-0 shadow-xl rounded-[1.5rem] overflow-hidden">
                           <CardContent className="p-0">
                             {(() => {
                               const pkgName = activeSubscription?.package_name || activeSubscription?.app_name || '';
@@ -1725,64 +1725,80 @@ export default function Settings() {
                               const isElite = !isBasic && !isPro;
                               
                               const pkgIcon = isBasic ? Settings : isPro ? Sparkles : Crown;
-                              
-                              const headerBg = isBasic
-                                ? 'from-slate-800 via-slate-900 to-slate-950'
-                                : isPro
-                                ? 'from-blue-200 via-purple-100 to-pink-100'
-                                : 'from-amber-200 via-yellow-100 to-orange-100';
-                              
-                              const iconBg = isBasic ? 'bg-slate-700/50' : isPro ? 'bg-blue-500/20' : 'bg-amber-500/30';
-                              const iconColor = isBasic ? 'text-blue-400' : isPro ? 'text-blue-600' : 'text-amber-700';
-                              const textColor = isBasic ? 'text-white' : isElite ? 'text-amber-900' : 'text-slate-900';
-                              const subTextColor = isBasic ? 'text-slate-300' : isElite ? 'text-amber-700' : 'text-slate-600';
-                              
-                              const badgeColor = isBasic 
-                                ? 'bg-slate-600 text-white' 
-                                : isPro 
-                                ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                                : 'bg-gradient-to-r from-amber-600 to-yellow-500 text-white';
 
                               return (
                                 <>
-                                  <div className={`bg-gradient-to-br ${headerBg} p-5`}>
-                                    <div className="flex items-start justify-between mb-4">
-                                      <Badge className={`text-xs px-3 py-1 rounded-full font-semibold ${badgeColor}`}>
-                                        {isBasic ? 'Basic' : isPro ? 'Pro' : 'Elite'}
-                                      </Badge>
-                                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}>
-                                        {React.createElement(pkgIcon, { className: `w-6 h-6 ${iconColor}` })}
+                                  {/* Header with shimmer effect */}
+                                  <div className="relative overflow-hidden">
+                                    <div className={`relative p-5 ${
+                                      isBasic
+                                        ? 'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950'
+                                        : isPro
+                                        ? 'bg-gradient-to-br from-blue-300 via-indigo-200 to-purple-200'
+                                        : 'bg-gradient-to-br from-amber-300 via-yellow-200 to-orange-200'
+                                    }`}>
+                                      {/* Shimmer overlay */}
+                                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" 
+                                        style={{ animation: 'shimmer 3s infinite' }} />
+                                      <style>{`
+                                        @keyframes shimmer {
+                                          0% { transform: translateX(-100%); }
+                                          100% { transform: translateX(100%); }
+                                        }
+                                      `}</style>
+                                      
+                                      <div className="relative z-10 flex items-start justify-between mb-4">
+                                        <Badge className={`text-xs px-3 py-1 rounded-full font-semibold shadow-lg ${
+                                          isBasic 
+                                            ? 'bg-gradient-to-r from-slate-500 to-slate-600 text-white' 
+                                            : isPro 
+                                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                                            : 'bg-gradient-to-r from-amber-600 to-yellow-500 text-white'
+                                        }`}>
+                                          {isBasic ? 'Basic' : isPro ? 'Pro' : 'Elite'}
+                                        </Badge>
+                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center backdrop-blur-sm shadow-lg ${
+                                          isBasic ? 'bg-slate-700/60' : isPro ? 'bg-white/40' : 'bg-white/50'
+                                        }`}>
+                                          {React.createElement(pkgIcon, { 
+                                            className: `w-6 h-6 ${isBasic ? 'text-blue-400' : isPro ? 'text-blue-600' : 'text-amber-700'}` 
+                                          })}
+                                        </div>
                                       </div>
+                                      
+                                      <h3 className={`relative z-10 text-xl font-bold mb-1 ${
+                                        isBasic ? 'text-white' : isElite ? 'text-amber-900' : 'text-slate-900'
+                                      }`}>
+                                        {activeSubscription?.package_name || activeSubscription?.app_name || 'แพ็กเกจระบบจัดการหอพัก'}
+                                      </h3>
+                                      
+                                      {activeSubscription?.subscription_end_date && (
+                                        <p className={`relative z-10 text-xs ${
+                                          isBasic ? 'text-slate-300' : isElite ? 'text-amber-800' : 'text-slate-600'
+                                        }`}>
+                                          หมดอายุ {format(parseISO(activeSubscription.subscription_end_date), 'd MMM yyyy', { locale: th })}
+                                          {daysRemaining !== null && (
+                                            <span className={`ml-1 font-bold ${
+                                              isBasic ? (daysRemaining < 7 ? 'text-red-400' : daysRemaining < 30 ? 'text-yellow-400' : 'text-green-400') :
+                                              daysRemaining < 7 ? 'text-red-600' : daysRemaining < 30 ? 'text-amber-600' : 'text-green-600'
+                                            }`}>
+                                              (เหลือ {daysRemaining} วัน)
+                                            </span>
+                                          )}
+                                        </p>
+                                      )}
                                     </div>
-                                    
-                                    <h3 className={`text-xl font-bold mb-1 ${textColor}`}>
-                                      {activeSubscription?.package_name || activeSubscription?.app_name || 'แพ็กเกจระบบจัดการหอพัก'}
-                                    </h3>
-                                    
-                                    {activeSubscription?.subscription_end_date && (
-                                      <p className={`text-xs ${subTextColor}`}>
-                                        หมดอายุ {format(parseISO(activeSubscription.subscription_end_date), 'd MMM yyyy', { locale: th })}
-                                        {daysRemaining !== null && (
-                                          <span className={`ml-1 font-bold ${
-                                            isBasic ? (daysRemaining < 7 ? 'text-red-400' : daysRemaining < 30 ? 'text-yellow-400' : 'text-green-400') :
-                                            daysRemaining < 7 ? 'text-red-600' : daysRemaining < 30 ? 'text-amber-600' : 'text-green-600'
-                                          }`}>
-                                            (เหลือ {daysRemaining} วัน)
-                                          </span>
-                                        )}
-                                      </p>
-                                    )}
                                   </div>
 
-                                  <div className="p-5 bg-white">
+                                  <div className="p-5 bg-gradient-to-b from-stone-50 to-white">
                                     <Button
                                       onClick={() => navigate(createPageUrl(activeSubscription.status === 'trial' ? 'PackageSelectionPage' : (appMode === 'multi_tenant' ? 'PackageSelectionPage' : 'RenewalPage')))}
-                                      className={`w-full py-3 text-sm font-semibold rounded-xl shadow-md transition-all ${
+                                      className={`w-full py-3 text-sm font-semibold rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] ${
                                         isBasic
-                                          ? 'bg-slate-900 text-white hover:bg-slate-800'
+                                          ? 'bg-gradient-to-r from-slate-800 to-slate-900 text-white hover:from-slate-700 hover:to-slate-800'
                                           : isPro
                                           ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600'
-                                          : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600'
+                                          : 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-500 text-white hover:from-amber-600 hover:via-yellow-600 hover:to-amber-600'
                                       }`}
                                     >
                                       <RefreshCw className="w-4 h-4 mr-2" />
