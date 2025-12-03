@@ -444,6 +444,16 @@ export default function Settings() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: networkStats } = useQuery({
+    queryKey: ['networkStats'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getMyNetworkStats', {});
+      return response.data;
+    },
+    enabled: !!currentUser,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const [selectedBranch] = useState(() => {
     const branchId = localStorage.getItem('selected_branch_id');
     const branchName = localStorage.getItem('selected_branch_name');
