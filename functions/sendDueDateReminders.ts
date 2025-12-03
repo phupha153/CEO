@@ -256,16 +256,6 @@ Deno.serve(async (req) => {
                     }
                 });
 
-                // ⭐ บันทึกว่าส่งแจ้งเตือนวันครบกำหนดแล้ว
-                try {
-                    await base44.asServiceRole.entities.Payment.update(payment.id, {
-                        due_date_reminder_sent_date: new Date().toISOString()
-                    });
-                    console.log(`✅ Updated due_date_reminder_sent_date for payment ${payment.id}`);
-                } catch (updateErr) {
-                    console.error(`⚠️ Failed to update due_date_reminder_sent_date:`, updateErr.message);
-                }
-
             } catch (error) {
                 console.error(`❌ Error processing payment ${payment.id}:`, error);
             }
