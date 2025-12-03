@@ -1126,7 +1126,10 @@ export default function UserBranchAccess() {
                       ปิด
                     </Button>
                     <Button
-                      onClick={handleSavePackage}
+                      onClick={() => {
+                        console.log('Button clicked, calling handleSavePackage');
+                        handleSavePackage();
+                      }}
                       disabled={!packageFormData.package_id || !packageFormData.subscription_start_date || !packageFormData.subscription_end_date || createOrUpdatePackageMutation.isPending}
                       className="bg-gradient-to-r from-green-600 to-emerald-600"
                     >
