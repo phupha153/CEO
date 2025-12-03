@@ -33,16 +33,8 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // ดึงข้อมูลทั้งหมดพร้อมกัน แล้วใช้ find หา ID ที่ต้องการ
-        const [allPayments, allTenants, allRooms, allBranches, configs] = await Promise.all([
-            base44.asServiceRole.entities.Payment.list('-created_date', 10000),
-            base44.asServiceRole.entities.Tenant.list('-created_date', 5000),
-            base44.asServiceRole.entities.Room.list('-room_number', 5000),
-            base44.asServiceRole.entities.Branch.list(),
-            base44.asServiceRole.entities.Config.list()
-        ]);
-
-        // หา payment ที่ต้องการ
+        // ดึง Payment โดยตรงจาก list แล้ว find (เพราะ id เป็น field พิเศษ filter ไม่ได้)
+        const allPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 50000);
         const payment = allPayments.find(p => p.id === paymentId);
 
         if (!payment) {
@@ -63,6 +55,14 @@ Deno.serve(async (req) => {
         }
 
         const actualBranchId = payment.branch_id;
+
+        // ดึงข้อมูลที่เกี่ยวข้องพร้อมกัน แล้วใช้ find
+        const [allTenants, allRooms, allBranches, configs] = await Promise.all([
+            base44.asServiceRole.entities.Tenant.list('-created_date', 10000),
+            base44.asServiceRole.entities.Room.list('-room_number', 10000),
+            base44.asServiceRole.entities.Branch.list(),
+            base44.asServiceRole.entities.Config.list()
+        ]);
 
         // หาข้อมูลที่เกี่ยวข้องจาก arrays ที่โหลดมาแล้ว
         const tenant = payment.tenant_id ? allTenants.find(t => t.id === payment.tenant_id) : null;
