@@ -121,9 +121,12 @@ export default function AllBranchesDashboard() {
       let hasMore = true;
 
       while (hasMore) {
-        const batch = await base44.entities.Payment.list('-created_date', limit, skip);
+        // ใช้ filter แบบเปล่า {} เพื่อดึงทั้งหมด พร้อม pagination
+        const batch = await base44.entities.Payment.filter({}, '-created_date', limit, skip);
         allData = [...allData, ...batch];
         skip += limit;
+        
+        console.log(`📊 AllBranches - Batch ${skip/limit}: got ${batch.length} payments, total so far: ${allData.length}`);
         
         // ถ้าดึงมาน้อยกว่า limit แสดงว่าหมดแล้ว
         if (batch.length < limit) {
@@ -136,7 +139,7 @@ export default function AllBranchesDashboard() {
         }
       }
       
-      console.log(`📊 Loaded ${allData.length} payments in total`);
+      console.log(`📊 AllBranches - Total loaded: ${allData.length} payments`);
       return allData;
     },
     ...retryConfig,
