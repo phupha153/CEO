@@ -44,8 +44,6 @@ export default function UserBranchAccess() {
   const userAccessibleBranches = React.useMemo(() => currentUser?.accessible_branches || [], [currentUser]);
   const userRole = React.useMemo(() => currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee'), [currentUser]);
 
-  // ⭐ ไม่ redirect - ให้แสดง "ไม่มีสิทธิ์" แทน เพื่อป้องกันปัญหา redirect loop
-
   const { data: allUsers = [], isLoading: usersLoading } = useQuery({
     queryKey: ['users'],
     queryFn: () => base44.entities.User.list(),
