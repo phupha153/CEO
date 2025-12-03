@@ -1714,8 +1714,20 @@ export default function Settings() {
                   {activeSubscription ? (
                     <>
                       {/* ข้อมูลการใช้งาน Package */}
+                      {(() => {
+                        const pkgNameCheck = activeSubscription?.package_name || activeSubscription?.app_name || '';
+                        const isBasicPkg = pkgNameCheck.toLowerCase().includes('basic') || pkgNameCheck.toLowerCase().includes('nano');
+                        const isProPkg = pkgNameCheck.toLowerCase().includes('pro') || pkgNameCheck.toLowerCase().includes('micro');
+                        const isElitePkg = !isBasicPkg && !isProPkg;
+                        const hasShimmer = isProPkg || isElitePkg;
+                        
+                        return (
                       <div className="relative max-w-sm group">
-                        <div className="absolute inset-0 bg-gradient-to-br from-amber-200/60 via-yellow-200/60 to-orange-200/60 rounded-[1.5rem] blur-xl opacity-80 group-hover:opacity-100 transition-opacity" />
+                        <div className={`absolute inset-0 rounded-[1.5rem] blur-xl opacity-80 group-hover:opacity-100 transition-opacity ${
+                          isElitePkg ? 'bg-gradient-to-br from-amber-200/60 via-yellow-200/60 to-orange-200/60' :
+                          isProPkg ? 'bg-gradient-to-br from-blue-200/60 via-purple-200/60 to-pink-200/60' :
+                          'bg-gradient-to-br from-slate-200/60 via-slate-300/60 to-slate-200/60'
+                        }`} />
                         <Card className="relative bg-gradient-to-br from-stone-50 to-amber-50/50 backdrop-blur-xl border-0 shadow-xl rounded-[1.5rem] overflow-hidden">
                           <CardContent className="p-0">
                             {(() => {
