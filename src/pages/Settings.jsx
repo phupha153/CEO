@@ -1714,44 +1714,62 @@ export default function Settings() {
                   {activeSubscription ? (
                     <>
                       {/* ข้อมูลการใช้งาน Package */}
-                      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200 shadow-xl">
-                        <CardContent className="p-8">
-                          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                            <div className="flex items-start gap-4 flex-1">
-                            {(() => {
-                              const pkgName = activeSubscription?.package_name || activeSubscription?.app_name || '';
-                              const pkgIcon = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano') 
-                                ? Settings 
-                                : pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro') 
-                                ? Sparkles 
-                                : Crown;
+                      <Card className="bg-white border-0 shadow-xl overflow-hidden">
+                        <CardContent className="p-0">
+                          <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-8 border-b border-slate-200">
+                            <div className="flex items-center justify-between gap-6 mb-6">
+                              {(() => {
+                                const pkgName = activeSubscription?.package_name || activeSubscription?.app_name || '';
+                                const pkgIcon = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano') 
+                                  ? Settings 
+                                  : pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro') 
+                                  ? Sparkles 
+                                  : Crown;
 
-                              const pkgColor = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano')
-                                ? 'from-slate-600 to-slate-800'
-                                : pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro')
-                                ? 'from-blue-500 to-purple-500'
-                                : 'from-orange-500 to-yellow-500';
+                                const pkgColor = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano')
+                                  ? 'from-slate-800 via-slate-900 to-slate-950'
+                                  : pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro')
+                                  ? 'from-blue-200 via-purple-100 to-pink-100'
+                                  : 'from-amber-200 via-yellow-100 to-orange-100';
 
-                              return (
-                                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br ${pkgColor}`}>
-                                  {React.createElement(pkgIcon, { className: "w-8 h-8 text-white" })}
-                                </div>
-                              );
-                            })()}
-                              <div className="flex-1">
-                                <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                                  {activeSubscription?.package_name || activeSubscription?.app_name || 'แพ็กเกจระบบจัดการหอพัก'}
-                                </h3>
-                              </div>
+                                const iconColor = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano')
+                                  ? 'text-blue-400'
+                                  : pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro')
+                                  ? 'text-blue-600'
+                                  : 'text-amber-700';
+
+                                return (
+                                  <div className="flex items-center gap-4">
+                                    <div className={`w-20 h-20 rounded-2xl flex items-center justify-center shadow-2xl bg-gradient-to-br ${pkgColor}`}>
+                                      {React.createElement(pkgIcon, { className: `w-10 h-10 ${iconColor}` })}
+                                    </div>
+                                    <div>
+                                      <h3 className="text-3xl font-bold text-slate-900 mb-1">
+                                        {activeSubscription?.package_name || activeSubscription?.app_name || 'แพ็กเกจระบบจัดการหอพัก'}
+                                      </h3>
+                                      {activeSubscription?.subscription_end_date && (
+                                        <p className="text-sm text-slate-600">
+                                          หมดอายุ {format(parseISO(activeSubscription.subscription_end_date), 'd MMM yyyy', { locale: th })}
+                                          {daysRemaining !== null && (
+                                            <span className={`ml-2 font-semibold ${daysRemaining < 7 ? 'text-red-600' : daysRemaining < 30 ? 'text-amber-600' : 'text-green-600'}`}>
+                                              (เหลือ {daysRemaining} วัน)
+                                            </span>
+                                          )}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+
+                              <Button
+                                onClick={() => navigate(createPageUrl(activeSubscription.status === 'trial' ? 'PackageSelectionPage' : (appMode === 'multi_tenant' ? 'PackageSelectionPage' : 'RenewalPage')))}
+                                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 px-6 py-4 text-base shadow-lg flex-shrink-0"
+                              >
+                                <RefreshCw className="w-5 h-5 mr-2" />
+                                {activeSubscription.status === 'trial' ? 'อัปเกรดแพ็กเกจ' : 'ต่ออายุ/อัปเกรด'}
+                              </Button>
                             </div>
-
-                            <Button
-                              onClick={() => navigate(createPageUrl(activeSubscription.status === 'trial' ? 'PackageSelectionPage' : (appMode === 'multi_tenant' ? 'PackageSelectionPage' : 'RenewalPage')))}
-                              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 px-6 py-6 text-base"
-                            >
-                              <RefreshCw className="w-5 h-5 mr-2" />
-                              {activeSubscription.status === 'trial' ? 'อัปเกรดแพ็กเกจ' : (appMode === 'multi_tenant' ? 'ต่ออายุ/อัปเกรดแพ็กเกจ' : 'ต่ออายุแพ็กเกจ')}
-                            </Button>
                           </div>
                         </CardContent>
                       </Card>
