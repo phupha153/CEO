@@ -246,7 +246,7 @@ export default function Dashboard() {
     queryKey: ['payments', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      return await base44.entities.Payment.filter({ branch_id: selectedBranchId }, '-created_date', 10000);
+      return await base44.entities.Payment.filter({ branch_id: selectedBranchId }, '-created_date', 50000);
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
