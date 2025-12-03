@@ -196,9 +196,10 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ฟังก์ชันกรองข้อมูล - แสดงทุก payment ไม่ว่าจะชำระหรือยัง
+  // ฟังก์ชันกรองข้อมูล - แสดงเฉพาะที่ชำระแล้ว
   const filteredPayments = useMemo(() => {
     return payments
+      .filter(payment => payment.status === 'paid')
       .filter(payment => {
         const room = rooms.find(r => r.id === payment.room_id);
         const tenant = tenants.find(t => t.id === payment.tenant_id);
@@ -221,9 +222,10 @@ export default function AccountingData() {
       });
   }, [payments, rooms, tenants, searchTerm, dateFilter]);
 
-  // ฟังก์ชันกรองใบแจ้งหนี้ - แสดงทุกรายการ (ทั้งที่ชำระและยังไม่ชำระ)
+  // ฟังก์ชันกรองใบแจ้งหนี้ - แสดงเฉพาะที่ยังไม่ชำระ
   const filteredInvoices = useMemo(() => {
     return payments
+      .filter(payment => payment.status !== 'paid')
       .filter(payment => {
         const room = rooms.find(r => r.id === payment.room_id);
         const tenant = tenants.find(t => t.id === payment.tenant_id);
@@ -1020,7 +1022,7 @@ export default function AccountingData() {
             <TabsContent value="payments" className="space-y-4">
               <div className="flex justify-between items-center flex-wrap gap-2">
                 <p className="text-sm text-slate-600">
-                  พบ {filteredPayments.length} รายการ (ทั้งหมด)
+                  พบ {filteredPayments.length} รายการ (ชำระแล้ว)
                 </p>
                 {filteredPayments.length > 0 && (
                   <Button
@@ -1164,7 +1166,7 @@ export default function AccountingData() {
             <TabsContent value="invoices" className="space-y-4">
               <div className="flex justify-between items-center flex-wrap gap-2">
                 <p className="text-sm text-slate-600">
-                  พบ {filteredInvoices.length} รายการ (ทั้งหมด)
+                  พบ {filteredInvoices.length} รายการ (ยังไม่ชำระ)
                 </p>
                 {filteredInvoices.length > 0 && (
                   <Button
@@ -1244,13 +1246,11 @@ export default function AccountingData() {
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                  payment.status === 'paid'
-                                    ? 'bg-green-100 text-green-700'
-                                    : payment.status === 'overdue' 
+                                  payment.status === 'overdue' 
                                     ? 'bg-red-100 text-red-700' 
                                     : 'bg-yellow-100 text-yellow-700'
                                 }`}>
-                                  {payment.status === 'paid' ? 'ชำระแล้ว' : payment.status === 'overdue' ? 'เกินกำหนด' : 'รอชำระ'}
+                                  {payment.status === 'overdue' ? 'เกินกำหนด' : 'รอชำระ'}
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-center">
@@ -1272,7 +1272,7 @@ export default function AccountingData() {
                   {filteredInvoices.length === 0 && (
                     <div className="text-center py-12">
                       <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                      <p className="text-slate-600">ไม่มีใบแจ้งหนี้</p>
+                      <p className="text-slate-600">ไม่มีใบแจ้งหนี้ที่รอชำระ</p>
                     </div>
                   )}
                 </CardContent>
