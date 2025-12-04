@@ -262,11 +262,7 @@ export default function BranchSelection() {
                       </Button>
                     )}
                   </div>
-                  {isTrialMode && (
-                    <p className="text-xs text-amber-600 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
-                      ⚠️ โหมดทดลอง: สร้างได้สูงสุด {maxTrialBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด
-                    </p>
-                  )}
+
                 </div>
               )}
 
