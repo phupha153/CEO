@@ -885,7 +885,7 @@ export default function UserBranchAccess() {
                                 })}
                                 <div>
                                   <h3 className="font-bold text-slate-800 text-lg">
-                                    {isTrial ? '🎉 แพ็กเกจทดลองใช้' : activePackage.package_name}
+                                  {isTrial ? '🎉 แพ็กเกจทดลองใช้' : pkgName}
                                   </h3>
                                   <div className="flex items-center gap-2 mt-1">
                                     <Badge className="text-xs">
@@ -1295,7 +1295,7 @@ export default function UserBranchAccess() {
                       คุณกำลังจะยกเลิกแพ็กเกจของผู้ใช้นี้ในทุกสาขา:
                     </p>
                     <p className="font-bold text-red-900">
-                      {packageToCancel.package_name}
+                      {typeof packageToCancel.package_name === 'string' ? packageToCancel.package_name : (packageToCancel.package_name?.name || '')}
                     </p>
                     <p className="text-xs text-red-700 mt-1">
                       ผู้ใช้: {packageToCancel.owner_email}
