@@ -398,15 +398,16 @@ export default function PackageSelectionPage() {
                       >
                         6 เดือน
                         {(() => {
-                          const savings = selectedPackage?.pricing?.six_months_savings || 
+                          const sixMonthsSavings = selectedPackage?.pricing?.six_months_savings;
+                          const savings = (typeof sixMonthsSavings === 'number' ? sixMonthsSavings : 0) || 
                             (selectedPackage?.price_monthly && selectedPackage?.price_6_months 
                               ? (selectedPackage.price_monthly * 6 - selectedPackage.price_6_months) 
                               : 0);
-                          return savings > 0 && (
+                          return savings > 0 ? (
                             <span className="ml-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
-                              ประหยัด ฿{savings.toLocaleString()}
+                              ประหยัด ฿{Number(savings).toLocaleString()}
                             </span>
-                          );
+                          ) : null;
                         })()}
                       </button>
                       <button
@@ -419,15 +420,16 @@ export default function PackageSelectionPage() {
                       >
                         1 ปี
                         {(() => {
-                          const savings = selectedPackage?.pricing?.yearly_savings || 
+                          const yearlySavings = selectedPackage?.pricing?.yearly_savings;
+                          const savings = (typeof yearlySavings === 'number' ? yearlySavings : 0) || 
                             (selectedPackage?.price_monthly && selectedPackage?.price_yearly 
                               ? (selectedPackage.price_monthly * 12 - selectedPackage.price_yearly) 
                               : 0);
-                          return savings > 0 && (
+                          return savings > 0 ? (
                             <span className="ml-2 text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">
-                              ประหยัด ฿{savings.toLocaleString()}
+                              ประหยัด ฿{Number(savings).toLocaleString()}
                             </span>
-                          );
+                          ) : null;
                         })()}
                       </button>
                     </div>
@@ -557,7 +559,7 @@ export default function PackageSelectionPage() {
                                       ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                                       : 'bg-gradient-to-r from-amber-600 to-yellow-500 text-white'
                                   }`}>
-                                    {pkgName || (isBasic ? 'Basic' : isPro ? 'Pro' : 'Elite')}
+                                    {isBasic ? 'Basic' : isPro ? 'Pro' : 'Elite'}
                                   </Badge>
                                   {/* Package Name - hidden, just for reference */}
                                   {/* {pkgName} */}
