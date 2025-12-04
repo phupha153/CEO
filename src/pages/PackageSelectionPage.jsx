@@ -732,11 +732,13 @@ export default function PackageSelectionPage() {
                                     for (let idx = 0; idx < finalFeatures.length; idx++) {
                                       const feature = finalFeatures[idx];
                                       const featureName = safeGetName(feature);
-                                      if (featureName && typeof featureName === 'string' && featureName.trim() !== '') {
+                                      // ตรวจสอบว่าเป็น primitive string จริงๆ
+                                      if (featureName && typeof featureName === 'string' && featureName.trim() !== '' && typeof featureName.trim() === 'string') {
+                                        const displayText = String(featureName).trim();
                                         renderedFeatures.push(
                                           <div key={idx} className="flex items-start gap-2">
                                             <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
-                                            <span className="text-sm text-slate-600">{featureName}</span>
+                                            <span className="text-sm text-slate-600">{displayText}</span>
                                           </div>
                                         );
                                       }
@@ -805,10 +807,11 @@ export default function PackageSelectionPage() {
                                           // ข้าม 5 features แรกถ้าไม่มี highlighted
                                           if (highlightedNamesExp.length === 0 && idx < 5) continue;
                                           
+                                          const displayTextExp = String(featureName).trim();
                                           renderedExp.push(
                                             <div key={idx} className="flex items-start gap-2">
                                               <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-300" />
-                                              <span className="text-sm text-slate-500">{featureName}</span>
+                                              <span className="text-sm text-slate-500">{displayTextExp}</span>
                                             </div>
                                           );
                                         }
