@@ -679,23 +679,27 @@ export default function PackageSelectionPage() {
                                     const featureList = pkg.features || [];
                                     const rawHighlighted = pkg.highlighted_features || [];
                                     
-                                    // Helper function to safely get feature name as string
+                                    // Helper function to safely get feature name as string - MUST return string only
                                     const safeGetName = (f) => {
-                                      if (f === null || f === undefined) return '';
-                                      if (typeof f === 'string') return f;
-                                      if (typeof f === 'object') {
-                                        // ถ้ามี name เป็น string ให้ใช้เลย
-                                        if (typeof f.name === 'string') return f.name;
-                                        // ถ้า name เป็น object ที่มี name ข้างใน
-                                        if (f.name && typeof f.name === 'object') {
-                                          if (typeof f.name.name === 'string') return f.name.name;
+                                      try {
+                                        if (f === null || f === undefined) return '';
+                                        if (typeof f === 'string') return f;
+                                        if (typeof f === 'number') return String(f);
+                                        if (typeof f === 'object') {
+                                          // ดึง name ออกมา
+                                          const nameValue = f.name;
+                                          if (typeof nameValue === 'string') return nameValue;
+                                          if (typeof nameValue === 'number') return String(nameValue);
+                                          // ถ้า name เป็น object อีกชั้น
+                                          if (nameValue && typeof nameValue === 'object' && typeof nameValue.name === 'string') {
+                                            return nameValue.name;
+                                          }
                                           return '';
                                         }
-                                        // ถ้าไม่มี name แต่มี is_highlighted = skip
-                                        if ('is_highlighted' in f && !f.name) return '';
+                                        return '';
+                                      } catch (e) {
                                         return '';
                                       }
-                                      return '';
                                     };
                                     
                                     // Convert highlighted_features to array of strings
@@ -743,18 +747,23 @@ export default function PackageSelectionPage() {
                                     <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
                                       {(pkg.features || []).map((feature, idx) => {
                                         const safeGetNameExpanded = (f) => {
-                                          if (f === null || f === undefined) return '';
-                                          if (typeof f === 'string') return f;
-                                          if (typeof f === 'object') {
-                                            if (typeof f.name === 'string') return f.name;
-                                            if (f.name && typeof f.name === 'object') {
-                                              if (typeof f.name.name === 'string') return f.name.name;
+                                          try {
+                                            if (f === null || f === undefined) return '';
+                                            if (typeof f === 'string') return f;
+                                            if (typeof f === 'number') return String(f);
+                                            if (typeof f === 'object') {
+                                              const nameValue = f.name;
+                                              if (typeof nameValue === 'string') return nameValue;
+                                              if (typeof nameValue === 'number') return String(nameValue);
+                                              if (nameValue && typeof nameValue === 'object' && typeof nameValue.name === 'string') {
+                                                return nameValue.name;
+                                              }
                                               return '';
                                             }
-                                            if ('is_highlighted' in f && !f.name) return '';
+                                            return '';
+                                          } catch (e) {
                                             return '';
                                           }
-                                          return '';
                                         };
                                         const featureName = safeGetNameExpanded(feature);
                                         if (!featureName) return null;
