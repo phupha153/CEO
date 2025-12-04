@@ -676,8 +676,10 @@ export default function PackageSelectionPage() {
                                 <div className="space-y-3 flex-1">
                                   {(() => {
                                     // รองรับทั้ง array ของ string และ array ของ object
-                                    const featureList = pkg.features || [];
-                                    const rawHighlighted = pkg.highlighted_features || [];
+                                    // ต้อง filter features ที่เป็น object ออกก่อน
+                                    const rawFeatureList = pkg.features || [];
+                                    const featureList = Array.isArray(rawFeatureList) ? rawFeatureList : [];
+                                    const rawHighlighted = Array.isArray(pkg.highlighted_features) ? pkg.highlighted_features : [];
                                     
                                     // Helper function to safely get feature name as string - MUST return string only
                                     const safeGetName = (f) => {
@@ -735,7 +737,7 @@ export default function PackageSelectionPage() {
                                   })()}
                                   
                                   {/* ปุ่มดูเพิ่มเติม */}
-                                  {(pkg.features || []).length > 0 && (
+                                  {Array.isArray(pkg.features) && pkg.features.length > 0 && (
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -771,8 +773,9 @@ export default function PackageSelectionPage() {
                                           }
                                         };
                                         
-                                        const allFeatures = pkg.features || [];
-                                        const rawHighlightedExp = pkg.highlighted_features || [];
+                                        const rawAllFeatures = pkg.features || [];
+                                        const allFeatures = Array.isArray(rawAllFeatures) ? rawAllFeatures : [];
+                                        const rawHighlightedExp = Array.isArray(pkg.highlighted_features) ? pkg.highlighted_features : [];
                                         const highlightedNamesExp = rawHighlightedExp.map(h => safeGetNameExp(h)).filter(n => n && typeof n === 'string');
                                         
                                         const renderedExp = [];
