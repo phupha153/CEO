@@ -108,7 +108,8 @@ export default function BranchManagement() {
   const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
   const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
   const maxTrialBranches = 1;
-  const canAddMoreBranches = !isTrialMode || branches.length < maxTrialBranches;
+  const hasNoPackageAtAll = userPackages.length === 0;
+  const canAddMoreBranches = hasNoPackageAtAll || !isTrialMode || branches.length < maxTrialBranches;
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -189,7 +190,8 @@ export default function BranchManagement() {
       
       // ⭐ อัปเดต accessible_branches และเปลี่ยนเป็น owner ให้ user ปัจจุบันที่สร้างสาขานี้
       try {
-        const updatedBranches = [...userAccessibleBranches, newBranch.id];
+        const currentBranches = userAccessibleBranches || [];
+        const updatedBranches = [...currentBranches, newBranch.id];
         await base44.entities.User.update(currentUser.id, {
           accessible_branches: updatedBranches,
           custom_role: 'owner' // เปลี่ยนเป็นเจ้าของหอพัก
