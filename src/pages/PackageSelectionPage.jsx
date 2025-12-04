@@ -676,74 +676,44 @@ export default function PackageSelectionPage() {
                                 <div className="space-y-3 flex-1">
                                   {(() => {
                                     // รองรับทั้ง array ของ string และ array ของ object
-                                    // ต้อง filter features ที่เป็น object ออกก่อน
-                                    const rawFeatureList = pkg.features || [];
-                                    const featureList = Array.isArray(rawFeatureList) ? rawFeatureList : [];
-                                    const rawHighlighted = Array.isArray(pkg.highlighted_features) ? pkg.highlighted_features : [];
+                                    const rawFeatureList = pkg.features;
+                                    if (!rawFeatureList || !Array.isArray(rawFeatureList)) return null;
                                     
-                                    // Helper function to safely get feature name as string - MUST return primitive string only
-                                    const safeGetName = (f) => {
-                                      try {
-                                        if (f === null || f === undefined) return '';
-                                        if (typeof f === 'string') return f;
-                                        if (typeof f === 'number' || typeof f === 'boolean') return String(f);
-                                        if (typeof f === 'object') {
-                                          // ดึง name ออกมา
-                                          const nameValue = f.name;
-                                          if (typeof nameValue === 'string') return nameValue;
-                                          if (typeof nameValue === 'number') return String(nameValue);
-                                          // ถ้า name เป็น object อีกชั้น ให้ดึง name.name
-                                          if (nameValue && typeof nameValue === 'object') {
-                                            if (typeof nameValue.name === 'string') return nameValue.name;
-                                            if (typeof nameValue.name === 'number') return String(nameValue.name);
-                                            // ลองดึง text หรือ value
-                                            if (typeof nameValue.text === 'string') return nameValue.text;
-                                            if (typeof nameValue.value === 'string') return nameValue.value;
-                                          }
-                                          // ลองดึง text หรือ label จาก object ตรงๆ
-                                          if (typeof f.text === 'string') return f.text;
-                                          if (typeof f.label === 'string') return f.label;
-                                          if (typeof f.value === 'string') return f.value;
-                                          return '';
-                                        }
-                                        return '';
-                                      } catch (e) {
-                                        return '';
+                                    // Extract feature names as strings only
+                                    const getFeatureText = (f) => {
+                                      if (!f) return null;
+                                      if (typeof f === 'string') return f;
+                                      if (typeof f === 'number') return String(f);
+                                      if (typeof f === 'object' && f !== null) {
+                                        // Object with {name, is_highlighted} structure
+                                        if (typeof f.name === 'string') return f.name;
+                                        if (typeof f.name === 'number') return String(f.name);
+                                        if (typeof f.text === 'string') return f.text;
+                                        if (typeof f.label === 'string') return f.label;
                                       }
+                                      return null;
                                     };
                                     
-                                    // Convert highlighted_features to array of strings
-                                    const highlightedNames = rawHighlighted.map(h => safeGetName(h)).filter(n => n && typeof n === 'string');
+                                    // Get highlighted features first
+                                    const highlightedFeatures = rawFeatureList.filter(f => 
+                                      f && typeof f === 'object' && f.is_highlighted === true
+                                    );
                                     
-                                    // แสดงเฉพาะ highlighted features (สูงสุด 5 รายการ)
-                                    const displayFeatures = featureList
-                                      .filter(f => {
-                                        if (typeof f === 'object' && f !== null && f.is_highlighted === true) return true;
-                                        const name = safeGetName(f);
-                                        return name && highlightedNames.includes(name);
-                                      })
-                                      .slice(0, 5);
+                                    // Use highlighted if available, otherwise first 5
+                                    const featuresToShow = highlightedFeatures.length > 0 
+                                      ? highlightedFeatures.slice(0, 5) 
+                                      : rawFeatureList.slice(0, 5);
                                     
-                                    // ถ้าไม่มี highlighted features ให้แสดง 5 features แรก
-                                    const finalFeatures = displayFeatures.length > 0 ? displayFeatures : featureList.slice(0, 5);
-                                    
-                                    // Map และ filter ให้เหลือแค่ valid strings
-                                    const renderedFeatures = [];
-                                    for (let idx = 0; idx < finalFeatures.length; idx++) {
-                                      const feature = finalFeatures[idx];
-                                      const featureName = safeGetName(feature);
-                                      // ตรวจสอบว่าเป็น primitive string จริงๆ
-                                      if (featureName && typeof featureName === 'string' && featureName.trim() !== '' && typeof featureName.trim() === 'string') {
-                                        const displayText = String(featureName).trim();
-                                        renderedFeatures.push(
-                                          <div key={idx} className="flex items-start gap-2">
-                                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
-                                            <span className="text-sm text-slate-600">{displayText}</span>
-                                          </div>
-                                        );
-                                      }
-                                    }
-                                    return renderedFeatures;
+                                    return featuresToShow.map((feature, idx) => {
+                                      const text = getFeatureText(feature);
+                                      if (!text || typeof text !== 'string') return null;
+                                      return (
+                                        <div key={idx} className="flex items-start gap-2">
+                                          <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
+                                          <span className="text-sm text-slate-600">{text}</span>
+                                        </div>
+                                      );
+                                    });
                                   })()}
                                   
                                   {/* ปุ่มดูเพิ่มเติม */}
@@ -763,59 +733,45 @@ export default function PackageSelectionPage() {
                                   {expandedPackageId === pkg.id && (
                                     <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
                                       {(() => {
-                                        const safeGetNameExp = (f) => {
-                                          try {
-                                            if (f === null || f === undefined) return '';
-                                            if (typeof f === 'string') return f;
-                                            if (typeof f === 'number' || typeof f === 'boolean') return String(f);
-                                            if (typeof f === 'object') {
-                                              const nameValue = f.name;
-                                              if (typeof nameValue === 'string') return nameValue;
-                                              if (typeof nameValue === 'number') return String(nameValue);
-                                              if (nameValue && typeof nameValue === 'object') {
-                                                if (typeof nameValue.name === 'string') return nameValue.name;
-                                                if (typeof nameValue.name === 'number') return String(nameValue.name);
-                                                if (typeof nameValue.text === 'string') return nameValue.text;
-                                                if (typeof nameValue.value === 'string') return nameValue.value;
-                                              }
-                                              if (typeof f.text === 'string') return f.text;
-                                              if (typeof f.label === 'string') return f.label;
-                                              if (typeof f.value === 'string') return f.value;
-                                              return '';
-                                            }
-                                            return '';
-                                          } catch (e) {
-                                            return '';
+                                        const rawAllFeatures = pkg.features;
+                                        if (!rawAllFeatures || !Array.isArray(rawAllFeatures)) return null;
+                                        
+                                        const getFeatureTextExp = (f) => {
+                                          if (!f) return null;
+                                          if (typeof f === 'string') return f;
+                                          if (typeof f === 'number') return String(f);
+                                          if (typeof f === 'object' && f !== null) {
+                                            if (typeof f.name === 'string') return f.name;
+                                            if (typeof f.name === 'number') return String(f.name);
+                                            if (typeof f.text === 'string') return f.text;
+                                            if (typeof f.label === 'string') return f.label;
                                           }
+                                          return null;
                                         };
                                         
-                                        const rawAllFeatures = pkg.features || [];
-                                        const allFeatures = Array.isArray(rawAllFeatures) ? rawAllFeatures : [];
-                                        const rawHighlightedExp = Array.isArray(pkg.highlighted_features) ? pkg.highlighted_features : [];
-                                        const highlightedNamesExp = rawHighlightedExp.map(h => safeGetNameExp(h)).filter(n => n && typeof n === 'string');
+                                        // Get highlighted count to know where to start
+                                        const highlightedCount = rawAllFeatures.filter(f => 
+                                          f && typeof f === 'object' && f.is_highlighted === true
+                                        ).length;
                                         
-                                        const renderedExp = [];
-                                        for (let idx = 0; idx < allFeatures.length; idx++) {
-                                          const feature = allFeatures[idx];
-                                          const featureName = safeGetNameExp(feature);
-                                          if (!featureName || typeof featureName !== 'string' || featureName.trim() === '') continue;
+                                        // Skip first 5 or highlighted features (already shown above)
+                                        const startIdx = highlightedCount > 0 ? 0 : 5;
+                                        
+                                        return rawAllFeatures.map((feature, idx) => {
+                                          // Skip highlighted features (shown above)
+                                          if (feature && typeof feature === 'object' && feature.is_highlighted === true) return null;
+                                          // Skip first 5 if no highlighted
+                                          if (highlightedCount === 0 && idx < 5) return null;
                                           
-                                          const isHighlighted = (typeof feature === 'object' && feature !== null && feature.is_highlighted === true) || highlightedNamesExp.includes(featureName);
-                                          
-                                          // ข้าม highlighted features ที่แสดงไปแล้ว
-                                          if (isHighlighted && highlightedNamesExp.length > 0) continue;
-                                          // ข้าม 5 features แรกถ้าไม่มี highlighted
-                                          if (highlightedNamesExp.length === 0 && idx < 5) continue;
-                                          
-                                          const displayTextExp = String(featureName).trim();
-                                          renderedExp.push(
+                                          const text = getFeatureTextExp(feature);
+                                          if (!text || typeof text !== 'string') return null;
+                                          return (
                                             <div key={idx} className="flex items-start gap-2">
                                               <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-300" />
-                                              <span className="text-sm text-slate-500">{displayTextExp}</span>
+                                              <span className="text-sm text-slate-500">{text}</span>
                                             </div>
                                           );
-                                        }
-                                        return renderedExp;
+                                        });
                                       })()}
                                     </div>
                                   )}
