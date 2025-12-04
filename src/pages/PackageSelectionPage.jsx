@@ -557,7 +557,7 @@ export default function PackageSelectionPage() {
                                       ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
                                       : 'bg-gradient-to-r from-amber-600 to-yellow-500 text-white'
                                   }`}>
-                                    {isBasic ? 'Basic' : isPro ? 'Pro' : 'Elite'}
+                                    {pkgName || (isBasic ? 'Basic' : isPro ? 'Pro' : 'Elite')}
                                   </Badge>
                                   {/* Package Name - hidden, just for reference */}
                                   {/* {pkgName} */}
@@ -609,7 +609,11 @@ export default function PackageSelectionPage() {
                                 <p className={`text-sm ${isBasic ? 'text-slate-400' : isElite ? 'text-amber-800' : 'text-slate-600'}`}>
                                   {(() => {
                                     if (typeof pkg.description === 'string') return pkg.description;
-                                    if (pkg.description && typeof pkg.description === 'object' && pkg.description.name) return String(pkg.description.name);
+                                    if (pkg.description && typeof pkg.description === 'object') {
+                                      if (pkg.description.name) return String(pkg.description.name);
+                                      if (pkg.description.text) return String(pkg.description.text);
+                                      return '';
+                                    }
                                     return isBasic ? 'Perfect For Small Teams' : isPro ? 'Perfect For Growing Teams' : 'For Large Organizations';
                                   })()}
                                 </p>
