@@ -600,7 +600,7 @@ export default function PackageSelectionPage() {
 
                                 {/* Description */}
                                 <p className={`text-sm ${isBasic ? 'text-slate-400' : isElite ? 'text-amber-800' : 'text-slate-600'}`}>
-                                  {pkg.description || (isBasic ? 'Perfect For Small Teams' : isPro ? 'Perfect For Growing Teams' : 'For Large Organizations')}
+                                  {typeof pkg.description === 'string' ? pkg.description : (isBasic ? 'Perfect For Small Teams' : isPro ? 'Perfect For Growing Teams' : 'For Large Organizations')}
                                 </p>
                               </div>
 
