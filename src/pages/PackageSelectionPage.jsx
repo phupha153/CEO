@@ -659,7 +659,7 @@ export default function PackageSelectionPage() {
                                   {(() => {
                                     // รองรับทั้ง array ของ string และ array ของ object
                                     const featureList = pkg.features || [];
-                                    const highlightedNames = pkg.highlighted_features || [];
+                                    const rawHighlighted = pkg.highlighted_features || [];
                                     
                                     // Helper function to safely get feature name as string
                                     const getFeatureName = (f) => {
@@ -667,6 +667,9 @@ export default function PackageSelectionPage() {
                                       if (f && typeof f === 'object' && f.name) return String(f.name);
                                       return '';
                                     };
+                                    
+                                    // Convert highlighted_features to array of strings
+                                    const highlightedNames = rawHighlighted.map(h => getFeatureName(h)).filter(Boolean);
                                     
                                     // แสดงเฉพาะ highlighted features (สูงสุด 5 รายการ)
                                     const displayFeatures = featureList
@@ -713,7 +716,10 @@ export default function PackageSelectionPage() {
                                         };
                                         const featureName = getFeatureNameExpanded(feature);
                                         if (!featureName) return null;
-                                        const highlightedNamesExpanded = pkg.highlighted_features || [];
+                                        
+                                        // Convert highlighted_features to array of strings for comparison
+                                        const rawHighlightedExpanded = pkg.highlighted_features || [];
+                                        const highlightedNamesExpanded = rawHighlightedExpanded.map(h => getFeatureNameExpanded(h)).filter(Boolean);
                                         const isHighlighted = typeof feature === 'object' && feature !== null ? feature.is_highlighted : highlightedNamesExpanded.includes(featureName);
                                         
                                         // ข้าม highlighted features ที่แสดงไปแล้ว
