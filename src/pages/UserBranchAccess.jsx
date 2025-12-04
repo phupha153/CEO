@@ -653,7 +653,8 @@ export default function UserBranchAccess() {
                             const activePackage = userPackages[0];
                             
                             if (activePackage) {
-                              const pkgName = activePackage.package_name || '';
+                              const rawPkgName = activePackage.package_name;
+                              const pkgName = typeof rawPkgName === 'string' ? rawPkgName : (rawPkgName?.name || '');
                               const isBasic = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano');
                               const isPro = pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro');
                               const isElite = !isBasic && !isPro;
@@ -856,7 +857,8 @@ export default function UserBranchAccess() {
                     const activePackage = userPackages[0];
 
                     if (activePackage) {
-                      const pkgName = activePackage.package_name || '';
+                      const rawPkgName2 = activePackage.package_name;
+                      const pkgName = typeof rawPkgName2 === 'string' ? rawPkgName2 : (rawPkgName2?.name || '');
                       const isBasic = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano');
                       const isPro = pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro');
                       const isElite = !isBasic && !isPro;
@@ -1160,7 +1162,8 @@ export default function UserBranchAccess() {
                       <div className="space-y-3 max-h-[500px] overflow-y-auto">
                         {getUserPackageHistory(selectedUser.email).length > 0 ? (
                           getUserPackageHistory(selectedUser.email).map((pkg) => {
-                            const pkgName = pkg.package_name || '';
+                            const rawPkgName3 = pkg.package_name;
+                            const pkgName = typeof rawPkgName3 === 'string' ? rawPkgName3 : (rawPkgName3?.name || '');
                             const isBasic = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano');
                             const isPro = pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro');
                             const isTrial = pkg.package_id === 'trial';
@@ -1184,7 +1187,7 @@ export default function UserBranchAccess() {
                                         }` 
                                       })}
                                       <span className="text-sm font-bold text-slate-800">
-                                        {pkg.package_name || 'Trial'}
+                                        {typeof pkg.package_name === 'string' ? pkg.package_name : (pkg.package_name?.name || 'Trial')}
                                       </span>
                                     </div>
                                     <Badge className={`text-xs ${
