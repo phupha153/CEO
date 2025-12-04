@@ -59,6 +59,13 @@ const checkFeatureAccess = (features, featureName) => {
   // If features list is empty or null, allow access (for backward compatibility or trial)
   if (!features || features.length === 0) return true;
 
+  // Normalize features to strings only
+  const normalizedFeatures = features.map(f => {
+    if (typeof f === 'string') return f;
+    if (f && typeof f === 'object' && typeof f.name === 'string') return f.name;
+    return '';
+  }).filter(f => f);
+
   const featureMap = {
     // Core features - ทุกแพ็กเกจต้องมี
     'dashboard_view': ['จัดการห้องพักไม่จำกัด', 'ระบบพื้นฐาน', 'Dashboard'],
@@ -101,7 +108,7 @@ const checkFeatureAccess = (features, featureName) => {
   if (requiredKeywords.length === 0) return true; 
   
   // Check if any of the subscription's features match any of the required keywords
-  return features.some(feature => 
+  return normalizedFeatures.some(feature => 
     requiredKeywords.some(keyword => 
       feature.toLowerCase().includes(keyword.toLowerCase())
     )
