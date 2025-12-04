@@ -237,7 +237,7 @@ export default function PackageSelectionPage() {
       // ✅ ไม่ส่ง branch_ids - ให้ function ใช้ owner_email หาสาขาเอง
       const result = await base44.functions.invoke('processSubscriptionPayment', {
         package_id: selectedPackageId,
-        package_name: typeof selectedPackage.package_name === 'string' ? selectedPackage.package_name : (selectedPackage.package_name?.name || ''),
+        package_name: typeof selectedPackage.package_name === 'string' ? selectedPackage.package_name : (selectedPackage.package_name?.name ? String(selectedPackage.package_name.name) : ''),
         duration_months: parseInt(billingCycle),
         price_per_month: calculatePrice.monthlyPrice,
         total_amount: calculatePrice.subtotal,
@@ -911,7 +911,11 @@ export default function PackageSelectionPage() {
                       <div className="space-y-3 text-sm">
                         <div className="flex justify-between">
                           <span className="text-slate-700">แพ็กเกจ:</span>
-                          <span className="font-bold text-slate-800">{typeof selectedPackage?.package_name === 'string' ? selectedPackage.package_name : ''}</span>
+                          <span className="font-bold text-slate-800">
+                            {typeof selectedPackage?.package_name === 'string' 
+                              ? selectedPackage.package_name 
+                              : (selectedPackage?.package_name?.name ? String(selectedPackage.package_name.name) : '')}
+                          </span>
                         </div>
                         {appMode === 'multi_tenant' && selectedBranches.length > 1 && (
                           <div className="flex justify-between">
@@ -996,7 +1000,9 @@ export default function PackageSelectionPage() {
                       <CardContent className="p-6">
                         <Crown className="w-12 h-12 text-green-600 mx-auto mb-3" />
                         <p className="text-green-800 font-semibold mb-2">
-                          ยินดีต้อนรับสู่ {typeof selectedPackage?.package_name === 'string' ? selectedPackage.package_name : 'แพ็กเกจใหม่'}!
+                          ยินดีต้อนรับสู่ {typeof selectedPackage?.package_name === 'string' 
+                            ? selectedPackage.package_name 
+                            : (selectedPackage?.package_name?.name ? String(selectedPackage.package_name.name) : 'แพ็กเกจใหม่')}!
                         </p>
                         <p className="text-sm text-green-700">
                           ระบบจะนำคุณกลับไปยังแดชบอร์ดในอีกสักครู่...
