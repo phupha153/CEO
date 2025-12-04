@@ -677,27 +677,28 @@ export default function PackageSelectionPage() {
                                   {(() => {
                                     if (!Array.isArray(pkg.features)) return null;
                                     
-                                    // Helper to extract text
-                                    const getText = (f) => {
-                                      if (typeof f === 'string') return f;
-                                      if (f && typeof f === 'object' && typeof f.name === 'string') return f.name;
-                                      return null;
-                                    };
-                                    
                                     // Get highlighted first, then others
                                     const highlighted = pkg.features.filter(f => f && typeof f === 'object' && f.is_highlighted === true);
                                     const featuresToShow = highlighted.length > 0 ? highlighted.slice(0, 5) : pkg.features.slice(0, 5);
                                     
-                                    return featuresToShow.map((feature, idx) => {
-                                      const text = getText(feature);
-                                      if (!text) return null;
-                                      return (
+                                    const result = [];
+                                    for (let idx = 0; idx < featuresToShow.length; idx++) {
+                                      const feature = featuresToShow[idx];
+                                      let text = '';
+                                      if (typeof feature === 'string') {
+                                        text = feature;
+                                      } else if (feature && typeof feature === 'object' && feature.name !== undefined) {
+                                        text = typeof feature.name === 'string' ? feature.name : '';
+                                      }
+                                      if (!text) continue;
+                                      result.push(
                                         <div key={idx} className="flex items-start gap-2">
                                           <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
                                           <span className="text-sm text-slate-600">{text}</span>
                                         </div>
                                       );
-                                    });
+                                    }
+                                    return result;
                                   })()}
                                   
                                   {/* ปุ่มดูเพิ่มเติม */}
@@ -724,19 +725,24 @@ export default function PackageSelectionPage() {
                                         // Create set of shown feature names
                                         const shownFeatures = new Set();
                                         const featuresShownAbove = hasHighlighted ? highlighted.slice(0, 5) : pkg.features.slice(0, 5);
-                                        featuresShownAbove.forEach(f => {
+                                        for (let i = 0; i < featuresShownAbove.length; i++) {
+                                          const f = featuresShownAbove[i];
                                           if (typeof f === 'string') shownFeatures.add(f);
                                           else if (f && typeof f === 'object' && typeof f.name === 'string') shownFeatures.add(f.name);
-                                        });
+                                        }
                                         
                                         const result = [];
-                                        pkg.features.forEach((feature, idx) => {
-                                          let text = null;
-                                          if (typeof feature === 'string') text = feature;
-                                          else if (feature && typeof feature === 'object' && typeof feature.name === 'string') text = feature.name;
+                                        for (let idx = 0; idx < pkg.features.length; idx++) {
+                                          const feature = pkg.features[idx];
+                                          let text = '';
+                                          if (typeof feature === 'string') {
+                                            text = feature;
+                                          } else if (feature && typeof feature === 'object' && feature.name !== undefined) {
+                                            text = typeof feature.name === 'string' ? feature.name : '';
+                                          }
                                           
-                                          if (!text) return;
-                                          if (shownFeatures.has(text)) return; // Skip already shown
+                                          if (!text) continue;
+                                          if (shownFeatures.has(text)) continue; // Skip already shown
                                           
                                           result.push(
                                             <div key={idx} className="flex items-start gap-2">
@@ -744,7 +750,7 @@ export default function PackageSelectionPage() {
                                               <span className="text-sm text-slate-500">{text}</span>
                                             </div>
                                           );
-                                        });
+                                        }
                                         return result;
                                       })()}
                                     </div>
