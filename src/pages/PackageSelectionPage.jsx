@@ -684,11 +684,18 @@ export default function PackageSelectionPage() {
                                       if (f === null || f === undefined) return '';
                                       if (typeof f === 'string') return f;
                                       if (typeof f === 'object') {
+                                        // ถ้ามี name เป็น string ให้ใช้เลย
                                         if (typeof f.name === 'string') return f.name;
-                                        if (f.name && typeof f.name === 'object' && f.name.name) return String(f.name.name);
+                                        // ถ้า name เป็น object ที่มี name ข้างใน
+                                        if (f.name && typeof f.name === 'object') {
+                                          if (typeof f.name.name === 'string') return f.name.name;
+                                          return '';
+                                        }
+                                        // ถ้าไม่มี name แต่มี is_highlighted = skip
+                                        if ('is_highlighted' in f && !f.name) return '';
                                         return '';
                                       }
-                                      return String(f);
+                                      return '';
                                     };
                                     
                                     // Convert highlighted_features to array of strings
@@ -740,10 +747,14 @@ export default function PackageSelectionPage() {
                                           if (typeof f === 'string') return f;
                                           if (typeof f === 'object') {
                                             if (typeof f.name === 'string') return f.name;
-                                            if (f.name && typeof f.name === 'object' && f.name.name) return String(f.name.name);
+                                            if (f.name && typeof f.name === 'object') {
+                                              if (typeof f.name.name === 'string') return f.name.name;
+                                              return '';
+                                            }
+                                            if ('is_highlighted' in f && !f.name) return '';
                                             return '';
                                           }
-                                          return String(f);
+                                          return '';
                                         };
                                         const featureName = safeGetNameExpanded(feature);
                                         if (!featureName) return null;
