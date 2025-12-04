@@ -710,26 +710,28 @@ export default function PackageSelectionPage() {
                                       .filter(f => {
                                         if (typeof f === 'object' && f !== null && f.is_highlighted === true) return true;
                                         const name = safeGetName(f);
-                                        return highlightedNames.includes(name);
+                                        return name && highlightedNames.includes(name);
                                       })
                                       .slice(0, 5);
                                     
                                     // ถ้าไม่มี highlighted features ให้แสดง 5 features แรก
                                     const finalFeatures = displayFeatures.length > 0 ? displayFeatures : featureList.slice(0, 5);
                                     
-                                    return finalFeatures.map((feature, idx) => {
+                                    // Map และ filter ให้เหลือแค่ valid strings
+                                    const renderedFeatures = [];
+                                    for (let idx = 0; idx < finalFeatures.length; idx++) {
+                                      const feature = finalFeatures[idx];
                                       const featureName = safeGetName(feature);
-                                      if (!featureName || typeof featureName !== 'string') return null;
-                                      // Double check it's a primitive string before rendering
-                                      const displayName = String(featureName);
-                                      if (typeof displayName !== 'string') return null;
-                                      return (
-                                        <div key={idx} className="flex items-start gap-2">
-                                          <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
-                                          <span className="text-sm text-slate-600">{displayName}</span>
-                                        </div>
-                                      );
-                                    });
+                                      if (featureName && typeof featureName === 'string' && featureName.trim() !== '') {
+                                        renderedFeatures.push(
+                                          <div key={idx} className="flex items-start gap-2">
+                                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
+                                            <span className="text-sm text-slate-600">{featureName}</span>
+                                          </div>
+                                        );
+                                      }
+                                    }
+                                    return renderedFeatures;
                                   })()}
                                   
                                   {/* ปุ่มดูเพิ่มเติม */}
@@ -748,8 +750,8 @@ export default function PackageSelectionPage() {
                                   {/* แสดง features ทั้งหมดเมื่อกด expand */}
                                   {expandedPackageId === pkg.id && (
                                     <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
-                                      {(pkg.features || []).map((feature, idx) => {
-                                        const safeGetNameExpanded = (f) => {
+                                      {(() => {
+                                        const safeGetNameExp = (f) => {
                                           try {
                                             if (f === null || f === undefined) return '';
                                             if (typeof f === 'string') return f;
@@ -768,32 +770,33 @@ export default function PackageSelectionPage() {
                                             return '';
                                           }
                                         };
-                                        const featureName = safeGetNameExpanded(feature);
-                                        if (!featureName || typeof featureName !== 'string') return null;
                                         
-                                        // Convert highlighted_features to array of strings for comparison
-                                        const rawHighlightedExpanded = pkg.highlighted_features || [];
-                                        const highlightedNamesExpanded = rawHighlightedExpanded.map(h => safeGetNameExpanded(h)).filter(n => n && typeof n === 'string');
-                                        const isHighlighted = (typeof feature === 'object' && feature !== null && feature.is_highlighted === true) || highlightedNamesExpanded.includes(featureName);
+                                        const allFeatures = pkg.features || [];
+                                        const rawHighlightedExp = pkg.highlighted_features || [];
+                                        const highlightedNamesExp = rawHighlightedExp.map(h => safeGetNameExp(h)).filter(n => n && typeof n === 'string');
                                         
-                                        // ข้าม highlighted features ที่แสดงไปแล้ว (ถ้ามี highlighted features)
-                                        if (isHighlighted && highlightedNamesExpanded.length > 0) return null;
-                                        // ข้าม 5 features แรกถ้าไม่มี highlighted (เพราะแสดงข้างบนแล้ว)
-                                        if (highlightedNamesExpanded.length === 0 && idx < 5) return null;
-                                        
-                                        // ตรวจสอบอีกครั้งว่า featureName เป็น string
-                                        if (typeof featureName !== 'string') return null;
-                                        
-                                        // Double check it's a primitive string before rendering
-                                        const displayNameExp = String(featureName);
-                                        if (typeof displayNameExp !== 'string') return null;
-                                        return (
-                                          <div key={idx} className="flex items-start gap-2">
-                                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-300" />
-                                            <span className="text-sm text-slate-500">{displayNameExp}</span>
-                                          </div>
-                                        );
-                                      })}
+                                        const renderedExp = [];
+                                        for (let idx = 0; idx < allFeatures.length; idx++) {
+                                          const feature = allFeatures[idx];
+                                          const featureName = safeGetNameExp(feature);
+                                          if (!featureName || typeof featureName !== 'string' || featureName.trim() === '') continue;
+                                          
+                                          const isHighlighted = (typeof feature === 'object' && feature !== null && feature.is_highlighted === true) || highlightedNamesExp.includes(featureName);
+                                          
+                                          // ข้าม highlighted features ที่แสดงไปแล้ว
+                                          if (isHighlighted && highlightedNamesExp.length > 0) continue;
+                                          // ข้าม 5 features แรกถ้าไม่มี highlighted
+                                          if (highlightedNamesExp.length === 0 && idx < 5) continue;
+                                          
+                                          renderedExp.push(
+                                            <div key={idx} className="flex items-start gap-2">
+                                              <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-300" />
+                                              <span className="text-sm text-slate-500">{featureName}</span>
+                                            </div>
+                                          );
+                                        }
+                                        return renderedExp;
+                                      })()}
                                     </div>
                                   )}
                                 </div>
