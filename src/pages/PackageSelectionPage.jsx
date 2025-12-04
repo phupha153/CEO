@@ -668,26 +668,34 @@ export default function PackageSelectionPage() {
                                     const rawHighlighted = pkg.highlighted_features || [];
                                     
                                     // Helper function to safely get feature name as string
-                                    const getFeatureName = (f) => {
+                                    const safeGetName = (f) => {
+                                      if (f === null || f === undefined) return '';
                                       if (typeof f === 'string') return f;
-                                      if (f && typeof f === 'object' && f.name) return String(f.name);
-                                      return '';
+                                      if (typeof f === 'object') {
+                                        if (typeof f.name === 'string') return f.name;
+                                        if (f.name && typeof f.name === 'object' && f.name.name) return String(f.name.name);
+                                        return '';
+                                      }
+                                      return String(f);
                                     };
                                     
                                     // Convert highlighted_features to array of strings
-                                    const highlightedNames = rawHighlighted.map(h => getFeatureName(h)).filter(Boolean);
+                                    const highlightedNames = rawHighlighted.map(h => safeGetName(h)).filter(Boolean);
                                     
                                     // แสดงเฉพาะ highlighted features (สูงสุด 5 รายการ)
                                     const displayFeatures = featureList
                                       .filter(f => {
-                                        const name = getFeatureName(f);
-                                        const isHighlighted = typeof f === 'object' && f !== null ? f.is_highlighted : highlightedNames.includes(name);
-                                        return isHighlighted;
+                                        if (typeof f === 'object' && f !== null && f.is_highlighted === true) return true;
+                                        const name = safeGetName(f);
+                                        return highlightedNames.includes(name);
                                       })
                                       .slice(0, 5);
                                     
-                                    return displayFeatures.map((feature, idx) => {
-                                      const featureName = getFeatureName(feature);
+                                    // ถ้าไม่มี highlighted features ให้แสดง 5 features แรก
+                                    const finalFeatures = displayFeatures.length > 0 ? displayFeatures : featureList.slice(0, 5);
+                                    
+                                    return finalFeatures.map((feature, idx) => {
+                                      const featureName = safeGetName(feature);
                                       if (!featureName) return null;
                                       return (
                                         <div key={idx} className="flex items-start gap-2">
@@ -715,21 +723,28 @@ export default function PackageSelectionPage() {
                                   {expandedPackageId === pkg.id && (
                                     <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
                                       {(pkg.features || []).map((feature, idx) => {
-                                        const getFeatureNameExpanded = (f) => {
+                                        const safeGetNameExpanded = (f) => {
+                                          if (f === null || f === undefined) return '';
                                           if (typeof f === 'string') return f;
-                                          if (f && typeof f === 'object' && f.name) return String(f.name);
-                                          return '';
+                                          if (typeof f === 'object') {
+                                            if (typeof f.name === 'string') return f.name;
+                                            if (f.name && typeof f.name === 'object' && f.name.name) return String(f.name.name);
+                                            return '';
+                                          }
+                                          return String(f);
                                         };
-                                        const featureName = getFeatureNameExpanded(feature);
+                                        const featureName = safeGetNameExpanded(feature);
                                         if (!featureName) return null;
                                         
                                         // Convert highlighted_features to array of strings for comparison
                                         const rawHighlightedExpanded = pkg.highlighted_features || [];
-                                        const highlightedNamesExpanded = rawHighlightedExpanded.map(h => getFeatureNameExpanded(h)).filter(Boolean);
-                                        const isHighlighted = typeof feature === 'object' && feature !== null ? feature.is_highlighted : highlightedNamesExpanded.includes(featureName);
+                                        const highlightedNamesExpanded = rawHighlightedExpanded.map(h => safeGetNameExpanded(h)).filter(Boolean);
+                                        const isHighlighted = (typeof feature === 'object' && feature !== null && feature.is_highlighted === true) || highlightedNamesExpanded.includes(featureName);
                                         
-                                        // ข้าม highlighted features ที่แสดงไปแล้ว
-                                        if (isHighlighted) return null;
+                                        // ข้าม highlighted features ที่แสดงไปแล้ว (ถ้ามี highlighted features)
+                                        if (isHighlighted && highlightedNamesExpanded.length > 0) return null;
+                                        // ข้าม 5 features แรกถ้าไม่มี highlighted (เพราะแสดงข้างบนแล้ว)
+                                        if (highlightedNamesExpanded.length === 0 && idx < 5) return null;
                                         
                                         return (
                                           <div key={idx} className="flex items-start gap-2">
