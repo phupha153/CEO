@@ -492,8 +492,12 @@ export default function PackageSelectionPage() {
                       const isSelected = selectedPackageId === pkg.id;
                       const isDisabled = pkg.is_active === false;
                       
-                      // กำหนดไอคอนและสีตาม package_name
-                      const pkgName = typeof pkg.package_name === 'string' ? pkg.package_name : (pkg.package_name?.name || '');
+                      // กำหนดไอคอนและสีตาม package_name - รองรับทั้ง string และ object
+                      const pkgName = typeof pkg.package_name === 'string' 
+                        ? pkg.package_name 
+                        : (pkg.package_name && typeof pkg.package_name === 'object' && pkg.package_name.name 
+                          ? String(pkg.package_name.name) 
+                          : '');
                       const isBasic = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano');
                       const isPro = pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro');
                       const isElite = !isBasic && !isPro;
@@ -555,6 +559,8 @@ export default function PackageSelectionPage() {
                                   }`}>
                                     {isBasic ? 'Basic' : isPro ? 'Pro' : 'Elite'}
                                   </Badge>
+                                  {/* Package Name - hidden, just for reference */}
+                                  {/* {pkgName} */}
                                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
                                     isBasic
                                       ? 'bg-slate-700/50'
@@ -601,7 +607,11 @@ export default function PackageSelectionPage() {
 
                                 {/* Description */}
                                 <p className={`text-sm ${isBasic ? 'text-slate-400' : isElite ? 'text-amber-800' : 'text-slate-600'}`}>
-                                  {typeof pkg.description === 'string' ? pkg.description : (typeof pkg.description === 'object' && pkg.description?.name ? pkg.description.name : (isBasic ? 'Perfect For Small Teams' : isPro ? 'Perfect For Growing Teams' : 'For Large Organizations'))}
+                                  {(() => {
+                                    if (typeof pkg.description === 'string') return pkg.description;
+                                    if (pkg.description && typeof pkg.description === 'object' && pkg.description.name) return String(pkg.description.name);
+                                    return isBasic ? 'Perfect For Small Teams' : isPro ? 'Perfect For Growing Teams' : 'For Large Organizations';
+                                  })()}
                                 </p>
                               </div>
 
