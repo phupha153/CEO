@@ -610,11 +610,11 @@ export default function PackageSelectionPage() {
                                 <div className="flex items-center gap-4 mb-4 text-sm">
                                   <div className="flex items-center gap-1.5">
                                     <Users className="w-4 h-4 text-slate-400" />
-                                    <span className="text-slate-600">{pkg.max_users || 'ไม่จำกัด'} ผู้ใช้</span>
+                                    <span className="text-slate-600">{typeof pkg.max_users === 'object' ? 'ไม่จำกัด' : (pkg.max_users || 'ไม่จำกัด')} ผู้ใช้</span>
                                   </div>
                                   <div className="flex items-center gap-1.5">
                                     <Building2 className="w-4 h-4 text-slate-400" />
-                                    <span className="text-slate-600">{pkg.max_branches || 'ไม่จำกัด'} สาขา</span>
+                                    <span className="text-slate-600">{typeof pkg.max_branches === 'object' ? 'ไม่จำกัด' : (pkg.max_branches || 'ไม่จำกัด')} สาขา</span>
                                   </div>
                                 </div>
 
