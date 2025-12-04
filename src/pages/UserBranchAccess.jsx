@@ -690,7 +690,7 @@ export default function UserBranchAccess() {
                                         isPro ? 'text-blue-800' :
                                         'text-amber-900'
                                       }`}>
-                                        {isTrial ? '🎉 ทดลองใช้' : activePackage.package_name}
+                                        {isTrial ? '🎉 ทดลองใช้' : pkgName}
                                       </span>
                                     </div>
                                   </div>
