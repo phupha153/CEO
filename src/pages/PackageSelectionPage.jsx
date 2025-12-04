@@ -717,33 +717,35 @@ export default function PackageSelectionPage() {
                                   {expandedPackageId === pkg.id && Array.isArray(pkg.features) && (
                                     <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
                                       {(() => {
-                                        const getText = (f) => {
-                                          if (typeof f === 'string') return f;
-                                          if (f && typeof f === 'object' && typeof f.name === 'string') return f.name;
-                                          return null;
-                                        };
-                                        
-                                        // Get highlighted to know what was shown above
+                                        // Get highlighted features
                                         const highlighted = pkg.features.filter(f => f && typeof f === 'object' && f.is_highlighted === true);
                                         const hasHighlighted = highlighted.length > 0;
                                         
-                                        return pkg.features.map((feature, idx) => {
-                                          // Skip features already shown above
-                                          if (hasHighlighted) {
-                                            if (feature && typeof feature === 'object' && feature.is_highlighted === true && idx < 5) return null;
-                                          } else {
-                                            if (idx < 5) return null;
-                                          }
+                                        // Create set of shown feature names
+                                        const shownFeatures = new Set();
+                                        const featuresShownAbove = hasHighlighted ? highlighted.slice(0, 5) : pkg.features.slice(0, 5);
+                                        featuresShownAbove.forEach(f => {
+                                          if (typeof f === 'string') shownFeatures.add(f);
+                                          else if (f && typeof f === 'object' && typeof f.name === 'string') shownFeatures.add(f.name);
+                                        });
+                                        
+                                        const result = [];
+                                        pkg.features.forEach((feature, idx) => {
+                                          let text = null;
+                                          if (typeof feature === 'string') text = feature;
+                                          else if (feature && typeof feature === 'object' && typeof feature.name === 'string') text = feature.name;
                                           
-                                          const text = getText(feature);
-                                          if (!text) return null;
-                                          return (
+                                          if (!text) return;
+                                          if (shownFeatures.has(text)) return; // Skip already shown
+                                          
+                                          result.push(
                                             <div key={idx} className="flex items-start gap-2">
                                               <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-300" />
                                               <span className="text-sm text-slate-500">{text}</span>
                                             </div>
                                           );
                                         });
+                                        return result;
                                       })()}
                                     </div>
                                   )}
