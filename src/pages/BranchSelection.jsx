@@ -110,7 +110,10 @@ export default function BranchSelection() {
   });
   
   const maxTrialBranches = 1;
-  const canAddMoreBranches = !isTrialMode || filteredBranches.length < maxTrialBranches;
+  
+  // ⭐ ถ้าไม่มี package เลย (ผู้ใช้ใหม่) = อนุญาตให้สร้างได้ 1 สาขา
+  const hasNoPackageAtAll = userPackages.length === 0;
+  const canAddMoreBranches = hasNoPackageAtAll || !isTrialMode || filteredBranches.length < maxTrialBranches;
 
   // ✅ เช็คว่าไม่มีสาขาเลย หรือไม่มีสิทธิ์ในสาขาใดเลย
   const hasNoBranches = branches.length === 0;
