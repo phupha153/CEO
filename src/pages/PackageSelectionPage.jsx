@@ -575,10 +575,10 @@ export default function PackageSelectionPage() {
                                     const months = parseInt(billingCycle);
                                     const pricing = pkg.pricing || {};
                                     const hasNewStructure = pricing.monthly !== undefined;
-                                    
+
                                     const basePrice = hasNewStructure ? (pricing.monthly || 0) : (pkg.price_monthly || 0);
                                     let displayPrice = basePrice;
-                                    
+
                                     if (months === 3) {
                                       displayPrice = hasNewStructure ? (pricing.three_months_per_month || basePrice) : ((pkg.price_3_months || (basePrice * 3)) / 3);
                                     } else if (months === 6) {
@@ -586,15 +586,15 @@ export default function PackageSelectionPage() {
                                     } else if (months === 12) {
                                       displayPrice = hasNewStructure ? (pricing.yearly_per_month || basePrice) : ((pkg.price_yearly || (basePrice * 12)) / 12);
                                     }
-                                    
+
                                     return (
                                       <div className="flex items-baseline gap-1">
                                         <span className={`text-4xl font-bold ${isBasic ? 'text-white' : isElite ? 'text-amber-900' : 'text-slate-900'}`}>
                                           ฿{Math.round(displayPrice).toLocaleString()}
                                         </span>
-                                        <span className={`text-sm ${isBasic ? 'text-slate-400' : isElite ? 'text-amber-700' : 'text-slate-600'}`}>/month</span>
+                                        <span className={`text-sm ${isBasic ? 'text-slate-400' : isElite ? 'text-amber-700' : 'text-slate-600'}`}>/เดือน</span>
                                       </div>
-                                    )
+                                    );
                                   })()}
                                 </div>
 
@@ -649,14 +649,15 @@ export default function PackageSelectionPage() {
                                     // แสดงเฉพาะ highlighted features (สูงสุด 5 รายการ)
                                     const displayFeatures = featureList
                                       .filter(f => {
-                                        const name = typeof f === 'string' ? f : f.name;
-                                        const isHighlighted = typeof f === 'object' ? f.is_highlighted : highlightedNames.includes(name);
+                                        const name = typeof f === 'string' ? f : (f && f.name ? f.name : '');
+                                        const isHighlighted = typeof f === 'object' && f !== null ? f.is_highlighted : highlightedNames.includes(name);
                                         return isHighlighted;
                                       })
                                       .slice(0, 5);
                                     
                                     return displayFeatures.map((feature, idx) => {
-                                      const featureName = typeof feature === 'string' ? feature : feature.name;
+                                      const featureName = typeof feature === 'string' ? feature : (feature && feature.name ? feature.name : '');
+                                      if (!featureName) return null;
                                       return (
                                         <div key={idx} className="flex items-start gap-2">
                                           <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
@@ -683,9 +684,10 @@ export default function PackageSelectionPage() {
                                   {expandedPackageId === pkg.id && (
                                     <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
                                       {(pkg.features || []).map((feature, idx) => {
-                                        const featureName = typeof feature === 'string' ? feature : feature.name;
+                                        const featureName = typeof feature === 'string' ? feature : (feature && feature.name ? feature.name : '');
+                                        if (!featureName) return null;
                                         const highlightedNames = pkg.highlighted_features || [];
-                                        const isHighlighted = typeof feature === 'object' ? feature.is_highlighted : highlightedNames.includes(featureName);
+                                        const isHighlighted = typeof feature === 'object' && feature !== null ? feature.is_highlighted : highlightedNames.includes(featureName);
                                         
                                         // ข้าม highlighted features ที่แสดงไปแล้ว
                                         if (isHighlighted) return null;
