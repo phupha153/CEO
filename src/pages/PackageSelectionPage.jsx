@@ -766,7 +766,7 @@ export default function PackageSelectionPage() {
                                           }
                                         };
                                         const featureName = safeGetNameExpanded(feature);
-                                        if (!featureName) return null;
+                                        if (!featureName || typeof featureName !== 'string') return null;
                                         
                                         // Convert highlighted_features to array of strings for comparison
                                         const rawHighlightedExpanded = pkg.highlighted_features || [];
