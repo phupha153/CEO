@@ -621,11 +621,15 @@ export default function PackageSelectionPage() {
                                 <div className="flex items-center gap-4 mb-4 text-sm">
                                   <div className="flex items-center gap-1.5">
                                     <Users className="w-4 h-4 text-slate-400" />
-                                    <span className="text-slate-600">{typeof pkg.max_users === 'object' ? 'ไม่จำกัด' : (pkg.max_users || 'ไม่จำกัด')} ผู้ใช้</span>
+                                    <span className="text-slate-600">
+                                      {typeof pkg.max_users === 'object' ? 'ไม่จำกัด' : (pkg.max_users ? String(pkg.max_users) : 'ไม่จำกัด')} ผู้ใช้
+                                    </span>
                                   </div>
                                   <div className="flex items-center gap-1.5">
                                     <Building2 className="w-4 h-4 text-slate-400" />
-                                    <span className="text-slate-600">{typeof pkg.max_branches === 'object' ? 'ไม่จำกัด' : (pkg.max_branches || 'ไม่จำกัด')} สาขา</span>
+                                    <span className="text-slate-600">
+                                      {typeof pkg.max_branches === 'object' ? 'ไม่จำกัด' : (pkg.max_branches ? String(pkg.max_branches) : 'ไม่จำกัด')} สาขา
+                                    </span>
                                   </div>
                                 </div>
 
@@ -657,17 +661,24 @@ export default function PackageSelectionPage() {
                                     const featureList = pkg.features || [];
                                     const highlightedNames = pkg.highlighted_features || [];
                                     
+                                    // Helper function to safely get feature name as string
+                                    const getFeatureName = (f) => {
+                                      if (typeof f === 'string') return f;
+                                      if (f && typeof f === 'object' && f.name) return String(f.name);
+                                      return '';
+                                    };
+                                    
                                     // แสดงเฉพาะ highlighted features (สูงสุด 5 รายการ)
                                     const displayFeatures = featureList
                                       .filter(f => {
-                                        const name = typeof f === 'string' ? f : (f && f.name ? f.name : '');
+                                        const name = getFeatureName(f);
                                         const isHighlighted = typeof f === 'object' && f !== null ? f.is_highlighted : highlightedNames.includes(name);
                                         return isHighlighted;
                                       })
                                       .slice(0, 5);
                                     
                                     return displayFeatures.map((feature, idx) => {
-                                      const featureName = typeof feature === 'string' ? feature : (feature && feature.name ? feature.name : '');
+                                      const featureName = getFeatureName(feature);
                                       if (!featureName) return null;
                                       return (
                                         <div key={idx} className="flex items-start gap-2">
@@ -695,10 +706,15 @@ export default function PackageSelectionPage() {
                                   {expandedPackageId === pkg.id && (
                                     <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
                                       {(pkg.features || []).map((feature, idx) => {
-                                        const featureName = typeof feature === 'string' ? feature : (feature && feature.name ? feature.name : '');
+                                        const getFeatureNameExpanded = (f) => {
+                                          if (typeof f === 'string') return f;
+                                          if (f && typeof f === 'object' && f.name) return String(f.name);
+                                          return '';
+                                        };
+                                        const featureName = getFeatureNameExpanded(feature);
                                         if (!featureName) return null;
-                                        const highlightedNames = pkg.highlighted_features || [];
-                                        const isHighlighted = typeof feature === 'object' && feature !== null ? feature.is_highlighted : highlightedNames.includes(featureName);
+                                        const highlightedNamesExpanded = pkg.highlighted_features || [];
+                                        const isHighlighted = typeof feature === 'object' && feature !== null ? feature.is_highlighted : highlightedNamesExpanded.includes(featureName);
                                         
                                         // ข้าม highlighted features ที่แสดงไปแล้ว
                                         if (isHighlighted) return null;
