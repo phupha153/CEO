@@ -1351,7 +1351,16 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
 
     const handleDownloadExistingRooms = () => {
-    const headers = ["id", "branch_id", "room_number", "floor", "room_type", "price", "status", "size", "description", "last_ac_cleaning_date", "water_rate", "electricity_rate", "common_fee"];
+    const headers = ["ไอดี", "ไอดีสาขา", "หมายเลขห้อง", "ชั้น", "ประเภทห้อง", "ราคา", "สถานะ", "ขนาด", "รายละเอียด", "วันที่ล้างแอร์ล่าสุด", "ค่าน้ำต่อหน่วย", "ค่าไฟต่อหน่วย", "ค่าส่วนกลาง"];
+    const statusMap = {
+      'available': 'ว่าง',
+      'occupied': 'มีผู้เช่า',
+      'reserved': 'จอง'
+    };
+    const roomTypeMap = {
+      'monthly': 'รายเดือน',
+      'daily': 'รายวัน'
+    };
     const csvContent = [
         headers.join(','),
         ...rooms.map(r => [
@@ -1359,9 +1368,9 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             r.branch_id,
             r.room_number,
             r.floor,
-            r.room_type,
+            roomTypeMap[r.room_type] || r.room_type,
             r.price,
-            r.status,
+            statusMap[r.status] || r.status,
             r.size || '',
             `"${r.description || ''}"`,
             r.last_ac_cleaning_date || '',

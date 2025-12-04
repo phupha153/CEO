@@ -119,8 +119,24 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      if (!newOpen && !saving) {
+        onOpenChange(false);
+      }
+    }}>
+      <DialogContent 
+        className="max-w-4xl max-h-[90vh] flex flex-col"
+        onPointerDownOutside={(e) => {
+          if (saving) {
+            e.preventDefault();
+          }
+        }}
+        onEscapeKeyDown={(e) => {
+          if (saving) {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="w-5 h-5 text-blue-600" />

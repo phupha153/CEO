@@ -136,7 +136,7 @@ export default function PackageSelectionPage() {
     const pricing = selectedPackage.pricing || {};
     const hasNewStructure = pricing.monthly !== undefined;
     
-    // ดึงราคาตามโครงสร้างที่มี
+    // ดึงราคาตามโครงสร้างที่มี (ราคาจาก CRM รวม VAT แล้ว)
     let baseMonthlyPrice = hasNewStructure ? (pricing.monthly || 0) : (selectedPackage.price_monthly || 0);
     let totalPrice = 0;
     let monthlyPrice = baseMonthlyPrice;
@@ -179,13 +179,11 @@ export default function PackageSelectionPage() {
     
     const subtotal = totalPrice;
     const discountPercent = savings > 0 && baseMonthlyPrice > 0 ? Math.round((savings / (baseMonthlyPrice * months)) * 100) : 0;
-    const vat = subtotal * 0.07;
-    const total = subtotal + vat;
     
     return { 
       subtotal, 
-      vat, 
-      total, 
+      vat: 0,
+      total: subtotal,
       branchCount: selectedPackage.max_branches || 0, 
       userCount: selectedPackage.max_users || 0,
       discount: discountPercent,
@@ -242,7 +240,7 @@ export default function PackageSelectionPage() {
         package_name: selectedPackage.package_name,
         duration_months: parseInt(billingCycle),
         price_per_month: calculatePrice.monthlyPrice,
-        total_amount: calculatePrice.total,
+        total_amount: calculatePrice.subtotal,
         slip_url: slipUrl,
         user_email: currentUser.email,
         user_name: currentUser.full_name,
@@ -756,7 +754,7 @@ export default function PackageSelectionPage() {
                         <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 mb-6 border border-blue-200">
                           <div className="space-y-3">
                             <div className="flex justify-between text-sm">
-                              <span className="text-slate-600">ราคาต่อเดือน</span>
+                              <span className="text-slate-600">ราคาต่อเดือน (รวม VAT 7%)</span>
                               <span className="font-semibold">{calculatePrice.monthlyPrice.toLocaleString()} ฿</span>
                             </div>
                             {calculatePrice.savings > 0 && (
@@ -767,19 +765,11 @@ export default function PackageSelectionPage() {
                                 </p>
                               </div>
                             )}
-                            <div className="flex justify-between text-sm">
-                              <span className="text-slate-600">จำนวน {billingCycle} เดือน</span>
-                              <span className="font-semibold">{calculatePrice.subtotal.toLocaleString()} ฿</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-slate-600">VAT (7%)</span>
-                              <span className="font-semibold">{calculatePrice.vat.toLocaleString()} ฿</span>
-                            </div>
                             <div className="pt-3 border-t-2 border-blue-300">
                               <div className="flex justify-between items-center">
-                                <span className="font-bold text-slate-800">ยอดรวม</span>
+                                <span className="font-bold text-slate-800">ยอดรวมทั้งหมด ({billingCycle} เดือน)</span>
                                 <span className="text-3xl font-bold text-blue-600">
-                                  {calculatePrice.total.toLocaleString()} ฿
+                                  {calculatePrice.subtotal.toLocaleString()} ฿
                                 </span>
                               </div>
                             </div>
@@ -921,8 +911,8 @@ export default function PackageSelectionPage() {
                           <span className="font-bold text-slate-800">{billingCycle} เดือน</span>
                         </div>
                         <div className="flex justify-between items-center pt-2 border-t border-blue-200">
-                          <span className="font-bold text-slate-800">ยอดรวม:</span>
-                          <span className="text-2xl font-bold text-blue-600">{calculatePrice.total.toLocaleString()} ฿</span>
+                          <span className="font-bold text-slate-800">ยอดรวม (รวม VAT 7%):</span>
+                          <span className="text-2xl font-bold text-blue-600">{calculatePrice.subtotal.toLocaleString()} ฿</span>
                         </div>
                       </div>
                     </div>
