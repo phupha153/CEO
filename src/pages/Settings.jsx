@@ -1907,7 +1907,7 @@ export default function Settings() {
                                     />
                                   </div>
                                   <p className="text-xs text-slate-500">
-                                    {!hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInMyBranches)} ที่นั่ง`}
+                                    {isTrialModeCheck ? `จำกัด ${maxUsers} ผู้ใช้ในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInMyBranches)} ที่นั่ง`}
                                   </p>
 
                                   {usersInMyBranches.length > 0 && (
@@ -1966,7 +1966,7 @@ export default function Settings() {
                                     />
                                   </div>
                                   <p className="text-xs text-slate-500">
-                                    {!hasLimit ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInSystem)} สาขา`}
+                                    {isTrialModeCheck ? `จำกัด ${maxBranches} สาขาในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInSystem)} สาขา`}
                                   </p>
 
                                   {branches.length > 0 && (
