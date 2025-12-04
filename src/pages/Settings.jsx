@@ -1906,16 +1906,9 @@ export default function Settings() {
                                       style={{ width: `${usagePercent}%` }}
                                     />
                                   </div>
-                                  {hasLimit && (
-                                    <p className="text-xs text-slate-500">
-                                      เหลือ {Math.max(0, maxUsers - totalUsersInMyBranches)} ที่นั่ง
-                                    </p>
-                                  )}
-                                  {!hasLimit && (
-                                    <p className="text-xs text-green-600 font-semibold">
-                                      ✨ ไม่จำกัดจำนวนผู้ใช้
-                                    </p>
-                                  )}
+                                  <p className="text-xs text-slate-500">
+                                    {!hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInMyBranches)} ที่นั่ง`}
+                                  </p>
 
                                   {usersInMyBranches.length > 0 && (
                                     <div className="pt-3 border-t border-slate-200 space-y-1">
@@ -1972,16 +1965,9 @@ export default function Settings() {
                                       style={{ width: `${usagePercent}%` }}
                                     />
                                   </div>
-                                  {hasLimit && (
-                                    <p className="text-xs text-slate-500">
-                                      สร้างได้อีก {Math.max(0, maxBranches - totalBranchesInSystem)} สาขา
-                                    </p>
-                                  )}
-                                  {!hasLimit && (
-                                    <p className="text-xs text-purple-600 font-semibold">
-                                      ✨ ไม่จำกัดจำนวนสาขา
-                                    </p>
-                                  )}
+                                  <p className="text-xs text-slate-500">
+                                    {!hasLimit ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInSystem)} สาขา`}
+                                  </p>
 
                                   {branches.length > 0 && (
                                     <div className="pt-3 border-t border-slate-200 space-y-1">
