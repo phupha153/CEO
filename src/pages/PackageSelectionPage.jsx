@@ -703,7 +703,7 @@ export default function PackageSelectionPage() {
                                     };
                                     
                                     // Convert highlighted_features to array of strings
-                                    const highlightedNames = rawHighlighted.map(h => safeGetName(h)).filter(Boolean);
+                                    const highlightedNames = rawHighlighted.map(h => safeGetName(h)).filter(n => n && typeof n === 'string');
                                     
                                     // แสดงเฉพาะ highlighted features (สูงสุด 5 รายการ)
                                     const displayFeatures = featureList
@@ -720,10 +720,13 @@ export default function PackageSelectionPage() {
                                     return finalFeatures.map((feature, idx) => {
                                       const featureName = safeGetName(feature);
                                       if (!featureName || typeof featureName !== 'string') return null;
+                                      // Double check it's a primitive string before rendering
+                                      const displayName = String(featureName);
+                                      if (typeof displayName !== 'string') return null;
                                       return (
                                         <div key={idx} className="flex items-start gap-2">
                                           <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
-                                          <span className="text-sm text-slate-600">{String(featureName)}</span>
+                                          <span className="text-sm text-slate-600">{displayName}</span>
                                         </div>
                                       );
                                     });
@@ -770,7 +773,7 @@ export default function PackageSelectionPage() {
                                         
                                         // Convert highlighted_features to array of strings for comparison
                                         const rawHighlightedExpanded = pkg.highlighted_features || [];
-                                        const highlightedNamesExpanded = rawHighlightedExpanded.map(h => safeGetNameExpanded(h)).filter(Boolean);
+                                        const highlightedNamesExpanded = rawHighlightedExpanded.map(h => safeGetNameExpanded(h)).filter(n => n && typeof n === 'string');
                                         const isHighlighted = (typeof feature === 'object' && feature !== null && feature.is_highlighted === true) || highlightedNamesExpanded.includes(featureName);
                                         
                                         // ข้าม highlighted features ที่แสดงไปแล้ว (ถ้ามี highlighted features)
@@ -781,10 +784,13 @@ export default function PackageSelectionPage() {
                                         // ตรวจสอบอีกครั้งว่า featureName เป็น string
                                         if (typeof featureName !== 'string') return null;
                                         
+                                        // Double check it's a primitive string before rendering
+                                        const displayNameExp = String(featureName);
+                                        if (typeof displayNameExp !== 'string') return null;
                                         return (
                                           <div key={idx} className="flex items-start gap-2">
                                             <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-300" />
-                                            <span className="text-sm text-slate-500">{String(featureName)}</span>
+                                            <span className="text-sm text-slate-500">{displayNameExp}</span>
                                           </div>
                                         );
                                       })}
