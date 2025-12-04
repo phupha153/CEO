@@ -628,13 +628,25 @@ export default function PackageSelectionPage() {
                                   <div className="flex items-center gap-1.5">
                                     <Users className="w-4 h-4 text-slate-400" />
                                     <span className="text-slate-600">
-                                      {typeof pkg.max_users === 'object' ? 'ไม่จำกัด' : (pkg.max_users ? String(pkg.max_users) : 'ไม่จำกัด')} ผู้ใช้
+                                      {(() => {
+                                        if (pkg.max_users === null || pkg.max_users === undefined) return 'ไม่จำกัด';
+                                        if (typeof pkg.max_users === 'object') return 'ไม่จำกัด';
+                                        if (typeof pkg.max_users === 'number') return String(pkg.max_users);
+                                        if (typeof pkg.max_users === 'string') return pkg.max_users;
+                                        return 'ไม่จำกัด';
+                                      })()} ผู้ใช้
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-1.5">
                                     <Building2 className="w-4 h-4 text-slate-400" />
                                     <span className="text-slate-600">
-                                      {typeof pkg.max_branches === 'object' ? 'ไม่จำกัด' : (pkg.max_branches ? String(pkg.max_branches) : 'ไม่จำกัด')} สาขา
+                                      {(() => {
+                                        if (pkg.max_branches === null || pkg.max_branches === undefined) return 'ไม่จำกัด';
+                                        if (typeof pkg.max_branches === 'object') return 'ไม่จำกัด';
+                                        if (typeof pkg.max_branches === 'number') return String(pkg.max_branches);
+                                        if (typeof pkg.max_branches === 'string') return pkg.max_branches;
+                                        return 'ไม่จำกัด';
+                                      })()} สาขา
                                     </span>
                                   </div>
                                 </div>
