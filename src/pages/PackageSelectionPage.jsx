@@ -674,47 +674,24 @@ export default function PackageSelectionPage() {
 
                                 {/* Features */}
                                 <div className="space-y-3 flex-1">
-                                  {(() => {
-                                    // รองรับทั้ง array ของ string และ array ของ object
-                                    const rawFeatureList = pkg.features;
-                                    if (!rawFeatureList || !Array.isArray(rawFeatureList)) return null;
-                                    
-                                    // Extract feature names as strings only
-                                    const getFeatureText = (f) => {
-                                      if (!f) return null;
-                                      if (typeof f === 'string') return f;
-                                      if (typeof f === 'number') return String(f);
-                                      if (typeof f === 'object' && f !== null) {
-                                        // Object with {name, is_highlighted} structure
-                                        if (typeof f.name === 'string') return f.name;
-                                        if (typeof f.name === 'number') return String(f.name);
-                                        if (typeof f.text === 'string') return f.text;
-                                        if (typeof f.label === 'string') return f.label;
-                                      }
-                                      return null;
-                                    };
-                                    
-                                    // Get highlighted features first
-                                    const highlightedFeatures = rawFeatureList.filter(f => 
-                                      f && typeof f === 'object' && f.is_highlighted === true
+                                  {Array.isArray(pkg.features) && pkg.features.slice(0, 5).map((feature, idx) => {
+                                    // Extract text from feature - handle both string and object
+                                    let text = '';
+                                    if (typeof feature === 'string') {
+                                      text = feature;
+                                    } else if (feature && typeof feature === 'object') {
+                                      if (typeof feature.name === 'string') text = feature.name;
+                                      else if (typeof feature.text === 'string') text = feature.text;
+                                      else if (typeof feature.label === 'string') text = feature.label;
+                                    }
+                                    if (!text) return null;
+                                    return (
+                                      <div key={idx} className="flex items-start gap-2">
+                                        <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
+                                        <span className="text-sm text-slate-600">{text}</span>
+                                      </div>
                                     );
-                                    
-                                    // Use highlighted if available, otherwise first 5
-                                    const featuresToShow = highlightedFeatures.length > 0 
-                                      ? highlightedFeatures.slice(0, 5) 
-                                      : rawFeatureList.slice(0, 5);
-                                    
-                                    return featuresToShow.map((feature, idx) => {
-                                      const text = getFeatureText(feature);
-                                      if (!text || typeof text !== 'string') return null;
-                                      return (
-                                        <div key={idx} className="flex items-start gap-2">
-                                          <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-400" />
-                                          <span className="text-sm text-slate-600">{text}</span>
-                                        </div>
-                                      );
-                                    });
-                                  })()}
+                                  })}
                                   
                                   {/* ปุ่มดูเพิ่มเติม */}
                                   {Array.isArray(pkg.features) && pkg.features.length > 0 && (
@@ -730,49 +707,25 @@ export default function PackageSelectionPage() {
                                   )}
                                   
                                   {/* แสดง features ทั้งหมดเมื่อกด expand */}
-                                  {expandedPackageId === pkg.id && (
+                                  {expandedPackageId === pkg.id && Array.isArray(pkg.features) && pkg.features.length > 5 && (
                                     <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
-                                      {(() => {
-                                        const rawAllFeatures = pkg.features;
-                                        if (!rawAllFeatures || !Array.isArray(rawAllFeatures)) return null;
-                                        
-                                        const getFeatureTextExp = (f) => {
-                                          if (!f) return null;
-                                          if (typeof f === 'string') return f;
-                                          if (typeof f === 'number') return String(f);
-                                          if (typeof f === 'object' && f !== null) {
-                                            if (typeof f.name === 'string') return f.name;
-                                            if (typeof f.name === 'number') return String(f.name);
-                                            if (typeof f.text === 'string') return f.text;
-                                            if (typeof f.label === 'string') return f.label;
-                                          }
-                                          return null;
-                                        };
-                                        
-                                        // Get highlighted count to know where to start
-                                        const highlightedCount = rawAllFeatures.filter(f => 
-                                          f && typeof f === 'object' && f.is_highlighted === true
-                                        ).length;
-                                        
-                                        // Skip first 5 or highlighted features (already shown above)
-                                        const startIdx = highlightedCount > 0 ? 0 : 5;
-                                        
-                                        return rawAllFeatures.map((feature, idx) => {
-                                          // Skip highlighted features (shown above)
-                                          if (feature && typeof feature === 'object' && feature.is_highlighted === true) return null;
-                                          // Skip first 5 if no highlighted
-                                          if (highlightedCount === 0 && idx < 5) return null;
-                                          
-                                          const text = getFeatureTextExp(feature);
-                                          if (!text || typeof text !== 'string') return null;
-                                          return (
-                                            <div key={idx} className="flex items-start gap-2">
-                                              <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-300" />
-                                              <span className="text-sm text-slate-500">{text}</span>
-                                            </div>
-                                          );
-                                        });
-                                      })()}
+                                      {pkg.features.slice(5).map((feature, idx) => {
+                                        let text = '';
+                                        if (typeof feature === 'string') {
+                                          text = feature;
+                                        } else if (feature && typeof feature === 'object') {
+                                          if (typeof feature.name === 'string') text = feature.name;
+                                          else if (typeof feature.text === 'string') text = feature.text;
+                                          else if (typeof feature.label === 'string') text = feature.label;
+                                        }
+                                        if (!text) return null;
+                                        return (
+                                          <div key={idx} className="flex items-start gap-2">
+                                            <Check className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-300" />
+                                            <span className="text-sm text-slate-500">{text}</span>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   )}
                                 </div>
