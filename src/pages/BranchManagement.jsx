@@ -120,14 +120,19 @@ export default function BranchManagement() {
     onSuccess: async (newBranch, variables) => {
       queryClient.invalidateQueries(['branches']);
 
-      // ⭐ สร้างการตั้งค่าเริ่มต้นจาก Template "Double Residence" (ล็อคค่าไว้แล้ว)
+      // ⭐ สร้างการตั้งค่าเริ่มต้น (ค่าว่างเปล่า - ให้ผู้ใช้กรอกเอง)
       try {
         const defaultConfigs = [
-          { key: 'building_name', value: 'Double Residence', value_type: 'string', description: 'ชื่อหอพัก', category: 'general' },
-          { key: 'building_address', value: '28/244 หมู่ 4 ถนนมหาธรรมการ 4 ซอย 6 ตำบล/แขวงลาดพร้าว อำเภอ/เขตลาดพร้าว จ.กรุงเทพมหานคร', value_type: 'string', description: 'ที่อยู่หอพัก', category: 'general' },
-          { key: 'building_phone', value: '0955939229', value_type: 'string', description: 'เบอร์โทรหอพัก', category: 'general' },
-          { key: 'lessor_name', value: 'ธนานนท์ พรมพักตร์', value_type: 'string', description: 'ชื่อ-นามสกุลผู้ให้เช่า', category: 'general' },
-          { key: 'lessor_address', value: '28/244 หมู่ 4 ถนนมหาธรรมการ 4 ซอย 6 ตำบล/แขวงลาดพร้าว อำเภอ/เขตลาดพร้าว จ.กรุงเทพมหานคร', value_type: 'string', description: 'ที่อยู่ผู้ให้เช่า', category: 'general' },
+          { key: 'building_name', value: '', value_type: 'string', description: 'ชื่อหอพัก', category: 'general' },
+          { key: 'building_address', value: '', value_type: 'string', description: 'ที่อยู่หอพัก', category: 'general' },
+          { key: 'building_phone', value: '', value_type: 'string', description: 'เบอร์โทรหอพัก', category: 'general' },
+          { key: 'lessor_name', value: '', value_type: 'string', description: 'ชื่อ-นามสกุลผู้ให้เช่า', category: 'general' },
+          { key: 'lessor_address', value: '', value_type: 'string', description: 'ที่อยู่ผู้ให้เช่า', category: 'general' },
+          { key: 'bank_name', value: '', value_type: 'string', description: 'ชื่อธนาคาร', category: 'billing' },
+          { key: 'bank_account_number', value: '', value_type: 'string', description: 'เลขที่บัญชี', category: 'billing' },
+          { key: 'bank_account_name', value: '', value_type: 'string', description: 'ชื่อบัญชี', category: 'billing' },
+          { key: 'promptpay', value: '', value_type: 'string', description: 'พร้อมเพย์', category: 'billing' },
+          { key: 'receipt_signature', value: '', value_type: 'string', description: 'ลายเซ็นผู้รับเงิน', category: 'billing' },
           { key: 'water_rate', value: '18', value_type: 'number', description: 'ค่าน้ำต่อหน่วย (บาท)', category: 'billing' },
           { key: 'electricity_rate', value: '8', value_type: 'number', description: 'ค่าไฟต่อหน่วย (บาท)', category: 'billing' },
           { key: 'internet_rate', value: '0', value_type: 'number', description: 'ค่าอินเทอร์เน็ต (บาท)', category: 'billing' },
