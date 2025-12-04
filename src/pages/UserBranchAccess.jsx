@@ -359,6 +359,13 @@ export default function UserBranchAccess() {
       pricePerMonth = pricing.yearly_per_month || pricePerMonth;
     }
 
+    // Extract feature names as strings only
+    const features = (selectedCrmPackage.features || []).map(f => {
+      if (typeof f === 'string') return f;
+      if (f && typeof f === 'object' && typeof f.name === 'string') return f.name;
+      return null;
+    }).filter(f => f !== null);
+
     const packageData = {
       package_id: selectedCrmPackage.id,
       package_name: selectedCrmPackage.package_name,
@@ -366,7 +373,7 @@ export default function UserBranchAccess() {
       subscription_end_date: packageFormData.subscription_end_date,
       status: 'active',
       price_per_month: pricePerMonth,
-      features: selectedCrmPackage.features || [],
+      features: features,
     };
 
     console.log('Saving package:', { ownerEmail: selectedUser.email, packageData, isEditing: isEditingPackage });
