@@ -237,7 +237,7 @@ export default function PackageSelectionPage() {
       // ✅ ไม่ส่ง branch_ids - ให้ function ใช้ owner_email หาสาขาเอง
       const result = await base44.functions.invoke('processSubscriptionPayment', {
         package_id: selectedPackageId,
-        package_name: selectedPackage.package_name,
+        package_name: typeof selectedPackage.package_name === 'string' ? selectedPackage.package_name : (selectedPackage.package_name?.name || ''),
         duration_months: parseInt(billingCycle),
         price_per_month: calculatePrice.monthlyPrice,
         total_amount: calculatePrice.subtotal,
@@ -493,8 +493,9 @@ export default function PackageSelectionPage() {
                       const isDisabled = pkg.is_active === false;
                       
                       // กำหนดไอคอนและสีตาม package_name
-                      const isBasic = pkg.package_name?.toLowerCase().includes('basic') || pkg.package_name?.toLowerCase().includes('nano');
-                      const isPro = pkg.package_name?.toLowerCase().includes('pro') || pkg.package_name?.toLowerCase().includes('micro');
+                      const pkgName = typeof pkg.package_name === 'string' ? pkg.package_name : (pkg.package_name?.name || '');
+                      const isBasic = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano');
+                      const isPro = pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro');
                       const isElite = !isBasic && !isPro;
                       
                       const packageIcon = isBasic ? Settings : isPro ? Sparkles : Crown;
