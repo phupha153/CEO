@@ -681,21 +681,29 @@ export default function PackageSelectionPage() {
                                     const featureList = Array.isArray(rawFeatureList) ? rawFeatureList : [];
                                     const rawHighlighted = Array.isArray(pkg.highlighted_features) ? pkg.highlighted_features : [];
                                     
-                                    // Helper function to safely get feature name as string - MUST return string only
+                                    // Helper function to safely get feature name as string - MUST return primitive string only
                                     const safeGetName = (f) => {
                                       try {
                                         if (f === null || f === undefined) return '';
                                         if (typeof f === 'string') return f;
-                                        if (typeof f === 'number') return String(f);
+                                        if (typeof f === 'number' || typeof f === 'boolean') return String(f);
                                         if (typeof f === 'object') {
                                           // ดึง name ออกมา
                                           const nameValue = f.name;
                                           if (typeof nameValue === 'string') return nameValue;
                                           if (typeof nameValue === 'number') return String(nameValue);
-                                          // ถ้า name เป็น object อีกชั้น
-                                          if (nameValue && typeof nameValue === 'object' && typeof nameValue.name === 'string') {
-                                            return nameValue.name;
+                                          // ถ้า name เป็น object อีกชั้น ให้ดึง name.name
+                                          if (nameValue && typeof nameValue === 'object') {
+                                            if (typeof nameValue.name === 'string') return nameValue.name;
+                                            if (typeof nameValue.name === 'number') return String(nameValue.name);
+                                            // ลองดึง text หรือ value
+                                            if (typeof nameValue.text === 'string') return nameValue.text;
+                                            if (typeof nameValue.value === 'string') return nameValue.value;
                                           }
+                                          // ลองดึง text หรือ label จาก object ตรงๆ
+                                          if (typeof f.text === 'string') return f.text;
+                                          if (typeof f.label === 'string') return f.label;
+                                          if (typeof f.value === 'string') return f.value;
                                           return '';
                                         }
                                         return '';
@@ -757,14 +765,20 @@ export default function PackageSelectionPage() {
                                           try {
                                             if (f === null || f === undefined) return '';
                                             if (typeof f === 'string') return f;
-                                            if (typeof f === 'number') return String(f);
+                                            if (typeof f === 'number' || typeof f === 'boolean') return String(f);
                                             if (typeof f === 'object') {
                                               const nameValue = f.name;
                                               if (typeof nameValue === 'string') return nameValue;
                                               if (typeof nameValue === 'number') return String(nameValue);
-                                              if (nameValue && typeof nameValue === 'object' && typeof nameValue.name === 'string') {
-                                                return nameValue.name;
+                                              if (nameValue && typeof nameValue === 'object') {
+                                                if (typeof nameValue.name === 'string') return nameValue.name;
+                                                if (typeof nameValue.name === 'number') return String(nameValue.name);
+                                                if (typeof nameValue.text === 'string') return nameValue.text;
+                                                if (typeof nameValue.value === 'string') return nameValue.value;
                                               }
+                                              if (typeof f.text === 'string') return f.text;
+                                              if (typeof f.label === 'string') return f.label;
+                                              if (typeof f.value === 'string') return f.value;
                                               return '';
                                             }
                                             return '';
