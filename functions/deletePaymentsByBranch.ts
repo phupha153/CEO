@@ -1,0 +1,84 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+
+Deno.serve(async (req) => {
+    try {
+        const base44 = createClientFromRequest(req);
+        
+        // Verify user is authenticated
+        const user = await base44.auth.me();
+        if (!user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // Parse request body
+        const body = await req.json();
+        const branchId = body.branch_id;
+        
+        if (!branchId) {
+            return Response.json({ error: 'branch_id is required' }, { status: 400 });
+        }
+
+        console.log('🗑️ Deleting all payments for branch:', branchId);
+
+        let deletedCount = 0;
+        let hasMore = true;
+        const maxIterations = 10000;
+        let iterations = 0;
+
+        while (hasMore && iterations < maxIterations) {
+            try {
+                // ดึง payments ของสาขานี้
+                const payments = await base44.asServiceRole.entities.Payment.filter(
+                    { branch_id: branchId }, 
+                    '-created_date', 
+                    100
+                );
+                
+                if (!payments || payments.length === 0) {
+                    hasMore = false;
+                    break;
+                }
+
+                // ลบทีละรายการ
+                for (const payment of payments) {
+                    try {
+                        await base44.asServiceRole.entities.Payment.delete(payment.id);
+                        deletedCount++;
+                        
+                        if (deletedCount % 100 === 0) {
+                            console.log(`🗑️ Progress: Deleted ${deletedCount} payments...`);
+                        }
+                    } catch (e) {
+                        console.error(`Failed to delete payment ${payment.id}:`, e.message);
+                    }
+                }
+
+                iterations++;
+                
+                // Delay เล็กน้อยเพื่อลด rate limit
+                await new Promise(resolve => setTimeout(resolve, 50));
+
+            } catch (e) {
+                console.error('Error in batch:', e.message);
+                hasMore = false;
+            }
+        }
+
+        console.log(`✅ Deletion completed! Total deleted: ${deletedCount} payments`);
+
+        return Response.json({
+            success: true,
+            message: `ลบ Payment สำเร็จ ${deletedCount} รายการ (สาขา ${branchId})`,
+            deletedCount,
+            iterations
+        });
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        return Response.json({ 
+            success: false, 
+            error: error.message,
+            stack: error.stack 
+        }, { status: 500 });
+    }
+});
