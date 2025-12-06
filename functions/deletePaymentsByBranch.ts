@@ -45,8 +45,8 @@ Deno.serve(async (req) => {
                         await base44.asServiceRole.entities.Payment.delete(payment.id);
                         deletedCount++;
                         
-                        if (deletedCount % 100 === 0) {
-                            console.log(`🗑️ Progress: Deleted ${deletedCount} payments...`);
+                        if (deletedCount % 50 === 0) {
+                            console.log(`🗑️ ลบแล้ว ${deletedCount} รายการ | ล่าสุด: ID ${payment.id.substring(0, 8)}... (${payment.payment_category || 'N/A'}) ${payment.total_amount || 0} บาท`);
                         }
                     } catch (e) {
                         console.error(`Failed to delete payment ${payment.id}:`, e.message);
