@@ -11,6 +11,7 @@ export default function F12Page() {
   const logsEndRef = useRef(null);
   const originalConsole = useRef({});
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteProgress, setDeleteProgress] = useState({ deleted: 0, remaining: 0, initial: 0 });
 
   useEffect(() => {
     // บันทึก console functions เดิม
@@ -109,17 +110,30 @@ export default function F12Page() {
     setIsDeleting(true);
     console.log('🗑️ เริ่มลบ Payment ของสาขา 69255a34e816a8749fc765c2...');
     
+    // นับจำนวนเริ่มต้น
+    try {
+      const initial = await base44.entities.Payment.filter({ 
+        branch_id: '69255a34e816a8749fc765c2' 
+      });
+      setDeleteProgress({ deleted: 0, remaining: initial.length, initial: initial.length });
+      console.log(`📊 เริ่มต้น: ${initial.length} รายการ`);
+    } catch (e) {
+      console.warn('ไม่สามารถนับจำนวนเริ่มต้นได้:', e.message);
+    }
+    
     // เริ่ม polling เพื่อแสดง progress
     const checkInterval = setInterval(async () => {
       try {
         const remaining = await base44.entities.Payment.filter({ 
           branch_id: '69255a34e816a8749fc765c2' 
         });
-        console.log(`⏳ เหลือ Payment อีก ${remaining.length} รายการ...`);
+        const deleted = deleteProgress.initial - remaining.length;
+        setDeleteProgress(prev => ({ ...prev, deleted, remaining: remaining.length }));
+        console.log(`⏳ ลบไปแล้ว ${deleted} รายการ | เหลืออีก ${remaining.length} รายการ`);
       } catch (e) {
         console.warn('ไม่สามารถเช็คจำนวนได้:', e.message);
       }
-    }, 3000); // เช็คทุก 3 วินาที
+    }, 3000);
     
     try {
       const result = await base44.functions.invoke('deletePaymentsByBranch', { 
@@ -129,6 +143,7 @@ export default function F12Page() {
       clearInterval(checkInterval);
       console.log('✅ ผลลัพธ์:', result.data);
       toast.success(result.data.message || `ลบสำเร็จ ${result.data.deletedCount} รายการ`);
+      setDeleteProgress({ deleted: result.data.deletedCount, remaining: 0, initial: deleteProgress.initial });
     } catch (error) {
       clearInterval(checkInterval);
       console.error('❌ เกิดข้อผิดพลาด:', error);
@@ -154,7 +169,7 @@ export default function F12Page() {
               disabled={isDeleting}
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              {isDeleting ? 'กำลังลบ...' : 'ลบ Wresident87777'}
+              {isDeleting ? `ลบแล้ว ${deleteProgress.deleted}/${deleteProgress.initial}` : 'ลบ Wresident87777'}
             </Button>
             <Button onClick={clearLogs} variant="outline" size="sm">
               <Trash2 className="w-4 h-4 mr-2" />
