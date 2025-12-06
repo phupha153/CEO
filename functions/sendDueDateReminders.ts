@@ -72,45 +72,70 @@ Deno.serve(async (req) => {
             console.log(`📅 Using Thailand date: ${todayString} (UTC: ${now.toISOString()})`);
         }
 
-        // 3. หาบิลที่ครบกำหนดชำระวันนี้ (ยังไม่ชำระ)
+        // 3. หาบิลที่ครบกำหนดชำระวันนี้ (ยังไม่ชำระ) - แบบ pagination
         console.log('🔍 Fetching payments with pagination...');
         
-        // ⭐ ดึง Payments เฉพาะที่ due_date = วันนี้ และยังไม่ชำระ (ลดขนาดข้อมูล)
-        console.log(`📥 Fetching payments with due_date=${todayString} and pending/overdue status...`);
-        let payments = [];
+        const parseResult = (result) => {
+            if (Array.isArray(result)) return result;
+            if (typeof result === 'string') {
+                try {
+                    const parsed = JSON.parse(result);
+                    if (Array.isArray(parsed)) return parsed;
+                } catch (e) {
+                    console.error('❌ JSON parse error:', e.message);
+                }
+            }
+            return [];
+        };
+        
+        let allPayments = [];
         
         try {
-            // ดึงเฉพาะ payment ที่ครบกำหนดวันนี้
-            const pendingPayments = await base44.asServiceRole.entities.Payment.filter(
-                { due_date: todayString, status: 'pending' },
-                '-created_date',
-                1000
-            );
-            const overduePayments = await base44.asServiceRole.entities.Payment.filter(
-                { due_date: todayString, status: 'overdue' },
-                '-created_date',
-                1000
-            );
+            // ⭐ ดึง pending payments แบบ pagination
+            let skip = 0;
+            const limit = 1000;
+            let hasMorePending = true;
             
-            // รวมผลลัพธ์
-            const parseResult = (result) => {
-                if (Array.isArray(result)) return result;
-                if (typeof result === 'string') {
-                    try {
-                        const parsed = JSON.parse(result);
-                        if (Array.isArray(parsed)) return parsed;
-                    } catch (e) {
-                        console.error('❌ JSON parse error:', e.message);
-                    }
-                }
-                return [];
-            };
+            while (hasMorePending && skip < 50000) {
+                const batch = await base44.asServiceRole.entities.Payment.filter(
+                    { due_date: todayString, status: 'pending' },
+                    '-created_date',
+                    limit,
+                    skip
+                );
+                const parsed = parseResult(batch);
+                allPayments = [...allPayments, ...parsed];
+                skip += limit;
+                
+                if (parsed.length < limit) hasMorePending = false;
+                console.log(`📥 Pending batch: ${parsed.length} payments (total: ${allPayments.length})`);
+            }
             
-            payments = [...parseResult(pendingPayments), ...parseResult(overduePayments)];
-            console.log(`✅ Fetched ${payments.length} payments (pending: ${parseResult(pendingPayments).length}, overdue: ${parseResult(overduePayments).length})`);
+            // ⭐ ดึง overdue payments แบบ pagination
+            skip = 0;
+            let hasMoreOverdue = true;
+            
+            while (hasMoreOverdue && skip < 50000) {
+                const batch = await base44.asServiceRole.entities.Payment.filter(
+                    { due_date: todayString, status: 'overdue' },
+                    '-created_date',
+                    limit,
+                    skip
+                );
+                const parsed = parseResult(batch);
+                allPayments = [...allPayments, ...parsed];
+                skip += limit;
+                
+                if (parsed.length < limit) hasMoreOverdue = false;
+                console.log(`📥 Overdue batch: ${parsed.length} payments (total: ${allPayments.length})`);
+            }
+            
+            console.log(`✅ Total fetched: ${allPayments.length} payments due today`);
         } catch (err) {
             console.error('❌ Error fetching payments:', err.message);
         }
+        
+        const payments = allPayments;
 
         // ⭐ Debug: แสดงตัวอย่าง payment ถ้ามี
         if (payments.length > 0) {
@@ -150,44 +175,48 @@ Deno.serve(async (req) => {
             });
         }
 
-        // ⭐ Helper: แปลง result เป็น array
-        const parseResult = (result) => {
-            if (Array.isArray(result)) return result;
-            if (typeof result === 'string') {
-                try {
-                    const parsed = JSON.parse(result);
-                    if (Array.isArray(parsed)) return parsed;
-                } catch (e) {
-                    console.error('❌ JSON parse error:', e.message);
-                }
-            }
-            return [];
-        };
-
-        // ⭐ ดึงข้อมูล Tenant และ Room เฉพาะที่เกี่ยวข้อง
-        console.log('📥 Pre-fetching tenants and rooms...');
-        const tenantIds = [...new Set(payments.map(p => p.tenant_id).filter(Boolean))];
-        const roomIds = [...new Set(payments.map(p => p.room_id).filter(Boolean))];
+        // ⭐ ดึงข้อมูล Tenant และ Room แบบ batch เพื่อลด rate limit
+        console.log('📥 Pre-fetching tenants and rooms in batches...');
+        const tenantIds = [...new Set(dueToday.map(p => p.tenant_id).filter(Boolean))];
+        const roomIds = [...new Set(dueToday.map(p => p.room_id).filter(Boolean))];
         
         let allTenants = [];
         let allRooms = [];
         
-        // ดึง tenant ทีละ batch เพื่อหลีกเลี่ยงปัญหา JSON ใหญ่เกิน
-        for (const tenantId of tenantIds) {
+        // ⭐ ดึง tenant แบบ batch 50 รายการต่อครั้ง
+        const tenantBatchSize = 50;
+        for (let i = 0; i < tenantIds.length; i += tenantBatchSize) {
+            const batchIds = tenantIds.slice(i, i + tenantBatchSize);
             try {
-                const tenants = await base44.asServiceRole.entities.Tenant.filter({ id: tenantId }, '-created_date', 1);
-                allTenants = allTenants.concat(parseResult(tenants));
+                const batchTenants = await base44.asServiceRole.entities.Tenant.list('-created_date', 10000);
+                const filtered = batchTenants.filter(t => batchIds.includes(t.id));
+                allTenants = allTenants.concat(filtered);
+                console.log(`📥 Tenant batch ${Math.floor(i / tenantBatchSize) + 1}: ${filtered.length}/${batchIds.length} found`);
+                
+                // delay เล็กน้อยเพื่อลด rate limit
+                if (i + tenantBatchSize < tenantIds.length) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
             } catch (e) {
-                console.error(`❌ Error fetching tenant ${tenantId}:`, e.message);
+                console.error(`❌ Error fetching tenant batch:`, e.message);
             }
         }
         
-        for (const roomId of roomIds) {
+        // ⭐ ดึง room แบบ batch
+        const roomBatchSize = 100;
+        for (let i = 0; i < roomIds.length; i += roomBatchSize) {
+            const batchIds = roomIds.slice(i, i + roomBatchSize);
             try {
-                const rooms = await base44.asServiceRole.entities.Room.filter({ id: roomId }, '-created_date', 1);
-                allRooms = allRooms.concat(parseResult(rooms));
+                const batchRooms = await base44.asServiceRole.entities.Room.list('-created_date', 10000);
+                const filtered = batchRooms.filter(r => batchIds.includes(r.id));
+                allRooms = allRooms.concat(filtered);
+                console.log(`📥 Room batch ${Math.floor(i / roomBatchSize) + 1}: ${filtered.length}/${batchIds.length} found`);
+                
+                if (i + roomBatchSize < roomIds.length) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
             } catch (e) {
-                console.error(`❌ Error fetching room ${roomId}:`, e.message);
+                console.error(`❌ Error fetching room batch:`, e.message);
             }
         }
         
