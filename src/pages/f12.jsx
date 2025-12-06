@@ -109,14 +109,28 @@ export default function F12Page() {
     setIsDeleting(true);
     console.log('🗑️ เริ่มลบ Payment ของสาขา 69255a34e816a8749fc765c2...');
     
+    // เริ่ม polling เพื่อแสดง progress
+    const checkInterval = setInterval(async () => {
+      try {
+        const remaining = await base44.entities.Payment.filter({ 
+          branch_id: '69255a34e816a8749fc765c2' 
+        });
+        console.log(`⏳ เหลือ Payment อีก ${remaining.length} รายการ...`);
+      } catch (e) {
+        console.warn('ไม่สามารถเช็คจำนวนได้:', e.message);
+      }
+    }, 3000); // เช็คทุก 3 วินาที
+    
     try {
       const result = await base44.functions.invoke('deletePaymentsByBranch', { 
         branch_id: '69255a34e816a8749fc765c2' 
       });
       
+      clearInterval(checkInterval);
       console.log('✅ ผลลัพธ์:', result.data);
       toast.success(result.data.message || `ลบสำเร็จ ${result.data.deletedCount} รายการ`);
     } catch (error) {
+      clearInterval(checkInterval);
       console.error('❌ เกิดข้อผิดพลาด:', error);
       toast.error('ลบไม่สำเร็จ: ' + error.message);
     } finally {
