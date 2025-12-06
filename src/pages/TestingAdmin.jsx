@@ -2627,41 +2627,101 @@ export default function TestingAdmin() {
               </div>
 
               <div>
-                <Label className="text-sm font-semibold mb-3 block">เลือกประเภทข้อมูลที่ต้องการลบ</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    { key: 'Payment', label: '💰 การชำระเงิน', icon: Wallet },
-                    { key: 'MeterReading', label: '📏 บันทึกมิเตอร์', icon: Gauge },
-                    { key: 'Booking', label: '📅 การจอง', icon: Calendar },
-                    { key: 'Tenant', label: '👥 ผู้เช่า', icon: Users },
-                    { key: 'Room', label: '🏠 ห้องพัก', icon: DoorOpen },
-                    { key: 'MaintenanceRequest', label: '🔧 แจ้งซ่อม', icon: Wrench },
-                    { key: 'Expense', label: '💸 ค่าใช้จ่าย', icon: Wallet },
-                    { key: 'Contract', label: '📄 สัญญา', icon: FileText },
-                    { key: 'MaterialDelivery', label: '📦 พัสดุ', icon: Database }
-                  ].map(({ key, label, icon: Icon }) => (
-                    <label 
-                      key={key}
-                      className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                        customDeleteForm.entityTypes[key] 
-                          ? 'bg-red-100 border-red-400 text-red-900' 
-                          : 'bg-white border-slate-200 hover:border-orange-300'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={customDeleteForm.entityTypes[key]}
-                        onChange={(e) => setCustomDeleteForm({
-                          ...customDeleteForm,
-                          entityTypes: { ...customDeleteForm.entityTypes, [key]: e.target.checked }
-                        })}
-                        className="w-4 h-4"
-                      />
-                      <Icon className="w-4 h-4" />
-                      <span className="text-sm font-medium">{label}</span>
-                    </label>
-                  ))}
-                </div>
+               <Label className="text-sm font-semibold mb-3 block">เลือกประเภทข้อมูลที่ต้องการลบ</Label>
+               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                 {[
+                   { key: 'Payment', label: '💰 การชำระเงิน', icon: Wallet },
+                   { key: 'MeterReading', label: '📏 บันทึกมิเตอร์', icon: Gauge },
+                   { key: 'Booking', label: '📅 การจอง', icon: Calendar },
+                   { key: 'Tenant', label: '👥 ผู้เช่า', icon: Users },
+                   { key: 'Room', label: '🏠 ห้องพัก', icon: DoorOpen },
+                   { key: 'MaintenanceRequest', label: '🔧 แจ้งซ่อม', icon: Wrench },
+                   { key: 'Expense', label: '💸 ค่าใช้จ่าย', icon: Wallet },
+                   { key: 'Contract', label: '📄 สัญญา', icon: FileText },
+                   { key: 'MaterialDelivery', label: '📦 พัสดุ', icon: Database }
+                 ].map(({ key, label, icon: Icon }) => (
+                   <label 
+                     key={key}
+                     className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                       customDeleteForm.entityTypes[key] 
+                         ? 'bg-red-100 border-red-400 text-red-900' 
+                         : 'bg-white border-slate-200 hover:border-orange-300'
+                     }`}
+                   >
+                     <input
+                       type="checkbox"
+                       checked={customDeleteForm.entityTypes[key]}
+                       onChange={(e) => setCustomDeleteForm({
+                         ...customDeleteForm,
+                         entityTypes: { ...customDeleteForm.entityTypes, [key]: e.target.checked }
+                       })}
+                       className="w-4 h-4"
+                     />
+                     <Icon className="w-4 h-4" />
+                     <span className="text-sm font-medium">{label}</span>
+                   </label>
+                 ))}
+               </div>
+              </div>
+
+              {/* Quick Action Button: Delete All Payments Except Wresident */}
+              <div className="bg-gradient-to-r from-red-100 to-pink-100 rounded-lg p-4 border-2 border-red-300">
+               <h4 className="font-bold text-red-900 mb-2 flex items-center gap-2">
+                 <Zap className="w-5 h-5" />
+                 ⚡ Quick Action
+               </h4>
+               <Button
+                 onClick={async () => {
+                   const wresdentBranch = branches.find(b => 
+                     b.branch_name.toLowerCase().includes('wresident') || 
+                     b.branch_code === '93'
+                   );
+
+                   if (!wresdentBranch) {
+                     toast.error('ไม่พบสาขา Wresident');
+                     return;
+                   }
+
+                   if (!confirm(`⚠️ ยืนยันการลบ Payment ทั้งหมด\n\nจะเก็บไว้เฉพาะสาขา: ${wresdentBranch.branch_name}\n\nข้อมูลที่จะถูกลบ: Payment ของสาขาอื่นทั้งหมด\n\n** การกระทำนี้ไม่สามารถย้อนกลับได้ **`)) {
+                     return;
+                   }
+
+                   setCustomDeleting(true);
+                   setCustomDeleteProgress({ current: 'กำลังลบ Payment...', deleted: 0, total: 0, breakdown: {} });
+
+                   try {
+                     const response = await base44.functions.invoke('deletePaymentsExceptBranch', {
+                       keep_branch_id: wresdentBranch.id
+                     });
+
+                     if (response.data.success) {
+                       toast.success(response.data.message, { duration: 5000 });
+                       await queryClient.invalidateQueries(['payments']);
+                       await queryClient.invalidateQueries(['allPaymentsTestingAdmin']);
+                     } else {
+                       toast.error('เกิดข้อผิดพลาด: ' + response.data.error);
+                     }
+                   } catch (error) {
+                     toast.error('เกิดข้อผิดพลาด: ' + error.message);
+                   } finally {
+                     setCustomDeleting(false);
+                   }
+                 }}
+                 disabled={customDeleting}
+                 className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700"
+               >
+                 {customDeleting ? (
+                   <>
+                     <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                     กำลังลบ Payment...
+                   </>
+                 ) : (
+                   <>
+                     <Trash2 className="w-5 h-5 mr-2" />
+                     ลบ Payment ทั้งหมด ยกเว้น Wresident
+                   </>
+                 )}
+               </Button>
               </div>
 
               {/* Quick Select Buttons */}
