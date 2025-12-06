@@ -45,8 +45,8 @@ Deno.serve(async (req) => {
                         await base44.asServiceRole.entities.Payment.delete(payment.id);
                         deletedCount++;
                         
-                        if (deletedCount % 50 === 0) {
-                            console.log(`🗑️ ลบแล้ว ${deletedCount} รายการ | ล่าสุด: ID ${payment.id.substring(0, 8)}... (${payment.payment_category || 'N/A'}) ${payment.total_amount || 0} บาท`);
+                        if (deletedCount % 10 === 0) {
+                            console.log(`🗑️ ลบแล้ว ${deletedCount} รายการ | Batch ${iterations + 1}`);
                         }
                     } catch (e) {
                         console.error(`Failed to delete payment ${payment.id}:`, e.message);
@@ -54,9 +54,10 @@ Deno.serve(async (req) => {
                 }
 
                 iterations++;
+                console.log(`✅ Batch ${iterations} เสร็จ | รวมลบไป ${deletedCount} รายการแล้ว`);
                 
-                // Delay เล็กน้อยเพื่อลด rate limit
-                await new Promise(resolve => setTimeout(resolve, 50));
+                // ลด delay เหลือ 10ms
+                await new Promise(resolve => setTimeout(resolve, 10));
 
             } catch (e) {
                 console.error('Error in batch:', e.message);

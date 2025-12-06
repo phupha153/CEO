@@ -121,19 +121,18 @@ export default function F12Page() {
       console.warn('ไม่สามารถนับจำนวนเริ่มต้นได้:', e.message);
     }
     
-    // เริ่ม polling เพื่อแสดง progress
+    // เริ่ม polling เพื่อแสดง progress (เช็คทุก 5 วินาที)
     const checkInterval = setInterval(async () => {
       try {
-        const remaining = await base44.entities.Payment.filter({ 
-          branch_id: '69255a34e816a8749fc765c2' 
-        });
-        const deleted = deleteProgress.initial - remaining.length;
-        setDeleteProgress(prev => ({ ...prev, deleted, remaining: remaining.length }));
-        console.log(`⏳ ลบไปแล้ว ${deleted} รายการ | เหลืออีก ${remaining.length} รายการ`);
+        const allPayments = await base44.entities.Payment.list('-created_date', 10000);
+        const remaining = allPayments.filter(p => p.branch_id === '69255a34e816a8749fc765c2').length;
+        const deleted = deleteProgress.initial - remaining;
+        setDeleteProgress(prev => ({ ...prev, deleted, remaining }));
+        console.log(`⏳ คำนวณแล้ว: ลบไป ${deleted}/${deleteProgress.initial} | เหลือ ${remaining} รายการ | ${Math.round((deleted/deleteProgress.initial)*100)}%`);
       } catch (e) {
         console.warn('ไม่สามารถเช็คจำนวนได้:', e.message);
       }
-    }, 3000);
+    }, 5000);
     
     try {
       const result = await base44.functions.invoke('deletePaymentsByBranch', { 
