@@ -3,11 +3,14 @@ import { Terminal, Trash2, AlertCircle, Info, AlertTriangle, Bug } from "lucide-
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 
 export default function F12Page() {
   const [logs, setLogs] = useState([]);
   const logsEndRef = useRef(null);
   const originalConsole = useRef({});
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     // บันทึก console functions เดิม
@@ -100,6 +103,27 @@ export default function F12Page() {
     }
   };
 
+  const handleDeletePayments = async () => {
+    if (!confirm('ยืนยันการลบ Payment ทั้งหมดของสาขา Wresident87777?')) return;
+    
+    setIsDeleting(true);
+    console.log('🗑️ เริ่มลบ Payment ของสาขา 69255a34e816a8749fc765c2...');
+    
+    try {
+      const result = await base44.functions.invoke('deletePaymentsByBranch', { 
+        branch_id: '69255a34e816a8749fc765c2' 
+      });
+      
+      console.log('✅ ผลลัพธ์:', result.data);
+      toast.success(result.data.message || `ลบสำเร็จ ${result.data.deletedCount} รายการ`);
+    } catch (error) {
+      console.error('❌ เกิดข้อผิดพลาด:', error);
+      toast.error('ลบไม่สำเร็จ: ' + error.message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       <PageHeader
@@ -108,10 +132,21 @@ export default function F12Page() {
         icon={Terminal}
         showBackButton
         actions={
-          <Button onClick={clearLogs} variant="outline" size="sm">
-            <Trash2 className="w-4 h-4 mr-2" />
-            Clear
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleDeletePayments} 
+              variant="destructive" 
+              size="sm"
+              disabled={isDeleting}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              {isDeleting ? 'กำลังลบ...' : 'ลบ Wresident87777'}
+            </Button>
+            <Button onClick={clearLogs} variant="outline" size="sm">
+              <Trash2 className="w-4 h-4 mr-2" />
+              Clear
+            </Button>
+          </div>
         }
       />
 
