@@ -147,24 +147,27 @@ export default function BranchSelection() {
   };
 
   const handleManageBranches = (e) => {
-    console.log('🚀 handleManageBranches called', {
+    console.log('🚀🚀🚀 handleManageBranches FIRED! 🚀🚀🚀', {
       isNavigating,
       userRole,
-      hasEvent: !!e
+      hasEvent: !!e,
+      timestamp: new Date().toISOString()
     });
-    
+
     if (e) {
+      console.log('🛑 Preventing default and stopping propagation');
       e.stopPropagation();
       e.preventDefault();
     }
-    
+
     if (isNavigating) {
       console.log('⚠️ Already navigating, skipping...');
       return;
     }
-    
-    console.log('✅ Navigating to BranchManagement...');
+
+    console.log('✅ NAVIGATING to BranchManagement NOW!');
     navigate(createPageUrl('BranchManagement'));
+    console.log('✅ Navigate called successfully');
   };
 
   if (isLoading) {
@@ -321,27 +324,51 @@ export default function BranchSelection() {
                     </p>
 
                     {/* ปุ่มเพิ่มสาขา/แก้ไข - ไปหน้า BranchManagement เสมอ */}
-                    {(userRole === 'developer' || userRole === 'owner') && (
-                      <Button
-                        onClick={(e) => {
-                          console.log('🔘 ปุ่มจัดการสาขาถูกคลิก!', { 
-                            userRole, 
-                            isNavigating, 
-                            canAddMoreBranches,
-                            currentUser: currentUser?.email
-                          });
-                          e.stopPropagation();
-                          e.preventDefault();
-                          handleManageBranches(e);
-                        }}
-                        className="bg-gradient-to-r from-blue-500 to-sky-600 hover:from-blue-600 hover:to-sky-700 text-white h-auto py-5 px-10 text-lg shadow-2xl rounded-2xl font-bold cursor-pointer z-50 relative"
-                        data-onboarding="add-branch-button"
-                        type="button"
-                      >
-                        <Building2 className="w-6 h-6 mr-3" />
-                        จัดการสาขา
-                      </Button>
-                    )}
+                    <div className="w-full" style={{ position: 'relative', zIndex: 9999 }}>
+                      <div className="text-xs bg-yellow-100 p-2 rounded mb-2">
+                        DEBUG: userRole={userRole} | isDev={String(userRole === 'developer')} | isOwner={String(userRole === 'owner')}
+                      </div>
+                      {(userRole === 'developer' || userRole === 'owner') ? (
+                        <button
+                          onClick={(e) => {
+                            console.log('🔘🔘🔘 BUTTON CLICKED! 🔘🔘🔘');
+                            console.log('Event:', e);
+                            console.log('userRole:', userRole);
+                            console.log('isNavigating:', isNavigating);
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleManageBranches(e);
+                          }}
+                          style={{
+                            background: 'linear-gradient(to right, #3b82f6, #0ea5e9)',
+                            color: 'white',
+                            padding: '20px 40px',
+                            fontSize: '18px',
+                            fontWeight: 'bold',
+                            borderRadius: '16px',
+                            cursor: 'pointer',
+                            border: 'none',
+                            boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '12px',
+                            position: 'relative',
+                            zIndex: 9999
+                          }}
+                          type="button"
+                          data-onboarding="add-branch-button"
+                        >
+                          <Building2 className="w-6 h-6" />
+                          <span>จัดการสาขา (CLICK ME)</span>
+                        </button>
+                      ) : (
+                        <div className="text-center p-4 bg-red-100 rounded">
+                          <p className="text-red-800">ไม่ผ่านเงื่อนไข: userRole = {userRole}</p>
+                        </div>
+                      )}
+                    </div>
 
                   </motion.div>
                 </div>
