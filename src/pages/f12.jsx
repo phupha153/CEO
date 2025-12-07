@@ -364,7 +364,7 @@ export default function F12Page() {
                           duration: 4000 
                         });
 
-                        // Poll progress ทุก 2 วินาที
+                        // Poll progress ทุก 3 วินาที
                         const interval = setInterval(async () => {
                           try {
                             const progressResult = await base44.functions.invoke('getDeleteProgress', { 
@@ -382,9 +382,12 @@ export default function F12Page() {
                               toast.success(`✅ ลบเสร็จแล้ว ${newProgress.deleted?.toLocaleString() || 0} รายการ!`, { duration: 8000 });
                             }
                           } catch (err) {
-                            console.warn('⚠️ Poll error:', err.message);
+                            // เงียบๆ ถ้าเป็น 404
+                            if (!err.message?.includes('404')) {
+                              console.warn('⚠️ Poll error:', err.message);
+                            }
                           }
-                        }, 2000);
+                        }, 3000);
 
                         setTimeout(() => {
                           clearInterval(interval);
