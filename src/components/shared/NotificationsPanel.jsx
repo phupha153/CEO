@@ -41,7 +41,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   });
 
   const { data: allPayments = [] } = useQuery({
-    queryKey: ['allPayments', 'notifications'],
+    queryKey: ['allPayments', 'toast'],
     queryFn: () => base44.entities.Payment.list('-created_date', 1000),
     enabled: isOpen,
     staleTime: 0,
@@ -49,7 +49,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   });
 
   const { data: allRooms = [] } = useQuery({
-    queryKey: ['allRooms', 'notifications'],
+    queryKey: ['allRooms', 'toast'],
     queryFn: () => base44.entities.Room.list('-room_number', 1000),
     enabled: isOpen,
     staleTime: 0,
@@ -57,7 +57,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   });
 
   const { data: allMaintenanceRequests = [] } = useQuery({
-    queryKey: ['allMaintenanceRequests', 'notifications'],
+    queryKey: ['allMaintenanceRequests', 'toast'],
     queryFn: () => base44.entities.MaintenanceRequest.list('-created_date', 200),
     enabled: isOpen,
     staleTime: 0,
