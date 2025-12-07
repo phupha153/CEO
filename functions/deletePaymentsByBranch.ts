@@ -112,6 +112,13 @@ Deno.serve(async (req) => {
                             } catch (e) {
                                 const errorTime = Date.now() - paymentStart;
 
+                                // ถ้า 404 = payment ถูกลบไปแล้ว ข้ามไป
+                                if (e.message?.includes('not found') || e.message?.includes('404')) {
+                                    console.log(`⚠️ [SKIP] ${payment.id} - Already deleted (404), skipping...`);
+                                    totalDeleted++;
+                                    break;
+                                }
+
                                 if (e.message?.includes('Rate limit') || e.message?.includes('429')) {
                                     rateLimitCount++;
                                     lastRateLimitTime = new Date().toISOString();
