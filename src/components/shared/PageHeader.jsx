@@ -29,7 +29,7 @@ export default function PageHeader({
   const selectedBranchId = localStorage.getItem('selected_branch_id');
 
   const { data: allPayments = [] } = useQuery({
-    queryKey: ['allPayments', 'header', selectedBranchId],
+    queryKey: ['allPayments', 'toast', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
       const payments = await base44.entities.Payment.filter({ branch_id: selectedBranchId });
@@ -42,7 +42,7 @@ export default function PageHeader({
   });
 
   const { data: allMaintenanceRequests = [] } = useQuery({
-    queryKey: ['allMaintenanceRequests', 'header', selectedBranchId],
+    queryKey: ['allMaintenanceRequests', 'toast', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
       const requests = await base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId });
