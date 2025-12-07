@@ -317,71 +317,10 @@ export default function F12Page() {
                 variant="destructive" 
                 size="sm"
                 disabled={isDeleting}
-                className="h-auto py-3"
+                className="h-auto py-3 col-span-2"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 {isDeleting ? 'กำลังลบ...' : 'ลบ Payment สาขา Test'}
-              </Button>
-
-              <Button 
-                onClick={async () => {
-                  const branchId = '69255a34e816a8749fc765c2';
-                  setIsDeleting(true);
-                  setDeleteProgress({ deleted: 0, remaining: 0, initial: 0 });
-                  toast.loading('กำลังเริ่มลบ...', { id: 'quick-delete' });
-
-                  try {
-                    const result = await base44.functions.invoke('deletePaymentsByBranch', { 
-                      branch_id: branchId 
-                    });
-
-                    if (result.data.success && result.data.started) {
-                      const total = result.data.totalPayments || 0;
-                      setDeleteProgress({ deleted: 0, remaining: total, initial: total });
-                      toast.dismiss('quick-delete');
-                      toast.success(`🚀 เริ่มลบ ${total.toLocaleString()} รายการ`, { duration: 4000 });
-
-                      let poll404Count = 0;
-                      const interval = setInterval(async () => {
-                        try {
-                          const progressResult = await base44.functions.invoke('getDeleteProgress', { 
-                            branch_id: branchId 
-                          });
-                          poll404Count = 0;
-                          const newProgress = progressResult.data;
-                          setDeleteProgress(newProgress);
-                          if (newProgress.completed || newProgress.remaining === 0) {
-                            clearInterval(interval);
-                            setIsDeleting(false);
-                            toast.success(`✅ ลบเสร็จ ${newProgress.deleted?.toLocaleString() || 0} รายการ!`, { duration: 8000 });
-                          }
-                        } catch (err) {
-                          if (err.response?.status === 404 || err.message?.includes('404')) {
-                            poll404Count++;
-                            if (poll404Count > 10) {
-                              clearInterval(interval);
-                              setIsDeleting(false);
-                            }
-                          }
-                        }
-                      }, 3000);
-
-                      setTimeout(() => {
-                        clearInterval(interval);
-                        setIsDeleting(false);
-                      }, 10 * 60 * 1000);
-                    }
-                  } catch (error) {
-                    toast.dismiss('quick-delete');
-                    toast.error('ลบไม่สำเร็จ: ' + error.message);
-                    setIsDeleting(false);
-                  }
-                }}
-                disabled={isDeleting}
-                className="h-auto py-3 bg-red-600 hover:bg-red-700 text-white"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                ⚡ ลบเลย (ไม่ยืนยัน)
               </Button>
             </div>
 
