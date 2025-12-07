@@ -27,11 +27,11 @@ Deno.serve(async (req) => {
 
         while (hasMore && iterations < maxIterations) {
             try {
-                // ดึง payments ของสาขานี้ (ลด batch เหลือ 50)
+                // ดึง payments ของสาขานี้
                 const payments = await base44.asServiceRole.entities.Payment.filter(
                     { branch_id: branchId }, 
                     '-created_date', 
-                    50
+                    200
                 );
                 
                 if (!payments || payments.length === 0) {
@@ -45,8 +45,8 @@ Deno.serve(async (req) => {
                         await base44.asServiceRole.entities.Payment.delete(payment.id);
                         deletedCount++;
                         
-                        if (deletedCount % 10 === 0) {
-                            console.log(`🗑️ ลบแล้ว ${deletedCount} รายการ | Batch ${iterations + 1}`);
+                        if (deletedCount % 100 === 0) {
+                            console.log(`🗑️ ลบแล้ว ${deletedCount} รายการ`);
                         }
                     } catch (e) {
                         console.error(`Failed to delete payment ${payment.id}:`, e.message);
@@ -54,10 +54,13 @@ Deno.serve(async (req) => {
                 }
 
                 iterations++;
-                console.log(`✅ Batch ${iterations} เสร็จ | รวมลบไป ${deletedCount} รายการแล้ว`);
                 
-                // เพิ่ม delay เป็น 100ms เพื่อลด load
-                await new Promise(resolve => setTimeout(resolve, 100));
+                if (iterations % 10 === 0) {
+                    console.log(`✅ ${iterations} batches | รวมลบไป ${deletedCount} รายการแล้ว`);
+                }
+                
+                // ไม่มี delay - ลบเร็วสุด
+                await new Promise(resolve => setTimeout(resolve, 1));
 
             } catch (e) {
                 console.error('Error in batch:', e.message);
