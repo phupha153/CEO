@@ -10,8 +10,6 @@ export default function F12Page() {
   const [logs, setLogs] = useState([]);
   const logsEndRef = useRef(null);
   const originalConsole = useRef({});
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteProgress, setDeleteProgress] = useState({ deleted: 0, remaining: 0, initial: 0 });
 
   useEffect(() => {
     // บันทึก console functions เดิม
@@ -104,56 +102,7 @@ export default function F12Page() {
     }
   };
 
-  const handleDeletePayments = async () => {
-    if (!confirm('ยืนยันการลบ Payment ทั้งหมดของสาขา Wresident87777?')) return;
-    
-    setIsDeleting(true);
-    let totalDeleted = 0;
-    let roundCount = 0;
-    
-    toast.loading('กำลังลบ... รอบที่ 1', { duration: Infinity, id: 'delete-progress' });
-    
-    try {
-      // วนลบทีละ batch จนกว่าจะหมด
-      while (true) {
-        roundCount++;
-        console.log(`🗑️ รอบที่ ${roundCount} - เริ่มลบ...`);
-        
-        const result = await base44.functions.invoke('deletePaymentsByBranch', { 
-          branch_id: '69255a34e816a8749fc765c2' 
-        });
-        
-        const data = result.data;
-        totalDeleted += data.deletedThisRound || 0;
-        
-        console.log(`✅ รอบที่ ${roundCount} ลบไป ${data.deletedThisRound} รายการ (รวม ${totalDeleted})`);
-        
-        toast.loading(`กำลังลบ... รอบที่ ${roundCount} (ลบไปแล้ว ${totalDeleted} รายการ)`, { 
-          duration: Infinity, 
-          id: 'delete-progress' 
-        });
-        
-        // ถ้าลบเสร็จแล้ว หรือไม่มีอะไรให้ลบต่อ
-        if (data.completed || !data.hasMore) {
-          console.log(`✅ ลบเสร็จสิ้น! รวม ${totalDeleted} รายการ`);
-          break;
-        }
-        
-        // หน่วงเวลาเล็กน้อยระหว่างรอบ
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-      
-      toast.dismiss('delete-progress');
-      toast.success(`ลบสำเร็จ ${totalDeleted} รายการ ใน ${roundCount} รอบ`, { duration: 10000 });
-    } catch (error) {
-      toast.dismiss('delete-progress');
-      console.error('❌ เกิดข้อผิดพลาด:', error);
-      console.error('Error response:', error.response?.data);
-      toast.error('ลบไม่สำเร็จ: ' + (error.response?.data?.error || error.message), { duration: 10000 });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+
 
   return (
     <div className="min-h-screen">
@@ -163,21 +112,10 @@ export default function F12Page() {
         icon={Terminal}
         showBackButton
         actions={
-          <div className="flex gap-2">
-            <Button 
-              onClick={handleDeletePayments} 
-              variant="destructive" 
-              size="sm"
-              disabled={isDeleting}
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {isDeleting ? 'กำลังลบ...' : 'ลบ Wresident87777'}
-            </Button>
-            <Button onClick={clearLogs} variant="outline" size="sm">
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear
-            </Button>
-          </div>
+          <Button onClick={clearLogs} variant="outline" size="sm">
+            <Trash2 className="w-4 h-4 mr-2" />
+            Clear Console
+          </Button>
         }
       />
 
