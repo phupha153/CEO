@@ -315,9 +315,8 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   };
 
   const isNotificationDeleted = (notificationId) => {
-    // ⭐ เช็ค local state ก่อน
-    if (localReadIds.has(notificationId)) return true;
-    return readNotifications.some(n => n.notification_id === notificationId && n.is_read);
+    // ⭐ ไม่ลบออกจาก UI - ให้จางลงแทน
+    return false;
   };
 
   const notificationsByBranch = useMemo(() => {
@@ -1000,7 +999,6 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                           {branchData.alerts.map((notif, index) => {
                             const IconComponent = notif.icon;
                             const isRead = isNotificationRead(notif.id);
-                            const isDeleted = isNotificationDeleted(notif.id);
                             const isExpanded = expandedGroups[notif.id] || false;
                             const isSwiped = swipedItem === notif.id;
                             const colorMap = {
@@ -1010,8 +1008,6 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                               purple: { gradient: 'from-purple-500 to-pink-500', border: '#a855f7', bg: 'bg-purple-50/50' },
                               amber: { gradient: 'from-amber-500 to-orange-500', border: '#f59e0b', bg: 'bg-amber-50/50' }
                             };
-
-                            if (isDeleted) return null;
 
                             return (
                               <motion.div
@@ -1052,7 +1048,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                                 )}
                                 
                                 <Card
-                                  className={`border-l-4 ${colorMap[notif.color].bg} ${isRead ? 'opacity-40 grayscale' : 'shadow-md'} ${notif.expandable ? '' : 'cursor-pointer hover:shadow-lg'} transition-all relative`}
+                                  className={`border-l-4 ${colorMap[notif.color].bg} ${isRead ? 'opacity-50' : 'shadow-md'} ${notif.expandable ? '' : 'cursor-pointer hover:shadow-lg'} transition-all relative`}
                                   style={{ borderLeftColor: colorMap[notif.color].border }}
                                 >
                                   <CardContent className="p-4">
