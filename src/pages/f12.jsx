@@ -110,19 +110,27 @@ export default function F12Page() {
     setIsDeleting(true);
     console.log('🗑️ เริ่มลบ Payment ของสาขา 69255a34e816a8749fc765c2...');
     console.log('⏱️ กรุณารอ 5-10 นาที (ประมาณ 2600+ รายการ)');
-    console.log('📌 ดูความคืบหน้าจาก Backend Logs ด้านล่าง (log ทุก 10 รายการ)');
+    console.log('📌 ดูความคืบหน้าจาก Backend Logs ด้านล่าง (log ทุก 100 รายการ)');
+    
+    toast.loading('กำลังลบ... กรุณารอ 5-10 นาที', { duration: Infinity, id: 'delete-progress' });
     
     try {
+      console.log('🚀 กำลังเรียก function...');
       const result = await base44.functions.invoke('deletePaymentsByBranch', { 
         branch_id: '69255a34e816a8749fc765c2' 
+      }, {
+        timeout: 600000 // 10 นาที
       });
       
+      toast.dismiss('delete-progress');
       console.log('✅ ผลลัพธ์:', result.data);
-      toast.success(result.data.message || `ลบสำเร็จ ${result.data.deletedCount} รายการ`);
+      toast.success(result.data.message || `ลบสำเร็จ ${result.data.deletedCount} รายการ`, { duration: 10000 });
     } catch (error) {
+      toast.dismiss('delete-progress');
       console.error('❌ เกิดข้อผิดพลาด:', error);
+      console.error('Error response:', error.response?.data);
       console.error('Stack:', error.stack);
-      toast.error('ลบไม่สำเร็จ: ' + error.message);
+      toast.error('ลบไม่สำเร็จ: ' + (error.response?.data?.error || error.message), { duration: 10000 });
     } finally {
       setIsDeleting(false);
     }
