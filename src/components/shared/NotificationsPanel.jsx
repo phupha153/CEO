@@ -843,7 +843,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => markAllAsReadMutation.mutate(filteredNotifications.map(n => n.id))}
+                      onClick={() => markAllAsReadMutation.mutate(visibleNotifications.map(n => n.id))}
                       className="text-xs"
                     >
                       <CheckCheck className="w-4 h-4 mr-1" />
@@ -899,7 +899,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
 
             <div className="flex-1 overflow-y-auto max-h-[60vh] md:max-h-[calc(100vh-200px)]">
               <CardContent className="p-4">
-                {filteredNotifications.length === 0 ? (
+                {visibleNotifications.length === 0 ? (
                   <div className="text-center py-8">
                     <Bell className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                     <p className="text-slate-500 text-sm">ไม่มีการแจ้งเตือน</p>
