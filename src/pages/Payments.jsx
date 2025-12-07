@@ -514,10 +514,20 @@ export default function PaymentsPage() {
           const globalTiersConfig = configsList.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
           const tiersConfig = branchTiersConfig || globalTiersConfig;
           
+          console.log('🔍 Late Fee Debug (Payment ID:', payment.id.substring(0, 8) + '):', {
+            daysOverdue,
+            tiersEnabled,
+            hasTiersConfig: !!tiersConfig,
+            tiersConfigValue: tiersConfig?.value,
+            selectedBranchId
+          });
+          
           if (tiersConfig?.value) {
             try {
               const tiers = JSON.parse(tiersConfig.value);
               let totalFee = 0;
+
+              console.log('📊 Tiers Config:', tiers);
 
               // คำนวณค่าปรับแต่ละช่วง
               for (const tier of tiers) {
@@ -528,24 +538,37 @@ export default function PaymentsPage() {
                 if (daysOverdue >= daysFrom) {
                   const daysInThisTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
                   if (daysInThisTier > 0) {
-                    totalFee += daysInThisTier * feePerDay;
+                    const tierFee = daysInThisTier * feePerDay;
+                    totalFee += tierFee;
+                    console.log(`  ➡️ Tier ${daysFrom}-${daysTo}: ${daysInThisTier} วัน × ${feePerDay}฿ = ${tierFee}฿`);
                   }
                 }
 
                 if (daysOverdue <= daysTo) break;
               }
 
+              console.log(`💰 Total Late Fee (Tiers): ${totalFee}฿`);
               cache.set(payment.id, totalFee);
               return totalFee;
             } catch (e) {
-              console.error('Error parsing late fee tiers:', e);
+              console.error('❌ Error parsing late fee tiers:', e);
             }
           }
         }
 
         // ถ้าไม่ได้เปิดใช้ขั้นบันได หรือ parse ไม่ได้ → ใช้ค่าปรับแบบเดิม
-        const lateFeeConfig = configsList.find(c => c.key === 'late_payment_fee_per_day');
+        const branchLateFeeConfig = configsList.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === selectedBranchId);
+        const globalLateFeeConfig = configsList.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
+        const lateFeeConfig = branchLateFeeConfig || globalLateFeeConfig;
         const lateFeePerDay = lateFeeConfig ? parseFloat(lateFeeConfig.value) : 0;
+        
+        console.log('💵 Simple Late Fee (Payment ID:', payment.id.substring(0, 8) + '):', {
+          daysOverdue,
+          feePerDay: lateFeePerDay,
+          hasBranchConfig: !!branchLateFeeConfig,
+          hasGlobalConfig: !!globalLateFeeConfig,
+          totalFee: daysOverdue * lateFeePerDay
+        });
 
         if (lateFeePerDay === 0 || isNaN(lateFeePerDay)) {
           cache.set(payment.id, 0);
