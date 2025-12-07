@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Terminal, Trash2, AlertCircle, Info, AlertTriangle, Bug } from "lucide-react";
+import { Terminal, Trash2, AlertCircle, Info, AlertTriangle, Bug, Eye, User, Settings } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 
 export default function F12Page() {
   const [logs, setLogs] = useState([]);
@@ -12,6 +13,17 @@ export default function F12Page() {
   const originalConsole = useRef({});
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteProgress, setDeleteProgress] = useState({ deleted: 0, remaining: 0, initial: 0 });
+
+  // Fetch user data for debugging
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+  });
+
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn: () => base44.entities.Branch.list(),
+  });
 
   useEffect(() => {
     // บันทึก console functions เดิม
@@ -104,6 +116,54 @@ export default function F12Page() {
     }
   };
 
+  const handleDebugUser = () => {
+    console.log('👤 Current User:', currentUser);
+    console.log('📋 User Role:', currentUser?.custom_role || currentUser?.role);
+    console.log('🔑 Permissions:', currentUser?.permissions);
+    console.log('🏢 Accessible Branches:', currentUser?.accessible_branches);
+    console.log('📧 Email:', currentUser?.email);
+    console.log('🆔 ID:', currentUser?.id);
+    toast.success('ดูข้อมูลใน Console แล้ว', { duration: 3000 });
+  };
+
+  const handleDebugStorage = () => {
+    console.log('💾 LocalStorage Data:');
+    console.log('  - selected_branch_id:', localStorage.getItem('selected_branch_id'));
+    console.log('  - selected_branch_name:', localStorage.getItem('selected_branch_name'));
+    console.log('🏢 All Branches:', branches);
+    toast.success('ดูข้อมูลใน Console แล้ว', { duration: 3000 });
+  };
+
+  const handleDebugNavigation = () => {
+    console.log('🧭 Navigation Test:');
+    console.log('  - Current URL:', window.location.href);
+    console.log('  - Pathname:', window.location.pathname);
+    console.log('  - Search:', window.location.search);
+    console.log('  - History State:', window.history.state);
+    toast.success('ดูข้อมูลใน Console แล้ว', { duration: 3000 });
+  };
+
+  const handleTestQuery = async () => {
+    try {
+      console.log('🔍 Testing API Query...');
+      const testData = await base44.entities.Branch.list('-created_date', 5);
+      console.log('✅ Query Success:', testData);
+      toast.success(`Query สำเร็จ - ได้ ${testData.length} สาขา`, { duration: 3000 });
+    } catch (error) {
+      console.error('❌ Query Error:', error);
+      toast.error('Query ไม่สำเร็จ: ' + error.message, { duration: 5000 });
+    }
+  };
+
+  const handleClearStorage = () => {
+    if (confirm('ยืนยันการล้าง LocalStorage?')) {
+      localStorage.removeItem('selected_branch_id');
+      localStorage.removeItem('selected_branch_name');
+      console.log('🗑️ Cleared storage');
+      toast.success('ล้าง Storage แล้ว', { duration: 3000 });
+    }
+  };
+
   const handleDeletePayments = async () => {
     if (!confirm('ยืนยันการลบ Payment ทั้งหมดของสาขา Wresident87777?')) return;
     
@@ -163,16 +223,7 @@ export default function F12Page() {
         icon={Terminal}
         showBackButton
         actions={
-          <div className="flex gap-2">
-            <Button 
-              onClick={handleDeletePayments} 
-              variant="destructive" 
-              size="sm"
-              disabled={isDeleting}
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {isDeleting ? 'กำลังลบ...' : 'ลบ Wresident87777'}
-            </Button>
+          <div className="flex gap-2 flex-wrap">
             <Button onClick={clearLogs} variant="outline" size="sm">
               <Trash2 className="w-4 h-4 mr-2" />
               Clear
@@ -183,6 +234,51 @@ export default function F12Page() {
 
       <div className="p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
+          {/* Debug Tools */}
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+              <Bug className="w-5 h-5 text-purple-600" />
+              🛠️ Developer Tools
+            </h3>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <Button onClick={handleDebugUser} variant="outline" size="sm" className="h-auto py-3">
+                <User className="w-4 h-4 mr-2" />
+                ดู User Data
+              </Button>
+
+              <Button onClick={handleDebugStorage} variant="outline" size="sm" className="h-auto py-3">
+                <Settings className="w-4 h-4 mr-2" />
+                ดู Storage
+              </Button>
+
+              <Button onClick={handleDebugNavigation} variant="outline" size="sm" className="h-auto py-3">
+                <Eye className="w-4 h-4 mr-2" />
+                ดู Navigation
+              </Button>
+
+              <Button onClick={handleTestQuery} variant="outline" size="sm" className="h-auto py-3">
+                <Terminal className="w-4 h-4 mr-2" />
+                Test Query
+              </Button>
+
+              <Button onClick={handleClearStorage} variant="outline" size="sm" className="h-auto py-3 border-orange-300 text-orange-700 hover:bg-orange-50">
+                <Trash2 className="w-4 h-4 mr-2" />
+                ล้าง Storage
+              </Button>
+
+              <Button 
+                onClick={handleDeletePayments} 
+                variant="destructive" 
+                size="sm"
+                disabled={isDeleting}
+                className="h-auto py-3 col-span-2"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                {isDeleting ? 'กำลังลบ...' : 'ลบ Payment สาขา Test'}
+              </Button>
+            </div>
+          </div>
           <div className="bg-slate-900 rounded-xl shadow-2xl overflow-hidden">
             <div className="bg-slate-800 px-4 py-3 border-b border-slate-700 flex items-center justify-between">
               <div className="flex items-center gap-2">
