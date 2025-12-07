@@ -147,9 +147,24 @@ export default function BranchSelection() {
   };
 
   const handleManageBranches = () => {
-    if (isNavigating) return;
+    console.log('🔍 handleManageBranches clicked:', { isNavigating, userRole });
+    if (isNavigating) {
+      console.warn('⚠️ Blocked: isNavigating is true');
+      return;
+    }
+    console.log('✅ Navigating to BranchManagement');
     navigate(createPageUrl('BranchManagement'));
   };
+
+  // Debug log
+  console.log('🔍 BranchSelection State:', {
+    userRole,
+    isNavigating,
+    canAddMoreBranches,
+    hasNoBranches,
+    hasNoAccess,
+    filteredBranchesCount: filteredBranches.length
+  });
 
   if (isLoading) {
     return (
