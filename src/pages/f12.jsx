@@ -109,43 +109,16 @@ export default function F12Page() {
     
     setIsDeleting(true);
     console.log('🗑️ เริ่มลบ Payment ของสาขา 69255a34e816a8749fc765c2...');
-    
-    // นับจำนวนเริ่มต้น
-    let initialCount = 0;
-    try {
-      const allPayments = await base44.entities.Payment.list('-created_date', 10000);
-      initialCount = allPayments.filter(p => p.branch_id === '69255a34e816a8749fc765c2').length;
-      setDeleteProgress({ deleted: 0, remaining: initialCount, initial: initialCount });
-      console.log(`📊 เริ่มต้น: ${initialCount} รายการ`);
-    } catch (e) {
-      console.warn('ไม่สามารถนับจำนวนเริ่มต้นได้:', e.message);
-    }
-    
-    // เริ่ม polling เพื่อแสดง progress (เช็คทุก 5 วินาที)
-    const checkInterval = setInterval(async () => {
-      try {
-        const allPayments = await base44.entities.Payment.list('-created_date', 10000);
-        const remaining = allPayments.filter(p => p.branch_id === '69255a34e816a8749fc765c2').length;
-        const deleted = initialCount - remaining;
-        setDeleteProgress(prev => ({ ...prev, deleted, remaining }));
-        const percent = initialCount > 0 ? Math.round((deleted/initialCount)*100) : 0;
-        console.log(`⏳ คำนวณแล้ว: ลบไป ${deleted}/${initialCount} | เหลือ ${remaining} รายการ | ${percent}%`);
-      } catch (e) {
-        console.warn('ไม่สามารถเช็คจำนวนได้:', e.message);
-      }
-    }, 5000);
+    console.log('📌 ดูความคืบหน้าจาก Backend Logs ด้านล่าง (log ทุก 10 รายการ)');
     
     try {
       const result = await base44.functions.invoke('deletePaymentsByBranch', { 
         branch_id: '69255a34e816a8749fc765c2' 
       });
       
-      clearInterval(checkInterval);
       console.log('✅ ผลลัพธ์:', result.data);
       toast.success(result.data.message || `ลบสำเร็จ ${result.data.deletedCount} รายการ`);
-      setDeleteProgress({ deleted: result.data.deletedCount, remaining: 0, initial: initialCount });
     } catch (error) {
-      clearInterval(checkInterval);
       console.error('❌ เกิดข้อผิดพลาด:', error);
       toast.error('ลบไม่สำเร็จ: ' + error.message);
     } finally {
@@ -169,7 +142,7 @@ export default function F12Page() {
               disabled={isDeleting}
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              {isDeleting ? `ลบแล้ว ${deleteProgress.deleted}/${deleteProgress.initial}` : 'ลบ Wresident87777'}
+              {isDeleting ? 'กำลังลบ...' : 'ลบ Wresident87777'}
             </Button>
             <Button onClick={clearLogs} variant="outline" size="sm">
               <Trash2 className="w-4 h-4 mr-2" />
