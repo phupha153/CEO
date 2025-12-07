@@ -236,8 +236,51 @@ export default function CronJobSettings() {
               placeholder="ใส่ Branch ID"
               className="bg-white"
             />
+            <div className="flex gap-2 mt-3">
+              <Button
+                onClick={async () => {
+                  try {
+                    const configs = await base44.entities.Config.filter({ key: 'cron_delete_branch_id' });
+                    if (configs.length > 0) {
+                      await base44.entities.Config.update(configs[0].id, { value: cronBranchId });
+                    } else {
+                      await base44.entities.Config.create({
+                        key: 'cron_delete_branch_id',
+                        value: cronBranchId,
+                        description: 'Branch ID สำหรับ Cron Job ลบ Payment',
+                        category: 'general'
+                      });
+                    }
+                    toast.success('บันทึก Branch ID สำเร็จ');
+                  } catch (error) {
+                    toast.error('บันทึกไม่สำเร็จ: ' + error.message);
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                💾 บันทึก Branch ID
+              </Button>
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const configs = await base44.entities.Config.filter({ key: 'cron_delete_branch_id' });
+                    if (configs.length > 0) {
+                      setCronBranchId(configs[0].value);
+                      toast.success('โหลดค่าที่บันทึกไว้แล้ว');
+                    } else {
+                      toast.info('ยังไม่มีค่าที่บันทึกไว้');
+                    }
+                  } catch (error) {
+                    toast.error('โหลดไม่สำเร็จ: ' + error.message);
+                  }
+                }}
+              >
+                🔄 โหลดค่าที่บันทึก
+              </Button>
+            </div>
             <p className="text-xs text-red-600 mt-2">
-              ใช้สำหรับ Cron Job "ลบ Payment ต่อเนื่อง" เท่านั้น
+              กด "บันทึก Branch ID" แล้ว Cron Job จะใช้ค่านี้อัตโนมัติ
             </p>
           </CardContent>
         </Card>

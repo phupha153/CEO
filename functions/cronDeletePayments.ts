@@ -6,7 +6,7 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // ถ้า cron job เรียก = ใช้ env variable หรือ default
+        // ถ้า cron job เรียก = ใช้ค่าจาก Config
         // ถ้าเรียกจากหน้าเว็บ = ใช้ body
         let body = {};
         try {
@@ -15,8 +15,14 @@ Deno.serve(async (req) => {
             // ไม่มี body (เรียกจาก cron)
         }
         
-        // ลำดับความสำคัญ: body > env > default
-        const branchId = body.branch_id || Deno.env.get('CRON_DELETE_BRANCH_ID') || '69255a34e816a8749fc765c2';
+        // ถ้าไม่ได้ส่ง branch_id มา ให้อ่านจาก Config
+        let branchId = body.branch_id;
+        
+        if (!branchId) {
+            // อ่านจาก Config entity
+            const configs = await base44.asServiceRole.entities.Config.filter({ key: 'cron_delete_branch_id' });
+            branchId = configs.length > 0 ? configs[0].value : '69255a34e816a8749fc765c2';
+        }
         
         console.log(`🤖 [CRON] Checking deletion progress for branch: ${branchId}`);
         
