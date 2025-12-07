@@ -21,7 +21,6 @@ Deno.serve(async (req) => {
         let totalDeleted = 0;
         let round = 0;
 
-        // ลบแบบเร็วที่สุด - ไม่มี delay เลย
         while (true) {
             round++;
             console.log(`[Round ${round}] Fetching...`);
@@ -29,7 +28,7 @@ Deno.serve(async (req) => {
             const payments = await base44.asServiceRole.entities.Payment.filter(
                 { branch_id: branchId }, 
                 '-created_date', 
-                50 // ลบทีละ 50 รายการ
+                10
             );
 
             if (!payments || payments.length === 0) {
@@ -37,22 +36,27 @@ Deno.serve(async (req) => {
                 break;
             }
 
-            // ลบทั้งหมดพร้อมกัน
-            const deletePromises = payments.map(p => 
-                base44.asServiceRole.entities.Payment.delete(p.id)
-                    .catch(e => {
-                        if (e.message?.includes('not found') || e.message?.includes('404')) {
-                            console.log(`Skip ${p.id} - already deleted`);
-                            return true;
-                        }
-                        throw e;
-                    })
-            );
-
-            await Promise.all(deletePromises);
-            totalDeleted += payments.length;
+            // ลบทีละรายการ delay สั้นๆ
+            for (const payment of payments) {
+                try {
+                    await base44.asServiceRole.entities.Payment.delete(payment.id);
+                    totalDeleted++;
+                    
+                    // delay 100ms ระหว่างรายการ
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (e) {
+                    if (e.message?.includes('not found') || e.message?.includes('404')) {
+                        totalDeleted++;
+                    } else {
+                        console.error(`Error deleting ${payment.id}:`, e.message);
+                    }
+                }
+            }
             
             console.log(`[Round ${round}] Deleted ${payments.length} - Total: ${totalDeleted}`);
+            
+            // delay 500ms ระหว่างรอบ
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
 
         return Response.json({
