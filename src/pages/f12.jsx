@@ -178,7 +178,7 @@ export default function F12Page() {
 
       console.log('🚀 Background deletion started:', result.data);
 
-      if (result.data.success && result.data.totalPayments) {
+      if (result.data.success && result.data.started && result.data.totalPayments) {
         setDeleteProgress({ 
           deleted: 0, 
           remaining: result.data.totalPayments, 
