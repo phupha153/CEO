@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
             success: true,
             message: 'เริ่มลบข้อมูลในพื้นหลัง',
             started: true,
-            totalPayments
+            totalPayments: totalPayments
         });
 
         // ทำงานต่อในพื้นหลังโดยไม่ block response

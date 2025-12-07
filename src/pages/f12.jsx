@@ -165,14 +165,13 @@ export default function F12Page() {
   };
 
   const handleDeletePayments = async () => {
-    if (!confirm('ยืนยันการลบ Payment ทั้งหมดของสาขา Wresident87777?\n\nระบบจะลบในพื้นหลัง ดู progress ใน Console')) return;
+    if (!confirm('ยืนยันการลบ Payment ทั้งหมดของสาขา Wresident87777?\n\nระบบจะลบในพื้นหลัง')) return;
 
     setIsDeleting(true);
     setDeleteProgress({ deleted: 0, remaining: 0, initial: 0 });
-    toast.loading('เริ่มลบข้อมูล...', { id: 'delete-start' });
+    toast.loading('กำลังนับจำนวนข้อมูล...', { id: 'delete-start' });
 
     try {
-      // เริ่มกระบวนการลบ
       const result = await base44.functions.invoke('deletePaymentsByBranch', { 
         branch_id: '69255a34e816a8749fc765c2' 
       });
@@ -187,11 +186,11 @@ export default function F12Page() {
         });
 
         toast.dismiss('delete-start');
-        toast.success(`เริ่มลบ ${result.data.totalPayments} รายการในพื้นหลัง - ดู progress ด้านล่าง`, { 
-          duration: 5000 
+        toast.success(`🚀 เริ่มลบ ${result.data.totalPayments.toLocaleString()} รายการ`, { 
+          duration: 4000 
         });
 
-        // Poll progress ทุก 2 วินาที
+        // Poll progress ทุก 1 วินาที
         const interval = setInterval(async () => {
           try {
             const progressResult = await base44.functions.invoke('getDeleteProgress', { 
@@ -199,28 +198,45 @@ export default function F12Page() {
             });
 
             if (progressResult.data.deleted !== undefined) {
-              setDeleteProgress(progressResult.data);
-              console.log(`📊 Progress: ${progressResult.data.deleted}/${progressResult.data.initial} (เหลือ ${progressResult.data.remaining})`);
+              const prev = deleteProgress;
+              const newProgress = progressResult.data;
 
-              if (progressResult.data.remaining === 0) {
+              setDeleteProgress(newProgress);
+
+              // แสดง toast อัพเดททุก 10%
+              const prevPercent = prev.initial > 0 ? Math.floor((prev.deleted / prev.initial) * 10) : 0;
+              const newPercent = newProgress.initial > 0 ? Math.floor((newProgress.deleted / newProgress.initial) * 10) : 0;
+
+              if (newPercent > prevPercent && newProgress.remaining > 0) {
+                toast.info(`📊 ลบไปแล้ว ${newProgress.deleted.toLocaleString()}/${newProgress.initial.toLocaleString()} (${Math.round((newProgress.deleted/newProgress.initial)*100)}%)`, {
+                  duration: 2000
+                });
+              }
+
+              console.log(`📊 Progress: ${newProgress.deleted.toLocaleString()}/${newProgress.initial.toLocaleString()} (เหลือ ${newProgress.remaining.toLocaleString()})`);
+
+              if (newProgress.remaining === 0 && newProgress.deleted > 0) {
                 clearInterval(interval);
                 setIsDeleting(false);
-                toast.success(`✅ ลบเสร็จแล้ว ${progressResult.data.deleted} รายการ`, { duration: 5000 });
+                toast.success(`✅ ลบเสร็จสมบูรณ์! ลบทั้งหมด ${newProgress.deleted.toLocaleString()} รายการ`, { duration: 8000 });
               }
             }
           } catch (err) {
             console.warn('⚠️ Poll error:', err.message);
           }
-        }, 2000);
+        }, 1000);
 
-        // หยุด poll หลัง 5 นาที
+        // หยุด poll หลัง 10 นาที
         setTimeout(() => {
           clearInterval(interval);
+          if (deleteProgress.remaining > 0) {
+            toast.warning('⚠️ หมดเวลา polling - กระบวนการอาจยังทำงานอยู่', { duration: 5000 });
+          }
           setIsDeleting(false);
-        }, 5 * 60 * 1000);
+        }, 10 * 60 * 1000);
       } else {
         toast.dismiss('delete-start');
-        toast.success('เริ่มลบข้อมูลในพื้นหลังแล้ว', { duration: 5000 });
+        toast.warning('เริ่มลบข้อมูลแล้ว แต่ไม่สามารถติดตาม progress ได้', { duration: 5000 });
         setIsDeleting(false);
       }
     } catch (error) {
@@ -297,25 +313,37 @@ export default function F12Page() {
 
             {/* Delete Progress Indicator */}
             {deleteProgress.initial > 0 && (
-              <div className="mt-4 bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <div className="flex items-center gap-3 mb-3">
-                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+              <div className="mt-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200 shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
                   <div className="flex-1">
-                    <p className="font-bold text-blue-900">กำลังลบข้อมูล...</p>
-                    <p className="text-sm text-blue-700">
-                      ลบไปแล้ว {deleteProgress.deleted} / {deleteProgress.initial} รายการ (เหลือ {deleteProgress.remaining})
+                    <p className="font-bold text-blue-900 text-lg">
+                      {deleteProgress.remaining === 0 && deleteProgress.deleted > 0 ? '✅ ลบเสร็จสมบูรณ์!' : '🔄 กำลังลบข้อมูล...'}
+                    </p>
+                    <p className="text-sm text-blue-700 font-medium">
+                      ลบไปแล้ว <span className="font-bold text-blue-900">{deleteProgress.deleted.toLocaleString()}</span> / {deleteProgress.initial.toLocaleString()} รายการ
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      เหลืออีก <span className="font-bold">{deleteProgress.remaining.toLocaleString()}</span> รายการ
                     </p>
                   </div>
                 </div>
-                <div className="w-full bg-blue-200 rounded-full h-3 overflow-hidden">
+                <div className="w-full bg-blue-200 rounded-full h-4 overflow-hidden shadow-inner">
                   <div 
-                    className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-500 rounded-full"
+                    className="h-full bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 transition-all duration-300 rounded-full relative"
                     style={{ width: `${deleteProgress.initial > 0 ? (deleteProgress.deleted / deleteProgress.initial) * 100 : 0}%` }}
-                  />
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+                  </div>
                 </div>
-                <p className="text-xs text-blue-600 mt-2 text-center font-semibold">
-                  {deleteProgress.initial > 0 ? Math.round((deleteProgress.deleted / deleteProgress.initial) * 100) : 0}%
-                </p>
+                <div className="flex justify-between items-center mt-3">
+                  <p className="text-xs text-blue-600 font-semibold">
+                    {deleteProgress.initial > 0 ? Math.round((deleteProgress.deleted / deleteProgress.initial) * 100) : 0}% เสร็จสิ้น
+                  </p>
+                  <p className="text-xs text-blue-500">
+                    อัพเดททุก 1 วินาที
+                  </p>
+                </div>
               </div>
             )}
           </div>
