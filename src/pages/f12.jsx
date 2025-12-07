@@ -374,11 +374,14 @@ export default function F12Page() {
                         });
 
                         // Poll progress ทุก 3 วินาที
+                        let poll404Count = 0;
                         const interval = setInterval(async () => {
                           try {
                             const progressResult = await base44.functions.invoke('getDeleteProgress', { 
                               branch_id: manualBranchId 
                             });
+
+                            poll404Count = 0; // Reset on success
 
                             const newProgress = progressResult.data;
                             setDeleteProgress(newProgress);
@@ -391,8 +394,14 @@ export default function F12Page() {
                               toast.success(`✅ ลบเสร็จแล้ว ${newProgress.deleted?.toLocaleString() || 0} รายการ!`, { duration: 8000 });
                             }
                           } catch (err) {
-                            // เงียบๆ ถ้าเป็น 404
-                            if (!err.message?.includes('404')) {
+                            // หยุด poll ถ้าเจอ 404 ซ้ำๆ
+                            if (err.response?.status === 404 || err.message?.includes('404')) {
+                              poll404Count++;
+                              if (poll404Count > 10) {
+                                clearInterval(interval);
+                                setIsDeleting(false);
+                              }
+                            } else {
                               console.warn('⚠️ Poll error:', err.message);
                             }
                           }
