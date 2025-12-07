@@ -81,7 +81,7 @@ export default function DeletionProgressDialog({
                 <div className="flex justify-between text-sm text-slate-600">
                   <span className="font-medium">{message || currentEntity}</span>
                   <span className="font-bold">
-                    {deletedCount.toLocaleString()} / {totalCount.toLocaleString()}
+                    ลบแล้ว {deletedCount.toLocaleString()} / {totalCount.toLocaleString()}
                   </span>
                 </div>
                 
