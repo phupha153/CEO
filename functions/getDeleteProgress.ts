@@ -1,7 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-const kv = await Deno.openKv();
-
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
@@ -18,11 +16,13 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'branch_id is required' }, { status: 400 });
         }
 
-        // ดึง progress จาก KV
-        const result = await kv.get(['delete_progress', branchId]);
+        // ดึง progress จาก Config entity
+        const progressKey = `delete_progress_${branchId}`;
+        const progressConfigs = await base44.asServiceRole.entities.Config.filter({ key: progressKey });
         
-        if (result.value) {
-            return Response.json(result.value);
+        if (progressConfigs.length > 0) {
+            const progress = JSON.parse(progressConfigs[0].value);
+            return Response.json(progress);
         }
         
         // ถ้าไม่มี progress ให้นับจาก database

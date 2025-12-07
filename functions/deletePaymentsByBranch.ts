@@ -1,8 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-// เก็บ progress ใน KV store เพื่อให้ function อื่นเข้าถึงได้
-const kv = await Deno.openKv();
-
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
@@ -29,13 +26,29 @@ Deno.serve(async (req) => {
         );
         const totalPayments = allPayments.length;
 
-        // บันทึก initial progress
-        await kv.set(['delete_progress', branchId], {
+        // Initialize progress tracking in Config entity
+        const progressKey = `delete_progress_${branchId}`;
+        const existingProgress = await base44.asServiceRole.entities.Config.filter({ key: progressKey });
+        
+        const progressData = {
             deleted: 0,
             remaining: totalPayments,
             initial: totalPayments,
             timestamp: Date.now()
-        });
+        };
+        
+        if (existingProgress.length > 0) {
+            await base44.asServiceRole.entities.Config.update(existingProgress[0].id, {
+                value: JSON.stringify(progressData)
+            });
+        } else {
+            await base44.asServiceRole.entities.Config.create({
+                key: progressKey,
+                value: JSON.stringify(progressData),
+                description: 'Delete progress tracker',
+                category: 'general'
+            });
+        }
 
         // Return ทันที - ให้ลบต่อในพื้นหลัง
         const response = Response.json({
@@ -47,7 +60,7 @@ Deno.serve(async (req) => {
 
         // ทำงานต่อในพื้นหลังโดยไม่ block response
         (async () => {
-            const batchSize = 10; // เพิ่มจาก 1 เป็น 10
+            const batchSize = 10;
             let totalDeleted = 0;
             let roundCount = 0;
             let rateLimitCount = 0;
@@ -73,14 +86,20 @@ Deno.serve(async (req) => {
 
                     if (!payments || payments.length === 0) {
                         console.log(`✅ [COMPLETE] Total deleted: ${totalDeleted}, Rate limit hits: ${rateLimitCount}`);
-                        await kv.set(['delete_progress', branchId], {
-                            deleted: totalDeleted,
-                            remaining: 0,
-                            initial: totalPayments,
-                            completed: true,
-                            rateLimitCount,
-                            timestamp: Date.now()
-                        });
+                        
+                        const finalProgressConfigs = await base44.asServiceRole.entities.Config.filter({ key: progressKey });
+                        if (finalProgressConfigs.length > 0) {
+                            await base44.asServiceRole.entities.Config.update(finalProgressConfigs[0].id, {
+                                value: JSON.stringify({
+                                    deleted: totalDeleted,
+                                    remaining: 0,
+                                    initial: totalPayments,
+                                    completed: true,
+                                    rateLimitCount,
+                                    timestamp: Date.now()
+                                })
+                            });
+                        }
                         break;
                     }
 
@@ -149,14 +168,19 @@ Deno.serve(async (req) => {
                         console.log(`📊 Deleted: ${totalDeleted}/${totalPayments} (${progressPercent}%)`);
                         console.log(`📊 Remaining: ${remaining}, Rate limits: ${rateLimitCount}`);
 
-                        await kv.set(['delete_progress', branchId], {
-                            deleted: totalDeleted,
-                            remaining: Math.max(0, remaining),
-                            initial: totalPayments,
-                            rateLimitCount,
-                            lastRateLimitTime,
-                            timestamp: Date.now()
-                        });
+                        const updateProgressConfigs = await base44.asServiceRole.entities.Config.filter({ key: progressKey });
+                        if (updateProgressConfigs.length > 0) {
+                            await base44.asServiceRole.entities.Config.update(updateProgressConfigs[0].id, {
+                                value: JSON.stringify({
+                                    deleted: totalDeleted,
+                                    remaining: Math.max(0, remaining),
+                                    initial: totalPayments,
+                                    rateLimitCount,
+                                    lastRateLimitTime,
+                                    timestamp: Date.now()
+                                })
+                            });
+                        }
                     }
 
                     // รอ 5 วินาทีระหว่างรอบ
@@ -167,15 +191,20 @@ Deno.serve(async (req) => {
                 console.error(`❌❌❌ [FATAL ERROR] Background deletion crashed:`, error.message);
                 console.error(`Stack:`, error.stack);
 
-                await kv.set(['delete_progress', branchId], {
-                    deleted: totalDeleted,
-                    remaining: totalPayments - totalDeleted,
-                    initial: totalPayments,
-                    error: error.message,
-                    rateLimitCount,
-                    lastRateLimitTime,
-                    timestamp: Date.now()
-                });
+                const errorProgressConfigs = await base44.asServiceRole.entities.Config.filter({ key: progressKey });
+                if (errorProgressConfigs.length > 0) {
+                    await base44.asServiceRole.entities.Config.update(errorProgressConfigs[0].id, {
+                        value: JSON.stringify({
+                            deleted: totalDeleted,
+                            remaining: totalPayments - totalDeleted,
+                            initial: totalPayments,
+                            error: error.message,
+                            rateLimitCount,
+                            lastRateLimitTime,
+                            timestamp: Date.now()
+                        })
+                    });
+                }
             }
         })();
 
