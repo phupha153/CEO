@@ -271,8 +271,37 @@ export default function BranchSelection() {
                         <span>แก้ไขสาขา</span>
                       </Button>
                     )}
-                    {!(userRole === 'developer' || userRole === 'owner') && (
-                      <div className="text-xs text-red-500">Debug: userRole = {userRole}</div>
+                    
+                    {/* ปุ่ม Debug สำหรับผู้พัฒนา */}
+                    {userRole === 'developer' && (
+                      <Button
+                        onClick={() => {
+                          const debugInfo = {
+                            userRole,
+                            currentUser: currentUser?.email,
+                            customRole: currentUser?.custom_role,
+                            baseRole: currentUser?.role,
+                            isNavigating,
+                            canAddMoreBranches,
+                            hasNoBranches,
+                            hasNoAccess,
+                            filteredBranchesCount: filteredBranches.length,
+                            branchesCount: branches.length,
+                            userAccessibleBranches,
+                            hasAccessibleBranchesSet,
+                            canViewAllBranches,
+                            isTrialMode,
+                            userPackagesCount: userPackages.length
+                          };
+                          console.log('🐛 DEBUG INFO:', debugInfo);
+                          alert(JSON.stringify(debugInfo, null, 2));
+                        }}
+                        variant="outline"
+                        className="border-2 border-red-300 hover:border-red-500 hover:bg-red-50 text-red-600 h-auto py-4 px-6 text-sm rounded-2xl font-medium"
+                      >
+                        <Settings className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <span>🐛 Debug Info</span>
+                      </Button>
                     )}
                   </div>
 
