@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
         // ทำงานต่อในพื้นหลังโดยไม่ block response
         (async () => {
-            const batchSize = 20; // ลด batch size ลงเพื่อหลีกเลี่ยง rate limit
+            const batchSize = 5; // ลดเหลือ 5 เพื่อหลีกเลี่ยง rate limit
             let totalDeleted = 0;
             let roundCount = 0;
 
@@ -78,14 +78,14 @@ Deno.serve(async (req) => {
                             try {
                                 await base44.asServiceRole.entities.Payment.delete(payment.id);
                                 totalDeleted++;
-                                // เพิ่ม delay เล็กน้อยระหว่างการลบแต่ละรายการ
-                                await new Promise(resolve => setTimeout(resolve, 100));
+                                // เพิ่ม delay 500ms ระหว่างการลบแต่ละรายการ
+                                await new Promise(resolve => setTimeout(resolve, 500));
                                 break;
                             } catch (e) {
                                 if (e.message?.includes('Rate limit') && retries < 2) {
                                     retries++;
                                     console.warn(`⚠️ Rate limit hit, retry ${retries}/3 for ${payment.id}`);
-                                    await new Promise(resolve => setTimeout(resolve, 2000)); // รอ 2 วินาทีก่อน retry
+                                    await new Promise(resolve => setTimeout(resolve, 5000)); // รอ 5 วินาทีก่อน retry
                                 } else {
                                     console.error(`❌ Error deleting ${payment.id}:`, e.message);
                                     break;
@@ -105,8 +105,8 @@ Deno.serve(async (req) => {
 
                     console.log(`✅ Round ${roundCount}: Deleted ${payments.length} (Total: ${totalDeleted}/${totalPayments} - เหลือ ${remaining})`);
 
-                    // เพิ่ม delay ระหว่างแต่ละรอบเพื่อหลีกเลี่ยง rate limit
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    // เพิ่ม delay 3 วินาทีระหว่างแต่ละรอบเพื่อหลีกเลี่ยง rate limit
+                    await new Promise(resolve => setTimeout(resolve, 3000));
                 }
             } catch (error) {
                 console.error(`❌ Background deletion error:`, error.message);
