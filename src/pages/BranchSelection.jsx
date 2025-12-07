@@ -147,12 +147,18 @@ export default function BranchSelection() {
   };
 
   const handleManageBranches = (e) => {
-    console.log('🚀🚀🚀 handleManageBranches FIRED! 🚀🚀🚀', {
-      isNavigating,
-      userRole,
-      hasEvent: !!e,
-      timestamp: new Date().toISOString()
+    console.log('🚀🚀🚀 handleManageBranches FIRED! 🚀🚀🚀');
+    console.log('📍 Location:', window.location.href);
+    console.log('👤 Current User:', {
+      email: currentUser?.email,
+      role: currentUser?.role,
+      custom_role: currentUser?.custom_role,
+      accessible_branches: currentUser?.accessible_branches
     });
+    console.log('🔐 Computed userRole:', userRole);
+    console.log('🚦 isNavigating:', isNavigating);
+    console.log('📅 Event:', e);
+    console.log('⏰ Timestamp:', new Date().toISOString());
 
     if (e) {
       console.log('🛑 Preventing default and stopping propagation');
@@ -165,9 +171,15 @@ export default function BranchSelection() {
       return;
     }
 
-    console.log('✅ NAVIGATING to BranchManagement NOW!');
-    navigate(createPageUrl('BranchManagement'));
-    console.log('✅ Navigate called successfully');
+    console.log('✅ CALLING navigate() to BranchManagement NOW!');
+    console.log('🎯 Target URL:', createPageUrl('BranchManagement'));
+    
+    try {
+      navigate(createPageUrl('BranchManagement'));
+      console.log('✅✅✅ Navigate called successfully!');
+    } catch (error) {
+      console.error('❌ Navigate error:', error);
+    }
   };
 
   if (isLoading) {
@@ -271,16 +283,25 @@ export default function BranchSelection() {
                     )}
                     
                     {/* ปุ่มแก้ไขสาขา - แสดงเสมอสำหรับ developer และ owner */}
-                    {(userRole === 'developer' || userRole === 'owner') && (
+                    {(() => {
+                      const shouldShow = userRole === 'developer' || userRole === 'owner';
+                      console.log('🔍 BUTTON RENDER CHECK:', {
+                        userRole,
+                        isDeveloper: userRole === 'developer',
+                        isOwner: userRole === 'owner',
+                        shouldShow,
+                        currentUserRole: currentUser?.role,
+                        currentUserCustomRole: currentUser?.custom_role
+                      });
+                      return shouldShow;
+                    })() && (
                       <Button
                         onClick={(e) => {
-                          console.log('🔘 ปุ่มแก้ไขสาขาถูกคลิก!', { 
-                            userRole, 
-                            isNavigating,
-                            currentUser: currentUser?.email,
-                            customRole: currentUser?.custom_role,
-                            baseRole: currentUser?.role
-                          });
+                          console.log('🔘🔘🔘 BUTTON onClick TRIGGERED! 🔘🔘🔘');
+                          console.log('🔘 Event type:', e.type);
+                          console.log('🔘 Event target:', e.target);
+                          console.log('🔘 userRole:', userRole);
+                          console.log('🔘 isNavigating:', isNavigating);
                           e.stopPropagation();
                           e.preventDefault();
                           handleManageBranches(e);
@@ -327,18 +348,31 @@ export default function BranchSelection() {
                     <div className="w-full" style={{ position: 'relative', zIndex: 9999 }}>
                       <div className="text-xs bg-yellow-100 p-2 rounded mb-2">
                         DEBUG: userRole={userRole} | isDev={String(userRole === 'developer')} | isOwner={String(userRole === 'owner')}
+                        | currentUser.role={currentUser?.role} | currentUser.custom_role={currentUser?.custom_role}
                       </div>
-                      {(userRole === 'developer' || userRole === 'owner') ? (
+                      {(() => {
+                        const shouldShowButton = userRole === 'developer' || userRole === 'owner';
+                        console.log('🎨 RENDER PHASE - Button visibility check:', {
+                          userRole,
+                          baseRole: currentUser?.role,
+                          customRole: currentUser?.custom_role,
+                          shouldShowButton
+                        });
+                        return shouldShowButton;
+                      })() ? (
                         <button
                           onClick={(e) => {
-                            console.log('🔘🔘🔘 BUTTON CLICKED! 🔘🔘🔘');
-                            console.log('Event:', e);
-                            console.log('userRole:', userRole);
-                            console.log('isNavigating:', isNavigating);
+                            console.log('🔘🔘🔘 INLINE BUTTON CLICKED! 🔘🔘🔘');
+                            console.log('📍 Click location:', e.clientX, e.clientY);
+                            console.log('🎯 Event phase:', e.eventPhase);
+                            console.log('🔐 userRole:', userRole);
+                            console.log('🚦 isNavigating:', isNavigating);
                             e.stopPropagation();
                             e.preventDefault();
                             handleManageBranches(e);
                           }}
+                          onMouseDown={(e) => console.log('🖱️ MOUSE DOWN detected')}
+                          onMouseUp={(e) => console.log('🖱️ MOUSE UP detected')}
                           style={{
                             background: 'linear-gradient(to right, #3b82f6, #0ea5e9)',
                             color: 'white',
@@ -366,6 +400,7 @@ export default function BranchSelection() {
                       ) : (
                         <div className="text-center p-4 bg-red-100 rounded">
                           <p className="text-red-800">ไม่ผ่านเงื่อนไข: userRole = {userRole}</p>
+                          <p className="text-xs text-red-600">baseRole = {currentUser?.role} | customRole = {currentUser?.custom_role}</p>
                         </div>
                       )}
                     </div>
