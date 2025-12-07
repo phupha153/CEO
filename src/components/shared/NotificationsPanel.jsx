@@ -869,10 +869,10 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   const filteredNotifications = filterBranch === 'all' 
     ? allNotifications 
     : allNotifications.filter(n => n.branchId === filterBranch);
-  
-  // นับเฉพาะรายการที่จะแสดงจริง (ยังไม่อ่าน)
-  const visibleNotifications = filteredNotifications.filter(n => !isNotificationRead(n.id));
-  const unreadCount = visibleNotifications.length;
+
+  // แสดงทั้งหมด แต่นับเฉพาะที่ยังไม่อ่าน
+  const visibleNotifications = filteredNotifications;
+  const unreadCount = filteredNotifications.filter(n => !isNotificationRead(n.id)).length;
 
   if (!isOpen) return null;
 
