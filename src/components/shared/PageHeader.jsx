@@ -30,41 +30,68 @@ export default function PageHeader({
 
   const { data: allPayments = [] } = useQuery({
     queryKey: ['allPayments', 'header', selectedBranchId],
-    queryFn: () => selectedBranchId 
-      ? base44.entities.Payment.filter({ branch_id: selectedBranchId })
-      : base44.entities.Payment.list('-created_date', 1000),
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      const payments = await base44.entities.Payment.filter({ branch_id: selectedBranchId });
+      console.log('🔔 PageHeader: Loaded payments for branch', selectedBranchId, '- Total:', payments.length);
+      return payments;
+    },
     enabled: showNotifications && !!selectedBranchId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
   });
 
   const { data: allMaintenanceRequests = [] } = useQuery({
     queryKey: ['allMaintenanceRequests', 'header', selectedBranchId],
-    queryFn: () => selectedBranchId
-      ? base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId })
-      : base44.entities.MaintenanceRequest.list('-created_date', 200),
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      const requests = await base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId });
+      console.log('🔔 PageHeader: Loaded maintenance for branch', selectedBranchId, '- Total:', requests.length);
+      return requests;
+    },
     enabled: showNotifications && !!selectedBranchId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
   });
 
   const unreadCount = useMemo(() => {
     const now = new Date();
+    now.setHours(0, 0, 0, 0); // เทียบเป็นวันเท่านั้น
     
     const overduePayments = allPayments.filter(p => {
       if (p.status === 'paid' || !p.due_date) return false;
       try {
         const dueDate = parseISO(p.due_date);
-        return now > dueDate;
+        const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+        const isOverdue = now > dueDateStart;
+        
+        // Debug log
+        if (isOverdue) {
+          console.log('🔴 PageHeader: Overdue payment found:', {
+            room_id: p.room_id,
+            due_date: p.due_date,
+            status: p.status,
+            total_amount: p.total_amount,
+            branch_id: p.branch_id
+          });
+        }
+        
+        return isOverdue;
       } catch {
         return false;
       }
-    }).length;
+    });
+
+    console.log('🔔 PageHeader: Calculating unread count for branch', selectedBranchId);
+    console.log('   - Overdue payments:', overduePayments.length, 'from', allPayments.length, 'total payments');
+    console.log('   - Urgent maintenance:', allMaintenanceRequests.filter(m => m.status === 'pending' && (m.priority === 'urgent' || m.priority === 'high')).length);
 
     const urgentMaintenance = allMaintenanceRequests.filter(m => 
       m.status === 'pending' && (m.priority === 'urgent' || m.priority === 'high')
     ).length;
 
-    return overduePayments + urgentMaintenance;
-  }, [allPayments, allMaintenanceRequests]);
+    return overduePayments.length + urgentMaintenance;
+  }, [allPayments, allMaintenanceRequests, selectedBranchId]);
 
   const handleBack = () => {
     if (backUrl) {
