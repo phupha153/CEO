@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
             let lastRateLimitTime = null;
 
             console.log(`🚀 [${branchId}] Starting deletion of ${totalPayments} payments`);
-            console.log(`⚙️ Config: batchSize=1, itemDelay=20s, retryDelay=120-240s, roundDelay=60s`);
+            console.log(`⚙️ Config: batchSize=1, itemDelay=30s, retryDelay=300-600s, roundDelay=120s`);
 
             try {
                 while (true) {
@@ -100,9 +100,9 @@ Deno.serve(async (req) => {
 
                                 console.log(`✅ [${totalDeleted}/${totalPayments}] Deleted in ${deleteTime}ms`);
 
-                                // รอ 20 วินาทีระหว่างรายการ
-                                console.log(`⏳ Waiting 20s before next item...`);
-                                await new Promise(resolve => setTimeout(resolve, 20000));
+                                // รอ 30 วินาทีระหว่างรายการ
+                                console.log(`⏳ Waiting 30s before next item...`);
+                                await new Promise(resolve => setTimeout(resolve, 30000));
                                 break;
 
                             } catch (e) {
@@ -114,11 +114,11 @@ Deno.serve(async (req) => {
 
                                     if (retries < 2) {
                                         retries++;
-                                        const waitTime = 120 * Math.pow(2, retries - 1); // 120s, 240s (exponential backoff)
+                                        const waitTime = 300 * Math.pow(2, retries - 1); // 300s (5min), 600s (10min)
                                         console.error(`⚠️⚠️⚠️ [RATE LIMIT #${rateLimitCount}] at ${lastRateLimitTime}`);
                                         console.error(`⚠️ Payment: ${payment.id}, Retry: ${retries}/3`);
                                         console.error(`⚠️ Error: ${e.message}`);
-                                        console.error(`⚠️ Waiting ${waitTime}s before retry (exponential backoff)...`);
+                                        console.error(`⚠️ Waiting ${waitTime}s (${Math.round(waitTime/60)}min) before retry...`);
 
                                         await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
                                     } else {
@@ -134,8 +134,8 @@ Deno.serve(async (req) => {
                         }
                     }
 
-                    // อัปเดต progress ทุก 20 รอบ
-                    if (roundCount % 20 === 0) {
+                    // อัปเดต progress ทุก 50 รอบ
+                    if (roundCount % 50 === 0) {
                         const remaining = totalPayments - totalDeleted;
                         const progressPercent = ((totalDeleted / totalPayments) * 100).toFixed(2);
 
@@ -153,9 +153,9 @@ Deno.serve(async (req) => {
                         });
                     }
 
-                    // รอ 60 วินาทีระหว่างรอบ
-                    console.log(`⏳ [Round ${roundCount} complete] Waiting 60s before next round...`);
-                    await new Promise(resolve => setTimeout(resolve, 60000));
+                    // รอ 120 วินาทีระหว่างรอบ
+                    console.log(`⏳ [Round ${roundCount} complete] Waiting 120s (2min) before next round...`);
+                    await new Promise(resolve => setTimeout(resolve, 120000));
                 }
             } catch (error) {
                 console.error(`❌❌❌ [FATAL ERROR] Background deletion crashed:`, error.message);
