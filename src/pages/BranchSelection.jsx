@@ -320,11 +320,11 @@ export default function BranchSelection() {
                         : 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ หรือติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา'}
                     </p>
 
-                    {/* ปุ่มเพิ่มสาขา - ให้ไปหน้า BranchManagement เสมอ (ปุ่มเพิ่มใน BranchManagement จะ disabled เอง) */}
-                    {(userRole === 'developer' || userRole === 'owner') ? (
+                    {/* ปุ่มเพิ่มสาขา/แก้ไข - ไปหน้า BranchManagement เสมอ */}
+                    {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
                         onClick={(e) => {
-                          console.log('🔘 ปุ่มเพิ่มสาขาถูกคลิก!', { 
+                          console.log('🔘 ปุ่มจัดการสาขาถูกคลิก!', { 
                             userRole, 
                             isNavigating, 
                             canAddMoreBranches,
@@ -339,18 +339,10 @@ export default function BranchSelection() {
                         type="button"
                       >
                         <Building2 className="w-6 h-6 mr-3" />
-                        เพิ่มตึกของคุณ
+                        จัดการสาขา
                       </Button>
-                    ) : (
-                      <div className="text-center">
-                        <p className="text-slate-600">กรุณาติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา</p>
-                      </div>
                     )}
-                    {!canAddMoreBranches && (
-                      <p className="text-sm text-amber-700 bg-amber-50 px-6 py-3 rounded-xl border-2 border-amber-200 mt-4">
-                        ⚠️ สร้างได้สูงสุด {maxTrialBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด
-                      </p>
-                    )}
+
                   </motion.div>
                 </div>
               ) : (
