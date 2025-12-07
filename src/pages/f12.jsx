@@ -165,51 +165,29 @@ export default function F12Page() {
   };
 
   const handleDeletePayments = async () => {
-    if (!confirm('ยืนยันการลบ Payment ทั้งหมดของสาขา Wresident87777?')) return;
+    if (!confirm('ยืนยันการลบ Payment ทั้งหมดของสาขา Wresident87777?\n\nระบบจะลบในพื้นหลัง คุณสามารถออกจากหน้านี้ได้เลย')) return;
     
     setIsDeleting(true);
-    let totalDeleted = 0;
-    let roundCount = 0;
-    
-    toast.loading('กำลังลบ... รอบที่ 1', { duration: Infinity, id: 'delete-progress' });
+    toast.loading('เริ่มลบข้อมูล...', { id: 'delete-start' });
     
     try {
-      // วนลบทีละ batch จนกว่าจะหมด
-      while (true) {
-        roundCount++;
-        console.log(`🗑️ รอบที่ ${roundCount} - เริ่มลบ...`);
-        
-        const result = await base44.functions.invoke('deletePaymentsByBranch', { 
-          branch_id: '69255a34e816a8749fc765c2' 
-        });
-        
-        const data = result.data;
-        totalDeleted += data.deletedThisRound || 0;
-        
-        console.log(`✅ รอบที่ ${roundCount} ลบไป ${data.deletedThisRound} รายการ (รวม ${totalDeleted})`);
-        
-        toast.loading(`กำลังลบ... รอบที่ ${roundCount} (ลบไปแล้ว ${totalDeleted} รายการ)`, { 
-          duration: Infinity, 
-          id: 'delete-progress' 
-        });
-        
-        // ถ้าลบเสร็จแล้ว หรือไม่มีอะไรให้ลบต่อ
-        if (data.completed || !data.hasMore) {
-          console.log(`✅ ลบเสร็จสิ้น! รวม ${totalDeleted} รายการ`);
-          break;
-        }
-        
-        // หน่วงเวลาเล็กน้อยระหว่างรอบ
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
+      const result = await base44.functions.invoke('deletePaymentsByBranch', { 
+        branch_id: '69255a34e816a8749fc765c2' 
+      });
       
-      toast.dismiss('delete-progress');
-      toast.success(`ลบสำเร็จ ${totalDeleted} รายการ ใน ${roundCount} รอบ`, { duration: 10000 });
+      console.log('🚀 Background deletion started:', result.data);
+      
+      toast.dismiss('delete-start');
+      
+      if (result.data.success) {
+        toast.success('เริ่มลบข้อมูลในพื้นหลังแล้ว - คุณสามารถออกจากหน้านี้ได้', { 
+          duration: 5000 
+        });
+      }
     } catch (error) {
-      toast.dismiss('delete-progress');
+      toast.dismiss('delete-start');
       console.error('❌ เกิดข้อผิดพลาด:', error);
-      console.error('Error response:', error.response?.data);
-      toast.error('ลบไม่สำเร็จ: ' + (error.response?.data?.error || error.message), { duration: 10000 });
+      toast.error('ลบไม่สำเร็จ: ' + error.message, { duration: 5000 });
     } finally {
       setIsDeleting(false);
     }
