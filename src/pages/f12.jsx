@@ -105,31 +105,50 @@ export default function F12Page() {
   };
 
   const handleDeletePayments = async () => {
-    if (!confirm('ยืนยันการลบ Payment ทั้งหมดของสาขา Wresident87777?\n\nจะใช้เวลา 5-10 นาที สำหรับ 2600+ รายการ')) return;
+    if (!confirm('ยืนยันการลบ Payment ทั้งหมดของสาขา Wresident87777?')) return;
     
     setIsDeleting(true);
-    console.log('🗑️ เริ่มลบ Payment ของสาขา 69255a34e816a8749fc765c2...');
-    console.log('⏱️ กรุณารอ 5-10 นาที (ประมาณ 2600+ รายการ)');
-    console.log('📌 ดูความคืบหน้าจาก Backend Logs ด้านล่าง (log ทุก 100 รายการ)');
+    let totalDeleted = 0;
+    let roundCount = 0;
     
-    toast.loading('กำลังลบ... กรุณารอ 5-10 นาที', { duration: Infinity, id: 'delete-progress' });
+    toast.loading('กำลังลบ... รอบที่ 1', { duration: Infinity, id: 'delete-progress' });
     
     try {
-      console.log('🚀 กำลังเรียก function...');
-      const result = await base44.functions.invoke('deletePaymentsByBranch', { 
-        branch_id: '69255a34e816a8749fc765c2' 
-      }, {
-        timeout: 600000 // 10 นาที
-      });
+      // วนลบทีละ batch จนกว่าจะหมด
+      while (true) {
+        roundCount++;
+        console.log(`🗑️ รอบที่ ${roundCount} - เริ่มลบ...`);
+        
+        const result = await base44.functions.invoke('deletePaymentsByBranch', { 
+          branch_id: '69255a34e816a8749fc765c2' 
+        });
+        
+        const data = result.data;
+        totalDeleted += data.deletedThisRound || 0;
+        
+        console.log(`✅ รอบที่ ${roundCount} ลบไป ${data.deletedThisRound} รายการ (รวม ${totalDeleted})`);
+        
+        toast.loading(`กำลังลบ... รอบที่ ${roundCount} (ลบไปแล้ว ${totalDeleted} รายการ)`, { 
+          duration: Infinity, 
+          id: 'delete-progress' 
+        });
+        
+        // ถ้าลบเสร็จแล้ว หรือไม่มีอะไรให้ลบต่อ
+        if (data.completed || !data.hasMore) {
+          console.log(`✅ ลบเสร็จสิ้น! รวม ${totalDeleted} รายการ`);
+          break;
+        }
+        
+        // หน่วงเวลาเล็กน้อยระหว่างรอบ
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
       
       toast.dismiss('delete-progress');
-      console.log('✅ ผลลัพธ์:', result.data);
-      toast.success(result.data.message || `ลบสำเร็จ ${result.data.deletedCount} รายการ`, { duration: 10000 });
+      toast.success(`ลบสำเร็จ ${totalDeleted} รายการ ใน ${roundCount} รอบ`, { duration: 10000 });
     } catch (error) {
       toast.dismiss('delete-progress');
       console.error('❌ เกิดข้อผิดพลาด:', error);
       console.error('Error response:', error.response?.data);
-      console.error('Stack:', error.stack);
       toast.error('ลบไม่สำเร็จ: ' + (error.response?.data?.error || error.message), { duration: 10000 });
     } finally {
       setIsDeleting(false);

@@ -1,14 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
-    console.log('🚀 Function started');
-    
     try {
         const base44 = createClientFromRequest(req);
-        console.log('✅ Client created');
-        
         const user = await base44.auth.me();
-        console.log('✅ User authenticated:', user?.email);
         
         if (!user) {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
@@ -16,57 +11,52 @@ Deno.serve(async (req) => {
 
         const body = await req.json();
         const branchId = body.branch_id;
-        console.log('✅ Branch ID:', branchId);
         
         if (!branchId) {
             return Response.json({ error: 'branch_id is required' }, { status: 400 });
         }
 
-        console.log('🗑️ Starting deletion...');
+        console.log(`🗑️ Deleting payments for branch: ${branchId}`);
 
+        // ลบแค่ 100 รายการต่อครั้ง แล้ว return ให้ frontend เรียกซ้ำ
+        const batchSize = 100;
         let deletedCount = 0;
-        const batchSize = 50;
-        const maxIterations = 60;
 
-        for (let i = 0; i < maxIterations; i++) {
-            console.log(`\n📦 Batch ${i + 1}/${maxIterations}`);
-            
-            const payments = await base44.asServiceRole.entities.Payment.filter(
-                { branch_id: branchId }, 
-                '-created_date', 
-                batchSize
-            );
-            
-            console.log(`📋 Found ${payments.length} payments`);
-            
-            if (!payments || payments.length === 0) {
-                console.log('✅ No more payments');
-                break;
-            }
-
-            for (const payment of payments) {
-                try {
-                    await base44.asServiceRole.entities.Payment.delete(payment.id);
-                    deletedCount++;
-                    
-                    if (deletedCount % 25 === 0) {
-                        console.log(`🗑️ Deleted: ${deletedCount}`);
-                    }
-                } catch (e) {
-                    console.error(`❌ Error: ${payment.id}`);
-                }
-            }
-
-            console.log(`✅ Batch ${i + 1} done: ${deletedCount} total`);
-            await new Promise(resolve => setTimeout(resolve, 200));
+        const payments = await base44.asServiceRole.entities.Payment.filter(
+            { branch_id: branchId }, 
+            '-created_date', 
+            batchSize
+        );
+        
+        console.log(`📋 Found ${payments.length} payments to delete`);
+        
+        if (!payments || payments.length === 0) {
+            return Response.json({
+                success: true,
+                completed: true,
+                message: 'ลบเสร็จสิ้นแล้ว',
+                deletedThisRound: 0,
+                hasMore: false
+            });
         }
 
-        console.log(`\n✅ COMPLETED: ${deletedCount} payments deleted`);
+        for (const payment of payments) {
+            try {
+                await base44.asServiceRole.entities.Payment.delete(payment.id);
+                deletedCount++;
+            } catch (e) {
+                console.error(`❌ Error deleting ${payment.id}:`, e.message);
+            }
+        }
+
+        console.log(`✅ Deleted ${deletedCount} payments in this round`);
 
         return Response.json({
             success: true,
-            message: `ลบสำเร็จ ${deletedCount} รายการ`,
-            deletedCount
+            completed: false,
+            message: `ลบไปแล้ว ${deletedCount} รายการ`,
+            deletedThisRound: deletedCount,
+            hasMore: payments.length === batchSize
         });
 
     } catch (error) {
