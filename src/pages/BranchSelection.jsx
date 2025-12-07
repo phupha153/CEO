@@ -146,25 +146,11 @@ export default function BranchSelection() {
     navigate(createPageUrl('AllBranchesDashboard'));
   };
 
-  const handleManageBranches = () => {
-    console.log('🔍 handleManageBranches clicked:', { isNavigating, userRole });
-    if (isNavigating) {
-      console.warn('⚠️ Blocked: isNavigating is true');
-      return;
-    }
-    console.log('✅ Navigating to BranchManagement');
+  const handleManageBranches = (e) => {
+    if (e) e.stopPropagation();
+    if (isNavigating) return;
     navigate(createPageUrl('BranchManagement'));
   };
-
-  // Debug log
-  console.log('🔍 BranchSelection State:', {
-    userRole,
-    isNavigating,
-    canAddMoreBranches,
-    hasNoBranches,
-    hasNoAccess,
-    filteredBranchesCount: filteredBranches.length
-  });
 
   if (isLoading) {
     return (
@@ -269,10 +255,13 @@ export default function BranchSelection() {
                     {/* ปุ่มแก้ไขสาขา - เฉพาะ developer และ owner เท่านั้น */}
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
-                        onClick={handleManageBranches}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleManageBranches(e);
+                        }}
                         disabled={isNavigating}
                         variant="outline"
-                        className="border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-700 h-auto py-4 px-6 text-sm rounded-2xl font-medium"
+                        className="border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-700 h-auto py-4 px-6 text-sm rounded-2xl font-medium pointer-events-auto cursor-pointer"
                         data-onboarding="add-branch-button"
                       >
                         <Pencil className="w-5 h-5 mr-2 flex-shrink-0" />
@@ -311,9 +300,12 @@ export default function BranchSelection() {
                     {/* ปุ่มเพิ่มสาขา - เฉพาะ developer และ owner เท่านั้น */}
                     {(userRole === 'developer' || userRole === 'owner') ? (
                       <Button
-                        onClick={handleManageBranches}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleManageBranches(e);
+                        }}
                         disabled={isNavigating || !canAddMoreBranches}
-                        className="bg-gradient-to-r from-blue-500 to-sky-600 hover:from-blue-600 hover:to-sky-700 text-white h-auto py-5 px-10 text-lg shadow-2xl rounded-2xl font-bold disabled:opacity-50"
+                        className="bg-gradient-to-r from-blue-500 to-sky-600 hover:from-blue-600 hover:to-sky-700 text-white h-auto py-5 px-10 text-lg shadow-2xl rounded-2xl font-bold disabled:opacity-50 pointer-events-auto cursor-pointer"
                         data-onboarding="add-branch-button"
                       >
                         <Building2 className="w-6 h-6 mr-3" />
