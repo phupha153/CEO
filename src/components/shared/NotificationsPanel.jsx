@@ -974,7 +974,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                                 )}
                                 
                                 <Card
-                                  className={`border-l-4 ${colorMap[notif.color].bg} ${isRead ? 'opacity-40 grayscale' : 'shadow-md'} ${notif.expandable ? '' : 'cursor-pointer hover:shadow-lg'} transition-all relative`}
+                                  className={`border-l-4 ${colorMap[notif.color].bg} shadow-md ${notif.expandable ? '' : 'cursor-pointer hover:shadow-lg'} transition-all relative`}
                                   style={{ borderLeftColor: colorMap[notif.color].border }}
                                 >
                                   <CardContent className="p-4">
