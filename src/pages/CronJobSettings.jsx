@@ -236,7 +236,7 @@ export default function CronJobSettings() {
               placeholder="ใส่ Branch ID"
               className="bg-white"
             />
-            <div className="flex gap-2 mt-3">
+            <div className="flex gap-2 mt-3 flex-wrap">
               <Button
                 onClick={async () => {
                   try {
@@ -277,6 +277,22 @@ export default function CronJobSettings() {
                 }}
               >
                 🔄 โหลดค่าที่บันทึก
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (!confirm(`🗑️ ต้องการลบ Payment ทั้งหมดของสาขา ${cronBranchId}?\n\n⚠️ การกระทำนี้ไม่สามารถย้อนกลับได้!`)) return;
+                  
+                  const loadingToast = toast.loading('🚀 เริ่มลบ Payment ในพื้นหลัง...');
+                  try {
+                    const response = await base44.functions.invoke('deletePaymentsByBranch', { branch_id: cronBranchId });
+                    toast.success(`✅ ${response.data.message}\n💡 ทั้งหมด ${response.data.totalPayments} รายการ`, { id: loadingToast, duration: 5000 });
+                  } catch (error) {
+                    toast.error(`❌ เกิดข้อผิดพลาด: ${error.message}`, { id: loadingToast });
+                  }
+                }}
+                className="bg-red-700 hover:bg-red-800"
+              >
+                🗑️ ลบทั้งหมดทันที
               </Button>
             </div>
             <p className="text-xs text-red-600 mt-2">
