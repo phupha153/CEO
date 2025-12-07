@@ -416,7 +416,43 @@ export default function F12Page() {
                 </Button>
               </div>
             </div>
-            </div>
+
+            {/* Delete Progress Indicator */}
+            {deleteProgress.initial > 0 && (
+              <div className="mt-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200 shadow-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                  <div className="flex-1">
+                    <p className="font-bold text-blue-900 text-lg">
+                      {deleteProgress.remaining === 0 && deleteProgress.deleted > 0 ? '✅ ลบเสร็จสมบูรณ์!' : '🔄 กำลังลบข้อมูล...'}
+                    </p>
+                    <p className="text-sm text-blue-700 font-medium">
+                      ลบไปแล้ว <span className="font-bold text-blue-900">{deleteProgress.deleted.toLocaleString()}</span> / {deleteProgress.initial.toLocaleString()} รายการ
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      เหลืออีก <span className="font-bold">{deleteProgress.remaining.toLocaleString()}</span> รายการ
+                    </p>
+                  </div>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-4 overflow-hidden shadow-inner">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 transition-all duration-300 rounded-full relative"
+                    style={{ width: `${deleteProgress.initial > 0 ? (deleteProgress.deleted / deleteProgress.initial) * 100 : 0}%` }}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center mt-3">
+                  <p className="text-xs text-blue-600 font-semibold">
+                    {deleteProgress.initial > 0 ? Math.round((deleteProgress.deleted / deleteProgress.initial) * 100) : 0}% เสร็จสิ้น
+                  </p>
+                  <p className="text-xs text-blue-500">
+                    อัพเดททุก 2 วินาที
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
 
             {/* Delete Progress Indicator */}
             {deleteProgress.initial > 0 && (
