@@ -60,14 +60,14 @@ Deno.serve(async (req) => {
 
         // ทำงานต่อในพื้นหลังโดยไม่ block response
         (async () => {
-            const batchSize = 10;
+            const batchSize = 25;
             let totalDeleted = 0;
             let roundCount = 0;
             let rateLimitCount = 0;
             let lastRateLimitTime = null;
 
             console.log(`🚀 [${branchId}] Starting deletion of ${totalPayments} payments`);
-            console.log(`⚙️ FAST Config: batchSize=10, itemDelay=2s, retryDelay=10s, roundDelay=5s`);
+            console.log(`⚙️ MODERATE Config: batchSize=25, itemDelay=3s, retryDelay=10s, roundDelay=10s`);
 
             try {
                 while (true) {
@@ -119,8 +119,8 @@ Deno.serve(async (req) => {
 
                                 console.log(`✅ [${totalDeleted}/${totalPayments}] Deleted in ${deleteTime}ms`);
 
-                                // รอ 2 วินาทีระหว่างรายการ
-                                await new Promise(resolve => setTimeout(resolve, 2000));
+                                // รอ 3 วินาทีระหว่างรายการ
+                                await new Promise(resolve => setTimeout(resolve, 3000));
                                 break;
 
                             } catch (e) {
@@ -183,9 +183,9 @@ Deno.serve(async (req) => {
                         }
                     }
 
-                    // รอ 5 วินาทีระหว่างรอบ
-                    console.log(`⏳ [Round ${roundCount} complete] Waiting 5s before next round...`);
-                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    // รอ 10 วินาทีระหว่างรอบ
+                    console.log(`⏳ [Round ${roundCount} complete] Waiting 10s before next round...`);
+                    await new Promise(resolve => setTimeout(resolve, 10000));
                 }
             } catch (error) {
                 console.error(`❌❌❌ [FATAL ERROR] Background deletion crashed:`, error.message);
