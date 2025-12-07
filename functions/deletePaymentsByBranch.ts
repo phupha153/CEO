@@ -3,6 +3,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 // เก็บ progress ใน KV store เพื่อให้ function อื่นเข้าถึงได้
 const kv = await Deno.openKv();
 
+// Fast batch deletion function
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
