@@ -6,9 +6,17 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // รับ branch_id จาก body
-        const body = await req.json();
-        const branchId = body.branch_id || '69255a34e816a8749fc765c2'; // default ถ้าไม่ส่งมา
+        // ถ้า cron job เรียก = ใช้ env variable หรือ default
+        // ถ้าเรียกจากหน้าเว็บ = ใช้ body
+        let body = {};
+        try {
+            body = await req.json();
+        } catch {
+            // ไม่มี body (เรียกจาก cron)
+        }
+        
+        // ลำดับความสำคัญ: body > env > default
+        const branchId = body.branch_id || Deno.env.get('CRON_DELETE_BRANCH_ID') || '69255a34e816a8749fc765c2';
         
         console.log(`🤖 [CRON] Checking deletion progress for branch: ${branchId}`);
         
