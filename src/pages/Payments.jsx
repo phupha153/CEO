@@ -93,6 +93,7 @@ export default function PaymentsPage() {
     common_fee_amount: 0,
     parking_fee_amount: 0,
     other_amount: 0,
+    late_fee_amount: 0,
     payment_method: 'cash',
     payment_slip_url: '',
     notes: ''
@@ -1218,7 +1219,8 @@ export default function PaymentsPage() {
       (parseFloat(formData.internet_amount) || 0) +
       (parseFloat(formData.common_fee_amount) || 0) +
       (parseFloat(formData.parking_fee_amount) || 0) +
-      (parseFloat(formData.other_amount) || 0);
+      (parseFloat(formData.other_amount) || 0) +
+      (parseFloat(formData.late_fee_amount) || 0);
 
     if (total <= 0) {
       toast.error('ยอดรวมต้องมากกว่า 0 บาท');
@@ -1243,6 +1245,7 @@ export default function PaymentsPage() {
       common_fee_amount: parseFloat(formData.common_fee_amount || 0),
       parking_fee_amount: parseFloat(formData.parking_fee_amount || 0),
       other_amount: parseFloat(formData.other_amount || 0),
+      late_fee_amount: parseFloat(formData.late_fee_amount || 0),
       total_amount: total,
       payment_method: formData.payment_method,
       payment_slip_url: formData.payment_slip_url || '',
@@ -1284,6 +1287,7 @@ export default function PaymentsPage() {
       common_fee_amount: payment.common_fee_amount || 0,
       parking_fee_amount: payment.parking_fee_amount || 0,
       other_amount: payment.other_amount || 0,
+      late_fee_amount: payment.late_fee_amount || 0,
       payment_method: payment.payment_method || 'cash',
       payment_slip_url: payment.payment_slip_url || '',
       notes: payment.notes || ''
@@ -1311,6 +1315,7 @@ export default function PaymentsPage() {
       common_fee_amount: 0,
       parking_fee_amount: 0,
       other_amount: 0,
+      late_fee_amount: 0,
       payment_method: 'cash',
       payment_slip_url: '',
       notes: ''
@@ -3797,12 +3802,27 @@ Return JSON.`;
                       <Input type="number" value={formData.other_amount} onChange={(e) => setFormData({ ...formData, other_amount: parseFloat(e.target.value) || 0 })} placeholder="0" />
                     </div>
 
+                    <div>
+                      <Label className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-600" />
+                        ค่าปรับ (บาท)
+                      </Label>
+                      <Input 
+                        type="number" 
+                        value={formData.late_fee_amount} 
+                        onChange={(e) => setFormData({ ...formData, late_fee_amount: parseFloat(e.target.value) || 0 })} 
+                        placeholder="0"
+                        className="border-red-200 focus:border-red-400"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">สามารถระบุค่าปรับเพิ่มเติมได้</p>
+                    </div>
+
                     <Card className="bg-slate-50 border-slate-200">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-center">
                           <span className="text-lg font-semibold text-slate-800">ยอดรวมทั้งสิ้น:</span>
                           <span className="text-2xl font-bold text-blue-600">
-                            {(parseFloat(formData.rent_amount || 0) + parseFloat(formData.water_amount || 0) + parseFloat(formData.electricity_amount || 0) + parseFloat(formData.internet_amount || 0) + parseFloat(formData.common_fee_amount || 0) + parseFloat(formData.parking_fee_amount || 0) + parseFloat(formData.other_amount || 0)).toLocaleString()} ฿
+                            {(parseFloat(formData.rent_amount || 0) + parseFloat(formData.water_amount || 0) + parseFloat(formData.electricity_amount || 0) + parseFloat(formData.internet_amount || 0) + parseFloat(formData.common_fee_amount || 0) + parseFloat(formData.parking_fee_amount || 0) + parseFloat(formData.other_amount || 0) + parseFloat(formData.late_fee_amount || 0)).toLocaleString()} ฿
                           </span>
                         </div>
                       </CardContent>
