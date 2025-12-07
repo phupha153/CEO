@@ -932,8 +932,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                               amber: { gradient: 'from-amber-500 to-orange-500', border: '#f59e0b', bg: 'bg-amber-50/50' }
                             };
 
-                            // ซ่อนรายการที่อ่านแล้วหรือลบแล้ว
-                            if (isDeleted || isRead) return null;
+                            if (isDeleted) return null;
 
                             return (
                               <motion.div
@@ -974,7 +973,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                                 )}
                                 
                                 <Card
-                                  className={`border-l-4 ${colorMap[notif.color].bg} shadow-md ${notif.expandable ? '' : 'cursor-pointer hover:shadow-lg'} transition-all relative`}
+                                  className={`border-l-4 ${colorMap[notif.color].bg} ${isRead ? 'opacity-40 grayscale' : 'shadow-md'} ${notif.expandable ? '' : 'cursor-pointer hover:shadow-lg'} transition-all relative`}
                                   style={{ borderLeftColor: colorMap[notif.color].border }}
                                 >
                                   <CardContent className="p-4">
