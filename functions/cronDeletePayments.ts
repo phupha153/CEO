@@ -6,8 +6,9 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // Service role - ไม่ต้องเช็ค auth เพราะเป็น cron job
-        const branchId = '69255a34e816a8749fc765c2';
+        // รับ branch_id จาก body
+        const body = await req.json();
+        const branchId = body.branch_id || '69255a34e816a8749fc765c2'; // default ถ้าไม่ส่งมา
         
         console.log(`🤖 [CRON] Checking deletion progress for branch: ${branchId}`);
         

@@ -100,6 +100,7 @@ export default function CronJobSettings() {
   const navigate = useNavigate();
   const [runningJobs, setRunningJobs] = useState({});
   const [jobResults, setJobResults] = useState({});
+  const [cronBranchId, setCronBranchId] = useState('69255a34e816a8749fc765c2');
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -137,7 +138,9 @@ export default function CronJobSettings() {
     setJobResults(prev => ({ ...prev, [job.id]: null }));
 
     try {
-      const response = await base44.functions.invoke(job.functionName, {});
+      // ถ้าเป็น cronDeletePayments ให้ส่ง branch_id ไปด้วย
+      const params = job.id === 'cronDeletePayments' ? { branch_id: cronBranchId } : {};
+      const response = await base44.functions.invoke(job.functionName, params);
       
       setJobResults(prev => ({ 
         ...prev, 
@@ -222,6 +225,22 @@ export default function CronJobSettings() {
 
         {/* Developer Test: อัพโหลดสลิปเพื่อทดสอบ */}
         <TestSlipUploader />
+
+        {/* Branch ID for Cron Delete */}
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="pt-4">
+            <Label className="text-red-800 font-bold mb-2 block">🎯 Branch ID สำหรับ Cron Delete</Label>
+            <Input
+              value={cronBranchId}
+              onChange={(e) => setCronBranchId(e.target.value)}
+              placeholder="ใส่ Branch ID"
+              className="bg-white"
+            />
+            <p className="text-xs text-red-600 mt-2">
+              ใช้สำหรับ Cron Job "ลบ Payment ต่อเนื่อง" เท่านั้น
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Cron Jobs Grid */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
