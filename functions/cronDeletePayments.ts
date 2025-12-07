@@ -23,137 +23,109 @@ Deno.serve(async (req) => {
             const configs = await base44.asServiceRole.entities.Config.filter({ key: 'cron_delete_branch_id' });
             branchId = configs.length > 0 ? configs[0].value : '69255a34e816a8749fc765c2';
         }
-        
-        console.log(`🤖 [CRON] Checking deletion progress for branch: ${branchId}`);
-        
+
+        console.log(`🔄 [Cron] Checking deletion progress for branch: ${branchId}`);
+
         // เช็ค progress ปัจจุบัน
-        const progressResult = await kv.get(['delete_progress', branchId]);
-        const progress = progressResult.value;
+        const progressKey = ['delete_progress', branchId];
+        const currentProgress = await kv.get(progressKey);
         
-        // ถ้ามี progress และยังไม่เสร็จ
-        if (progress && progress.remaining > 0 && !progress.completed) {
-            console.log(`📊 [CRON] Found ongoing deletion: ${progress.deleted}/${progress.initial} (${progress.remaining} remaining)`);
-            console.log(`⏭️ [CRON] Continuing deletion...`);
+        if (!currentProgress.value) {
+            // ไม่มี progress = เริ่มใหม่
+            console.log(`🆕 [Cron] No existing progress, starting new deletion...`);
             
-            // เรียก delete ต่อ
-            const batchSize = 1;
-            const payments = await base44.asServiceRole.entities.Payment.filter(
-                { branch_id: branchId }, 
-                '-created_date', 
-                batchSize
+            const allPayments = await base44.asServiceRole.entities.Payment.filter(
+                { branch_id: branchId },
+                '-created_date',
+                10000
             );
             
-            console.log(`📦 [CRON] Fetched ${payments?.length || 0} payments to delete`);
-            
-            if (!payments || payments.length === 0) {
-                console.log(`✅ [CRON COMPLETE] All payments deleted!`);
-                await kv.set(['delete_progress', branchId], {
-                    deleted: progress.deleted,
-                    remaining: 0,
-                    initial: progress.initial,
-                    completed: true,
-                    timestamp: Date.now()
-                });
-                return Response.json({
-                    success: true,
-                    message: 'Deletion completed',
-                    totalDeleted: progress.deleted
-                });
+            if (allPayments.length === 0) {
+                console.log(`✅ [Cron] No payments to delete`);
+                return Response.json({ success: true, message: 'No payments to delete', remaining: 0 });
             }
             
-            // ลบทีละรายการ
-            let deleted = 0;
-            for (const payment of payments) {
-                let retries = 0;
-                
-                while (retries < 3) {
-                    try {
-                        console.log(`🗑️ [CRON] Deleting ${payment.id}... (retry: ${retries})`);
-                        await base44.asServiceRole.entities.Payment.delete(payment.id);
-                        deleted++;
-                        console.log(`✅ [CRON] Deleted ${payment.id}`);
-                        
-                        // รอ 120 วินาที (2 นาที) ระหว่างรายการ
-                        await new Promise(resolve => setTimeout(resolve, 120000));
-                        break;
-                        
-                    } catch (e) {
-                        // ถ้า 404 = payment ถูกลบไปแล้ว
-                        if (e.message?.includes('not found') || e.message?.includes('404')) {
-                            console.log(`⚠️ [CRON SKIP] ${payment.id} - Already deleted (404)`);
-                            deleted++;
-                            break;
-                        }
-                        
-                        if (e.message?.includes('Rate limit') || e.message?.includes('429')) {
-                            if (retries < 2) {
-                                retries++;
-                                const waitTime = 900 * Math.pow(2, retries - 1); // 15min, 30min
-                                console.error(`⚠️ [CRON RATE LIMIT] Retry: ${retries}/3`);
-                                console.error(`⚠️ [CRON] Waiting ${Math.round(waitTime/60)}min...`);
-                                await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
-                            } else {
-                                console.error(`❌ [CRON FAILED] ${payment.id} - Max retries`);
-                                break;
-                            }
-                        } else {
-                            console.error(`❌ [CRON ERROR] ${payment.id}: ${e.message}`);
-                            break;
-                        }
-                    }
-                }
-            }
-            
-            // อัพเดต progress
-            const newDeleted = progress.deleted + deleted;
-            const newRemaining = Math.max(0, progress.initial - newDeleted);
-            
-            await kv.set(['delete_progress', branchId], {
-                deleted: newDeleted,
-                remaining: newRemaining,
-                initial: progress.initial,
+            await kv.set(progressKey, {
+                deleted: 0,
+                remaining: allPayments.length,
+                initial: allPayments.length,
                 timestamp: Date.now()
             });
             
-            console.log(`📊 [CRON] Progress: ${newDeleted}/${progress.initial} (${newRemaining} remaining)`);
+            console.log(`📊 [Cron] Initialized progress: ${allPayments.length} payments to delete`);
+        }
+        
+        // ลบ 1 รายการ
+        const payments = await base44.asServiceRole.entities.Payment.filter(
+            { branch_id: branchId }, 
+            '-created_date', 
+            1
+        );
+        
+        if (!payments || payments.length === 0) {
+            console.log(`✅ [Cron] Deletion complete!`);
+            const finalProgress = currentProgress.value || { deleted: 0, initial: 0 };
+            await kv.set(progressKey, {
+                ...finalProgress,
+                remaining: 0,
+                completed: true,
+                timestamp: Date.now()
+            });
+            return Response.json({ 
+                success: true, 
+                message: 'Deletion complete', 
+                deleted: finalProgress.deleted,
+                remaining: 0 
+            });
+        }
+        
+        const payment = payments[0];
+        let deleted = false;
+        
+        try {
+            console.log(`🗑️ [Cron] Deleting payment: ${payment.id}`);
+            await base44.asServiceRole.entities.Payment.delete(payment.id);
+            deleted = true;
+            console.log(`✅ [Cron] Deleted payment: ${payment.id}`);
+        } catch (e) {
+            if (e.message?.includes('not found') || e.message?.includes('404')) {
+                console.log(`⚠️ [Cron] Payment ${payment.id} already deleted (404), skipping...`);
+                deleted = true; // นับเป็นลบแล้ว
+            } else {
+                console.error(`❌ [Cron] Error deleting ${payment.id}:`, e.message);
+                throw e;
+            }
+        }
+        
+        // อัปเดต progress
+        if (deleted && currentProgress.value) {
+            const newDeleted = (currentProgress.value.deleted || 0) + 1;
+            const newRemaining = Math.max(0, (currentProgress.value.initial || 0) - newDeleted);
             
-            return Response.json({
-                success: true,
-                message: 'Cron job completed',
-                deleted: deleted,
-                totalDeleted: newDeleted,
-                remaining: newRemaining
+            await kv.set(progressKey, {
+                deleted: newDeleted,
+                remaining: newRemaining,
+                initial: currentProgress.value.initial,
+                timestamp: Date.now()
+            });
+            
+            console.log(`📊 [Cron] Progress: ${newDeleted}/${currentProgress.value.initial} (${newRemaining} remaining)`);
+            
+            return Response.json({ 
+                success: true, 
+                deleted: newDeleted,
+                remaining: newRemaining,
+                message: `Deleted 1 payment, ${newRemaining} remaining`
             });
         }
         
-        // ถ้าไม่มี progress หรือเสร็จแล้ว
-        if (!progress) {
-            console.log(`ℹ️ [CRON] No ongoing deletion found`);
-            return Response.json({
-                success: true,
-                message: 'No ongoing deletion'
-            });
-        }
-        
-        if (progress.completed) {
-            console.log(`✅ [CRON] Deletion already completed`);
-            return Response.json({
-                success: true,
-                message: 'Deletion already completed',
-                totalDeleted: progress.deleted
-            });
-        }
-        
-        return Response.json({
-            success: true,
-            message: 'Nothing to do'
-        });
-        
+        return Response.json({ success: true, message: 'Processing...' });
+
     } catch (error) {
-        console.error('❌ [CRON ERROR]:', error.message);
+        console.error('❌ [Cron] ERROR:', error.message);
         return Response.json({ 
             success: false, 
-            error: error.message 
+            error: error.message
         }, { status: 500 });
     }
 });
