@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, ChevronRight, Settings, BarChart3, Check, Loader2, MapPin, Globe, Pencil } from "lucide-react";
+import { Building2, ChevronRight, Settings, BarChart3, Check, Loader2, MapPin, Globe, Pencil, Bug } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -265,6 +265,28 @@ export default function BranchSelection() {
               <div className="text-center mb-8">
                 <p className="text-slate-600">เลือกสาขาที่ต้องการจัดการ</p>
               </div>
+
+              {/* DEBUG BUTTON - แสดงที่ด้านบน */}
+              <Button
+                onClick={() => {
+                  console.log('🐛 DEBUG INFO:');
+                  console.log('👤 currentUser:', currentUser);
+                  console.log('🔐 userRole:', userRole);
+                  console.log('📧 currentUser.email:', currentUser?.email);
+                  console.log('👑 currentUser.role:', currentUser?.role);
+                  console.log('🎭 currentUser.custom_role:', currentUser?.custom_role);
+                  console.log('🏢 accessible_branches:', currentUser?.accessible_branches);
+                  console.log('🚦 isNavigating:', isNavigating);
+                  console.log('📍 window.location:', window.location.href);
+                  console.log('🎯 createPageUrl("BranchManagement"):', createPageUrl('BranchManagement'));
+                  alert(`DEBUG:\nuserRole: ${userRole}\nemail: ${currentUser?.email}\nrole: ${currentUser?.role}\ncustom_role: ${currentUser?.custom_role}\n\nเปิด Console (F12) เพื่อดูรายละเอียด`);
+                }}
+                variant="outline"
+                className="mb-4 border-2 border-yellow-400 bg-yellow-50 hover:bg-yellow-100"
+              >
+                <Bug className="w-5 h-5 mr-2" />
+                🐛 Debug Info (ดู Console)
+              </Button>
 
               {/* ✅ ถ้ามีสาขา → แสดงปุ่มดูภาพรวม + แก้ไขสาขา (เฉพาะ developer/owner) */}
               {!hasNoBranches && !hasNoAccess && (
