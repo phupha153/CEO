@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import TestSlipUploader from "@/components/testing/TestSlipUploader";
+import DeleteProgressDialog from "@/components/testing/DeleteProgressDialog";
 
 const CRON_JOBS = [
   {
@@ -101,6 +102,7 @@ export default function CronJobSettings() {
   const [runningJobs, setRunningJobs] = useState({});
   const [jobResults, setJobResults] = useState({});
   const [cronBranchId, setCronBranchId] = useState('69255a34e816a8749fc765c2');
+  const [showProgressDialog, setShowProgressDialog] = useState(false);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -285,7 +287,8 @@ export default function CronJobSettings() {
                   const loadingToast = toast.loading('🚀 เริ่มลบ Payment ในพื้นหลัง...');
                   try {
                     const response = await base44.functions.invoke('deletePaymentsByBranch', { branch_id: cronBranchId });
-                    toast.success(`✅ ${response.data.message}\n💡 ทั้งหมด ${response.data.totalPayments} รายการ`, { id: loadingToast, duration: 5000 });
+                    toast.success(`✅ ${response.data.message}\n💡 ทั้งหมด ${response.data.totalPayments} รายการ`, { id: loadingToast, duration: 3000 });
+                    setShowProgressDialog(true);
                   } catch (error) {
                     toast.error(`❌ เกิดข้อผิดพลาด: ${error.message}`, { id: loadingToast });
                   }
@@ -293,6 +296,13 @@ export default function CronJobSettings() {
                 className="bg-red-700 hover:bg-red-800"
               >
                 🗑️ ลบทั้งหมดทันที
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowProgressDialog(true)}
+                className="border-red-300 text-red-700 hover:bg-red-50"
+              >
+                📊 ดูความคืบหน้า
               </Button>
             </div>
             <p className="text-xs text-red-600 mt-2">
@@ -456,7 +466,13 @@ export default function CronJobSettings() {
             )}
           </CardContent>
         </Card>
-      </div>
-    </div>
-  );
-}
+        </div>
+
+        <DeleteProgressDialog 
+        open={showProgressDialog} 
+        onClose={() => setShowProgressDialog(false)}
+        branchId={cronBranchId}
+        />
+        </div>
+        );
+        }
