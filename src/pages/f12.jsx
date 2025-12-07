@@ -13,6 +13,7 @@ export default function F12Page() {
   const originalConsole = useRef({});
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteProgress, setDeleteProgress] = useState({ deleted: 0, remaining: 0, initial: 0 });
+  const [manualBranchId, setManualBranchId] = useState('69255a34e816a8749fc765c2');
 
   // Fetch user data for debugging
   const { data: currentUser } = useQuery({
@@ -309,6 +310,112 @@ export default function F12Page() {
                 <Trash2 className="w-4 h-4 mr-2" />
                 {isDeleting ? 'กำลังลบ...' : 'ลบ Payment สาขา Test'}
               </Button>
+            </div>
+
+            {/* ส่วนใส่ Branch ID แบบ Manual */}
+            <div className="mt-6 p-4 bg-orange-50 border-2 border-orange-300 rounded-xl">
+              <h3 className="font-bold text-orange-800 mb-3 flex items-center gap-2">
+                <Trash2 className="w-5 h-5" />
+                🔥 ลบ Payment ด้วย Branch ID
+              </h3>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="ใส่ Branch ID ที่ต้องการลบ"
+                  value={manualBranchId}
+                  onChange={(e) => setManualBranchId(e.target.value)}
+                  className="flex-1 px-4 py-2 border-2 border-orange-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <Button
+                  onClick={async () => {
+                    if (!manualBranchId?.trim()) {
+                      toast.error('กรุณาใส่ Branch ID');
+                      return;
+                    }
+
+                    if (!confirm(`⚠️ ยืนยันการลบ Payment ทั้งหมดของสาขา:\n${manualBranchId}\n\nระบบจะลบในพื้นหลัง`)) {
+                      return;
+                    }
+
+                    setIsDeleting(true);
+                    setDeleteProgress({ deleted: 0, remaining: 0, initial: 0 });
+                    toast.loading('กำลังนับจำนวนข้อมูล...', { id: 'delete-manual' });
+
+                    try {
+                      const result = await base44.functions.invoke('deletePaymentsByBranch', { 
+                        branch_id: manualBranchId 
+                      });
+
+                      console.log('🚀 Background deletion started:', result.data);
+
+                      if (result.data.success && result.data.started) {
+                        const total = result.data.totalPayments || 0;
+                        setDeleteProgress({ 
+                          deleted: 0, 
+                          remaining: total, 
+                          initial: total 
+                        });
+
+                        toast.dismiss('delete-manual');
+                        toast.success(`🚀 เริ่มลบ ${total.toLocaleString()} รายการ`, { 
+                          duration: 4000 
+                        });
+
+                        // Poll progress ทุก 2 วินาที
+                        const interval = setInterval(async () => {
+                          try {
+                            const progressResult = await base44.functions.invoke('getDeleteProgress', { 
+                              branch_id: manualBranchId 
+                            });
+
+                            const newProgress = progressResult.data;
+                            setDeleteProgress(newProgress);
+
+                            console.log(`📊 Progress: ลบแล้ว ${newProgress.deleted?.toLocaleString() || 0}/${newProgress.initial?.toLocaleString() || 0} (เหลือ ${newProgress.remaining?.toLocaleString() || 0})`);
+
+                            if (newProgress.completed || newProgress.remaining === 0) {
+                              clearInterval(interval);
+                              setIsDeleting(false);
+                              toast.success(`✅ ลบเสร็จแล้ว ${newProgress.deleted?.toLocaleString() || 0} รายการ!`, { duration: 8000 });
+                            }
+                          } catch (err) {
+                            console.warn('⚠️ Poll error:', err.message);
+                          }
+                        }, 2000);
+
+                        setTimeout(() => {
+                          clearInterval(interval);
+                          setIsDeleting(false);
+                        }, 10 * 60 * 1000);
+                      } else {
+                        toast.dismiss('delete-manual');
+                        toast.warning('เริ่มลบแล้ว แต่ไม่สามารถติดตาม progress ได้');
+                        setIsDeleting(false);
+                      }
+                    } catch (error) {
+                      toast.dismiss('delete-manual');
+                      console.error('❌ Error:', error);
+                      toast.error('ลบไม่สำเร็จ: ' + error.message);
+                      setIsDeleting(false);
+                    }
+                  }}
+                  disabled={isDeleting || !manualBranchId}
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-6"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      กำลังลบ...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      ลบทันที
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
             </div>
 
             {/* Delete Progress Indicator */}
