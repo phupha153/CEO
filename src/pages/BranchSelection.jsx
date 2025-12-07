@@ -147,8 +147,23 @@ export default function BranchSelection() {
   };
 
   const handleManageBranches = (e) => {
-    if (e) e.stopPropagation();
-    if (isNavigating) return;
+    console.log('🚀 handleManageBranches called', {
+      isNavigating,
+      userRole,
+      hasEvent: !!e
+    });
+    
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    
+    if (isNavigating) {
+      console.log('⚠️ Already navigating, skipping...');
+      return;
+    }
+    
+    console.log('✅ Navigating to BranchManagement...');
     navigate(createPageUrl('BranchManagement'));
   };
 
@@ -253,56 +268,39 @@ export default function BranchSelection() {
                     )}
                     
                     {/* ปุ่มแก้ไขสาขา - เฉพาะ developer และ owner เท่านั้น */}
-                    {(userRole === 'developer' || userRole === 'owner') && (
-                      <Button
-                        onClick={(e) => {
-                          console.log('🔘 ปุ่มแก้ไขสาขาถูกคลิก!', { userRole, isNavigating });
-                          e.stopPropagation();
-                          e.preventDefault();
-                          handleManageBranches(e);
-                        }}
-                        disabled={false}
-                        variant="outline"
-                        className="border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-700 h-auto py-4 px-6 text-sm rounded-2xl font-medium cursor-pointer z-50 relative"
-                        data-onboarding="add-branch-button"
-                        type="button"
-                      >
-                        <Pencil className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <span>แก้ไขสาขา</span>
-                      </Button>
-                    )}
-                    
-                    {/* ปุ่ม Debug สำหรับผู้พัฒนา */}
-                    {userRole === 'developer' && (
-                      <Button
-                        onClick={() => {
-                          const debugInfo = {
-                            userRole,
-                            currentUser: currentUser?.email,
-                            customRole: currentUser?.custom_role,
-                            baseRole: currentUser?.role,
-                            isNavigating,
-                            canAddMoreBranches,
-                            hasNoBranches,
-                            hasNoAccess,
-                            filteredBranchesCount: filteredBranches.length,
-                            branchesCount: branches.length,
-                            userAccessibleBranches,
-                            hasAccessibleBranchesSet,
-                            canViewAllBranches,
-                            isTrialMode,
-                            userPackagesCount: userPackages.length
-                          };
-                          console.log('🐛 DEBUG INFO:', debugInfo);
-                          alert(JSON.stringify(debugInfo, null, 2));
-                        }}
-                        variant="outline"
-                        className="border-2 border-red-300 hover:border-red-500 hover:bg-red-50 text-red-600 h-auto py-4 px-6 text-sm rounded-2xl font-medium"
-                      >
-                        <Settings className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <span>🐛 Debug Info</span>
-                      </Button>
-                    )}
+                    <div className="w-full text-center">
+                      <div className="text-xs text-slate-500 mb-2 bg-slate-100 rounded px-2 py-1">
+                        Debug: Role = {userRole} | Email = {currentUser?.email}
+                      </div>
+                      {(userRole === 'developer' || userRole === 'owner') ? (
+                        <Button
+                          onClick={(e) => {
+                            console.log('🔘 ปุ่มแก้ไขสาขาถูกคลิก!', { 
+                              userRole, 
+                              isNavigating,
+                              currentUser: currentUser?.email,
+                              customRole: currentUser?.custom_role,
+                              baseRole: currentUser?.role
+                            });
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleManageBranches(e);
+                          }}
+                          disabled={false}
+                          variant="outline"
+                          className="border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-700 h-auto py-4 px-6 text-sm rounded-2xl font-medium cursor-pointer z-50 relative"
+                          data-onboarding="add-branch-button"
+                          type="button"
+                        >
+                          <Pencil className="w-5 h-5 mr-2 flex-shrink-0" />
+                          <span>แก้ไขสาขา</span>
+                        </Button>
+                      ) : (
+                        <div className="text-sm text-amber-600 bg-amber-50 px-4 py-2 rounded-lg">
+                          ⚠️ ไม่มีสิทธิ์แก้ไขสาขา (Role: {userRole})
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                 </div>
@@ -333,27 +331,38 @@ export default function BranchSelection() {
                     </p>
 
                     {/* ปุ่มเพิ่มสาขา - เฉพาะ developer และ owner เท่านั้น */}
-                    {(userRole === 'developer' || userRole === 'owner') ? (
-                      <Button
-                        onClick={(e) => {
-                          console.log('🔘 ปุ่มเพิ่มสาขาถูกคลิก!', { userRole, isNavigating, canAddMoreBranches });
-                          e.stopPropagation();
-                          e.preventDefault();
-                          handleManageBranches(e);
-                        }}
-                        disabled={!canAddMoreBranches}
-                        className="bg-gradient-to-r from-blue-500 to-sky-600 hover:from-blue-600 hover:to-sky-700 text-white h-auto py-5 px-10 text-lg shadow-2xl rounded-2xl font-bold disabled:opacity-50 cursor-pointer z-50 relative"
-                        data-onboarding="add-branch-button"
-                        type="button"
-                      >
-                        <Building2 className="w-6 h-6 mr-3" />
-                        เพิ่มตึกของคุณ
-                      </Button>
-                    ) : (
-                      <div className="text-center">
-                        <p className="text-slate-600">กรุณาติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา</p>
+                    <div className="w-full text-center">
+                      <div className="text-xs text-slate-500 mb-2 bg-slate-100 rounded px-2 py-1">
+                        Debug: Role = {userRole} | CanAdd = {canAddMoreBranches ? 'Yes' : 'No'}
                       </div>
-                    )}
+                      {(userRole === 'developer' || userRole === 'owner') ? (
+                        <Button
+                          onClick={(e) => {
+                            console.log('🔘 ปุ่มเพิ่มสาขาถูกคลิก!', { 
+                              userRole, 
+                              isNavigating, 
+                              canAddMoreBranches,
+                              currentUser: currentUser?.email
+                            });
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleManageBranches(e);
+                          }}
+                          disabled={!canAddMoreBranches}
+                          className="bg-gradient-to-r from-blue-500 to-sky-600 hover:from-blue-600 hover:to-sky-700 text-white h-auto py-5 px-10 text-lg shadow-2xl rounded-2xl font-bold disabled:opacity-50 cursor-pointer z-50 relative"
+                          data-onboarding="add-branch-button"
+                          type="button"
+                        >
+                          <Building2 className="w-6 h-6 mr-3" />
+                          เพิ่มตึกของคุณ
+                        </Button>
+                      ) : (
+                        <div className="text-center">
+                          <p className="text-slate-600">กรุณาติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา</p>
+                          <p className="text-xs text-red-500">Debug: Role = {userRole}</p>
+                        </div>
+                      )}
+                    </div>
                     {!canAddMoreBranches && (
                       <p className="text-sm text-amber-700 bg-amber-50 px-6 py-3 rounded-xl border-2 border-amber-200 mt-4">
                         ⚠️ สร้างได้สูงสุด {maxTrialBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด
