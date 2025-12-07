@@ -165,30 +165,68 @@ export default function F12Page() {
   };
 
   const handleDeletePayments = async () => {
-    if (!confirm('ยืนยันการลบ Payment ทั้งหมดของสาขา Wresident87777?\n\nระบบจะลบในพื้นหลัง คุณสามารถออกจากหน้านี้ได้เลย')) return;
-    
+    if (!confirm('ยืนยันการลบ Payment ทั้งหมดของสาขา Wresident87777?\n\nระบบจะลบในพื้นหลัง ดู progress ใน Console')) return;
+
     setIsDeleting(true);
+    setDeleteProgress({ deleted: 0, remaining: 0, initial: 0 });
     toast.loading('เริ่มลบข้อมูล...', { id: 'delete-start' });
-    
+
     try {
+      // เริ่มกระบวนการลบ
       const result = await base44.functions.invoke('deletePaymentsByBranch', { 
         branch_id: '69255a34e816a8749fc765c2' 
       });
-      
+
       console.log('🚀 Background deletion started:', result.data);
-      
-      toast.dismiss('delete-start');
-      
-      if (result.data.success) {
-        toast.success('เริ่มลบข้อมูลในพื้นหลังแล้ว - คุณสามารถออกจากหน้านี้ได้', { 
+
+      if (result.data.success && result.data.totalPayments) {
+        setDeleteProgress({ 
+          deleted: 0, 
+          remaining: result.data.totalPayments, 
+          initial: result.data.totalPayments 
+        });
+
+        toast.dismiss('delete-start');
+        toast.success(`เริ่มลบ ${result.data.totalPayments} รายการในพื้นหลัง - ดู progress ด้านล่าง`, { 
           duration: 5000 
         });
+
+        // Poll progress ทุก 2 วินาที
+        const interval = setInterval(async () => {
+          try {
+            const progressResult = await base44.functions.invoke('getDeleteProgress', { 
+              branch_id: '69255a34e816a8749fc765c2' 
+            });
+
+            if (progressResult.data.deleted !== undefined) {
+              setDeleteProgress(progressResult.data);
+              console.log(`📊 Progress: ${progressResult.data.deleted}/${progressResult.data.initial} (เหลือ ${progressResult.data.remaining})`);
+
+              if (progressResult.data.remaining === 0) {
+                clearInterval(interval);
+                setIsDeleting(false);
+                toast.success(`✅ ลบเสร็จแล้ว ${progressResult.data.deleted} รายการ`, { duration: 5000 });
+              }
+            }
+          } catch (err) {
+            console.warn('⚠️ Poll error:', err.message);
+          }
+        }, 2000);
+
+        // หยุด poll หลัง 5 นาที
+        setTimeout(() => {
+          clearInterval(interval);
+          setIsDeleting(false);
+        }, 5 * 60 * 1000);
+      } else {
+        toast.dismiss('delete-start');
+        toast.success('เริ่มลบข้อมูลในพื้นหลังแล้ว', { duration: 5000 });
+        setIsDeleting(false);
       }
     } catch (error) {
       toast.dismiss('delete-start');
       console.error('❌ เกิดข้อผิดพลาด:', error);
       toast.error('ลบไม่สำเร็จ: ' + error.message, { duration: 5000 });
-    } finally {
       setIsDeleting(false);
     }
   };
@@ -255,6 +293,31 @@ export default function F12Page() {
                 <Trash2 className="w-4 h-4 mr-2" />
                 {isDeleting ? 'กำลังลบ...' : 'ลบ Payment สาขา Test'}
               </Button>
+              </div>
+
+              {/* Delete Progress Indicator */}
+              {deleteProgress.initial > 0 && (
+              <div className="mt-4 bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <div className="flex items-center gap-3 mb-3">
+                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                  <div className="flex-1">
+                    <p className="font-bold text-blue-900">กำลังลบข้อมูล...</p>
+                    <p className="text-sm text-blue-700">
+                      ลบไปแล้ว {deleteProgress.deleted} / {deleteProgress.initial} รายการ (เหลือ {deleteProgress.remaining})
+                    </p>
+                  </div>
+                </div>
+                <div className="w-full bg-blue-200 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-500 rounded-full"
+                    style={{ width: `${deleteProgress.initial > 0 ? (deleteProgress.deleted / deleteProgress.initial) * 100 : 0}%` }}
+                  />
+                </div>
+                <p className="text-xs text-blue-600 mt-2 text-center font-semibold">
+                  {deleteProgress.initial > 0 ? Math.round((deleteProgress.deleted / deleteProgress.initial) * 100) : 0}%
+                </p>
+              </div>
+              )}
             </div>
           </div>
           <div className="bg-slate-900 rounded-xl shadow-2xl overflow-hidden">

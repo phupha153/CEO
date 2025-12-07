@@ -1,5 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
+// เก็บ progress ใน KV store เพื่อให้ function อื่นเข้าถึงได้
+const kv = await Deno.openKv();
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
@@ -18,11 +21,28 @@ Deno.serve(async (req) => {
 
         console.log(`🗑️ Starting background deletion for branch: ${branchId}`);
 
+        // นับจำนวนทั้งหมดก่อน
+        const allPayments = await base44.asServiceRole.entities.Payment.filter(
+            { branch_id: branchId },
+            '-created_date',
+            10000
+        );
+        const totalPayments = allPayments.length;
+
+        // บันทึก initial progress
+        await kv.set(['delete_progress', branchId], {
+            deleted: 0,
+            remaining: totalPayments,
+            initial: totalPayments,
+            timestamp: Date.now()
+        });
+
         // Return ทันที - ให้ลบต่อในพื้นหลัง
         const response = Response.json({
             success: true,
             message: 'เริ่มลบข้อมูลในพื้นหลัง',
-            started: true
+            started: true,
+            totalPayments
         });
 
         // ทำงานต่อในพื้นหลังโดยไม่ block response
@@ -42,6 +62,13 @@ Deno.serve(async (req) => {
                     
                     if (!payments || payments.length === 0) {
                         console.log(`✅ Deletion completed! Total deleted: ${totalDeleted}`);
+                        await kv.set(['delete_progress', branchId], {
+                            deleted: totalDeleted,
+                            remaining: 0,
+                            initial: totalPayments,
+                            completed: true,
+                            timestamp: Date.now()
+                        });
                         break;
                     }
 
@@ -54,13 +81,29 @@ Deno.serve(async (req) => {
                         }
                     }
 
-                    console.log(`✅ Round ${roundCount}: Deleted ${payments.length} (Total: ${totalDeleted})`);
+                    // อัปเดต progress
+                    const remaining = totalPayments - totalDeleted;
+                    await kv.set(['delete_progress', branchId], {
+                        deleted: totalDeleted,
+                        remaining: Math.max(0, remaining),
+                        initial: totalPayments,
+                        timestamp: Date.now()
+                    });
+
+                    console.log(`✅ Round ${roundCount}: Deleted ${payments.length} (Total: ${totalDeleted}/${totalPayments} - เหลือ ${remaining})`);
                     
                     // หน่วงเล็กน้อยเพื่อไม่ให้ load server มากเกิน
                     await new Promise(resolve => setTimeout(resolve, 200));
                 }
             } catch (error) {
                 console.error(`❌ Background deletion error:`, error.message);
+                await kv.set(['delete_progress', branchId], {
+                    deleted: totalDeleted,
+                    remaining: totalPayments - totalDeleted,
+                    initial: totalPayments,
+                    error: error.message,
+                    timestamp: Date.now()
+                });
             }
         })();
 
