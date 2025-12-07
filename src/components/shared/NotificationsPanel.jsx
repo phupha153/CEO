@@ -474,7 +474,43 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         });
       }
 
-      // 2. ผู้เช่าใหม่ (7 วันล่าสุด)
+      // 2. การจองใหม่ (7 วันล่าสุด)
+      const newBookings = bookings.filter(b => {
+        if (!b.created_date) return false;
+        try {
+          const createdDate = parseISO(b.created_date);
+          const daysAgo = differenceInDays(now, createdDate);
+          return daysAgo <= 7;
+        } catch {
+          return false;
+        }
+      });
+
+      newBookings.forEach(booking => {
+        const room = rooms.find(r => r.id === booking.room_id);
+        const tenant = tenants.find(t => t.id === booking.tenant_id);
+        alerts.push({
+          id: `new-booking-${booking.id}`,
+          type: 'new-booking',
+          icon: Calendar,
+          color: 'blue',
+          title: `การจองใหม่ - ห้อง ${room?.room_number || 'N/A'}`,
+          message: `${tenant?.full_name || booking.guest_name || 'N/A'}`,
+          branch: branchName,
+          branchId: branchId,
+          time: booking.created_date || new Date().toISOString(),
+          action: () => {
+            if (showAllBranches && branchId !== selectedBranchId) {
+              localStorage.setItem('selected_branch_id', branchId);
+              localStorage.setItem('selected_branch_name', branchName);
+            }
+            navigate(createPageUrl('Bookings'));
+            onClose();
+          }
+        });
+      });
+
+      // 3. ผู้เช่าใหม่ (7 วันล่าสุด)
       const newTenants = tenants.filter(t => {
         if (!t.created_date) return false;
         try {
@@ -508,7 +544,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         });
       });
 
-      // 3. ห้องว่างเกิน X วัน
+      // 4. ห้องว่างเกิน X วัน
       const vacantRooms = rooms.filter(r => {
         if (r.status !== 'available') return false;
         const lastBooking = bookings
@@ -599,7 +635,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         });
       }
 
-      // 4. การซ่อมบำรุงเร่งด่วน
+      // 5. การซ่อมบำรุงเร่งด่วน
       if (urgentMaintenanceEnabled) {
         const urgentMaintenance = maintenanceRequests.filter(m => 
           m.status === 'pending' && (m.priority === 'urgent' || m.priority === 'high')
@@ -665,7 +701,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         }
       }
 
-      // 5. พัสดุค้างรับเกิน X วัน
+      // 6. พัสดุค้างรับเกิน X วัน
       const unclaimedDeliveries = materialDeliveries.filter(d => {
         if (d.status === 'picked_up' || !d.delivery_date) return false;
         try {
@@ -737,7 +773,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         });
       }
 
-      // 6. สัญญาใกล้หมด
+      // 7. สัญญาใกล้หมด
       const expiringBookings = bookings.filter(b => {
         if (b.status !== 'active' || !b.check_out_date) return false;
         try {
@@ -970,6 +1006,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                             const colorMap = {
                               red: { gradient: 'from-red-500 to-orange-500', border: '#ef4444', bg: 'bg-red-50/50' },
                               green: { gradient: 'from-green-500 to-emerald-500', border: '#10b981', bg: 'bg-green-50/50' },
+                              blue: { gradient: 'from-blue-500 to-cyan-500', border: '#3b82f6', bg: 'bg-blue-50/50' },
                               purple: { gradient: 'from-purple-500 to-pink-500', border: '#a855f7', bg: 'bg-purple-50/50' },
                               amber: { gradient: 'from-amber-500 to-orange-500', border: '#f59e0b', bg: 'bg-amber-50/50' }
                             };

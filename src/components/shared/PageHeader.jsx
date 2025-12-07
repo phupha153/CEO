@@ -54,6 +54,18 @@ export default function PageHeader({
     refetchInterval: 60 * 1000,
   });
 
+  const { data: allBookings = [] } = useQuery({
+    queryKey: ['allBookings', 'toast', selectedBranchId],
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      const bookings = await base44.entities.Booking.filter({ branch_id: selectedBranchId });
+      return bookings;
+    },
+    enabled: showNotifications && !!selectedBranchId,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+
   const { data: readNotifications = [] } = useQuery({
     queryKey: ['readNotifications', currentUser?.email],
     queryFn: async () => {
@@ -107,7 +119,22 @@ export default function PageHeader({
       });
     }
 
-    // 3. แจ้งซ่อมเร่งด่วน
+    // 3. การจองใหม่ (7 วันล่าสุด)
+    const newBookings = allBookings.filter(b => {
+      if (!b.created_date) return false;
+      try {
+        const createdDate = parseISO(b.created_date);
+        const daysAgo = differenceInDays(now, createdDate);
+        return daysAgo <= 7;
+      } catch {
+        return false;
+      }
+    });
+    newBookings.forEach(b => {
+      if (!isRead(`new-booking-${b.id}`)) count++;
+    });
+
+    // 4. แจ้งซ่อมเร่งด่วน
     const urgentMaintenance = allMaintenanceRequests.filter(m => 
       m.status === 'pending' && (m.priority === 'urgent' || m.priority === 'high')
     );
@@ -121,7 +148,7 @@ export default function PageHeader({
     }
 
     return count;
-  }, [allPayments, allMaintenanceRequests, selectedBranchId, readNotifications]);
+  }, [allPayments, allMaintenanceRequests, allBookings, selectedBranchId, readNotifications]);
 
   const handleBack = () => {
     if (backUrl) {
