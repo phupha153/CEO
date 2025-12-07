@@ -52,7 +52,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 
 // ฟังก์ชันเช็ค features จากชื่อฟีเจอร์
 const checkFeatureAccess = (features, featureName) => {
@@ -451,6 +451,10 @@ export default function Layout({ children, currentPageName }) {
   const [retryCount, setRetryCount] = useState(0);
   const [isCreatingTrial, setIsCreatingTrial] = useState(false);
   const [onboardingMinimized, setOnboardingMinimized] = useState(false);
+  const [shownNotifications, setShownNotifications] = useState(() => {
+    const stored = localStorage.getItem('shown_notifications');
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  });
 
   useEffect(() => {
     document.documentElement.classList.remove('dark', 'theme-dark', 'dark-mode');
@@ -629,6 +633,81 @@ export default function Layout({ children, currentPageName }) {
     refetchOnMount: false,
     placeholderData: (previousData) => previousData,
   });
+
+  // ดึง Payments และ Maintenance สำหรับ toast notifications
+  const { data: allPayments = [] } = useQuery({
+    queryKey: ['allPayments', 'toast', selectedBranch?.id],
+    queryFn: async () => {
+      if (!selectedBranch) return [];
+      return await base44.entities.Payment.filter({ branch_id: selectedBranch.id });
+    },
+    enabled: !!selectedBranch && !!currentUser,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+
+  const { data: allMaintenanceRequests = [] } = useQuery({
+    queryKey: ['allMaintenanceRequests', 'toast', selectedBranch?.id],
+    queryFn: async () => {
+      if (!selectedBranch) return [];
+      return await base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranch.id });
+    },
+    enabled: !!selectedBranch && !!currentUser,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+
+  // แสดง Toast Notifications สำหรับการแจ้งเตือนใหม่
+  useEffect(() => {
+    if (!selectedBranch || !currentUser) return;
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    // เช็ค overdue payments
+    const overduePayments = allPayments.filter(p => {
+      if (p.status === 'paid' || !p.due_date) return false;
+      try {
+        const dueDate = parseISO(p.due_date);
+        const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+        return now > dueDateStart;
+      } catch {
+        return false;
+      }
+    });
+
+    // เช็ค urgent maintenance
+    const urgentMaintenance = allMaintenanceRequests.filter(m => 
+      m.status === 'pending' && (m.priority === 'urgent' || m.priority === 'high')
+    );
+
+    // แสดง toast สำหรับแจ้งเตือนใหม่ที่ยังไม่เคยแสดง
+    [...overduePayments.slice(0, 3), ...urgentMaintenance.slice(0, 2)].forEach(item => {
+      const notifId = item.room_id ? `overdue-${item.id}` : `maintenance-${item.id}`;
+      
+      if (!shownNotifications.has(notifId)) {
+        const isPayment = !!item.due_date;
+        
+        toast.error(
+          isPayment 
+            ? `🔴 เกินกำหนดชำระ - ${item.total_amount?.toLocaleString()} ฿`
+            : `🚨 แจ้งซ่อมเร่งด่วน - ห้อง`,
+          {
+            description: isPayment 
+              ? `วันครบกำหนด: ${format(parseISO(item.due_date), 'dd/MM/yyyy')}`
+              : item.title,
+            duration: 5000,
+          }
+        );
+
+        setShownNotifications(prev => {
+          const updated = new Set([...prev, notifId]);
+          localStorage.setItem('shown_notifications', JSON.stringify([...updated]));
+          return updated;
+        });
+      }
+    });
+  }, [allPayments, allMaintenanceRequests, selectedBranch?.id, currentUser?.id]);
 
   const getConfigValue = (key, defaultValue = '') => {
     if (selectedBranch) {
