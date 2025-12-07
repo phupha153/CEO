@@ -712,18 +712,65 @@ export default function BranchManagement() {
                           <Trash2 className="w-4 h-4" />
                         </Button>
                         {userRole === 'developer' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCopy(branch);
-                            }}
-                            title="คัดลอกสาขา (Developer Only)"
-                          >
-                            <Copy className="w-4 h-4" />
-                          </Button>
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(branch);
+                              }}
+                              title="คัดลอกสาขา (Developer Only)"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                            {branch.id === '69255a34e816a8749fc765c2' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (!confirm('ลบ Payment ของสาขานี้ทั้งหมด?')) return;
+                                  
+                                  let totalDeleted = 0;
+                                  let roundCount = 0;
+                                  
+                                  toast.loading('กำลังลบ...', { duration: Infinity, id: 'delete-progress' });
+                                  
+                                  try {
+                                    while (true) {
+                                      roundCount++;
+                                      const result = await base44.functions.invoke('deletePaymentsByBranch', { 
+                                        branch_id: branch.id
+                                      });
+                                      
+                                      const data = result.data;
+                                      totalDeleted += data.deletedThisRound || 0;
+                                      
+                                      toast.loading(`รอบที่ ${roundCount} (ลบ ${totalDeleted})`, { 
+                                        duration: Infinity, 
+                                        id: 'delete-progress' 
+                                      });
+                                      
+                                      if (data.completed || !data.hasMore) break;
+                                      await new Promise(resolve => setTimeout(resolve, 500));
+                                    }
+                                    
+                                    toast.dismiss('delete-progress');
+                                    toast.success(`ลบสำเร็จ ${totalDeleted} รายการ`);
+                                  } catch (error) {
+                                    toast.dismiss('delete-progress');
+                                    toast.error('ลบไม่สำเร็จ: ' + error.message);
+                                  }
+                                }}
+                                title="ลบ Payment ทั้งหมด"
+                              >
+                                🗑️
+                              </Button>
+                            )}
+                          </>
                         )}
                       </div>
                     </CardContent>
