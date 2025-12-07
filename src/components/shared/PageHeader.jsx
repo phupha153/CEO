@@ -54,6 +54,18 @@ export default function PageHeader({
     refetchInterval: 60 * 1000,
   });
 
+  const { data: readNotifications = [] } = useQuery({
+    queryKey: ['readNotifications', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser?.email) return [];
+      const all = await base44.entities.Notification.list('-created_date', 500);
+      return all.filter(n => n.user_email === currentUser.email && n.is_read);
+    },
+    enabled: showNotifications && !!currentUser?.email,
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+
   const unreadCount = useMemo(() => {
     const now = new Date();
     now.setHours(0, 0, 0, 0); // เทียบเป็นวันเท่านั้น
