@@ -317,42 +317,10 @@ export default function F12Page() {
                 variant="destructive" 
                 size="sm"
                 disabled={isDeleting}
-                className="h-auto py-3"
+                className="h-auto py-3 col-span-2"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                {isDeleting ? 'กำลังลบ...' : 'ลบแบบช้า (พื้นหลัง)'}
-              </Button>
-
-              <Button 
-                onClick={async () => {
-                  if (!confirm('ยืนยันลบ Payment ทั้งหมดของสาขา Wresident87777 แบบเร็ว?')) return;
-
-                  setIsDeleting(true);
-                  toast.loading('กำลังลบ...', { id: 'delete-fast' });
-
-                  try {
-                    const result = await base44.functions.invoke('deletePaymentsFast', { 
-                      branch_id: '69255a34e816a8749fc765c2' 
-                    });
-
-                    toast.dismiss('delete-fast');
-                    console.log('✅ Result:', result.data);
-                    toast.success(`ลบเสร็จแล้ว ${result.data.deleted} รายการ`, { duration: 5000 });
-                  } catch (error) {
-                    toast.dismiss('delete-fast');
-                    console.error('❌ Error:', error);
-                    toast.error('ลบไม่สำเร็จ: ' + error.message);
-                  } finally {
-                    setIsDeleting(false);
-                  }
-                }} 
-                variant="destructive" 
-                size="sm"
-                disabled={isDeleting}
-                className="h-auto py-3 bg-red-600 hover:bg-red-700"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                {isDeleting ? 'กำลังลบ...' : 'ลบแบบเร็ว ⚡'}
+                {isDeleting ? 'กำลังลบ...' : 'ลบ Payment สาขา Test'}
               </Button>
             </div>
 
@@ -377,53 +345,7 @@ export default function F12Page() {
                       return;
                     }
 
-                    if (!confirm(`⚠️ ยืนยันการลบ Payment ทั้งหมดของสาขา:\n${manualBranchId}\n\nจะลบแบบเร็วสุด`)) {
-                      return;
-                    }
-
-                    setIsDeleting(true);
-                    toast.loading('กำลังลบ...', { id: 'delete-manual-fast' });
-
-                    try {
-                      const result = await base44.functions.invoke('deletePaymentsFast', { 
-                        branch_id: manualBranchId 
-                      });
-
-                      toast.dismiss('delete-manual-fast');
-                      console.log('✅ Result:', result.data);
-                      toast.success(`ลบเสร็จแล้ว ${result.data.deleted} รายการ`, { duration: 5000 });
-                    } catch (error) {
-                      toast.dismiss('delete-manual-fast');
-                      console.error('❌ Error:', error);
-                      toast.error('ลบไม่สำเร็จ: ' + error.message);
-                    } finally {
-                      setIsDeleting(false);
-                    }
-                  }}
-                  disabled={isDeleting || !manualBranchId}
-                  className="bg-red-600 hover:bg-red-700 text-white px-6"
-                >
-                  {isDeleting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      กำลังลบ...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      ลบแบบเร็ว ⚡
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  onClick={async () => {
-                    if (!manualBranchId?.trim()) {
-                      toast.error('กรุณาใส่ Branch ID');
-                      return;
-                    }
-
-                    if (!confirm(`⚠️ ยืนยันการลบ Payment ทั้งหมดของสาขา:\n${manualBranchId}\n\nระบบจะลบในพื้นหลัง (ช้า)`)) {
+                    if (!confirm(`⚠️ ยืนยันการลบ Payment ทั้งหมดของสาขา:\n${manualBranchId}\n\nระบบจะลบในพื้นหลัง`)) {
                       return;
                     }
 
@@ -502,8 +424,8 @@ export default function F12Page() {
                     }
                   }}
                   disabled={isDeleting || !manualBranchId}
-                  className="bg-orange-600 hover:bg-orange-700 text-white px-4"
-                  >
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-6"
+                >
                   {isDeleting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -512,10 +434,10 @@ export default function F12Page() {
                   ) : (
                     <>
                       <Trash2 className="w-4 h-4 mr-2" />
-                      ลบแบบช้า (พื้นหลัง)
+                      ลบทันที
                     </>
                   )}
-                  </Button>
+                </Button>
               </div>
             </div>
 
