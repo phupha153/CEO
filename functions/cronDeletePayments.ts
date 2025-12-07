@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 const kv = await Deno.openKv();
 
-// Cron job: Delete payments from branch one by one with progress tracking
+// Cron job: Delete payments from branch one by one with real-time progress tracking
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
