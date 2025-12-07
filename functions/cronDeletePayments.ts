@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 const kv = await Deno.openKv();
 
+// Cron job to delete payments one by one
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
