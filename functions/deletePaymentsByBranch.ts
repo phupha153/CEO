@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
 
         // ทำงานต่อในพื้นหลังโดยไม่ block response
         (async () => {
-            const batchSize = 100;
+            const batchSize = 20; // ลด batch size ลงเพื่อหลีกเลี่ยง rate limit
             let totalDeleted = 0;
             let roundCount = 0;
 
@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
                         '-created_date', 
                         batchSize
                     );
-                    
+
                     if (!payments || payments.length === 0) {
                         console.log(`✅ Deletion completed! Total deleted: ${totalDeleted}`);
                         await kv.set(['delete_progress', branchId], {
@@ -73,11 +73,24 @@ Deno.serve(async (req) => {
                     }
 
                     for (const payment of payments) {
-                        try {
-                            await base44.asServiceRole.entities.Payment.delete(payment.id);
-                            totalDeleted++;
-                        } catch (e) {
-                            console.error(`❌ Error deleting ${payment.id}:`, e.message);
+                        let retries = 0;
+                        while (retries < 3) {
+                            try {
+                                await base44.asServiceRole.entities.Payment.delete(payment.id);
+                                totalDeleted++;
+                                // เพิ่ม delay เล็กน้อยระหว่างการลบแต่ละรายการ
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                                break;
+                            } catch (e) {
+                                if (e.message?.includes('Rate limit') && retries < 2) {
+                                    retries++;
+                                    console.warn(`⚠️ Rate limit hit, retry ${retries}/3 for ${payment.id}`);
+                                    await new Promise(resolve => setTimeout(resolve, 2000)); // รอ 2 วินาทีก่อน retry
+                                } else {
+                                    console.error(`❌ Error deleting ${payment.id}:`, e.message);
+                                    break;
+                                }
+                            }
                         }
                     }
 
@@ -91,9 +104,9 @@ Deno.serve(async (req) => {
                     });
 
                     console.log(`✅ Round ${roundCount}: Deleted ${payments.length} (Total: ${totalDeleted}/${totalPayments} - เหลือ ${remaining})`);
-                    
-                    // หน่วงเล็กน้อยเพื่อไม่ให้ load server มากเกิน
-                    await new Promise(resolve => setTimeout(resolve, 200));
+
+                    // เพิ่ม delay ระหว่างแต่ละรอบเพื่อหลีกเลี่ยง rate limit
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
             } catch (error) {
                 console.error(`❌ Background deletion error:`, error.message);
