@@ -1242,7 +1242,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                                           <p className="text-xs text-slate-400 mt-2">
                                             {(() => {
                                               try {
-                                                const date = typeof notif.time === 'string' ? parseISO(notif.time) : notif.time;
+                                                const date = new Date(notif.time);
                                                 return formatDistanceToNow(date, { locale: th, addSuffix: true });
                                               } catch {
                                                 return '-';
