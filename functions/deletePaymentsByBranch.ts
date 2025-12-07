@@ -22,16 +22,16 @@ Deno.serve(async (req) => {
 
         let deletedCount = 0;
         let hasMore = true;
-        const maxIterations = 10000;
+        const maxIterations = 100000;
         let iterations = 0;
 
         while (hasMore && iterations < maxIterations) {
             try {
-                // ดึง payments ของสาขานี้
+                // ดึง payments ของสาขานี้ (ลด batch เหลือ 50)
                 const payments = await base44.asServiceRole.entities.Payment.filter(
                     { branch_id: branchId }, 
                     '-created_date', 
-                    100
+                    50
                 );
                 
                 if (!payments || payments.length === 0) {
@@ -56,8 +56,8 @@ Deno.serve(async (req) => {
                 iterations++;
                 console.log(`✅ Batch ${iterations} เสร็จ | รวมลบไป ${deletedCount} รายการแล้ว`);
                 
-                // ลด delay เหลือ 10ms
-                await new Promise(resolve => setTimeout(resolve, 10));
+                // เพิ่ม delay เป็น 100ms เพื่อลด load
+                await new Promise(resolve => setTimeout(resolve, 100));
 
             } catch (e) {
                 console.error('Error in batch:', e.message);

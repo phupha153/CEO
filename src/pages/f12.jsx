@@ -105,10 +105,11 @@ export default function F12Page() {
   };
 
   const handleDeletePayments = async () => {
-    if (!confirm('ยืนยันการลบ Payment ทั้งหมดของสาขา Wresident87777?')) return;
+    if (!confirm('ยืนยันการลบ Payment ทั้งหมดของสาขา Wresident87777?\n\nจะใช้เวลา 5-10 นาที สำหรับ 2600+ รายการ')) return;
     
     setIsDeleting(true);
     console.log('🗑️ เริ่มลบ Payment ของสาขา 69255a34e816a8749fc765c2...');
+    console.log('⏱️ กรุณารอ 5-10 นาที (ประมาณ 2600+ รายการ)');
     console.log('📌 ดูความคืบหน้าจาก Backend Logs ด้านล่าง (log ทุก 10 รายการ)');
     
     try {
@@ -120,6 +121,7 @@ export default function F12Page() {
       toast.success(result.data.message || `ลบสำเร็จ ${result.data.deletedCount} รายการ`);
     } catch (error) {
       console.error('❌ เกิดข้อผิดพลาด:', error);
+      console.error('Stack:', error.stack);
       toast.error('ลบไม่สำเร็จ: ' + error.message);
     } finally {
       setIsDeleting(false);
