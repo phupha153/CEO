@@ -83,6 +83,16 @@ const CRON_JOBS = [
     recommendedInterval: 'เดือนละ 1 ครั้ง (วันที่ตั้งค่า)',
     functionName: 'generateMonthlyBills',
     apis: []
+  },
+  {
+    id: 'cronDeletePayments',
+    name: '🗑️ ลบ Payment ต่อเนื่อง',
+    description: 'ลบ Payment สาขา Wresident87777 ทีละรายการจนหมด (2 นาที/รายการ)',
+    icon: TestTube,
+    color: 'from-red-600 to-orange-600',
+    recommendedInterval: 'ทุก 2 นาที (*/2 * * * *)',
+    functionName: 'cronDeletePayments',
+    apis: []
   }
 ];
 
