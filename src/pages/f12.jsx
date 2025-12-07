@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Terminal, Trash2, AlertCircle, Info, AlertTriangle, Bug, Eye, User, Settings } from "lucide-react";
+import { Terminal, Trash2, AlertCircle, Info, AlertTriangle, Bug, Eye, User, Settings, Loader2 } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -293,10 +293,10 @@ export default function F12Page() {
                 <Trash2 className="w-4 h-4 mr-2" />
                 {isDeleting ? 'กำลังลบ...' : 'ลบ Payment สาขา Test'}
               </Button>
-              </div>
+            </div>
 
-              {/* Delete Progress Indicator */}
-              {deleteProgress.initial > 0 && (
+            {/* Delete Progress Indicator */}
+            {deleteProgress.initial > 0 && (
               <div className="mt-4 bg-blue-50 rounded-lg p-4 border border-blue-200">
                 <div className="flex items-center gap-3 mb-3">
                   <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
@@ -317,9 +317,10 @@ export default function F12Page() {
                   {deleteProgress.initial > 0 ? Math.round((deleteProgress.deleted / deleteProgress.initial) * 100) : 0}%
                 </p>
               </div>
-              )}
-            </div>
+            )}
           </div>
+
+          {/* Console Display */}
           <div className="bg-slate-900 rounded-xl shadow-2xl overflow-hidden">
             <div className="bg-slate-800 px-4 py-3 border-b border-slate-700 flex items-center justify-between">
               <div className="flex items-center gap-2">
