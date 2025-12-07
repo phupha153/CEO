@@ -161,7 +161,26 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         await new Promise(r => setTimeout(r, 500));
       }
     }
+    
+    // ⭐ Invalidate queries หลัง flush เสร็จ
+    queryClient.invalidateQueries({ queryKey: ['readNotifications'] });
   };
+
+  // ⭐ Flush เมื่อปิด panel หรือ unmount
+  React.useEffect(() => {
+    if (!isOpen && pendingUpdatesRef.current.length > 0) {
+      flushPendingUpdates();
+    }
+    
+    return () => {
+      if (flushTimeoutRef.current) {
+        clearTimeout(flushTimeoutRef.current);
+      }
+      if (pendingUpdatesRef.current.length > 0) {
+        flushPendingUpdates();
+      }
+    };
+  }, [isOpen]);
 
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId) => {
@@ -196,10 +215,13 @@ export default function NotificationsPanel({ isOpen, onClose }) {
 
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId) => {
-      // ⭐ เก็บเข้า queue
-      pendingUpdatesRef.current.push(notificationId);
-      if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
-      flushTimeoutRef.current = setTimeout(flushPendingUpdates, 2000);
+      // ⭐ Flush ทันทีเมื่อลบ
+      const existing = readNotifications.find(n => n.notification_id === notificationId && n.user_email === currentUser.email);
+      if (existing) {
+        await base44.entities.Notification.update(existing.id, { is_read: true, read_date: new Date().toISOString() });
+      } else {
+        await base44.entities.Notification.create({ user_email: currentUser.email, notification_id: notificationId, is_read: true, read_date: new Date().toISOString() });
+      }
       return { success: true };
     },
     onMutate: async (notificationId) => {
@@ -207,20 +229,37 @@ export default function NotificationsPanel({ isOpen, onClose }) {
       setLocalReadIds(prev => new Set([...prev, notificationId]));
       setSwipedItem(null);
     },
+    onSuccess: () => {
+      // ⭐ Refresh ทันที
+      queryClient.invalidateQueries({ queryKey: ['readNotifications'] });
+    }
   });
 
   const deleteAllNotificationsMutation = useMutation({
     mutationFn: async (notificationIds) => {
-      // ⭐ เก็บเข้า queue
-      pendingUpdatesRef.current.push(...notificationIds);
-      if (flushTimeoutRef.current) clearTimeout(flushTimeoutRef.current);
-      flushTimeoutRef.current = setTimeout(flushPendingUpdates, 2000);
+      // ⭐ Flush ทันทีเมื่อลบทั้งหมด
+      const batchSize = 5;
+      for (let i = 0; i < notificationIds.length; i += batchSize) {
+        const batch = notificationIds.slice(i, i + batchSize);
+        await Promise.all(batch.map(async (notificationId) => {
+          const existing = readNotifications.find(n => n.notification_id === notificationId && n.user_email === currentUser.email);
+          if (existing) {
+            await base44.entities.Notification.update(existing.id, { is_read: true, read_date: new Date().toISOString() });
+          } else {
+            await base44.entities.Notification.create({ user_email: currentUser.email, notification_id: notificationId, is_read: true, read_date: new Date().toISOString() });
+          }
+        }));
+      }
       return { success: true };
     },
     onMutate: async (notificationIds) => {
       // ⭐ หายทันทีทั้งหมด
       setLocalReadIds(prev => new Set([...prev, ...notificationIds]));
     },
+    onSuccess: () => {
+      // ⭐ Refresh ทันที
+      queryClient.invalidateQueries({ queryKey: ['readNotifications'] });
+    }
   });
 
   // ⭐ Mutation สำหรับยืนยันชำระเงิน
