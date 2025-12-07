@@ -191,7 +191,7 @@ export default function F12Page() {
           duration: 4000 
         });
 
-        // Poll progress ทุก 1 วินาที
+        // Poll progress ทุก 3 วินาที (ลด frequency เพื่อหลีกเลี่ยง rate limit)
         const interval = setInterval(async () => {
           try {
             const progressResult = await base44.functions.invoke('getDeleteProgress', { 
@@ -223,9 +223,12 @@ export default function F12Page() {
               }
             }
           } catch (err) {
-            console.warn('⚠️ Poll error:', err.message);
+            // เงียบๆ ไม่ต้องแสดง error ถ้าเป็น 404 (ยังไม่มีข้อมูล)
+            if (!err.message?.includes('404')) {
+              console.warn('⚠️ Poll error:', err.message);
+            }
           }
-        }, 1000);
+        }, 3000);
 
         // หยุด poll หลัง 10 นาที
         setTimeout(() => {
