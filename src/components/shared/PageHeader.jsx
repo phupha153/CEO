@@ -68,42 +68,60 @@ export default function PageHeader({
 
   const unreadCount = useMemo(() => {
     const now = new Date();
-    now.setHours(0, 0, 0, 0); // เทียบเป็นวันเท่านั้น
+    now.setHours(0, 0, 0, 0);
     
+    // ฟังก์ชันเช็คว่า notification ถูกอ่านแล้วหรือยัง
+    const isRead = (notifId) => {
+      return readNotifications.some(n => n.notification_id === notifId && n.is_read);
+    };
+
+    let count = 0;
+
+    // 1. สลิปตรวจสอบไม่ผ่าน
+    const failedSlipPayments = allPayments.filter(p => 
+      p.notes?.includes('⚠️ รอตรวจสอบ') && 
+      p.status !== 'paid' &&
+      !p.notes?.includes('✅ ยืนยันชำระแล้ว')
+    );
+    failedSlipPayments.forEach(p => {
+      if (!isRead(`failed-slip-${p.id}`)) count++;
+    });
+
+    // 2. เกินกำหนดชำระ
     const overduePayments = allPayments.filter(p => {
       if (p.status === 'paid' || !p.due_date) return false;
       try {
         const dueDate = parseISO(p.due_date);
         const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-        const isOverdue = now > dueDateStart;
-        
-        // Debug log
-        if (isOverdue) {
-          console.log('🔴 PageHeader: Overdue payment found:', {
-            room_id: p.room_id,
-            due_date: p.due_date,
-            status: p.status,
-            total_amount: p.total_amount,
-            branch_id: p.branch_id
-          });
-        }
-        
-        return isOverdue;
+        return now > dueDateStart;
       } catch {
         return false;
       }
     });
 
-    console.log('🔔 PageHeader: Calculating unread count for branch', selectedBranchId);
-    console.log('   - Overdue payments:', overduePayments.length, 'from', allPayments.length, 'total payments');
-    console.log('   - Urgent maintenance:', allMaintenanceRequests.filter(m => m.status === 'pending' && (m.priority === 'urgent' || m.priority === 'high')).length);
+    if (overduePayments.length > 10) {
+      if (!isRead(`overdue-group-${selectedBranchId}`)) count++;
+    } else {
+      overduePayments.forEach(p => {
+        if (!isRead(`overdue-${p.id}`)) count++;
+      });
+    }
 
+    // 3. แจ้งซ่อมเร่งด่วน
     const urgentMaintenance = allMaintenanceRequests.filter(m => 
       m.status === 'pending' && (m.priority === 'urgent' || m.priority === 'high')
-    ).length;
+    );
 
-    return overduePayments.length + urgentMaintenance;
-  }, [allPayments, allMaintenanceRequests, selectedBranchId]);
+    if (urgentMaintenance.length > 10) {
+      if (!isRead(`maintenance-group-${selectedBranchId}`)) count++;
+    } else {
+      urgentMaintenance.forEach(m => {
+        if (!isRead(`maintenance-${m.id}`)) count++;
+      });
+    }
+
+    return count;
+  }, [allPayments, allMaintenanceRequests, selectedBranchId, readNotifications]);
 
   const handleBack = () => {
     if (backUrl) {
