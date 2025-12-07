@@ -795,7 +795,10 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   const filteredNotifications = filterBranch === 'all' 
     ? allNotifications 
     : allNotifications.filter(n => n.branchId === filterBranch);
-  const unreadCount = filteredNotifications.filter(n => !isNotificationRead(n.id) && !isNotificationDeleted(n.id)).length;
+  
+  // นับเฉพาะรายการที่จะแสดงจริง (ยังไม่อ่าน)
+  const visibleNotifications = filteredNotifications.filter(n => !isNotificationRead(n.id));
+  const unreadCount = visibleNotifications.length;
 
   if (!isOpen) return null;
 
@@ -831,7 +834,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                   <div>
                     <CardTitle>การแจ้งเตือน</CardTitle>
                     <p className="text-xs text-slate-500 font-normal">
-                      {unreadCount} ยังไม่อ่าน · {filteredNotifications.length} ทั้งหมด
+                      {unreadCount} รายการ
                     </p>
                   </div>
                 </div>
