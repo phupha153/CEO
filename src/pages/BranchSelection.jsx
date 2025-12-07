@@ -256,17 +256,23 @@ export default function BranchSelection() {
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
                         onClick={(e) => {
+                          console.log('🔘 ปุ่มแก้ไขสาขาถูกคลิก!', { userRole, isNavigating });
                           e.stopPropagation();
+                          e.preventDefault();
                           handleManageBranches(e);
                         }}
-                        disabled={isNavigating}
+                        disabled={false}
                         variant="outline"
-                        className="border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-700 h-auto py-4 px-6 text-sm rounded-2xl font-medium pointer-events-auto cursor-pointer"
+                        className="border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-700 h-auto py-4 px-6 text-sm rounded-2xl font-medium cursor-pointer z-50 relative"
                         data-onboarding="add-branch-button"
+                        type="button"
                       >
                         <Pencil className="w-5 h-5 mr-2 flex-shrink-0" />
                         <span>แก้ไขสาขา</span>
                       </Button>
+                    )}
+                    {!(userRole === 'developer' || userRole === 'owner') && (
+                      <div className="text-xs text-red-500">Debug: userRole = {userRole}</div>
                     )}
                   </div>
 
@@ -301,12 +307,15 @@ export default function BranchSelection() {
                     {(userRole === 'developer' || userRole === 'owner') ? (
                       <Button
                         onClick={(e) => {
+                          console.log('🔘 ปุ่มเพิ่มสาขาถูกคลิก!', { userRole, isNavigating, canAddMoreBranches });
                           e.stopPropagation();
+                          e.preventDefault();
                           handleManageBranches(e);
                         }}
-                        disabled={isNavigating || !canAddMoreBranches}
-                        className="bg-gradient-to-r from-blue-500 to-sky-600 hover:from-blue-600 hover:to-sky-700 text-white h-auto py-5 px-10 text-lg shadow-2xl rounded-2xl font-bold disabled:opacity-50 pointer-events-auto cursor-pointer"
+                        disabled={!canAddMoreBranches}
+                        className="bg-gradient-to-r from-blue-500 to-sky-600 hover:from-blue-600 hover:to-sky-700 text-white h-auto py-5 px-10 text-lg shadow-2xl rounded-2xl font-bold disabled:opacity-50 cursor-pointer z-50 relative"
                         data-onboarding="add-branch-button"
+                        type="button"
                       >
                         <Building2 className="w-6 h-6 mr-3" />
                         เพิ่มตึกของคุณ
