@@ -664,6 +664,18 @@ export default function Layout({ children, currentPageName }) {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
+    // เช็คการชำระเงินใหม่ (ที่ชำระแล้วภายใน 5 นาที)
+    const recentPaidPayments = allPayments.filter(p => {
+      if (p.status !== 'paid' || !p.payment_date) return false;
+      try {
+        const paymentDateTime = parseISO(p.payment_date);
+        const minutesAgo = (new Date() - paymentDateTime) / (1000 * 60);
+        return minutesAgo <= 5;
+      } catch {
+        return false;
+      }
+    });
+
     // เช็ค overdue payments
     const overduePayments = allPayments.filter(p => {
       if (p.status === 'paid' || !p.due_date) return false;
@@ -681,9 +693,30 @@ export default function Layout({ children, currentPageName }) {
       m.status === 'pending' && (m.priority === 'urgent' || m.priority === 'high')
     );
 
-    // แสดง toast สำหรับแจ้งเตือนใหม่ที่ยังไม่เคยแสดง
+    // แสดง toast สำหรับการชำระใหม่ (สีเขียว)
+    recentPaidPayments.slice(0, 3).forEach(payment => {
+      const notifId = `paid-${payment.id}`;
+      
+      if (!shownNotifications.has(notifId)) {
+        toast.success(
+          `✅ มีการชำระเงินแล้ว - ${payment.total_amount?.toLocaleString()} ฿`,
+          {
+            description: `วันที่ชำระ: ${format(parseISO(payment.payment_date), 'dd/MM/yyyy HH:mm')}`,
+            duration: 6000,
+          }
+        );
+
+        setShownNotifications(prev => {
+          const updated = new Set([...prev, notifId]);
+          localStorage.setItem('shown_notifications', JSON.stringify([...updated]));
+          return updated;
+        });
+      }
+    });
+
+    // แสดง toast สำหรับแจ้งเตือนอื่นๆ
     [...overduePayments.slice(0, 3), ...urgentMaintenance.slice(0, 2)].forEach(item => {
-      const notifId = item.room_id ? `overdue-${item.id}` : `maintenance-${item.id}`;
+      const notifId = item.due_date ? `overdue-${item.id}` : `maintenance-${item.id}`;
       
       if (!shownNotifications.has(notifId)) {
         const isPayment = !!item.due_date;
@@ -691,7 +724,7 @@ export default function Layout({ children, currentPageName }) {
         toast.error(
           isPayment 
             ? `🔴 เกินกำหนดชำระ - ${item.total_amount?.toLocaleString()} ฿`
-            : `🚨 แจ้งซ่อมเร่งด่วน - ห้อง`,
+            : `🚨 แจ้งซ่อมเร่งด่วน`,
           {
             description: isPayment 
               ? `วันครบกำหนด: ${format(parseISO(item.due_date), 'dd/MM/yyyy')}`
