@@ -932,7 +932,8 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                               amber: { gradient: 'from-amber-500 to-orange-500', border: '#f59e0b', bg: 'bg-amber-50/50' }
                             };
 
-                            if (isDeleted) return null;
+                            // ซ่อนรายการที่อ่านแล้วหรือลบแล้ว
+                            if (isDeleted || isRead) return null;
 
                             return (
                               <motion.div
