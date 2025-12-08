@@ -1087,21 +1087,25 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                                         </div>
                                       </div>
                                       <div className="flex-1 min-w-0">
-                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                        <div className="flex items-start justify-between gap-3 mb-2">
                                           <div className="flex-1">
-                                            <p className="font-semibold text-slate-800 text-sm">
+                                            <p className="font-bold text-slate-900 text-base leading-tight">
                                               {notif.title}
                                             </p>
                                           </div>
                                           <div className="flex items-center gap-2">
                                             {!isRead && (
-                                              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1"></div>
+                                              <motion.div 
+                                                initial={{ scale: 0 }}
+                                                animate={{ scale: 1 }}
+                                                className={`w-3 h-3 bg-gradient-to-br ${colorMap[notif.color].gradient} rounded-full flex-shrink-0 shadow-lg mt-0.5`}
+                                              ></motion.div>
                                             )}
                                             {canDelete && !notif.expandable && (
                                               <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50 opacity-0 group-hover:opacity-100"
+                                                className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all rounded-full"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                   deleteNotificationMutation.mutate(notif.id);
@@ -1112,7 +1116,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                                             )}
                                           </div>
                                         </div>
-                                        <p className="text-xs text-slate-600 mb-2">{notif.message}</p>
+                                        <p className="text-sm text-slate-700 leading-relaxed">{notif.message}</p>
                                         
                                         {/* ⭐ ปุ่มยืนยันชำระสำหรับ failed-slip */}
                                         {notif.type === 'failed-slip' && notif.paymentId && (
