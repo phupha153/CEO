@@ -922,7 +922,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                       variant="ghost"
                       size="sm"
                       onClick={() => markAllAsReadMutation.mutate(visibleNotifications.map(n => n.id))}
-                      className="text-xs"
+                      className="text-xs text-white/90 hover:text-white hover:bg-white/20 border border-white/30"
                     >
                       <CheckCheck className="w-4 h-4 mr-1" />
                       อ่านทั้งหมด
@@ -937,17 +937,17 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                           deleteAllNotificationsMutation.mutate(filteredNotifications.map(n => n.id));
                         }
                       }}
-                      className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="text-xs text-white/90 hover:text-white hover:bg-white/20 border border-white/30"
                     >
                       <Trash2 className="w-4 h-4 mr-1" />
-                      ลบทั้งหมด
+                      ลบ
                     </Button>
                   )}
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={onClose}
-                    className="rounded-full"
+                    className="rounded-full text-white/90 hover:text-white hover:bg-white/20"
                   >
                     <X className="w-5 h-5" />
                   </Button>
