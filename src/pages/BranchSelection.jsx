@@ -293,7 +293,7 @@ export default function BranchSelection() {
                     {/* ปุ่มเพิ่มสาขา/แก้ไข - ไปหน้า BranchManagement เสมอ */}
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
-                        onClick={() => window.location.href = createPageUrl('BranchManagement')}
+                        onClick={() => navigate(createPageUrl('BranchManagement'))}
                         className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold"
                         data-onboarding="add-branch-button"
                       >
