@@ -882,18 +882,18 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-end pt-20 md:pt-4 p-4"
+        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50"
         onClick={onClose}
       >
         <motion.div
-          initial={{ x: 400, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 400, opacity: 0 }}
-          transition={{ type: "spring", damping: 25 }}
-          className="w-full max-w-md"
+          initial={{ y: -20, opacity: 0, scale: 0.95 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: -20, opacity: 0, scale: 0.95 }}
+          transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          className="absolute top-16 right-4 md:right-8 w-full max-w-md shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <Card className="bg-white/95 backdrop-blur-xl shadow-2xl border-0">
+          <Card className="bg-white shadow-2xl border-2 border-slate-200 rounded-2xl overflow-hidden">
             <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
