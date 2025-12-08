@@ -133,97 +133,74 @@ Deno.serve(async (req) => {
         
         let totalDeleted = 0;
         
-        // 1. ลบ Payments (batch size 300)
+        // 1. ลบ Payments แบบ parallel
         if (paymentsToDelete.length > 0) {
             console.log(`💸 [Cron] Deleting ${paymentsToDelete.length} TEST payments...`);
-            for (const payment of paymentsToDelete) {
-                try {
-                    await base44.asServiceRole.entities.Payment.delete(payment.id);
-                    totalDeleted++;
-                    if (totalDeleted % 100 === 0) {
-                        console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted payment ${payment.id}`);
-                    }
-                } catch (e) {
-                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
-                        console.error(`❌ Error deleting payment:`, e.message);
-                    } else {
-                        totalDeleted++;
-                    }
-                }
-            }
+            const deleteResults = await Promise.allSettled(
+                paymentsToDelete.map(payment => 
+                    base44.asServiceRole.entities.Payment.delete(payment.id)
+                )
+            );
+            const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
+            totalDeleted += successCount;
+            console.log(`✅ [Cron] Deleted ${successCount}/${paymentsToDelete.length} payments`);
         }
         
-        // 2. ลบ Bookings และอัปเดตห้อง
+        // 2. ลบ Bookings แบบ parallel
         if (bookingsToDelete.length > 0) {
             console.log(`📋 [Cron] Deleting ${bookingsToDelete.length} TEST bookings...`);
-            for (const booking of bookingsToDelete) {
-                try {
+            const deleteResults = await Promise.allSettled(
+                bookingsToDelete.map(async (booking) => {
                     if (booking.room_id) {
                         await base44.asServiceRole.entities.Room.update(booking.room_id, {
                             status: 'available'
                         }).catch(() => {});
                     }
-                    await base44.asServiceRole.entities.Booking.delete(booking.id);
-                    totalDeleted++;
-                } catch (e) {
-                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
-                        console.error(`❌ Error deleting booking:`, e.message);
-                    } else {
-                        totalDeleted++;
-                    }
-                }
-            }
+                    return base44.asServiceRole.entities.Booking.delete(booking.id);
+                })
+            );
+            const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
+            totalDeleted += successCount;
+            console.log(`✅ [Cron] Deleted ${successCount}/${bookingsToDelete.length} bookings`);
         }
         
-        // 3. ลบ Rooms
+        // 3. ลบ Rooms แบบ parallel
         if (roomsToDelete.length > 0) {
             console.log(`🏠 [Cron] Deleting ${roomsToDelete.length} TEST rooms...`);
-            for (const room of roomsToDelete) {
-                try {
-                    await base44.asServiceRole.entities.Room.delete(room.id);
-                    totalDeleted++;
-                } catch (e) {
-                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
-                        console.error(`❌ Error deleting room:`, e.message);
-                    } else {
-                        totalDeleted++;
-                    }
-                }
-            }
+            const deleteResults = await Promise.allSettled(
+                roomsToDelete.map(room => 
+                    base44.asServiceRole.entities.Room.delete(room.id)
+                )
+            );
+            const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
+            totalDeleted += successCount;
+            console.log(`✅ [Cron] Deleted ${successCount}/${roomsToDelete.length} rooms`);
         }
         
-        // 4. ลบ Tenants
+        // 4. ลบ Tenants แบบ parallel
         if (tenantsToDelete.length > 0) {
             console.log(`👥 [Cron] Deleting ${tenantsToDelete.length} TEST tenants...`);
-            for (const tenant of tenantsToDelete) {
-                try {
-                    await base44.asServiceRole.entities.Tenant.delete(tenant.id);
-                    totalDeleted++;
-                } catch (e) {
-                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
-                        console.error(`❌ Error deleting tenant:`, e.message);
-                    } else {
-                        totalDeleted++;
-                    }
-                }
-            }
+            const deleteResults = await Promise.allSettled(
+                tenantsToDelete.map(tenant => 
+                    base44.asServiceRole.entities.Tenant.delete(tenant.id)
+                )
+            );
+            const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
+            totalDeleted += successCount;
+            console.log(`✅ [Cron] Deleted ${successCount}/${tenantsToDelete.length} tenants`);
         }
         
-        // 5. ลบ MeterReadings
+        // 5. ลบ MeterReadings แบบ parallel
         if (meterReadingsToDelete.length > 0) {
             console.log(`⚡ [Cron] Deleting ${meterReadingsToDelete.length} TEST meter readings...`);
-            for (const mr of meterReadingsToDelete) {
-                try {
-                    await base44.asServiceRole.entities.MeterReading.delete(mr.id);
-                    totalDeleted++;
-                } catch (e) {
-                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
-                        console.error(`❌ Error deleting meter reading:`, e.message);
-                    } else {
-                        totalDeleted++;
-                    }
-                }
-            }
+            const deleteResults = await Promise.allSettled(
+                meterReadingsToDelete.map(mr => 
+                    base44.asServiceRole.entities.MeterReading.delete(mr.id)
+                )
+            );
+            const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
+            totalDeleted += successCount;
+            console.log(`✅ [Cron] Deleted ${successCount}/${meterReadingsToDelete.length} meter readings`);
         }
         
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
