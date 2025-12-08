@@ -295,6 +295,13 @@ export default function AccountingData() {
     return sortedMonths;
   }, [payments]);
 
+  // ตั้งค่า default เป็นเดือนล่าสุดที่มีข้อมูล
+  useEffect(() => {
+    if (availableMonths.length > 0 && selectedMonth === 'all') {
+      setSelectedMonth(availableMonths[0]); // เดือนล่าสุด
+    }
+  }, [availableMonths]);
+
   // ฟังก์ชันกรองข้อมูล - ใบเสร็จรับเงิน (แสดงทุกรายการ)
   const filteredPayments = useMemo(() => {
     console.log('🔍 filteredPayments calculation - Total payments:', payments.length);
