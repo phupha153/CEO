@@ -603,22 +603,7 @@ export default function BranchManagement() {
       <div className="px-4 md:px-8 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
 
-          {/* แสดงแจ้งเตือนเมื่อถึงลิมิต */}
-          {!canAddMoreBranches && (
-            <Card className="bg-amber-50 border-amber-200">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h4 className="font-semibold text-amber-900 mb-1">⚠️ ถึงจำนวนสาขาสูงสุดแล้ว</h4>
-                    <p className="text-sm text-amber-700">
-                      คุณสร้างได้สูงสุด {maxTrialBranches} สาขา กรุณาอัปเกรดแพ็กเกจเพื่อเพิ่มสาขาได้ไม่จำกัด
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatePresence>
@@ -684,20 +669,14 @@ export default function BranchManagement() {
                         )}
                       </div>
 
-                      {/* แสดงสถานะห้องพัก */}
-                      <div className="mb-4 p-3 bg-slate-50 rounded-lg">
+                      {/* แสดงจำนวนห้องจริงจาก Room entity */}
+                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-slate-600">ห้องพักในสาขา:</span>
-                          <span className="text-lg font-bold text-slate-800">
+                          <span className="text-sm text-slate-700 font-medium">ห้องพักในสาขา:</span>
+                          <span className="text-xl font-bold text-blue-700">
                             {roomCountByBranch[branch.id] || 0} ห้อง
                           </span>
                         </div>
-                        {(!roomCountByBranch[branch.id] || roomCountByBranch[branch.id] === 0) && (
-                          <div className="mt-2 flex items-center gap-2 text-xs text-amber-600">
-                            <AlertTriangle className="w-3 h-3" />
-                            <span>ยังไม่มีห้องพัก - กรุณาเพิ่มห้อง</span>
-                          </div>
-                        )}
                       </div>
 
                       <div className="flex gap-2">
