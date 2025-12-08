@@ -253,7 +253,7 @@ export default function BranchSelection() {
                     {/* ปุ่มแก้ไขสาขา - แสดงเสมอสำหรับ developer และ owner */}
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
-                        onClick={() => navigate(createPageUrl('BranchManagement'))}
+                        onClick={() => window.location.href = createPageUrl('BranchManagement')}
                         className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg h-auto py-4 px-6 text-sm rounded-2xl font-medium text-white"
                         data-onboarding="add-branch-button"
                       >
@@ -293,7 +293,7 @@ export default function BranchSelection() {
                     {/* ปุ่มเพิ่มสาขา/แก้ไข - ไปหน้า BranchManagement เสมอ */}
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
-                        onClick={() => navigate(createPageUrl('BranchManagement'))}
+                        onClick={() => window.location.href = createPageUrl('BranchManagement')}
                         className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold"
                         data-onboarding="add-branch-button"
                       >
