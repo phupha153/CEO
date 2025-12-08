@@ -29,30 +29,48 @@ Deno.serve(async (req) => {
             base44.asServiceRole.entities.MeterReading.list('-created_date', batchSize)
         ]);
         
-        // กรองเฉพาะ TEST data
+        // กรองเฉพาะ TEST data (ใช้ is_sample หรือ notes)
         const paymentsToDelete = (testPayments || []).filter(p => 
-            p.notes?.includes('[TEST-') || p.notes?.includes('TEST-')
+            p.is_sample === true ||
+            p.notes?.includes('[TEST-') || 
+            p.notes?.includes('TEST-') ||
+            p.created_by?.includes('test-') ||
+            p.created_by?.includes('TEST-')
         ).slice(0, batchSize);
         
         const bookingsToDelete = (testBookings || []).filter(b => 
-            b.notes?.includes('[TEST-') || b.notes?.includes('TEST-')
+            b.is_sample === true ||
+            b.notes?.includes('[TEST-') || 
+            b.notes?.includes('TEST-') ||
+            b.created_by?.includes('test-') ||
+            b.created_by?.includes('TEST-')
         ).slice(0, batchSize);
         
         const roomsToDelete = (testRooms || []).filter(r => 
+            r.is_sample === true ||
             r.room_number?.includes('TEST-') || 
             r.description?.includes('[TEST-') ||
-            r.description?.includes('TEST-')
+            r.description?.includes('TEST-') ||
+            r.created_by?.includes('test-') ||
+            r.created_by?.includes('TEST-')
         ).slice(0, batchSize);
         
         const tenantsToDelete = (testTenants || []).filter(t => 
+            t.is_sample === true ||
             t.full_name?.includes('[TEST-') || 
             t.full_name?.includes('TEST-') ||
             t.notes?.includes('[TEST-') ||
-            t.notes?.includes('TEST-')
+            t.notes?.includes('TEST-') ||
+            t.created_by?.includes('test-') ||
+            t.created_by?.includes('TEST-')
         ).slice(0, batchSize);
         
         const meterReadingsToDelete = (testMeterReadings || []).filter(mr => 
-            mr.notes?.includes('[TEST-') || mr.notes?.includes('TEST-')
+            mr.is_sample === true ||
+            mr.notes?.includes('[TEST-') || 
+            mr.notes?.includes('TEST-') ||
+            mr.created_by?.includes('test-') ||
+            mr.created_by?.includes('TEST-')
         ).slice(0, batchSize);
         
         const totalToDelete = paymentsToDelete.length + bookingsToDelete.length + 
