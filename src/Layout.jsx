@@ -1645,7 +1645,8 @@ export default function Layout({ children, currentPageName }) {
   };
 
   // If no branch is selected, show branch selection page WITHOUT sidebar and subscription banner
-  if (!selectedBranch || currentPageName === 'BranchSelection') {
+  // ⭐ ยกเว้นหน้า BranchManagement ที่ไม่ต้องการ selectedBranch
+  if ((!selectedBranch || currentPageName === 'BranchSelection') && currentPageName !== 'BranchManagement') {
     return (
       <>
         <Toaster richColors position="top-center" />
