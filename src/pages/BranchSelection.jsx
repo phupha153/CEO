@@ -477,7 +477,7 @@ export default function BranchSelection() {
                     animate={{ opacity: 1, y: 0 }}
                     className="max-w-md mx-auto"
                   >
-                    <div className="relative w-48 h-48 mx-auto mb-6">
+                    <div className="relative w-72 h-72 mx-auto mb-6">
                       <img 
                         src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/ab32dfa6a_GreenMinimalistNewSongWidgetInstagramPost3.png" 
                         alt="หลังหอพัก"
