@@ -2614,7 +2614,8 @@ export default function Settings() {
                         {billSettings.late_fee_tiers_enabled && (
                           <div className="space-y-3 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
                             <p className="text-xs text-amber-700 font-medium mb-3">
-                              ตัวอย่าง: เกิน 1-7 วัน ปรับ 20 บาท/วัน, เกิน 8-14 วัน ปรับ 50 บาท/วัน
+                              ตัวอย่าง: วันที่ 1-7 ปรับ 20฿/วัน<br/>
+                              วันที่ 8-14 ปรับ 50฿/วัน
                             </p>
                             
                             {billSettings.late_fee_tiers.map((tier, index) => (
