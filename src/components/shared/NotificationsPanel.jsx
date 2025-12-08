@@ -327,6 +327,16 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     const now = getCurrentDate();
     console.log('🔍 [NotificationPanel] Current date:', now.toISOString());
     console.log('🔍 [NotificationPanel] Test date config:', configs.find(c => c.key === 'test_current_date'));
+    console.log('🔍 [NotificationPanel] All Payments Count:', allPayments.length);
+    console.log('🔍 [NotificationPanel] Payments for branch 69256957890d2b5aaaca1d3f:', 
+      allPayments.filter(p => p.branch_id === '69256957890d2b5aaaca1d3f').map(p => ({
+        id: p.id,
+        room_id: p.room_id,
+        due_date: p.due_date,
+        status: p.status,
+        total_amount: p.total_amount
+      }))
+    );
     const branchNotifications = {};
 
     const selectedBranchId = localStorage.getItem('selected_branch_id');
