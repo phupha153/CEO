@@ -150,10 +150,11 @@ Deno.serve(async (req) => {
                         console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted payment ${payment.id}`);
                     }
                 } catch (e) {
-                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
-                        console.error(`❌ Error deleting payment:`, e.message);
-                    } else {
+                    // Silently skip 404 errors (already deleted by another instance)
+                    if (e.message?.includes('not found') || e.message?.includes('404') || e.status === 404) {
                         totalDeleted++;
+                    } else {
+                        console.error(`❌ Error deleting payment:`, e.message);
                     }
                 }
             }
@@ -172,10 +173,10 @@ Deno.serve(async (req) => {
                     await base44.asServiceRole.entities.Booking.delete(booking.id);
                     totalDeleted++;
                 } catch (e) {
-                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
-                        console.error(`❌ Error deleting booking:`, e.message);
-                    } else {
+                    if (e.message?.includes('not found') || e.message?.includes('404') || e.status === 404) {
                         totalDeleted++;
+                    } else {
+                        console.error(`❌ Error deleting booking:`, e.message);
                     }
                 }
             }
@@ -189,10 +190,10 @@ Deno.serve(async (req) => {
                     await base44.asServiceRole.entities.Room.delete(room.id);
                     totalDeleted++;
                 } catch (e) {
-                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
-                        console.error(`❌ Error deleting room:`, e.message);
-                    } else {
+                    if (e.message?.includes('not found') || e.message?.includes('404') || e.status === 404) {
                         totalDeleted++;
+                    } else {
+                        console.error(`❌ Error deleting room:`, e.message);
                     }
                 }
             }
@@ -206,10 +207,10 @@ Deno.serve(async (req) => {
                     await base44.asServiceRole.entities.Tenant.delete(tenant.id);
                     totalDeleted++;
                 } catch (e) {
-                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
-                        console.error(`❌ Error deleting tenant:`, e.message);
-                    } else {
+                    if (e.message?.includes('not found') || e.message?.includes('404') || e.status === 404) {
                         totalDeleted++;
+                    } else {
+                        console.error(`❌ Error deleting tenant:`, e.message);
                     }
                 }
             }
@@ -223,10 +224,10 @@ Deno.serve(async (req) => {
                     await base44.asServiceRole.entities.MeterReading.delete(mr.id);
                     totalDeleted++;
                 } catch (e) {
-                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
-                        console.error(`❌ Error deleting meter reading:`, e.message);
-                    } else {
+                    if (e.message?.includes('not found') || e.message?.includes('404') || e.status === 404) {
                         totalDeleted++;
+                    } else {
+                        console.error(`❌ Error deleting meter reading:`, e.message);
                     }
                 }
             }
