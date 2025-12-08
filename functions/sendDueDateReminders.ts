@@ -98,9 +98,33 @@ Deno.serve(async (req) => {
             console.error('❌ Error fetching payments:', err.message);
         }
         
-        // กรองเฉพาะที่ due_date ตรงกับวันนี้
-        const payments = allPayments.filter(p => p.due_date === todayString);
+        // กรองเฉพาะที่ due_date ตรงกับวันนี้ (รองรับหลายรูปแบบ)
+        const payments = allPayments.filter(p => {
+            if (!p.due_date) return false;
+            
+            // แปลง due_date ให้เป็น YYYY-MM-DD
+            let dueDateString = '';
+            if (typeof p.due_date === 'string') {
+                // ถ้าเป็น ISO string (2025-12-08T00:00:00.000Z) ให้ตัดเอาแค่ส่วน date
+                dueDateString = p.due_date.split('T')[0];
+            } else if (p.due_date instanceof Date) {
+                dueDateString = p.due_date.toISOString().split('T')[0];
+            }
+            
+            return dueDateString === todayString;
+        });
+        
         console.log(`✅ Filtered: ${payments.length} payments due on ${todayString}`);
+        
+        // Debug: แสดงตัวอย่าง due_date format
+        if (allPayments.length > 0 && payments.length === 0) {
+            const sample = allPayments.slice(0, 3);
+            console.log(`⚠️ No matches found. Sample due_dates:`, sample.map(p => ({
+                id: p.id.substring(0, 8),
+                due_date: p.due_date,
+                status: p.status
+            })));
+        }
         
 
 
