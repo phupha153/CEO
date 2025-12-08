@@ -446,8 +446,7 @@ export default function BranchSelection() {
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
                         onClick={() => navigate(createPageUrl('BranchManagement'))}
-                        variant="outline"
-                        className="border-slate-300 text-slate-700 hover:bg-slate-50 shadow-md h-auto py-4 px-6 text-sm rounded-2xl font-medium"
+                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
                       >
                         <Settings className="w-5 h-5 mr-2 flex-shrink-0" />
                         <span>จัดการสาขา</span>
