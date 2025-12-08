@@ -155,13 +155,7 @@ export default function BranchSelection() {
       e.preventDefault();
     }
 
-    if (isNavigating) {
-      console.log('⚠️ [BranchSelection] Already navigating, returning...');
-      return;
-    }
-
-    console.log('✅ [BranchSelection] Setting isNavigating = true');
-    setIsNavigating(true);
+    console.log('✅ [BranchSelection] Current isNavigating state:', isNavigating);
     
     // ⭐ ตั้งค่า flag ใน localStorage เพื่อบอก Layout ว่ากำลังไปหน้า BranchManagement
     localStorage.setItem('navigating_to_branch_management', 'true');
