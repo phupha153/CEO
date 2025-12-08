@@ -72,79 +72,35 @@ Deno.serve(async (req) => {
             console.log(`📅 Using Thailand date: ${todayString} (UTC: ${now.toISOString()})`);
         }
 
-        // 3. หาบิลที่ครบกำหนดชำระวันนี้ (ยังไม่ชำระ) - แบบ pagination
-        console.log('🔍 Fetching payments with pagination...');
-        
-        const parseResult = (result) => {
-            if (Array.isArray(result)) return result;
-            if (typeof result === 'string') {
-                try {
-                    const parsed = JSON.parse(result);
-                    if (Array.isArray(parsed)) return parsed;
-                } catch (e) {
-                    console.error('❌ JSON parse error:', e.message);
-                }
-            }
-            return [];
-        };
+        // 3. ดึง payments ทั้งหมดแล้วกรอง due_date เอง
+        console.log('🔍 Fetching all payments...');
         
         let allPayments = [];
         
         try {
-            // ⭐ ดึง pending payments แบบ pagination
-            let skip = 0;
-            const limit = 1000;
-            let hasMorePending = true;
+            // ดึง pending payments ทั้งหมด
+            const pendingPayments = await base44.asServiceRole.entities.Payment.filter(
+                { status: 'pending' },
+                '-created_date',
+                10000
+            );
             
-            while (hasMorePending && skip < 50000) {
-                const batch = await base44.asServiceRole.entities.Payment.filter(
-                    { due_date: todayString, status: 'pending' },
-                    '-created_date',
-                    limit,
-                    skip
-                );
-                const parsed = parseResult(batch);
-                allPayments = [...allPayments, ...parsed];
-                skip += limit;
-                
-                if (parsed.length < limit) hasMorePending = false;
-                console.log(`📥 Pending batch: ${parsed.length} payments (total: ${allPayments.length})`);
-            }
+            // ดึง overdue payments ทั้งหมด
+            const overduePayments = await base44.asServiceRole.entities.Payment.filter(
+                { status: 'overdue' },
+                '-created_date',
+                10000
+            );
             
-            // ⭐ ดึง overdue payments แบบ pagination
-            skip = 0;
-            let hasMoreOverdue = true;
-            
-            while (hasMoreOverdue && skip < 50000) {
-                const batch = await base44.asServiceRole.entities.Payment.filter(
-                    { due_date: todayString, status: 'overdue' },
-                    '-created_date',
-                    limit,
-                    skip
-                );
-                const parsed = parseResult(batch);
-                allPayments = [...allPayments, ...parsed];
-                skip += limit;
-                
-                if (parsed.length < limit) hasMoreOverdue = false;
-                console.log(`📥 Overdue batch: ${parsed.length} payments (total: ${allPayments.length})`);
-            }
-            
-            console.log(`✅ Total fetched: ${allPayments.length} payments due today`);
+            allPayments = [...pendingPayments, ...overduePayments];
+            console.log(`✅ Total fetched: ${allPayments.length} payments (${pendingPayments.length} pending + ${overduePayments.length} overdue)`);
         } catch (err) {
             console.error('❌ Error fetching payments:', err.message);
         }
         
-        const payments = allPayments;
-
-        // ⭐ Debug: แสดงตัวอย่าง payment ถ้ามี
-        if (payments.length > 0) {
-            const sample = payments[0];
-            console.log(`📝 Sample payment: id=${sample.id}, due_date=${sample.due_date}, status=${sample.status}, branch_id=${sample.branch_id}`);
-        }
-        
-        // ⭐ แปลงเป็น array เพื่อป้องกัน error
-        if (!Array.isArray(payments)) payments = [];
+        // กรองเฉพาะที่ due_date ตรงกับวันนี้
+        const payments = allPayments.filter(p => p.due_date === todayString);
+        console.log(`✅ Filtered: ${payments.length} payments due on ${todayString}`);
         
 
 
