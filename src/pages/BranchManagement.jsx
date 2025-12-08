@@ -50,7 +50,7 @@ export default function BranchManagement() {
   // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้
   const userAccessibleBranches = currentUser?.accessible_branches;
 
-  const { data: allBranches = [], isLoading } = useQuery({
+  const { data: allBranches = [], isLoading, isFetching } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
     staleTime: 60 * 60 * 1000,
@@ -58,7 +58,10 @@ export default function BranchManagement() {
     retry: 0,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    placeholderData: (previousData) => previousData,
+    initialData: () => {
+      // ใช้ข้อมูลจาก cache ถ้ามี
+      return queryClient.getQueryData(['branches']) || [];
+    },
   });
 
   const { data: appSubscriptions = [] } = useQuery({
@@ -531,11 +534,12 @@ export default function BranchManagement() {
 
   // เอาการเช็คสิทธิ์ Developer ออก - ให้ทุกคนเข้าถึงหน้านี้ได้ (เห็นแค่สาขาตัวเอง)
 
-  console.log('🔍 BranchManagement - isLoading:', isLoading);
+  console.log('🔍 BranchManagement - isLoading:', isLoading, 'isFetching:', isFetching);
   console.log('🔍 BranchManagement - branches count:', branches.length);
   
-  if (isLoading) {
-    console.log('⏳ BranchManagement - กำลังโหลด...');
+  // แสดง loading เฉพาะตอนที่ไม่มีข้อมูลเลย
+  if (isLoading && allBranches.length === 0) {
+    console.log('⏳ BranchManagement - กำลังโหลดครั้งแรก...');
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
         <PageHeader
