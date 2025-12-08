@@ -32,10 +32,7 @@ export default function Welcome() {
     base44.auth.isAuthenticated()
       .then(authed => {
         setIsAuthenticated(authed);
-        if (authed) {
-          // Redirect to dashboard if already logged in
-          navigate(createPageUrl('Dashboard'));
-        }
+        // ไม่ redirect ไป Dashboard เพื่อให้ดูหน้า Welcome ได้แม้ล็อกอินแล้ว
       })
       .catch(() => setIsAuthenticated(false));
 
@@ -176,11 +173,17 @@ export default function Welcome() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <Button
                   size="lg"
-                  onClick={() => base44.auth.redirectToLogin(window.location.origin)}
+                  onClick={() => {
+                    if (isAuthenticated) {
+                      navigate(createPageUrl('Dashboard'));
+                    } else {
+                      base44.auth.redirectToLogin(window.location.origin);
+                    }
+                  }}
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl shadow-blue-500/50 px-8 py-6 text-lg rounded-2xl"
                 >
                   <Sparkles className="w-5 h-5 mr-2" />
-                  เข้าสู่ระบบ
+                  {isAuthenticated ? 'ไปที่แดชบอร์ด' : 'เข้าสู่ระบบ'}
                 </Button>
                 
                 <Button
@@ -317,9 +320,15 @@ export default function Welcome() {
                     <Button
                       className={`w-full ${pkg.popular ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700' : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'} text-white shadow-lg`}
                       size="lg"
-                      onClick={() => base44.auth.redirectToLogin(window.location.origin)}
+                      onClick={() => {
+                        if (isAuthenticated) {
+                          navigate(createPageUrl('PackageSelectionPage'));
+                        } else {
+                          base44.auth.redirectToLogin(window.location.origin);
+                        }
+                      }}
                     >
-                      เริ่มใช้งานฟรี 14 วัน
+                      {isAuthenticated ? 'เลือกแพ็กเกจนี้' : 'เริ่มใช้งานฟรี 14 วัน'}
                     </Button>
                   </CardContent>
                 </Card>
@@ -350,11 +359,17 @@ export default function Welcome() {
           </p>
           <Button
             size="lg"
-            onClick={() => base44.auth.redirectToLogin(window.location.origin)}
+            onClick={() => {
+              if (isAuthenticated) {
+                navigate(createPageUrl('PackageSelectionPage'));
+              } else {
+                base44.auth.redirectToLogin(window.location.origin);
+              }
+            }}
             className="bg-white text-blue-600 hover:bg-blue-50 shadow-2xl px-12 py-6 text-lg rounded-2xl"
           >
             <Sparkles className="w-6 h-6 mr-2" />
-            เริ่มทดลองใช้งานฟรี
+            {isAuthenticated ? 'เลือกแพ็กเกจ' : 'เริ่มทดลองใช้งานฟรี'}
           </Button>
         </motion.div>
       </section>

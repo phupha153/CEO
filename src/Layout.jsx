@@ -352,6 +352,15 @@ const adminOnlyItems = [
     showOnlyForDeveloper: true,
     requiredPermission: "settings_access_test_mode",
     requiredFeature: "settings_access_test_mode"
+  },
+  {
+    title: "หน้า Welcome (Landing)",
+    url: createPageUrl("Welcome"),
+    icon: Sparkles,
+    badge: "Dev",
+    showOnlyForDeveloper: true,
+    requiredPermission: "settings_access_test_mode",
+    requiredFeature: "settings_access_test_mode"
   }
 ];
 
