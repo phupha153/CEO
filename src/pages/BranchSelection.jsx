@@ -406,87 +406,109 @@ export default function BranchSelection() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 overflow-hidden relative">
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-purple-100 overflow-hidden">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+      </div>
+
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
           className="w-full max-w-6xl"
         >
+          <Card className="bg-white/80 backdrop-blur-2xl border border-white/60 shadow-2xl overflow-hidden rounded-3xl">
+            <CardContent className="p-8">
+              <div className="text-center mb-8">
+                <p className="text-slate-600">เลือกสาขาที่ต้องการจัดการ</p>
+              </div>
 
 
 
-              {/* ✅ ถ้ามีสาขา → แสดงปุ่มต่างๆ ด้านบน */}
+              {/* ✅ ถ้ามีสาขา → แสดงปุ่มดูภาพรวม + เพิ่มสาขา */}
               {!hasNoBranches && !hasNoAccess && (
-                <div className="flex flex-col gap-3 mb-8 items-center">
+                <div className="flex flex-col gap-3 mb-6 items-center">
                   <div className="flex flex-wrap gap-3 justify-center">
-                    {/* ปุ่มดูภาพรวมทั้งหมด */}
+                    {/* ปุ่มดูภาพรวมทั้งหมด - แสดงเฉพาะเมื่อมีมากกว่า 1 สาขา และไม่ได้อยู่ใน trial mode */}
                     {filteredBranches.length > 1 && !isTrialMode && (
                       <Button
                         onClick={handleViewAllBranches}
                         disabled={isNavigating}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white h-auto py-3 px-6 text-sm shadow-md rounded-xl font-medium"
+                        className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
                       >
-                        <Globe className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <Globe className="w-5 h-5 mr-2 flex-shrink-0" />
                         <span>ดูภาพรวมทั้งหมด</span>
                       </Button>
                     )}
                     
-                    {/* ปุ่มจัดการสาขา */}
+                    {/* ปุ่มจัดการสาขา - ไปหน้า BranchManagement */}
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
                         onClick={() => navigate(createPageUrl('BranchManagement'))}
                         variant="outline"
-                        className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 shadow-sm h-auto py-3 px-6 text-sm rounded-xl font-medium"
+                        className="border-slate-300 text-slate-700 hover:bg-slate-50 shadow-md h-auto py-4 px-6 text-sm rounded-2xl font-medium"
                       >
-                        <Settings className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <Settings className="w-5 h-5 mr-2 flex-shrink-0" />
                         <span>จัดการสาขา</span>
                       </Button>
                     )}
 
-                    {/* ปุ่มเพิ่มสาขา */}
+                    {/* ปุ่มเพิ่มสาขา - เปิด Dialog */}
                     {(userRole === 'developer' || userRole === 'owner') && canAddMoreBranches && (
                       <Button
                         onClick={() => setShowDialog(true)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white h-auto py-3 px-6 text-sm shadow-md rounded-xl font-medium"
+                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
                       >
-                        <Plus className="w-4 h-4 mr-2 flex-shrink-0" />
+                        <Plus className="w-5 h-5 mr-2 flex-shrink-0" />
                         <span>เพิ่มสาขา</span>
                       </Button>
                     )}
                   </div>
+
                 </div>
               )}
 
               {/* ✅ ถ้าไม่มีสาขาเลย หรือไม่มีสิทธิ์ → แสดงปุ่มเพิ่มสาขา */}
               {(hasNoBranches || hasNoAccess) ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="text-center max-w-2xl mx-auto"
-                >
-                  <h2 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4 leading-tight">
-                    ยังไม่มีสาขา
-                  </h2>
-                  <p className="text-slate-600 text-lg md:text-xl mb-8 font-normal leading-relaxed">
-                    เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ<br/>
-                    หรือติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา
-                  </p>
+                <div className="text-center py-16">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="max-w-md mx-auto"
+                  >
+                    <div className="relative w-32 h-32 mx-auto mb-6">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-sky-400/30 rounded-full blur-3xl animate-pulse" />
+                      <div className="relative w-full h-full rounded-full bg-gradient-to-br from-blue-500 to-sky-600 flex items-center justify-center shadow-2xl">
+                        <Building2 className="w-16 h-16 text-white" />
+                      </div>
+                    </div>
 
-                  {(userRole === 'developer' || userRole === 'owner') && (
-                    <Button
-                      onClick={() => setShowDialog(true)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white h-auto py-4 px-10 text-base shadow-lg rounded-xl font-semibold transition-all hover:scale-105"
-                      data-onboarding="add-branch-button"
-                    >
-                      เพิ่มสาขา
-                    </Button>
-                  )}
-                </motion.div>
+                    <h2 className="text-2xl font-bold text-slate-800 mb-3">
+                      {hasNoBranches ? 'ยังไม่มีสาขา' : 'ยังไม่มีสาขา'}
+                    </h2>
+                    <p className="text-slate-600 mb-6">
+                      {hasNoBranches 
+                        ? 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ' 
+                        : 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ หรือติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา'}
+                    </p>
+
+                    {/* ปุ่มเพิ่มสาขา - เปิด Dialog */}
+                    {(userRole === 'developer' || userRole === 'owner') && (
+                      <Button
+                        onClick={() => setShowDialog(true)}
+                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold"
+                        data-onboarding="add-branch-button"
+                      >
+                        <Plus className="w-6 h-6 mr-2 flex-shrink-0" />
+                        <span>เพิ่มสาขา</span>
+                      </Button>
+                    )}
+
+                  </motion.div>
+                </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <AnimatePresence>
                     {filteredBranches.map((branch, index) => {
                     const isSelected = selectedBranchId === branch.id;
@@ -495,51 +517,57 @@ export default function BranchSelection() {
                     return (
                       <motion.div
                         key={branch.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1, duration: 0.4 }}
-                        whileHover={{ scale: 1.03 }}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.1 }}
                       >
                         <Card
-                          className={`transition-all duration-300 border border-slate-200 bg-white overflow-hidden rounded-2xl h-full ${
-                            isNavigating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:shadow-xl hover:border-slate-300'
+                          className={`transition-all duration-300 border-0 bg-white/90 overflow-hidden rounded-3xl h-full ${
+                            isNavigating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-white hover:shadow-xl hover:scale-105'
                           }`}
                           onClick={() => !isNavigating && handleSelectBranch(branch)}
                         >
                           <CardContent className="p-6">
-                            <div className="flex flex-col gap-4">
+                            <div className="flex flex-col items-center text-center gap-4">
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl blur-md opacity-30" />
+                                <div className="relative w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl flex items-center justify-center shadow-lg">
+                                  <Building2 className="w-10 h-10 text-white" />
+                                </div>
+                              </div>
+
                               <div className="w-full">
-                                <h3 className="text-xl font-bold text-slate-900 mb-1">
+                                <h3 className="text-xl font-bold text-slate-800 mb-1">
                                   {branch.branch_name}
                                 </h3>
-                                <p className="text-sm text-slate-500 mb-3">{branch.branch_code}</p>
+                                <p className="text-sm text-slate-500 font-semibold mb-3">{branch.branch_code}</p>
                                 
-                                <div className="flex items-center gap-2 mb-3">
-                                  <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg">
-                                    <Building2 className="w-4 h-4 text-slate-600" />
-                                    <span className="text-sm font-semibold text-slate-700">{roomCountByBranch[branch.id] || 0}</span>
-                                    <span className="text-xs text-slate-500">ห้อง</span>
+                                <div className="flex items-center justify-center gap-2 mb-3">
+                                  <div className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-full">
+                                    <Building2 className="w-4 h-4 text-blue-600" />
+                                    <span className="text-sm font-semibold text-blue-700">{roomCountByBranch[branch.id] || 0}</span>
+                                    <span className="text-xs text-blue-600">ห้อง</span>
                                   </div>
                                 </div>
 
                                 {branch.address && (
-                                  <div className="flex items-start gap-2 text-left">
+                                  <div className="flex items-start justify-center gap-1.5 text-left">
                                     <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                                    <span className="text-sm text-slate-600 line-clamp-2">{branch.address}</span>
+                                    <span className="text-xs text-slate-500 line-clamp-2">{branch.address}</span>
                                   </div>
                                 )}
                               </div>
 
-                              <div className="w-full mt-2">
+                              <div className="w-full">
                                 {isNavigatingThis ? (
-                                  <div className="w-full py-3 rounded-xl bg-green-600 flex items-center justify-center shadow-md">
-                                    <Check className="w-5 h-5 text-white mr-2" />
-                                    <span className="text-sm font-semibold text-white">กำลังเข้าสู่ระบบ</span>
+                                  <div className="w-full py-2 rounded-full bg-green-100 flex items-center justify-center">
+                                    <Check className="w-5 h-5 text-green-600 mr-2" />
+                                    <span className="text-sm font-semibold text-green-700">กำลังเข้าสู่ระบบ</span>
                                   </div>
                                 ) : (
-                                  <div className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 flex items-center justify-center transition-all shadow-md">
-                                    <span className="text-sm font-semibold text-white">เลือกสาขา</span>
-                                    <ChevronRight className="w-5 h-5 text-white ml-2" />
+                                  <div className="w-full py-2 rounded-full bg-slate-100 flex items-center justify-center hover:bg-blue-100 transition-colors">
+                                    <span className="text-sm font-semibold text-slate-600">เลือกสาขา</span>
+                                    <ChevronRight className="w-4 h-4 text-slate-400 ml-1" />
                                   </div>
                                 )}
                               </div>
@@ -554,17 +582,8 @@ export default function BranchSelection() {
               )}
 
 
-          {/* Footer - สร้างโดย */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
-            className="text-center mt-12"
-          >
-            <p className="text-slate-400 text-sm">
-              สร้างโดย <span className="font-medium text-slate-500">หลังหอพัก</span>
-            </p>
-          </motion.div>
+            </CardContent>
+          </Card>
         </motion.div>
       </div>
 
