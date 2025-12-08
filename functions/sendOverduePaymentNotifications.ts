@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { differenceInDays, parseISO, startOfDay } from 'npm:date-fns@3.6.0';
 
 Deno.serve(async (req) => {
     try {
@@ -63,9 +64,9 @@ Deno.serve(async (req) => {
             if (payment.status !== 'pending' && payment.status !== 'overdue') return false;
             if (!payment.due_date) return false;
 
-            const dueDate = new Date(payment.due_date);
-            const today = new Date();
-            const daysDiff = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+            const dueDate = startOfDay(parseISO(payment.due_date));
+            const today = startOfDay(new Date());
+            const daysDiff = differenceInDays(today, dueDate);
 
             return daysDiff >= daysThreshold;
         });
@@ -93,9 +94,9 @@ Deno.serve(async (req) => {
             const room = allRooms.find(r => r.id === payment.room_id);
             const tenant = allTenants.find(t => t.id === payment.tenant_id);
             
-            const dueDate = new Date(payment.due_date);
-            const today = new Date();
-            const daysOverdue = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+            const dueDate = startOfDay(parseISO(payment.due_date));
+            const today = startOfDay(new Date());
+            const daysOverdue = differenceInDays(today, dueDate);
 
             paymentsByBranch[branchId].push({
                 room_number: room?.room_number || 'N/A',
