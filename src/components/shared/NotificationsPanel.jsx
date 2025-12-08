@@ -42,7 +42,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     staleTime: 60 * 60 * 1000,
   });
 
-  const { data: allPayments = [] } = useQuery({
+  const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['allPayments', 'toast'],
     queryFn: () => base44.entities.Payment.list('-created_date', 1000),
     enabled: isOpen,
@@ -321,22 +321,13 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   };
 
   const notificationsByBranch = useMemo(() => {
-    console.log('🔍 [NotificationPanel] useMemo triggered - isOpen:', isOpen);
-    if (!isOpen) return {};
+    console.log('🔍 [NotificationPanel] useMemo triggered - isOpen:', isOpen, 'paymentsLoading:', paymentsLoading);
+    if (!isOpen || paymentsLoading) return {};
     
     const now = getCurrentDate();
     console.log('🔍 [NotificationPanel] Current date:', now.toISOString());
     console.log('🔍 [NotificationPanel] Test date config:', configs.find(c => c.key === 'test_current_date'));
     console.log('🔍 [NotificationPanel] All Payments Count:', allPayments.length);
-    console.log('🔍 [NotificationPanel] Payments for branch 69256957890d2b5aaaca1d3f:', 
-      allPayments.filter(p => p.branch_id === '69256957890d2b5aaaca1d3f').map(p => ({
-        id: p.id,
-        room_id: p.room_id,
-        due_date: p.due_date,
-        status: p.status,
-        total_amount: p.total_amount
-      }))
-    );
     const branchNotifications = {};
 
     const selectedBranchId = localStorage.getItem('selected_branch_id');
@@ -904,7 +895,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     });
 
     return branchNotifications;
-  }, [allPayments, allRooms, allMaintenanceRequests, allBookings, allMaterialDeliveries, allTenants, notificationConfigs, configs, navigate, isOpen, branches, showAllBranches, readNotifications]);
+  }, [allPayments, allRooms, allMaintenanceRequests, allBookings, allMaterialDeliveries, allTenants, notificationConfigs, configs, navigate, isOpen, paymentsLoading, branches, showAllBranches, readNotifications]);
 
   const allNotifications = Object.values(notificationsByBranch).flatMap(b => b.alerts);
   const filteredNotifications = filterBranch === 'all' 
