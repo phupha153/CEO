@@ -469,42 +469,33 @@ export default function BranchSelection() {
                 </div>
               )}
 
-              {/* ✅ ถ้าไม่มีสาขาเลย หรือไม่มีสิทธิ์ → แสดงปุ่มเพิ่มสาขา */}
+              {/* ✅ ถ้าไม่มีสาขาเลย หรือไม่มีสิทธิ์ → แสดงกล่องเพิ่มสาขา */}
               {(hasNoBranches || hasNoAccess) ? (
-                <div className="text-center py-16">
+                <div className="flex items-center justify-center py-12">
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="max-w-md mx-auto"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.02 }}
+                    onClick={() => (userRole === 'developer' || userRole === 'owner') && setShowDialog(true)}
+                    className="cursor-pointer max-w-md w-full"
                   >
-                    <div className="relative w-32 h-32 mx-auto mb-6">
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-sky-400/30 rounded-full blur-3xl animate-pulse" />
-                      <div className="relative w-full h-full rounded-full bg-gradient-to-br from-blue-500 to-sky-600 flex items-center justify-center shadow-2xl">
-                        <Building2 className="w-16 h-16 text-white" />
-                      </div>
-                    </div>
-
-                    <h2 className="text-2xl font-bold text-slate-800 mb-3">
-                      {hasNoBranches ? 'ยังไม่มีสาขา' : 'ยังไม่มีสาขา'}
-                    </h2>
-                    <p className="text-slate-600 mb-6">
-                      {hasNoBranches 
-                        ? 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ' 
-                        : 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ หรือติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา'}
-                    </p>
-
-                    {/* ปุ่มเพิ่มสาขา - เปิด Dialog */}
-                    {(userRole === 'developer' || userRole === 'owner') && (
-                      <Button
-                        onClick={() => setShowDialog(true)}
-                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold"
-                        data-onboarding="add-branch-button"
-                      >
-                        <Plus className="w-6 h-6 mr-2 flex-shrink-0" />
-                        <span>เพิ่มสาขา</span>
-                      </Button>
-                    )}
-
+                    <Card className="border-2 border-dashed border-orange-300 bg-gradient-to-br from-orange-50/80 to-orange-100/50 hover:bg-orange-50 hover:border-orange-400 hover:shadow-xl transition-all duration-300">
+                      <CardContent className="p-16 text-center">
+                        <div className="relative w-24 h-24 mx-auto mb-6">
+                          <div className="absolute inset-0 bg-orange-200/50 rounded-3xl blur-xl animate-pulse" style={{ animationDuration: '3s' }} />
+                          <div className="relative w-full h-full rounded-3xl bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center shadow-xl">
+                            <Plus className="w-12 h-12 text-white" />
+                          </div>
+                        </div>
+                        <h3 className="text-2xl font-bold text-slate-800 mb-3">เพิ่มสาขาแรก</h3>
+                        <p className="text-sm text-slate-600 mb-2">
+                          {hasNoBranches 
+                            ? 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ' 
+                            : 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ หรือติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา'}
+                        </p>
+                        <p className="text-xs text-orange-600 font-medium">คลิกเพื่อเริ่มต้น</p>
+                      </CardContent>
+                    </Card>
                   </motion.div>
                 </div>
               ) : (
