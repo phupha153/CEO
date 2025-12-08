@@ -2929,7 +2929,7 @@ Return JSON.`;
                                     ) : (
                                       <>
                                         <Send className="w-4 h-4 mr-1" />
-                                        {payment.receipt_sent_date ? 'ส่งซ้ำ' : 'ส่งใบเสร็จ'}
+                                        ส่งใบเสร็จ
                                       </>
                                     )}
                                   </Button>
@@ -2966,15 +2966,15 @@ Return JSON.`;
                                      openReminderDialog(payment.id);
                                    }} 
                                    disabled={sendingReminder === payment.id} 
-                                   className={`flex-shrink-0 ${payment.bill_sent_date ? 'bg-slate-500 hover:bg-slate-600' : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'}`}
-                                   title={payment.bill_sent_date ? `ส่งแล้วเมื่อ ${format(parseISO(payment.bill_sent_date), 'd MMM HH:mm', { locale: th })}` : 'ส่งแจ้งเตือน'}
+                                   className="flex-shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                                   title={effectiveStatus === 'overdue' ? 'แจ้งเตือนเกินกำหนด' : 'แจ้งเตือนครบกำหนด'}
                                  >
                                    {sendingReminder === payment.id ? (
                                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                    ) : (
                                      <>
                                        <Send className="w-4 h-4 mr-1" />
-                                       {payment.bill_sent_date ? 'ส่งซ้ำ' : 'แจ้งเตือน'}
+                                       {effectiveStatus === 'overdue' ? 'แจ้งเตือนเกินกำหนด' : 'แจ้งเตือนครบกำหนด'}
                                      </>
                                    )}
                                  </Button>
@@ -3172,7 +3172,7 @@ Return JSON.`;
                                         </Button>
                                       )}
                                       {(effectiveStatus === 'pending' || effectiveStatus === 'overdue') && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendReminder && (
-                                       <Button variant="ghost" size="icon" className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50" onClick={() => openReminderDialog(payment.id)} disabled={sendingReminder === payment.id} title="แจ้งเตือน (LINE)">
+                                       <Button variant="ghost" size="icon" className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50" onClick={() => openReminderDialog(payment.id)} disabled={sendingReminder === payment.id} title={effectiveStatus === 'overdue' ? 'แจ้งเตือนเกินกำหนด' : 'แจ้งเตือนครบกำหนด'}>
                                          {sendingReminder === payment.id ? (
                                            <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
                                          ) : (
@@ -3540,7 +3540,7 @@ Return JSON.`;
                                              {effectiveStatus !== 'paid' && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendReminder && (
                                                <Button 
                                                  size="sm" 
-                                                 className={`w-full text-xs ${roomPayment.bill_sent_date ? 'bg-slate-500 hover:bg-slate-600' : 'bg-purple-600 hover:bg-purple-700'}`}
+                                                 className="w-full text-xs bg-purple-600 hover:bg-purple-700"
                                                  onClick={() => openReminderDialog(roomPayment.id)}
                                                  disabled={sendingReminder === roomPayment.id}
                                                >
@@ -3549,7 +3549,7 @@ Return JSON.`;
                                                  ) : (
                                                    <Send className="w-3 h-3 mr-1" />
                                                  )}
-                                                 {roomPayment.bill_sent_date ? 'ส่งซ้ำ' : 'แจ้งเตือน'}
+                                                 {effectiveStatus === 'overdue' ? 'แจ้งเกินกำหนด' : 'แจ้งครบกำหนด'}
                                                </Button>
                                              )}
                                              {effectiveStatus === 'paid' && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendReceipt && (

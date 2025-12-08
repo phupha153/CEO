@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, Calendar, AlertTriangle, Sparkles } from "lucide-react";
+import { Loader2, Send, Calendar, AlertTriangle, Sparkles, Settings } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 
 export default function SendReminderDialog({
   open,
@@ -24,6 +26,7 @@ export default function SendReminderDialog({
   onConfirm,
   isSending
 }) {
+  const navigate = useNavigate();
   const [selectedTemplate, setSelectedTemplate] = useState('due_date');
   const [customMessage, setCustomMessage] = useState('');
   const [generatingAI, setGeneratingAI] = useState(false);
@@ -286,7 +289,6 @@ ${tiersEnabled && lateFee > 0 ? 'ระบบคิดค่าปรับแ�
         <div className="flex gap-3 pt-2 border-t">
           <Button
             variant="outline"
-            className="flex-1"
             onClick={() => {
               setCustomMessage('');
               onOpenChange(false);
@@ -296,7 +298,19 @@ ${tiersEnabled && lateFee > 0 ? 'ระบบคิดค่าปรับแ�
             ยกเลิก
           </Button>
           <Button
-            className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            variant="outline"
+            onClick={() => {
+              onOpenChange(false);
+              navigate(createPageUrl('Settings'));
+            }}
+            disabled={isSending}
+            className="border-slate-300 text-slate-700 hover:bg-slate-50"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            แก้ไขการตั้งค่า
+          </Button>
+          <Button
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
             onClick={() => {
               if (!customMessage.trim()) {
                 toast.error('กรุณาใส่ข้อความ');
