@@ -1,19 +1,38 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, ChevronRight, Settings, BarChart3, Check, Loader2, MapPin, Globe, Pencil, Bug } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Building2, ChevronRight, Settings, BarChart3, Check, Loader2, MapPin, Globe, Pencil, Bug, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { toast } from "sonner";
 
 export default function BranchSelection() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedBranchId, setSelectedBranchId] = useState(null);
   const [isNavigating, setIsNavigating] = useState(false);
-  const [isNavigatingToBranchManagement, setIsNavigatingToBranchManagement] = useState(false);
-  const navigationTimeoutRef = React.useRef(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    branch_name: '',
+    branch_code: '',
+    address: '',
+    phone: '',
+    manager_name: '',
+    image_url: '',
+    status: 'active',
+    description: '',
+    bill_generation_day: '',
+    payment_due_day: ''
+  });
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -139,6 +158,167 @@ export default function BranchSelection() {
   const buildingName = getConfigValue('building_name') || 'W RESIDENTS';
   const buildingLogo = getConfigValue('building_logo') || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
 
+  const createMutation = useMutation({
+    mutationFn: async (data) => {
+      const branchData = { ...data };
+      delete branchData.bill_generation_day;
+      delete branchData.payment_due_day;
+      return await base44.entities.Branch.create(branchData);
+    },
+    onSuccess: async (newBranch, variables) => {
+      queryClient.invalidateQueries(['branches']);
+
+      try {
+        const defaultConfigs = [
+          { key: 'building_name', value: '', value_type: 'string', description: 'ชื่อหอพัก', category: 'general' },
+          { key: 'water_rate', value: '18', value_type: 'number', description: 'ค่าน้ำต่อหน่วย (บาท)', category: 'billing' },
+          { key: 'electricity_rate', value: '8', value_type: 'number', description: 'ค่าไฟต่อหน่วย (บาท)', category: 'billing' },
+          { key: 'bill_generation_day', value: '27', value_type: 'number', description: 'วันที่สร้างบิลอัตโนมัติ', category: 'billing' },
+          { key: 'pay_day', value: '5', value_type: 'number', description: 'วันครบกำหนดชำระเงิน', category: 'billing' },
+        ];
+
+        const configsToCreate = defaultConfigs.map(config => ({
+          ...config,
+          branch_id: newBranch.id,
+        }));
+
+        await base44.entities.Config.bulkCreate(configsToCreate);
+      } catch (error) {
+        console.error('Failed to create default configs:', error);
+      }
+
+      if (variables.bill_generation_day) {
+        try {
+          await base44.entities.Config.create({
+            branch_id: newBranch.id,
+            key: 'bill_generation_day',
+            value: variables.bill_generation_day,
+            value_type: 'number',
+            description: 'วันที่สร้างบิลอัตโนมัติ',
+            category: 'billing'
+          });
+        } catch (error) {
+          console.error('Failed to create bill_generation_day:', error);
+        }
+      }
+
+      if (variables.payment_due_day) {
+        try {
+          await base44.entities.Config.create({
+            branch_id: newBranch.id,
+            key: 'pay_day',
+            value: variables.payment_due_day,
+            value_type: 'number',
+            description: 'วันครบกำหนดชำระเงิน',
+            category: 'billing'
+          });
+        } catch (error) {
+          console.error('Failed to create pay_day:', error);
+        }
+      }
+
+      queryClient.invalidateQueries(['configs']);
+
+      try {
+        const currentBranches = userAccessibleBranches || [];
+        const updatedBranches = [...currentBranches, newBranch.id];
+        await base44.entities.User.update(currentUser.id, {
+          accessible_branches: updatedBranches,
+          custom_role: 'owner'
+        });
+        queryClient.invalidateQueries(['currentUser']);
+      } catch (error) {
+        console.error('Failed to update user branch access:', error);
+      }
+
+      try {
+        const trialDaysConfig = configs.find(c => c.key === 'trial_days' && !c.branch_id);
+        const trialDays = trialDaysConfig ? parseInt(trialDaysConfig.value) : 14;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const trialEndDate = new Date(today);
+        trialEndDate.setDate(today.getDate() + trialDays);
+        trialEndDate.setHours(23, 59, 59, 999);
+
+        await base44.entities.BranchPackage.create({
+          branch_id: newBranch.id,
+          package_id: 'trial',
+          package_name: 'Trial Package',
+          owner_email: currentUser.email,
+          subscription_start_date: today.toISOString().split('T')[0],
+          subscription_end_date: trialEndDate.toISOString().split('T')[0],
+          status: 'active',
+          price_per_month: 0,
+          features: [],
+          notes: `Trial ${trialDays} วัน - สาขา ${newBranch.branch_name}`
+        });
+        queryClient.invalidateQueries(['branchPackages']);
+      } catch (error) {
+        console.error('Failed to create trial package:', error);
+      }
+
+      setShowDialog(false);
+      setFormData({
+        branch_name: '',
+        branch_code: '',
+        address: '',
+        phone: '',
+        manager_name: '',
+        image_url: '',
+        status: 'active',
+        description: '',
+        bill_generation_day: '',
+        payment_due_day: ''
+      });
+      setIsSubmitting(false);
+      toast.success('เพิ่มสาขาสำเร็จ');
+    },
+    onError: () => {
+      setIsSubmitting(false);
+      toast.error('เกิดข้อผิดพลาด');
+    },
+  });
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData(prev => ({ ...prev, image_url: file_url }));
+      toast.success('อัปโหลดรูปภาพสำเร็จ');
+    } catch {
+      toast.error('อัปโหลดรูปภาพไม่สำเร็จ');
+    }
+    setUploadingImage(false);
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (isSubmitting) {
+      toast.warning('กำลังดำเนินการ กรุณารอสักครู่...');
+      return;
+    }
+
+    const existingBranch = branches.find(b => 
+      b.branch_code.toLowerCase() === formData.branch_code.toLowerCase()
+    );
+    if (existingBranch) {
+      toast.error(`รหัสสาขา "${formData.branch_code}" มีอยู่แล้ว กรุณาใช้รหัสอื่น`);
+      return;
+    }
+
+    if (isTrialMode && filteredBranches.length >= maxTrialBranches) {
+      toast.error(`สร้างได้สูงสุด ${maxTrialBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    createMutation.mutate(formData);
+  };
+
   const handleSelectBranch = (branch) => {
     if (isNavigating) return;
     
@@ -246,7 +426,7 @@ export default function BranchSelection() {
 
 
 
-              {/* ✅ ถ้ามีสาขา → แสดงปุ่มดูภาพรวม + แก้ไขสาขา (เฉพาะ developer/owner) */}
+              {/* ✅ ถ้ามีสาขา → แสดงปุ่มดูภาพรวม + เพิ่มสาขา */}
               {!hasNoBranches && !hasNoAccess && (
                 <div className="flex flex-col gap-3 mb-6 items-center">
                   <div className="flex flex-wrap gap-3 justify-center">
@@ -262,15 +442,26 @@ export default function BranchSelection() {
                       </Button>
                     )}
                     
-                    {/* ปุ่มแก้ไขสาขา - แสดงเสมอสำหรับ developer และ owner */}
+                    {/* ปุ่มจัดการสาขา - ไปหน้า BranchManagement */}
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
                         onClick={() => navigate(createPageUrl('BranchManagement'))}
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg h-auto py-4 px-6 text-sm rounded-2xl font-medium text-white"
-                        data-onboarding="add-branch-button"
+                        variant="outline"
+                        className="border-slate-300 text-slate-700 hover:bg-slate-50 shadow-md h-auto py-4 px-6 text-sm rounded-2xl font-medium"
                       >
-                        <Building2 className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <Settings className="w-5 h-5 mr-2 flex-shrink-0" />
                         <span>จัดการสาขา</span>
+                      </Button>
+                    )}
+
+                    {/* ปุ่มเพิ่มสาขา - เปิด Dialog */}
+                    {(userRole === 'developer' || userRole === 'owner') && canAddMoreBranches && (
+                      <Button
+                        onClick={() => setShowDialog(true)}
+                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
+                      >
+                        <Plus className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <span>เพิ่มสาขา</span>
                       </Button>
                     )}
                   </div>
@@ -302,14 +493,14 @@ export default function BranchSelection() {
                         : 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ หรือติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา'}
                     </p>
 
-                    {/* ปุ่มเพิ่มสาขา/แก้ไข - ไปหน้า BranchManagement เสมอ */}
+                    {/* ปุ่มเพิ่มสาขา - เปิด Dialog */}
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
-                        onClick={() => navigate(createPageUrl('BranchManagement'))}
+                        onClick={() => setShowDialog(true)}
                         className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold"
                         data-onboarding="add-branch-button"
                       >
-                        <Building2 className="w-6 h-6 mr-2 flex-shrink-0" />
+                        <Plus className="w-6 h-6 mr-2 flex-shrink-0" />
                         <span>เพิ่มสาขา</span>
                       </Button>
                     )}
@@ -395,6 +586,138 @@ export default function BranchSelection() {
           </Card>
         </motion.div>
       </div>
+
+      {/* Form Dialog */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>เพิ่มสาขาใหม่</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>ชื่อสาขา *</Label>
+                <Input
+                  value={formData.branch_name}
+                  onChange={(e) => setFormData({ ...formData, branch_name: e.target.value })}
+                  required
+                  placeholder="W Residents สาขาสำโรง"
+                />
+              </div>
+              <div>
+                <Label>รหัสสาขา *</Label>
+                <Input
+                  value={formData.branch_code}
+                  onChange={(e) => setFormData({ ...formData, branch_code: e.target.value })}
+                  required
+                  placeholder="WR-SRG01"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>ที่อยู่</Label>
+              <Textarea
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                rows={2}
+                placeholder="28/244 หมู่ 4 ..."
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>เบอร์โทรศัพท์</Label>
+                <Input
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="02-123-4567"
+                />
+              </div>
+              <div>
+                <Label>ผู้จัดการสาขา</Label>
+                <Input
+                  value={formData.manager_name}
+                  onChange={(e) => setFormData({ ...formData, manager_name: e.target.value })}
+                  placeholder="คุณสมชาย"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>รูปภาพสาขา</Label>
+              <div className="mt-2">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                />
+                {formData.image_url && (
+                  <img src={formData.image_url} alt="Preview" className="w-full h-48 object-cover rounded-lg mt-3" />
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Label>คำอธิบาย</Label>
+              <Textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                placeholder="ใกล้ห้างเมกา, บางนา..."
+              />
+            </div>
+
+            <div className="border-t pt-4 space-y-4">
+              <h3 className="font-semibold text-slate-800">⚙️ การตั้งค่าบิล</h3>
+              <p className="text-xs text-slate-500">
+                หากไม่กรอก ระบบจะใช้ค่าเริ่มต้น (วันสร้างบิล: 27, วันครบกำหนด: 5)
+              </p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>วันสร้างบิลอัตโนมัติ</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={formData.bill_generation_day}
+                    onChange={(e) => setFormData({ ...formData, bill_generation_day: e.target.value })}
+                    placeholder="27"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">วันที่ของเดือน (1-31)</p>
+                </div>
+                <div>
+                  <Label>วันครบกำหนดชำระ</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={formData.payment_due_day}
+                    onChange={(e) => setFormData({ ...formData, payment_due_day: e.target.value })}
+                    placeholder="5"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">วันที่ของเดือน (1-31)</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setShowDialog(false)} disabled={isSubmitting}>
+                ยกเลิก
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-gradient-to-r from-purple-600 to-indigo-600"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'กำลังดำเนินการ...' : 'เพิ่มสาขา'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
