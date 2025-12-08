@@ -53,14 +53,12 @@ export default function BranchManagement() {
   const { data: allBranches = [], isLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
-    staleTime: 60 * 60 * 1000, // 1 ชั่วโมง
+    staleTime: 60 * 60 * 1000,
     gcTime: 2 * 60 * 60 * 1000,
-    retry: (failureCount, error) => {
-      if (error?.response?.status === 429) return false;
-      return failureCount < 1;
-    },
-    retryDelay: 3000,
+    retry: 0,
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: appSubscriptions = [] } = useQuery({
