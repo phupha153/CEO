@@ -477,10 +477,14 @@ export default function BranchSelection() {
                     animate={{ opacity: 1, y: 0 }}
                     className="max-w-md mx-auto"
                   >
-                    <div className="relative w-32 h-32 mx-auto mb-6">
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-sky-400/30 rounded-full blur-3xl animate-pulse" />
-                      <div className="relative w-full h-full rounded-full bg-gradient-to-br from-blue-500 to-sky-600 flex items-center justify-center shadow-2xl">
-                        <Building2 className="w-16 h-16 text-white" />
+                    <div className="relative w-48 h-48 mx-auto mb-6">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-sky-400/30 rounded-3xl blur-3xl animate-pulse" />
+                      <div className="relative w-full h-full rounded-3xl bg-white/90 flex items-center justify-center shadow-2xl p-6">
+                        <img 
+                          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/22bcd34c2_GreenMinimalistNewSongWidgetInstagramPost2.png" 
+                          alt="หลังหอพัก"
+                          className="w-full h-full object-contain"
+                        />
                       </div>
                     </div>
 
