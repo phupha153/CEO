@@ -72,61 +72,34 @@ Deno.serve(async (req) => {
             console.log(`📅 Using Thailand date: ${todayString} (UTC: ${now.toISOString()})`);
         }
 
-        // 3. ดึง payments ทั้งหมด (ไม่กรอง status ก่อน)
-        console.log('🔍 Fetching all payments...');
-        
+        // 3. ดึง payments แยกตาม branch เพื่อไม่ให้ JSON ใหญ่เกินไป
+        console.log('🔍 Fetching payments by branch...');
+
         let allPayments = [];
-        
-        try {
-            // ใช้ filter แทน list เพื่อให้ได้ข้อมูลทั้งหมด
-            let result = await base44.asServiceRole.entities.Payment.filter({});
-            
-            // ถ้าได้ string มา (JSON serialized) ให้ parse
-            if (typeof result === 'string') {
-                try {
-                    result = JSON.parse(result);
-                } catch (parseErr) {
-                    console.error('❌ Failed to parse result:', parseErr.message);
-                    result = [];
+
+        // ดึงทีละ branch จากสาขาที่เปิดการแจ้งเตือน
+        for (const branchId of enabledBranches) {
+            try {
+                const branchPayments = await base44.asServiceRole.entities.Payment.filter({ 
+                    branch_id: branchId,
+                    due_date: todayString
+                });
+
+                if (Array.isArray(branchPayments)) {
+                    allPayments = allPayments.concat(branchPayments);
+                    console.log(`✅ Branch ${branchId.substring(0, 8)}: ${branchPayments.length} payments`);
                 }
+            } catch (err) {
+                console.error(`❌ Error fetching payments for branch ${branchId.substring(0, 8)}:`, err.message);
             }
-            
-            allPayments = Array.isArray(result) ? result : [];
-            console.log(`✅ Total fetched: ${allPayments.length} payments`);
-        } catch (err) {
-            console.error('❌ Error fetching payments:', err.message);
-            allPayments = [];
         }
-        
-        // กรองเฉพาะที่ยังไม่ชำระ และ due_date ตรงกับวันนี้
-        const payments = Array.isArray(allPayments) ? allPayments.filter(p => {
-            // ต้องยังไม่ชำระ (pending หรือ overdue)
-            if (p.status === 'paid') return false;
-            
-            if (!p.due_date) return false;
-            
-            // แปลง due_date ให้เป็น YYYY-MM-DD
-            let dueDateString = '';
-            if (typeof p.due_date === 'string') {
-                dueDateString = p.due_date.split('T')[0];
-            } else if (p.due_date instanceof Date) {
-                dueDateString = p.due_date.toISOString().split('T')[0];
-            }
-            
-            return dueDateString === todayString;
-        }) : [];
-        
-        console.log(`✅ Filtered: ${payments.length} payments due on ${todayString} (unpaid only)`);
-        
-        // Debug: แสดงตัวอย่างถ้าไม่เจอ
-        if (allPayments.length > 0 && payments.length === 0) {
-            const sample = allPayments.slice(0, 5);
-            console.log(`⚠️ No matches. Sample payments:`, sample.map(p => ({
-                id: p.id ? p.id.substring(0, 8) : 'no-id',
-                due_date: p.due_date,
-                status: p.status
-            })));
-        }
+
+        console.log(`✅ Total fetched: ${allPayments.length} payments from ${enabledBranches.length} branches`);
+
+        // กรองเฉพาะที่ยังไม่ชำระ (pending หรือ overdue)
+        const payments = allPayments.filter(p => p.status !== 'paid');
+
+        console.log(`✅ Filtered: ${payments.length} unpaid payments due on ${todayString}`);
         
 
 
