@@ -265,31 +265,8 @@ export default function BranchSelection() {
                     {/* ปุ่มแก้ไขสาขา - แสดงเสมอสำหรับ developer และ owner */}
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
-                        type="button"
-                        onClick={(e) => {
-                          if (isNavigatingToBranchManagement) {
-                            console.log('⏸️ กำลัง navigate อยู่แล้ว - ข้าม');
-                            return;
-                          }
-                          
-                          console.log('🟢 ปุ่มจัดการสาขา (มีสาขา) - กดแล้ว');
-                          e.preventDefault();
-                          e.stopPropagation();
-                          
-                          setIsNavigatingToBranchManagement(true);
-                          const url = createPageUrl('BranchManagement');
-                          console.log('🚀 กำลังไปที่:', url);
-                          
-                          if (navigationTimeoutRef.current) {
-                            clearTimeout(navigationTimeoutRef.current);
-                          }
-                          
-                          navigationTimeoutRef.current = setTimeout(() => {
-                            window.location.href = url;
-                          }, 100);
-                        }}
-                        disabled={isNavigatingToBranchManagement}
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg h-auto py-4 px-6 text-sm rounded-2xl font-medium text-white relative z-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => navigate(createPageUrl('BranchManagement'))}
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg h-auto py-4 px-6 text-sm rounded-2xl font-medium text-white"
                         data-onboarding="add-branch-button"
                       >
                         <Building2 className="w-5 h-5 mr-2 flex-shrink-0" />
