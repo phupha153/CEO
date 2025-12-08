@@ -147,27 +147,13 @@ export default function BranchSelection() {
   };
 
   const handleManageBranches = (e) => {
-    console.log('🔘 [BranchSelection] handleManageBranches clicked');
-    
     if (e) {
-      console.log('🔘 [BranchSelection] Stopping propagation');
       e.stopPropagation();
       e.preventDefault();
     }
-
-    console.log('✅ [BranchSelection] Current isNavigating state:', isNavigating);
     
-    // ⭐ ตั้งค่า flag ใน localStorage เพื่อบอก Layout ว่ากำลังไปหน้า BranchManagement
-    localStorage.setItem('navigating_to_branch_management', 'true');
-    console.log('✅ [BranchSelection] Set localStorage flag: navigating_to_branch_management');
-    
-    const targetUrl = createPageUrl('BranchManagement');
-    console.log('🔗 [BranchSelection] Target URL:', targetUrl);
-    
-    // Navigate โดยไม่ต้อง reload หน้า
-    console.log('🚀 [BranchSelection] Calling navigate...');
-    navigate(targetUrl);
-    console.log('✅ [BranchSelection] navigate() called successfully');
+    // ใช้ window.location.href เหมือนปุ่มกลับใน BranchManagement
+    window.location.href = createPageUrl('BranchManagement');
   };
 
   if (isLoading) {
