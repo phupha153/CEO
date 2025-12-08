@@ -48,6 +48,8 @@ import TestInvoiceGeneration from './pages/TestInvoiceGeneration';
 import CronJobSettings from './pages/CronJobSettings';
 import PublicInvoice from './pages/PublicInvoice';
 import FacebookTestDemo from './pages/FacebookTestDemo';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import FacebookSetupGuide from './pages/FacebookSetupGuide';
 import __Layout from './Layout.jsx';
 
 
@@ -102,6 +104,8 @@ export const PAGES = {
     "CronJobSettings": CronJobSettings,
     "PublicInvoice": PublicInvoice,
     "FacebookTestDemo": FacebookTestDemo,
+    "PrivacyPolicy": PrivacyPolicy,
+    "FacebookSetupGuide": FacebookSetupGuide,
 }
 
 export const pagesConfig = {
