@@ -25,11 +25,17 @@ Deno.serve(async (req) => {
         
         // ⭐ สรุปสถานะการเปิด/ปิดแจ้งเตือนวันครบกำหนดแต่ละสาขา
         const branchReminderConfigs = configs.filter(c => c.key === 'send_due_date_reminder');
-        const enabledBranches = branchReminderConfigs.filter(c => c.value === 'true').map(c => c.branch_id);
-        const disabledBranches = branchReminderConfigs.filter(c => c.value !== 'true').map(c => c.branch_id);
-        
+        const enabledBranches = branchReminderConfigs
+            .filter(c => c.value === 'true')
+            .map(c => c.branch_id)
+            .filter(id => id && id.trim() !== ''); // ⭐ กรองเอา null/undefined/empty ออก
+        const disabledBranches = branchReminderConfigs
+            .filter(c => c.value !== 'true')
+            .map(c => c.branch_id)
+            .filter(id => id && id.trim() !== '');
+
         console.log(`📊 Branch due date reminder status summary:`);
-        console.log(`   ✅ Enabled branches (${enabledBranches.length}): ${enabledBranches.join(', ') || 'none'}`);
+        console.log(`   ✅ Enabled branches (${enabledBranches.length}): ${enabledBranches.slice(0, 5).join(', ')}${enabledBranches.length > 5 ? '...' : ''}`);
         console.log(`   ❌ Disabled branches (${disabledBranches.length}): ${disabledBranches.length} branches`);
 
         // ถ้าไม่มีสาขาไหนเปิดเลย
