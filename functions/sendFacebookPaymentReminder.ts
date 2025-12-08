@@ -219,6 +219,8 @@ Deno.serve(async (req) => {
         }
 
         for (const payment of paymentsToSend) {
+            console.log(`🔍 Processing payment ${payment.id}: tenant_id=${payment.tenant_id}, room_id=${payment.room_id}`);
+            
             // ดึงข้อมูล Tenant และ Room
             let tenantsData = await base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id });
             let roomsData = await base44.asServiceRole.entities.Room.filter({ id: payment.room_id });
@@ -229,8 +231,19 @@ Deno.serve(async (req) => {
             const tenant = tenantsData.length > 0 ? tenantsData[0] : null;
             const room = roomsData.length > 0 ? roomsData[0] : null;
 
-            if (!tenant || !tenant.facebook_user_id) {
-                console.log(`⚠️ Skipping payment ${payment.id}: No Facebook User ID`);
+            console.log(`👤 Tenant found: ${tenant ? tenant.full_name : 'NONE'}, facebook_user_id: ${tenant?.facebook_user_id || 'NONE'}`);
+
+            if (!tenant) {
+                console.log(`❌ Payment ${payment.id}: ไม่พบผู้เช่า (tenant_id=${payment.tenant_id})`);
+                results.failed++;
+                results.errors.push({ paymentId: payment.id, error: `ไม่พบผู้เช่า ID: ${payment.tenant_id}` });
+                continue;
+            }
+            
+            if (!tenant.facebook_user_id) {
+                console.log(`❌ Payment ${payment.id}: ผู้เช่า ${tenant.full_name} ยังไม่ได้เชื่อมต่อ Facebook`);
+                results.failed++;
+                results.errors.push({ paymentId: payment.id, tenantName: tenant.full_name, error: 'ยังไม่ได้เชื่อมต่อ Facebook' });
                 continue;
             }
 
