@@ -589,7 +589,7 @@ export default function BranchSelection() {
           <img
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/97026119d_image.png"
             alt="หลังหอพัก"
-            className="relative w-full h-full object-contain drop-shadow-xl"
+            className="relative w-full h-full object-contain drop-shadow-xl rounded-2xl"
           />
         </div>
       </motion.div>
