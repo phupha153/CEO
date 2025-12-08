@@ -1092,6 +1092,16 @@ export default function Layout({ children, currentPageName }) {
   }, [subscriptionCheck.shouldRedirect, subscriptionCheck.redirectTo, isLoading, currentUser, navigate, currentPageName]);
 
   useEffect(() => {
+    console.log('🔍 Layout Branch Check:', {
+      currentPageName,
+      hasUser: !!currentUser,
+      isLoading,
+      branchesLoading,
+      selectedBranch: selectedBranch?.id,
+      canAccessBranch,
+      branchesCount: branches.length
+    });
+
     if (!currentUser || isLoading || branchesLoading) return;
 
     // Pages that don't require a selected branch
@@ -1106,11 +1116,13 @@ export default function Layout({ children, currentPageName }) {
         currentPageName === 'RenewalPage' ||
         currentPageName === 'UpdateMyBranches' ||
         currentPageName === 'UserBranchAccess') {
+      console.log('✅ หน้านี้ไม่ต้องเลือกสาขา - อนุญาต');
       return;
     }
 
     // If user has a selected branch but no access to it, clear and redirect
     if (selectedBranch && !canAccessBranch) {
+      console.log('🚫 ไม่มีสิทธิ์เข้าสาขานี้ - redirect');
       localStorage.removeItem('selected_branch_id');
       localStorage.removeItem('selected_branch_name');
       setSelectedBranch(null);
@@ -1120,6 +1132,7 @@ export default function Layout({ children, currentPageName }) {
 
     // If no branch is selected and there are branches available, redirect to branch selection
     if (!selectedBranch && branches.length > 0) {
+      console.log('⚠️ ไม่ได้เลือกสาขา - redirect ไป BranchSelection');
       navigate(createPageUrl('BranchSelection'), { replace: true });
     }
   }, [currentUser?.id, selectedBranch?.id, canAccessBranch, isLoading, branchesLoading, currentPageName, branches.length, navigate, userRole]);
