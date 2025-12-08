@@ -24,6 +24,7 @@ import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import SendAdvanceReminderButton from "@/components/settings/SendAdvanceReminderButton";
 import GenerateMonthlyBillsButton from "@/components/payments/GenerateMonthlyBillsButton";
 import SlipPreviewDialog from "@/components/shared/SlipPreviewDialog";
+import SendReminderDialog from "@/components/payments/SendReminderDialog";
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ export default function PaymentsPage() {
   const [deletingTestData, setDeletingTestData] = useState(false);
   const [expandedPayments, setExpandedPayments] = useState(new Set());
   const [slipPreview, setSlipPreview] = useState({ open: false, url: '', title: '' });
+  const [reminderDialog, setReminderDialog] = useState({ open: false, payment: null, template: null });
 
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
   const [dateRangeType, setDateRangeType] = useState('this_month');
@@ -1345,35 +1347,50 @@ export default function PaymentsPage() {
     });
   };
 
-  const handleSendReminder = async (paymentId = null) => {
+  const openReminderDialog = (paymentId = null) => {
     if (!canSendReminder) {
       toast.error('คุณไม่มีสิทธิ์ส่งข้อความแจ้งเตือน');
       return;
     }
 
-    // ⭐ ถ้าไม่ระบุ paymentId = แสดงรายละเอียดห้องที่จะส่ง
-    if (!paymentId) {
-      const paymentsToSend = pendingOverduePayments.filter(p => {
-        const tenant = getTenantInfo(p.tenant_id);
-        return tenant && (tenant.line_user_id || tenant.facebook_user_id) && !p.bill_sent_date;
+    // ส่งทีละรายการ
+    if (paymentId) {
+      const payment = payments.find(p => p.id === paymentId);
+      if (!payment) return;
+      
+      setReminderDialog({
+        open: true,
+        payment: payment,
+        template: null
       });
-      
-      const roomsList = paymentsToSend
-        .map(p => {
-          const room = getRoomInfo(p.room_id);
-          return room?.room_number || 'N/A';
-        })
-        .sort((a, b) => a.localeCompare(b, 'th', { numeric: true }))
-        .join(', ');
-      
-      const confirmed = confirm(
-        `📤 ต้องการส่งบิลไปยัง ${tenantsWithLine} ห้อง?\n\n` +
-        `ห้องที่จะส่ง:\n${roomsList}\n\n` +
-        `(เฉพาะห้องที่เชื่อมต่อระบบแชทและยังไม่ได้ส่งบิล)`
-      );
-      if (!confirmed) return;
+      return;
     }
 
+    // ส่งทุกห้อง - ใช้ confirm เหมือนเดิม
+    const paymentsToSend = pendingOverduePayments.filter(p => {
+      const tenant = getTenantInfo(p.tenant_id);
+      return tenant && (tenant.line_user_id || tenant.facebook_user_id) && !p.bill_sent_date;
+    });
+    
+    const roomsList = paymentsToSend
+      .map(p => {
+        const room = getRoomInfo(p.room_id);
+        return room?.room_number || 'N/A';
+      })
+      .sort((a, b) => a.localeCompare(b, 'th', { numeric: true }))
+      .join(', ');
+    
+    const confirmed = confirm(
+      `📤 ต้องการส่งบิลไปยัง ${tenantsWithLine} ห้อง?\n\n` +
+      `ห้องที่จะส่ง:\n${roomsList}\n\n` +
+      `(เฉพาะห้องที่เชื่อมต่อระบบแชทและยังไม่ได้ส่งบิล)`
+    );
+    if (!confirmed) return;
+
+    handleSendReminder(null, null);
+  };
+
+  const handleSendReminder = async (paymentId = null, template = null) => {
     if (paymentId) {
       setSendingReminder(paymentId);
     } else {
@@ -1383,11 +1400,11 @@ export default function PaymentsPage() {
     try {
       const response = await base44.functions.invoke('sendPaymentReminder', {
         paymentId: paymentId,
-        branch_id: selectedBranchId
+        branch_id: selectedBranchId,
+        template: template // ส่ง template ไปด้วย
       });
 
       if (response.data.success) {
-        // ⭐ เช็คว่าส่งสำเร็จกี่คน ไม่ส่งกี่คน
         const successCount = response.data.sent || 0;
         const failCount = response.data.failed || 0;
         const skippedCount = response.data.skipped || 0;
@@ -1400,7 +1417,6 @@ export default function PaymentsPage() {
           toast.success(response.data.message);
         }
         
-        // ⭐ รีเฟรชข้อมูลทันทีหลังส่งบิลสำเร็จ เพื่อให้จุดแดง/สถานะอัพเดท
         queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
         if (response.data.errors && response.data.errors.length > 0) {
           console.error('Errors:', response.data.errors);
@@ -1415,6 +1431,7 @@ export default function PaymentsPage() {
 
     setSendingReminder(false);
     setSendingAll(false);
+    setReminderDialog({ open: false, payment: null, template: null });
   };
 
   const handleSendReceipt = async (paymentId) => {
@@ -2350,7 +2367,7 @@ Return JSON.`;
               )}
               {canSendReminder && (
                 <Button
-                  onClick={() => handleSendReminder()}
+                  onClick={() => openReminderDialog()}
                   disabled={sendingAll || tenantsWithLine === 0}
                   size="sm"
                   variant="outline"
@@ -2941,25 +2958,25 @@ Return JSON.`;
                                 )}
 
                                 {canSendReminderForPayment && (
-                                  <Button 
-                                    size="sm" 
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleSendReminder(payment.id);
-                                    }} 
-                                    disabled={sendingReminder === payment.id} 
-                                    className={`flex-shrink-0 ${payment.bill_sent_date ? 'bg-slate-500 hover:bg-slate-600' : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'}`}
-                                    title={payment.bill_sent_date ? `ส่งแล้วเมื่อ ${format(parseISO(payment.bill_sent_date), 'd MMM HH:mm', { locale: th })}` : 'ส่งแจ้งเตือน'}
-                                  >
-                                    {sendingReminder === payment.id ? (
-                                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                    ) : (
-                                      <>
-                                        <Send className="w-4 h-4 mr-1" />
-                                        {payment.bill_sent_date ? 'ส่งซ้ำ' : 'แจ้งเตือน'}
-                                      </>
-                                    )}
-                                  </Button>
+                                 <Button 
+                                   size="sm" 
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     openReminderDialog(payment.id);
+                                   }} 
+                                   disabled={sendingReminder === payment.id} 
+                                   className={`flex-shrink-0 ${payment.bill_sent_date ? 'bg-slate-500 hover:bg-slate-600' : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'}`}
+                                   title={payment.bill_sent_date ? `ส่งแล้วเมื่อ ${format(parseISO(payment.bill_sent_date), 'd MMM HH:mm', { locale: th })}` : 'ส่งแจ้งเตือน'}
+                                 >
+                                   {sendingReminder === payment.id ? (
+                                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                   ) : (
+                                     <>
+                                       <Send className="w-4 h-4 mr-1" />
+                                       {payment.bill_sent_date ? 'ส่งซ้ำ' : 'แจ้งเตือน'}
+                                     </>
+                                   )}
+                                 </Button>
                                 )}
 
                                 {isExpanded && (
@@ -3154,13 +3171,13 @@ Return JSON.`;
                                         </Button>
                                       )}
                                       {(effectiveStatus === 'pending' || effectiveStatus === 'overdue') && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendReminder && (
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50" onClick={() => handleSendReminder(payment.id)} disabled={sendingReminder === payment.id} title="แจ้งเตือน (LINE)">
-                                          {sendingReminder === payment.id ? (
-                                            <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
-                                          ) : (
-                                            <Send className="w-4 h-4" />
-                                          )}
-                                        </Button>
+                                       <Button variant="ghost" size="icon" className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50" onClick={() => openReminderDialog(payment.id)} disabled={sendingReminder === payment.id} title="แจ้งเตือน (LINE)">
+                                         {sendingReminder === payment.id ? (
+                                           <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                                         ) : (
+                                           <Send className="w-4 h-4" />
+                                         )}
+                                       </Button>
                                       )}
                                       {isPaid && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendReceipt && (
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" onClick={() => handleSendReceipt(payment.id)} disabled={sendingReceipt === payment.id} title="ส่งใบเสร็จ (LINE)">
@@ -3523,7 +3540,7 @@ Return JSON.`;
                                                <Button 
                                                  size="sm" 
                                                  className={`w-full text-xs ${roomPayment.bill_sent_date ? 'bg-slate-500 hover:bg-slate-600' : 'bg-purple-600 hover:bg-purple-700'}`}
-                                                 onClick={() => handleSendReminder(roomPayment.id)}
+                                                 onClick={() => openReminderDialog(roomPayment.id)}
                                                  disabled={sendingReminder === roomPayment.id}
                                                >
                                                  {sendingReminder === roomPayment.id ? (
@@ -4215,6 +4232,27 @@ Return JSON.`;
         slipUrl={slipPreview.url}
         title={slipPreview.title}
       />
+
+      {/* Send Reminder Dialog */}
+      {reminderDialog.payment && (
+        <SendReminderDialog
+          open={reminderDialog.open}
+          onOpenChange={(open) => setReminderDialog({ open, payment: null, template: null })}
+          payment={reminderDialog.payment}
+          room={getRoomInfo(reminderDialog.payment.room_id)}
+          tenant={getTenantInfo(reminderDialog.payment.tenant_id)}
+          effectiveStatus={getEffectiveStatus(reminderDialog.payment)}
+          lateFee={calculateLateFee(reminderDialog.payment)}
+          tiersEnabled={(() => {
+            const branchConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === selectedBranchId);
+            const globalConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
+            const tiersEnabledConfig = branchConfig || globalConfig;
+            return tiersEnabledConfig?.value === 'true';
+          })()}
+          onConfirm={(template) => handleSendReminder(reminderDialog.payment.id, template)}
+          isSending={sendingReminder === reminderDialog.payment.id}
+        />
+      )}
     </div>
   );
 }
