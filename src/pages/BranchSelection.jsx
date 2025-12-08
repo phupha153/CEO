@@ -147,22 +147,33 @@ export default function BranchSelection() {
   };
 
   const handleManageBranches = (e) => {
+    console.log('🔘 [BranchSelection] handleManageBranches clicked');
+    
     if (e) {
+      console.log('🔘 [BranchSelection] Stopping propagation');
       e.stopPropagation();
       e.preventDefault();
     }
 
     if (isNavigating) {
+      console.log('⚠️ [BranchSelection] Already navigating, returning...');
       return;
     }
 
+    console.log('✅ [BranchSelection] Setting isNavigating = true');
     setIsNavigating(true);
     
     // ⭐ ตั้งค่า flag ใน localStorage เพื่อบอก Layout ว่ากำลังไปหน้า BranchManagement
     localStorage.setItem('navigating_to_branch_management', 'true');
+    console.log('✅ [BranchSelection] Set localStorage flag: navigating_to_branch_management');
+    
+    const targetUrl = createPageUrl('BranchManagement');
+    console.log('🔗 [BranchSelection] Target URL:', targetUrl);
     
     // Navigate โดยไม่ต้อง reload หน้า
-    navigate(createPageUrl('BranchManagement'));
+    console.log('🚀 [BranchSelection] Calling navigate...');
+    navigate(targetUrl);
+    console.log('✅ [BranchSelection] navigate() called successfully');
   };
 
   if (isLoading) {
