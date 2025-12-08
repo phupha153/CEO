@@ -147,39 +147,17 @@ export default function BranchSelection() {
   };
 
   const handleManageBranches = (e) => {
-    console.log('🚀🚀🚀 handleManageBranches FIRED! 🚀🚀🚀');
-    console.log('📍 Location:', window.location.href);
-    console.log('👤 Current User:', {
-      email: currentUser?.email,
-      role: currentUser?.role,
-      custom_role: currentUser?.custom_role,
-      accessible_branches: currentUser?.accessible_branches
-    });
-    console.log('🔐 Computed userRole:', userRole);
-    console.log('🚦 isNavigating:', isNavigating);
-    console.log('📅 Event:', e);
-    console.log('⏰ Timestamp:', new Date().toISOString());
-
     if (e) {
-      console.log('🛑 Preventing default and stopping propagation');
       e.stopPropagation();
       e.preventDefault();
     }
 
     if (isNavigating) {
-      console.log('⚠️ Already navigating, skipping...');
       return;
     }
 
-    console.log('✅ CALLING navigate() to BranchManagement NOW!');
-    console.log('🎯 Target URL:', createPageUrl('BranchManagement'));
-    
-    try {
-      navigate(createPageUrl('BranchManagement'));
-      console.log('✅✅✅ Navigate called successfully!');
-    } catch (error) {
-      console.error('❌ Navigate error:', error);
-    }
+    setIsNavigating(true);
+    navigate(createPageUrl('BranchManagement'), { replace: true });
   };
 
   if (isLoading) {
@@ -266,27 +244,7 @@ export default function BranchSelection() {
                 <p className="text-slate-600">เลือกสาขาที่ต้องการจัดการ</p>
               </div>
 
-              {/* DEBUG BUTTON - แสดงที่ด้านบน */}
-              <Button
-                onClick={() => {
-                  console.log('🐛 DEBUG INFO:');
-                  console.log('👤 currentUser:', currentUser);
-                  console.log('🔐 userRole:', userRole);
-                  console.log('📧 currentUser.email:', currentUser?.email);
-                  console.log('👑 currentUser.role:', currentUser?.role);
-                  console.log('🎭 currentUser.custom_role:', currentUser?.custom_role);
-                  console.log('🏢 accessible_branches:', currentUser?.accessible_branches);
-                  console.log('🚦 isNavigating:', isNavigating);
-                  console.log('📍 window.location:', window.location.href);
-                  console.log('🎯 createPageUrl("BranchManagement"):', createPageUrl('BranchManagement'));
-                  alert(`DEBUG:\nuserRole: ${userRole}\nemail: ${currentUser?.email}\nrole: ${currentUser?.role}\ncustom_role: ${currentUser?.custom_role}\n\nเปิด Console (F12) เพื่อดูรายละเอียด`);
-                }}
-                variant="outline"
-                className="mb-4 border-2 border-yellow-400 bg-yellow-50 hover:bg-yellow-100"
-              >
-                <Bug className="w-5 h-5 mr-2" />
-                🐛 Debug Info (ดู Console)
-              </Button>
+
 
               {/* ✅ ถ้ามีสาขา → แสดงปุ่มดูภาพรวม + แก้ไขสาขา (เฉพาะ developer/owner) */}
               {!hasNoBranches && !hasNoAccess && (
@@ -305,31 +263,11 @@ export default function BranchSelection() {
                     )}
                     
                     {/* ปุ่มแก้ไขสาขา - แสดงเสมอสำหรับ developer และ owner */}
-                    {(() => {
-                      const shouldShow = userRole === 'developer' || userRole === 'owner';
-                      console.log('🔍 BUTTON RENDER CHECK:', {
-                        userRole,
-                        isDeveloper: userRole === 'developer',
-                        isOwner: userRole === 'owner',
-                        shouldShow,
-                        currentUserRole: currentUser?.role,
-                        currentUserCustomRole: currentUser?.custom_role
-                      });
-                      return shouldShow;
-                    })() && (
+                    {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
-                        onClick={(e) => {
-                          console.log('🔘🔘🔘 BUTTON onClick TRIGGERED! 🔘🔘🔘');
-                          console.log('🔘 Event type:', e.type);
-                          console.log('🔘 Event target:', e.target);
-                          console.log('🔘 userRole:', userRole);
-                          console.log('🔘 isNavigating:', isNavigating);
-                          e.stopPropagation();
-                          e.preventDefault();
-                          handleManageBranches(e);
-                        }}
+                        onClick={handleManageBranches}
                         variant="outline"
-                        className="border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-700 h-auto py-4 px-6 text-sm rounded-2xl font-medium cursor-pointer z-50 relative"
+                        className="border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-700 h-auto py-4 px-6 text-sm rounded-2xl font-medium"
                         data-onboarding="add-branch-button"
                         type="button"
                       >
@@ -367,65 +305,17 @@ export default function BranchSelection() {
                     </p>
 
                     {/* ปุ่มเพิ่มสาขา/แก้ไข - ไปหน้า BranchManagement เสมอ */}
-                    <div className="w-full" style={{ position: 'relative', zIndex: 9999 }}>
-                      <div className="text-xs bg-yellow-100 p-2 rounded mb-2">
-                        DEBUG: userRole={userRole} | isDev={String(userRole === 'developer')} | isOwner={String(userRole === 'owner')}
-                        | currentUser.role={currentUser?.role} | currentUser.custom_role={currentUser?.custom_role}
-                      </div>
-                      {(() => {
-                        const shouldShowButton = userRole === 'developer' || userRole === 'owner';
-                        console.log('🎨 RENDER PHASE - Button visibility check:', {
-                          userRole,
-                          baseRole: currentUser?.role,
-                          customRole: currentUser?.custom_role,
-                          shouldShowButton
-                        });
-                        return shouldShowButton;
-                      })() ? (
-                        <button
-                          onClick={(e) => {
-                            console.log('🔘🔘🔘 INLINE BUTTON CLICKED! 🔘🔘🔘');
-                            console.log('📍 Click location:', e.clientX, e.clientY);
-                            console.log('🎯 Event phase:', e.eventPhase);
-                            console.log('🔐 userRole:', userRole);
-                            console.log('🚦 isNavigating:', isNavigating);
-                            e.stopPropagation();
-                            e.preventDefault();
-                            handleManageBranches(e);
-                          }}
-                          onMouseDown={(e) => console.log('🖱️ MOUSE DOWN detected')}
-                          onMouseUp={(e) => console.log('🖱️ MOUSE UP detected')}
-                          style={{
-                            background: 'linear-gradient(to right, #3b82f6, #0ea5e9)',
-                            color: 'white',
-                            padding: '20px 40px',
-                            fontSize: '18px',
-                            fontWeight: 'bold',
-                            borderRadius: '16px',
-                            cursor: 'pointer',
-                            border: 'none',
-                            boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
-                            width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '12px',
-                            position: 'relative',
-                            zIndex: 9999
-                          }}
-                          type="button"
-                          data-onboarding="add-branch-button"
-                        >
-                          <Building2 className="w-6 h-6" />
-                          <span>จัดการสาขา (CLICK ME)</span>
-                        </button>
-                      ) : (
-                        <div className="text-center p-4 bg-red-100 rounded">
-                          <p className="text-red-800">ไม่ผ่านเงื่อนไข: userRole = {userRole}</p>
-                          <p className="text-xs text-red-600">baseRole = {currentUser?.role} | customRole = {currentUser?.custom_role}</p>
-                        </div>
-                      )}
-                    </div>
+                    {(userRole === 'developer' || userRole === 'owner') && (
+                      <Button
+                        onClick={handleManageBranches}
+                        className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold"
+                        data-onboarding="add-branch-button"
+                        type="button"
+                      >
+                        <Building2 className="w-6 h-6 mr-2 flex-shrink-0" />
+                        <span>จัดการสาขา</span>
+                      </Button>
+                    )}
 
                   </motion.div>
                 </div>
