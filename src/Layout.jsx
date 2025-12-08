@@ -930,6 +930,17 @@ export default function Layout({ children, currentPageName }) {
   const subscriptionCheck = checkSubscriptionStatus();
 
   useEffect(() => {
+    // ⭐ Redirect unauthenticated users to Welcome page (except on specific pages)
+    if (!isLoading && !currentUser && !error && 
+        currentPageName !== 'Welcome' &&
+        currentPageName !== 'Invoice' &&
+        currentPageName !== 'Receipt' &&
+        currentPageName !== 'PrintReceipts' &&
+        currentPageName !== 'PublicInvoice') {
+      navigate(createPageUrl('Welcome'), { replace: true });
+      return;
+    }
+
     // Redirect if subscription check indicates it and user/data is loaded
     // ⭐ Developer ไม่ต้อง redirect - ข้าม subscription check
     const currentUserRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
@@ -937,7 +948,7 @@ export default function Layout({ children, currentPageName }) {
       const targetPage = subscriptionCheck.redirectTo || 'RenewalPage';
       navigate(createPageUrl(targetPage), { replace: true });
     }
-  }, [subscriptionCheck.shouldRedirect, subscriptionCheck.redirectTo, isLoading, currentUser, navigate, currentPageName]);
+  }, [subscriptionCheck.shouldRedirect, subscriptionCheck.redirectTo, isLoading, currentUser, navigate, currentPageName, error]);
 
   useEffect(() => {
     console.log('🔍 Layout Branch Check:', {
