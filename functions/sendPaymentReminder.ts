@@ -310,13 +310,13 @@ Deno.serve(async (req) => {
                 if (template === 'overdue') {
                     // ข้อความเกินกำหนด
                     const totalWithLateFee = (payment.total_amount || 0) + lateFee;
-                    const lateFeeText = lateFee > 0 ? `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท\n💵 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท` : '';
+                    const lateFeeText = lateFee > 0 ? `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท\nรวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท` : '';
                     
                     message = `🙏 เรียนคุณผู้เช่า\n\n`;
                     message += `🔴 แจ้งเตือนเกินกำหนดชำระ\n`;
                     message += `ห้อง ${roomNum}\n`;
                     message += `💰 ยอดเงิน: ${amount} บาท${lateFeeText}\n`;
-                    message += `⏰ เกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
+                    message += `เกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
                     message += `กรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
                     message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}`;
                 } else if (template === 'due_date') {
