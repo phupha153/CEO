@@ -12,6 +12,7 @@ import { Building2, Plus, Edit2, Trash2, MapPin, Phone, AlertTriangle, Copy } fr
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { createPageUrl } from "@/utils";
 import PageHeader from "../components/shared/PageHeader";
 
 export default function BranchManagement() {
