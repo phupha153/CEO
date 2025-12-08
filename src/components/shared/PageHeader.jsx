@@ -190,6 +190,8 @@ export default function PageHeader({
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
+              {actions}
+
               {showNotifications && (
                 <Button
                   variant="ghost"
@@ -207,8 +209,6 @@ export default function PageHeader({
                   )}
                 </Button>
               )}
-              
-              {actions}
             </div>
           </div>
         </div>
