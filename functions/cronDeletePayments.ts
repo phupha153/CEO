@@ -2,8 +2,14 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 // Cron job: Delete TEST data from ALL branches with continuous recursive calls
 Deno.serve(async (req) => {
+    // ⭐ สร้าง empty request สำหรับ SDK (หลีกเลี่ยง AsyncWrap error จาก Cron)
+    const emptyReq = new Request('https://dummy.url', {
+        method: 'POST',
+        headers: req.headers
+    });
+    
     try {
-        const base44 = createClientFromRequest(req);
+        const base44 = createClientFromRequest(emptyReq);
         
         console.log(`🧹 [Cron] Starting TEST data deletion for ALL branches...`);
 
