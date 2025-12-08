@@ -264,6 +264,21 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
+  // ฟังก์ชันคำนวณงวดบิล - ถ้า due_date อยู่ช่วงต้นเดือน (1-10) = บิลของเดือนก่อนหน้า
+  const getBillingPeriod = (payment) => {
+    if (!payment.due_date) return null;
+    try {
+      const dueDate = parseISO(payment.due_date);
+      // ถ้าครบกำหนดชำระวันที่ 1-10 ของเดือน → ถือว่าเป็นบิลของเดือนก่อนหน้า
+      if (dueDate.getDate() <= 10) {
+        return subMonths(dueDate, 1);
+      }
+      return dueDate;
+    } catch {
+      return null;
+    }
+  };
+
   // ฟังก์ชันกรองข้อมูล - ใบเสร็จรับเงิน (แสดงทุกรายการ)
   const filteredPayments = useMemo(() => {
     console.log('🔍 filteredPayments calculation - Total payments:', payments.length);
@@ -303,11 +318,11 @@ export default function AccountingData() {
           tenant?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
         
         let matchDate = true;
-        if (dateRange && payment.due_date) {
-          try {
-            const dueDate = parseISO(payment.due_date);
-            matchDate = isWithinInterval(dueDate, { start: dateRange.from, end: dateRange.to });
-          } catch {
+        if (dateRange) {
+          const billingPeriod = getBillingPeriod(payment);
+          if (billingPeriod) {
+            matchDate = isWithinInterval(billingPeriod, { start: dateRange.from, end: dateRange.to });
+          } else {
             matchDate = false;
           }
         }
@@ -361,11 +376,11 @@ export default function AccountingData() {
           tenant?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
         
         let matchDate = true;
-        if (dateRange && payment.due_date) {
-          try {
-            const dueDate = parseISO(payment.due_date);
-            matchDate = isWithinInterval(dueDate, { start: dateRange.from, end: dateRange.to });
-          } catch {
+        if (dateRange) {
+          const billingPeriod = getBillingPeriod(payment);
+          if (billingPeriod) {
+            matchDate = isWithinInterval(billingPeriod, { start: dateRange.from, end: dateRange.to });
+          } else {
             matchDate = false;
           }
         }
