@@ -50,7 +50,7 @@ export default function BranchManagement() {
   // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้
   const userAccessibleBranches = currentUser?.accessible_branches;
 
-  const { data: allBranches = [], isLoading, isFetching } = useQuery({
+  const { data: allBranches = [], isLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
     staleTime: 60 * 60 * 1000,
@@ -58,10 +58,7 @@ export default function BranchManagement() {
     retry: 0,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    initialData: () => {
-      // ใช้ข้อมูลจาก cache ถ้ามี
-      return queryClient.getQueryData(['branches']) || [];
-    },
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: appSubscriptions = [] } = useQuery({
@@ -98,20 +95,15 @@ export default function BranchManagement() {
     return counts;
   }, [allRooms]);
 
-  // กรองสาขาตามสิทธิ์: Developer เห็นทุกสาขาเสมอ
+  // กรองสาขาตามสิทธิ์: แสดงเฉพาะสาขาที่มีสิทธิ์เข้าถึง (ถ้า set accessible_branches)
   const branches = React.useMemo(() => {
-    // ⭐ Developer เห็นทุกสาขาเสมอ
-    if (userRole === 'developer') {
-      return allBranches;
-    }
-    
     // ⭐ ถ้าไม่ได้ set accessible_branches (null/undefined) = แสดงทุกสาขา
     if (userAccessibleBranches === null || userAccessibleBranches === undefined) {
       return allBranches;
     }
     // ⭐ ถ้า set แล้ว = กรองตามลิสต์
     return allBranches.filter(b => userAccessibleBranches.includes(b.id));
-  }, [allBranches, userAccessibleBranches, userRole]);
+  }, [allBranches, userAccessibleBranches]);
 
   // เช็คว่าสามารถเพิ่มสาขาใหม่ได้หรือไม่
   const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
@@ -539,12 +531,11 @@ export default function BranchManagement() {
 
   // เอาการเช็คสิทธิ์ Developer ออก - ให้ทุกคนเข้าถึงหน้านี้ได้ (เห็นแค่สาขาตัวเอง)
 
-  console.log('🔍 BranchManagement - isLoading:', isLoading, 'isFetching:', isFetching);
+  console.log('🔍 BranchManagement - isLoading:', isLoading);
   console.log('🔍 BranchManagement - branches count:', branches.length);
   
-  // แสดง loading เฉพาะตอนที่ไม่มีข้อมูลเลย
-  if (isLoading && allBranches.length === 0) {
-    console.log('⏳ BranchManagement - กำลังโหลดครั้งแรก...');
+  if (isLoading) {
+    console.log('⏳ BranchManagement - กำลังโหลด...');
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
         <PageHeader
