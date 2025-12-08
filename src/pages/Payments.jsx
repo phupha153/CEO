@@ -48,6 +48,7 @@ export default function PaymentsPage() {
   const [expandedPayments, setExpandedPayments] = useState(new Set());
   const [slipPreview, setSlipPreview] = useState({ open: false, url: '', title: '' });
   const [reminderDialog, setReminderDialog] = useState({ open: false, payment: null, template: null });
+  const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null });
 
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
   const [dateRangeType, setDateRangeType] = useState('this_month');
@@ -1353,15 +1354,14 @@ export default function PaymentsPage() {
       return;
     }
 
-    // ส่งทีละรายการ
+    // ส่งทีละรายการ - แสดง confirmation dialog ก่อน
     if (paymentId) {
       const payment = payments.find(p => p.id === paymentId);
       if (!payment) return;
       
-      setReminderDialog({
+      setConfirmReminderDialog({
         open: true,
-        payment: payment,
-        template: null
+        payment: payment
       });
       return;
     }
@@ -1388,6 +1388,23 @@ export default function PaymentsPage() {
     if (!confirmed) return;
 
     handleSendReminder(null, null);
+  };
+
+  const handleConfirmSendNow = async (payment) => {
+    const effectiveStatus = getEffectiveStatus(payment);
+    const template = effectiveStatus === 'overdue' ? 'overdue' : 'due_date';
+    
+    setConfirmReminderDialog({ open: false, payment: null });
+    await handleSendReminder(payment.id, template, null);
+  };
+
+  const handleEditReminderMessage = (payment) => {
+    setConfirmReminderDialog({ open: false, payment: null });
+    setReminderDialog({
+      open: true,
+      payment: payment,
+      template: null
+    });
   };
 
   const handleSendReminder = async (paymentId = null, template = null, customMessage = null) => {
@@ -1433,6 +1450,7 @@ export default function PaymentsPage() {
     setSendingReminder(false);
     setSendingAll(false);
     setReminderDialog({ open: false, payment: null, template: null });
+    setConfirmReminderDialog({ open: false, payment: null });
   };
 
   const handleSendReceipt = async (paymentId) => {
@@ -4233,6 +4251,69 @@ Return JSON.`;
         slipUrl={slipPreview.url}
         title={slipPreview.title}
       />
+
+      {/* Confirmation Dialog */}
+      {confirmReminderDialog.payment && (() => {
+        const room = getRoomInfo(confirmReminderDialog.payment.room_id);
+        const tenant = getTenantInfo(confirmReminderDialog.payment.tenant_id);
+        const effectiveStatus = getEffectiveStatus(confirmReminderDialog.payment);
+        
+        return (
+          <Dialog open={confirmReminderDialog.open} onOpenChange={(open) => setConfirmReminderDialog({ open, payment: null })}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>ส่งแจ้งเตือนชำระเงิน</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="text-sm text-slate-600">
+                  <p className="font-medium text-slate-800 mb-2">ห้อง {room?.room_number || 'N/A'}</p>
+                  <p>ผู้เช่า: {tenant?.full_name || 'N/A'}</p>
+                  <p>ยอดเงิน: {confirmReminderDialog.payment?.total_amount?.toLocaleString() || 0} บาท</p>
+                  <p className="mt-2">
+                    ส่งแบบ: <Badge className={effectiveStatus === 'overdue' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}>
+                      {effectiveStatus === 'overdue' ? 'เกินกำหนด' : 'ครบกำหนด'}
+                    </Badge>
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setConfirmReminderDialog({ open: false, payment: null })}
+                  className="flex-1"
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleEditReminderMessage(confirmReminderDialog.payment)}
+                  className="flex-1"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  แก้ไขข้อความ
+                </Button>
+                <Button
+                  onClick={() => handleConfirmSendNow(confirmReminderDialog.payment)}
+                  disabled={sendingReminder === confirmReminderDialog.payment.id}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                >
+                  {sendingReminder === confirmReminderDialog.payment.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      กำลังส่ง...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      ยืนยันส่งเลย
+                    </>
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       {/* Send Reminder Dialog */}
       {reminderDialog.payment && (
