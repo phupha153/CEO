@@ -310,15 +310,16 @@ Deno.serve(async (req) => {
                 if (template === 'overdue') {
                     // ข้อความเกินกำหนด
                     const totalWithLateFee = (payment.total_amount || 0) + lateFee;
-                    const lateFeeText = lateFee > 0 ? `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท\nรวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท` : '';
+                    const lateFeeText = lateFee > 0 ? `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท\n💰 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท` : '';
                     
-                    message = `🙏 เรียนคุณผู้เช่า\n\n`;
-                    message += `🔴 แจ้งเตือนเกินกำหนดชำระ\n`;
-                    message += `ห้อง ${roomNum}\n`;
+                    message = `🔴 แจ้งเตือนเกินกำหนดชำระ\n\n`;
+                    message += `${buildingName}\n`;
+                    message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
                     message += `💰 ยอดเงิน: ${amount} บาท${lateFeeText}\n`;
                     message += `เกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
                     message += `กรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
-                    message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}`;
+                    message += `💳 โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
+                    message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
                 } else if (template === 'due_date') {
                     // ข้อความครบกำหนด - สั้นกระชับ
                     message = `📅 วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
@@ -442,8 +443,8 @@ Deno.serve(async (req) => {
                 message += `\n\n📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}`;
             }
             
-            // เพิ่มข้อความส่งสลิปเฉพาะกรณีที่ไม่ใช่ due_date (เพราะ due_date มีข้อความนี้อยู่แล้ว)
-            if (template !== 'due_date') {
+            // เพิ่มข้อความส่งสลิปเฉพาะกรณีที่ไม่ใช่ due_date และ overdue (เพราะมีข้อความนี้อยู่แล้ว)
+            if (template !== 'due_date' && template !== 'overdue') {
                 message += `\n\n📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
                 message += `ขอบคุณค่ะ 🙏`;
             }
