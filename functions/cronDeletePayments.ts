@@ -133,74 +133,101 @@ Deno.serve(async (req) => {
         
         let totalDeleted = 0;
         
-        // 1. ลบ Payments แบบ parallel
+        // 1. ลบ Payments แบบ chunked parallel (ป้องกัน rate limit)
         if (paymentsToDelete.length > 0) {
             console.log(`💸 [Cron] Deleting ${paymentsToDelete.length} TEST payments...`);
-            const deleteResults = await Promise.allSettled(
-                paymentsToDelete.map(payment => 
-                    base44.asServiceRole.entities.Payment.delete(payment.id)
-                )
-            );
-            const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
-            totalDeleted += successCount;
-            console.log(`✅ [Cron] Deleted ${successCount}/${paymentsToDelete.length} payments`);
+            const chunkSize = 100;
+            for (let i = 0; i < paymentsToDelete.length; i += chunkSize) {
+                const chunk = paymentsToDelete.slice(i, i + chunkSize);
+                const deleteResults = await Promise.allSettled(
+                    chunk.map(payment => base44.asServiceRole.entities.Payment.delete(payment.id))
+                );
+                const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
+                totalDeleted += successCount;
+                console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted ${successCount}/${chunk.length} payments`);
+                if (i + chunkSize < paymentsToDelete.length) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+            }
         }
         
-        // 2. ลบ Bookings แบบ parallel
+        // 2. ลบ Bookings แบบ chunked parallel
         if (bookingsToDelete.length > 0) {
             console.log(`📋 [Cron] Deleting ${bookingsToDelete.length} TEST bookings...`);
-            const deleteResults = await Promise.allSettled(
-                bookingsToDelete.map(async (booking) => {
-                    if (booking.room_id) {
-                        await base44.asServiceRole.entities.Room.update(booking.room_id, {
-                            status: 'available'
-                        }).catch(() => {});
-                    }
-                    return base44.asServiceRole.entities.Booking.delete(booking.id);
-                })
-            );
-            const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
-            totalDeleted += successCount;
-            console.log(`✅ [Cron] Deleted ${successCount}/${bookingsToDelete.length} bookings`);
+            const chunkSize = 100;
+            for (let i = 0; i < bookingsToDelete.length; i += chunkSize) {
+                const chunk = bookingsToDelete.slice(i, i + chunkSize);
+                const deleteResults = await Promise.allSettled(
+                    chunk.map(async (booking) => {
+                        if (booking.room_id) {
+                            await base44.asServiceRole.entities.Room.update(booking.room_id, {
+                                status: 'available'
+                            }).catch(() => {});
+                        }
+                        return base44.asServiceRole.entities.Booking.delete(booking.id);
+                    })
+                );
+                const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
+                totalDeleted += successCount;
+                console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted ${successCount}/${chunk.length} bookings`);
+                if (i + chunkSize < bookingsToDelete.length) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+            }
         }
         
-        // 3. ลบ Rooms แบบ parallel
+        // 3. ลบ Rooms แบบ chunked parallel
         if (roomsToDelete.length > 0) {
             console.log(`🏠 [Cron] Deleting ${roomsToDelete.length} TEST rooms...`);
-            const deleteResults = await Promise.allSettled(
-                roomsToDelete.map(room => 
-                    base44.asServiceRole.entities.Room.delete(room.id)
-                )
-            );
-            const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
-            totalDeleted += successCount;
-            console.log(`✅ [Cron] Deleted ${successCount}/${roomsToDelete.length} rooms`);
+            const chunkSize = 100;
+            for (let i = 0; i < roomsToDelete.length; i += chunkSize) {
+                const chunk = roomsToDelete.slice(i, i + chunkSize);
+                const deleteResults = await Promise.allSettled(
+                    chunk.map(room => base44.asServiceRole.entities.Room.delete(room.id))
+                );
+                const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
+                totalDeleted += successCount;
+                console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted ${successCount}/${chunk.length} rooms`);
+                if (i + chunkSize < roomsToDelete.length) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+            }
         }
         
-        // 4. ลบ Tenants แบบ parallel
+        // 4. ลบ Tenants แบบ chunked parallel
         if (tenantsToDelete.length > 0) {
             console.log(`👥 [Cron] Deleting ${tenantsToDelete.length} TEST tenants...`);
-            const deleteResults = await Promise.allSettled(
-                tenantsToDelete.map(tenant => 
-                    base44.asServiceRole.entities.Tenant.delete(tenant.id)
-                )
-            );
-            const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
-            totalDeleted += successCount;
-            console.log(`✅ [Cron] Deleted ${successCount}/${tenantsToDelete.length} tenants`);
+            const chunkSize = 100;
+            for (let i = 0; i < tenantsToDelete.length; i += chunkSize) {
+                const chunk = tenantsToDelete.slice(i, i + chunkSize);
+                const deleteResults = await Promise.allSettled(
+                    chunk.map(tenant => base44.asServiceRole.entities.Tenant.delete(tenant.id))
+                );
+                const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
+                totalDeleted += successCount;
+                console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted ${successCount}/${chunk.length} tenants`);
+                if (i + chunkSize < tenantsToDelete.length) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+            }
         }
         
-        // 5. ลบ MeterReadings แบบ parallel
+        // 5. ลบ MeterReadings แบบ chunked parallel
         if (meterReadingsToDelete.length > 0) {
             console.log(`⚡ [Cron] Deleting ${meterReadingsToDelete.length} TEST meter readings...`);
-            const deleteResults = await Promise.allSettled(
-                meterReadingsToDelete.map(mr => 
-                    base44.asServiceRole.entities.MeterReading.delete(mr.id)
-                )
-            );
-            const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
-            totalDeleted += successCount;
-            console.log(`✅ [Cron] Deleted ${successCount}/${meterReadingsToDelete.length} meter readings`);
+            const chunkSize = 100;
+            for (let i = 0; i < meterReadingsToDelete.length; i += chunkSize) {
+                const chunk = meterReadingsToDelete.slice(i, i + chunkSize);
+                const deleteResults = await Promise.allSettled(
+                    chunk.map(mr => base44.asServiceRole.entities.MeterReading.delete(mr.id))
+                );
+                const successCount = deleteResults.filter(r => r.status === 'fulfilled').length;
+                totalDeleted += successCount;
+                console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted ${successCount}/${chunk.length} meter readings`);
+                if (i + chunkSize < meterReadingsToDelete.length) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+            }
         }
         
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
