@@ -321,21 +321,21 @@ Deno.serve(async (req) => {
                     message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}`;
                 } else if (template === 'due_date') {
                     // ข้อความครบกำหนด - สั้นกระชับ
-                    message = `⏰ วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
-                    message += `🏠 ${buildingName}\n`;
-                    message += `👤 คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
-                    message += `💰 ยอดชำระ: ${amount} บาท\n\n`;
+                    message = `วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
+                    message += `${buildingName}\n`;
+                    message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
+                    message += `ยอดชำระ: ${amount} บาท\n\n`;
                     
                     const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', branchId, '0');
                     const feePerDay = parseFloat(lateFeePerDayConfig);
                     if (!isNaN(feePerDay) && feePerDay > 0) {
-                        message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${feePerDay} บาท/วัน\n\n`;
+                        message += `หากชำระหลังวันนี้ มีค่าปรับ ${feePerDay} บาท/วัน\n\n`;
                     }
                     
-                    message += `💳 โอนเงินได้ที่:\n`;
+                    message += `โอนเงินได้ที่:\n`;
                     message += `${bankName} ${bankAccountNumber}\n`;
                     message += `ชื่อ: ${bankAccountName}\n\n`;
-                    message += `📸 ส่งสลิปหลังโอนค่ะ`;
+                    message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ`;
                 } else {
                     // ข้อความปกติ (advance, due_date หรือไม่ระบุ)
                     message = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
@@ -442,8 +442,11 @@ Deno.serve(async (req) => {
                 message += `\n\n📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}`;
             }
             
-            message += `\n\n📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
-            message += `ขอบคุณค่ะ 🙏`;
+            // เพิ่มข้อความส่งสลิปเฉพาะกรณีที่ไม่ใช่ due_date (เพราะ due_date มีข้อความนี้อยู่แล้ว)
+            if (template !== 'due_date') {
+                message += `\n\n📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
+                message += `ขอบคุณค่ะ 🙏`;
+            }
 
             recipients.push({
                 lineUserId: tenant.line_user_id || null,
