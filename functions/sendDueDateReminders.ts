@@ -72,40 +72,29 @@ Deno.serve(async (req) => {
             console.log(`📅 Using Thailand date: ${todayString} (UTC: ${now.toISOString()})`);
         }
 
-        // 3. ดึง payments ทั้งหมดแล้วกรอง due_date เอง
+        // 3. ดึง payments ทั้งหมด (ไม่กรอง status ก่อน)
         console.log('🔍 Fetching all payments...');
         
         let allPayments = [];
         
         try {
-            // ดึง pending payments ทั้งหมด
-            const pendingPayments = await base44.asServiceRole.entities.Payment.filter(
-                { status: 'pending' },
-                '-created_date',
-                10000
-            );
-            
-            // ดึง overdue payments ทั้งหมด
-            const overduePayments = await base44.asServiceRole.entities.Payment.filter(
-                { status: 'overdue' },
-                '-created_date',
-                10000
-            );
-            
-            allPayments = [...pendingPayments, ...overduePayments];
-            console.log(`✅ Total fetched: ${allPayments.length} payments (${pendingPayments.length} pending + ${overduePayments.length} overdue)`);
+            // ดึง payments ทั้งหมด
+            allPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 50000);
+            console.log(`✅ Total fetched: ${allPayments.length} payments`);
         } catch (err) {
             console.error('❌ Error fetching payments:', err.message);
         }
         
-        // กรองเฉพาะที่ due_date ตรงกับวันนี้ (รองรับหลายรูปแบบ)
+        // กรองเฉพาะที่ยังไม่ชำระ และ due_date ตรงกับวันนี้
         const payments = allPayments.filter(p => {
+            // ต้องยังไม่ชำระ (pending หรือ overdue)
+            if (p.status === 'paid') return false;
+            
             if (!p.due_date) return false;
             
             // แปลง due_date ให้เป็น YYYY-MM-DD
             let dueDateString = '';
             if (typeof p.due_date === 'string') {
-                // ถ้าเป็น ISO string (2025-12-08T00:00:00.000Z) ให้ตัดเอาแค่ส่วน date
                 dueDateString = p.due_date.split('T')[0];
             } else if (p.due_date instanceof Date) {
                 dueDateString = p.due_date.toISOString().split('T')[0];
@@ -114,12 +103,12 @@ Deno.serve(async (req) => {
             return dueDateString === todayString;
         });
         
-        console.log(`✅ Filtered: ${payments.length} payments due on ${todayString}`);
+        console.log(`✅ Filtered: ${payments.length} payments due on ${todayString} (unpaid only)`);
         
-        // Debug: แสดงตัวอย่าง due_date format
+        // Debug: แสดงตัวอย่างถ้าไม่เจอ
         if (allPayments.length > 0 && payments.length === 0) {
-            const sample = allPayments.slice(0, 3);
-            console.log(`⚠️ No matches found. Sample due_dates:`, sample.map(p => ({
+            const sample = allPayments.slice(0, 5);
+            console.log(`⚠️ No matches. Sample payments:`, sample.map(p => ({
                 id: p.id ? p.id.substring(0, 8) : 'no-id',
                 due_date: p.due_date,
                 status: p.status
