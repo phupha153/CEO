@@ -83,15 +83,6 @@ export default function SendReminderDialog({
     { id: 'overdue', name: '🔴 เกินกำหนด', color: 'from-red-500 to-orange-500' }
   ];
 
-  useEffect(() => {
-    if (open && !selectedTemplate) {
-      setSelectedTemplate(isOverdue ? 'overdue' : 'due_date');
-    }
-    if (open) {
-      setCustomMessage(getDefaultMessage());
-    }
-  }, [open, isOverdue]);
-
   const getDefaultMessage = () => {
     const roomNum = room?.room_number || 'N/A';
     const amount = (payment.total_amount || 0).toLocaleString();
@@ -106,6 +97,15 @@ export default function SendReminderDialog({
       return `สวัสดีค่ะ 😊\n\n📅 ถึงกำหนดชำระค่าเช่าแล้ว\nห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท\n📅 ครบกำหนด: ${dueDate}\n\nกรุณาชำระภายในวันนี้นะคะ 🙏`;
     }
   };
+
+  useEffect(() => {
+    if (open && !selectedTemplate) {
+      setSelectedTemplate(isOverdue ? 'overdue' : 'due_date');
+    }
+    if (open) {
+      setCustomMessage(getDefaultMessage());
+    }
+  }, [open, isOverdue]);
 
   const generateAIMessage = async () => {
     setGeneratingAI(true);
