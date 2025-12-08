@@ -20,13 +20,16 @@ Deno.serve(async (req) => {
             .filter(b => 
                 b.branch_code?.includes('TEST') || 
                 b.branch_code?.includes('12345') ||
+                b.branch_code?.includes('5555') ||
+                b.branch_code?.includes('COPY') ||
+                b.branch_name?.includes('12345') ||
                 b.branch_name?.includes('[TEST') ||
                 b.notes?.includes('[TEST') ||
                 b.description?.includes('[TEST')
             )
             .map(b => b.id);
         
-        console.log(`🏢 [Cron] Found ${testBranchIds.length} TEST branches: ${testBranchIds.join(', ')}`);
+        console.log(`🏢 [Cron] Found ${testBranchIds.length} TEST branches: ${JSON.stringify(testBranchIds)}`);
         
         // ดึงข้อมูลทดสอบจากทุกสาขา
         const [
