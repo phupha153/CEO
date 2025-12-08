@@ -407,6 +407,15 @@ export default function BranchSelection() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-purple-100 overflow-hidden">
+      {/* Logo มุมบนซ้าย */}
+      <div className="fixed top-6 left-6 z-50">
+        <img
+          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/bbbd19e29_GreenMinimalistNewSongWidgetInstagramPost1.png"
+          alt="Logo"
+          className="w-16 h-16 object-contain drop-shadow-lg"
+        />
+      </div>
+
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
@@ -469,42 +478,43 @@ export default function BranchSelection() {
                 </div>
               )}
 
-              {/* ✅ ถ้าไม่มีสาขาเลย หรือไม่มีสิทธิ์ → แสดงปุ่มเพิ่มสาขา */}
+              {/* ✅ ถ้าไม่มีสาขาเลย หรือไม่มีสิทธิ์ → แสดงการ์ดเพิ่มสาขา */}
               {(hasNoBranches || hasNoAccess) ? (
-                <div className="text-center py-16">
+                <div className="flex items-center justify-center py-16">
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="max-w-md mx-auto"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="w-full max-w-md"
                   >
-                    <div className="relative w-32 h-32 mx-auto mb-6">
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-sky-400/30 rounded-full blur-3xl animate-pulse" />
-                      <div className="relative w-full h-full rounded-full bg-gradient-to-br from-blue-500 to-sky-600 flex items-center justify-center shadow-2xl">
-                        <Building2 className="w-16 h-16 text-white" />
-                      </div>
-                    </div>
+                    <Card className="bg-white/90 backdrop-blur-sm border-slate-200/60 shadow-2xl overflow-hidden">
+                      <CardContent className="p-12 text-center">
+                        <div className="mb-8">
+                          <img
+                            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/bbbd19e29_GreenMinimalistNewSongWidgetInstagramPost1.png"
+                            alt="Logo"
+                            className="w-48 h-48 mx-auto object-contain"
+                          />
+                        </div>
 
-                    <h2 className="text-2xl font-bold text-slate-800 mb-3">
-                      {hasNoBranches ? 'ยังไม่มีสาขา' : 'ยังไม่มีสาขา'}
-                    </h2>
-                    <p className="text-slate-600 mb-6">
-                      {hasNoBranches 
-                        ? 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ' 
-                        : 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ หรือติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา'}
-                    </p>
+                        <p className="text-slate-600 mb-8 text-base">
+                          {hasNoBranches 
+                            ? 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ' 
+                            : 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ หรือติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา'}
+                        </p>
 
-                    {/* ปุ่มเพิ่มสาขา - เปิด Dialog */}
-                    {(userRole === 'developer' || userRole === 'owner') && (
-                      <Button
-                        onClick={() => setShowDialog(true)}
-                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold"
-                        data-onboarding="add-branch-button"
-                      >
-                        <Plus className="w-6 h-6 mr-2 flex-shrink-0" />
-                        <span>เพิ่มสาขา</span>
-                      </Button>
-                    )}
-
+                        {/* ปุ่มเพิ่มสาขาแรก - เปิด Dialog */}
+                        {(userRole === 'developer' || userRole === 'owner') && (
+                          <Button
+                            onClick={() => setShowDialog(true)}
+                            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold w-full"
+                            data-onboarding="add-branch-button"
+                          >
+                            <Plus className="w-6 h-6 mr-2 flex-shrink-0" />
+                            <span>เพิ่มสาขาแรก</span>
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
                   </motion.div>
                 </div>
               ) : (
