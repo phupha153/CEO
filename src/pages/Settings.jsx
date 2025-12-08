@@ -2773,7 +2773,7 @@ export default function Settings() {
                             </div>
                           </label>
 
-                          <label className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200 cursor-pointer hover:bg-red-100 transition-colors">
+                          <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
                             <input
                               type="checkbox"
                               checked={billSettings.send_overdue_reminder}
@@ -2781,7 +2781,7 @@ export default function Settings() {
                               className="w-5 h-5 rounded"
                             />
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800">🔴 แจ้งเตือนเกินกำหนด</p>
+                              <p className="text-sm font-medium text-slate-800">แจ้งเตือนเกินกำหนด</p>
                               <p className="text-xs text-slate-600">ส่งข้อความเตือนทุกวันสำหรับรายการที่เกินกำหนดชำระแล้ว (พร้อมค่าปรับ)</p>
                             </div>
                           </label>
