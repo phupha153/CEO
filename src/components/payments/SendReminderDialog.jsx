@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, Calendar, AlertTriangle, DollarSign } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Send, Calendar, AlertTriangle, Sparkles } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
+import { base44 } from "@/api/base44Client";
+import { toast } from "sonner";
 
 export default function SendReminderDialog({
   open,
@@ -19,176 +22,230 @@ export default function SendReminderDialog({
   onConfirm,
   isSending
 }) {
-  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [selectedTemplate, setSelectedTemplate] = useState('due_date');
+  const [customMessage, setCustomMessage] = useState('');
+  const [generatingAI, setGeneratingAI] = useState(false);
 
   if (!payment) return null;
 
   const daysOverdue = payment.due_date ? differenceInDays(new Date(), parseISO(payment.due_date)) : 0;
   const isOverdue = effectiveStatus === 'overdue';
+  const totalWithLateFee = (payment.total_amount || 0) + lateFee;
 
   const templates = [
     {
+      id: 'advance',
+      name: '📢 แจ้งเตือนล่วงหน้า',
+      color: 'from-purple-500 to-indigo-500',
+    },
+    {
       id: 'due_date',
-      name: '📅 แจ้งเตือนครบกำหนด',
-      description: 'สำหรับบิลที่กำลังจะครบกำหนด หรือครบกำหนดพอดี',
-      color: 'from-blue-500 to-indigo-500',
-      recommended: !isOverdue
+      name: '📅 ครบกำหนด',
+      color: 'from-blue-500 to-cyan-500',
     },
     {
       id: 'overdue',
-      name: '🔴 แจ้งเตือนเกินกำหนด',
-      description: 'สำหรับบิลที่เกินกำหนดชำระแล้ว',
+      name: '🔴 เกินกำหนด',
       color: 'from-red-500 to-orange-500',
-      recommended: isOverdue
     }
   ];
 
+  const getDefaultMessage = () => {
+    const roomNum = room?.room_number || 'N/A';
+    const amount = (payment.total_amount || 0).toLocaleString();
+    const dueDate = payment.due_date ? format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A';
+
+    if (selectedTemplate === 'advance') {
+      return `สวัสดีค่ะ 😊\n\nขอแจ้งเตือนค่าเช่าห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท\n📅 ครบกำหนดชำระ: ${dueDate}\n\nกรุณาเตรียมชำระภายในกำหนดนะคะ 🙏`;
+    } else if (selectedTemplate === 'overdue') {
+      const lateFeeText = lateFee > 0 ? `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท${tiersEnabled ? ' (ขั้นบันได)' : ''}\n💵 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท` : '';
+      return `เรียนคุณผู้เช่า 🙏\n\n🔴 แจ้งเตือนเกินกำหนดชำระ\nห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท${lateFeeText}\n⏰ เกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\nกรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}`;
+    } else {
+      return `สวัสดีค่ะ 😊\n\n📅 ถึงกำหนดชำระค่าเช่าแล้ว\nห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท\n📅 ครบกำหนด: ${dueDate}\n\nกรุณาชำระภายในวันนี้นะคะ 🙏`;
+    }
+  };
+
+  useEffect(() => {
+    if (open && selectedTemplate) {
+      setCustomMessage(getDefaultMessage());
+    }
+  }, [selectedTemplate, open]);
+
+  if (!payment) return null;
+
+  const daysOverdue = payment.due_date ? differenceInDays(new Date(), parseISO(payment.due_date)) : 0;
+  const isOverdue = effectiveStatus === 'overdue';
+  const totalWithLateFee = (payment.total_amount || 0) + lateFee;
+
+  const templates = [
+    { id: 'advance', name: '📢 แจ้งเตือนล่วงหน้า', color: 'from-purple-500 to-indigo-500' },
+    { id: 'due_date', name: '📅 ครบกำหนด', color: 'from-blue-500 to-cyan-500' },
+    { id: 'overdue', name: '🔴 เกินกำหนด', color: 'from-red-500 to-orange-500' }
+  ];
+
+  useEffect(() => {
+    if (open && !selectedTemplate) {
+      setSelectedTemplate(isOverdue ? 'overdue' : 'due_date');
+    }
+    if (open) {
+      setCustomMessage(getDefaultMessage());
+    }
+  }, [open, isOverdue]);
+
+  const getDefaultMessage = () => {
+    const roomNum = room?.room_number || 'N/A';
+    const amount = (payment.total_amount || 0).toLocaleString();
+    const dueDate = payment.due_date ? format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A';
+
+    if (selectedTemplate === 'advance') {
+      return `สวัสดีค่ะ 😊\n\nขอแจ้งเตือนค่าเช่าห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท\n📅 ครบกำหนดชำระ: ${dueDate}\n\nกรุณาเตรียมชำระภายในกำหนดนะคะ 🙏`;
+    } else if (selectedTemplate === 'overdue') {
+      const lateFeeText = lateFee > 0 ? `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท${tiersEnabled ? ' (ขั้นบันได)' : ''}\n💵 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท` : '';
+      return `เรียนคุณผู้เช่า 🙏\n\n🔴 แจ้งเตือนเกินกำหนดชำระ\nห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท${lateFeeText}\n⏰ เกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\nกรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}`;
+    } else {
+      return `สวัสดีค่ะ 😊\n\n📅 ถึงกำหนดชำระค่าเช่าแล้ว\nห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท\n📅 ครบกำหนด: ${dueDate}\n\nกรุณาชำระภายในวันนี้นะคะ 🙏`;
+    }
+  };
+
+  const generateAIMessage = async () => {
+    setGeneratingAI(true);
+    try {
+      const prompt = `สร้างข้อความแจ้งเตือนชำระค่าเช่าหอพักแบบสุภาพและกระชับ
+
+รูปแบบ: ${selectedTemplate === 'advance' ? 'แจ้งเตือนล่วงหน้า' : selectedTemplate === 'overdue' ? 'เกินกำหนดชำระ' : 'ครบกำหนดชำระ'}
+ห้อง: ${room?.room_number}
+ผู้เช่า: ${tenant?.full_name}
+ยอดเงิน: ${(payment.total_amount || 0).toLocaleString()} บาท
+ครบกำหนด: ${payment.due_date ? format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A'}
+${isOverdue ? `เกินกำหนดมาแล้ว: ${daysOverdue} วัน` : ''}
+${lateFee > 0 ? `ค่าปรับล่าช้า: ${lateFee.toLocaleString()} บาท (รวม ${totalWithLateFee.toLocaleString()} บาท)` : ''}
+${tiersEnabled && lateFee > 0 ? 'ระบบคิดค่าปรับแบบขั้นบันได' : ''}
+
+ข้อความต้อง:
+- เป็นภาษาไทย สุภาพ กระชับ
+- มี emoji ประกอบ
+- ความยาวไม่เกิน 300 ตัวอักษร
+- ${selectedTemplate === 'overdue' ? 'เน้นเตือนค่าปรับและความเร่งด่วน' : 'โทนเป็นมิตร'}
+
+ตอบเฉพาะข้อความที่พร้อมส่งเลย ไม่ต้องมีคำอธิบายเพิ่มเติม`;
+
+      const result = await base44.integrations.Core.InvokeLLM({ prompt });
+      setCustomMessage(result.trim());
+      toast.success('สร้างข้อความด้วย AI สำเร็จ');
+    } catch (error) {
+      toast.error('AI Error: ' + error.message);
+    } finally {
+      setGeneratingAI(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>เลือกรูปแบบการส่งบิล</DialogTitle>
+          <DialogTitle>ส่งบิลแจ้งหนี้</DialogTitle>
         </DialogHeader>
 
-        {/* Payment Info */}
-        <div className="bg-slate-50 rounded-lg p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-600">ห้อง:</span>
-            <span className="font-bold text-slate-800">{room?.room_number || 'N/A'}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-600">ผู้เช่า:</span>
-            <span className="font-medium text-slate-800">{tenant?.full_name || 'N/A'}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-600">ยอดเงิน:</span>
-            <span className="font-bold text-blue-600">{(payment.total_amount || 0).toLocaleString()} ฿</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-600">ครบกำหนด:</span>
-            <span className="font-medium text-slate-800">
-              {payment.due_date ? format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A'}
-            </span>
-          </div>
-          
-          {/* Status & Late Fee Info */}
-          <div className="pt-2 border-t space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-600">สถานะ:</span>
-              <Badge className={
-                effectiveStatus === 'paid' ? 'bg-green-100 text-green-700' :
-                effectiveStatus === 'overdue' ? 'bg-red-100 text-red-700' :
-                'bg-yellow-100 text-yellow-700'
-              }>
-                {effectiveStatus === 'paid' ? 'ชำระแล้ว' :
-                 effectiveStatus === 'overdue' ? `เกินกำหนด ${daysOverdue} วัน` :
-                 'ครบกำหนด'}
-              </Badge>
-            </div>
-
-            {isOverdue && lateFee > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertTriangle className="w-4 h-4 text-red-600" />
-                  <span className="text-sm font-semibold text-red-800">
-                    {tiersEnabled ? 'ค่าปรับแบบขั้นบันได' : 'ค่าปรับล่าช้า'}
-                  </span>
-                </div>
-                <p className="text-sm text-red-700">
-                  +{lateFee.toLocaleString()} ฿ (เกิน {daysOverdue} วัน)
-                </p>
-                <p className="text-xl font-bold text-red-800 mt-2">
-                  รวมทั้งสิ้น: {((payment.total_amount || 0) + lateFee).toLocaleString()} ฿
-                </p>
-              </div>
-            )}
-
-            {isOverdue && tiersEnabled && (
-              <p className="text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded p-2">
-                💡 ระบบคิดค่าปรับแบบขั้นบันได - ยิ่งชำระช้ายิ่งแพง
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Template Selection */}
-        <div className="space-y-3">
-          <p className="text-sm font-semibold text-slate-700">เลือกรูปแบบการส่ง:</p>
+        {/* แถบเลือก Template ด้านบน */}
+        <div className="flex gap-2 border-b pb-4">
           {templates.map(template => (
-            <Card
+            <button
               key={template.id}
-              className={`cursor-pointer transition-all ${
+              onClick={() => {
+                setSelectedTemplate(template.id);
+                setCustomMessage(getDefaultMessage());
+              }}
+              className={`flex-1 px-4 py-3 rounded-lg font-medium text-sm transition-all ${
                 selectedTemplate === template.id
-                  ? 'ring-2 ring-blue-500 shadow-lg'
-                  : 'hover:shadow-md'
-              } ${template.recommended ? 'border-blue-300' : ''}`}
-              onClick={() => setSelectedTemplate(template.id)}
+                  ? `bg-gradient-to-r ${template.color} text-white shadow-lg`
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
             >
-              <div className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    selectedTemplate === template.id
-                      ? 'border-blue-600 bg-blue-600'
-                      : 'border-slate-300'
-                  }`}>
-                    {selectedTemplate === template.id && (
-                      <div className="w-2 h-2 rounded-full bg-white" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-semibold text-slate-800">{template.name}</p>
-                      {template.recommended && (
-                        <Badge className="bg-blue-100 text-blue-700 text-xs">แนะนำ</Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-600">{template.description}</p>
-                  </div>
-                </div>
-              </div>
-            </Card>
+              {template.name}
+            </button>
           ))}
         </div>
 
-        {/* ตัวอย่างข้อความที่จะส่ง */}
-        {selectedTemplate && (
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <p className="text-xs font-semibold text-purple-800 mb-2">ตัวอย่างข้อความที่จะส่ง:</p>
-            <div className="bg-white rounded p-3 text-sm text-slate-700 space-y-1">
-              {selectedTemplate === 'due_date' ? (
+        {/* Payment Info Compact */}
+        <div className="grid grid-cols-2 gap-3 text-sm bg-slate-50 rounded-lg p-3">
+          <div>
+            <span className="text-slate-500">ห้อง:</span>
+            <span className="font-bold text-slate-800 ml-2">{room?.room_number || 'N/A'}</span>
+          </div>
+          <div>
+            <span className="text-slate-500">ผู้เช่า:</span>
+            <span className="font-medium text-slate-800 ml-2">{tenant?.full_name || 'N/A'}</span>
+          </div>
+          <div>
+            <span className="text-slate-500">ยอดเงิน:</span>
+            <span className="font-bold text-blue-600 ml-2">{(payment.total_amount || 0).toLocaleString()} ฿</span>
+          </div>
+          <div>
+            <span className="text-slate-500">สถานะ:</span>
+            <Badge className={`ml-2 ${
+              effectiveStatus === 'paid' ? 'bg-green-100 text-green-700' :
+              effectiveStatus === 'overdue' ? 'bg-red-100 text-red-700' :
+              'bg-yellow-100 text-yellow-700'
+            }`}>
+              {effectiveStatus === 'paid' ? 'ชำระแล้ว' :
+               effectiveStatus === 'overdue' ? `เกิน ${daysOverdue} วัน` :
+               'ครบกำหนด'}
+            </Badge>
+          </div>
+          {isOverdue && lateFee > 0 && (
+            <>
+              <div className="col-span-2 bg-red-50 border border-red-200 rounded p-2">
+                <span className="text-red-700 text-xs font-semibold">
+                  ⚠️ ค่าปรับล่าช้า: +{lateFee.toLocaleString()} ฿
+                  {tiersEnabled && ' (ขั้นบันได)'}
+                  → รวม {totalWithLateFee.toLocaleString()} ฿
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* ข้อความที่จะส่ง */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-semibold text-slate-700">ข้อความที่จะส่ง:</label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={generateAIMessage}
+              disabled={generatingAI}
+              className="border-purple-300 text-purple-700 hover:bg-purple-50"
+            >
+              {generatingAI ? (
                 <>
-                  <p>📅 <strong>แจ้งเตือนครบกำหนดชำระ</strong></p>
-                  <p>ห้อง: {room?.room_number}</p>
-                  <p>ยอดเงิน: {(payment.total_amount || 0).toLocaleString()} บาท</p>
-                  <p>ครบกำหนด: {payment.due_date ? format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A'}</p>
-                  <p className="text-xs text-slate-500 mt-2">💡 กรุณาชำระภายในกำหนด</p>
+                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  AI กำลังสร้าง...
                 </>
               ) : (
                 <>
-                  <p>🔴 <strong>แจ้งเตือนเกินกำหนดชำระ</strong></p>
-                  <p>ห้อง: {room?.room_number}</p>
-                  <p>ยอดเงินเดิม: {(payment.total_amount || 0).toLocaleString()} บาท</p>
-                  {lateFee > 0 && (
-                    <>
-                      <p className="text-red-600 font-semibold">ค่าปรับล่าช้า: +{lateFee.toLocaleString()} บาท</p>
-                      <p className="text-red-600 font-bold">รวมทั้งสิ้น: {((payment.total_amount || 0) + lateFee).toLocaleString()} บาท</p>
-                    </>
-                  )}
-                  <p>เกินกำหนดมาแล้ว: {daysOverdue} วัน</p>
-                  <p className="text-xs text-red-600 mt-2">⚠️ กรุณาชำระโดยเร็ว{lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}</p>
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  AI ช่วยเขียน
                 </>
               )}
-            </div>
+            </Button>
           </div>
-        )}
+          <Textarea
+            value={customMessage}
+            onChange={(e) => setCustomMessage(e.target.value)}
+            rows={8}
+            className="bg-white border-slate-200 resize-none"
+            placeholder="แก้ไขข้อความได้ตามต้องการ..."
+          />
+          <p className="text-xs text-slate-500">💡 สามารถแก้ไขข้อความได้ หรือกด "AI ช่วยเขียน" เพื่อสร้างข้อความใหม่</p>
+        </div>
 
         {/* Actions */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-3 pt-2 border-t">
           <Button
             variant="outline"
             className="flex-1"
             onClick={() => {
-              setSelectedTemplate(null);
+              setCustomMessage('');
               onOpenChange(false);
             }}
             disabled={isSending}
@@ -198,13 +255,13 @@ export default function SendReminderDialog({
           <Button
             className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
             onClick={() => {
-              if (!selectedTemplate) {
+              if (!customMessage.trim()) {
+                toast.error('กรุณาใส่ข้อความ');
                 return;
               }
-              onConfirm(selectedTemplate);
-              setSelectedTemplate(null);
+              onConfirm(selectedTemplate, customMessage);
             }}
-            disabled={!selectedTemplate || isSending}
+            disabled={!customMessage.trim() || isSending}
           >
             {isSending ? (
               <>

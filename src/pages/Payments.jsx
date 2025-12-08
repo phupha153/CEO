@@ -1390,7 +1390,7 @@ export default function PaymentsPage() {
     handleSendReminder(null, null);
   };
 
-  const handleSendReminder = async (paymentId = null, template = null) => {
+  const handleSendReminder = async (paymentId = null, template = null, customMessage = null) => {
     if (paymentId) {
       setSendingReminder(paymentId);
     } else {
@@ -1401,7 +1401,8 @@ export default function PaymentsPage() {
       const response = await base44.functions.invoke('sendPaymentReminder', {
         paymentId: paymentId,
         branch_id: selectedBranchId,
-        template: template // ส่ง template ไปด้วย
+        template: template,
+        customMessage: customMessage
       });
 
       if (response.data.success) {
@@ -4249,7 +4250,7 @@ Return JSON.`;
             const tiersEnabledConfig = branchConfig || globalConfig;
             return tiersEnabledConfig?.value === 'true';
           })()}
-          onConfirm={(template) => handleSendReminder(reminderDialog.payment.id, template)}
+          onConfirm={(template, customMessage) => handleSendReminder(reminderDialog.payment.id, template, customMessage)}
           isSending={sendingReminder === reminderDialog.payment.id}
         />
       )}
