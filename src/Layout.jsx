@@ -1224,7 +1224,8 @@ export default function Layout({ children, currentPageName }) {
       currentPageName === 'PackageSelectionPage' ||
       currentPageName === 'TrialExpiredPage' ||
       currentPageName === 'PackageExpiredPage' ||
-      currentPageName === 'BranchSelection') {
+      currentPageName === 'BranchSelection' ||
+      currentPageName === 'BranchManagement') {
     return (
       <>
         <Toaster richColors position="top-center" />
