@@ -72,88 +72,133 @@ Deno.serve(async (req) => {
         
         const payments = paymentsToDelete;
         
-        if (!payments || payments.length === 0) {
-            console.log(`✅ [Cron] Deletion complete!`);
-            const finalProgress = currentProgress || { deleted: 0, initial: 0 };
-            
-            if (progressConfigs.length > 0) {
-                await base44.asServiceRole.entities.Config.update(progressConfigs[0].id, {
-                    value: JSON.stringify({
-                        ...finalProgress,
-                        remaining: 0,
-                        completed: true,
-                        timestamp: Date.now()
-                    })
-                });
-            }
-            
-            return Response.json({ 
-                success: true, 
-                message: 'Deletion complete', 
-                deleted: finalProgress.deleted,
-                remaining: 0 
-            });
-        }
+        // ลบข้อมูลทดสอบทีละประเภท
+        console.log(`🗑️ [Cron] Starting deletion of ${totalToDelete} TEST items...`);
         
-        console.log(`🗑️ [Cron] Deleting ${payments.length} payments...`);
+        let totalDeleted = 0;
         
-        // ลบทีละรายการ ช้าๆ
-        let deletedCount = 0;
-        for (const payment of payments) {
-            try {
-                await base44.asServiceRole.entities.Payment.delete(payment.id);
-                deletedCount++;
-                console.log(`✅ [${deletedCount}/${payments.length}] Deleted ${payment.id}`);
-                
-                // รอ 0.5 วินาทีระหว่างรายการ
-                await new Promise(resolve => setTimeout(resolve, 500));
-            } catch (e) {
-                if (e.message?.includes('not found') || e.message?.includes('404')) {
-                    deletedCount++;
-                    console.log(`⚠️ [${deletedCount}/${payments.length}] ${payment.id} already deleted (404)`);
-                } else {
-                    console.error(`❌ Error deleting ${payment.id}:`, e.message);
+        // 1. ลบ Payments (batch size 300)
+        if (paymentsToDelete.length > 0) {
+            console.log(`💸 [Cron] Deleting ${paymentsToDelete.length} TEST payments...`);
+            for (const payment of paymentsToDelete) {
+                try {
+                    await base44.asServiceRole.entities.Payment.delete(payment.id);
+                    totalDeleted++;
+                    if (totalDeleted % 50 === 0) {
+                        console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted payment ${payment.id}`);
+                    }
+                } catch (e) {
+                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
+                        console.error(`❌ Error deleting payment:`, e.message);
+                    } else {
+                        totalDeleted++;
+                    }
                 }
             }
         }
         
-        // อัปเดต progress
-        if (currentProgress && progressConfigs.length > 0) {
-            const newDeleted = (currentProgress.deleted || 0) + deletedCount;
-            const newRemaining = Math.max(0, (currentProgress.initial || 0) - newDeleted);
-            
-            await base44.asServiceRole.entities.Config.update(progressConfigs[0].id, {
-                value: JSON.stringify({
-                    deleted: newDeleted,
-                    remaining: newRemaining,
-                    initial: currentProgress.initial,
-                    timestamp: Date.now()
-                })
-            });
-            
-            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-            console.log(`📊 [Cron] Progress: ${newDeleted}/${currentProgress.initial} (${newRemaining} remaining) - took ${elapsed}s`);
-            
-            // รอให้ครบ 2 นาที
-            const targetTime = 120000; // 2 minutes
-            const elapsedMs = Date.now() - startTime;
-            const remainingTime = targetTime - elapsedMs;
-            
-            if (remainingTime > 0) {
-                console.log(`⏳ [Cron] Waiting ${(remainingTime / 1000).toFixed(1)}s to reach 2 minutes...`);
-                await new Promise(resolve => setTimeout(resolve, remainingTime));
+        // 2. ลบ Bookings และอัปเดตห้อง
+        if (bookingsToDelete.length > 0) {
+            console.log(`📋 [Cron] Deleting ${bookingsToDelete.length} TEST bookings...`);
+            for (const booking of bookingsToDelete) {
+                try {
+                    if (booking.room_id) {
+                        await base44.asServiceRole.entities.Room.update(booking.room_id, {
+                            status: 'available'
+                        }).catch(() => {});
+                    }
+                    await base44.asServiceRole.entities.Booking.delete(booking.id);
+                    totalDeleted++;
+                } catch (e) {
+                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
+                        console.error(`❌ Error deleting booking:`, e.message);
+                    } else {
+                        totalDeleted++;
+                    }
+                }
             }
+        }
+        
+        // 3. ลบ Rooms
+        if (roomsToDelete.length > 0) {
+            console.log(`🏠 [Cron] Deleting ${roomsToDelete.length} TEST rooms...`);
+            for (const room of roomsToDelete) {
+                try {
+                    await base44.asServiceRole.entities.Room.delete(room.id);
+                    totalDeleted++;
+                } catch (e) {
+                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
+                        console.error(`❌ Error deleting room:`, e.message);
+                    } else {
+                        totalDeleted++;
+                    }
+                }
+            }
+        }
+        
+        // 4. ลบ Tenants
+        if (tenantsToDelete.length > 0) {
+            console.log(`👥 [Cron] Deleting ${tenantsToDelete.length} TEST tenants...`);
+            for (const tenant of tenantsToDelete) {
+                try {
+                    await base44.asServiceRole.entities.Tenant.delete(tenant.id);
+                    totalDeleted++;
+                } catch (e) {
+                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
+                        console.error(`❌ Error deleting tenant:`, e.message);
+                    } else {
+                        totalDeleted++;
+                    }
+                }
+            }
+        }
+        
+        // 5. ลบ MeterReadings
+        if (meterReadingsToDelete.length > 0) {
+            console.log(`⚡ [Cron] Deleting ${meterReadingsToDelete.length} TEST meter readings...`);
+            for (const mr of meterReadingsToDelete) {
+                try {
+                    await base44.asServiceRole.entities.MeterReading.delete(mr.id);
+                    totalDeleted++;
+                } catch (e) {
+                    if (!e.message?.includes('not found') && !e.message?.includes('404')) {
+                        console.error(`❌ Error deleting meter reading:`, e.message);
+                    } else {
+                        totalDeleted++;
+                    }
+                }
+            }
+        }
+        
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        console.log(`✅ [Cron] Deleted ${totalDeleted} items in ${elapsed}s`);
+        
+        // ⭐ ถ้ายังมีข้อมูลทดสอบเหลืออยู่ (ลบได้เต็ม batch) → เรียกตัวเองใหม่
+        if (totalDeleted >= batchSize) {
+            console.log(`🔄 [Cron] More TEST data exists - calling self again...`);
+            
+            // เรียก function ตัวเองอีกครั้งแบบ async (ไม่รอผลลัพธ์)
+            base44.asServiceRole.functions.invoke('cronDeletePayments', {})
+                .then(() => console.log(`✅ [Cron] Recursive call triggered`))
+                .catch(err => console.warn(`⚠️ [Cron] Recursive call failed:`, err.message));
             
             return Response.json({ 
                 success: true, 
-                deleted: newDeleted,
-                remaining: newRemaining,
-                batchDeleted: deletedCount,
-                message: `Deleted ${deletedCount} payments, ${newRemaining} remaining`
+                deleted: totalDeleted,
+                message: `Deleted ${totalDeleted} items, more data exists - recursive call triggered`,
+                recursive: true
             });
         }
         
-        return Response.json({ success: true, message: 'Processing...' });
+        // เสร็จสิ้น - ไม่มีข้อมูลทดสอบเหลือแล้ว
+        console.log(`🎉 [Cron] All TEST data deleted!`);
+        
+        return Response.json({ 
+            success: true, 
+            deleted: totalDeleted,
+            message: `Deletion complete - deleted ${totalDeleted} items`,
+            recursive: false
+        });
 
     } catch (error) {
         console.error('❌ [Cron] ERROR:', error.message);
