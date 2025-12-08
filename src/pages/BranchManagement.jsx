@@ -98,15 +98,20 @@ export default function BranchManagement() {
     return counts;
   }, [allRooms]);
 
-  // กรองสาขาตามสิทธิ์: แสดงเฉพาะสาขาที่มีสิทธิ์เข้าถึง (ถ้า set accessible_branches)
+  // กรองสาขาตามสิทธิ์: Developer เห็นทุกสาขาเสมอ
   const branches = React.useMemo(() => {
+    // ⭐ Developer เห็นทุกสาขาเสมอ
+    if (userRole === 'developer') {
+      return allBranches;
+    }
+    
     // ⭐ ถ้าไม่ได้ set accessible_branches (null/undefined) = แสดงทุกสาขา
     if (userAccessibleBranches === null || userAccessibleBranches === undefined) {
       return allBranches;
     }
     // ⭐ ถ้า set แล้ว = กรองตามลิสต์
     return allBranches.filter(b => userAccessibleBranches.includes(b.id));
-  }, [allBranches, userAccessibleBranches]);
+  }, [allBranches, userAccessibleBranches, userRole]);
 
   // เช็คว่าสามารถเพิ่มสาขาใหม่ได้หรือไม่
   const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
