@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, DollarSign, CreditCard, Shield, Users, ChevronDown, ChevronUp, Check, Settings as SettingsIcon, AlertTriangle, Calendar, Globe, MessageSquare, Save, Send, ArrowLeft, Bell, DoorOpen, Wrench, Package, TrendingDown, UserPlus, AlertCircle, RefreshCw, Sparkles, Zap, Crown, Loader2, Pencil } from "lucide-react";
+import { Building2, DollarSign, CreditCard, Shield, Users, ChevronDown, ChevronUp, Check, Settings as SettingsIcon, AlertTriangle, Calendar, Globe, MessageSquare, Save, Send, ArrowLeft, Bell, DoorOpen, Wrench, Package, TrendingDown, UserPlus, AlertCircle, RefreshCw, Sparkles, Zap, Crown, Loader2, Pencil, TestTube, CheckCircle2, Trash2 } from "lucide-react";
 import SignaturePad from "../components/shared/SignaturePad";
 import { Upload, X, Image as ImageIcon, PenTool } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -309,6 +309,9 @@ export default function Settings() {
   const [isSavingBillSettings, setIsSavingBillSettings] = useState(false);
   const [justSavedBillSettings, setJustSavedBillSettings] = useState(false);
   const [isSavingBankInfo, setIsSavingBankInfo] = useState(false);
+  
+  // Cron Job Settings
+  const [selectedBranchesForCron, setSelectedBranchesForCron] = useState([]);
   
   const addDebugLog = (message, type = 'info') => {
     const timestamp = new Date().toLocaleTimeString('th-TH');
@@ -1713,6 +1716,12 @@ export default function Settings() {
                 <Button variant={activeTab === 'signature' ? 'default' : 'ghost'} onClick={() => setActiveTab('signature')} className={activeTab === 'signature' ? 'bg-blue-600' : ''}>ลายเซ็น</Button>
                 {canManagePermissions && (
                   <Button variant={activeTab === 'permissions' ? 'default' : 'ghost'} onClick={() => setActiveTab('permissions')} className={activeTab === 'permissions' ? 'bg-blue-600' : ''}>สิทธิ์</Button>
+                )}
+                {userRole === 'developer' && (
+                  <Button variant={activeTab === 'cron' ? 'default' : 'ghost'} onClick={() => setActiveTab('cron')} className={activeTab === 'cron' ? 'bg-blue-600' : ''}>
+                    <TestTube className="w-4 h-4 mr-1" />
+                    Cron Jobs
+                  </Button>
                 )}
               </div>
 
@@ -3591,7 +3600,182 @@ export default function Settings() {
                     </Card>
                     )}
 
-                    {canManagePermissions && activeTab === 'permissions' && (
+                    {userRole === 'developer' && activeTab === 'cron' && (
+              <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TestTube className="w-5 h-5 text-red-600" />
+                    🗑️ ลบข้อมูลทดสอบอัตโนมัติ (Cron Job)
+                  </CardTitle>
+                  <p className="text-sm text-slate-600 mt-2">
+                    เลือกสาขาที่จะลบข้อมูลทดสอบ - Cron Job จะลบเฉพาะข้อมูลที่มี is_sample หรือ branch_code มีคำว่า TEST/12345/5555/COPY
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {branches.map((branch) => {
+                      const isSelected = selectedBranchesForCron.includes(branch.id);
+                      const isTestBranch = branch.branch_code?.includes('TEST') || 
+                                          branch.branch_code?.includes('12345') ||
+                                          branch.branch_code?.includes('5555') ||
+                                          branch.branch_code?.includes('COPY') ||
+                                          branch.branch_name?.includes('12345');
+                      
+                      return (
+                        <div
+                          key={branch.id}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedBranchesForCron(prev => prev.filter(id => id !== branch.id));
+                            } else {
+                              setSelectedBranchesForCron(prev => [...prev, branch.id]);
+                            }
+                          }}
+                          className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'border-red-500 bg-red-50 shadow-lg' 
+                              : 'border-slate-200 bg-white hover:border-red-300 hover:shadow-md'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <p className="font-bold text-slate-800 text-sm">{branch.branch_name}</p>
+                              <p className="text-xs text-slate-500">{branch.branch_code}</p>
+                            </div>
+                            {isTestBranch && (
+                              <Badge className="bg-orange-500 text-xs">ทดสอบ</Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 mt-3">
+                            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${
+                              isSelected ? 'bg-red-500 border-red-500' : 'border-slate-300'
+                            }`}>
+                              {isSelected && <CheckCircle2 className="w-4 h-4 text-white" />}
+                            </div>
+                            <span className="text-xs text-slate-600">
+                              {isSelected ? 'เลือกแล้ว' : 'คลิกเพื่อเลือก'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center justify-between bg-gradient-to-br from-slate-50 to-slate-100 p-4 rounded-xl border border-slate-200">
+                    <div>
+                      <p className="font-semibold text-slate-800">สาขาที่เลือก: {selectedBranchesForCron.length} สาขา</p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {selectedBranchesForCron.length === 0 
+                          ? 'กรุณาเลือกสาขาที่ต้องการลบข้อมูลทดสอบ' 
+                          : branches.filter(b => selectedBranchesForCron.includes(b.id)).map(b => b.branch_name).join(', ')}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          const testBranches = branches.filter(b => 
+                            b.branch_code?.includes('TEST') || 
+                            b.branch_code?.includes('12345') ||
+                            b.branch_code?.includes('5555') ||
+                            b.branch_code?.includes('COPY') ||
+                            b.branch_name?.includes('12345')
+                          );
+                          setSelectedBranchesForCron(testBranches.map(b => b.id));
+                          toast.success(`เลือกสาขาทดสอบทั้งหมด ${testBranches.length} สาขา`);
+                        }}
+                        className="text-orange-600"
+                      >
+                        เลือกสาขาทดสอบทั้งหมด
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setSelectedBranchesForCron([])}
+                        className="text-slate-600"
+                      >
+                        ล้างทั้งหมด
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Button
+                      onClick={async () => {
+                        if (selectedBranchesForCron.length === 0) {
+                          toast.error('กรุณาเลือกสาขาที่ต้องการลบข้อมูล');
+                          return;
+                        }
+
+                        try {
+                          const config = {
+                            key: 'cron_delete_selected_branches',
+                            value: JSON.stringify(selectedBranchesForCron),
+                            description: 'รายการ Branch IDs สำหรับ Cron Job ลบข้อมูลทดสอบ',
+                            category: 'general'
+                          };
+
+                          const configs = await base44.entities.Config.filter({ key: 'cron_delete_selected_branches' });
+                          if (configs.length > 0) {
+                            await base44.entities.Config.update(configs[0].id, config);
+                          } else {
+                            await base44.entities.Config.create(config);
+                          }
+                          toast.success(`บันทึกรายการ ${selectedBranchesForCron.length} สาขาสำเร็จ`);
+                        } catch (error) {
+                          toast.error('บันทึกไม่สำเร็จ: ' + error.message);
+                        }
+                      }}
+                      className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
+                      disabled={selectedBranchesForCron.length === 0}
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      💾 บันทึกรายการสาขาสำหรับ Cron Job
+                    </Button>
+                    
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const configs = await base44.entities.Config.filter({ key: 'cron_delete_selected_branches' });
+                          if (configs.length > 0) {
+                            const branchIds = JSON.parse(configs[0].value);
+                            setSelectedBranchesForCron(branchIds);
+                            toast.success(`โหลดรายการ ${branchIds.length} สาขาแล้ว`);
+                          } else {
+                            toast.info('ยังไม่มีรายการที่บันทึกไว้');
+                          }
+                        } catch (error) {
+                          toast.error('โหลดไม่สำเร็จ: ' + error.message);
+                        }
+                      }}
+                      variant="outline"
+                      className="w-full"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      🔄 โหลดรายการที่บันทึกไว้
+                    </Button>
+                  </div>
+                  
+                  <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-900 mb-2">ข้อมูลที่จะถูกลบ:</p>
+                        <ul className="text-xs text-amber-800 space-y-1">
+                          <li>• Payment ที่มี is_sample = true</li>
+                          <li>• Payment ของสาขาที่มี branch_code: TEST, 12345, 5555, COPY</li>
+                          <li>• Booking, Room, Tenant, MeterReading ที่มีคำว่า TEST หรือ is_sample</li>
+                        </ul>
+                        <p className="text-xs text-amber-900 mt-3 font-semibold">
+                          ⚠️ Cron Job ทำงานอัตโนมัติทุก 2 นาที และจะลบข้อมูลทดสอบเฉพาะสาขาที่เลือกเท่านั้น
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {canManagePermissions && activeTab === 'permissions' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
                   <CardHeader>
                     <div className="flex items-center justify-between">
