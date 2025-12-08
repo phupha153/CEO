@@ -1106,21 +1106,11 @@ export default function Layout({ children, currentPageName }) {
         currentPageName === 'RenewalPage' ||
         currentPageName === 'UpdateMyBranches' ||
         currentPageName === 'UserBranchAccess') {
-      console.log('🔍 Layout - Exempt page, not checking branch:', currentPageName);
       return;
     }
     
-    console.log('🔍 Layout - Branch check:', {
-      currentPageName,
-      selectedBranch: selectedBranch?.id,
-      canAccessBranch,
-      branches: branches.length,
-      userRole
-    });
-    
     // If user has a selected branch but no access to it, clear and redirect
     if (selectedBranch && !canAccessBranch) {
-      console.log('⚠️ Layout - No branch access, redirecting to BranchSelection');
       localStorage.removeItem('selected_branch_id');
       localStorage.removeItem('selected_branch_name');
       setSelectedBranch(null);
@@ -1130,7 +1120,6 @@ export default function Layout({ children, currentPageName }) {
     
     // If no branch is selected and there are branches available, redirect to branch selection
     if (!selectedBranch && branches.length > 0) {
-      console.log('⚠️ Layout - No branch selected, redirecting to BranchSelection');
       navigate(createPageUrl('BranchSelection'), { replace: true });
     }
   }, [currentUser?.id, selectedBranch?.id, canAccessBranch, isLoading, branchesLoading, currentPageName, branches.length, navigate, userRole]);
