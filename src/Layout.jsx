@@ -1073,7 +1073,8 @@ export default function Layout({ children, currentPageName }) {
       currentPageName === 'TrialExpiredPage' ||
       currentPageName === 'PackageExpiredPage' ||
       currentPageName === 'BranchSelection' ||
-      currentPageName === 'BranchManagement') {
+      currentPageName === 'BranchManagement' ||
+      currentPageName === 'Welcome') {
     return (
       <>
         <Toaster richColors position="top-center" />
@@ -1130,12 +1131,28 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // Render error handling screen for currentUser
+  // Render Welcome page for unauthenticated users (not network error)
   if (error && !isLoading && !currentUser) {
     const isNetworkError = error?.message?.includes('Network') || 
                           error?.message?.includes('fetch') ||
                           error?.code === 'ERR_NETWORK';
-    
+
+    // If not authenticated and not already on Welcome page, redirect to Welcome
+    if (!isNetworkError && currentPageName !== 'Welcome') {
+      navigate(createPageUrl('Welcome'), { replace: true });
+      return null;
+    }
+
+    // If already on Welcome page, just render it without sidebar
+    if (currentPageName === 'Welcome') {
+      return (
+        <>
+          <Toaster richColors position="top-center" />
+          {children}
+        </>
+      );
+    }
+
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
