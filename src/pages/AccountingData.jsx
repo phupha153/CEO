@@ -21,6 +21,7 @@ export default function AccountingData() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
+  const [selectedMonth, setSelectedMonth] = useState('all'); // เดือน/ปีที่เลือก format: 'YYYY-MM'
   const [selectedPayments, setSelectedPayments] = useState([]);
   const [selectedInvoices, setSelectedInvoices] = useState([]);
   const [showReceiptLinks, setShowReceiptLinks] = useState(false);
@@ -279,34 +280,25 @@ export default function AccountingData() {
     }
   };
 
+  // สร้างรายการเดือน/ปีที่มีข้อมูล
+  const availableMonths = useMemo(() => {
+    const monthsSet = new Set();
+    payments.forEach(p => {
+      const billingPeriod = getBillingPeriod(p);
+      if (billingPeriod) {
+        const monthKey = format(billingPeriod, 'yyyy-MM');
+        monthsSet.add(monthKey);
+      }
+    });
+    
+    const sortedMonths = Array.from(monthsSet).sort((a, b) => b.localeCompare(a)); // เรียงจากใหม่ไปเก่า
+    return sortedMonths;
+  }, [payments]);
+
   // ฟังก์ชันกรองข้อมูล - ใบเสร็จรับเงิน (แสดงทุกรายการ)
   const filteredPayments = useMemo(() => {
     console.log('🔍 filteredPayments calculation - Total payments:', payments.length);
-    console.log('dateFilter:', dateFilter, 'searchTerm:', searchTerm);
-    
-    let dateRange = null;
-    
-    if (dateFilter !== 'all') {
-      const now = new Date();
-      switch(dateFilter) {
-        case 'this_month':
-          dateRange = { from: startOfMonth(now), to: endOfMonth(now) };
-          break;
-        case 'last_month':
-          dateRange = { from: startOfMonth(subMonths(now, 1)), to: endOfMonth(subMonths(now, 1)) };
-          break;
-        case '3_months':
-          dateRange = { from: startOfMonth(subMonths(now, 2)), to: endOfMonth(now) };
-          break;
-        case '6_months':
-          dateRange = { from: startOfMonth(subMonths(now, 5)), to: endOfMonth(now) };
-          break;
-        case '12_months':
-          dateRange = { from: startOfMonth(subMonths(now, 11)), to: endOfMonth(now) };
-          break;
-      }
-      console.log('Date range:', dateRange);
-    }
+    console.log('selectedMonth:', selectedMonth, 'searchTerm:', searchTerm);
 
     const filtered = payments
       .filter(payment => {
@@ -317,17 +309,18 @@ export default function AccountingData() {
           room?.room_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           tenant?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
         
-        let matchDate = true;
-        if (dateRange) {
+        let matchMonth = true;
+        if (selectedMonth !== 'all') {
           const billingPeriod = getBillingPeriod(payment);
           if (billingPeriod) {
-            matchDate = isWithinInterval(billingPeriod, { start: dateRange.from, end: dateRange.to });
+            const paymentMonth = format(billingPeriod, 'yyyy-MM');
+            matchMonth = paymentMonth === selectedMonth;
           } else {
-            matchDate = false;
+            matchMonth = false;
           }
         }
         
-        return matchSearch && matchDate;
+        return matchSearch && matchMonth;
       })
       .sort((a, b) => {
         const dateA = a.payment_date || a.due_date || a.created_date;
@@ -337,34 +330,12 @@ export default function AccountingData() {
     
     console.log('✅ Filtered payments:', filtered.length);
     return filtered;
-  }, [payments, rooms, tenants, searchTerm, dateFilter]);
+  }, [payments, rooms, tenants, searchTerm, selectedMonth]);
 
   // ฟังก์ชันกรองใบแจ้งหนี้ - แสดงทุกรายการ
   const filteredInvoices = useMemo(() => {
     console.log('🔍 filteredInvoices calculation - Total payments:', payments.length);
-    
-    let dateRange = null;
-    
-    if (dateFilter !== 'all') {
-      const now = new Date();
-      switch(dateFilter) {
-        case 'this_month':
-          dateRange = { from: startOfMonth(now), to: endOfMonth(now) };
-          break;
-        case 'last_month':
-          dateRange = { from: startOfMonth(subMonths(now, 1)), to: endOfMonth(subMonths(now, 1)) };
-          break;
-        case '3_months':
-          dateRange = { from: startOfMonth(subMonths(now, 2)), to: endOfMonth(now) };
-          break;
-        case '6_months':
-          dateRange = { from: startOfMonth(subMonths(now, 5)), to: endOfMonth(now) };
-          break;
-        case '12_months':
-          dateRange = { from: startOfMonth(subMonths(now, 11)), to: endOfMonth(now) };
-          break;
-      }
-    }
+    console.log('selectedMonth:', selectedMonth);
 
     const filtered = payments
       .filter(payment => {
@@ -375,17 +346,18 @@ export default function AccountingData() {
           room?.room_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           tenant?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
         
-        let matchDate = true;
-        if (dateRange) {
+        let matchMonth = true;
+        if (selectedMonth !== 'all') {
           const billingPeriod = getBillingPeriod(payment);
           if (billingPeriod) {
-            matchDate = isWithinInterval(billingPeriod, { start: dateRange.from, end: dateRange.to });
+            const paymentMonth = format(billingPeriod, 'yyyy-MM');
+            matchMonth = paymentMonth === selectedMonth;
           } else {
-            matchDate = false;
+            matchMonth = false;
           }
         }
         
-        return matchSearch && matchDate;
+        return matchSearch && matchMonth;
       })
       .sort((a, b) => {
         const dateA = a.due_date || a.created_date;
@@ -395,7 +367,7 @@ export default function AccountingData() {
     
     console.log('✅ Filtered invoices:', filtered.length);
     return filtered;
-  }, [payments, rooms, tenants, searchTerm, dateFilter]);
+  }, [payments, rooms, tenants, searchTerm, selectedMonth]);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter(booking => {
@@ -1303,26 +1275,29 @@ export default function AccountingData() {
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <Select value={dateFilter} onValueChange={setDateFilter}>
+                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                       <SelectTrigger className="w-full md:w-48">
-                        <SelectValue placeholder="เลือกช่วงเวลา" />
+                        <SelectValue placeholder="เลือกงวดบิล" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">ทั้งหมด</SelectItem>
-                        <SelectItem value="this_month">{format(new Date(), 'MMMM yyyy', { locale: th })}</SelectItem>
-                        <SelectItem value="last_month">{format(subMonths(new Date(), 1), 'MMMM yyyy', { locale: th })}</SelectItem>
-                        <SelectItem value="3_months">3 เดือนล่าสุด</SelectItem>
-                        <SelectItem value="6_months">6 เดือนล่าสุด</SelectItem>
-                        <SelectItem value="12_months">12 เดือนล่าสุด</SelectItem>
+                        {availableMonths.map(monthKey => {
+                          const date = parseISO(`${monthKey}-01`);
+                          return (
+                            <SelectItem key={monthKey} value={monthKey}>
+                              งวด {format(date, 'MMMM yyyy', { locale: th })}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
-                  {(searchTerm || (dateFilter && dateFilter !== 'all')) && (
+                  {(searchTerm || selectedMonth !== 'all') && (
                     <Button
                       variant="outline"
                       onClick={() => {
                         setSearchTerm('');
-                        setDateFilter('all');
+                        setSelectedMonth('all');
                       }}
                     >
                       ล้างตัวกรอง
