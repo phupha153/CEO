@@ -478,14 +478,11 @@ export default function BranchSelection() {
                     className="max-w-md mx-auto"
                   >
                     <div className="relative w-48 h-48 mx-auto mb-6">
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-sky-400/30 rounded-3xl blur-3xl animate-pulse" />
-                      <div className="relative w-full h-full rounded-3xl bg-white/90 flex items-center justify-center shadow-2xl p-6">
-                        <img 
-                          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/22bcd34c2_GreenMinimalistNewSongWidgetInstagramPost2.png" 
-                          alt="หลังหอพัก"
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
+                      <img 
+                        src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/ab32dfa6a_GreenMinimalistNewSongWidgetInstagramPost3.png" 
+                        alt="หลังหอพัก"
+                        className="w-full h-full object-contain"
+                      />
                     </div>
 
                     <h2 className="text-2xl font-bold text-slate-800 mb-3">
