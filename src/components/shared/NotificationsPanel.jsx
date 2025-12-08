@@ -324,6 +324,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     if (!isOpen) return {};
     
     const now = getCurrentDate();
+    console.log('🔍 [NotificationPanel] Current date:', now.toISOString());
     const branchNotifications = {};
 
     const selectedBranchId = localStorage.getItem('selected_branch_id');
@@ -346,6 +347,15 @@ export default function NotificationsPanel({ isOpen, onClose }) {
       const bookings = allBookings.filter(b => b.branch_id === branchId);
       const materialDeliveries = allMaterialDeliveries.filter(d => d.branch_id === branchId);
       const tenants = allTenants.filter(t => t.branch_id === branchId);
+      
+      // ⭐ Debug log
+      if (branchId === '69256957890d2b5aaaca1d3f') {
+        console.log('🔍 Processing branch:', branchName, {
+          totalPayments: payments.length,
+          pendingPayments: payments.filter(p => p.status !== 'paid').length,
+          totalRooms: rooms.length
+        });
+      }
 
       const vacantDaysThreshold = getConfig(branchId, 'vacant_room_days', 7);
       const urgentMaintenanceEnabled = getConfig(branchId, 'urgent_maintenance_enabled', true);
@@ -403,7 +413,22 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         try {
           const dueDate = parseISO(p.due_date);
           const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-          return now > dueDateStart;
+          const isOverdue = now > dueDateStart;
+          
+          // ⭐ Debug log สำหรับสาขา 12345
+          if (branchId === '69256957890d2b5aaaca1d3f') {
+            console.log('🔍 Overdue check:', {
+              room: rooms.find(r => r.id === p.room_id)?.room_number,
+              dueDate: p.due_date,
+              status: p.status,
+              now: now.toISOString(),
+              dueDateStart: dueDateStart.toISOString(),
+              isOverdue,
+              daysOverdue: differenceInDays(now, dueDateStart)
+            });
+          }
+          
+          return isOverdue;
         } catch (err) {
           console.error('Date parse error:', err, p.due_date);
           return false;
