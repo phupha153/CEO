@@ -305,31 +305,8 @@ export default function BranchSelection() {
                     {/* ปุ่มเพิ่มสาขา/แก้ไข - ไปหน้า BranchManagement เสมอ */}
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
-                        type="button"
-                        onClick={(e) => {
-                          if (isNavigatingToBranchManagement) {
-                            console.log('⏸️ กำลัง navigate อยู่แล้ว - ข้าม');
-                            return;
-                          }
-                          
-                          console.log('🟢 ปุ่มจัดการสาขา (ไม่มีสาขา) - กดแล้ว');
-                          e.preventDefault();
-                          e.stopPropagation();
-                          
-                          setIsNavigatingToBranchManagement(true);
-                          const url = createPageUrl('BranchManagement');
-                          console.log('🚀 กำลังไปที่:', url);
-                          
-                          if (navigationTimeoutRef.current) {
-                            clearTimeout(navigationTimeoutRef.current);
-                          }
-                          
-                          navigationTimeoutRef.current = setTimeout(() => {
-                            navigate(url);
-                          }, 100);
-                        }}
-                        disabled={isNavigatingToBranchManagement}
-                        className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold relative z-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={() => navigate(createPageUrl('BranchManagement'))}
+                        className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold"
                         data-onboarding="add-branch-button"
                       >
                         <Building2 className="w-6 h-6 mr-2 flex-shrink-0" />
