@@ -8,17 +8,21 @@ Deno.serve(async (req) => {
         
         console.log('🔔 Starting due date reminder check...');
 
-        // Parse request body to check for test mode
+        // Parse request body to check for test mode and limit
         let testLineUserId = null;
+        let limit = 20; // จำนวนบิลสูงสุดที่จะส่งต่อครั้ง (default 20)
         try {
             const text = await req.text();
             if (text) {
                 const body = JSON.parse(text);
                 testLineUserId = body.test_line_user_id || null;
+                limit = body.limit || 20;
             }
         } catch (parseError) {
             console.log('⚠️ No body or parse error:', parseError.message);
         }
+
+        console.log('📊 Limit per run:', limit);
 
         // 1. ดึงการตั้งค่าจาก Config
         const configs = await base44.asServiceRole.entities.Config.list();
@@ -132,7 +136,7 @@ Deno.serve(async (req) => {
                 console.log(`⏭️ Skipping payment ${p.id} - already sent due date reminder`);
                 return false;
             }
-            
+
             // ⭐ เช็คว่าสาขานี้เปิดการแจ้งเตือนหรือไม่
             if (!enabledBranches.includes(p.branch_id)) {
                 console.log(`⏭️ Skipping payment ${p.id} - branch ${p.branch_id} has due date reminder disabled`);
@@ -142,13 +146,24 @@ Deno.serve(async (req) => {
             return true;
         });
 
-        console.log(`📊 Found ${dueToday.length} payments due today`);
+        const totalDueToday = dueToday.length;
+        console.log(`📊 Found ${totalDueToday} payments due today`);
 
-        if (dueToday.length === 0) {
+        // ⭐ จำกัดจำนวนบิลที่จะประมวลผลในรอบนี้
+        const paymentsToProcess = dueToday.slice(0, limit);
+        const totalRemaining = totalDueToday - paymentsToProcess.length;
+
+        console.log(`📋 Processing this round: ${paymentsToProcess.length}`);
+        console.log(`📋 Remaining for next round: ${totalRemaining}`);
+
+        if (totalDueToday === 0) {
             return Response.json({
                 success: true,
                 message: 'ไม่มีบิลที่ครบกำหนดชำระวันนี้',
-                sent: 0
+                sent: 0,
+                total: 0,
+                remaining: 0,
+                hasMore: false
             });
         }
 
@@ -205,7 +220,7 @@ Deno.serve(async (req) => {
         // 4. เตรียมข้อความสำหรับแต่ละบิล (grouped by branch)
         const recipients = [];
 
-        for (const payment of dueToday) {
+        for (const payment of paymentsToProcess) {
             try {
                 // ⭐ ใช้ Map lookup แทน API call ในลูป
                 const tenant = tenantMap.get(payment.tenant_id);
@@ -394,9 +409,12 @@ Deno.serve(async (req) => {
             success: true,
             message: testLineUserId 
                 ? `🧪 ส่งข้อความทดสอบสำเร็จ (Test Mode)` 
-                : `ส่งการแจ้งเตือนสำเร็จ ${sentCount}/${recipients.length} รายการ`,
+                : `ส่งการแจ้งเตือนสำเร็จ ${sentCount}/${recipients.length} รายการ${totalRemaining > 0 ? ` | เหลืออีก ${totalRemaining} บิล` : ''}`,
             sent: sentCount,
             total: testLineUserId ? 1 : recipients.length,
+            remaining: totalRemaining,
+            hasMore: totalRemaining > 0,
+            limit: limit,
             testMode: !!testLineUserId,
             enabledBranches: enabledBranches,
             errors: sendErrors.length > 0 ? sendErrors : undefined,
