@@ -253,15 +253,9 @@ export default function BranchSelection() {
                     {/* ปุ่มแก้ไขสาขา - แสดงเสมอสำหรับ developer และ owner */}
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          console.log('🔵 Branch Management Button Clicked');
-                          window.location.href = createPageUrl('BranchManagement');
-                        }}
+                        onClick={() => navigate(createPageUrl('BranchManagement'))}
                         className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg h-auto py-4 px-6 text-sm rounded-2xl font-medium text-white"
                         data-onboarding="add-branch-button"
-                        type="button"
                       >
                         <Building2 className="w-5 h-5 mr-2 flex-shrink-0" />
                         <span>จัดการสาขา</span>
@@ -299,15 +293,9 @@ export default function BranchSelection() {
                     {/* ปุ่มเพิ่มสาขา/แก้ไข - ไปหน้า BranchManagement เสมอ */}
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          console.log('🔵 Branch Management Button Clicked (No Branch)');
-                          window.location.href = createPageUrl('BranchManagement');
-                        }}
+                        onClick={() => navigate(createPageUrl('BranchManagement'))}
                         className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold"
                         data-onboarding="add-branch-button"
-                        type="button"
                       >
                         <Building2 className="w-6 h-6 mr-2 flex-shrink-0" />
                         <span>จัดการสาขา</span>
