@@ -603,16 +603,19 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['branchPackages'],
     queryFn: () => base44.entities.BranchPackage.list('-created_date', 200),
     enabled: !isLoading && !!currentUser && isOnline,
-    staleTime: 30 * 1000,
-    refetchOnWindowFocus: true,
+    staleTime: 10 * 60 * 1000, // 10 นาที
+    gcTime: 30 * 60 * 1000, // 30 นาที
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
     enabled: !isLoading && !!currentUser && isOnline,
-    staleTime: 60 * 1000,
-    gcTime: 2 * 60 * 60 * 1000, // Changed gcTime to 2 hours
+    staleTime: 24 * 60 * 60 * 1000, // 24 ชั่วโมง
+    gcTime: 48 * 60 * 60 * 1000, // 48 ชั่วโมง
     retry: 0,
     retryDelay: 0,
     networkMode: 'online',
@@ -626,8 +629,8 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
     enabled: !isLoading && !!currentUser && isOnline,
-    staleTime: 60 * 1000,
-    gcTime: 2 * 60 * 60 * 1000, // Changed gcTime to 2 hours
+    staleTime: 24 * 60 * 60 * 1000, // 24 ชั่วโมง
+    gcTime: 48 * 60 * 60 * 1000, // 48 ชั่วโมง
     retry: 0,
     refetchOnWindowFocus: false,
     refetchOnMount: false,

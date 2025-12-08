@@ -230,15 +230,14 @@ export default function Dashboard() {
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      return await base44.entities.Booking.filter({ branch_id: selectedBranchId }, '-created_date', 5000);
+      return await base44.entities.Booking.filter({ branch_id: selectedBranchId }, '-created_date', 500);
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
-    staleTime: 2 * 60 * 60 * 1000,
-    gcTime: 4 * 60 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    refetchOnReconnect: false,
+    refetchOnMount: false,
     placeholderData: (previousData) => previousData,
   });
 
@@ -283,15 +282,14 @@ export default function Dashboard() {
     queryKey: ['expenses', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      return await base44.entities.Expense.filter({ branch_id: selectedBranchId }, '-date', 500);
+      return await base44.entities.Expense.filter({ branch_id: selectedBranchId }, '-date', 200);
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
-    staleTime: 60 * 60 * 1000,
-    gcTime: 2 * 60 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    refetchOnReconnect: false,
+    refetchOnMount: false,
     placeholderData: (previousData) => previousData,
   });
 
