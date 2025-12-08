@@ -229,9 +229,21 @@ Deno.serve(async (req) => {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         console.log(`✅ [Cron] Deleted ${totalDeleted} items in ${elapsed}s`);
         
-        // ⭐ ถ้ายังมีข้อมูลทดสอบเหลืออยู่ (ลบได้เต็ม batch) → เรียกตัวเองใหม่
-        if (totalDeleted >= batchSize) {
-            console.log(`🔄 [Cron] More TEST data exists - calling self again...`);
+        // ⭐ เช็คว่ายังมีข้อมูลเหลืออีกหรือไม่ - ถ้า entity ใดๆ ลบได้เต็ม batch หรือ fetch มาได้เต็ม batch = ยังมีเหลือ
+        const hasMoreData = paymentsToDelete.length === batchSize ||
+                           bookingsToDelete.length === batchSize ||
+                           roomsToDelete.length === batchSize ||
+                           tenantsToDelete.length === batchSize ||
+                           meterReadingsToDelete.length === batchSize ||
+                           testPayments.length >= batchSize * 2 || // Payment fetch เยอะกว่า เลยใช้ *2
+                           testBookings.length >= batchSize ||
+                           testRooms.length >= batchSize ||
+                           testTenants.length >= batchSize ||
+                           testMeterReadings.length >= batchSize;
+        
+        if (hasMoreData) {
+            console.log(`🔄 [Cron] More TEST data likely exists - calling self again...`);
+            console.log(`📊 Fetched counts: Payments=${testPayments.length}, Bookings=${testBookings.length}, Rooms=${testRooms.length}, Tenants=${testTenants.length}, MeterReadings=${testMeterReadings.length}`);
             
             // เรียก function ตัวเองอีกครั้งแบบ async (ไม่รอผลลัพธ์)
             base44.asServiceRole.functions.invoke('cronDeletePayments', {})
