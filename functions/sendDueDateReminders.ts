@@ -79,10 +79,20 @@ Deno.serve(async (req) => {
         
         try {
             // ใช้ filter แทน list เพื่อให้ได้ข้อมูลทั้งหมด
-            const result = await base44.asServiceRole.entities.Payment.filter({});
+            let result = await base44.asServiceRole.entities.Payment.filter({});
+            
+            // ถ้าได้ string มา (JSON serialized) ให้ parse
+            if (typeof result === 'string') {
+                try {
+                    result = JSON.parse(result);
+                } catch (parseErr) {
+                    console.error('❌ Failed to parse result:', parseErr.message);
+                    result = [];
+                }
+            }
+            
             allPayments = Array.isArray(result) ? result : [];
             console.log(`✅ Total fetched: ${allPayments.length} payments`);
-            console.log(`🔍 Payment type check: ${typeof result}, isArray: ${Array.isArray(result)}`);
         } catch (err) {
             console.error('❌ Error fetching payments:', err.message);
             allPayments = [];
