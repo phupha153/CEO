@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bell, DollarSign, DoorOpen, Wrench, Clock, X, AlertTriangle, Calendar, Package, TrendingDown, CheckCheck, ChevronDown, ChevronUp, Building2, Filter, Trash2, UserPlus, Check, Loader2, ZoomIn } from "lucide-react";
 import SlipPreviewDialog from "./SlipPreviewDialog";
+import PageHeader from "./PageHeader";
 import { toast } from "sonner";
 import { format, differenceInDays, parseISO, formatDistanceToNow } from "date-fns";
 import { th } from "date-fns/locale";
@@ -18,7 +19,8 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [expandedGroups, setExpandedGroups] = useState({});
-  const [filterBranch, setFilterBranch] = useState('all');
+  const selectedBranchId = localStorage.getItem('selected_branch_id');
+  const [filterBranch, setFilterBranch] = useState(selectedBranchId || 'all');
   const [swipedItem, setSwipedItem] = useState(null);
   const [confirmingPaymentId, setConfirmingPaymentId] = useState(null);
   const [slipPreview, setSlipPreview] = useState({ open: false, url: '', title: '' });
@@ -890,13 +892,16 @@ export default function NotificationsPanel({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  const currentBranch = branches.find(b => b.id === selectedBranchId);
+  const currentBranchName = currentBranch?.branch_name || localStorage.getItem('selected_branch_name') || 'สาขาปัจจุบัน';
+
   return (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50"
         onClick={onClose}
       >
         <motion.div
@@ -904,93 +909,88 @@ export default function NotificationsPanel({ isOpen, onClose }) {
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: -20, opacity: 0, scale: 0.95 }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          className="absolute top-16 right-4 md:right-8 w-full max-w-md shadow-2xl"
+          className="absolute top-4 right-2 md:top-16 md:right-8 w-[96vw] md:w-full max-w-md shadow-2xl max-h-[95vh] md:max-h-none"
           onClick={(e) => e.stopPropagation()}
         >
-          <Card className="bg-white shadow-2xl border-2 border-slate-200 rounded-2xl overflow-hidden">
-            <CardHeader className="border-b-2 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 text-white">
-              <div className="flex items-center justify-between">
+          <Card className="bg-white shadow-2xl border border-slate-200 rounded-xl md:rounded-2xl overflow-hidden flex flex-col max-h-[95vh]">
+            <div className="p-4 md:p-6 border-b bg-gradient-to-br from-slate-50 to-white flex-shrink-0">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center relative shadow-lg border border-white/30">
-                    <Bell className="w-6 h-6 text-white drop-shadow-lg" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center relative shadow-md">
+                    <Bell className="w-5 h-5 md:w-6 md:h-6 text-white" />
                     {unreadCount > 0 && (
                       <motion.div 
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute -top-1.5 -right-1.5 min-w-6 h-6 px-1.5 bg-gradient-to-r from-red-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg"
+                        className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-gradient-to-r from-red-500 to-pink-600 rounded-full flex items-center justify-center shadow-md text-white text-[10px] md:text-xs font-bold"
                       >
-                        <span className="text-white text-xs font-bold">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                        {unreadCount > 99 ? '99+' : unreadCount}
                       </motion.div>
                     )}
                   </div>
                   <div>
-                    <CardTitle className="text-xl text-white font-bold drop-shadow-sm">การแจ้งเตือน</CardTitle>
-                    <p className="text-xs text-white/90 font-medium drop-shadow-sm">
-                      {unreadCount > 0 ? `${unreadCount} รายการใหม่` : 'ไม่มีรายการใหม่'}
+                    <h2 className="text-base md:text-xl text-slate-900 font-bold">การแจ้งเตือน</h2>
+                    <p className="text-xs text-slate-600">
+                      {currentBranchName} · {unreadCount > 0 ? `${unreadCount} รายการใหม่` : 'ไม่มีรายการใหม่'}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {unreadCount > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => markAllAsReadMutation.mutate(visibleNotifications.map(n => n.id))}
-                      className="text-xs text-white/90 hover:text-white hover:bg-white/20 border border-white/30"
-                    >
-                      <CheckCheck className="w-4 h-4 mr-1" />
-                      อ่านทั้งหมด
-                    </Button>
-                  )}
-                  {canDelete && filteredNotifications.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        if (confirm('ลบการแจ้งเตือนทั้งหมด?')) {
-                          deleteAllNotificationsMutation.mutate(filteredNotifications.map(n => n.id));
-                        }
-                      }}
-                      className="text-xs text-white/90 hover:text-white hover:bg-white/20 border border-white/30"
-                    >
-                      <Trash2 className="w-4 h-4 mr-1" />
-                      ลบ
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={onClose}
-                    className="rounded-full text-white/90 hover:text-white hover:bg-white/20"
-                  >
-                    <X className="w-5 h-5" />
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 h-8 w-8 md:h-10 md:w-10"
+                >
+                  <X className="w-4 h-4 md:w-5 md:h-5" />
+                </Button>
               </div>
 
-              {showAllBranches && branches.length > 1 && (
-                <div className="mt-4 pt-3 border-t border-white/30">
-                  <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-white/90" />
-                    <select
-                      value={filterBranch}
-                      onChange={(e) => setFilterBranch(e.target.value)}
-                      className="flex-1 p-2 text-sm border border-white/30 rounded-lg bg-white/10 backdrop-blur-sm text-white focus:outline-none focus:ring-2 focus:ring-white/50"
-                    >
-                      <option value="all" className="text-slate-800">ทุกสาขา ({allNotifications.length})</option>
-                      {Object.entries(notificationsByBranch).map(([branchId, branchData]) => (
-                        <option key={branchId} value={branchId} className="text-slate-800">
-                          {branchData.branchName} ({branchData.alerts.length})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-            </CardHeader>
+              <div className="flex items-center gap-2 flex-wrap">
+                {unreadCount > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => markAllAsReadMutation.mutate(visibleNotifications.map(n => n.id))}
+                    className="text-xs h-8"
+                  >
+                    <CheckCheck className="w-3 h-3 md:w-4 md:h-4 mr-1" />
+                    อ่านทั้งหมด
+                  </Button>
+                )}
+                {canDelete && filteredNotifications.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (confirm('ลบการแจ้งเตือนทั้งหมด?')) {
+                        deleteAllNotificationsMutation.mutate(filteredNotifications.map(n => n.id));
+                      }
+                    }}
+                    className="text-xs h-8"
+                  >
+                    <Trash2 className="w-3 h-3 md:w-4 md:h-4 mr-1" />
+                    ลบ
+                  </Button>
+                )}
+                {showAllBranches && branches.length > 1 && (
+                  <select
+                    value={filterBranch}
+                    onChange={(e) => setFilterBranch(e.target.value)}
+                    className="flex-1 md:flex-none px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">ทุกสาขา ({allNotifications.length})</option>
+                    {Object.entries(notificationsByBranch).map(([branchId, branchData]) => (
+                      <option key={branchId} value={branchId}>
+                        {branchData.branchName} ({branchData.alerts.length})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
 
-            <div className="flex-1 overflow-y-auto max-h-[70vh] md:max-h-[calc(100vh-180px)] bg-gradient-to-b from-slate-50/50 to-white">
-              <CardContent className="p-6">
+            <div className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50/50 to-white">
+              <CardContent className="p-3 md:p-6">
                 {visibleNotifications.length === 0 ? (
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.9 }}
