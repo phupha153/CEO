@@ -19,7 +19,8 @@ Deno.serve(async (req) => {
             branchId = configs.length > 0 ? configs[0].value : '69255a34e816a8749fc765c2';
         }
 
-        console.log(`🔄 [Cron] Checking deletion progress for branch: ${branchId}`);
+        const startTime = Date.now();
+        console.log(`🔄 [Cron] Starting batch deletion for branch: ${branchId}`);
 
         // เช็ค progress จาก Config
         const progressKey = `delete_progress_${branchId}`;
@@ -57,10 +58,12 @@ Deno.serve(async (req) => {
             console.log(`📊 [Cron] Initialized progress: ${allPayments.length} payments to delete`);
         }
         
+        // ลบทีละ 150 รายการ
+        const batchSize = 150;
         const payments = await base44.asServiceRole.entities.Payment.filter(
             { branch_id: branchId }, 
             '-created_date', 
-            1
+            batchSize
         );
         
         if (!payments || payments.length === 0) {
@@ -86,26 +89,31 @@ Deno.serve(async (req) => {
             });
         }
         
-        const payment = payments[0];
-        let deleted = false;
+        console.log(`🗑️ [Cron] Deleting ${payments.length} payments...`);
         
-        try {
-            console.log(`🗑️ [Cron] Deleting payment: ${payment.id}`);
-            await base44.asServiceRole.entities.Payment.delete(payment.id);
-            deleted = true;
-            console.log(`✅ [Cron] Deleted payment: ${payment.id}`);
-        } catch (e) {
-            if (e.message?.includes('not found') || e.message?.includes('404')) {
-                console.log(`⚠️ [Cron] Payment ${payment.id} already deleted (404), skipping...`);
-                deleted = true;
-            } else {
-                console.error(`❌ [Cron] Error deleting ${payment.id}:`, e.message);
-                throw e;
+        // ลบทีละรายการ ช้าๆ
+        let deletedCount = 0;
+        for (const payment of payments) {
+            try {
+                await base44.asServiceRole.entities.Payment.delete(payment.id);
+                deletedCount++;
+                console.log(`✅ [${deletedCount}/${payments.length}] Deleted ${payment.id}`);
+                
+                // รอ 0.5 วินาทีระหว่างรายการ
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } catch (e) {
+                if (e.message?.includes('not found') || e.message?.includes('404')) {
+                    deletedCount++;
+                    console.log(`⚠️ [${deletedCount}/${payments.length}] ${payment.id} already deleted (404)`);
+                } else {
+                    console.error(`❌ Error deleting ${payment.id}:`, e.message);
+                }
             }
         }
         
-        if (deleted && currentProgress && progressConfigs.length > 0) {
-            const newDeleted = (currentProgress.deleted || 0) + 1;
+        // อัปเดต progress
+        if (currentProgress && progressConfigs.length > 0) {
+            const newDeleted = (currentProgress.deleted || 0) + deletedCount;
             const newRemaining = Math.max(0, (currentProgress.initial || 0) - newDeleted);
             
             await base44.asServiceRole.entities.Config.update(progressConfigs[0].id, {
@@ -117,13 +125,25 @@ Deno.serve(async (req) => {
                 })
             });
             
-            console.log(`📊 [Cron] Progress: ${newDeleted}/${currentProgress.initial} (${newRemaining} remaining)`);
+            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+            console.log(`📊 [Cron] Progress: ${newDeleted}/${currentProgress.initial} (${newRemaining} remaining) - took ${elapsed}s`);
+            
+            // รอให้ครบ 2 นาที
+            const targetTime = 120000; // 2 minutes
+            const elapsedMs = Date.now() - startTime;
+            const remainingTime = targetTime - elapsedMs;
+            
+            if (remainingTime > 0) {
+                console.log(`⏳ [Cron] Waiting ${(remainingTime / 1000).toFixed(1)}s to reach 2 minutes...`);
+                await new Promise(resolve => setTimeout(resolve, remainingTime));
+            }
             
             return Response.json({ 
                 success: true, 
                 deleted: newDeleted,
                 remaining: newRemaining,
-                message: `Deleted 1 payment, ${newRemaining} remaining`
+                batchDeleted: deletedCount,
+                message: `Deleted ${deletedCount} payments, ${newRemaining} remaining`
             });
         }
         
