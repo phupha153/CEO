@@ -261,14 +261,13 @@ export default function BranchSelection() {
                     {/* ปุ่มแก้ไขสาขา - แสดงเสมอสำหรับ developer และ owner */}
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
-                        onClick={handleManageBranches}
-                        variant="outline"
-                        className="border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 text-slate-700 h-auto py-4 px-6 text-sm rounded-2xl font-medium"
+                        onClick={() => navigate(createPageUrl('BranchManagement'))}
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg h-auto py-4 px-6 text-sm rounded-2xl font-medium text-white"
                         data-onboarding="add-branch-button"
                         type="button"
                       >
-                        <Pencil className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <span>แก้ไขสาขา</span>
+                        <Building2 className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <span>จัดการสาขา</span>
                       </Button>
                     )}
                   </div>
