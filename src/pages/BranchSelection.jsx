@@ -158,10 +158,11 @@ export default function BranchSelection() {
 
     setIsNavigating(true);
     
-    // ใช้ setTimeout เพื่อให้ animation ทำงานก่อน
-    setTimeout(() => {
-      window.location.href = createPageUrl('BranchManagement');
-    }, 100);
+    // ⭐ ตั้งค่า flag ใน localStorage เพื่อบอก Layout ว่ากำลังไปหน้า BranchManagement
+    localStorage.setItem('navigating_to_branch_management', 'true');
+    
+    // Navigate โดยไม่ต้อง reload หน้า
+    navigate(createPageUrl('BranchManagement'));
   };
 
   if (isLoading) {

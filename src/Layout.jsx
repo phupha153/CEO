@@ -1094,6 +1094,13 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     if (!currentUser || isLoading || branchesLoading) return;
     
+    // ⭐ เช็คว่ากำลังไปหน้า BranchManagement หรือไม่
+    const isNavigatingToBranchManagement = localStorage.getItem('navigating_to_branch_management') === 'true';
+    if (isNavigatingToBranchManagement) {
+      localStorage.removeItem('navigating_to_branch_management');
+      return;
+    }
+    
     // Pages that don't require a selected branch
     if (currentPageName === 'BranchSelection' || 
         currentPageName === 'AllBranchesDashboard' || 
