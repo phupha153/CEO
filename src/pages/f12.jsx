@@ -322,6 +322,40 @@ export default function F12Page() {
                 <Trash2 className="w-4 h-4 mr-2" />
                 {isDeleting ? 'กำลังลบ...' : 'ลบ Payment สาขา Test'}
               </Button>
+
+              <Button 
+                onClick={async () => {
+                  if (!confirm('⚠️ ยืนยันการลบข้อมูลทดสอบทั้งหมด?\n\n- Payments, Bookings, Rooms, Tenants, MeterReadings ที่มี [TEST-] หรือ TEST- ในข้อมูล\n\nการดำเนินการนี้ไม่สามารถย้อนกลับได้')) return;
+
+                  setIsDeleting(true);
+                  toast.loading('กำลังลบข้อมูลทดสอบ...', { id: 'delete-test' });
+
+                  try {
+                    const result = await base44.functions.invoke('deleteTestData', {});
+                    console.log('✅ Delete test data result:', result.data);
+
+                    toast.dismiss('delete-test');
+                    if (result.data.success) {
+                      toast.success(result.data.message, { duration: 8000 });
+                    } else {
+                      toast.error('ลบไม่สำเร็จ: ' + (result.data.error || 'Unknown error'));
+                    }
+                  } catch (error) {
+                    toast.dismiss('delete-test');
+                    console.error('❌ Error:', error);
+                    toast.error('ลบไม่สำเร็จ: ' + error.message);
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                }}
+                variant="destructive"
+                size="sm"
+                disabled={isDeleting}
+                className="h-auto py-3 col-span-2 bg-red-600 hover:bg-red-700"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                {isDeleting ? 'กำลังลบ...' : '🗑️ ลบข้อมูลทดสอบทั้งหมด'}
+              </Button>
             </div>
 
             {/* ส่วนใส่ Branch ID แบบ Manual */}
