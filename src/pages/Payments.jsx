@@ -4250,6 +4250,8 @@ Return JSON.`;
             const tiersEnabledConfig = branchConfig || globalConfig;
             return tiersEnabledConfig?.value === 'true';
           })()}
+          configs={configs}
+          selectedBranchId={selectedBranchId}
           onConfirm={(template, customMessage) => handleSendReminder(reminderDialog.payment.id, template, customMessage)}
           isSending={sendingReminder === reminderDialog.payment.id}
         />
