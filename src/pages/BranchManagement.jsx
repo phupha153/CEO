@@ -53,12 +53,14 @@ export default function BranchManagement() {
   const { data: allBranches = [], isLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
-    initialData: () => queryClient.getQueryData(['branches']) || [],
-    staleTime: 60 * 60 * 1000,
+    staleTime: 60 * 60 * 1000, // 1 ชั่วโมง
     gcTime: 2 * 60 * 60 * 1000,
-    retry: 0,
+    retry: (failureCount, error) => {
+      if (error?.response?.status === 429) return false;
+      return failureCount < 1;
+    },
+    retryDelay: 3000,
     refetchOnWindowFocus: false,
-    refetchOnMount: false,
   });
 
   const { data: appSubscriptions = [] } = useQuery({
@@ -69,27 +71,19 @@ export default function BranchManagement() {
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
-    initialData: () => queryClient.getQueryData(['configs']) || [],
-    staleTime: 60 * 60 * 1000,
-    refetchOnMount: false,
   });
 
   const { data: branchPackages = [] } = useQuery({
     queryKey: ['branchPackages'],
     queryFn: () => base44.entities.BranchPackage.list('-created_date', 200),
-    initialData: () => queryClient.getQueryData(['branchPackages']) || [],
     enabled: !!currentUser,
-    staleTime: 30 * 1000,
-    refetchOnMount: false,
   });
 
   // ⭐ ดึงจำนวนห้องจริงจาก Room entity
   const { data: allRooms = [] } = useQuery({
     queryKey: ['rooms', 'all'],
     queryFn: () => base44.entities.Room.list('-created_date', 5000),
-    initialData: [],
     staleTime: 5 * 60 * 1000,
-    refetchOnMount: false,
   });
 
   // นับจำนวนห้องต่อสาขา
