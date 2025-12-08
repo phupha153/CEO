@@ -634,38 +634,38 @@ export default function Layout({ children, currentPageName }) {
     placeholderData: (previousData) => previousData,
   });
 
-  // ดึงข้อมูลสำหรับ toast notifications
+  // ดึงข้อมูลสำหรับ toast notifications - ดึงแค่ 200 รายการล่าสุด
   const { data: toastPayments = [] } = useQuery({
     queryKey: ['allPayments', 'toast', selectedBranch?.id],
     queryFn: async () => {
       if (!selectedBranch) return [];
-      return await base44.entities.Payment.filter({ branch_id: selectedBranch.id });
+      return await base44.entities.Payment.filter({ branch_id: selectedBranch.id }, '-created_date', 200);
     },
     enabled: !!selectedBranch && !!currentUser,
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
   });
 
   const { data: toastMaintenance = [] } = useQuery({
     queryKey: ['allMaintenanceRequests', 'toast', selectedBranch?.id],
     queryFn: async () => {
       if (!selectedBranch) return [];
-      return await base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranch.id });
+      return await base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranch.id }, '-created_date', 100);
     },
     enabled: !!selectedBranch && !!currentUser,
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
   });
 
   const { data: toastRooms = [] } = useQuery({
     queryKey: ['allRooms', 'toast', selectedBranch?.id],
     queryFn: async () => {
       if (!selectedBranch) return [];
-      return await base44.entities.Room.filter({ branch_id: selectedBranch.id });
+      return await base44.entities.Room.filter({ branch_id: selectedBranch.id }, '-created_date', 500);
     },
     enabled: !!selectedBranch && !!currentUser,
-    staleTime: 30 * 1000,
-    refetchInterval: 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
   });
 
   const { data: readNotifications = [] } = useQuery({
