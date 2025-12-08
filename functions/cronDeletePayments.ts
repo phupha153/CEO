@@ -14,6 +14,20 @@ Deno.serve(async (req) => {
         
         console.log(`🔍 [Cron] Fetching TEST data (batch size: ${batchSize})...`);
         
+        // ดึงสาขาทั้งหมดเพื่อเช็คว่าสาขาไหนเป็นทดสอบ
+        const allBranches = await base44.asServiceRole.entities.Branch.list();
+        const testBranchIds = (allBranches || [])
+            .filter(b => 
+                b.branch_code?.includes('TEST') || 
+                b.branch_code?.includes('12345') ||
+                b.branch_name?.includes('[TEST') ||
+                b.notes?.includes('[TEST') ||
+                b.description?.includes('[TEST')
+            )
+            .map(b => b.id);
+        
+        console.log(`🏢 [Cron] Found ${testBranchIds.length} TEST branches: ${testBranchIds.join(', ')}`);
+        
         // ดึงข้อมูลทดสอบจากทุกสาขา
         const [
             testPayments,
@@ -29,9 +43,10 @@ Deno.serve(async (req) => {
             base44.asServiceRole.entities.MeterReading.list('-created_date', batchSize)
         ]);
         
-        // กรองเฉพาะ TEST data (ใช้ is_sample หรือ notes)
+        // กรองเฉพาะ TEST data (ใช้ is_sample, notes, หรือ branch_id ของสาขาทดสอบ)
         const paymentsToDelete = (testPayments || []).filter(p => 
             p.is_sample === true ||
+            testBranchIds.includes(p.branch_id) ||
             p.notes?.includes('[TEST-') || 
             p.notes?.includes('TEST-') ||
             p.created_by?.includes('test-') ||
@@ -40,6 +55,7 @@ Deno.serve(async (req) => {
         
         const bookingsToDelete = (testBookings || []).filter(b => 
             b.is_sample === true ||
+            testBranchIds.includes(b.branch_id) ||
             b.notes?.includes('[TEST-') || 
             b.notes?.includes('TEST-') ||
             b.created_by?.includes('test-') ||
@@ -48,6 +64,7 @@ Deno.serve(async (req) => {
         
         const roomsToDelete = (testRooms || []).filter(r => 
             r.is_sample === true ||
+            testBranchIds.includes(r.branch_id) ||
             r.room_number?.includes('TEST-') || 
             r.description?.includes('[TEST-') ||
             r.description?.includes('TEST-') ||
@@ -57,6 +74,7 @@ Deno.serve(async (req) => {
         
         const tenantsToDelete = (testTenants || []).filter(t => 
             t.is_sample === true ||
+            testBranchIds.includes(t.branch_id) ||
             t.full_name?.includes('[TEST-') || 
             t.full_name?.includes('TEST-') ||
             t.notes?.includes('[TEST-') ||
@@ -67,6 +85,7 @@ Deno.serve(async (req) => {
         
         const meterReadingsToDelete = (testMeterReadings || []).filter(mr => 
             mr.is_sample === true ||
+            testBranchIds.includes(mr.branch_id) ||
             mr.notes?.includes('[TEST-') || 
             mr.notes?.includes('TEST-') ||
             mr.created_by?.includes('test-') ||
