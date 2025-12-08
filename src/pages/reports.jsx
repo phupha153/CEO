@@ -124,6 +124,15 @@ export default function ReportsPage() {
     gcTime: 20 * 60 * 1000,
   });
 
+  const { data: allMeterReadings = [] } = useQuery({
+    queryKey: ['allMeterReadings', 'reports', selectedBranchId],
+    queryFn: () => base44.entities.MeterReading.filter({ branch_id: selectedBranchId }, '-reading_date', 10000),
+    enabled: !!selectedBranchId,
+    ...retryConfig,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 20 * 60 * 1000,
+  });
+
   const { data: branches = [] } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
@@ -602,6 +611,47 @@ export default function ReportsPage() {
       }))
       .sort((a, b) => b.value - a.value);
   }, [filteredData.expenses, reportType, selectedYear, selectedMonth, dateRangeMonths]);
+
+  const utilityUsageData = useMemo(() => {
+    if (reportType !== 'monthly') return [];
+    
+    const monthsData = [];
+    const baseMonth = new Date(selectedYear, selectedMonth - 1, 1);
+    const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
+
+    for (let i = dateRangeMonths - 1; i >= 0; i--) {
+      const targetMonth = subMonths(baseMonth, i);
+      const cycleMonth = targetMonth.getMonth();
+      const cycleYear = targetMonth.getFullYear();
+      
+      const monthStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+      const monthEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
+
+      const monthReadings = allMeterReadings.filter(r => {
+        if (!r.reading_date) return false;
+        try {
+          const readingDate = parseISO(r.reading_date);
+          if (isNaN(readingDate.getTime())) return false;
+          return isWithinInterval(readingDate, { start: monthStart, end: monthEnd });
+        } catch {
+          return false;
+        }
+      });
+
+      const totalWater = monthReadings.reduce((sum, r) => sum + (r.water_units || 0), 0);
+      const totalElectricity = monthReadings.reduce((sum, r) => sum + (r.electricity_units || 0), 0);
+
+      monthsData.push({
+        month: format(monthStart, 'MMM', { locale: th }),
+        fullMonth: format(monthStart, 'MMMM yyyy', { locale: th }),
+        water: totalWater,
+        electricity: totalElectricity
+      });
+    }
+
+    return monthsData;
+  }, [allMeterReadings, selectedYear, selectedMonth, dateRangeMonths, reportType]);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
@@ -1463,16 +1513,66 @@ export default function ReportsPage() {
             </div>
           )}
 
-          {/* ตารางสรุปการเงิน - แบบรายงานรวม */}
-          {reportType === 'monthly' && monthlyChartData.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}>
-              <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-3xl">
-                <CardHeader>
+          {/* กราฟการใช้น้ำไฟ */}
+          {reportType === 'monthly' && utilityUsageData.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+              <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl overflow-hidden rounded-3xl">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-cyan-200/20 to-blue-200/15 rounded-full blur-3xl" />
+                <CardHeader className="pb-4 relative">
                   <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <DollarSign className="w-5 h-5 text-green-600" />
-                    ตารางสรุปการเงิน ({selectedBranchName})
+                    <BarChart3 className="w-5 h-5 text-cyan-600" />
+                    การใช้น้ำ-ไฟรายเดือน
                   </CardTitle>
                 </CardHeader>
+                <CardContent className="relative">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <ComposedChart data={utilityUsageData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.5} />
+                      <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#334155', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 12, fill: '#334155', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#1e293b', borderRadius: '16px', border: 'none', color: '#ffffff' }}
+                        itemStyle={{ color: '#ffffff', fontWeight: 600 }}
+                        labelStyle={{ color: '#ffffff', fontWeight: 700, marginBottom: 8 }}
+                        formatter={(value, name) => {
+                          const labels = {
+                            water: 'น้ำ',
+                            electricity: 'ไฟฟ้า'
+                          };
+                          return [`${value.toLocaleString()} หน่วย`, labels[name] || name];
+                        }}
+                        labelFormatter={(label) => utilityUsageData.find(d => d.month === label)?.fullMonth || label}
+                        cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                      />
+                      <Bar dataKey="water" fill="#06b6d4" radius={[8, 8, 0, 0]} name="water" barSize={30} />
+                      <Bar dataKey="electricity" fill="#f59e0b" radius={[8, 8, 0, 0]} name="electricity" barSize={30} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                  <div className="flex items-center gap-4 mt-4 text-xs justify-center">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-4 rounded-sm bg-cyan-500" />
+                      <span className="text-slate-600">น้ำ (หน่วย)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-4 rounded-sm bg-amber-500" />
+                      <span className="text-slate-600">ไฟฟ้า (หน่วย)</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* ตารางสรุปการเงิน - แบบรายงานรวม */}
+          {reportType === 'monthly' && monthlyChartData.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}>
+          <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-3xl">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-green-600" />
+                ตารางสรุปการเงิน ({selectedBranchName})
+              </CardTitle>
+            </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
