@@ -501,10 +501,7 @@ export default function PaymentsPage() {
           return 0;
         }
 
-        const todayStartOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const dueDateStartOfDay = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-
-        const daysOverdue = Math.floor((todayStartOfDay.getTime() - dueDateStartOfDay.getTime()) / (1000 * 60 * 60 * 24));
+        const daysOverdue = differenceInDays(today, dueDate);
 
         if (daysOverdue <= 0) {
           cache.set(payment.id, 0);
@@ -759,10 +756,7 @@ export default function PaymentsPage() {
           return payment.status;
         }
 
-        const todayStartOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const dueDateStartOfDay = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-
-        if (todayStartOfDay > dueDateStartOfDay) {
+        if (differenceInDays(today, dueDate) > 0) {
           return 'overdue';
         }
       } catch (error) {
@@ -2778,7 +2772,7 @@ Return JSON.`;
                                           try {
                                             const date = parseISO(payment.due_date);
                                             if (isNaN(date.getTime())) return '';
-                                            return `(เกิน ${Math.abs(differenceInDays(date, getCurrentDate()))} วัน)`;
+                                            return `(เกิน ${differenceInDays(getCurrentDate(), date)} วัน)`;
                                           } catch {
                                             return '';
                                           }
@@ -3145,7 +3139,7 @@ Return JSON.`;
                                         try {
                                           const date = parseISO(payment.due_date);
                                           if (isNaN(date.getTime())) return '';
-                                          return `เกิน ${Math.abs(differenceInDays(date, getCurrentDate()))} วัน`;
+                                          return `เกิน ${differenceInDays(getCurrentDate(), date)} วัน`;
                                         } catch {
                                           return '';
                                         }

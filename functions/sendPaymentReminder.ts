@@ -229,10 +229,11 @@ Deno.serve(async (req) => {
             let statusText = 'รอชำระ';
             if (payment.due_date) {
                 const dueDate = new Date(payment.due_date);
+                dueDate.setHours(0, 0, 0, 0);
                 const today = new Date();
-                const diffTime = today.getTime() - dueDate.getTime();
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                
+                today.setHours(0, 0, 0, 0);
+                const diffDays = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+
                 if (diffDays > 0) {
                     daysOverdue = diffDays;
                     statusText = `เกินกำหนด ${daysOverdue} วัน`;
