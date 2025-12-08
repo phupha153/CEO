@@ -1292,7 +1292,7 @@ export default function AccountingData() {
                           const date = parseISO(`${monthKey}-01`);
                           return (
                             <SelectItem key={monthKey} value={monthKey}>
-                              งวด {format(date, 'MMMM yyyy', { locale: th })}
+                              {format(date, 'MMMM yyyy', { locale: th })}
                             </SelectItem>
                           );
                         })}
