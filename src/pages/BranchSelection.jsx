@@ -152,8 +152,8 @@ export default function BranchSelection() {
       e.preventDefault();
     }
     
-    // ใช้ navigate() เหมือนปุ่มในหน้า AllBranchesDashboard
-    navigate(createPageUrl('BranchManagement'));
+    // ใช้ window.location.href เหมือนปุ่มกลับใน BranchManagement
+    window.location.href = createPageUrl('BranchManagement');
   };
 
   if (isLoading) {
