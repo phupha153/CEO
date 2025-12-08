@@ -955,17 +955,17 @@ export default function NotificationsPanel({ isOpen, onClose }) {
               </div>
 
               {showAllBranches && branches.length > 1 && (
-                <div className="mt-4 pt-3 border-t border-slate-200">
+                <div className="mt-4 pt-3 border-t border-white/30">
                   <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-slate-500" />
+                    <Filter className="w-4 h-4 text-white/90" />
                     <select
                       value={filterBranch}
                       onChange={(e) => setFilterBranch(e.target.value)}
-                      className="flex-1 p-2 text-sm border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 p-2 text-sm border border-white/30 rounded-lg bg-white/10 backdrop-blur-sm text-white focus:outline-none focus:ring-2 focus:ring-white/50"
                     >
-                      <option value="all">ทุกสาขา ({allNotifications.length})</option>
+                      <option value="all" className="text-slate-800">ทุกสาขา ({allNotifications.length})</option>
                       {Object.entries(notificationsByBranch).map(([branchId, branchData]) => (
-                        <option key={branchId} value={branchId}>
+                        <option key={branchId} value={branchId} className="text-slate-800">
                           {branchData.branchName} ({branchData.alerts.length})
                         </option>
                       ))}
