@@ -403,8 +403,22 @@ export default function NotificationsPanel({ isOpen, onClose }) {
           const dueDate = parseISO(p.due_date);
           const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+          
+          // ⭐ Debug log
+          if (p.branch_id === '69256957890d2b5aaaca1d3f') {
+            console.log('🔍 Payment check:', {
+              room: p.room_id?.substring(0, 8),
+              dueDate: p.due_date,
+              status: p.status,
+              todayStart: todayStart.toISOString().split('T')[0],
+              dueDateStart: dueDateStart.toISOString().split('T')[0],
+              isOverdue: todayStart > dueDateStart
+            });
+          }
+          
           return todayStart > dueDateStart;
-        } catch {
+        } catch (err) {
+          console.error('Date parse error:', err, p.due_date);
           return false;
         }
       });
