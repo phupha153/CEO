@@ -1647,6 +1647,11 @@ export default function Layout({ children, currentPageName }) {
   // If no branch is selected, show branch selection page WITHOUT sidebar and subscription banner
   // ⭐ ยกเว้นหน้า BranchManagement ที่ไม่ต้องการ selectedBranch
   if ((!selectedBranch || currentPageName === 'BranchSelection') && currentPageName !== 'BranchManagement') {
+    console.log('🔴 Layout กำลัง render BranchSelection แทน children', {
+      currentPageName,
+      selectedBranch: selectedBranch?.id,
+      willRenderChildren: currentPageName === 'BranchSelection'
+    });
     return (
       <>
         <Toaster richColors position="top-center" />
@@ -1654,6 +1659,8 @@ export default function Layout({ children, currentPageName }) {
       </>
     );
   }
+  
+  console.log('✅ Layout กำลัง render ปกติ', { currentPageName, selectedBranch: selectedBranch?.id });
 
   // If a branch is selected but user doesn't have access
   if (selectedBranch && !canAccessBranch) {
