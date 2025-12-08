@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -216,10 +215,15 @@ export default function Materials() {
           scanned_text: JSON.stringify(scannedData)
         }));
 
-        // ค้นหาผู้เช่าที่ตรงกับชื่อ
+        // ค้นหาผู้เช่าที่ตรงกับชื่อ - ปรับปรุงการ match ให้ยืดหยุ่นขึ้น
         if (recipientName) {
+          // ลบช่องว่างและแปลงเป็นตัวพิมพ์เล็กเพื่อเปรียบเทียบ
+          const normalizeText = (text) => text.toLowerCase().replace(/\s+/g, '');
+          const normalizedRecipient = normalizeText(recipientName);
+          
+          // 1. ค้นหา exact match (หลังลบช่องว่าง)
           const exactMatch = tenants.find(t => 
-            t.full_name.toLowerCase() === recipientName.toLowerCase()
+            t.full_name && normalizeText(t.full_name) === normalizedRecipient
           );
 
           if (exactMatch) {
@@ -231,16 +235,56 @@ export default function Materials() {
             }));
             toast.success(`✅ พบผู้เช่า: ${exactMatch.full_name}`);
           } else {
-            // ค้นหาแบบคร่าวๆ (partial match)
-            const partialMatches = tenants.filter(t => 
-              t.full_name.toLowerCase().includes(recipientName.toLowerCase()) ||
-              recipientName.toLowerCase().includes(t.full_name.toLowerCase())
-            );
+            // 2. ค้นหาแบบ partial match และ fuzzy match
+            const scoredMatches = tenants
+              .filter(t => t.full_name && t.status === 'active')
+              .map(t => {
+                const normalizedName = normalizeText(t.full_name);
+                
+                // คำนวณคะแนนความเหมือน
+                let score = 0;
+                
+                // Partial match
+                if (normalizedName.includes(normalizedRecipient) || normalizedRecipient.includes(normalizedName)) {
+                  score += 50;
+                }
+                
+                // Character overlap
+                const recipientChars = normalizedRecipient.split('');
+                const nameChars = normalizedName.split('');
+                let matchCount = 0;
+                
+                for (const char of recipientChars) {
+                  const idx = nameChars.indexOf(char);
+                  if (idx > -1) {
+                    matchCount++;
+                    nameChars.splice(idx, 1);
+                  }
+                }
+                
+                const similarity = matchCount / Math.max(normalizedRecipient.length, normalizedName.length);
+                score += similarity * 50;
+                
+                return { tenant: t, score };
+              })
+              .filter(item => item.score >= 40) // ลดเกณฑ์ลงเพื่อให้ match ได้ง่ายขึ้น
+              .sort((a, b) => b.score - a.score);
 
-            if (partialMatches.length > 0) {
-              setPossibleMatches(partialMatches);
+            if (scoredMatches.length === 1 && scoredMatches[0].score >= 70) {
+              // ถ้าเจอแค่คนเดียวและคะแนนสูง → เลือกอัตโนมัติ
+              const match = scoredMatches[0].tenant;
+              setMatchedTenant(match);
+              setFormData(prev => ({
+                ...prev,
+                tenant_id: match.id,
+                room_id: getRoomIdFromTenant(match.id)
+              }));
+              toast.success(`✅ พบผู้เช่า: ${match.full_name}`);
+            } else if (scoredMatches.length > 0) {
+              // แสดงตัวเลือกให้เลือก
+              setPossibleMatches(scoredMatches.map(sm => sm.tenant));
               setShowMatchDialog(true);
-              toast.info(`พบผู้เช่าที่เป็นไปได้ ${partialMatches.length} คน`);
+              toast.info(`พบผู้เช่าที่เป็นไปได้ ${scoredMatches.length} คน`);
             } else {
               toast.warning(`⚠️ ไม่พบผู้เช่าที่ชื่อ "${recipientName}" ในระบบ`);
             }
