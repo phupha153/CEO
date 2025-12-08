@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
         const startTime = Date.now();
         
         // ⭐ ดึงข้อมูล TEST ทุกประเภท (ไม่กรอง branch_id)
-        const batchSize = 300;
+        const batchSize = 1000;
         
         console.log(`🔍 [Cron] Fetching TEST data (batch size: ${batchSize})...`);
         
@@ -55,11 +55,11 @@ Deno.serve(async (req) => {
             testTenants,
             testMeterReadings
         ] = await Promise.all([
-            base44.asServiceRole.entities.Payment.list('-created_date', batchSize * 2),
-            base44.asServiceRole.entities.Booking.list('-created_date', batchSize),
-            base44.asServiceRole.entities.Room.list('-created_date', batchSize),
-            base44.asServiceRole.entities.Tenant.list('-created_date', batchSize),
-            base44.asServiceRole.entities.MeterReading.list('-created_date', batchSize)
+            base44.asServiceRole.entities.Payment.list('-created_date', batchSize * 3),
+            base44.asServiceRole.entities.Booking.list('-created_date', batchSize * 2),
+            base44.asServiceRole.entities.Room.list('-created_date', batchSize * 2),
+            base44.asServiceRole.entities.Tenant.list('-created_date', batchSize * 2),
+            base44.asServiceRole.entities.MeterReading.list('-created_date', batchSize * 2)
         ]);
         
         // กรองเฉพาะ TEST data (ใช้ is_sample, notes, หรือ branch_id ของสาขาทดสอบ)
@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
                 try {
                     await base44.asServiceRole.entities.Payment.delete(payment.id);
                     totalDeleted++;
-                    if (totalDeleted % 50 === 0) {
+                    if (totalDeleted % 100 === 0) {
                         console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted payment ${payment.id}`);
                     }
                 } catch (e) {
