@@ -44,28 +44,40 @@ export default function FacebookSetupGuide() {
                   </div>
 
                   <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                    <h3 className="font-semibold text-slate-800 mb-2">🔑 สิทธิ์ที่ต้องขอ</h3>
+                    <h3 className="font-semibold text-slate-800 mb-2">🔑 สิทธิ์ที่ต้องขอ (3 อย่าง)</h3>
                     <div className="space-y-3">
-                      <div>
+                      <div className="bg-green-50 p-3 rounded border border-green-300">
+                        <Badge className="bg-green-500 mb-2">จำเป็น</Badge>
                         <p className="font-semibold text-sm text-slate-700">1. pages_show_list</p>
                         <p className="text-sm text-slate-600">
                           เพื่อแสดงรายการ Facebook Pages ที่ผู้ใช้เป็นผู้ดูแล 
                           เพื่อให้เจ้าของหอพักเลือก Page ที่ต้องการเชื่อมต่อ
                         </p>
                       </div>
-                      <div>
+                      <div className="bg-green-50 p-3 rounded border border-green-300">
+                        <Badge className="bg-green-500 mb-2">จำเป็น</Badge>
                         <p className="font-semibold text-sm text-slate-700">2. pages_manage_metadata</p>
                         <p className="text-sm text-slate-600">
                           เพื่อตั้งค่า webhook subscription และการรับข้อความจาก Messenger
                           เพื่อให้ระบบสามารถรับและตอบข้อความจากผู้เช่าได้
                         </p>
                       </div>
-                      <div>
-                        <p className="font-semibold text-sm text-slate-700">3. pages_messaging</p>
+                      <div className="bg-green-50 p-3 rounded border border-green-300">
+                        <Badge className="bg-green-500 mb-2">จำเป็น</Badge>
+                        <p className="font-semibold text-sm text-slate-700">3. pages_utility_messaging</p>
                         <p className="text-sm text-slate-600">
-                          เพื่อส่งข้อความแจ้งเตือนอัตโนมัติไปยังผู้เช่า เช่น แจ้งค่าเช่า, ส่งใบเสร็จ
+                          เพื่อส่งข้อความ Utility/Transactional ที่ไม่ใช่การโฆษณา เช่น แจ้งเตือนค่าเช่า, 
+                          ส่งใบเสร็จ, แจ้งสถานะการแจ้งซ่อม, แจ้งพัสดุมาถึง ด้วย Message Tags ที่เหมาะสม
                         </p>
                       </div>
+                    </div>
+
+                    <div className="mt-4 bg-slate-100 p-3 rounded">
+                      <h4 className="font-semibold text-sm text-slate-700 mb-2">ℹ️ สิทธิ์ที่ไม่จำเป็น:</h4>
+                      <p className="text-xs text-slate-600">
+                        ❌ pages_read_engagement - ไม่จำเป็นสำหรับการส่งข้อความ<br/>
+                        ❌ business_management - ไม่จำเป็นสำหรับ Page เดียว
+                      </p>
                     </div>
                   </div>
                 </div>

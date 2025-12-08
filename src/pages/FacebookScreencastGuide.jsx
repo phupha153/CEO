@@ -297,9 +297,10 @@ export default function FacebookScreencastGuide() {
                     <div className="bg-white p-3 rounded border border-red-200">
                       <p className="text-sm text-slate-600">
                         "ตอนนี้ยังไม่ได้เชื่อมต่อ Facebook Page ผมจะคลิกปุ่ม 'เชื่อมต่อ Facebook Page'<br/>
-                        ระบบจะขอสิทธิ์ 2 อย่าง:<br/>
+                        ระบบจะขอสิทธิ์ 3 อย่าง:<br/>
                         1. pages_show_list - เพื่อแสดงรายการ Pages<br/>
-                        2. pages_manage_metadata - เพื่อตั้งค่า webhook"
+                        2. pages_manage_metadata - เพื่อตั้งค่า webhook<br/>
+                        3. pages_utility_messaging - เพื่อส่งข้อความ Utility/Transactional"
                       </p>
                     </div>
                     
