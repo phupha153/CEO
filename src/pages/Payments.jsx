@@ -48,7 +48,7 @@ export default function PaymentsPage() {
   const [expandedPayments, setExpandedPayments] = useState(new Set());
   const [slipPreview, setSlipPreview] = useState({ open: false, url: '', title: '' });
   const [reminderDialog, setReminderDialog] = useState({ open: false, payment: null, template: null });
-  const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null });
+  const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null, template: null });
 
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
   const [dateRangeType, setDateRangeType] = useState('this_month');
@@ -1344,7 +1344,7 @@ export default function PaymentsPage() {
     });
   };
 
-  const openReminderDialog = (paymentId = null) => {
+  const openReminderDialog = (paymentId = null, forceTemplate = null) => {
     if (!canSendReminder) {
       toast.error('คุณไม่มีสิทธิ์ส่งข้อความแจ้งเตือน');
       return;
@@ -1357,7 +1357,8 @@ export default function PaymentsPage() {
       
       setConfirmReminderDialog({
         open: true,
-        payment: payment
+        payment: payment,
+        template: forceTemplate
       });
       return;
     }
@@ -1386,9 +1387,9 @@ export default function PaymentsPage() {
     handleSendReminder(null, null);
   };
 
-  const handleConfirmSendNow = async (payment) => {
+  const handleConfirmSendNow = async (payment, forceTemplate = null) => {
     const effectiveStatus = getEffectiveStatus(payment);
-    const template = effectiveStatus === 'overdue' ? 'overdue' : 'due_date';
+    const template = forceTemplate || (effectiveStatus === 'overdue' ? 'overdue' : 'due_date');
     
     setConfirmReminderDialog({ open: false, payment: null });
     await handleSendReminder(payment.id, template, null);
@@ -4289,7 +4290,7 @@ Return JSON.`;
                   แก้ไขข้อความ
                 </Button>
                 <Button
-                  onClick={() => handleConfirmSendNow(confirmReminderDialog.payment)}
+                  onClick={() => handleConfirmSendNow(confirmReminderDialog.payment, confirmReminderDialog.template)}
                   disabled={sendingReminder === confirmReminderDialog.payment.id}
                   className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                 >
