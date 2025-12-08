@@ -79,14 +79,17 @@ Deno.serve(async (req) => {
         
         try {
             // ใช้ filter แทน list เพื่อให้ได้ข้อมูลทั้งหมด
-            allPayments = await base44.asServiceRole.entities.Payment.filter({});
+            const result = await base44.asServiceRole.entities.Payment.filter({});
+            allPayments = Array.isArray(result) ? result : [];
             console.log(`✅ Total fetched: ${allPayments.length} payments`);
+            console.log(`🔍 Payment type check: ${typeof result}, isArray: ${Array.isArray(result)}`);
         } catch (err) {
             console.error('❌ Error fetching payments:', err.message);
+            allPayments = [];
         }
         
         // กรองเฉพาะที่ยังไม่ชำระ และ due_date ตรงกับวันนี้
-        const payments = allPayments.filter(p => {
+        const payments = Array.isArray(allPayments) ? allPayments.filter(p => {
             // ต้องยังไม่ชำระ (pending หรือ overdue)
             if (p.status === 'paid') return false;
             
