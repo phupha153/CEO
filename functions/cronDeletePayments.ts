@@ -202,9 +202,11 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error('❌ [Cron] ERROR:', error.message);
+        console.error('Stack:', error.stack);
         return Response.json({ 
             success: false, 
-            error: error.message
+            error: error.message,
+            stack: error.stack
         }, { status: 500 });
     }
 });
