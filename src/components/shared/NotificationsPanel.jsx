@@ -118,16 +118,24 @@ export default function NotificationsPanel({ isOpen, onClose }) {
 
   const getCurrentDate = () => {
     const testDateConfig = configs.find(c => c.key === 'test_current_date');
-    if (testDateConfig && testDateConfig.value) {
+    if (testDateConfig && testDateConfig.value && testDateConfig.value.trim() !== '') {
       try {
         const date = parseISO(testDateConfig.value);
-        if (isNaN(date.getTime())) return new Date();
+        if (isNaN(date.getTime())) {
+          // ใช้เวลาไทย UTC+7
+          const now = new Date();
+          return new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        }
         return date;
       } catch {
-        return new Date();
+        // ใช้เวลาไทย UTC+7
+        const now = new Date();
+        return new Date(now.getTime() + (7 * 60 * 60 * 1000));
       }
     }
-    return new Date();
+    // ใช้เวลาไทย UTC+7
+    const now = new Date();
+    return new Date(now.getTime() + (7 * 60 * 60 * 1000));
   };
 
   // ⭐ Local state สำหรับ optimistic update ทันที (ไม่ต้องรอ API)
