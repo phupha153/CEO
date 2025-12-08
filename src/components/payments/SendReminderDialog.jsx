@@ -27,8 +27,17 @@ export default function SendReminderDialog({
   isSending
 }) {
   const navigate = useNavigate();
-  const [selectedTemplate, setSelectedTemplate] = useState('due_date');
+  const [selectedTemplate, setSelectedTemplate] = useState(() => effectiveStatus === 'overdue' ? 'overdue' : 'due_date');
   const [customMessage, setCustomMessage] = useState('');
+
+  // ⭐ เมื่อ effectiveStatus เปลี่ยน ให้อัปเดต selectedTemplate
+  useEffect(() => {
+    if (effectiveStatus === 'overdue') {
+      setSelectedTemplate('overdue');
+    } else {
+      setSelectedTemplate('due_date');
+    }
+  }, [effectiveStatus, open]);
 
   if (!payment) return null;
 
