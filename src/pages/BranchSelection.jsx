@@ -12,6 +12,8 @@ export default function BranchSelection() {
   const navigate = useNavigate();
   const [selectedBranchId, setSelectedBranchId] = useState(null);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isNavigatingToBranchManagement, setIsNavigatingToBranchManagement] = useState(false);
+  const navigationTimeoutRef = React.useRef(null);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -265,16 +267,29 @@ export default function BranchSelection() {
                       <Button
                         type="button"
                         onClick={(e) => {
+                          if (isNavigatingToBranchManagement) {
+                            console.log('⏸️ กำลัง navigate อยู่แล้ว - ข้าม');
+                            return;
+                          }
+                          
                           console.log('🟢 ปุ่มจัดการสาขา (มีสาขา) - กดแล้ว');
-                          console.log('🔍 userRole:', userRole);
-                          console.log('🔍 createPageUrl result:', createPageUrl('BranchManagement'));
                           e.preventDefault();
                           e.stopPropagation();
+                          
+                          setIsNavigatingToBranchManagement(true);
                           const url = createPageUrl('BranchManagement');
                           console.log('🚀 กำลังไปที่:', url);
-                          window.location.href = url;
+                          
+                          if (navigationTimeoutRef.current) {
+                            clearTimeout(navigationTimeoutRef.current);
+                          }
+                          
+                          navigationTimeoutRef.current = setTimeout(() => {
+                            window.location.href = url;
+                          }, 100);
                         }}
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg h-auto py-4 px-6 text-sm rounded-2xl font-medium text-white relative z-50"
+                        disabled={isNavigatingToBranchManagement}
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg h-auto py-4 px-6 text-sm rounded-2xl font-medium text-white relative z-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         data-onboarding="add-branch-button"
                       >
                         <Building2 className="w-5 h-5 mr-2 flex-shrink-0" />
@@ -315,16 +330,29 @@ export default function BranchSelection() {
                       <Button
                         type="button"
                         onClick={(e) => {
+                          if (isNavigatingToBranchManagement) {
+                            console.log('⏸️ กำลัง navigate อยู่แล้ว - ข้าม');
+                            return;
+                          }
+                          
                           console.log('🟢 ปุ่มจัดการสาขา (ไม่มีสาขา) - กดแล้ว');
-                          console.log('🔍 userRole:', userRole);
-                          console.log('🔍 createPageUrl result:', createPageUrl('BranchManagement'));
                           e.preventDefault();
                           e.stopPropagation();
+                          
+                          setIsNavigatingToBranchManagement(true);
                           const url = createPageUrl('BranchManagement');
                           console.log('🚀 กำลังไปที่:', url);
-                          navigate(url);
+                          
+                          if (navigationTimeoutRef.current) {
+                            clearTimeout(navigationTimeoutRef.current);
+                          }
+                          
+                          navigationTimeoutRef.current = setTimeout(() => {
+                            navigate(url);
+                          }, 100);
                         }}
-                        className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold relative z-50"
+                        disabled={isNavigatingToBranchManagement}
+                        className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold relative z-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         data-onboarding="add-branch-button"
                       >
                         <Building2 className="w-6 h-6 mr-2 flex-shrink-0" />
