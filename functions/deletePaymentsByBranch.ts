@@ -60,14 +60,14 @@ Deno.serve(async (req) => {
 
         // ทำงานต่อในพื้นหลังโดยไม่ block response
         (async () => {
-            const batchSize = 25;
+            const batchSize = 100;
             let totalDeleted = 0;
             let roundCount = 0;
             let rateLimitCount = 0;
             let lastRateLimitTime = null;
 
             console.log(`🚀 [${branchId}] Starting deletion of ${totalPayments} payments`);
-            console.log(`⚙️ MODERATE Config: batchSize=25, itemDelay=3s, retryDelay=10s, roundDelay=10s`);
+            console.log(`⚙️ SLOW Config: batchSize=100, itemDelay=5s, retryDelay=15s, roundDelay=60s`);
 
             try {
                 while (true) {
@@ -119,8 +119,8 @@ Deno.serve(async (req) => {
 
                                 console.log(`✅ [${totalDeleted}/${totalPayments}] Deleted in ${deleteTime}ms`);
 
-                                // รอ 3 วินาทีระหว่างรายการ
-                                await new Promise(resolve => setTimeout(resolve, 3000));
+                                // รอ 5 วินาทีระหว่างรายการ
+                                await new Promise(resolve => setTimeout(resolve, 5000));
                                 break;
 
                             } catch (e) {
@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
 
                                     if (retries < 2) {
                                         retries++;
-                                        const waitTime = 10 * Math.pow(2, retries - 1); // 10s, 20s
+                                        const waitTime = 15 * Math.pow(2, retries - 1); // 15s, 30s
                                         console.error(`⚠️⚠️⚠️ [RATE LIMIT #${rateLimitCount}] at ${lastRateLimitTime}`);
                                         console.error(`⚠️ Payment: ${payment.id}, Retry: ${retries}/3`);
                                         console.error(`⚠️ Error: ${e.message}`);
@@ -183,9 +183,9 @@ Deno.serve(async (req) => {
                         }
                     }
 
-                    // รอ 10 วินาทีระหว่างรอบ
-                    console.log(`⏳ [Round ${roundCount} complete] Waiting 10s before next round...`);
-                    await new Promise(resolve => setTimeout(resolve, 10000));
+                    // รอ 60 วินาทีระหว่างรอบ (1 นาที)
+                    console.log(`⏳ [Round ${roundCount} complete] Waiting 60s before next round...`);
+                    await new Promise(resolve => setTimeout(resolve, 60000));
                 }
             } catch (error) {
                 console.error(`❌❌❌ [FATAL ERROR] Background deletion crashed:`, error.message);
