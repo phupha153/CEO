@@ -588,7 +588,7 @@ export default function BranchSelection() {
         <div className="relative w-20 h-20">
           <div className="absolute inset-0 bg-white/50 rounded-2xl blur-lg" />
           <img
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/7a80cfaf1_GreenMinimalistNewSongWidgetInstagramPost2.png"
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/97b9e5ca2_GreenMinimalistNewSongWidgetInstagramPost4.png"
             alt="หลังหอพัก"
             className="relative w-full h-full object-contain drop-shadow-xl"
           />
