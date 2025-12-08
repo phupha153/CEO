@@ -312,7 +312,7 @@ Deno.serve(async (req) => {
                     const totalWithLateFee = (payment.total_amount || 0) + lateFee;
                     const lateFeeText = lateFee > 0 ? `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท\n💵 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท` : '';
                     
-                    message = `เรียนคุณผู้เช่า 🙏\n\n`;
+                    message = `🙏 เรียนคุณผู้เช่า\n\n`;
                     message += `🔴 แจ้งเตือนเกินกำหนดชำระ\n`;
                     message += `ห้อง ${roomNum}\n`;
                     message += `💰 ยอดเงิน: ${amount} บาท${lateFeeText}\n`;
@@ -321,21 +321,21 @@ Deno.serve(async (req) => {
                     message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}`;
                 } else if (template === 'due_date') {
                     // ข้อความครบกำหนด - สั้นกระชับ
-                    message = `วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
+                    message = `📅 วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
                     message += `${buildingName}\n`;
                     message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
-                    message += `ยอดชำระ: ${amount} บาท\n\n`;
+                    message += `💰 ยอดชำระ: ${amount} บาท\n\n`;
                     
                     const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', branchId, '0');
                     const feePerDay = parseFloat(lateFeePerDayConfig);
                     if (!isNaN(feePerDay) && feePerDay > 0) {
-                        message += `หากชำระหลังวันนี้ มีค่าปรับ ${feePerDay} บาท/วัน\n\n`;
+                        message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${feePerDay} บาท/วัน\n\n`;
                     }
                     
-                    message += `โอนเงินได้ที่:\n`;
+                    message += `💳 โอนเงินได้ที่:\n`;
                     message += `${bankName} ${bankAccountNumber}\n`;
                     message += `ชื่อ: ${bankAccountName}\n\n`;
-                    message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ`;
+                    message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
                 } else {
                     // ข้อความปกติ (advance, due_date หรือไม่ระบุ)
                     message = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
