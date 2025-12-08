@@ -406,23 +406,42 @@ export default function BranchSelection() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-purple-100 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 overflow-hidden relative">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-purple-500/30 to-pink-500/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-blue-600/20 to-indigo-600/20 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4 py-12">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
           className="w-full max-w-6xl"
         >
-          <Card className="bg-white/80 backdrop-blur-2xl border border-white/60 shadow-2xl overflow-hidden rounded-3xl">
-            <CardContent className="p-8">
-              <div className="text-center mb-8">
-                <p className="text-slate-600">เลือกสาขาที่ต้องการจัดการ</p>
-              </div>
+          <div className="mb-12 text-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <img
+                src={buildingLogo}
+                alt={buildingName}
+                className="w-20 h-20 mx-auto mb-6 rounded-3xl shadow-2xl"
+                onError={(e) => {
+                  e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
+                }}
+              />
+              <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 tracking-tight">
+                {buildingName}
+              </h1>
+              <p className="text-white/80 text-lg md:text-xl font-light mb-2">
+                เลือกสาขาที่ต้องการจัดการ
+              </p>
+            </motion.div>
+          </div>
 
 
 
@@ -471,44 +490,32 @@ export default function BranchSelection() {
 
               {/* ✅ ถ้าไม่มีสาขาเลย หรือไม่มีสิทธิ์ → แสดงปุ่มเพิ่มสาขา */}
               {(hasNoBranches || hasNoAccess) ? (
-                <div className="text-center py-16">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="max-w-md mx-auto"
-                  >
-                    <div className="relative w-32 h-32 mx-auto mb-6">
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-sky-400/30 rounded-full blur-3xl animate-pulse" />
-                      <div className="relative w-full h-full rounded-full bg-gradient-to-br from-blue-500 to-sky-600 flex items-center justify-center shadow-2xl">
-                        <Building2 className="w-16 h-16 text-white" />
-                      </div>
-                    </div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-center max-w-2xl mx-auto"
+                >
+                  <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
+                    ยังไม่มีสาขา
+                  </h2>
+                  <p className="text-white/70 text-lg md:text-xl mb-8 font-light leading-relaxed">
+                    เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ<br/>
+                    หรือติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา
+                  </p>
 
-                    <h2 className="text-2xl font-bold text-slate-800 mb-3">
-                      {hasNoBranches ? 'ยังไม่มีสาขา' : 'ยังไม่มีสาขา'}
-                    </h2>
-                    <p className="text-slate-600 mb-6">
-                      {hasNoBranches 
-                        ? 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ' 
-                        : 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ หรือติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา'}
-                    </p>
-
-                    {/* ปุ่มเพิ่มสาขา - เปิด Dialog */}
-                    {(userRole === 'developer' || userRole === 'owner') && (
-                      <Button
-                        onClick={() => setShowDialog(true)}
-                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold"
-                        data-onboarding="add-branch-button"
-                      >
-                        <Plus className="w-6 h-6 mr-2 flex-shrink-0" />
-                        <span>เพิ่มสาขา</span>
-                      </Button>
-                    )}
-
-                  </motion.div>
-                </div>
+                  {(userRole === 'developer' || userRole === 'owner') && (
+                    <Button
+                      onClick={() => setShowDialog(true)}
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white h-auto py-5 px-12 text-lg shadow-2xl rounded-2xl font-semibold transition-all hover:scale-105"
+                      data-onboarding="add-branch-button"
+                    >
+                      เพิ่มสาขา
+                    </Button>
+                  )}
+                </motion.div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                   <AnimatePresence>
                     {filteredBranches.map((branch, index) => {
                     const isSelected = selectedBranchId === branch.id;
@@ -517,57 +524,58 @@ export default function BranchSelection() {
                     return (
                       <motion.div
                         key={branch.id}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: index * 0.1 }}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 + 0.3, duration: 0.5 }}
+                        whileHover={{ scale: 1.05, y: -8 }}
                       >
                         <Card
-                          className={`transition-all duration-300 border-0 bg-white/90 overflow-hidden rounded-3xl h-full ${
-                            isNavigating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-white hover:shadow-xl hover:scale-105'
+                          className={`transition-all duration-300 border-0 bg-white/10 backdrop-blur-xl overflow-hidden rounded-3xl h-full ${
+                            isNavigating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-white/20 hover:shadow-2xl'
                           }`}
                           onClick={() => !isNavigating && handleSelectBranch(branch)}
                         >
-                          <CardContent className="p-6">
-                            <div className="flex flex-col items-center text-center gap-4">
+                          <CardContent className="p-8">
+                            <div className="flex flex-col items-center text-center gap-6">
                               <div className="relative">
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl blur-md opacity-30" />
-                                <div className="relative w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl flex items-center justify-center shadow-lg">
-                                  <Building2 className="w-10 h-10 text-white" />
+                                <div className="absolute inset-0 bg-white/30 rounded-3xl blur-xl" />
+                                <div className="relative w-24 h-24 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center shadow-2xl border border-white/30">
+                                  <Building2 className="w-12 h-12 text-white" />
                                 </div>
                               </div>
 
                               <div className="w-full">
-                                <h3 className="text-xl font-bold text-slate-800 mb-1">
+                                <h3 className="text-2xl font-bold text-white mb-2">
                                   {branch.branch_name}
                                 </h3>
-                                <p className="text-sm text-slate-500 font-semibold mb-3">{branch.branch_code}</p>
+                                <p className="text-sm text-white/60 font-medium mb-4">{branch.branch_code}</p>
                                 
-                                <div className="flex items-center justify-center gap-2 mb-3">
-                                  <div className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-full">
-                                    <Building2 className="w-4 h-4 text-blue-600" />
-                                    <span className="text-sm font-semibold text-blue-700">{roomCountByBranch[branch.id] || 0}</span>
-                                    <span className="text-xs text-blue-600">ห้อง</span>
+                                <div className="flex items-center justify-center gap-2 mb-4">
+                                  <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30">
+                                    <Building2 className="w-4 h-4 text-white" />
+                                    <span className="text-base font-bold text-white">{roomCountByBranch[branch.id] || 0}</span>
+                                    <span className="text-sm text-white/80">ห้อง</span>
                                   </div>
                                 </div>
 
                                 {branch.address && (
-                                  <div className="flex items-start justify-center gap-1.5 text-left">
-                                    <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-                                    <span className="text-xs text-slate-500 line-clamp-2">{branch.address}</span>
+                                  <div className="flex items-start justify-center gap-2 text-center px-4">
+                                    <MapPin className="w-4 h-4 text-white/60 mt-0.5 flex-shrink-0" />
+                                    <span className="text-sm text-white/70 line-clamp-2">{branch.address}</span>
                                   </div>
                                 )}
                               </div>
 
-                              <div className="w-full">
+                              <div className="w-full mt-2">
                                 {isNavigatingThis ? (
-                                  <div className="w-full py-2 rounded-full bg-green-100 flex items-center justify-center">
-                                    <Check className="w-5 h-5 text-green-600 mr-2" />
-                                    <span className="text-sm font-semibold text-green-700">กำลังเข้าสู่ระบบ</span>
+                                  <div className="w-full py-4 rounded-2xl bg-green-500/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                                    <Check className="w-5 h-5 text-white mr-2" />
+                                    <span className="text-base font-semibold text-white">กำลังเข้าสู่ระบบ</span>
                                   </div>
                                 ) : (
-                                  <div className="w-full py-2 rounded-full bg-slate-100 flex items-center justify-center hover:bg-blue-100 transition-colors">
-                                    <span className="text-sm font-semibold text-slate-600">เลือกสาขา</span>
-                                    <ChevronRight className="w-4 h-4 text-slate-400 ml-1" />
+                                  <div className="w-full py-4 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-all border border-white/30 shadow-lg">
+                                    <span className="text-base font-semibold text-white">เลือกสาขา</span>
+                                    <ChevronRight className="w-5 h-5 text-white/80 ml-2" />
                                   </div>
                                 )}
                               </div>
@@ -582,8 +590,17 @@ export default function BranchSelection() {
               )}
 
 
-            </CardContent>
-          </Card>
+          {/* Footer - สร้างโดย */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8, duration: 0.5 }}
+            className="text-center mt-12"
+          >
+            <p className="text-white/40 text-sm font-light">
+              สร้างโดย <span className="font-medium text-white/60">หลังหอพัก</span>
+            </p>
+          </motion.div>
         </motion.div>
       </div>
 
