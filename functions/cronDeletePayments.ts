@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
         // 1. ลบ Payments แบบ chunked parallel (ป้องกัน rate limit)
         if (paymentsToDelete.length > 0) {
             console.log(`💸 [Cron] Deleting ${paymentsToDelete.length} TEST payments...`);
-            const chunkSize = 25;
+            const chunkSize = 5;
             for (let i = 0; i < paymentsToDelete.length; i += chunkSize) {
                 const chunk = paymentsToDelete.slice(i, i + chunkSize);
                 const deleteResults = await Promise.allSettled(
@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
                 totalDeleted += successCount;
                 console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted ${successCount}/${chunk.length} payments`);
                 if (i + chunkSize < paymentsToDelete.length) {
-                    await new Promise(resolve => setTimeout(resolve, 800));
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             }
         }
@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
         // 2. ลบ Bookings แบบ chunked parallel
         if (bookingsToDelete.length > 0) {
             console.log(`📋 [Cron] Deleting ${bookingsToDelete.length} TEST bookings...`);
-            const chunkSize = 25;
+            const chunkSize = 5;
             for (let i = 0; i < bookingsToDelete.length; i += chunkSize) {
                 const chunk = bookingsToDelete.slice(i, i + chunkSize);
                 const deleteResults = await Promise.allSettled(
@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
                 totalDeleted += successCount;
                 console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted ${successCount}/${chunk.length} bookings`);
                 if (i + chunkSize < bookingsToDelete.length) {
-                    await new Promise(resolve => setTimeout(resolve, 800));
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             }
         }
@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
         // 3. ลบ Rooms แบบ chunked parallel
         if (roomsToDelete.length > 0) {
             console.log(`🏠 [Cron] Deleting ${roomsToDelete.length} TEST rooms...`);
-            const chunkSize = 25;
+            const chunkSize = 5;
             for (let i = 0; i < roomsToDelete.length; i += chunkSize) {
                 const chunk = roomsToDelete.slice(i, i + chunkSize);
                 const deleteResults = await Promise.allSettled(
@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
                 totalDeleted += successCount;
                 console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted ${successCount}/${chunk.length} rooms`);
                 if (i + chunkSize < roomsToDelete.length) {
-                    await new Promise(resolve => setTimeout(resolve, 800));
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             }
         }
@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
         // 4. ลบ Tenants แบบ chunked parallel
         if (tenantsToDelete.length > 0) {
             console.log(`👥 [Cron] Deleting ${tenantsToDelete.length} TEST tenants...`);
-            const chunkSize = 25;
+            const chunkSize = 5;
             for (let i = 0; i < tenantsToDelete.length; i += chunkSize) {
                 const chunk = tenantsToDelete.slice(i, i + chunkSize);
                 const deleteResults = await Promise.allSettled(
@@ -207,7 +207,7 @@ Deno.serve(async (req) => {
                 totalDeleted += successCount;
                 console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted ${successCount}/${chunk.length} tenants`);
                 if (i + chunkSize < tenantsToDelete.length) {
-                    await new Promise(resolve => setTimeout(resolve, 800));
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             }
         }
@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
         // 5. ลบ MeterReadings แบบ chunked parallel
         if (meterReadingsToDelete.length > 0) {
             console.log(`⚡ [Cron] Deleting ${meterReadingsToDelete.length} TEST meter readings...`);
-            const chunkSize = 25;
+            const chunkSize = 5;
             for (let i = 0; i < meterReadingsToDelete.length; i += chunkSize) {
                 const chunk = meterReadingsToDelete.slice(i, i + chunkSize);
                 const deleteResults = await Promise.allSettled(
@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
                 totalDeleted += successCount;
                 console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted ${successCount}/${chunk.length} meter readings`);
                 if (i + chunkSize < meterReadingsToDelete.length) {
-                    await new Promise(resolve => setTimeout(resolve, 800));
+                    await new Promise(resolve => setTimeout(resolve, 2000));
                 }
             }
         }
