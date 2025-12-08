@@ -406,13 +406,7 @@ export default function BranchSelection() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 overflow-hidden relative">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-500/30 to-purple-500/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-purple-500/30 to-pink-500/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-blue-600/20 to-indigo-600/20 rounded-full blur-3xl" />
-      </div>
-
+    <div className="min-h-screen bg-slate-50 overflow-hidden relative">
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4 py-12">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -420,71 +414,48 @@ export default function BranchSelection() {
           transition={{ duration: 0.6 }}
           className="w-full max-w-6xl"
         >
-          <div className="mb-12 text-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
-              <img
-                src={buildingLogo}
-                alt={buildingName}
-                className="w-20 h-20 mx-auto mb-6 rounded-3xl shadow-2xl"
-                onError={(e) => {
-                  e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
-                }}
-              />
-              <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 tracking-tight">
-                {buildingName}
-              </h1>
-              <p className="text-white/80 text-lg md:text-xl font-light mb-2">
-                เลือกสาขาที่ต้องการจัดการ
-              </p>
-            </motion.div>
-          </div>
 
 
 
-              {/* ✅ ถ้ามีสาขา → แสดงปุ่มดูภาพรวม + เพิ่มสาขา */}
+              {/* ✅ ถ้ามีสาขา → แสดงปุ่มต่างๆ ด้านบน */}
               {!hasNoBranches && !hasNoAccess && (
-                <div className="flex flex-col gap-3 mb-6 items-center">
+                <div className="flex flex-col gap-3 mb-8 items-center">
                   <div className="flex flex-wrap gap-3 justify-center">
-                    {/* ปุ่มดูภาพรวมทั้งหมด - แสดงเฉพาะเมื่อมีมากกว่า 1 สาขา และไม่ได้อยู่ใน trial mode */}
+                    {/* ปุ่มดูภาพรวมทั้งหมด */}
                     {filteredBranches.length > 1 && !isTrialMode && (
                       <Button
                         onClick={handleViewAllBranches}
                         disabled={isNavigating}
-                        className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white h-auto py-3 px-6 text-sm shadow-md rounded-xl font-medium"
                       >
-                        <Globe className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <Globe className="w-4 h-4 mr-2 flex-shrink-0" />
                         <span>ดูภาพรวมทั้งหมด</span>
                       </Button>
                     )}
                     
-                    {/* ปุ่มจัดการสาขา - ไปหน้า BranchManagement */}
+                    {/* ปุ่มจัดการสาขา */}
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
                         onClick={() => navigate(createPageUrl('BranchManagement'))}
                         variant="outline"
-                        className="border-slate-300 text-slate-700 hover:bg-slate-50 shadow-md h-auto py-4 px-6 text-sm rounded-2xl font-medium"
+                        className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50 shadow-sm h-auto py-3 px-6 text-sm rounded-xl font-medium"
                       >
-                        <Settings className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <Settings className="w-4 h-4 mr-2 flex-shrink-0" />
                         <span>จัดการสาขา</span>
                       </Button>
                     )}
 
-                    {/* ปุ่มเพิ่มสาขา - เปิด Dialog */}
+                    {/* ปุ่มเพิ่มสาขา */}
                     {(userRole === 'developer' || userRole === 'owner') && canAddMoreBranches && (
                       <Button
                         onClick={() => setShowDialog(true)}
-                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
+                        className="bg-orange-500 hover:bg-orange-600 text-white h-auto py-3 px-6 text-sm shadow-md rounded-xl font-medium"
                       >
-                        <Plus className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <Plus className="w-4 h-4 mr-2 flex-shrink-0" />
                         <span>เพิ่มสาขา</span>
                       </Button>
                     )}
                   </div>
-
                 </div>
               )}
 
@@ -496,10 +467,10 @@ export default function BranchSelection() {
                   transition={{ delay: 0.3 }}
                   className="text-center max-w-2xl mx-auto"
                 >
-                  <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight">
+                  <h2 className="text-4xl md:text-5xl font-bold text-slate-800 mb-4 leading-tight">
                     ยังไม่มีสาขา
                   </h2>
-                  <p className="text-white/70 text-lg md:text-xl mb-8 font-light leading-relaxed">
+                  <p className="text-slate-600 text-lg md:text-xl mb-8 font-normal leading-relaxed">
                     เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ<br/>
                     หรือติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา
                   </p>
@@ -507,7 +478,7 @@ export default function BranchSelection() {
                   {(userRole === 'developer' || userRole === 'owner') && (
                     <Button
                       onClick={() => setShowDialog(true)}
-                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white h-auto py-5 px-12 text-lg shadow-2xl rounded-2xl font-semibold transition-all hover:scale-105"
+                      className="bg-blue-600 hover:bg-blue-700 text-white h-auto py-4 px-10 text-base shadow-lg rounded-xl font-semibold transition-all hover:scale-105"
                       data-onboarding="add-branch-button"
                     >
                       เพิ่มสาขา
@@ -524,58 +495,51 @@ export default function BranchSelection() {
                     return (
                       <motion.div
                         key={branch.id}
-                        initial={{ opacity: 0, y: 30 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1 + 0.3, duration: 0.5 }}
-                        whileHover={{ scale: 1.05, y: -8 }}
+                        transition={{ delay: index * 0.1, duration: 0.4 }}
+                        whileHover={{ scale: 1.03 }}
                       >
                         <Card
-                          className={`transition-all duration-300 border-0 bg-white/10 backdrop-blur-xl overflow-hidden rounded-3xl h-full ${
-                            isNavigating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-white/20 hover:shadow-2xl'
+                          className={`transition-all duration-300 border border-slate-200 bg-white overflow-hidden rounded-2xl h-full ${
+                            isNavigating ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:shadow-xl hover:border-slate-300'
                           }`}
                           onClick={() => !isNavigating && handleSelectBranch(branch)}
                         >
-                          <CardContent className="p-8">
-                            <div className="flex flex-col items-center text-center gap-6">
-                              <div className="relative">
-                                <div className="absolute inset-0 bg-white/30 rounded-3xl blur-xl" />
-                                <div className="relative w-24 h-24 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center shadow-2xl border border-white/30">
-                                  <Building2 className="w-12 h-12 text-white" />
-                                </div>
-                              </div>
-
+                          <CardContent className="p-6">
+                            <div className="flex flex-col gap-4">
                               <div className="w-full">
-                                <h3 className="text-2xl font-bold text-white mb-2">
+                                <h3 className="text-xl font-bold text-slate-900 mb-1">
                                   {branch.branch_name}
                                 </h3>
-                                <p className="text-sm text-white/60 font-medium mb-4">{branch.branch_code}</p>
+                                <p className="text-sm text-slate-500 mb-3">{branch.branch_code}</p>
                                 
-                                <div className="flex items-center justify-center gap-2 mb-4">
-                                  <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30">
-                                    <Building2 className="w-4 h-4 text-white" />
-                                    <span className="text-base font-bold text-white">{roomCountByBranch[branch.id] || 0}</span>
-                                    <span className="text-sm text-white/80">ห้อง</span>
+                                <div className="flex items-center gap-2 mb-3">
+                                  <div className="flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg">
+                                    <Building2 className="w-4 h-4 text-slate-600" />
+                                    <span className="text-sm font-semibold text-slate-700">{roomCountByBranch[branch.id] || 0}</span>
+                                    <span className="text-xs text-slate-500">ห้อง</span>
                                   </div>
                                 </div>
 
                                 {branch.address && (
-                                  <div className="flex items-start justify-center gap-2 text-center px-4">
-                                    <MapPin className="w-4 h-4 text-white/60 mt-0.5 flex-shrink-0" />
-                                    <span className="text-sm text-white/70 line-clamp-2">{branch.address}</span>
+                                  <div className="flex items-start gap-2 text-left">
+                                    <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                                    <span className="text-sm text-slate-600 line-clamp-2">{branch.address}</span>
                                   </div>
                                 )}
                               </div>
 
                               <div className="w-full mt-2">
                                 {isNavigatingThis ? (
-                                  <div className="w-full py-4 rounded-2xl bg-green-500/90 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                                  <div className="w-full py-3 rounded-xl bg-green-600 flex items-center justify-center shadow-md">
                                     <Check className="w-5 h-5 text-white mr-2" />
-                                    <span className="text-base font-semibold text-white">กำลังเข้าสู่ระบบ</span>
+                                    <span className="text-sm font-semibold text-white">กำลังเข้าสู่ระบบ</span>
                                   </div>
                                 ) : (
-                                  <div className="w-full py-4 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-all border border-white/30 shadow-lg">
-                                    <span className="text-base font-semibold text-white">เลือกสาขา</span>
-                                    <ChevronRight className="w-5 h-5 text-white/80 ml-2" />
+                                  <div className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-700 flex items-center justify-center transition-all shadow-md">
+                                    <span className="text-sm font-semibold text-white">เลือกสาขา</span>
+                                    <ChevronRight className="w-5 h-5 text-white ml-2" />
                                   </div>
                                 )}
                               </div>
@@ -594,11 +558,11 @@ export default function BranchSelection() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.8, duration: 0.5 }}
+            transition={{ delay: 0.5, duration: 0.5 }}
             className="text-center mt-12"
           >
-            <p className="text-white/40 text-sm font-light">
-              สร้างโดย <span className="font-medium text-white/60">หลังหอพัก</span>
+            <p className="text-slate-400 text-sm">
+              สร้างโดย <span className="font-medium text-slate-500">หลังหอพัก</span>
             </p>
           </motion.div>
         </motion.div>
