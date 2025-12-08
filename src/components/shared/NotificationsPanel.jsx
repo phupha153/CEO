@@ -1019,11 +1019,11 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                             const isExpanded = expandedGroups[notif.id] || false;
                             const isSwiped = swipedItem === notif.id;
                             const colorMap = {
-                              red: { gradient: 'from-red-500 to-orange-500', border: '#ef4444', bg: 'bg-red-50/50' },
-                              green: { gradient: 'from-green-500 to-emerald-500', border: '#10b981', bg: 'bg-green-50/50' },
-                              blue: { gradient: 'from-blue-500 to-cyan-500', border: '#3b82f6', bg: 'bg-blue-50/50' },
-                              purple: { gradient: 'from-purple-500 to-pink-500', border: '#a855f7', bg: 'bg-purple-50/50' },
-                              amber: { gradient: 'from-amber-500 to-orange-500', border: '#f59e0b', bg: 'bg-amber-50/50' }
+                              red: { gradient: 'from-red-500 to-rose-600', border: '#ef4444', bg: 'bg-gradient-to-br from-red-50 to-rose-50', ring: 'ring-red-200', glow: 'shadow-red-200/50' },
+                              green: { gradient: 'from-green-500 to-emerald-600', border: '#10b981', bg: 'bg-gradient-to-br from-green-50 to-emerald-50', ring: 'ring-green-200', glow: 'shadow-green-200/50' },
+                              blue: { gradient: 'from-blue-500 to-indigo-600', border: '#3b82f6', bg: 'bg-gradient-to-br from-blue-50 to-indigo-50', ring: 'ring-blue-200', glow: 'shadow-blue-200/50' },
+                              purple: { gradient: 'from-purple-500 to-fuchsia-600', border: '#a855f7', bg: 'bg-gradient-to-br from-purple-50 to-fuchsia-50', ring: 'ring-purple-200', glow: 'shadow-purple-200/50' },
+                              amber: { gradient: 'from-amber-500 to-orange-600', border: '#f59e0b', bg: 'bg-gradient-to-br from-amber-50 to-orange-50', ring: 'ring-amber-200', glow: 'shadow-amber-200/50' }
                             };
 
                             return (
