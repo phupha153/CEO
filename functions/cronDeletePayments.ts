@@ -1,23 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-// Cron job: Delete payments from branch one by one with real-time progress tracking
+// Cron job: Delete TEST data from ALL branches with continuous recursive calls
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        let body = {};
-        try {
-            body = await req.json();
-        } catch {
-            // ไม่มี body
-        }
-        
-        let branchId = body.branch_id;
-        
-        if (!branchId) {
-            const configs = await base44.asServiceRole.entities.Config.filter({ key: 'cron_delete_branch_id' });
-            branchId = configs.length > 0 ? configs[0].value : '69255a34e816a8749fc765c2';
-        }
+        console.log(`🧹 [Cron] Starting TEST data deletion for ALL branches...`);
 
         const startTime = Date.now();
         console.log(`🔄 [Cron] Starting batch deletion for branch: ${branchId}`);
