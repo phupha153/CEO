@@ -1092,15 +1092,27 @@ export default function Layout({ children, currentPageName }) {
   }, [subscriptionCheck.shouldRedirect, subscriptionCheck.redirectTo, isLoading, currentUser, navigate, currentPageName]);
 
   useEffect(() => {
+    console.log('🔍 [Layout] useEffect triggered', {
+      currentUser: !!currentUser,
+      isLoading,
+      branchesLoading,
+      currentPageName,
+      selectedBranch: selectedBranch?.id,
+      pathname: location.pathname
+    });
+
     if (!currentUser || isLoading || branchesLoading) return;
-    
+
     // ⭐ เช็คว่ากำลังไปหน้า BranchManagement หรือไม่
     const isNavigatingToBranchManagement = localStorage.getItem('navigating_to_branch_management') === 'true';
+    console.log('🔍 [Layout] isNavigatingToBranchManagement:', isNavigatingToBranchManagement);
+
     if (isNavigatingToBranchManagement) {
+      console.log('✅ [Layout] Detected BranchManagement navigation - clearing flag and returning');
       localStorage.removeItem('navigating_to_branch_management');
       return;
     }
-    
+
     // Pages that don't require a selected branch
     if (currentPageName === 'BranchSelection' || 
         currentPageName === 'AllBranchesDashboard' || 
@@ -1113,20 +1125,23 @@ export default function Layout({ children, currentPageName }) {
         currentPageName === 'RenewalPage' ||
         currentPageName === 'UpdateMyBranches' ||
         currentPageName === 'UserBranchAccess') {
+      console.log('✅ [Layout] Page does not require branch selection:', currentPageName);
       return;
     }
-    
+
     // If user has a selected branch but no access to it, clear and redirect
     if (selectedBranch && !canAccessBranch) {
+      console.log('⚠️ [Layout] No access to branch - redirecting to BranchSelection');
       localStorage.removeItem('selected_branch_id');
       localStorage.removeItem('selected_branch_name');
       setSelectedBranch(null);
       navigate(createPageUrl('BranchSelection'), { replace: true });
       return;
     }
-    
+
     // If no branch is selected and there are branches available, redirect to branch selection
     if (!selectedBranch && branches.length > 0) {
+      console.log('⚠️ [Layout] No branch selected - redirecting to BranchSelection');
       navigate(createPageUrl('BranchSelection'), { replace: true });
     }
   }, [currentUser?.id, selectedBranch?.id, canAccessBranch, isLoading, branchesLoading, currentPageName, branches.length, navigate, userRole]);
