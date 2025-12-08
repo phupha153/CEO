@@ -79,33 +79,49 @@ Deno.serve(async (req) => {
         }
 
         // 3. ดึง payments แยกตาม branch เพื่อไม่ให้ JSON ใหญ่เกินไป
-        console.log('🔍 Fetching payments by branch...');
+        console.log(`🔍 Fetching payments for ${enabledBranches.length} branches on ${todayString}...`);
 
         let allPayments = [];
+        let fetchedBranches = 0;
 
         // ดึงทีละ branch จากสาขาที่เปิดการแจ้งเตือน
         for (const branchId of enabledBranches) {
             try {
+                // ⭐ ดึง payment ทั้งหมดของสาขา แล้วกรองเองใน JavaScript
                 const branchPayments = await base44.asServiceRole.entities.Payment.filter({ 
-                    branch_id: branchId,
-                    due_date: todayString
+                    branch_id: branchId
                 });
 
-                if (Array.isArray(branchPayments)) {
-                    allPayments = allPayments.concat(branchPayments);
-                    console.log(`✅ Branch ${branchId.substring(0, 8)}: ${branchPayments.length} payments`);
+                const branchPaymentsArray = Array.isArray(branchPayments) ? branchPayments : [];
+
+                // กรองหา payment ที่ due_date = todayString และยังไม่ชำระ
+                const dueTodayPayments = branchPaymentsArray.filter(p => {
+                    if (p.status === 'paid') return false;
+                    if (!p.due_date) return false;
+
+                    const dueDateStr = p.due_date.split('T')[0];
+                    return dueDateStr === todayString;
+                });
+
+                allPayments = allPayments.concat(dueTodayPayments);
+                fetchedBranches++;
+
+                if (dueTodayPayments.length > 0) {
+                    console.log(`✅ Branch ${branchId.substring(0, 8)}: ${dueTodayPayments.length} payments due today (from ${branchPaymentsArray.length} total)`);
+                    // Debug: แสดงตัวอย่าง payment
+                    dueTodayPayments.slice(0, 2).forEach(p => {
+                        console.log(`   📄 Payment ${p.id?.substring(0, 8)}: due ${p.due_date}, status ${p.status}, amount ${p.total_amount}`);
+                    });
                 }
             } catch (err) {
                 console.error(`❌ Error fetching payments for branch ${branchId.substring(0, 8)}:`, err.message);
             }
         }
 
-        console.log(`✅ Total fetched: ${allPayments.length} payments from ${enabledBranches.length} branches`);
+        console.log(`✅ Fetched ${fetchedBranches}/${enabledBranches.length} branches`);
+        console.log(`✅ Total payments due today: ${allPayments.length}`);
 
-        // กรองเฉพาะที่ยังไม่ชำระ (pending หรือ overdue)
-        const payments = allPayments.filter(p => p.status !== 'paid');
-
-        console.log(`✅ Filtered: ${payments.length} unpaid payments due on ${todayString}`);
+        const payments = allPayments;
         
 
 
