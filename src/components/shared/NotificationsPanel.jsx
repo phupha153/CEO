@@ -321,10 +321,12 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   };
 
   const notificationsByBranch = useMemo(() => {
+    console.log('🔍 [NotificationPanel] useMemo triggered - isOpen:', isOpen);
     if (!isOpen) return {};
     
     const now = getCurrentDate();
     console.log('🔍 [NotificationPanel] Current date:', now.toISOString());
+    console.log('🔍 [NotificationPanel] Test date config:', configs.find(c => c.key === 'test_current_date'));
     const branchNotifications = {};
 
     const selectedBranchId = localStorage.getItem('selected_branch_id');
@@ -350,10 +352,16 @@ export default function NotificationsPanel({ isOpen, onClose }) {
       
       // ⭐ Debug log
       if (branchId === '69256957890d2b5aaaca1d3f') {
+        const unpaidPayments = payments.filter(p => p.status !== 'paid');
         console.log('🔍 Processing branch:', branchName, {
           totalPayments: payments.length,
-          pendingPayments: payments.filter(p => p.status !== 'paid').length,
-          totalRooms: rooms.length
+          pendingPayments: unpaidPayments.length,
+          totalRooms: rooms.length,
+          unpaidPaymentsDueDates: unpaidPayments.map(p => ({
+            room: rooms.find(r => r.id === p.room_id)?.room_number,
+            dueDate: p.due_date,
+            status: p.status
+          }))
         });
       }
 
@@ -415,25 +423,22 @@ export default function NotificationsPanel({ isOpen, onClose }) {
           const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
           const isOverdue = now > dueDateStart;
           
-          // ⭐ Debug log สำหรับสาขา 12345
-          if (branchId === '69256957890d2b5aaaca1d3f') {
-            console.log('🔍 Overdue check:', {
-              room: rooms.find(r => r.id === p.room_id)?.room_number,
-              dueDate: p.due_date,
-              status: p.status,
-              now: now.toISOString(),
-              dueDateStart: dueDateStart.toISOString(),
-              isOverdue,
-              daysOverdue: differenceInDays(now, dueDateStart)
-            });
-          }
-          
           return isOverdue;
         } catch (err) {
           console.error('Date parse error:', err, p.due_date);
           return false;
         }
       });
+
+      // ⭐ Debug log สำหรับสาขา 12345
+      if (branchId === '69256957890d2b5aaaca1d3f') {
+        console.log('🔍 Overdue payments found:', overduePayments.length, overduePayments.map(p => ({
+          room: rooms.find(r => r.id === p.room_id)?.room_number,
+          dueDate: p.due_date,
+          status: p.status,
+          amount: p.total_amount
+        })));
+      }
 
       if (overduePayments.length > 10) {
         const totalOverdueAmount = overduePayments.reduce((sum, p) => sum + (p.total_amount || 0), 0);
