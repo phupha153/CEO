@@ -221,6 +221,7 @@ export default function Settings() {
     bill_advance_notice_days: '3',
     send_advance_reminder: false,
     send_due_date_reminder: false,
+    send_overdue_reminder: false,
     // ค่าปรับแบบขั้นบันได
     late_fee_tiers_enabled: false,
     late_fee_tiers: [
@@ -576,6 +577,7 @@ export default function Settings() {
     const billAdvanceNoticeConfig = getConfigValue('bill_advance_notice_days');
     const sendAdvanceReminderConfig = getConfigValue('send_advance_reminder');
     const sendDueDateReminderConfig = getConfigValue('send_due_date_reminder');
+    const sendOverdueReminderConfig = getConfigValue('send_overdue_reminder');
     const lateFeeeTiersEnabledConfig = getConfigValue('late_fee_tiers_enabled');
     const lateFeeTiersConfig = getConfigValue('late_fee_tiers');
     const carParkingFeeConfig = getConfigValue('car_parking_fee');
@@ -734,6 +736,7 @@ export default function Settings() {
       bill_advance_notice_days: billAdvanceNoticeConfig?.value || '3',
       send_advance_reminder: sendAdvanceReminderConfig?.value === 'true',
       send_due_date_reminder: sendDueDateReminderConfig?.value === 'true',
+      send_overdue_reminder: sendOverdueReminderConfig?.value === 'true',
       late_fee_tiers_enabled: lateFeeeTiersEnabledConfig?.value === 'true',
       late_fee_tiers: parsedTiers
     });
@@ -1219,6 +1222,7 @@ export default function Settings() {
         updateConfigMutation.mutateAsync({ key: 'bill_advance_notice_days', value: billSettings.bill_advance_notice_days, description: 'แจ้งบิลล่วงหน้ากี่วัน', category: 'general', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif }),
         updateConfigMutation.mutateAsync({ key: 'send_advance_reminder', value: billSettings.send_advance_reminder ? 'true' : 'false', description: 'เปิด/ปิดการแจ้งบิลล่วงหน้า', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }),
         updateConfigMutation.mutateAsync({ key: 'send_due_date_reminder', value: billSettings.send_due_date_reminder ? 'true' : 'false', description: 'ส่งข้อความเตือนในวันครบกำหนดชำระ', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }),
+        updateConfigMutation.mutateAsync({ key: 'send_overdue_reminder', value: billSettings.send_overdue_reminder ? 'true' : 'false', description: 'ส่งข้อความเตือนเกินกำหนดชำระ', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }),
         updateConfigMutation.mutateAsync({ key: 'late_fee_tiers_enabled', value: billSettings.late_fee_tiers_enabled ? 'true' : 'false', description: 'เปิดใช้ค่าปรับแบบขั้นบันได', category: 'billing', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }),
         updateConfigMutation.mutateAsync({ key: 'late_fee_tiers', value: JSON.stringify(billSettings.late_fee_tiers), description: 'เงื่อนไขค่าปรับแบบขั้นบันได', category: 'billing', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif })
       ]);
@@ -2766,6 +2770,19 @@ export default function Settings() {
                             <div className="flex-1">
                               <p className="text-sm font-medium text-slate-800">แจ้งเตือนในวันครบกำหนด</p>
                               <p className="text-xs text-slate-600">ส่งข้อความเตือนในวันที่ {billSettings.pay_day} (เฉพาะรายการที่รอชำระ)</p>
+                            </div>
+                          </label>
+
+                          <label className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200 cursor-pointer hover:bg-red-100 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={billSettings.send_overdue_reminder}
+                              onChange={(e) => setBillSettings({ ...billSettings, send_overdue_reminder: e.target.checked })}
+                              className="w-5 h-5 rounded"
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-800">🔴 แจ้งเตือนเกินกำหนด</p>
+                              <p className="text-xs text-slate-600">ส่งข้อความเตือนทุกวันสำหรับรายการที่เกินกำหนดชำระแล้ว (พร้อมค่าปรับ)</p>
                             </div>
                           </label>
                         </div>
