@@ -999,16 +999,20 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                       .map(([branchId, branchData]) => (
                       <div key={branchId}>
                         {showAllBranches && filterBranch === 'all' && (
-                          <div className="flex items-center gap-2 mb-2 px-2">
-                            <Building2 className="w-4 h-4 text-blue-600" />
-                            <h3 className="text-sm font-bold text-slate-700">{branchData.branchName}</h3>
-                            <Badge variant="outline" className="text-xs">
-                              {branchData.alerts.filter(a => !isNotificationRead(a.id) && !isNotificationDeleted(a.id)).length} ยังไม่อ่าน
-                            </Badge>
+                          <div className="flex items-center gap-2 mb-3 px-3 py-2 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl border border-blue-200">
+                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
+                              <Building2 className="w-4 h-4 text-white" />
+                            </div>
+                            <h3 className="text-sm font-bold text-slate-800">{branchData.branchName}</h3>
+                            {branchData.alerts.filter(a => !isNotificationRead(a.id) && !isNotificationDeleted(a.id)).length > 0 && (
+                              <Badge className="bg-gradient-to-r from-red-500 to-pink-600 text-white border-0 text-xs ml-auto shadow-sm">
+                                {branchData.alerts.filter(a => !isNotificationRead(a.id) && !isNotificationDeleted(a.id)).length}
+                              </Badge>
+                            )}
                           </div>
                         )}
 
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {branchData.alerts.map((notif, index) => {
                             const IconComponent = notif.icon;
                             const isRead = isNotificationRead(notif.id);
