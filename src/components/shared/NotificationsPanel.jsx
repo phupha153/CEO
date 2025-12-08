@@ -1065,12 +1065,14 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                                 )}
                                 
                                 <Card
-                                  className={`border-l-4 ${colorMap[notif.color].bg} ${isRead ? 'opacity-50' : 'shadow-md'} ${notif.expandable ? '' : 'cursor-pointer hover:shadow-lg'} transition-all relative`}
-                                  style={{ borderLeftColor: colorMap[notif.color].border }}
+                                  className={`group ${colorMap[notif.color].bg} ${isRead ? 'opacity-60' : `shadow-lg ${colorMap[notif.color].glow}`} ${notif.expandable ? '' : 'cursor-pointer hover:shadow-xl hover:scale-[1.02]'} transition-all duration-300 relative border-0 overflow-hidden rounded-2xl`}
                                 >
-                                  <CardContent className="p-4">
+                                  <div className={`absolute inset-0 bg-gradient-to-r ${colorMap[notif.color].gradient} opacity-5`}></div>
+                                  <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${colorMap[notif.color].gradient}`}></div>
+                                  
+                                  <CardContent className="p-5 relative">
                                     <div 
-                                      className="flex items-start gap-3"
+                                      className="flex items-start gap-4"
                                       onClick={() => {
                                         if (!notif.expandable && notif.type !== 'failed-slip') {
                                           markAsReadMutation.mutate(notif.id);
@@ -1078,8 +1080,11 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                                         }
                                       }}
                                     >
-                                      <div className={`w-10 h-10 bg-gradient-to-br ${colorMap[notif.color].gradient} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                                        <IconComponent className="w-5 h-5 text-white" />
+                                      <div className={`relative w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg`}>
+                                        <div className={`absolute inset-0 bg-gradient-to-br ${colorMap[notif.color].gradient} rounded-2xl blur-md opacity-50`}></div>
+                                        <div className={`relative w-12 h-12 bg-gradient-to-br ${colorMap[notif.color].gradient} rounded-2xl flex items-center justify-center border-2 border-white/50`}>
+                                          <IconComponent className="w-6 h-6 text-white drop-shadow-sm" />
+                                        </div>
                                       </div>
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-start justify-between gap-2 mb-1">
