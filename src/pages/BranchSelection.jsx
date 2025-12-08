@@ -587,6 +587,23 @@ export default function BranchSelection() {
         </motion.div>
       </div>
 
+      {/* Logo at bottom right */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.5 }}
+        className="fixed bottom-6 right-6 z-40"
+      >
+        <div className="relative w-16 h-16">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-purple-400/30 rounded-2xl blur-xl" />
+          <img
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/d611194a4_image.png"
+            alt="System Logo"
+            className="relative w-full h-full object-contain rounded-2xl shadow-lg"
+          />
+        </div>
+      </motion.div>
+
       {/* Form Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
