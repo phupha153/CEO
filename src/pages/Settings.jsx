@@ -2619,7 +2619,7 @@ export default function Settings() {
                             </p>
                             
                             {billSettings.late_fee_tiers.map((tier, index) => (
-                              <div key={index} className="flex items-center gap-2 bg-white rounded-lg p-3 border border-amber-100">
+                              <div key={index} className="flex items-center gap-2 bg-white rounded-lg p-3 border border-amber-100 overflow-x-auto">
                                 <span className="text-sm text-slate-600 whitespace-nowrap">เกินกำหนด</span>
                                 <Input
                                   type="number"
