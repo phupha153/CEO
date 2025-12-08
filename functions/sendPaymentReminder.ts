@@ -319,6 +319,23 @@ Deno.serve(async (req) => {
                     message += `⏰ เกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
                     message += `กรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
                     message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}`;
+                } else if (template === 'due_date') {
+                    // ข้อความครบกำหนด - สั้นกระชับ
+                    message = `⏰ วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
+                    message += `🏠 ${buildingName}\n`;
+                    message += `👤 คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
+                    message += `💰 ยอดชำระ: ${amount} บาท\n\n`;
+                    
+                    const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', branchId, '0');
+                    const feePerDay = parseFloat(lateFeePerDayConfig);
+                    if (!isNaN(feePerDay) && feePerDay > 0) {
+                        message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${feePerDay} บาท/วัน\n\n`;
+                    }
+                    
+                    message += `💳 โอนเงินได้ที่:\n`;
+                    message += `${bankName} ${bankAccountNumber}\n`;
+                    message += `ชื่อ: ${bankAccountName}\n\n`;
+                    message += `📸 ส่งสลิปหลังโอนค่ะ`;
                 } else {
                     // ข้อความปกติ (advance, due_date หรือไม่ระบุ)
                     message = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
