@@ -306,11 +306,11 @@ export default function BranchSelection() {
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
                         onClick={() => navigate(createPageUrl('BranchManagement'))}
-                        className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold"
+                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold"
                         data-onboarding="add-branch-button"
                       >
                         <Building2 className="w-6 h-6 mr-2 flex-shrink-0" />
-                        <span>จัดการสาขา</span>
+                        <span>เพิ่มสาขา</span>
                       </Button>
                     )}
 
