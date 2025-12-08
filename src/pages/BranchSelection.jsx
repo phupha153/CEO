@@ -82,6 +82,16 @@ export default function BranchSelection() {
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   
+  console.log('🔍 BranchSelection Debug:', {
+    userRole,
+    isDeveloper: userRole === 'developer',
+    isOwner: userRole === 'owner',
+    canSeeBranchManagementButton: userRole === 'developer' || userRole === 'owner',
+    currentUser: currentUser?.email,
+    customRole: currentUser?.custom_role,
+    role: currentUser?.role
+  });
+  
   // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้
   const userAccessibleBranches = currentUser?.accessible_branches;
 
@@ -255,11 +265,16 @@ export default function BranchSelection() {
                       <Button
                         type="button"
                         onClick={(e) => {
+                          console.log('🟢 ปุ่มจัดการสาขา (มีสาขา) - กดแล้ว');
+                          console.log('🔍 userRole:', userRole);
+                          console.log('🔍 createPageUrl result:', createPageUrl('BranchManagement'));
                           e.preventDefault();
                           e.stopPropagation();
-                          window.location.href = createPageUrl('BranchManagement');
+                          const url = createPageUrl('BranchManagement');
+                          console.log('🚀 กำลังไปที่:', url);
+                          window.location.href = url;
                         }}
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg h-auto py-4 px-6 text-sm rounded-2xl font-medium text-white"
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg h-auto py-4 px-6 text-sm rounded-2xl font-medium text-white relative z-50"
                         data-onboarding="add-branch-button"
                       >
                         <Building2 className="w-5 h-5 mr-2 flex-shrink-0" />
@@ -300,11 +315,16 @@ export default function BranchSelection() {
                       <Button
                         type="button"
                         onClick={(e) => {
+                          console.log('🟢 ปุ่มจัดการสาขา (ไม่มีสาขา) - กดแล้ว');
+                          console.log('🔍 userRole:', userRole);
+                          console.log('🔍 createPageUrl result:', createPageUrl('BranchManagement'));
                           e.preventDefault();
                           e.stopPropagation();
-                          navigate(createPageUrl('BranchManagement'));
+                          const url = createPageUrl('BranchManagement');
+                          console.log('🚀 กำลังไปที่:', url);
+                          navigate(url);
                         }}
-                        className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold"
+                        className="bg-gradient-to-r from-blue-500 to-sky-500 hover:from-blue-600 hover:to-sky-600 text-white h-auto py-4 px-8 text-lg shadow-xl rounded-2xl font-semibold relative z-50"
                         data-onboarding="add-branch-button"
                       >
                         <Building2 className="w-6 h-6 mr-2 flex-shrink-0" />
