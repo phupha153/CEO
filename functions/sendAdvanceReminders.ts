@@ -11,9 +11,10 @@ Deno.serve(async (req) => {
         const base44 = createClientFromRequest(req);
         console.log('✅ Base44 client created');
 
-        // Parse request body to check for branch_id and test mode
+        // Parse request body to check for branch_id, test mode, and limit
         let targetBranchId = null;
         let testLineUserId = null;
+        let limit = 20; // จำนวนบิลสูงสุดที่จะส่งต่อครั้ง (default 20)
         let body = {};
         try {
             const text = await req.text();
@@ -21,12 +22,14 @@ Deno.serve(async (req) => {
                 body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
                 testLineUserId = body.test_line_user_id || null;
+                limit = body.limit || 20;
             }
         } catch (parseError) {
             console.log('⚠️ No body or parse error:', parseError.message);
         }
 
         console.log('📋 Target branch:', targetBranchId || 'ALL BRANCHES');
+        console.log('📊 Limit per run:', limit);
 
         // 1. ดึงการตั้งค่าจาก Config
         const configs = await base44.asServiceRole.entities.Config.list();
@@ -146,15 +149,19 @@ Deno.serve(async (req) => {
             return shouldNotifyToday;
         });
 
-        console.log(`📊 Found ${upcomingPayments.length} payments due soon ${targetBranchId ? `in branch ${targetBranchId}` : 'in all branches'}`);
+        const totalUpcomingPayments = upcomingPayments.length; // เก็บจำนวนทั้งหมดไว้ก่อน
+        console.log(`📊 Found ${totalUpcomingPayments} payments due soon ${targetBranchId ? `in branch ${targetBranchId}` : 'in all branches'}`);
 
-        if (upcomingPayments.length === 0) {
+        if (totalUpcomingPayments === 0) {
             return Response.json({
                 success: true,
                 message: targetBranchId 
                     ? `ไม่มีบิลที่จะครบกำหนดเร็วๆ นี้ (สาขา: ${targetBranchId})` 
                     : `ไม่มีบิลที่จะครบกำหนดเร็วๆ นี้`,
                 sent: 0,
+                total: 0,
+                remaining: 0,
+                hasMore: false,
                 targetBranchId: targetBranchId || 'all'
             });
         }
@@ -166,7 +173,13 @@ Deno.serve(async (req) => {
         const paymentsFromEnabledBranches = upcomingPayments.filter(p => enabledBranches.includes(p.branch_id));
         const skippedCount = upcomingPayments.length - paymentsFromEnabledBranches.length;
         
+        // ⭐ จำกัดจำนวนบิลที่จะประมวลผลในรอบนี้
+        const paymentsToProcess = paymentsFromEnabledBranches.slice(0, limit);
+        const totalRemaining = paymentsFromEnabledBranches.length - paymentsToProcess.length;
+        
         console.log(`📋 Payments from enabled branches: ${paymentsFromEnabledBranches.length}`);
+        console.log(`📋 Processing this round: ${paymentsToProcess.length}`);
+        console.log(`📋 Remaining for next round: ${totalRemaining}`);
         console.log(`⏭️ Skipped payments (disabled branches): ${skippedCount}`);
 
         if (paymentsFromEnabledBranches.length === 0 && upcomingPayments.length > 0) {
@@ -174,13 +187,16 @@ Deno.serve(async (req) => {
                 success: true,
                 message: `มีบิลที่ครบกำหนด ${upcomingPayments.length} รายการ แต่สาขาเหล่านั้นปิดการแจ้งเตือนล่วงหน้า`,
                 sent: 0,
+                total: 0,
+                remaining: 0,
+                hasMore: false,
                 totalPaymentsDue: upcomingPayments.length,
                 skippedDueToDisabled: skippedCount,
                 enabledBranches: enabledBranches
             });
         }
 
-        for (const payment of paymentsFromEnabledBranches) {
+        for (const payment of paymentsToProcess) {
             try {
                 const paymentBranchId = payment.branch_id;
 
@@ -369,9 +385,12 @@ Deno.serve(async (req) => {
             success: true,
             message: testLineUserId 
                 ? `🧪 ส่งข้อความทดสอบสำเร็จ (Test Mode)` 
-                : `ส่งการแจ้งเตือนล่วงหน้าสำเร็จ ${sentCount}/${recipients.length} รายการ${targetBranchId ? ` (สาขา: ${targetBranchId})` : ' (ทุกสาขา)'}`,
+                : `ส่งการแจ้งเตือนล่วงหน้าสำเร็จ ${sentCount}/${recipients.length} รายการ${targetBranchId ? ` (สาขา: ${targetBranchId})` : ' (ทุกสาขา)'}${totalRemaining > 0 ? ` | เหลืออีก ${totalRemaining} บิล` : ''}`,
             sent: sentCount,
             total: testLineUserId ? 1 : recipients.length,
+            remaining: totalRemaining,
+            hasMore: totalRemaining > 0,
+            limit: limit,
             targetBranchId: targetBranchId || 'all',
             testMode: !!testLineUserId,
             enabledBranches: enabledBranches,
