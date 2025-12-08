@@ -43,24 +43,27 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   });
 
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ['allPayments', 'toast'],
-    queryFn: () => base44.entities.Payment.list('-created_date', 1000),
+    queryKey: ['allPayments', 'notifications'],
+    queryFn: async () => {
+      // ใช้ filter แทน list เพื่อให้ได้ข้อมูลเหมือนหน้า Payments
+      return await base44.entities.Payment.filter({});
+    },
     enabled: isOpen,
     staleTime: 0,
     refetchOnMount: true,
   });
 
   const { data: allRooms = [] } = useQuery({
-    queryKey: ['allRooms', 'toast'],
-    queryFn: () => base44.entities.Room.list('-room_number', 1000),
+    queryKey: ['allRooms', 'notifications'],
+    queryFn: async () => await base44.entities.Room.filter({}),
     enabled: isOpen,
     staleTime: 0,
     refetchOnMount: true,
   });
 
   const { data: allMaintenanceRequests = [] } = useQuery({
-    queryKey: ['allMaintenanceRequests', 'toast'],
-    queryFn: () => base44.entities.MaintenanceRequest.list('-created_date', 200),
+    queryKey: ['allMaintenanceRequests', 'notifications'],
+    queryFn: async () => await base44.entities.MaintenanceRequest.filter({}),
     enabled: isOpen,
     staleTime: 0,
     refetchOnMount: true,
@@ -68,7 +71,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
 
   const { data: allBookings = [] } = useQuery({
     queryKey: ['allBookings', 'notifications'],
-    queryFn: () => base44.entities.Booking.list('-created_date', 500),
+    queryFn: async () => await base44.entities.Booking.filter({}),
     enabled: isOpen,
     staleTime: 0,
     refetchOnMount: true,
@@ -76,7 +79,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
 
   const { data: allMaterialDeliveries = [] } = useQuery({
     queryKey: ['allMaterialDeliveries', 'notifications'],
-    queryFn: () => base44.entities.MaterialDelivery.list('-delivery_date', 200),
+    queryFn: async () => await base44.entities.MaterialDelivery.filter({}),
     enabled: isOpen,
     staleTime: 0,
     refetchOnMount: true,
@@ -84,7 +87,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
 
   const { data: allTenants = [] } = useQuery({
     queryKey: ['allTenants', 'notifications'],
-    queryFn: () => base44.entities.Tenant.list('-created_date', 100),
+    queryFn: async () => await base44.entities.Tenant.filter({}),
     enabled: isOpen,
     staleTime: 0,
     refetchOnMount: true,
