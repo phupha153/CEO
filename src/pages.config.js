@@ -51,6 +51,7 @@ import FacebookTestDemo from './pages/FacebookTestDemo';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import FacebookSetupGuide from './pages/FacebookSetupGuide';
 import FacebookScreencastGuide from './pages/FacebookScreencastGuide';
+import Welcome from './pages/Welcome';
 import __Layout from './Layout.jsx';
 
 
@@ -108,6 +109,7 @@ export const PAGES = {
     "PrivacyPolicy": PrivacyPolicy,
     "FacebookSetupGuide": FacebookSetupGuide,
     "FacebookScreencastGuide": FacebookScreencastGuide,
+    "Welcome": Welcome,
 }
 
 export const pagesConfig = {
