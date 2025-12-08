@@ -975,16 +975,25 @@ export default function NotificationsPanel({ isOpen, onClose }) {
               )}
             </CardHeader>
 
-            <div className="flex-1 overflow-y-auto max-h-[60vh] md:max-h-[calc(100vh-200px)]">
-              <CardContent className="p-4">
+            <div className="flex-1 overflow-y-auto max-h-[70vh] md:max-h-[calc(100vh-180px)] bg-gradient-to-b from-slate-50/50 to-white">
+              <CardContent className="p-6">
                 {visibleNotifications.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Bell className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-500 text-sm">ไม่มีการแจ้งเตือน</p>
-                    <p className="text-xs text-slate-400 mt-1">ทุกอย่างเรียบร้อย ✅</p>
-                  </div>
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-12"
+                  >
+                    <div className="relative w-20 h-20 mx-auto mb-4">
+                      <div className="absolute inset-0 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full blur-xl opacity-30"></div>
+                      <div className="relative w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
+                        <CheckCheck className="w-10 h-10 text-white" />
+                      </div>
+                    </div>
+                    <p className="text-slate-700 font-semibold text-lg">ไม่มีการแจ้งเตือน</p>
+                    <p className="text-slate-500 text-sm mt-2">ทุกอย่างเรียบร้อยดี ✨</p>
+                  </motion.div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {Object.entries(notificationsByBranch)
                       .filter(([branchId]) => filterBranch === 'all' || filterBranch === branchId)
                       .map(([branchId, branchData]) => (
