@@ -103,61 +103,32 @@ Deno.serve(async (req) => {
                         break;
                     }
 
-                    for (const payment of payments) {
-                        let retries = 0;
-                        const paymentStart = Date.now();
-
-                        while (retries < 3) {
-                            try {
-                                console.log(`🗑️ [${totalDeleted + 1}/${totalPayments}] Deleting ${payment.id}... (retry: ${retries})`);
-                                const deleteStart = Date.now();
-
-                                await base44.asServiceRole.entities.Payment.delete(payment.id);
-
-                                const deleteTime = Date.now() - deleteStart;
-                                totalDeleted++;
-
-                                console.log(`✅ [${totalDeleted}/${totalPayments}] Deleted in ${deleteTime}ms`);
-
-                                // รอ 5 วินาทีระหว่างรายการ
-                                await new Promise(resolve => setTimeout(resolve, 5000));
-                                break;
-
-                            } catch (e) {
-                                const errorTime = Date.now() - paymentStart;
-
-                                // ถ้า 404 = payment ถูกลบไปแล้ว ข้ามไป
-                                if (e.message?.includes('not found') || e.message?.includes('404')) {
-                                    console.log(`⚠️ [SKIP] ${payment.id} - Already deleted (404), skipping...`);
-                                    totalDeleted++;
-                                    break;
-                                }
-
-                                if (e.message?.includes('Rate limit') || e.message?.includes('429')) {
-                                    rateLimitCount++;
-                                    lastRateLimitTime = new Date().toISOString();
-
-                                    if (retries < 2) {
-                                        retries++;
-                                        const waitTime = 15 * Math.pow(2, retries - 1); // 15s, 30s
-                                        console.error(`⚠️⚠️⚠️ [RATE LIMIT #${rateLimitCount}] at ${lastRateLimitTime}`);
-                                        console.error(`⚠️ Payment: ${payment.id}, Retry: ${retries}/3`);
-                                        console.error(`⚠️ Error: ${e.message}`);
-                                        console.error(`⚠️ Waiting ${waitTime}s before retry...`);
-
-                                        await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
-                                    } else {
-                                        console.error(`❌ [FAILED] ${payment.id} - Max retries reached after ${errorTime}ms`);
-                                        console.error(`❌ Error: ${e.message}`);
-                                        break;
-                                    }
-                                } else {
-                                    console.error(`❌ [ERROR] ${payment.id} after ${errorTime}ms: ${e.message}`);
-                                    break;
-                                }
+                    // ลบทั้ง batch พร้อมกัน
+                    console.log(`🗑️ [Round ${roundCount}] Deleting ${payments.length} payments in parallel...`);
+                    const deleteStart = Date.now();
+                    
+                    const deletePromises = payments.map(async (payment) => {
+                        try {
+                            await base44.asServiceRole.entities.Payment.delete(payment.id);
+                            return { success: true, id: payment.id };
+                        } catch (e) {
+                            if (e.message?.includes('not found') || e.message?.includes('404')) {
+                                return { success: true, id: payment.id, skipped: true };
                             }
+                            return { success: false, id: payment.id, error: e.message };
                         }
-                    }
+                    });
+                    
+                    const results = await Promise.all(deletePromises);
+                    const deleteTime = Date.now() - deleteStart;
+                    
+                    const successCount = results.filter(r => r.success).length;
+                    const failedCount = results.filter(r => !r.success).length;
+                    const skippedCount = results.filter(r => r.skipped).length;
+                    
+                    totalDeleted += successCount;
+                    
+                    console.log(`✅ [Round ${roundCount}] Deleted ${successCount} payments in ${deleteTime}ms (${skippedCount} skipped, ${failedCount} failed)`);
 
                     // อัปเดต progress ทุก 10 รอบ
                     if (roundCount % 10 === 0) {
