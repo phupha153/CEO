@@ -16,6 +16,8 @@ import { createPageUrl } from "@/utils";
 import PageHeader from "../components/shared/PageHeader";
 
 export default function BranchManagement() {
+  console.log('🏢 BranchManagement Component Rendered');
+  
   const [showDialog, setShowDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deletingBranch, setDeletingBranch] = useState(null);
@@ -531,7 +533,11 @@ export default function BranchManagement() {
 
   // เอาการเช็คสิทธิ์ Developer ออก - ให้ทุกคนเข้าถึงหน้านี้ได้ (เห็นแค่สาขาตัวเอง)
 
+  console.log('🔍 BranchManagement - isLoading:', isLoading);
+  console.log('🔍 BranchManagement - branches count:', branches.length);
+  
   if (isLoading) {
+    console.log('⏳ BranchManagement - กำลังโหลด...');
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
         <PageHeader
@@ -549,6 +555,8 @@ export default function BranchManagement() {
       </div>
     );
   }
+  
+  console.log('✅ BranchManagement - กำลัง render หน้าปกติ');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
