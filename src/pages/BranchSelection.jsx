@@ -585,12 +585,12 @@ export default function BranchSelection() {
         transition={{ delay: 0.5 }}
         className="fixed bottom-6 right-6 z-40"
       >
-        <div className="relative w-16 h-16">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 to-purple-400/30 rounded-2xl blur-xl" />
+        <div className="relative w-20 h-20">
+          <div className="absolute inset-0 bg-white/50 rounded-2xl blur-lg" />
           <img
-            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/d611194a4_image.png"
-            alt="System Logo"
-            className="relative w-full h-full object-contain rounded-2xl shadow-lg"
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/7a80cfaf1_GreenMinimalistNewSongWidgetInstagramPost2.png"
+            alt="หลังหอพัก"
+            className="relative w-full h-full object-contain drop-shadow-xl"
           />
         </div>
       </motion.div>
