@@ -121,21 +121,12 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     if (testDateConfig && testDateConfig.value && testDateConfig.value.trim() !== '') {
       try {
         const date = parseISO(testDateConfig.value);
-        if (isNaN(date.getTime())) {
-          // ใช้เวลาไทย UTC+7
-          const now = new Date();
-          return new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        if (!isNaN(date.getTime())) {
+          return date;
         }
-        return date;
-      } catch {
-        // ใช้เวลาไทย UTC+7
-        const now = new Date();
-        return new Date(now.getTime() + (7 * 60 * 60 * 1000));
-      }
+      } catch {}
     }
-    // ใช้เวลาไทย UTC+7
-    const now = new Date();
-    return new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    return new Date();
   };
 
   // ⭐ Local state สำหรับ optimistic update ทันที (ไม่ต้องรอ API)
@@ -410,11 +401,9 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         if (!p.due_date) return false;
         
         try {
-          // ⭐ เปรียบเทียบแบบ string เพื่อหลีกเลี่ยงปัญหา timezone
-          const dueDateStr = p.due_date.split('T')[0]; // "2025-12-08"
-          const todayStr = now.toISOString().split('T')[0]; // "2025-12-08"
-          
-          return todayStr >= dueDateStr; // เกินกำหนดถ้าวันนี้มากกว่าหรือเท่ากับ due date
+          const dueDate = parseISO(p.due_date);
+          const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+          return now > dueDateStart;
         } catch (err) {
           console.error('Date parse error:', err, p.due_date);
           return false;
