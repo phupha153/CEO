@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
             }
             
             return dueDateString === todayString;
-        });
+        }) : [];
         
         console.log(`✅ Filtered: ${payments.length} payments due on ${todayString} (unpaid only)`);
         
