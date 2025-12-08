@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
             console.log(`📅 Using Thailand date: ${todayString} (UTC: ${now.toISOString()})`);
         }
 
-        // 3. หาบิลที่ครบกำหนดชำระวันนี้ (ยังไม่ชำระ) - แบบ pagination
+        // 3. หาบิลที่ครบกำหนดชำระวันนี้หรือก่อนหน้า (ยังไม่ชำระ) - แบบ pagination
         console.log('🔍 Fetching payments with pagination...');
         
         const parseResult = (result) => {
@@ -91,14 +91,14 @@ Deno.serve(async (req) => {
         let allPayments = [];
         
         try {
-            // ⭐ ดึง pending payments แบบ pagination
+            // ⭐ ดึง pending payments ทั้งหมด แล้วกรองเอง
             let skip = 0;
             const limit = 1000;
             let hasMorePending = true;
             
             while (hasMorePending && skip < 50000) {
                 const batch = await base44.asServiceRole.entities.Payment.filter(
-                    { due_date: todayString, status: 'pending' },
+                    { status: 'pending' },
                     '-created_date',
                     limit,
                     skip
@@ -111,13 +111,13 @@ Deno.serve(async (req) => {
                 console.log(`📥 Pending batch: ${parsed.length} payments (total: ${allPayments.length})`);
             }
             
-            // ⭐ ดึง overdue payments แบบ pagination
+            // ⭐ ดึง overdue payments ทั้งหมด
             skip = 0;
             let hasMoreOverdue = true;
             
             while (hasMoreOverdue && skip < 50000) {
                 const batch = await base44.asServiceRole.entities.Payment.filter(
-                    { due_date: todayString, status: 'overdue' },
+                    { status: 'overdue' },
                     '-created_date',
                     limit,
                     skip
@@ -130,7 +130,10 @@ Deno.serve(async (req) => {
                 console.log(`📥 Overdue batch: ${parsed.length} payments (total: ${allPayments.length})`);
             }
             
-            console.log(`✅ Total fetched: ${allPayments.length} payments due today`);
+            // ⭐ กรองเฉพาะที่ due_date = วันนี้
+            allPayments = allPayments.filter(p => p.due_date === todayString);
+            
+            console.log(`✅ Total payments due today (${todayString}): ${allPayments.length}`);
         } catch (err) {
             console.error('❌ Error fetching payments:', err.message);
         }
