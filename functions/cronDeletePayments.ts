@@ -14,22 +14,38 @@ Deno.serve(async (req) => {
         
         console.log(`🔍 [Cron] Fetching TEST data (batch size: ${batchSize})...`);
         
-        // ดึงสาขาทั้งหมดเพื่อเช็คว่าสาขาไหนเป็นทดสอบ
-        const allBranches = await base44.asServiceRole.entities.Branch.list();
-        const testBranchIds = (allBranches || [])
-            .filter(b => 
-                b.branch_code?.includes('TEST') || 
-                b.branch_code?.includes('12345') ||
-                b.branch_code?.includes('5555') ||
-                b.branch_code?.includes('COPY') ||
-                b.branch_name?.includes('12345') ||
-                b.branch_name?.includes('[TEST') ||
-                b.notes?.includes('[TEST') ||
-                b.description?.includes('[TEST')
-            )
-            .map(b => b.id);
+        // ดึงรายการสาขาที่ต้องการลบจาก Config
+        let selectedBranchIds = [];
+        try {
+            const configs = await base44.asServiceRole.entities.Config.filter({ key: 'cron_delete_selected_branches' });
+            if (configs.length > 0 && configs[0].value) {
+                selectedBranchIds = JSON.parse(configs[0].value);
+                console.log(`📋 [Cron] Using selected branches from config: ${selectedBranchIds.length} branches`);
+            }
+        } catch (e) {
+            console.warn(`⚠️ [Cron] Could not load selected branches:`, e.message);
+        }
         
-        console.log(`🏢 [Cron] Found ${testBranchIds.length} TEST branches: ${JSON.stringify(testBranchIds)}`);
+        // ถ้าไม่มีรายการที่เลือก ให้ใช้วิธีเดิม (เช็คจาก branch_code)
+        let testBranchIds = selectedBranchIds;
+        if (testBranchIds.length === 0) {
+            const allBranches = await base44.asServiceRole.entities.Branch.list();
+            testBranchIds = (allBranches || [])
+                .filter(b => 
+                    b.branch_code?.includes('TEST') || 
+                    b.branch_code?.includes('12345') ||
+                    b.branch_code?.includes('5555') ||
+                    b.branch_code?.includes('COPY') ||
+                    b.branch_name?.includes('12345') ||
+                    b.branch_name?.includes('[TEST') ||
+                    b.notes?.includes('[TEST') ||
+                    b.description?.includes('[TEST')
+                )
+                .map(b => b.id);
+            console.log(`🏢 [Cron] Auto-detected ${testBranchIds.length} TEST branches`);
+        }
+        
+        console.log(`🎯 [Cron] Target branches: ${JSON.stringify(testBranchIds)}`);
         
         // ดึงข้อมูลทดสอบจากทุกสาขา
         const [
