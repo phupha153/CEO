@@ -157,7 +157,11 @@ export default function BranchSelection() {
     }
 
     setIsNavigating(true);
-    navigate(createPageUrl('BranchManagement'), { replace: true });
+    
+    // ใช้ setTimeout เพื่อให้ animation ทำงานก่อน
+    setTimeout(() => {
+      window.location.href = createPageUrl('BranchManagement');
+    }, 100);
   };
 
   if (isLoading) {
