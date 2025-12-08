@@ -414,7 +414,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
           const dueDateStr = p.due_date.split('T')[0]; // "2025-12-08"
           const todayStr = now.toISOString().split('T')[0]; // "2025-12-08"
           
-          return todayStr > dueDateStr; // เกินกำหนดถ้าวันนี้มากกว่า due date
+          return todayStr >= dueDateStr; // เกินกำหนดถ้าวันนี้มากกว่าหรือเท่ากับ due date
         } catch (err) {
           console.error('Date parse error:', err, p.due_date);
           return false;
