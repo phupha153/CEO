@@ -8,51 +8,69 @@ Deno.serve(async (req) => {
         console.log(`🧹 [Cron] Starting TEST data deletion for ALL branches...`);
 
         const startTime = Date.now();
-        console.log(`🔄 [Cron] Starting batch deletion for branch: ${branchId}`);
-
-        // เช็ค progress จาก Config
-        const progressKey = `delete_progress_${branchId}`;
-        const progressConfigs = await base44.asServiceRole.entities.Config.filter({ key: progressKey });
-        const currentProgress = progressConfigs.length > 0 ? JSON.parse(progressConfigs[0].value) : null;
         
-        if (!currentProgress) {
-            console.log(`🆕 [Cron] No existing progress, starting new deletion...`);
-            
-            const allPayments = await base44.asServiceRole.entities.Payment.filter(
-                { branch_id: branchId },
-                '-created_date',
-                10000
-            );
-            
-            if (allPayments.length === 0) {
-                console.log(`✅ [Cron] No payments to delete`);
-                return Response.json({ success: true, message: 'No payments to delete', remaining: 0 });
-            }
-            
-            const initialProgress = {
-                deleted: 0,
-                remaining: allPayments.length,
-                initial: allPayments.length,
-                timestamp: Date.now()
-            };
-            
-            await base44.asServiceRole.entities.Config.create({
-                key: progressKey,
-                value: JSON.stringify(initialProgress),
-                description: 'Delete progress tracker',
-                category: 'general'
+        // ⭐ ดึงข้อมูล TEST ทุกประเภท (ไม่กรอง branch_id)
+        const batchSize = 300;
+        
+        console.log(`🔍 [Cron] Fetching TEST data (batch size: ${batchSize})...`);
+        
+        // ดึงข้อมูลทดสอบจากทุกสาขา
+        const [
+            testPayments,
+            testBookings,
+            testRooms,
+            testTenants,
+            testMeterReadings
+        ] = await Promise.all([
+            base44.asServiceRole.entities.Payment.list('-created_date', batchSize * 2),
+            base44.asServiceRole.entities.Booking.list('-created_date', batchSize),
+            base44.asServiceRole.entities.Room.list('-created_date', batchSize),
+            base44.asServiceRole.entities.Tenant.list('-created_date', batchSize),
+            base44.asServiceRole.entities.MeterReading.list('-created_date', batchSize)
+        ]);
+        
+        // กรองเฉพาะ TEST data
+        const paymentsToDelete = (testPayments || []).filter(p => 
+            p.notes?.includes('[TEST-') || p.notes?.includes('TEST-')
+        ).slice(0, batchSize);
+        
+        const bookingsToDelete = (testBookings || []).filter(b => 
+            b.notes?.includes('[TEST-') || b.notes?.includes('TEST-')
+        ).slice(0, batchSize);
+        
+        const roomsToDelete = (testRooms || []).filter(r => 
+            r.room_number?.includes('TEST-') || 
+            r.description?.includes('[TEST-') ||
+            r.description?.includes('TEST-')
+        ).slice(0, batchSize);
+        
+        const tenantsToDelete = (testTenants || []).filter(t => 
+            t.full_name?.includes('[TEST-') || 
+            t.full_name?.includes('TEST-') ||
+            t.notes?.includes('[TEST-') ||
+            t.notes?.includes('TEST-')
+        ).slice(0, batchSize);
+        
+        const meterReadingsToDelete = (testMeterReadings || []).filter(mr => 
+            mr.notes?.includes('[TEST-') || mr.notes?.includes('TEST-')
+        ).slice(0, batchSize);
+        
+        const totalToDelete = paymentsToDelete.length + bookingsToDelete.length + 
+                             roomsToDelete.length + tenantsToDelete.length + 
+                             meterReadingsToDelete.length;
+        
+        console.log(`📊 [Cron] Found TEST data: ${paymentsToDelete.length} payments, ${bookingsToDelete.length} bookings, ${roomsToDelete.length} rooms, ${tenantsToDelete.length} tenants, ${meterReadingsToDelete.length} meter readings`);
+        
+        if (totalToDelete === 0) {
+            console.log(`✅ [Cron] No TEST data to delete - system clean!`);
+            return Response.json({ 
+                success: true, 
+                message: 'No TEST data found - system clean',
+                remaining: 0 
             });
-            
-            console.log(`📊 [Cron] Initialized progress: ${allPayments.length} payments to delete`);
         }
         
-        // ลบทีละ 150 รายการ
-        const batchSize = 150;
-        const payments = await base44.asServiceRole.entities.Payment.filter(
-            { branch_id: branchId }, 
-            '-created_date', 
-            batchSize
-        );
+        const payments = paymentsToDelete;
         
         if (!payments || payments.length === 0) {
             console.log(`✅ [Cron] Deletion complete!`);
