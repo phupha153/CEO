@@ -1019,8 +1019,12 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                         <CheckCheck className="w-10 h-10 text-white" />
                       </div>
                     </div>
-                    <p className="text-slate-700 font-semibold text-lg">ไม่มีการแจ้งเตือน</p>
-                    <p className="text-slate-500 text-sm mt-2">ทุกอย่างเรียบร้อยดี ✨</p>
+                    <p className="text-slate-700 font-semibold text-lg">
+                      {paymentsLoading ? 'กำลังโหลด...' : 'ไม่มีการแจ้งเตือน'}
+                    </p>
+                    <p className="text-slate-500 text-sm mt-2">
+                      {paymentsLoading ? 'กรุณารอสักครู่' : 'ทุกอย่างเรียบร้อยดี ✨'}
+                    </p>
                   </motion.div>
                 ) : (
                   <div className="space-y-3">
