@@ -79,7 +79,8 @@ Deno.serve(async (req) => {
         
         try {
             // ดึง payments ทั้งหมด
-            allPayments = await base44.asServiceRole.entities.Payment.list('-created_date', 50000);
+            const result = await base44.asServiceRole.entities.Payment.list('-created_date', 50000);
+            allPayments = Array.isArray(result) ? result : (result?.data || []);
             console.log(`✅ Total fetched: ${allPayments.length} payments`);
         } catch (err) {
             console.error('❌ Error fetching payments:', err.message);
