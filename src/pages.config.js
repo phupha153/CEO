@@ -50,6 +50,7 @@ import PublicInvoice from './pages/PublicInvoice';
 import FacebookTestDemo from './pages/FacebookTestDemo';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import FacebookSetupGuide from './pages/FacebookSetupGuide';
+import FacebookScreencastGuide from './pages/FacebookScreencastGuide';
 import __Layout from './Layout.jsx';
 
 
@@ -106,6 +107,7 @@ export const PAGES = {
     "FacebookTestDemo": FacebookTestDemo,
     "PrivacyPolicy": PrivacyPolicy,
     "FacebookSetupGuide": FacebookSetupGuide,
+    "FacebookScreencastGuide": FacebookScreencastGuide,
 }
 
 export const pagesConfig = {
