@@ -57,13 +57,32 @@ export default function SendReminderDialog({
     const amount = (payment.total_amount || 0).toLocaleString();
     const dueDate = payment.due_date ? format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A';
 
+    // สร้างข้อความขั้นบันไดค่าปรับ
+    let tierText = '';
+    if (tiersEnabled && configs) {
+      const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === selectedBranchId);
+      const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
+      const tiersConfig = branchTiersConfig || globalTiersConfig;
+      
+      if (tiersConfig?.value) {
+        try {
+          const tiers = JSON.parse(tiersConfig.value);
+          tierText = '\n\n📊 ขั้นบันไดค่าปรับ:\n' + tiers.map(tier => 
+            `• วันที่ ${tier.days_from}-${tier.days_to || '∞'}: ${tier.fee_per_day} บาท/วัน`
+          ).join('\n');
+        } catch (e) {
+          // ไม่แสดงถ้า parse ไม่ได้
+        }
+      }
+    }
+
     if (selectedTemplate === 'advance') {
-      return `สวัสดีค่ะ 😊\n\nขอแจ้งเตือนค่าเช่าห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท\n📅 ครบกำหนดชำระ: ${dueDate}\n\nกรุณาเตรียมชำระภายในกำหนดนะคะ 🙏`;
+      return `สวัสดีค่ะ 😊\n\nขอแจ้งเตือนค่าเช่าห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท\n📅 ครบกำหนดชำระ: ${dueDate}${tierText ? tierText + '\n' : '\n'}\nกรุณาเตรียมชำระภายในกำหนดนะคะ 🙏`;
     } else if (selectedTemplate === 'overdue') {
       const lateFeeText = lateFee > 0 ? `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท${tiersEnabled ? ' (ขั้นบันได)' : ''}\n💵 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท` : '';
-      return `เรียนคุณผู้เช่า 🙏\n\n🔴 แจ้งเตือนเกินกำหนดชำระ\nห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท${lateFeeText}\n⏰ เกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\nกรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}`;
+      return `เรียนคุณผู้เช่า 🙏\n\n🔴 แจ้งเตือนเกินกำหนดชำระ\nห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท${lateFeeText}\n⏰ เกินกำหนดมาแล้ว: ${daysOverdue} วัน${tierText}\n\nกรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}`;
     } else {
-      return `สวัสดีค่ะ 😊\n\n📅 ถึงกำหนดชำระค่าเช่าแล้ว\nห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท\n📅 ครบกำหนด: ${dueDate}\n\nกรุณาชำระภายในวันนี้นะคะ 🙏`;
+      return `สวัสดีค่ะ 😊\n\n📅 ถึงกำหนดชำระค่าเช่าแล้ว\nห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท\n📅 ครบกำหนด: ${dueDate}${tierText}\n\nกรุณาชำระภายในวันนี้นะคะ 🙏`;
     }
   };
 
