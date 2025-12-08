@@ -894,21 +894,25 @@ export default function NotificationsPanel({ isOpen, onClose }) {
           onClick={(e) => e.stopPropagation()}
         >
           <Card className="bg-white shadow-2xl border-2 border-slate-200 rounded-2xl overflow-hidden">
-            <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+            <CardHeader className="border-b-2 bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 text-white">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center relative">
-                    <Bell className="w-5 h-5 text-white" />
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center relative shadow-lg border border-white/30">
+                    <Bell className="w-6 h-6 text-white drop-shadow-lg" />
                     {unreadCount > 0 && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">{unreadCount > 9 ? '9+' : unreadCount}</span>
-                      </div>
+                      <motion.div 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-1.5 -right-1.5 min-w-6 h-6 px-1.5 bg-gradient-to-r from-red-500 to-pink-600 rounded-full flex items-center justify-center shadow-lg"
+                      >
+                        <span className="text-white text-xs font-bold">{unreadCount > 99 ? '99+' : unreadCount}</span>
+                      </motion.div>
                     )}
                   </div>
                   <div>
-                    <CardTitle>การแจ้งเตือน</CardTitle>
-                    <p className="text-xs text-slate-500 font-normal">
-                      {unreadCount} รายการ
+                    <CardTitle className="text-xl text-white font-bold drop-shadow-sm">การแจ้งเตือน</CardTitle>
+                    <p className="text-xs text-white/90 font-medium drop-shadow-sm">
+                      {unreadCount > 0 ? `${unreadCount} รายการใหม่` : 'ไม่มีรายการใหม่'}
                     </p>
                   </div>
                 </div>
