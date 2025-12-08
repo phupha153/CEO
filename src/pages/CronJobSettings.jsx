@@ -28,7 +28,8 @@ import {
   Wrench,
   ScrollText,
   Package,
-  TestTube
+  TestTube,
+  Building2
 } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import TestSlipUploader from "@/components/testing/TestSlipUploader";
@@ -103,10 +104,16 @@ export default function CronJobSettings() {
   const [jobResults, setJobResults] = useState({});
   const [cronBranchId, setCronBranchId] = useState('69255a34e816a8749fc765c2');
   const [showProgressDialog, setShowProgressDialog] = useState(false);
+  const [selectedBranchesForDelete, setSelectedBranchesForDelete] = useState([]);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
+  });
+
+  const { data: allBranches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn: () => base44.entities.Branch.list(),
   });
 
   const { data: functionLogs = [], refetch: refetchLogs } = useQuery({
@@ -228,85 +235,162 @@ export default function CronJobSettings() {
         {/* Developer Test: อัพโหลดสลิปเพื่อทดสอบ */}
         <TestSlipUploader />
 
-        {/* Branch ID for Cron Delete */}
+        {/* เลือกสาขาสำหรับลบ Cron Job */}
         <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-4">
-            <Label className="text-red-800 font-bold mb-2 block">🎯 Branch ID สำหรับ Cron Delete</Label>
-            <Input
-              value={cronBranchId}
-              onChange={(e) => setCronBranchId(e.target.value)}
-              placeholder="ใส่ Branch ID"
-              className="bg-white"
-            />
-            <div className="flex gap-2 mt-3 flex-wrap">
+          <CardHeader>
+            <CardTitle className="text-red-800 flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              🗑️ เลือกสาขาที่จะลบข้อมูลทดสอบ
+            </CardTitle>
+            <CardDescription className="text-red-700">
+              Cron Job จะลบข้อมูลทดสอบของสาขาที่เลือกเท่านั้น
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {allBranches.map((branch) => {
+                const isSelected = selectedBranchesForDelete.includes(branch.id);
+                const isTestBranch = branch.branch_code?.includes('TEST') || 
+                                    branch.branch_code?.includes('12345') ||
+                                    branch.branch_code?.includes('5555') ||
+                                    branch.branch_code?.includes('COPY') ||
+                                    branch.branch_name?.includes('12345');
+                
+                return (
+                  <div
+                    key={branch.id}
+                    onClick={() => {
+                      if (isSelected) {
+                        setSelectedBranchesForDelete(prev => prev.filter(id => id !== branch.id));
+                      } else {
+                        setSelectedBranchesForDelete(prev => [...prev, branch.id]);
+                      }
+                    }}
+                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      isSelected 
+                        ? 'border-red-500 bg-red-100 shadow-lg' 
+                        : 'border-slate-200 bg-white hover:border-red-300 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-800 text-sm">{branch.branch_name}</p>
+                        <p className="text-xs text-slate-500">{branch.branch_code}</p>
+                      </div>
+                      {isTestBranch && (
+                        <Badge className="bg-orange-500 text-xs">ทดสอบ</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-3">
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center ${
+                        isSelected ? 'bg-red-500 border-red-500' : 'border-slate-300'
+                      }`}>
+                        {isSelected && <CheckCircle2 className="w-4 h-4 text-white" />}
+                      </div>
+                      <span className="text-xs text-slate-600">
+                        {isSelected ? 'เลือกแล้ว' : 'คลิกเพื่อเลือก'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-between bg-white p-4 rounded-lg">
+              <div>
+                <p className="font-semibold text-slate-800">สาขาที่เลือก: {selectedBranchesForDelete.length} สาขา</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {selectedBranchesForDelete.length === 0 
+                    ? 'กรุณาเลือกสาขาที่ต้องการลบข้อมูลทดสอบ' 
+                    : allBranches.filter(b => selectedBranchesForDelete.includes(b.id)).map(b => b.branch_name).join(', ')}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const testBranches = allBranches.filter(b => 
+                      b.branch_code?.includes('TEST') || 
+                      b.branch_code?.includes('12345') ||
+                      b.branch_code?.includes('5555') ||
+                      b.branch_code?.includes('COPY') ||
+                      b.branch_name?.includes('12345')
+                    );
+                    setSelectedBranchesForDelete(testBranches.map(b => b.id));
+                    toast.success(`เลือกสาขาทดสอบทั้งหมด ${testBranches.length} สาขา`);
+                  }}
+                  className="text-orange-600"
+                >
+                  เลือกสาขาทดสอบทั้งหมด
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedBranchesForDelete([])}
+                  className="text-slate-600"
+                >
+                  ล้างทั้งหมด
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
               <Button
                 onClick={async () => {
+                  if (selectedBranchesForDelete.length === 0) {
+                    toast.error('กรุณาเลือกสาขาที่ต้องการลบข้อมูล');
+                    return;
+                  }
+
                   try {
-                    const configs = await base44.entities.Config.filter({ key: 'cron_delete_branch_id' });
+                    const config = {
+                      key: 'cron_delete_selected_branches',
+                      value: JSON.stringify(selectedBranchesForDelete),
+                      description: 'รายการ Branch IDs สำหรับ Cron Job ลบข้อมูลทดสอบ',
+                      category: 'general'
+                    };
+
+                    const configs = await base44.entities.Config.filter({ key: 'cron_delete_selected_branches' });
                     if (configs.length > 0) {
-                      await base44.entities.Config.update(configs[0].id, { value: cronBranchId });
+                      await base44.entities.Config.update(configs[0].id, config);
                     } else {
-                      await base44.entities.Config.create({
-                        key: 'cron_delete_branch_id',
-                        value: cronBranchId,
-                        description: 'Branch ID สำหรับ Cron Job ลบ Payment',
-                        category: 'general'
-                      });
+                      await base44.entities.Config.create(config);
                     }
-                    toast.success('บันทึก Branch ID สำเร็จ');
+                    toast.success(`บันทึกรายการ ${selectedBranchesForDelete.length} สาขาสำเร็จ`);
                   } catch (error) {
                     toast.error('บันทึกไม่สำเร็จ: ' + error.message);
                   }
                 }}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-red-600 hover:bg-red-700 flex-1"
+                disabled={selectedBranchesForDelete.length === 0}
               >
-                💾 บันทึก Branch ID
+                💾 บันทึกรายการสาขา
               </Button>
               <Button
-                variant="outline"
                 onClick={async () => {
                   try {
-                    const configs = await base44.entities.Config.filter({ key: 'cron_delete_branch_id' });
+                    const configs = await base44.entities.Config.filter({ key: 'cron_delete_selected_branches' });
                     if (configs.length > 0) {
-                      setCronBranchId(configs[0].value);
-                      toast.success('โหลดค่าที่บันทึกไว้แล้ว');
+                      const branchIds = JSON.parse(configs[0].value);
+                      setSelectedBranchesForDelete(branchIds);
+                      toast.success(`โหลดรายการ ${branchIds.length} สาขาแล้ว`);
                     } else {
-                      toast.info('ยังไม่มีค่าที่บันทึกไว้');
+                      toast.info('ยังไม่มีรายการที่บันทึกไว้');
                     }
                   } catch (error) {
                     toast.error('โหลดไม่สำเร็จ: ' + error.message);
                   }
                 }}
-              >
-                🔄 โหลดค่าที่บันทึก
-              </Button>
-              <Button
-                onClick={async () => {
-                  if (!confirm(`🗑️ ต้องการลบ Payment ทั้งหมดของสาขา ${cronBranchId}?\n\n⚠️ การกระทำนี้ไม่สามารถย้อนกลับได้!`)) return;
-                  
-                  const loadingToast = toast.loading('🚀 เริ่มลบ Payment ในพื้นหลัง...');
-                  try {
-                    const response = await base44.functions.invoke('deletePaymentsByBranch', { branch_id: cronBranchId });
-                    toast.success(`✅ ${response.data.message}\n💡 ทั้งหมด ${response.data.totalPayments} รายการ`, { id: loadingToast, duration: 3000 });
-                    setShowProgressDialog(true);
-                  } catch (error) {
-                    toast.error(`❌ เกิดข้อผิดพลาด: ${error.message}`, { id: loadingToast });
-                  }
-                }}
-                className="bg-red-700 hover:bg-red-800"
-              >
-                🗑️ ลบทั้งหมดทันที
-              </Button>
-              <Button
                 variant="outline"
-                onClick={() => setShowProgressDialog(true)}
-                className="border-red-300 text-red-700 hover:bg-red-50"
+                className="flex-1"
               >
-                📊 ดูความคืบหน้า
+                🔄 โหลดรายการที่บันทึก
               </Button>
             </div>
-            <p className="text-xs text-red-600 mt-2">
-              กด "บันทึก Branch ID" แล้ว Cron Job จะใช้ค่านี้อัตโนมัติ
+            
+            <p className="text-xs text-red-600">
+              ⚠️ Cron Job จะลบข้อมูลทดสอบ (is_sample, TEST, 12345, 5555, COPY) ของสาขาที่เลือกเท่านั้น
             </p>
           </CardContent>
         </Card>
