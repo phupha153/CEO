@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
         if (allPayments.length > 0 && payments.length === 0) {
             const sample = allPayments.slice(0, 3);
             console.log(`⚠️ No matches found. Sample due_dates:`, sample.map(p => ({
-                id: p.id.substring(0, 8),
+                id: p.id ? p.id.substring(0, 8) : 'no-id',
                 due_date: p.due_date,
                 status: p.status
             })));
