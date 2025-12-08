@@ -120,27 +120,24 @@ Deno.serve(async (req) => {
         const errors = [];
 
         for (const recipientId of recipientIds) {
-            // สร้างข้อความสรุป
-            let message = `🚨 แจ้งเตือนค้างชำระ\n\n`;
-            message += `พบรายการค้างชำระทั้งหมด ${overduePayments.length} รายการ\n\n`;
+            // สร้างข้อความสรุปแบบสั้นกระชับ เน้นเกินกำหนด
+            let message = `🔴 เกินกำหนดชำระ\n\n`;
+            message += `มี ${overduePayments.length} ห้องค้างชำระ\n\n`;
 
             for (const [branchId, payments] of Object.entries(paymentsByBranch)) {
                 if (payments.length === 0) continue;
                 
-                message += `📍 รายการค้างชำระ:\n`;
-                
                 payments.slice(0, 10).forEach((p, index) => {
-                    message += `\n${index + 1}. ห้อง ${p.room_number} (${p.tenant_name})\n`;
-                    message += `   💰 จำนวน: ${p.amount.toLocaleString()} บาท\n`;
-                    message += `   ⏰ เกินกำหนด: ${p.days_overdue} วัน\n`;
+                    message += `${index + 1}. ห้อง ${p.room_number}\n`;
+                    message += `เกิน ${p.days_overdue} วัน · ${p.amount.toLocaleString()}฿\n\n`;
                 });
 
                 if (payments.length > 10) {
-                    message += `\n... และอีก ${payments.length - 10} รายการ\n`;
+                    message += `และอีก ${payments.length - 10} ห้อง\n\n`;
                 }
             }
 
-            message += `\n⚠️ กรุณาติดตามการชำระเงิน`;
+            message += `⚠️ กรุณาติดตามด่วน`;
 
             try {
                 const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
