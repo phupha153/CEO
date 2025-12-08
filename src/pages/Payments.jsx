@@ -756,7 +756,9 @@ export default function PaymentsPage() {
           return payment.status;
         }
 
-        if (differenceInDays(today, dueDate) > 0) {
+        const daysDiff = differenceInDays(today, dueDate);
+        
+        if (daysDiff > 0) {
           return 'overdue';
         }
       } catch (error) {
