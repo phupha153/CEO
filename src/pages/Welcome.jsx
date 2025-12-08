@@ -24,8 +24,8 @@ import { createPageUrl } from "@/utils";
 export default function Welcome() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(null);
-  const [buildingName, setBuildingName] = useState('W RESIDENTS');
-  const [buildingLogo, setBuildingLogo] = useState('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg');
+  const [buildingName, setBuildingName] = useState('หลังหอพัก');
+  const [buildingLogo, setBuildingLogo] = useState('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/41d4e63e1_DC4395DB-4B27-4859-85B3-4F2948654F9E.png');
 
   useEffect(() => {
     base44.auth.isAuthenticated()
@@ -119,8 +119,8 @@ export default function Welcome() {
             <img 
               src={buildingLogo} 
               alt="Logo" 
-              className="w-10 h-10 object-contain rounded-xl"
-              onError={(e) => e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg'}
+              className="w-10 h-10 object-contain"
+              onError={(e) => e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/41d4e63e1_DC4395DB-4B27-4859-85B3-4F2948654F9E.png'}
             />
             <span className="text-xl font-bold text-slate-800">{buildingName}</span>
           </div>
@@ -174,15 +174,15 @@ export default function Welcome() {
             <Badge className="mb-6 px-4 py-2 bg-blue-100 text-blue-700 hover:bg-blue-200">
               Start Here
             </Badge>
-            <h1 className="text-4xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
-              ระบบจัดการหอพัก<br />
-              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                ครบวงจร ง่าย รวดเร็ว
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
+              <span className="text-slate-900">หลังหอพัก</span><br />
+              <span className="text-2xl md:text-4xl text-slate-700 font-normal">
+                ระบบจัดการหอพัก
               </span>
             </h1>
             <p className="text-xl text-slate-600 mb-8 leading-relaxed">
               จัดการห้องพัก การเงิน และผู้เช่าได้อย่างมีประสิทธิภาพ<br />
-              ด้วยระบบอัตโนมัติที่ออกแบบมาเพื่อหอพักโดยเฉพาะ
+              ด้วยระบบอัตโนมัติครบวงจร ง่าย รวดเร็ว
             </p>
             <Button
               size="lg"
@@ -366,7 +366,7 @@ export default function Welcome() {
               src={buildingLogo} 
               alt="Logo" 
               className="w-10 h-10 object-contain"
-              onError={(e) => e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg'}
+              onError={(e) => e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/41d4e63e1_DC4395DB-4B27-4859-85B3-4F2948654F9E.png'}
             />
             <span className="text-xl font-bold text-white">{buildingName}</span>
           </div>
