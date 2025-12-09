@@ -861,7 +861,8 @@ export default function PaymentsPage() {
     const calculateSum = (paymentsToSum) => {
       return paymentsToSum.reduce((sum, p) => {
         const baseAmount = parseFloat(p.total_amount) || 0;
-        const lateFee = calculateLateFee(p);
+        // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
+        const lateFee = p.late_fee_amount ? 0 : calculateLateFee(p);
         if (isNaN(baseAmount) || isNaN(lateFee)) {
           console.error('Invalid amount for payment:', p.id, { baseAmount, lateFee });
           return sum;
@@ -2877,7 +2878,7 @@ Return JSON.`;
 
                               <div className="flex justify-between items-center pt-3 border-t">
                                 <span className="text-base md:text-lg font-semibold text-slate-800">รวม:</span>
-                                <span className={`text-xl md:text-2xl font-bold ${lateFee > 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                                <span className={`text-xl md:text-2xl font-bold ${(payment.late_fee_amount > 0 || lateFee > 0) ? 'text-red-600' : 'text-blue-600'}`}>
                                   {totalWithLateFee.toLocaleString()} ฿
                                 </span>
                               </div>
@@ -3164,10 +3165,10 @@ Return JSON.`;
                                 <td className="px-4 py-3 text-sm text-slate-600 text-right">{payment.rent_amount?.toLocaleString() || 0}</td>
                                 <td className="px-4 py-3 text-sm text-slate-600 text-right">{payment.electricity_amount?.toLocaleString() || 0}</td>
                                 <td className="px-4 py-3 text-sm text-slate-600 text-right">{payment.water_amount?.toLocaleString() || 0}</td>
-                                <td className={`px-4 py-3 text-sm font-bold text-right ${lateFee > 0 ? 'text-red-600' : 'text-blue-600'}`}>
+                                <td className={`px-4 py-3 text-sm font-bold text-right ${(payment.late_fee_amount > 0 || lateFee > 0) ? 'text-red-600' : 'text-blue-600'}`}>
                                   {totalWithLateFee.toLocaleString()}
-                                  {lateFee > 0 && (
-                                    <span className="block text-xs text-red-600">(+{lateFee} ค่าปรับ)</span>
+                                  {(payment.late_fee_amount > 0 || lateFee > 0) && (
+                                    <span className="block text-xs text-red-600">(+{(payment.late_fee_amount || lateFee).toLocaleString()} ค่าปรับ)</span>
                                   )}
                                 </td>
                                 <td className="px-4 py-3 text-sm">{getStatusBadge(effectiveStatus, payment)}</td>
@@ -3476,11 +3477,12 @@ Return JSON.`;
                                                </div>
                                              )}
                                              {(() => {
-                                               const lateFee = calculateLateFee(roomPayment);
-                                               return lateFee > 0 ? (
+                                               // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
+                                               const lateFee = roomPayment.late_fee_amount ? 0 : calculateLateFee(roomPayment);
+                                               return (roomPayment.late_fee_amount > 0 || lateFee > 0) ? (
                                                  <div className="flex justify-between text-red-600 font-semibold">
                                                    <span>ค่าปรับ:</span>
-                                                   <span>+{lateFee.toLocaleString()} ฿</span>
+                                                   <span>+{(roomPayment.late_fee_amount || lateFee).toLocaleString()} ฿</span>
                                                  </div>
                                                ) : null;
                                              })()}
@@ -3489,7 +3491,11 @@ Return JSON.`;
                                            <div className="border-t pt-3 flex justify-between items-center">
                                              <span className="font-bold">รวมทั้งสิ้น:</span>
                                              <span className="text-xl font-bold text-blue-600">
-                                               {((roomPayment.total_amount || 0) + calculateLateFee(roomPayment)).toLocaleString()} ฿
+                                               {(() => {
+                                                 // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
+                                                 const lateFee = roomPayment.late_fee_amount ? 0 : calculateLateFee(roomPayment);
+                                                 return ((roomPayment.total_amount || 0) + lateFee).toLocaleString();
+                                               })()} ฿
                                              </span>
                                            </div>
 
