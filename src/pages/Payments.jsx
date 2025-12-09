@@ -861,7 +861,8 @@ export default function PaymentsPage() {
     const calculateSum = (paymentsToSum) => {
       return paymentsToSum.reduce((sum, p) => {
         const baseAmount = parseFloat(p.total_amount) || 0;
-        const lateFee = calculateLateFee(p);
+        // ⭐ ถ้ามี late_fee_amount แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
+        const lateFee = p.late_fee_amount ? 0 : calculateLateFee(p);
         if (isNaN(baseAmount) || isNaN(lateFee)) {
           console.error('Invalid amount for payment:', p.id, { baseAmount, lateFee });
           return sum;
@@ -3476,7 +3477,8 @@ Return JSON.`;
                                                </div>
                                              )}
                                              {(() => {
-                                               const lateFee = calculateLateFee(roomPayment);
+                                               // ⭐ ถ้ามี late_fee_amount แล้ว ไม่คำนวณซ้ำ
+                                               const lateFee = roomPayment.late_fee_amount || calculateLateFee(roomPayment);
                                                return lateFee > 0 ? (
                                                  <div className="flex justify-between text-red-600 font-semibold">
                                                    <span>ค่าปรับ:</span>
@@ -3489,7 +3491,7 @@ Return JSON.`;
                                            <div className="border-t pt-3 flex justify-between items-center">
                                              <span className="font-bold">รวมทั้งสิ้น:</span>
                                              <span className="text-xl font-bold text-blue-600">
-                                               {((roomPayment.total_amount || 0) + calculateLateFee(roomPayment)).toLocaleString()} ฿
+                                               {((roomPayment.total_amount || 0) + (roomPayment.late_fee_amount ? 0 : calculateLateFee(roomPayment))).toLocaleString()} ฿
                                              </span>
                                            </div>
 
