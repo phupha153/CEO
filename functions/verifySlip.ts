@@ -68,7 +68,31 @@ Deno.serve(async (req) => {
             }, { status: 404 });
         }
 
-        console.log('Payment found. Amount:', payment.total_amount);
+        // คำนวณค่าปรับ ณ วันที่ตรวจสลิป
+        const configs = await base44.asServiceRole.entities.Config.list();
+        const lateFeeConfig = configs.find(c => c.key === 'late_payment_fee_per_day');
+        const lateFeePerDay = lateFeeConfig ? parseFloat(lateFeeConfig.value) : 0;
+        
+        let lateFeeAmount = 0;
+        if (payment.due_date && payment.status !== 'paid' && lateFeePerDay > 0) {
+            try {
+                const dueDate = new Date(payment.due_date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                dueDate.setHours(0, 0, 0, 0);
+                
+                const daysOverdue = Math.floor((today - dueDate) / (1000 * 60 * 60 * 24));
+                if (daysOverdue > 0) {
+                    lateFeeAmount = daysOverdue * lateFeePerDay;
+                }
+            } catch (e) {
+                console.error('Error calculating late fee:', e);
+            }
+        }
+
+        const totalAmountWithLateFee = payment.total_amount + lateFeeAmount;
+
+        console.log('Payment found. Base amount:', payment.total_amount, 'Late fee:', lateFeeAmount, 'Total:', totalAmountWithLateFee);
 
         let fileBlob;
         let originalFileSize = 0;
@@ -250,10 +274,12 @@ Deno.serve(async (req) => {
             
             const slipData = simpleData.data;
             const slipAmount = parseFloat(slipData.amount?.amount || 0);
-            const expectedAmount = parseFloat(payment.total_amount);
+            const expectedAmount = totalAmountWithLateFee;
             
             console.log('💰 Slip amount:', slipAmount);
-            console.log('💰 Expected amount:', expectedAmount);
+            console.log('💰 Expected amount (with late fee):', expectedAmount);
+            console.log('💰 Base amount:', payment.total_amount);
+            console.log('💰 Late fee:', lateFeeAmount);
             
             // ตรวจสอบยอดเงิน (ยอมรับ ±5%)
             if (slipAmount < expectedAmount * 0.95) {
@@ -318,15 +344,19 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // ✅ ทุกอย่างถูกต้อง - อัพเดต payment
-            const updatedPayment = await base44.asServiceRole.entities.Payment.update(paymentId, {
+            // ✅ ทุกอย่างถูกต้อง - อัพเดต payment พร้อมบันทึกค่าปรับ
+            const updateData = {
                 status: 'paid',
                 payment_date: slipData.transDate || new Date().toISOString().split('T')[0],
                 payment_slip_url: uploadedSlipUrl,
+                late_fee_amount: lateFeeAmount,
+                total_amount: totalAmountWithLateFee,
                 notes: payment.notes ? 
-                    `${payment.notes}\n\n✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท` :
-                    `✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท`
-            });
+                    `${payment.notes}\n\n✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}` :
+                    `✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}`
+            };
+            
+            const updatedPayment = await base44.asServiceRole.entities.Payment.update(paymentId, updateData);
             
             console.log('✅ Payment updated successfully:', updatedPayment.id, 'status:', updatedPayment.status);
 
