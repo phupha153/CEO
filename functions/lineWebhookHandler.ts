@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
 
 const processedMessages = new Set();
 
@@ -1171,10 +1172,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         }
 
         // ⭐⭐⭐ คำนวณค่าปรับก่อนเช็คยอดเงิน (รองรับทั้งแบบปกติและแบบขั้นบันได)
-        import { parseISO as parseISOLocal, differenceInDays } from 'npm:date-fns@3.0.0';
-        
-        const paymentDateObj = parseISOLocal(transDate.split('T')[0]);
-        const dueDateObj = parseISOLocal(pendingPayment.due_date);
+        const paymentDateObj = parseISO(transDate.split('T')[0]);
+        const dueDateObj = parseISO(pendingPayment.due_date);
         const daysLate = differenceInDays(paymentDateObj, dueDateObj);
         
         let lateFeeAmount = 0;
