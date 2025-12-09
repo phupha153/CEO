@@ -131,6 +131,7 @@ Deno.serve(async (req) => {
             common_fee_amount: payment.common_fee_amount,
             parking_fee_amount: payment.parking_fee_amount,
             other_amount: payment.other_amount,
+            late_fee_amount: payment.late_fee_amount,
             total_amount: payment.total_amount,
             // ⭐ รวม room, tenant, bank, recipient ไว้ในตัว invoice
             room: room ? {
@@ -185,6 +186,7 @@ Deno.serve(async (req) => {
                     common_fee_amount: payment.common_fee_amount,
                     parking_fee_amount: payment.parking_fee_amount,
                     other_amount: payment.other_amount,
+                    late_fee_amount: payment.late_fee_amount,
                     total_amount: payment.total_amount
                 },
                 tenant: tenant ? {
