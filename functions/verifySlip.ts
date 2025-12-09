@@ -252,7 +252,7 @@ Deno.serve(async (req) => {
             const slipData = simpleData.data;
             const slipAmount = parseFloat(slipData.amount?.amount || 0);
             
-            // ⭐ คำนวณค่าปรับก่อนเช็คยอดเงิน
+            // ⭐ คำนวณค่าปรับก่อนเช็คยอดเงิน (รองรับทั้งแบบปกติและแบบขั้นบันได)
             const paymentDateObj = parseISO(slipData.transDate || new Date().toISOString().split('T')[0]);
             const dueDateObj = parseISO(payment.due_date);
             const daysLate = Math.floor((paymentDateObj - dueDateObj) / (1000 * 60 * 60 * 24));
@@ -260,9 +260,51 @@ Deno.serve(async (req) => {
             let lateFeeAmount = 0;
             if (daysLate > 0) {
                 const configs = await base44.asServiceRole.entities.Config.list();
-                const lateFeePerDay = parseFloat(configs.find(c => c.key === 'late_fee_per_day' && (c.branch_id === payment.branch_id || !c.branch_id))?.value || 0);
-                lateFeeAmount = daysLate * lateFeePerDay;
-                console.log(`⏰ Late payment detected: ${daysLate} days × ${lateFeePerDay} = ${lateFeeAmount} บาท`);
+                
+                // เช็คว่าใช้ค่าปรับแบบขั้นบันไดหรือไม่
+                const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (c.branch_id === payment.branch_id || !c.branch_id));
+                const tiersEnabled = tiersEnabledConfig?.value === 'true';
+                
+                if (tiersEnabled) {
+                    // ใช้ค่าปรับแบบขั้นบันได
+                    const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && (c.branch_id === payment.branch_id || !c.branch_id));
+                    
+                    if (tiersConfig?.value) {
+                        try {
+                            const tiers = JSON.parse(tiersConfig.value);
+                            
+                            for (const tier of tiers) {
+                                const daysFrom = tier.days_from || 1;
+                                const daysTo = tier.days_to || 999;
+                                const feePerDay = parseFloat(tier.fee_per_day || 0);
+                                
+                                if (daysLate >= daysFrom) {
+                                    const daysInThisTier = Math.min(daysLate, daysTo) - daysFrom + 1;
+                                    if (daysInThisTier > 0) {
+                                        const tierFee = daysInThisTier * feePerDay;
+                                        lateFeeAmount += tierFee;
+                                        console.log(`  ➡️ Tier ${daysFrom}-${daysTo}: ${daysInThisTier} วัน × ${feePerDay}฿ = ${tierFee}฿`);
+                                    }
+                                }
+                                
+                                if (daysLate <= daysTo) break;
+                            }
+                            
+                            console.log(`⏰ Late payment (Tiers): ${daysLate} days → ${lateFeeAmount} บาท`);
+                        } catch (e) {
+                            console.error('❌ Error parsing tiers, fallback to simple fee:', e);
+                            tiersEnabled = false;
+                        }
+                    }
+                }
+                
+                // ถ้าไม่ได้เปิดใช้ขั้นบันได หรือ parse ไม่สำเร็จ → ใช้ค่าปรับแบบปกติ
+                if (!tiersEnabled || lateFeeAmount === 0) {
+                    const lateFeePerDayConfig = configs.find(c => c.key === 'late_fee_per_day' && (c.branch_id === payment.branch_id || !c.branch_id));
+                    const lateFeePerDay = parseFloat(lateFeePerDayConfig?.value || 0);
+                    lateFeeAmount = daysLate * lateFeePerDay;
+                    console.log(`⏰ Late payment (Simple): ${daysLate} days × ${lateFeePerDay} = ${lateFeeAmount} บาท`);
+                }
             }
             
             // ⭐ คำนวณยอดที่ต้องชำระจริง (รวมค่าปรับ)
