@@ -3779,7 +3779,54 @@ Return JSON.`;
             </Card>
           )}
 
-          <Dialog open={showDialog} onOpenChange={(open) => { setShowDialog(open); if (!open) { resetForm(); } }}>
+          <Dialog open={showDialog} onOpenChange={(open) => { 
+            if (!open && formData.room_id && formData.due_date) {
+              const total = (parseFloat(formData.rent_amount) || 0) +
+                (parseFloat(formData.water_amount) || 0) +
+                (parseFloat(formData.electricity_amount) || 0) +
+                (parseFloat(formData.internet_amount) || 0) +
+                (parseFloat(formData.common_fee_amount) || 0) +
+                (parseFloat(formData.parking_fee_amount) || 0) +
+                (parseFloat(formData.other_amount) || 0) +
+                (parseFloat(formData.late_fee_amount) || 0);
+
+              if (total > 0) {
+                const data = {
+                  booking_id: formData.booking_id || '',
+                  tenant_id: formData.tenant_id || '',
+                  room_id: formData.room_id,
+                  meter_reading_id: formData.meter_reading_id || '',
+                  payment_date: formData.payment_date || '',
+                  due_date: formData.due_date,
+                  rent_amount: parseFloat(formData.rent_amount || 0),
+                  water_units: parseFloat(formData.water_units || 0),
+                  water_rate: parseFloat(formData.water_rate || 0),
+                  water_amount: parseFloat(formData.water_amount || 0),
+                  electricity_units: parseFloat(formData.electricity_units || 0),
+                  electricity_rate: parseFloat(formData.electricity_rate || 0),
+                  electricity_amount: parseFloat(formData.electricity_amount || 0),
+                  internet_amount: parseFloat(formData.internet_amount || 0),
+                  common_fee_amount: parseFloat(formData.common_fee_amount || 0),
+                  parking_fee_amount: parseFloat(formData.parking_fee_amount || 0),
+                  other_amount: parseFloat(formData.other_amount || 0),
+                  late_fee_amount: parseFloat(formData.late_fee_amount || 0),
+                  total_amount: total,
+                  payment_method: formData.payment_method,
+                  payment_slip_url: formData.payment_slip_url || '',
+                  notes: formData.notes || '',
+                  status: formData.payment_date ? 'paid' : 'pending'
+                };
+
+                if (editingPayment) {
+                  updateMutation.mutate({ id: editingPayment.id, data });
+                } else {
+                  createMutation.mutate(data);
+                }
+              }
+            }
+            setShowDialog(open); 
+            if (!open) { resetForm(); } 
+          }}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingPayment ? 'แก้ไขการชำระเงิน' : 'บันทึกการชำระเงิน'}</DialogTitle>
