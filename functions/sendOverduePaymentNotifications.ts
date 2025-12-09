@@ -71,6 +71,71 @@ Deno.serve(async (req) => {
             return daysDiff >= daysThreshold;
         });
 
+        // ⭐ อัปเดต late_fee_amount และ status เป็น overdue
+        const updatePromises = [];
+        for (const payment of overduePayments) {
+            const dueDate = startOfDay(parseISO(payment.due_date));
+            const today = startOfDay(new Date());
+            const daysOverdue = differenceInDays(today, dueDate);
+
+            // คำนวณค่าปรับ
+            let lateFee = 0;
+            const branchId = payment.branch_id;
+            
+            const branchTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === branchId);
+            const globalTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
+            const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
+            const tiersEnabled = tiersEnabledConfig?.value === 'true';
+            
+            if (tiersEnabled) {
+                const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === branchId);
+                const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
+                const tiersConfig = branchTiersConfig || globalTiersConfig;
+                
+                if (tiersConfig?.value) {
+                    try {
+                        const tiers = JSON.parse(tiersConfig.value);
+                        for (const tier of tiers) {
+                            const daysFrom = tier.days_from || 1;
+                            const daysTo = tier.days_to || 999;
+                            const feePerDay = parseFloat(tier.fee_per_day || 0);
+                            if (daysOverdue >= daysFrom) {
+                                const daysInTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+                                if (daysInTier > 0) lateFee += daysInTier * feePerDay;
+                            }
+                            if (daysOverdue <= daysTo) break;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing tiers:', e);
+                    }
+                }
+            } else {
+                const branchConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === branchId);
+                const globalConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
+                const config = branchConfig || globalConfig;
+                const feePerDay = parseFloat(config?.value || '0');
+                if (!isNaN(feePerDay) && feePerDay > 0) {
+                    lateFee = daysOverdue * feePerDay;
+                }
+            }
+
+            // อัปเดต payment ด้วย late_fee_amount และ total_amount ใหม่
+            const newTotalAmount = (payment.total_amount || 0) + lateFee;
+            updatePromises.push(
+                base44.asServiceRole.entities.Payment.update(payment.id, {
+                    status: 'overdue',
+                    late_fee_amount: lateFee,
+                    total_amount: newTotalAmount
+                }).catch(err => console.error(`Failed to update payment ${payment.id}:`, err))
+            );
+        }
+
+        // รอให้ทุก update เสร็จ
+        if (updatePromises.length > 0) {
+            await Promise.all(updatePromises);
+            console.log(`✅ Updated ${updatePromises.length} payments with late fees`);
+        }
+
         if (overduePayments.length === 0) {
             return Response.json({ 
                 success: true, 
