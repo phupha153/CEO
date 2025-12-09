@@ -1151,10 +1151,10 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         
         const senderName = slipData.sender?.account?.name?.th || 
                           slipData.sender?.displayName || 'N/A';
-        const transDate = slipData.transDate || new Date().toISOString().split('T')[0];
+        const transDate = slipData.dateTime || slipData.transDate || new Date().toISOString().split('T')[0];
         
         console.log(`✅ Slip verified using ${verificationMethod} method!`);
-        console.log(`💰 Amount: ${slipAmount} บาท`);
+        console.log(`💰 Slip Amount: ${slipAmount} บาท`);
 
         if (slipAmount === 0) {
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
@@ -1170,12 +1170,74 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
-        const amountDiff = Math.abs(slipAmount - pendingPayment.total_amount);
-        const diffPercent = (amountDiff / pendingPayment.total_amount) * 100;
+        // ⭐⭐⭐ คำนวณค่าปรับก่อนเช็คยอดเงิน (รองรับทั้งแบบปกติและแบบขั้นบันได)
+        import { parseISO as parseISOLocal, differenceInDays } from 'npm:date-fns@3.0.0';
+        
+        const paymentDateObj = parseISOLocal(transDate.split('T')[0]);
+        const dueDateObj = parseISOLocal(pendingPayment.due_date);
+        const daysLate = differenceInDays(paymentDateObj, dueDateObj);
+        
+        let lateFeeAmount = 0;
+        if (daysLate > 0) {
+            const configs = await base44.asServiceRole.entities.Config.list();
+            
+            // เช็คว่าใช้ค่าปรับแบบขั้นบันไดหรือไม่
+            const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (c.branch_id === branchId || !c.branch_id));
+            const tiersEnabled = tiersEnabledConfig?.value === 'true';
+            
+            let usedTiers = false;
+            
+            if (tiersEnabled) {
+                const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && (c.branch_id === branchId || !c.branch_id));
+                
+                if (tiersConfig?.value) {
+                    try {
+                        const tiers = JSON.parse(tiersConfig.value);
+                        console.log(`📊 Using tiered late fees - Days late: ${daysLate}`);
+                        
+                        for (const tier of tiers) {
+                            const daysFrom = tier.days_from || 1;
+                            const daysTo = tier.days_to || 999;
+                            const feePerDay = parseFloat(tier.fee_per_day || 0);
+                            
+                            if (daysLate >= daysFrom) {
+                                const daysInThisTier = Math.min(daysLate, daysTo) - daysFrom + 1;
+                                if (daysInThisTier > 0) {
+                                    const tierFee = daysInThisTier * feePerDay;
+                                    lateFeeAmount += tierFee;
+                                    console.log(`  ➡️ Tier ${daysFrom}-${daysTo}: ${daysInThisTier} วัน × ${feePerDay}฿ = ${tierFee}฿`);
+                                }
+                            }
+                            
+                            if (daysLate <= daysTo) break;
+                        }
+                        
+                        usedTiers = true;
+                        console.log(`⏰ Late payment (Tiers): ${daysLate} days → TOTAL ${lateFeeAmount} บาท`);
+                    } catch (e) {
+                        console.error('❌ Error parsing tiers, fallback to simple fee:', e);
+                    }
+                }
+            }
+            
+            // ถ้าไม่ได้เปิดใช้ขั้นบันได หรือ parse ไม่สำเร็จ → ใช้ค่าปรับแบบปกติ
+            if (!usedTiers) {
+                const lateFeePerDayConfig = configs.find(c => c.key === 'late_fee_per_day' && (c.branch_id === branchId || !c.branch_id));
+                const lateFeePerDay = parseFloat(lateFeePerDayConfig?.value || 0);
+                lateFeeAmount = daysLate * lateFeePerDay;
+                console.log(`⏰ Late payment (Simple): ${daysLate} days × ${lateFeePerDay} = ${lateFeeAmount} บาท`);
+            }
+        }
+        
+        // ⭐ คำนวณยอดที่ต้องชำระจริง (รวมค่าปรับ)
+        const expectedAmount = parseFloat(pendingPayment.total_amount) + lateFeeAmount;
+        console.log(`💰 Expected Amount (with late fee): ${expectedAmount} บาท`);
 
-        if (diffPercent > 10) {
+        // ตรวจสอบยอดเงิน (ยอมรับ ±5%)
+        if (slipAmount < expectedAmount * 0.95) {
+            const shortfall = expectedAmount - slipAmount;
             await sendMessage(base44, lineUserId, 
-                `❌ ยอดเงินไม่ตรง\n\n💰 ยอดที่ต้องชำระ: ${pendingPayment.total_amount.toLocaleString()} บาท\n💵 ยอดที่โอนมา: ${slipAmount.toLocaleString()} บาท\n\nกรุณาตรวจสอบและโอนใหม่ค่ะ`,
+                `❌ ยอดเงินไม่ครบ\n\n💰 ยอดที่ต้องชำระ: ${expectedAmount.toLocaleString()} บาท\n💵 ยอดที่โอนมา: ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n\n⏰ รวมค่าปรับล่าช้า ${daysLate} วัน: ${lateFeeAmount.toLocaleString()} บาท` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท\n\nกรุณาโอนส่วนที่ขาดและส่งสลิปใหม่ค่ะ`,
                 branchId,
                 replyToken
             );
@@ -1186,7 +1248,9 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             status: 'paid',
             payment_date: transDate.split('T')[0],
             payment_slip_url: slipImageUrl,
-            notes: `${pendingPayment.notes || ''}\n\nตรวจสอบสลิปอัตโนมัติผ่าน LINE: ${senderName} โอน ${slipAmount} บาท`
+            late_fee_amount: lateFeeAmount,
+            total_amount: expectedAmount,
+            notes: `${pendingPayment.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}`
         });
 
         // ⭐⭐⭐ ส่งใบเสร็จโดยตรงเลย (ไม่ต้องส่งข้อความยืนยันแยก = ประหยัด Token)
