@@ -2182,11 +2182,12 @@ Return JSON.`;
                       {aiResult.payments.map((item, idx) => {
                         const payment = payments.find(p => p.id === item.payment_id);
                         if (!payment) return null;
-                        
+
                         const room = getRoomInfo(payment.room_id);
                         const tenant = getTenantInfo(payment.tenant_id);
                         const effectiveStatus = getEffectiveStatus(payment);
-                        const lateFee = calculateLateFee(payment);
+                        // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
+                        const lateFee = payment.late_fee_amount ? 0 : calculateLateFee(payment);
                         const totalWithLateFee = (payment.total_amount || 0) + lateFee;
                         
                         return (
@@ -2627,7 +2628,8 @@ Return JSON.`;
                       const room = getRoomInfo(payment.room_id);
                       const tenant = getTenantInfo(payment.tenant_id);
                       const effectiveStatus = getEffectiveStatus(payment);
-                      const lateFee = calculateLateFee(payment);
+                      // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
+                      const lateFee = payment.late_fee_amount ? 0 : calculateLateFee(payment);
                       const totalWithLateFee = (payment.total_amount || 0) + lateFee;
                       const canSendReminderForPayment = canSendReminder && (effectiveStatus === 'pending' || effectiveStatus === 'overdue') && tenant && (tenant.line_user_id || tenant.facebook_user_id);
                       const canSendReceiptForPayment = canSendReceipt && effectiveStatus === 'paid' && tenant && (tenant.line_user_id || tenant.facebook_user_id);
@@ -2862,10 +2864,10 @@ Return JSON.`;
                                           <span className="font-medium">{payment.other_amount.toLocaleString()} ฿</span>
                                         </div>
                                       )}
-                                      {lateFee > 0 && (
+                                      {(payment.late_fee_amount > 0 || lateFee > 0) && (
                                         <div className="flex justify-between text-red-600 font-semibold">
                                           <span>ค่าปรับจ่ายล่าช้า:</span>
-                                          <span>+{lateFee.toLocaleString()} ฿</span>
+                                          <span>+{(payment.late_fee_amount || lateFee).toLocaleString()} ฿</span>
                                         </div>
                                       )}
                                     </div>
@@ -3110,7 +3112,8 @@ Return JSON.`;
                             const room = getRoomInfo(payment.room_id);
                             const tenant = getTenantInfo(payment.tenant_id);
                             const effectiveStatus = getEffectiveStatus(payment);
-                            const lateFee = calculateLateFee(payment);
+                            // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
+                            const lateFee = payment.late_fee_amount ? 0 : calculateLateFee(payment);
                             const totalWithLateFee = (payment.total_amount || 0) + lateFee;
                             const isPaid = effectiveStatus === 'paid';
                             const isSelected = selectedPaymentIds.includes(payment.id);
@@ -4087,7 +4090,8 @@ Return JSON.`;
             const room = getRoomInfo(selectedPayment.room_id);
             const tenant = getTenantInfo(selectedPayment.tenant_id);
             const effectiveStatus = getEffectiveStatus(selectedPayment);
-            const lateFee = calculateLateFee(selectedPayment);
+            // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
+            const lateFee = selectedPayment.late_fee_amount ? 0 : calculateLateFee(selectedPayment);
             const totalWithLateFee = (selectedPayment.total_amount || 0) + lateFee;
 
             return (
@@ -4169,10 +4173,10 @@ Return JSON.`;
                       <span className="font-medium">{selectedPayment.other_amount.toLocaleString()} ฿</span>
                     </div>
                   )}
-                  {lateFee > 0 && (
+                  {(selectedPayment.late_fee_amount > 0 || lateFee > 0) && (
                     <div className="flex justify-between text-sm text-red-600 font-semibold">
                       <span>ค่าปรับล่าช้า:</span>
-                      <span>+{lateFee.toLocaleString()} ฿</span>
+                      <span>+{(selectedPayment.late_fee_amount || lateFee).toLocaleString()} ฿</span>
                     </div>
                   )}
                   <div className="flex justify-between pt-3 border-t">
