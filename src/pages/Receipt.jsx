@@ -259,9 +259,9 @@ export default function Receipt() {
       total: receiptData.other_amount
     });
   }
-  if (receiptData.late_fee_amount > 0) {
+  if (receiptData.late_fee_amount && receiptData.late_fee_amount > 0) {
     lineItems.push({
-      name: `ค่าปรับชำระล่าช้า`,
+      name: 'ค่าปรับชำระล่าช้า',
       quantity: 1,
       price: receiptData.late_fee_amount,
       total: receiptData.late_fee_amount
