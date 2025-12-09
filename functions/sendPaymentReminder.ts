@@ -268,10 +268,15 @@ Deno.serve(async (req) => {
                 const roomNum = room?.room_number || 'N/A';
                 const amount = (payment.total_amount || 0).toLocaleString();
                 
-                // คำนวณค่าปรับถ้ามี (สำหรับ template overdue)
+                // ⭐ คำนวณค่าปรับ - ใช้ late_fee_amount จากบิลถ้ามี ไม่งั้นคำนวณใหม่
                 let lateFee = 0;
-                if (daysOverdue > 0) {
-                    // ตรวจสอบว่าเปิดใช้ค่าปรับแบบขั้นบันไดหรือไม่
+                
+                // ถ้าบิลมี late_fee_amount บันทึกไว้แล้ว (และมากกว่า 0) ให้ใช้ค่านั้น
+                if (payment.late_fee_amount && payment.late_fee_amount > 0) {
+                    lateFee = payment.late_fee_amount;
+                    console.log(`✅ Using saved late_fee_amount: ${lateFee} บาท (Payment ID: ${payment.id.substring(0, 8)})`);
+                } else if (daysOverdue > 0) {
+                    // ไม่มี late_fee_amount บันทึก = คำนวณใหม่
                     const branchTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === branchId);
                     const globalTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
                     const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
@@ -304,6 +309,7 @@ Deno.serve(async (req) => {
                             lateFee = daysOverdue * feePerDay;
                         }
                     }
+                    console.log(`🔢 Calculated late_fee: ${lateFee} บาท (${daysOverdue} วัน × ${getConfigValue('late_payment_fee_per_day', branchId, '0')}฿/วัน)`);
                 }
                 
                 // ⭐ สร้างข้อความตาม template
