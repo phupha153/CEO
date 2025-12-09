@@ -3489,45 +3489,41 @@ Return JSON.`;
                                            </div>
 
                                            {/* สถานะการชำระเงิน */}
-                                           <Card className={effectiveStatus === 'paid' ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'}>
-                                             <CardContent className="p-3">
-                                               <div className="space-y-2 text-sm">
-                                                 <div className="flex justify-between items-center">
-                                                   <span className="text-slate-600">ยอดที่ต้องชำระทั้งหมด:</span>
-                                                   <span className="font-bold text-slate-800">
-                                                     {(() => {
-                                                       const lateFee = roomPayment.late_fee_amount ? 0 : calculateLateFee(roomPayment);
-                                                       return ((roomPayment.total_amount || 0) + lateFee).toLocaleString();
-                                                     })()} ฿
-                                                   </span>
-                                                 </div>
-                                                 <div className="flex justify-between items-center">
-                                                   <span className="text-slate-600">ชำระไปแล้ว:</span>
-                                                   <span className={`font-bold ${roomPayment.paid_amount > 0 ? 'text-green-700' : 'text-slate-400'}`}>
-                                                     {(roomPayment.paid_amount || 0).toLocaleString()} ฿
-                                                   </span>
-                                                 </div>
-                                                 {effectiveStatus !== 'paid' && (
-                                                   <div className="flex justify-between items-center pt-2 border-t">
-                                                     <span className="text-red-700 font-semibold">ยังค้างชำระอีก:</span>
-                                                     <span className="font-bold text-xl text-red-700">
-                                                       {(() => {
-                                                         const lateFee = roomPayment.late_fee_amount ? 0 : calculateLateFee(roomPayment);
-                                                         const totalDue = (roomPayment.total_amount || 0) + lateFee;
-                                                         return (totalDue - (roomPayment.paid_amount || 0)).toLocaleString();
-                                                       })()} ฿
-                                                     </span>
-                                                   </div>
-                                                 )}
-                                                 {effectiveStatus === 'paid' && (
-                                                   <div className="flex items-center gap-2 pt-2 border-t text-green-700">
-                                                     <CheckCircle2 className="w-5 h-5" />
-                                                     <span className="font-semibold">ชำระครบถ้วนแล้ว</span>
-                                                   </div>
-                                                 )}
+                                           <div className="border-t pt-3 space-y-2 text-sm">
+                                             <div className="flex justify-between items-center">
+                                               <span className="text-slate-600">ยอดที่ต้องชำระทั้งหมด:</span>
+                                               <span className="font-bold text-slate-800">
+                                                 {(() => {
+                                                   const lateFee = roomPayment.late_fee_amount ? 0 : calculateLateFee(roomPayment);
+                                                   return ((roomPayment.total_amount || 0) + lateFee).toLocaleString();
+                                                 })()} ฿
+                                               </span>
+                                             </div>
+                                             <div className="flex justify-between items-center">
+                                               <span className="text-slate-600">ชำระไปแล้ว:</span>
+                                               <span className={`font-bold ${roomPayment.paid_amount > 0 ? 'text-green-700' : 'text-slate-400'}`}>
+                                                 {(roomPayment.paid_amount || 0).toLocaleString()} ฿
+                                               </span>
+                                             </div>
+                                             {effectiveStatus !== 'paid' && (
+                                               <div className="flex justify-between items-center pt-2 border-t">
+                                                 <span className="text-red-700 font-semibold">ยังค้างชำระอีก:</span>
+                                                 <span className="font-bold text-xl text-red-700">
+                                                   {(() => {
+                                                     const lateFee = roomPayment.late_fee_amount ? 0 : calculateLateFee(roomPayment);
+                                                     const totalDue = (roomPayment.total_amount || 0) + lateFee;
+                                                     return (totalDue - (roomPayment.paid_amount || 0)).toLocaleString();
+                                                   })()} ฿
+                                                 </span>
                                                </div>
-                                             </CardContent>
-                                           </Card>
+                                             )}
+                                             {effectiveStatus === 'paid' && (
+                                               <div className="flex items-center gap-2 pt-2 border-t text-green-700">
+                                                 <CheckCircle2 className="w-5 h-5" />
+                                                 <span className="font-semibold">ชำระครบถ้วนแล้ว</span>
+                                               </div>
+                                             )}
+                                           </div>
 
                                            {/* Badges */}
                                            <div className="flex flex-wrap gap-1">
