@@ -422,18 +422,7 @@ export default function Invoice() {
               </div>
             </div>
 
-            {/* Overdue Warning */}
-            {isOverdue && (
-              <div className="mb-4">
-                <div className="bg-red-100 border-2 border-red-500 rounded-lg p-3 flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-bold text-red-800">เกินกำหนดชำระแล้ว {daysOverdue} วัน</p>
-                    <p className="text-xs text-red-700">กรุณาชำระเงินโดยเร็วที่สุด</p>
-                  </div>
-                </div>
-              </div>
-            )}
+
 
             {/* Payer & Payee Info */}
             <div className="grid grid-cols-2 gap-3 mb-4">
