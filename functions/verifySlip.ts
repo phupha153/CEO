@@ -265,6 +265,8 @@ Deno.serve(async (req) => {
                 const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (c.branch_id === payment.branch_id || !c.branch_id));
                 const tiersEnabled = tiersEnabledConfig?.value === 'true';
                 
+                let usedTiers = false;
+                
                 if (tiersEnabled) {
                     // ใช้ค่าปรับแบบขั้นบันได
                     const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && (c.branch_id === payment.branch_id || !c.branch_id));
@@ -272,6 +274,7 @@ Deno.serve(async (req) => {
                     if (tiersConfig?.value) {
                         try {
                             const tiers = JSON.parse(tiersConfig.value);
+                            console.log(`📊 Using tiered late fees - Days late: ${daysLate}`);
                             
                             for (const tier of tiers) {
                                 const daysFrom = tier.days_from || 1;
@@ -290,16 +293,16 @@ Deno.serve(async (req) => {
                                 if (daysLate <= daysTo) break;
                             }
                             
-                            console.log(`⏰ Late payment (Tiers): ${daysLate} days → ${lateFeeAmount} บาท`);
+                            usedTiers = true;
+                            console.log(`⏰ Late payment (Tiers): ${daysLate} days → TOTAL ${lateFeeAmount} บาท`);
                         } catch (e) {
                             console.error('❌ Error parsing tiers, fallback to simple fee:', e);
-                            tiersEnabled = false;
                         }
                     }
                 }
                 
                 // ถ้าไม่ได้เปิดใช้ขั้นบันได หรือ parse ไม่สำเร็จ → ใช้ค่าปรับแบบปกติ
-                if (!tiersEnabled || lateFeeAmount === 0) {
+                if (!usedTiers) {
                     const lateFeePerDayConfig = configs.find(c => c.key === 'late_fee_per_day' && (c.branch_id === payment.branch_id || !c.branch_id));
                     const lateFeePerDay = parseFloat(lateFeePerDayConfig?.value || 0);
                     lateFeeAmount = daysLate * lateFeePerDay;
