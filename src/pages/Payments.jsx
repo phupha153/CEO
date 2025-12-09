@@ -4262,12 +4262,18 @@ Return JSON.`;
                       <span className="font-medium">{selectedPayment.other_amount.toLocaleString()} ฿</span>
                     </div>
                   )}
-                  {(selectedPayment.late_fee_amount > 0 || lateFee > 0) && (
-                    <div className="flex justify-between text-sm text-red-600 font-semibold">
-                      <span>ค่าปรับล่าช้า:</span>
-                      <span>+{(selectedPayment.late_fee_amount || lateFee).toLocaleString()} ฿</span>
-                    </div>
-                  )}
+                  {(() => {
+                    const displayLateFee = selectedPayment.late_fee_amount > 0 ? selectedPayment.late_fee_amount : lateFee;
+                    if (displayLateFee > 0) {
+                      return (
+                        <div className="flex justify-between text-sm text-red-600 font-semibold">
+                          <span>ค่าปรับล่าช้า:</span>
+                          <span>+{displayLateFee.toLocaleString()} ฿</span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                   <div className="flex justify-between pt-3 border-t">
                     <span className="font-bold text-lg">รวมทั้งสิ้น:</span>
                     <span className="font-bold text-2xl text-blue-600">{totalWithLateFee.toLocaleString()} ฿</span>
