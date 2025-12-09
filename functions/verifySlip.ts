@@ -251,10 +251,26 @@ Deno.serve(async (req) => {
             
             const slipData = simpleData.data;
             const slipAmount = parseFloat(slipData.amount?.amount || 0);
-            const expectedAmount = parseFloat(payment.total_amount);
+            
+            // ⭐ คำนวณค่าปรับก่อนเช็คยอดเงิน
+            const paymentDateObj = parseISO(slipData.transDate || new Date().toISOString().split('T')[0]);
+            const dueDateObj = parseISO(payment.due_date);
+            const daysLate = Math.floor((paymentDateObj - dueDateObj) / (1000 * 60 * 60 * 24));
+            
+            let lateFeeAmount = 0;
+            if (daysLate > 0) {
+                const configs = await base44.asServiceRole.entities.Config.list();
+                const lateFeePerDay = parseFloat(configs.find(c => c.key === 'late_fee_per_day' && (c.branch_id === payment.branch_id || !c.branch_id))?.value || 0);
+                lateFeeAmount = daysLate * lateFeePerDay;
+                console.log(`⏰ Late payment detected: ${daysLate} days × ${lateFeePerDay} = ${lateFeeAmount} บาท`);
+            }
+            
+            // ⭐ คำนวณยอดที่ต้องชำระจริง (รวมค่าปรับ)
+            const expectedAmount = parseFloat(payment.total_amount) + lateFeeAmount;
             
             console.log('💰 Slip amount:', slipAmount);
-            console.log('💰 Expected amount:', expectedAmount);
+            console.log('💰 Expected amount (with late fee):', expectedAmount);
+            console.log('💰 Late fee:', lateFeeAmount);
             
             // ตรวจสอบยอดเงิน (ยอมรับ ±5%)
             if (slipAmount < expectedAmount * 0.95) {
@@ -263,18 +279,24 @@ Deno.serve(async (req) => {
                 const room = rooms.find(r => r.id === payment.room_id);
                 const roomNumber = room?.room_number || 'ไม่ทราบ';
                 
+                // บันทึกสลิปและค่าปรับที่คำนวณได้ (แม้ยอดไม่ถูก)
                 await base44.asServiceRole.entities.Payment.update(paymentId, {
                     payment_slip_url: uploadedSlipUrl,
+                    late_fee_amount: lateFeeAmount,
+                    total_amount: expectedAmount,
                     notes: payment.notes ? 
-                        `${payment.notes}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยอดเงินไม่ตรงกัน (สลิป: ${slipAmount.toLocaleString()} บาท / ต้องชำระ: ${expectedAmount.toLocaleString()} บาท)` :
-                        `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยอดเงินไม่ตรงกัน (สลิป: ${slipAmount.toLocaleString()} บาท / ต้องชำระ: ${expectedAmount.toLocaleString()} บาท)`
+                        `${payment.notes}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยอดเงินไม่ตรงกัน (สลิป: ${slipAmount.toLocaleString()} บาท / ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท` : ''})` :
+                        `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยอดเงินไม่ตรงกัน (สลิป: ${slipAmount.toLocaleString()} บาท / ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท` : ''})`
                 });
                 
                 return Response.json({ 
                     success: true,
-                    message: `อัปโหลดสลิปสำเร็จ แต่ยอดเงินไม่ตรงกัน\nสลิป: ${slipAmount.toLocaleString()} บาท\nต้องชำระ: ${expectedAmount.toLocaleString()} บาท\n\nกรุณารอเจ้าของหอพักตรวจสอบ`,
+                    message: `❌ ยอดเงินไม่ถูกต้อง\n\n💰 โอนมา: ${slipAmount.toLocaleString()} บาท\n💵 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n   (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}\n\nกรุณาโอนเพิ่มอีก ${(expectedAmount - slipAmount).toLocaleString()} บาท`,
                     manual_review_required: true,
-                    amount_mismatch: true
+                    amount_mismatch: true,
+                    slip_amount: slipAmount,
+                    expected_amount: expectedAmount,
+                    late_fee: lateFeeAmount
                 });
             }
 
@@ -319,27 +341,14 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // ✅ ทุกอย่างถูกต้อง - คำนวณค่าปรับ (ถ้ามี)
-            const paymentDateObj = parseISO(slipData.transDate || new Date().toISOString().split('T')[0]);
-            const dueDateObj = parseISO(payment.due_date);
-            const daysLate = Math.floor((paymentDateObj - dueDateObj) / (1000 * 60 * 60 * 24));
-            
-            let lateFeeAmount = 0;
-            if (daysLate > 0) {
-                const configs = await base44.asServiceRole.entities.Config.list();
-                const lateFeePerDay = parseFloat(configs.find(c => c.key === 'late_fee_per_day' && (c.branch_id === payment.branch_id || !c.branch_id))?.value || 0);
-                lateFeeAmount = daysLate * lateFeePerDay;
-            }
-            
-            // อัปเดต payment พร้อมค่าปรับและ total_amount ใหม่
-            const newTotalAmount = expectedAmount + lateFeeAmount;
+            // ✅ ทุกอย่างถูกต้อง - อัปเดต payment
             
             const updatedPayment = await base44.asServiceRole.entities.Payment.update(paymentId, {
                 status: 'paid',
                 payment_date: slipData.transDate || new Date().toISOString().split('T')[0],
                 payment_slip_url: uploadedSlipUrl,
                 late_fee_amount: lateFeeAmount,
-                total_amount: newTotalAmount,
+                total_amount: expectedAmount,
                 notes: payment.notes ? 
                     `${payment.notes}\n\n✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}` :
                     `✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}`
