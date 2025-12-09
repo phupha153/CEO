@@ -4125,29 +4125,45 @@ Return JSON.`;
                     <div>
                       <p className="text-slate-500 mb-1">สถานะ</p>
                       {getStatusBadge(effectiveStatus, selectedPayment)}
-                      {effectiveStatus !== 'paid' && (
-                        <div className="mt-2 text-sm space-y-1">
-                          <p className={selectedPayment.paid_amount > 0 ? "text-green-700 font-medium" : "text-slate-600"}>
-                            ชำระแล้ว: {(selectedPayment.paid_amount || 0).toLocaleString()} ฿
-                          </p>
-                          <p className="text-slate-600">
-                            ยอดที่ต้องชำระ: {totalWithLateFee.toLocaleString()} ฿
-                          </p>
-                          <p className="text-red-700 font-semibold">
-                            ยังขาดอีก: {(totalWithLateFee - (selectedPayment.paid_amount || 0)).toLocaleString()} ฿
-                          </p>
-                        </div>
-                      )}
-                      {effectiveStatus === 'paid' && (
-                        <div className="mt-2 text-sm">
-                          <p className="text-green-700 font-medium">
-                            ✓ ชำระครบแล้ว: {totalWithLateFee.toLocaleString()} ฿
-                          </p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
+
+                {/* แสดงสถานะการชำระเงิน */}
+                <Card className={effectiveStatus === 'paid' ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'}>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                      <Calculator className="w-5 h-5" />
+                      สถานะการชำระเงิน
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600">ยอดที่ต้องชำระทั้งหมด:</span>
+                        <span className="font-bold text-slate-800">{totalWithLateFee.toLocaleString()} ฿</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600">ชำระไปแล้ว:</span>
+                        <span className={`font-bold ${selectedPayment.paid_amount > 0 ? 'text-green-700' : 'text-slate-400'}`}>
+                          {(selectedPayment.paid_amount || 0).toLocaleString()} ฿
+                        </span>
+                      </div>
+                      {effectiveStatus !== 'paid' && (
+                        <div className="flex justify-between items-center pt-2 border-t">
+                          <span className="text-red-700 font-semibold">ยังค้างชำระอีก:</span>
+                          <span className="font-bold text-xl text-red-700">
+                            {(totalWithLateFee - (selectedPayment.paid_amount || 0)).toLocaleString()} ฿
+                          </span>
+                        </div>
+                      )}
+                      {effectiveStatus === 'paid' && (
+                        <div className="flex items-center gap-2 pt-2 border-t text-green-700">
+                          <CheckCircle2 className="w-5 h-5" />
+                          <span className="font-semibold">ชำระครบถ้วนแล้ว</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
 
                 <div className="space-y-2">
                   <h3 className="font-semibold text-slate-800">รายการค่าใช้จ่าย</h3>
