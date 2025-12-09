@@ -4125,13 +4125,23 @@ Return JSON.`;
                     <div>
                       <p className="text-slate-500 mb-1">สถานะ</p>
                       {getStatusBadge(effectiveStatus, selectedPayment)}
-                      {selectedPayment.status === 'partial_paid' && (
-                        <div className="mt-2 text-sm">
-                          <p className="text-orange-700">
-                            ชำระแล้ว: {(selectedPayment.paid_amount || 0).toLocaleString()} ฿ / {(selectedPayment.total_amount || 0).toLocaleString()} ฿
+                      {effectiveStatus !== 'paid' && (
+                        <div className="mt-2 text-sm space-y-1">
+                          <p className={selectedPayment.paid_amount > 0 ? "text-green-700 font-medium" : "text-slate-600"}>
+                            ชำระแล้ว: {(selectedPayment.paid_amount || 0).toLocaleString()} ฿
+                          </p>
+                          <p className="text-slate-600">
+                            ยอดที่ต้องชำระ: {totalWithLateFee.toLocaleString()} ฿
                           </p>
                           <p className="text-red-700 font-semibold">
-                            ยังขาดอีก: {((selectedPayment.total_amount || 0) - (selectedPayment.paid_amount || 0)).toLocaleString()} ฿
+                            ยังขาดอีก: {(totalWithLateFee - (selectedPayment.paid_amount || 0)).toLocaleString()} ฿
+                          </p>
+                        </div>
+                      )}
+                      {effectiveStatus === 'paid' && (
+                        <div className="mt-2 text-sm">
+                          <p className="text-green-700 font-medium">
+                            ✓ ชำระครบแล้ว: {totalWithLateFee.toLocaleString()} ฿
                           </p>
                         </div>
                       )}
