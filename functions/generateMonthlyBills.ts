@@ -547,52 +547,6 @@ Deno.serve(async (req) => {
                 const waterAmount = waterMinimumApplied ? waterMinimumCharge : (waterUnits * waterRate);
                 const electricityAmount = electricityMinimumApplied ? electricityMinimumCharge : (elecUnits * elecRate);
                 
-                // ⭐ คำนวณค่าปรับ (ถ้าเกินกำหนด) ตอนสร้างบิล
-                const dueDate = new Date(roomDueYear, roomDueMonth, roomPayDay);
-                dueDate.setHours(0, 0, 0, 0);
-                const today = new Date(currentYear, currentMonth, currentDay);
-                today.setHours(0, 0, 0, 0);
-                const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-                
-                let lateFeeAmount = 0;
-                if (daysOverdue > 0) {
-                    // ตรวจสอบว่าเปิดใช้ค่าปรับแบบขั้นบันไดหรือไม่
-                    const branchTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === roomBranchId);
-                    const globalTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
-                    const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
-                    const tiersEnabled = tiersEnabledConfig?.value === 'true';
-                    
-                    if (tiersEnabled) {
-                        const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === roomBranchId);
-                        const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
-                        const tiersConfig = branchTiersConfig || globalTiersConfig;
-                        
-                        if (tiersConfig?.value) {
-                            try {
-                                const tiers = JSON.parse(tiersConfig.value);
-                                for (const tier of tiers) {
-                                    const daysFrom = tier.days_from || 1;
-                                    const daysTo = tier.days_to || 999;
-                                    const feePerDay = parseFloat(tier.fee_per_day || 0);
-                                    if (daysOverdue >= daysFrom) {
-                                        const daysInTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
-                                        if (daysInTier > 0) lateFeeAmount += daysInTier * feePerDay;
-                                    }
-                                    if (daysOverdue <= daysTo) break;
-                                }
-                            } catch (e) {
-                                console.error('❌ Error parsing late fee tiers:', e);
-                            }
-                        }
-                    } else {
-                        const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', '0', roomBranchId);
-                        const feePerDay = parseFloat(lateFeePerDayConfig);
-                        if (!isNaN(feePerDay) && feePerDay > 0) {
-                            lateFeeAmount = daysOverdue * feePerDay;
-                        }
-                    }
-                }
-                
                 const totalAmount = (room.price || 0) + waterAmount + electricityAmount + internetRate + commonFee + parkingAmount + otherMonthlyFeesAmount;
 
                 // Check Prepaid
@@ -618,9 +572,8 @@ Deno.serve(async (req) => {
                 if (electricityMinimumApplied) {
                     notes += `\n⚡ ใช้ไฟ ${originalElecUnits.toFixed(1)} หน่วย → คิดขั้นต่ำ ${electricityMinimumCharge.toLocaleString()} บาท`;
                 }
-                if (lateFeeAmount > 0) {
-                    notes += `\n⚠️ ค่าปรับล่าช้า: ${lateFeeAmount.toLocaleString()} บาท (เกิน ${daysOverdue} วัน)`;
-                }
+
+                const dueDate = new Date(roomDueYear, roomDueMonth, roomPayDay);
                 
                 const paymentData = {
                     branch_id: roomBranchId,
@@ -628,7 +581,7 @@ Deno.serve(async (req) => {
                     tenant_id: activeBooking.tenant_id,
                     room_id: room.id,
                     meter_reading_id: latestMeter?.id || null,
-                    due_date: format(new Date(roomDueYear, roomDueMonth, roomPayDay), 'yyyy-MM-dd'),
+                    due_date: format(dueDate, 'yyyy-MM-dd'),
                     payment_date: paymentDate,
                     rent_amount: room.price || 0,
                     water_units: originalWaterUnits,
@@ -641,7 +594,6 @@ Deno.serve(async (req) => {
                     common_fee_amount: commonFee,
                     parking_fee_amount: parkingAmount,
                     other_amount: otherMonthlyFeesAmount,
-                    late_fee_amount: lateFeeAmount,
                     total_amount: totalAmount,
                     status: status,
                     payment_method: status === 'paid' ? 'prepaid' : 'transfer',
