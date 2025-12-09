@@ -307,6 +307,14 @@ Deno.serve(async (req) => {
                 total: payment.other_amount
             });
         }
+        if (payment.late_fee_amount && payment.late_fee_amount > 0) {
+            lineItems.push({
+                name: 'ค่าปรับชำระล่าช้า',
+                quantity: 1,
+                price: payment.late_fee_amount,
+                total: payment.late_fee_amount
+            });
+        }
 
         console.log('✅ Line items created:', lineItems.length, 'items');
 

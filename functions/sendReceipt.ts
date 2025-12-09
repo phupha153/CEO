@@ -413,6 +413,16 @@ Deno.serve(async (req) => {
                 ]
             });
         }
+        if (payment.late_fee_amount > 0) {
+            items.push({
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                    { type: "text", text: "ค่าปรับชำระล่าช้า", size: "sm", color: "#dc2626", flex: 0 },
+                    { type: "text", text: `${payment.late_fee_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "sm", color: "#dc2626", align: "end", weight: "bold" }
+                ]
+            });
+        }
 
         const paymentDateText = payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('th-TH', {
             year: 'numeric',
