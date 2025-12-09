@@ -1230,26 +1230,49 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         
         // ⭐ คำนวณยอดที่ต้องชำระจริง (รวมค่าปรับ)
         const expectedAmount = parseFloat(pendingPayment.total_amount) + lateFeeAmount;
+        const currentPaid = parseFloat(pendingPayment.paid_amount || 0);
+        const totalPaid = currentPaid + slipAmount;
+        
         console.log(`💰 Expected Amount (with late fee): ${expectedAmount} บาท`);
+        console.log(`💰 Already Paid: ${currentPaid} บาท`);
+        console.log(`💰 This Payment: ${slipAmount} บาท`);
+        console.log(`💰 Total Paid: ${totalPaid} บาท`);
 
         // ตรวจสอบยอดเงิน (ยอมรับ ±5%)
-        if (slipAmount < expectedAmount * 0.95) {
-            const shortfall = expectedAmount - slipAmount;
+        if (totalPaid < expectedAmount * 0.95) {
+            const shortfall = expectedAmount - totalPaid;
+            
+            // อัปเดตยอดที่จ่ายไปแล้ว และเปลี่ยนสถานะเป็น partial_paid
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                status: 'partial_paid',
+                paid_amount: totalPaid,
+                payment_slip_url: slipImageUrl,
+                late_fee_amount: lateFeeAmount,
+                total_amount: expectedAmount,
+                notes: `${pendingPayment.notes || ''}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
+            });
+            
             await sendMessage(base44, lineUserId, 
-                `❌ ยอดเงินไม่ครบ\n\n💰 ยอดที่ต้องชำระ: ${expectedAmount.toLocaleString()} บาท\n💵 ยอดที่โอนมา: ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n\n⏰ รวมค่าปรับล่าช้า ${daysLate} วัน: ${lateFeeAmount.toLocaleString()} บาท` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท\n\nกรุณาโอนส่วนที่ขาดและส่งสลิปใหม่ค่ะ`,
+                `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n` +
+                `✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n` +
+                `💵 ยอดที่ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n⏰ รวมค่าปรับล่าช้า ${daysLate} วัน: ${lateFeeAmount.toLocaleString()} บาท` : ''}\n\n` +
+                `⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท\n\n` +
+                `กรุณาโอนส่วนที่ขาดและส่งสลิปใหม่ค่ะ 🙏`,
                 branchId,
                 replyToken
             );
             return;
         }
 
+        // ⭐ ชำระครบแล้ว
         await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
             status: 'paid',
             payment_date: transDate.split('T')[0],
             payment_slip_url: slipImageUrl,
             late_fee_amount: lateFeeAmount,
             total_amount: expectedAmount,
-            notes: `${pendingPayment.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}`
+            paid_amount: expectedAmount,
+            notes: `${pendingPayment.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}`
         });
 
         // ⭐⭐⭐ ส่งใบเสร็จโดยตรงเลย (ไม่ต้องส่งข้อความยืนยันแยก = ประหยัด Token)

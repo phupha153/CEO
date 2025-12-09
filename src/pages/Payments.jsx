@@ -745,6 +745,7 @@ export default function PaymentsPage() {
   const getEffectiveStatus = useCallback((payment) => {
     if (!payment) return 'pending';
     if (payment.status === 'paid') return 'paid';
+    if (payment.status === 'partial_paid') return 'partial_paid';
     if (payment.status === 'overdue') return 'overdue';
 
     if (payment.status === 'pending' && payment.due_date) {
@@ -852,6 +853,7 @@ export default function PaymentsPage() {
       paid: filteredPayments.filter(p => getEffectiveStatus(p) === 'paid').length,
       pending: filteredPayments.filter(p => getEffectiveStatus(p) === 'pending').length,
       overdue: filteredPayments.filter(p => getEffectiveStatus(p) === 'overdue').length,
+      partial_paid: filteredPayments.filter(p => p.status === 'partial_paid').length,
     };
   }, [filteredPayments, getEffectiveStatus]);
 
@@ -1528,11 +1530,15 @@ export default function PaymentsPage() {
     }
   };
 
-  const getStatusBadge = (effectiveStatus) => {
+  const getStatusBadge = (effectiveStatus, payment = null) => {
     const configs = {
       paid: { label: 'ชำระแล้ว', className: 'bg-green-100 text-green-700 text-xs md:text-sm' },
       pending: { label: 'รอชำระ', className: 'bg-yellow-100 text-yellow-700 text-xs md:text-sm' },
       overdue: { label: 'เกินกำหนด', className: 'bg-red-100 text-red-700 text-xs md:text-sm' },
+      partial_paid: { 
+        label: payment ? `ชำระบางส่วน (${((payment.paid_amount || 0) / (payment.total_amount || 1) * 100).toFixed(0)}%)` : 'ชำระบางส่วน', 
+        className: 'bg-orange-100 text-orange-700 text-xs md:text-sm' 
+      },
     };
     return configs[effectiveStatus] ? <Badge className={configs[effectiveStatus].className}>{configs[effectiveStatus].label}</Badge> : null;
   };
@@ -2092,6 +2098,7 @@ Return JSON.`;
                       <SelectContent>
                         <SelectItem value="all">ทั้งหมด</SelectItem>
                         <SelectItem value="pending">รอชำระ</SelectItem>
+                        <SelectItem value="partial_paid">ชำระบางส่วน</SelectItem>
                         <SelectItem value="overdue">เกินกำหนด</SelectItem>
                         <SelectItem value="paid">ชำระแล้ว</SelectItem>
                       </SelectContent>
@@ -2198,6 +2205,7 @@ Return JSON.`;
                                   {effectiveStatus === 'paid' && <Badge className="bg-green-100 text-green-700 text-xs">ชำระแล้ว</Badge>}
                                   {effectiveStatus === 'pending' && <Badge className="bg-yellow-100 text-yellow-700 text-xs">รอชำระ</Badge>}
                                   {effectiveStatus === 'overdue' && <Badge className="bg-red-100 text-red-700 text-xs">เกินกำหนด</Badge>}
+                                  {effectiveStatus === 'partial_paid' && <Badge className="bg-orange-100 text-orange-700 text-xs">ชำระบางส่วน ({((payment.paid_amount || 0) / (payment.total_amount || 1) * 100).toFixed(0)}%)</Badge>}
                                 </div>
                                 <p className="text-sm text-slate-600 mb-2">{item.reason || `ผู้เช่า: ${tenant?.full_name || 'N/A'}`}</p>
                                 <div className="text-xs text-slate-500 space-y-0.5">
@@ -2664,7 +2672,7 @@ Return JSON.`;
                                      ห้อง {room?.room_number || 'N/A'}
                                    </h3>
                                    <div className="flex items-center gap-1 md:gap-2 flex-wrap">
-                                     {getStatusBadge(effectiveStatus)}
+                                     {getStatusBadge(effectiveStatus, payment)}
                                      {payment.bill_sent_date && effectiveStatus !== 'paid' && (
                                        <Badge className="bg-purple-100 text-purple-700 text-xs hidden md:inline-flex" title={`ส่งบิลแล้วเมื่อ ${format(parseISO(payment.bill_sent_date), 'd MMM HH:mm', { locale: th })}`}>
                                          📤 ส่งบิลแล้ว
@@ -3159,7 +3167,7 @@ Return JSON.`;
                                     <span className="block text-xs text-red-600">(+{lateFee} ค่าปรับ)</span>
                                   )}
                                 </td>
-                                <td className="px-4 py-3 text-sm">{getStatusBadge(effectiveStatus)}</td>
+                                <td className="px-4 py-3 text-sm">{getStatusBadge(effectiveStatus, payment)}</td>
                                 {(canEdit || canDelete || canViewInvoice || canViewReceipt || canConfirmPaid || canSendReminder || canSendReceipt) && (
                                   <td className="px-4 py-3">
                                     <div className="flex justify-center gap-1">
