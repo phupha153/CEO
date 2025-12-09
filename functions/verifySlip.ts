@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { parseISO } from 'npm:date-fns@3.0.0';
 
 Deno.serve(async (req) => {
     try {
@@ -318,14 +319,30 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // ✅ ทุกอย่างถูกต้อง - อัพเดต payment
+            // ✅ ทุกอย่างถูกต้อง - คำนวณค่าปรับ (ถ้ามี)
+            const paymentDateObj = parseISO(slipData.transDate || new Date().toISOString().split('T')[0]);
+            const dueDateObj = parseISO(payment.due_date);
+            const daysLate = Math.floor((paymentDateObj - dueDateObj) / (1000 * 60 * 60 * 24));
+            
+            let lateFeeAmount = 0;
+            if (daysLate > 0) {
+                const configs = await base44.asServiceRole.entities.Config.list();
+                const lateFeePerDay = parseFloat(configs.find(c => c.key === 'late_fee_per_day' && (c.branch_id === payment.branch_id || !c.branch_id))?.value || 0);
+                lateFeeAmount = daysLate * lateFeePerDay;
+            }
+            
+            // อัปเดต payment พร้อมค่าปรับและ total_amount ใหม่
+            const newTotalAmount = expectedAmount + lateFeeAmount;
+            
             const updatedPayment = await base44.asServiceRole.entities.Payment.update(paymentId, {
                 status: 'paid',
                 payment_date: slipData.transDate || new Date().toISOString().split('T')[0],
                 payment_slip_url: uploadedSlipUrl,
+                late_fee_amount: lateFeeAmount,
+                total_amount: newTotalAmount,
                 notes: payment.notes ? 
-                    `${payment.notes}\n\n✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท` :
-                    `✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท`
+                    `${payment.notes}\n\n✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}` :
+                    `✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}`
             });
             
             console.log('✅ Payment updated successfully:', updatedPayment.id, 'status:', updatedPayment.status);
