@@ -3348,6 +3348,10 @@ Return JSON.`;
                                  bgColor = 'bg-green-500 hover:bg-green-600';
                                  textColor = 'text-white';
                                  statusLabel = 'ชำระแล้ว';
+                                } else if (effectiveStatus === 'partial_paid') {
+                                 bgColor = 'bg-orange-500 hover:bg-orange-600';
+                                 textColor = 'text-white';
+                                 statusLabel = 'ชำระบางส่วน';
                                 } else if (effectiveStatus === 'overdue') {
                                  bgColor = 'bg-red-500 hover:bg-red-600';
                                  textColor = 'text-white';
