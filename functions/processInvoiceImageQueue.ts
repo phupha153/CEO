@@ -580,9 +580,12 @@ Deno.serve(async (req) => {
                     if (hasFacebookId) {
                         try {
                             const fbToken = getConfigValue('facebook_page_access_token', branchId, '');
+                            console.log(`🔍 Payment ${payment.id}: Facebook check - hasFacebookId=${hasFacebookId}, fbToken=${fbToken ? 'exists' : 'missing'}, facebook_user_id=${tenant.facebook_user_id}`);
+                            
                             if (fbToken) {
                                 const fbMsg = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\nสวัสดีคุณ ${tenant.full_name}\nห้อง ${room?.room_number || 'N/A'}\n\n💰 ยอดรวม: ${payment.total_amount.toLocaleString()} บาท\n(${numberToThaiText(payment.total_amount)})\n\n📅 กำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n\n💳 โอนเงินได้ที่: ${bankName} ${bankAcc} (${bankOwner})${imageUrl ? `\n\n📄 ดูใบแจ้งหนี้: ${imageUrl}` : ''}`;
                                 
+                                console.log(`📘 Attempting to send Facebook to ${tenant.facebook_user_id}...`);
                                 const fbResponse = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
@@ -595,18 +598,22 @@ Deno.serve(async (req) => {
                                 });
                                 
                                 if (fbResponse.ok) {
-                                    console.log(`📘 Payment ${payment.id}: Facebook sent to ${tenant.full_name}`);
+                                    console.log(`✅ Payment ${payment.id}: Facebook sent successfully to ${tenant.full_name}`);
                                     messageSent = true;
                                 } else {
                                     const fbError = await fbResponse.text();
-                                    console.error(`❌ Payment ${payment.id}: Facebook failed - ${fbError}`);
+                                    console.error(`❌ Payment ${payment.id}: Facebook API error - ${fbError}`);
                                 }
                                 
                                 await delay(200);
+                            } else {
+                                console.log(`⏭️ Payment ${payment.id}: No Facebook token configured for branch`);
                             }
                         } catch (fbError) {
-                            console.error(`❌ Payment ${payment.id}: Facebook error - ${fbError.message}`);
+                            console.error(`❌ Payment ${payment.id}: Facebook exception - ${fbError.message}`);
                         }
+                    } else {
+                        console.log(`⏭️ Payment ${payment.id}: No Facebook User ID on tenant`);
                     }
 
                     // ⭐ Update bill_sent_date ถ้าส่งสำเร็จอย่างน้อย 1 ช่องทาง
