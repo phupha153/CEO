@@ -597,6 +597,26 @@ ${branches.length > 0 ? `\n**ข้อมูลแต่ละสาขา (${br
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-4"
               >
+                {/* แสดง Raw Response ถ้า parse ไม่ได้ */}
+                {alertLines.length === 0 && forecastLines.length === 0 && (
+                  <div className="bg-blue-500/10 backdrop-blur-sm rounded-2xl border border-blue-300/50 p-6">
+                    <div className="flex items-start gap-3 mb-3">
+                      <Brain className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-blue-800 mb-1">
+                          ผลการวิเคราะห์จาก AI
+                        </p>
+                        <p className="text-xs text-blue-700">
+                          (ไม่สามารถจัดรูปแบบได้ - แสดงข้อมูลดิบ)
+                        </p>
+                      </div>
+                    </div>
+                    <div className="prose prose-sm max-w-none text-slate-700">
+                      <ReactMarkdown>{insights}</ReactMarkdown>
+                    </div>
+                  </div>
+                )}
+
                 {/* การแจ้งเตือนความผิดปกติ */}
                 {alertLines.length > 0 && (
                   <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500/10 via-orange-400/10 to-red-500/10 backdrop-blur-sm border border-red-300/30 shadow-xl">
