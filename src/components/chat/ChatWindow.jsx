@@ -65,9 +65,9 @@ export default function ChatWindow({
   const displayName = tenant?.full_name || conversation.line_display_name || 'ไม่ทราบชื่อ';
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 h-full">
+    <div className="flex-1 flex flex-col bg-slate-50 h-full relative">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
+      <div className="bg-white border-b px-4 py-3 flex items-center justify-between z-10 relative">
         <div className="flex items-center gap-3">
           <div className="relative">
             {conversation.line_picture_url || conversation.facebook_picture_url ? (
@@ -150,9 +150,8 @@ export default function ChatWindow({
         </Button>
       </div>
 
-      <div className="flex-1 flex overflow-hidden relative h-full">
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 relative z-0">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
@@ -218,28 +217,36 @@ export default function ChatWindow({
             })
           )}
           <div ref={messagesEndRef} />
-        </div>
+      </div>
 
-        {/* Profile Panel - Desktop: sidebar, Mobile: overlay */}
-        {showProfile && (
-          <>
-            {/* Mobile Overlay Backdrop */}
-            <div 
-              className="md:hidden fixed inset-0 bg-black/50 z-[100]"
-              onClick={() => {
-                console.log('❌ Close profile panel (backdrop)');
-                setShowProfile(false);
-              }}
-            />
-            
-            {/* Profile Panel */}
-            <div 
-              className="w-80 bg-white p-4 overflow-y-auto border-l shadow-xl md:relative fixed right-0 top-0 bottom-0 z-[101] md:z-auto"
-              style={{ maxHeight: '100%' }}
-            >
+      {/* Profile Panel - Always fixed overlay on all screens */}
+      {showProfile && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 z-[999]"
+            onClick={() => {
+              console.log('❌ Close profile panel (backdrop click)');
+              setShowProfile(false);
+            }}
+          />
+          
+          {/* Profile Panel - Fixed Right Sidebar */}
+          <div 
+            className="fixed right-0 top-0 bottom-0 w-80 bg-white shadow-2xl z-[1000] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-slate-800">ข้อมูลผู้ติดต่อ</h3>
-                <Button variant="ghost" size="icon" onClick={() => setShowProfile(false)}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => {
+                    console.log('❌ Close profile panel (X button)');
+                    setShowProfile(false);
+                  }}
+                >
                   <X className="w-4 h-4" />
                 </Button>
               </div>
@@ -514,9 +521,9 @@ export default function ChatWindow({
               </div>
             )}
             </div>
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Input */}
       <div className="bg-white border-t p-3">
