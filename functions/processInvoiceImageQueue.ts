@@ -257,6 +257,7 @@ Deno.serve(async (req) => {
     console.log(`📅 Timestamp: ${new Date().toISOString()}`);
     console.log('========================================');
 
+    const startTime = Date.now(); // ⭐ ย้ายมาไว้ข้างนอก try เพื่อให้ catch block เข้าถึงได้
     let base44 = null;
     let targetBranchId = null;
     let batchSize = 10000; // รองรับ 10,000 รายการ (Cron จะรันต่อเนื่อง)
@@ -287,8 +288,6 @@ Deno.serve(async (req) => {
         console.log(`🔄 Concurrent Limit: ${concurrentLimit}`);
         console.log(`⏱️ Max Run Time: ${maxRunTime}ms`);
         console.log(`🧪 Skip LINE Send: ${skipLineSend}`);
-        
-        const startTime = Date.now();
 
         // 1. Fetch Configs
         const configs = await base44.asServiceRole.entities.Config.list() || [];
@@ -698,7 +697,7 @@ Deno.serve(async (req) => {
         });
 
     } catch (error) {
-        const executionTime = startTime ? Date.now() - startTime : 0;
+        const executionTime = Date.now() - startTime;
         console.error('❌ Error:', error);
 
         if (base44) {
