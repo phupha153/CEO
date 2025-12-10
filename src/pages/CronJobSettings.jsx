@@ -776,28 +776,28 @@ export default function CronJobSettings() {
                               </div>
                             </div>
                             </div>
-                            )))}
+                            ))}
                             </div>
                             </div>
                             );
                             })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        </div>
+                            </div>
+                            )}
+                            </CardContent>
+                            </Card>
+                            </div>
 
-        <DeleteProgressDialog 
-          open={showProgressDialog} 
-          onClose={() => setShowProgressDialog(false)}
-          branchId={cronBranchId}
-        />
+                            <DeleteProgressDialog 
+                            open={showProgressDialog} 
+                            onClose={() => setShowProgressDialog(false)}
+                            branchId={cronBranchId}
+                            />
 
-        <AlertSettingsDialog
-          open={showAlertSettings}
-          onClose={() => setShowAlertSettings(false)}
-          existingAlerts={cronJobAlerts}
-        />
-        </div>
-        );
-        }
+                            <AlertSettingsDialog
+                            open={showAlertSettings}
+                            onClose={() => setShowAlertSettings(false)}
+                            existingAlerts={cronJobAlerts}
+                            />
+                            </div>
+                            );
+                            }
