@@ -501,8 +501,9 @@ export default function Dashboard() {
       .filter(p => p.payment_date)
       .sort((a, b) => {
         try {
-          const dateA = parseISO(a.payment_date);
-          const dateB = parseISO(b.payment_date);
+          // Sort by updated_date (เวลาที่ชำระจริง) แทน created_date
+          const dateA = parseISO(a.updated_date || a.created_date);
+          const dateB = parseISO(b.updated_date || b.created_date);
           if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0;
           return dateB.getTime() - dateA.getTime();
         } catch {
@@ -979,16 +980,8 @@ export default function Dashboard() {
                                               {(() => {
                                                 if (!payment.payment_date) return 'N/A';
                                                 try {
-                                                  // ใช้ created_date แทนถ้า payment_date มีแต่เป็นแค่วันที่ (ไม่มีเวลา)
-                                                  const paymentDateStr = payment.payment_date;
-                                                  const createdDateStr = payment.created_date;
-                                                  
-                                                  // เช็คว่า payment_date มีเวลาหรือไม่
-                                                  const hasTime = paymentDateStr.includes('T') || paymentDateStr.includes(':');
-                                                  
-                                                  // ถ้า payment_date เป็นแค่วันที่ (YYYY-MM-DD) ให้ใช้ created_date แทน
-                                                  const dateToShow = hasTime ? paymentDateStr : createdDateStr;
-                                                  
+                                                  // ใช้ updated_date (เวลาที่ update status เป็น paid) เพื่อแสดงเวลาที่ชำระจริง
+                                                  const dateToShow = payment.updated_date || payment.created_date;
                                                   const date = parseISO(dateToShow);
                                                   if (isNaN(date.getTime())) return 'ข้อมูลไม่ถูกต้อง';
                                                   return format(date, 'd MMM yyyy HH:mm น.', { locale: th });
