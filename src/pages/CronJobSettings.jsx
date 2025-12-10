@@ -118,7 +118,7 @@ export default function CronJobSettings() {
 
   const { data: functionLogs = [], refetch: refetchLogs } = useQuery({
     queryKey: ['functionLogs'],
-    queryFn: () => base44.entities.FunctionLog.list('-run_timestamp', 50),
+    queryFn: () => base44.entities.FunctionLog.list('-run_timestamp', 100),
     refetchInterval: 30000,
   });
 
@@ -494,13 +494,13 @@ export default function CronJobSettings() {
           })}
         </div>
 
-        {/* Recent Logs */}
+        {/* Cron Job History by Function */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">ประวัติการทำงาน</CardTitle>
-                <CardDescription>แสดง 20 รายการล่าสุด</CardDescription>
+                <CardTitle className="text-lg">ประวัติการทำงานทั้งหมด</CardTitle>
+                <CardDescription>แยกตาม Cron Job (แสดง 100 รายการล่าสุด)</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => refetchLogs()}>
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -512,40 +512,81 @@ export default function CronJobSettings() {
             {functionLogs.length === 0 ? (
               <p className="text-center text-slate-500 py-8">ยังไม่มีประวัติการทำงาน</p>
             ) : (
-              <div className="space-y-2">
-                {functionLogs.slice(0, 20).map((log, index) => (
-                  <div 
-                    key={log.id || index}
-                    className="flex items-center justify-between p-3 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      {log.status === 'success' ? (
-                        <CheckCircle2 className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <XCircle className="w-4 h-4 text-red-500" />
-                      )}
-                      <div>
-                        <p className="font-medium text-sm text-slate-800">
-                          {log.function_name}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {log.message || '-'}
-                        </p>
+              <div className="space-y-6">
+                {CRON_JOBS.map((job) => {
+                  const jobLogs = functionLogs.filter(log => log.function_name === job.functionName);
+                  const hasErrors = jobLogs.some(log => log.status === 'error');
+                  const Icon = job.icon;
+
+                  if (jobLogs.length === 0) return null;
+
+                  return (
+                    <div key={job.id} className="border rounded-xl p-4 bg-white">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`p-2 rounded-lg bg-gradient-to-br ${job.color}`}>
+                          <Icon className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-slate-800">{job.name}</h3>
+                          <p className="text-xs text-slate-500">{jobLogs.length} รายการ</p>
+                        </div>
+                        {hasErrors && (
+                          <Badge variant="destructive" className="text-xs">
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            มี Error
+                          </Badge>
+                        )}
+                      </div>
+
+                      <Separator className="mb-3" />
+
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {jobLogs.map((log, index) => (
+                          <div 
+                            key={log.id || index}
+                            className={`p-2.5 rounded-lg border transition-colors ${
+                              log.status === 'success' 
+                                ? 'bg-green-50 border-green-200 hover:bg-green-100' 
+                                : 'bg-red-50 border-red-200 hover:bg-red-100'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-start gap-2 flex-1">
+                                {log.status === 'success' ? (
+                                  <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                ) : (
+                                  <XCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-slate-800">
+                                    {log.message || (log.status === 'success' ? 'ทำงานสำเร็จ' : 'เกิดข้อผิดพลาด')}
+                                  </p>
+                                  {log.details && (
+                                    <details className="mt-1">
+                                      <summary className="text-xs text-slate-500 cursor-pointer hover:underline">
+                                        ดูรายละเอียด
+                                      </summary>
+                                      <pre className="text-xs bg-white p-2 rounded mt-1 overflow-auto max-h-32 border">
+                                        {typeof log.details === 'string' 
+                                          ? log.details 
+                                          : JSON.stringify(log.details, null, 2)}
+                                      </pre>
+                                    </details>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="text-xs text-slate-500 whitespace-nowrap">
+                                  {formatDate(log.run_timestamp)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-slate-500">
-                        {formatDate(log.run_timestamp)}
-                      </p>
-                      <Badge 
-                        variant={log.status === 'success' ? 'default' : 'destructive'}
-                        className="text-xs mt-1"
-                      >
-                        {log.status === 'success' ? 'สำเร็จ' : 'ล้มเหลว'}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
