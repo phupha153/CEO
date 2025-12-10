@@ -495,8 +495,8 @@ Deno.serve(async (req) => {
 
                         console.log(`✅ Payment ${payment.id}: Image created`);
 
-                        // ⭐ รอ 2 วินาที ระหว่างการสร้างรูป
-                        await delay(2000);
+                        // ⭐ รอ 1 วินาที ระหว่างการสร้างรูป
+                        await delay(1000);
 
                         return { 
                             payment: { ...payment, invoice_image_url: imageUrl }, 
