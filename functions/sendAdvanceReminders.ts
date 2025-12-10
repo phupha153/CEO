@@ -1,7 +1,59 @@
-// Force redeploy at 2025-11-27 00:00:00
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-// Version: 2025-11-27 - Added tracking for sent reminders
+// Version: 2025-12-10 - Updated message format to match sendPaymentReminder
+
+// ฟังก์ชันแปลงตัวเลขเป็นตัวหนังสือไทย
+function numberToThaiText(number) {
+    if (number === undefined || number === null || isNaN(number) || number === 0) return 'ศูนย์บาทถ้วน';
+
+    const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+    const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+    
+    const parts = number.toFixed(2).split('.');
+    const integerPart = parseInt(parts[0]);
+    const decimalPart = parseInt(parts[1]);
+
+    function convertInteger(num) {
+        if (num === 0) return '';
+        
+        const numStr = num.toString();
+        const len = numStr.length;
+        let result = '';
+        
+        for (let i = 0; i < len; i++) {
+            const digit = parseInt(numStr[i]);
+            const position = len - i - 1;
+            
+            if (digit === 0) continue;
+            
+            if (position === 1) {
+                if (digit === 1) {
+                    result += 'สิบ';
+                } else if (digit === 2) {
+                    result += 'ยี่สิบ';
+                } else {
+                    result += numbers[digit] + positions[position];
+                }
+            } else if (position === 0 && digit === 1 && len > 1 && parseInt(numStr[len-2]) !== 0) {
+                result += 'เอ็ด';
+            } else {
+                result += numbers[digit] + positions[position];
+            }
+        }
+        
+        return result;
+    }
+    
+    let text = convertInteger(integerPart) + 'บาท';
+    
+    if (decimalPart > 0) {
+        text += convertInteger(decimalPart) + 'สตางค์';
+    } else {
+        text += 'ถ้วน';
+    }
+    
+    return text;
+}
 Deno.serve(async (req) => {
     console.log('🚀 sendAdvanceReminders function started');
     
@@ -218,23 +270,48 @@ Deno.serve(async (req) => {
                 
                 console.log(`📋 Branch ${paymentBranchId}: bank=${branchBankName}, acc=${branchBankAccountNumber}, name=${branchBankAccountName}`);
 
-                // สร้างข้อความเตือนล่วงหน้า
+                // สร้างข้อความเตือนล่วงหน้า (เหมือน sendPaymentReminder template 'advance')
                 const dueDateStr = new Date(payment.due_date).toLocaleDateString('th-TH', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
                 });
+                const roomNum = room?.room_number || 'N/A';
 
-                let message = `⚠️ แจ้งเตือนล่วงหน้า\n\n`;
-                message += `🏠 ${branchBuildingName}\n`;
-                message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-                message += `สวัสดีคุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n\n`;
-                message += `📅 อีก ${branchAdvanceDays} วัน จะถึงวันครบกำหนดชำระ (${dueDateStr})\n\n`;
-                message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
-                message += `💳 โอนเงินได้ที่:\n`;
-                message += `ธนาคาร: ${branchBankName}\n`;
-                message += `เลขบัญชี: ${branchBankAccountNumber}\n`;
-                message += `ชื่อบัญชี: ${branchBankAccountName}\n\n`;
+                let message = `📢 ${branchBuildingName} - แจ้งเตือนค่าเช่า\n\n`;
+                message += `สวัสดีคุณ ${tenant.full_name}\n`;
+                message += `ห้อง ${roomNum}\n\n`;
+                message += `รายละเอียดค่าใช้จ่าย:\n`;
+                message += `━━━━━━━━━━━━━━━━━━━━\n`;
+                
+                if (payment.rent_amount > 0) {
+                    message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+                }
+                if (payment.electricity_amount > 0) {
+                    message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
+                }
+                if (payment.water_amount > 0) {
+                    message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
+                }
+                if (payment.internet_amount > 0) {
+                    message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
+                }
+                if (payment.common_fee_amount > 0) {
+                    message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
+                }
+                if (payment.parking_fee_amount > 0) {
+                    message += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
+                }
+                if (payment.other_amount > 0) {
+                    message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
+                }
+                
+                message += `━━━━━━━━━━━━━━━━━━━━\n`;
+                message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
+                message += `(${numberToThaiText(payment.total_amount)})\n\n`;
+                message += `📅 ครบกำหนดชำระ: ${dueDateStr}\n`;
+                message += `สถานะ: รอชำระ\n\n`;
+                message += `💳 โอนเงินได้ที่: ${branchBankName} ${branchBankAccountNumber} (${branchBankAccountName})\n\n`;
 
                 // ⭐ สร้างรูปใบแจ้งหนี้ก่อนส่ง
                 let invoiceImageUrl = payment.invoice_image_url || null;
@@ -257,7 +334,8 @@ Deno.serve(async (req) => {
                 if (invoiceImageUrl) {
                     message += `📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}\n\n`;
                 }
-                message += `📸 ส่งสลิปหลังโอนค่ะ`;
+                message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
+                message += `ขอบคุณค่ะ 🙏`;
 
                 recipients.push({
                     lineUserId: tenant.line_user_id,
