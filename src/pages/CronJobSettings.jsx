@@ -29,7 +29,10 @@ import {
   ScrollText,
   Package,
   TestTube,
-  Building2
+  Building2,
+  TrendingUp,
+  Activity,
+  Zap
 } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import TestSlipUploader from "@/components/testing/TestSlipUploader";
@@ -173,8 +176,8 @@ export default function CronJobSettings() {
 
   const { data: functionLogs = [], refetch: refetchLogs } = useQuery({
     queryKey: ['functionLogs'],
-    queryFn: () => base44.entities.FunctionLog.list('-run_timestamp', 100),
-    refetchInterval: 30000,
+    queryFn: () => base44.entities.FunctionLog.list('-run_timestamp', 200),
+    refetchInterval: 10000, // รีเฟรชทุก 10 วินาที
   });
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
@@ -237,6 +240,68 @@ export default function CronJobSettings() {
     const log = functionLogs.find(l => l.function_name === functionName);
     if (!log) return null;
     return log;
+  };
+
+  const getJobStats = (functionName) => {
+    const logs = functionLogs.filter(l => l.function_name === functionName).slice(0, 10);
+    if (logs.length === 0) return null;
+
+    const successCount = logs.filter(l => l.status === 'success').length;
+    const errorCount = logs.filter(l => l.status === 'error').length;
+    const successRate = Math.round((successCount / logs.length) * 100);
+
+    // คำนวณเวลาเฉลี่ยจาก execution_time_ms
+    const executionTimes = logs
+      .map(l => l.execution_time_ms)
+      .filter(t => t !== undefined && t !== null && !isNaN(t));
+    
+    const avgExecutionTime = executionTimes.length > 0 
+      ? Math.round(executionTimes.reduce((a, b) => a + b, 0) / executionTimes.length)
+      : null;
+
+    return {
+      successCount,
+      errorCount,
+      successRate,
+      avgExecutionTime,
+      totalRuns: logs.length
+    };
+  };
+
+  const getBranchBreakdown = (functionName) => {
+    const recentLogs = functionLogs
+      .filter(l => l.function_name === functionName)
+      .slice(0, 5);
+
+    const branchStats = {};
+
+    recentLogs.forEach(log => {
+      if (log.branch_results && Array.isArray(log.branch_results)) {
+        log.branch_results.forEach(br => {
+          if (!branchStats[br.branch_id]) {
+            branchStats[br.branch_id] = {
+              branch_id: br.branch_id,
+              branch_name: br.branch_name || 'Unknown',
+              success: 0,
+              error: 0,
+              partial: 0,
+              lastStatus: br.status,
+              lastError: br.error_message
+            };
+          }
+          
+          if (br.status === 'success') branchStats[br.branch_id].success++;
+          else if (br.status === 'error') branchStats[br.branch_id].error++;
+          else if (br.status === 'partial') branchStats[br.branch_id].partial++;
+          
+          // Keep latest status
+          branchStats[br.branch_id].lastStatus = br.status;
+          if (br.error_message) branchStats[br.branch_id].lastError = br.error_message;
+        });
+      }
+    });
+
+    return Object.values(branchStats);
   };
 
   const formatDate = (dateStr) => {
@@ -550,22 +615,41 @@ export default function CronJobSettings() {
             const isRunning = runningJobs[job.id];
             const result = jobResults[job.id];
             const lastLog = getLastRun(job.functionName);
+            const stats = getJobStats(job.functionName);
+            const branchBreakdown = getBranchBreakdown(job.functionName);
 
             return (
               <Card key={job.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <div className={`p-2.5 rounded-xl bg-gradient-to-br ${job.color} shadow-lg`}>
+                    <div className={`p-2.5 rounded-xl bg-gradient-to-br ${job.color} shadow-lg relative`}>
                       <Icon className="w-5 h-5 text-white" />
+                      {isRunning && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse border-2 border-white" />
+                      )}
                     </div>
-                    {lastLog && (
-                      <Badge 
-                        variant={lastLog.status === 'success' ? 'default' : 'destructive'}
-                        className="text-xs"
-                      >
-                        {lastLog.status === 'success' ? 'สำเร็จ' : 'ล้มเหลว'}
-                      </Badge>
-                    )}
+                    <div className="flex flex-col gap-1">
+                      {lastLog && (
+                        <Badge 
+                          variant={lastLog.status === 'success' ? 'default' : 'destructive'}
+                          className="text-xs"
+                        >
+                          {lastLog.status === 'success' ? '✅ สำเร็จ' : '❌ ล้มเหลว'}
+                        </Badge>
+                      )}
+                      {stats && (
+                        <Badge 
+                          variant="outline"
+                          className={`text-xs ${
+                            stats.successRate >= 90 ? 'border-green-500 text-green-700' :
+                            stats.successRate >= 70 ? 'border-yellow-500 text-yellow-700' :
+                            'border-red-500 text-red-700'
+                          }`}
+                        >
+                          {stats.successRate}% สำเร็จ
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <CardTitle className="text-base mt-3">{job.name}</CardTitle>
                   <CardDescription className="text-xs">
@@ -574,6 +658,60 @@ export default function CronJobSettings() {
                 </CardHeader>
 
                 <CardContent className="space-y-3">
+                  {/* Performance Stats */}
+                  {stats && (
+                    <div className="grid grid-cols-2 gap-2 p-2 bg-slate-50 rounded-lg">
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-1 mb-1">
+                          <Activity className="w-3 h-3 text-slate-500" />
+                          <span className="text-xs text-slate-500">รัน 10 ครั้งล่าสุด</span>
+                        </div>
+                        <p className="text-sm font-bold text-slate-800">
+                          {stats.successCount}/{stats.totalRuns}
+                        </p>
+                      </div>
+                      {stats.avgExecutionTime && (
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <Zap className="w-3 h-3 text-slate-500" />
+                            <span className="text-xs text-slate-500">เวลาเฉลี่ย</span>
+                          </div>
+                          <p className="text-sm font-bold text-slate-800">
+                            {stats.avgExecutionTime < 1000 
+                              ? `${stats.avgExecutionTime}ms` 
+                              : `${(stats.avgExecutionTime / 1000).toFixed(1)}s`}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Branch Breakdown - แสดงเฉพาะที่มีข้อมูล */}
+                  {branchBreakdown.length > 0 && (
+                    <div className="border rounded-lg p-2 bg-blue-50">
+                      <div className="flex items-center gap-1 mb-2">
+                        <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                        <span className="text-xs font-medium text-blue-800">ผลลัพธ์ตามสาขา</span>
+                      </div>
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {branchBreakdown.map((branch, idx) => (
+                          <div key={idx} className={`text-xs p-1.5 rounded flex items-center justify-between ${
+                            branch.lastStatus === 'error' ? 'bg-red-100 text-red-800' :
+                            branch.lastStatus === 'partial' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            <span className="font-medium truncate flex-1">{branch.branch_name}</span>
+                            <div className="flex items-center gap-1">
+                              {branch.success > 0 && <span className="text-green-700">✓{branch.success}</span>}
+                              {branch.error > 0 && <span className="text-red-700">✗{branch.error}</span>}
+                              {branch.partial > 0 && <span className="text-yellow-700">⚠{branch.partial}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <Clock className="w-3.5 h-3.5" />
                     <span>แนะนำ: {job.recommendedInterval}</span>
@@ -595,6 +733,13 @@ export default function CronJobSettings() {
                   {lastLog && (
                     <div className="text-xs text-slate-500">
                       <span>รันล่าสุด: {formatDate(lastLog.run_timestamp)}</span>
+                      {lastLog.execution_time_ms && (
+                        <span className="ml-2 text-slate-400">
+                          ({lastLog.execution_time_ms < 1000 
+                            ? `${lastLog.execution_time_ms}ms` 
+                            : `${(lastLog.execution_time_ms / 1000).toFixed(1)}s`})
+                        </span>
+                      )}
                     </div>
                   )}
 
@@ -689,48 +834,116 @@ export default function CronJobSettings() {
                       <Separator className="mb-3" />
 
                       <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {jobLogs.map((log, index) => (
-                          <div 
-                            key={log.id || index}
-                            className={`p-2.5 rounded-lg border transition-colors ${
-                              log.status === 'success' 
-                                ? 'bg-green-50 border-green-200 hover:bg-green-100' 
-                                : 'bg-red-50 border-red-200 hover:bg-red-100'
-                            }`}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-start gap-2 flex-1">
-                                {log.status === 'success' ? (
-                                  <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                                ) : (
-                                  <XCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                                )}
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-medium text-slate-800">
-                                    {log.message || (log.status === 'success' ? 'ทำงานสำเร็จ' : 'เกิดข้อผิดพลาด')}
-                                  </p>
-                                  {log.details && (
-                                    <details className="mt-1">
-                                      <summary className="text-xs text-slate-500 cursor-pointer hover:underline">
-                                        ดูรายละเอียด
-                                      </summary>
-                                      <pre className="text-xs bg-white p-2 rounded mt-1 overflow-auto max-h-32 border">
-                                        {typeof log.details === 'string' 
-                                          ? log.details 
-                                          : JSON.stringify(log.details, null, 2)}
-                                      </pre>
-                                    </details>
+                        {jobLogs.map((log, index) => {
+                          const hasBranchResults = log.branch_results && Array.isArray(log.branch_results) && log.branch_results.length > 0;
+                          const branchErrors = hasBranchResults 
+                            ? log.branch_results.filter(br => br.status === 'error')
+                            : [];
+
+                          return (
+                            <div 
+                              key={log.id || index}
+                              className={`p-2.5 rounded-lg border transition-colors ${
+                                log.status === 'success' 
+                                  ? 'bg-green-50 border-green-200 hover:bg-green-100' 
+                                  : 'bg-red-50 border-red-200 hover:bg-red-100'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-start gap-2 flex-1">
+                                  {log.status === 'success' ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                  ) : (
+                                    <XCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
                                   )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-slate-800">
+                                      {log.message || (log.status === 'success' ? 'ทำงานสำเร็จ' : 'เกิดข้อผิดพลาด')}
+                                    </p>
+                                    
+                                    {/* แสดงเวลาที่ใช้ */}
+                                    {log.execution_time_ms && (
+                                      <p className="text-xs text-slate-500 mt-0.5">
+                                        ⚡ ใช้เวลา: {log.execution_time_ms < 1000 
+                                          ? `${log.execution_time_ms}ms` 
+                                          : `${(log.execution_time_ms / 1000).toFixed(1)}s`}
+                                      </p>
+                                    )}
+
+                                    {/* แสดงสาขาที่ล้มเหลว */}
+                                    {branchErrors.length > 0 && (
+                                      <div className="mt-2 p-2 bg-red-100 rounded border border-red-200">
+                                        <p className="text-xs font-semibold text-red-800 mb-1">
+                                          🚨 สาขาที่ล้มเหลว ({branchErrors.length}):
+                                        </p>
+                                        {branchErrors.slice(0, 3).map((br, idx) => (
+                                          <p key={idx} className="text-xs text-red-700">
+                                            • {br.branch_name}: {br.error_message || 'Unknown error'}
+                                          </p>
+                                        ))}
+                                        {branchErrors.length > 3 && (
+                                          <p className="text-xs text-red-600 mt-1">
+                                            และอีก {branchErrors.length - 3} สาขา
+                                          </p>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {/* แสดง branch results ทั้งหมด */}
+                                    {hasBranchResults && (
+                                      <details className="mt-2">
+                                        <summary className="text-xs text-blue-600 cursor-pointer hover:underline">
+                                          📊 ดูผลลัพธ์ทุกสาขา ({log.branch_results.length})
+                                        </summary>
+                                        <div className="mt-1 space-y-1">
+                                          {log.branch_results.map((br, idx) => (
+                                            <div key={idx} className={`text-xs p-1.5 rounded ${
+                                              br.status === 'error' ? 'bg-red-50' :
+                                              br.status === 'partial' ? 'bg-yellow-50' :
+                                              'bg-green-50'
+                                            }`}>
+                                              <div className="flex items-center justify-between">
+                                                <span className="font-medium">{br.branch_name}</span>
+                                                <span className={
+                                                  br.status === 'error' ? 'text-red-700' :
+                                                  br.status === 'partial' ? 'text-yellow-700' :
+                                                  'text-green-700'
+                                                }>
+                                                  {br.sent || 0} ส่ง / {br.failed || 0} ล้มเหลว
+                                                </span>
+                                              </div>
+                                              {br.error_message && (
+                                                <p className="text-red-600 mt-1">{br.error_message}</p>
+                                              )}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </details>
+                                    )}
+
+                                    {log.details && (
+                                      <details className="mt-1">
+                                        <summary className="text-xs text-slate-500 cursor-pointer hover:underline">
+                                          ดูรายละเอียดเพิ่มเติม
+                                        </summary>
+                                        <pre className="text-xs bg-white p-2 rounded mt-1 overflow-auto max-h-32 border">
+                                          {typeof log.details === 'string' 
+                                            ? log.details 
+                                            : JSON.stringify(log.details, null, 2)}
+                                        </pre>
+                                      </details>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <p className="text-xs text-slate-500 whitespace-nowrap">
+                                    {formatDate(log.run_timestamp)}
+                                  </p>
                                 </div>
                               </div>
-                              <div className="text-right flex-shrink-0">
-                                <p className="text-xs text-slate-500 whitespace-nowrap">
-                                  {formatDate(log.run_timestamp)}
-                                </p>
-                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );
