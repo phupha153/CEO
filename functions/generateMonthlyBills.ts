@@ -86,6 +86,7 @@ Deno.serve(async (req) => {
     console.log('⬇️ SCROLL DOWN TO SEE PAYMENT DEBUG ⬇️');
     console.log('========================================');
 
+    const startTime = Date.now(); // ⭐ ย้ายมาไว้ข้างนอก try เพื่อให้ catch block เข้าถึงได้
     let base44 = null;
     let targetBranchId = null;
     let forceCreate = false;
@@ -684,7 +685,7 @@ Deno.serve(async (req) => {
         }
 
         // Summary
-        const executionTime = startTime ? Date.now() - startTime : 0;
+        const executionTime = Date.now() - startTime;
         const monthName = thailandTime.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
         let summaryMessage = `สร้างบิลสำเร็จ ${createdCount} รายการ`;
         
@@ -734,7 +735,7 @@ Deno.serve(async (req) => {
         return Response.json(summaryData);
 
     } catch (error) {
-        const executionTime = startTime ? Date.now() - startTime : 0;
+        const executionTime = Date.now() - startTime;
         console.error('❌ Error:', error);
 
         if (base44) {
