@@ -557,9 +557,10 @@ export default function ChatWindow({
               </div>
             )}
             </div>
-          </div>
+          </motion.div>
         </>
       )}
+      </AnimatePresence>
 
       {/* Input */}
       <div className="bg-white border-t p-3">
