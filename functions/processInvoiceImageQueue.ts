@@ -494,8 +494,8 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // 4.2 ส่ง LINE สำหรับที่สร้างรูปสำเร็จ (ทีละใบเพื่อหลีกเลี่ยง rate limit)
-            // ⭐ ถ้าเป็นโหมดทดสอบ (skip_line_send = true) ข้ามการส่ง LINE
+            // 4.2 ส่งข้อความสำหรับที่สร้างรูปสำเร็จ (ทั้ง LINE และ Facebook)
+            // ⭐ ถ้าเป็นโหมดทดสอบ (skip_line_send = true) ข้ามการส่ง
             if (!skipLineSend) {
                 for (const result of imageResults) {
                     if (!result.success && !result.skipped) continue;
@@ -505,13 +505,7 @@ Deno.serve(async (req) => {
                     // ⭐ เช็คว่าสาขานี้เปิดส่งบิลอัตโนมัติหรือไม่
                     const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', payment.branch_id, 'false') === 'true';
                     if (!autoSendEnabled) {
-                        console.log(`⏭️ Payment ${payment.id}: Branch auto_send disabled - skip LINE`);
-                        continue;
-                    }
-                    
-                    // ข้ามถ้าไม่มี LINE User ID
-                    if (!tenant?.line_user_id) {
-                        console.log(`⏭️ Payment ${payment.id}: No LINE User ID - skip LINE notification`);
+                        console.log(`⏭️ Payment ${payment.id}: Branch auto_send disabled - skip notification`);
                         continue;
                     }
 
@@ -521,69 +515,73 @@ Deno.serve(async (req) => {
                         continue;
                     }
 
-                    try {
-                    // ⭐ ลำดับ parameter: (key, branchId, defaultValue) เหมือน sendPaymentReminder
+                    // ⭐ เช็คว่ามี LINE หรือ Facebook อย่างน้อยหนึ่งตัว
+                    const hasLineId = !!tenant?.line_user_id;
+                    const hasFacebookId = !!tenant?.facebook_user_id;
+                    
+                    if (!hasLineId && !hasFacebookId) {
+                        console.log(`⏭️ Payment ${payment.id}: No LINE or Facebook ID - skip notification`);
+                        continue;
+                    }
+
                     const branchId = payment.branch_id;
                     const bankName = getConfigValue('bank_name', branchId, 'กสิกร');
                     const bankAcc = getConfigValue('bank_account_number', branchId, '-');
                     const bankOwner = getConfigValue('bank_account_name', branchId, '-');
                     const buildingName = getConfigValue('building_name', branchId, 'W RESIDENTS');
                     
-                    // ⭐ ใช้ token เฉพาะสาขาเท่านั้น (ไม่ fallback ไป env) เหมือน sendPaymentReminder
-                    const lineToken = getConfigValue('line_channel_access_token', branchId, '');
-                    if (!lineToken) {
-                        console.log(`⏭️ Payment ${payment.id}: No LINE token for branch ${branchId?.substring(0, 8)}... - skip LINE`);
-                        continue;
+                    let messageSent = false;
+
+                    // ⭐ ส่ง LINE (ถ้ามี line_user_id)
+                    if (hasLineId) {
+                        try {
+                            const lineToken = getConfigValue('line_channel_access_token', branchId, '');
+                            if (lineToken) {
+                                let msg = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
+                                msg += `สวัสดีคุณ ${tenant.full_name}\n`;
+                                msg += `ห้อง ${room?.room_number || 'N/A'}\n\n`;
+                                msg += `💰 ยอดรวม: ${payment.total_amount.toLocaleString()} บาท\n`;
+                                msg += `(${numberToThaiText(payment.total_amount)})\n\n`;
+                                msg += `📅 กำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
+                                msg += `\n💳 โอนเงินได้ที่: ${bankName} ${bankAcc} (${bankOwner})\n`;
+                                if (imageUrl) msg += `\n📄 ดูใบแจ้งหนี้: ${imageUrl}`;
+
+                                const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${lineToken}`
+                                    },
+                                    body: JSON.stringify({
+                                        to: tenant.line_user_id,
+                                        messages: [{ type: 'text', text: msg }]
+                                    })
+                                });
+
+                                if (lineResponse.ok) {
+                                    console.log(`📤 Payment ${payment.id}: LINE sent to ${tenant.full_name}`);
+                                    lineSent++;
+                                    messageSent = true;
+                                } else {
+                                    const errorText = await lineResponse.text();
+                                    console.error(`❌ Payment ${payment.id}: LINE failed - ${errorText}`);
+                                    lineFailed++;
+                                }
+                                
+                                await delay(500);
+                            }
+                        } catch (lineError) {
+                            console.error(`❌ Payment ${payment.id}: LINE error - ${lineError.message}`);
+                            lineFailed++;
+                        }
                     }
-
-                    let msg = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
-                    msg += `สวัสดีคุณ ${tenant.full_name}\n`;
-                    msg += `ห้อง ${room?.room_number || 'N/A'}\n\n`;
-                    msg += `💰 ยอดรวม: ${payment.total_amount.toLocaleString()} บาท\n`;
-                    msg += `(${numberToThaiText(payment.total_amount)})\n\n`;
-                    msg += `📅 กำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
-                    msg += `\n💳 โอนเงินได้ที่: ${bankName} ${bankAcc} (${bankOwner})\n`;
-
-                    if (imageUrl) {
-                        msg += `\n📄 ดูใบแจ้งหนี้: ${imageUrl}`;
-                    }
-
-                    // ส่ง LINE
-                    const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${lineToken}`
-                        },
-                        body: JSON.stringify({
-                            to: tenant.line_user_id,
-                            messages: [{ type: 'text', text: msg }]
-                        })
-                    });
-
-                    if (lineResponse.ok) {
-                        // Update bill_sent_date
-                        await base44.asServiceRole.entities.Payment.update(payment.id, {
-                            bill_sent_date: new Date().toISOString()
-                        });
-                        
-                        console.log(`📤 Payment ${payment.id}: LINE sent to ${tenant.full_name}`);
-                        lineSent++;
-                    } else {
-                        const errorText = await lineResponse.text();
-                        console.error(`❌ Payment ${payment.id}: LINE failed - ${errorText}`);
-                        lineFailed++;
-                    }
-
-                    // Delay ระหว่างส่ง LINE แต่ละใบ
-                    await delay(500);
                     
-                    // ⭐ ส่ง Facebook ด้วย (ถ้ามี facebook_user_id)
-                    if (tenant?.facebook_user_id) {
+                    // ⭐ ส่ง Facebook (ถ้ามี facebook_user_id) - แยกออกมาไม่ผูกกับ LINE
+                    if (hasFacebookId) {
                         try {
                             const fbToken = getConfigValue('facebook_page_access_token', branchId, '');
                             if (fbToken) {
-                                const fbMsg = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\nสวัสดีคุณ ${tenant.full_name}\nห้อง ${room?.room_number || 'N/A'}\n\n💰 ยอดรวม: ${payment.total_amount.toLocaleString()} บาท\n📅 กำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n\n💳 โอนเงินได้ที่: ${bankName} ${bankAcc} (${bankOwner})${imageUrl ? `\n\n📄 ดูใบแจ้งหนี้: ${imageUrl}` : ''}`;
+                                const fbMsg = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\nสวัสดีคุณ ${tenant.full_name}\nห้อง ${room?.room_number || 'N/A'}\n\n💰 ยอดรวม: ${payment.total_amount.toLocaleString()} บาท\n(${numberToThaiText(payment.total_amount)})\n\n📅 กำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n\n💳 โอนเงินได้ที่: ${bankName} ${bankAcc} (${bankOwner})${imageUrl ? `\n\n📄 ดูใบแจ้งหนี้: ${imageUrl}` : ''}`;
                                 
                                 const fbResponse = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
                                     method: 'POST',
@@ -598,6 +596,7 @@ Deno.serve(async (req) => {
                                 
                                 if (fbResponse.ok) {
                                     console.log(`📘 Payment ${payment.id}: Facebook sent to ${tenant.full_name}`);
+                                    messageSent = true;
                                 } else {
                                     const fbError = await fbResponse.text();
                                     console.error(`❌ Payment ${payment.id}: Facebook failed - ${fbError}`);
@@ -610,9 +609,12 @@ Deno.serve(async (req) => {
                         }
                     }
 
-                } catch (lineError) {
-                    console.error(`❌ Payment ${payment.id}: LINE error - ${lineError.message}`);
-                    lineFailed++;
+                    // ⭐ Update bill_sent_date ถ้าส่งสำเร็จอย่างน้อย 1 ช่องทาง
+                    if (messageSent && !payment.bill_sent_date) {
+                        await base44.asServiceRole.entities.Payment.update(payment.id, {
+                            bill_sent_date: new Date().toISOString()
+                        });
+                    }
                 }
             }
             } else {
