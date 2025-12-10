@@ -979,7 +979,17 @@ export default function Dashboard() {
                                               {(() => {
                                                 if (!payment.payment_date) return 'N/A';
                                                 try {
-                                                  const date = parseISO(payment.payment_date);
+                                                  // ใช้ created_date แทนถ้า payment_date มีแต่เป็นแค่วันที่ (ไม่มีเวลา)
+                                                  const paymentDateStr = payment.payment_date;
+                                                  const createdDateStr = payment.created_date;
+                                                  
+                                                  // เช็คว่า payment_date มีเวลาหรือไม่
+                                                  const hasTime = paymentDateStr.includes('T') || paymentDateStr.includes(':');
+                                                  
+                                                  // ถ้า payment_date เป็นแค่วันที่ (YYYY-MM-DD) ให้ใช้ created_date แทน
+                                                  const dateToShow = hasTime ? paymentDateStr : createdDateStr;
+                                                  
+                                                  const date = parseISO(dateToShow);
                                                   if (isNaN(date.getTime())) return 'ข้อมูลไม่ถูกต้อง';
                                                   return format(date, 'd MMM yyyy HH:mm น.', { locale: th });
                                                 } catch {
