@@ -70,55 +70,53 @@ Deno.serve(async (req) => {
 
         console.log(`✅ Deleted old data: ${oldPayments.length} payments, ${oldBookings.length} bookings, ${oldMeterReadings.length} meter readings, ${oldTenants.length} tenants, ${oldRooms.length} rooms`);
 
-        // 2. สร้าง Room 10 ห้อง
-        console.log('🏠 Creating 10 rooms...');
+        // 2. สร้าง Room 100 ห้อง
+        console.log('🏠 Creating 100 rooms...');
         const roomsData = [];
-        for (let i = 1; i <= 10; i++) {
-            roomsData.push({
-                branch_id: branchId,
-                room_number: `10${i}`,
-                floor: 1,
-                room_type: 'monthly',
-                price: 3500 + (i * 500),
-                water_rate: 25,
-                electricity_rate: 8,
-                common_fee: 300,
-                status: 'occupied',
-                description: `ห้องทดสอบ ${i}`
-            });
+        for (let floor = 1; floor <= 10; floor++) {
+            for (let roomNum = 1; roomNum <= 10; roomNum++) {
+                const i = ((floor - 1) * 10) + roomNum;
+                roomsData.push({
+                    branch_id: branchId,
+                    room_number: `${floor}0${roomNum}`,
+                    floor: floor,
+                    room_type: 'monthly',
+                    price: 3000 + (floor * 500) + (roomNum * 100),
+                    water_rate: 25,
+                    electricity_rate: 8,
+                    common_fee: 300,
+                    status: 'occupied',
+                    description: `ห้องทดสอบชั้น ${floor} ห้อง ${roomNum}`
+                });
+            }
         }
 
         const createdRooms = await base44.asServiceRole.entities.Room.bulkCreate(roomsData);
         console.log(`✅ Created ${createdRooms.length} rooms`);
 
-        // 3. สร้าง Tenant 10 คน
-        console.log('👥 Creating 10 tenants...');
-        const tenantNames = [
-            'สมชาย ใจดี',
-            'สมหญิง รักสงบ',
-            'วิชัย มั่งคั่ง',
-            'อรพิน สวยงาม',
-            'ประยุทธ์ เข้มแข็ง',
-            'มานี จริงใจ',
-            'ชัยวัฒน์ สุขสม',
-            'นภา แสงสว่าง',
-            'ธนา เจริญรุ่ง',
-            'วรรณา มีชัย'
-        ];
+        // 3. สร้าง Tenant 100 คน
+        console.log('👥 Creating 100 tenants...');
+        const firstNames = ['สมชาย', 'สมหญิง', 'วิชัย', 'อรพิน', 'ประยุทธ์', 'มานี', 'ชัยวัฒน์', 'นภา', 'ธนา', 'วรรณา'];
+        const lastNames = ['ใจดี', 'รักสงบ', 'มั่งคั่ง', 'สวยงาม', 'เข้มแข็ง', 'จริงใจ', 'สุขสม', 'แสงสว่าง', 'เจริญรุ่ง', 'มีชัย'];
 
-        const tenantsData = tenantNames.map((name, i) => ({
-            branch_id: branchId,
-            full_name: name,
-            phone: `081234500${i + 1}`,
-            line_user_id: `U00${i + 1}test`,
-            status: 'active'
-        }));
+        const tenantsData = [];
+        for (let i = 1; i <= 100; i++) {
+            const firstName = firstNames[i % firstNames.length];
+            const lastName = lastNames[Math.floor(i / firstNames.length) % lastNames.length];
+            tenantsData.push({
+                branch_id: branchId,
+                full_name: `${firstName} ${lastName} ${i}`,
+                phone: `08${String(i).padStart(8, '0')}`,
+                line_user_id: `U${String(i).padStart(3, '0')}test`,
+                status: 'active'
+            });
+        }
 
         const createdTenants = await base44.asServiceRole.entities.Tenant.bulkCreate(tenantsData);
         console.log(`✅ Created ${createdTenants.length} tenants`);
 
-        // 4. สร้าง Booking 10 รายการ (เชื่อม Room + Tenant)
-        console.log('📅 Creating 10 bookings...');
+        // 4. สร้าง Booking 100 รายการ (เชื่อม Room + Tenant)
+        console.log('📅 Creating 100 bookings...');
         const bookingsData = createdRooms.map((room, i) => ({
             branch_id: branchId,
             room_id: room.id,
