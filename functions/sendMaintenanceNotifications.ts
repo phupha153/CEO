@@ -1,6 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
+    const startTime = Date.now();
+    
     try {
         const base44 = createClientFromRequest(req);
         
@@ -133,16 +135,52 @@ Deno.serve(async (req) => {
             }
         }
 
-        return Response.json({
+        const executionTime = Date.now() - startTime;
+        const result = {
             success: true,
             message: `ส่งการแจ้งเตือนสำเร็จ ${totalSent}/${recipientIds.length} ผู้รับ`,
             maintenanceCount: pendingMaintenance.length,
             sentTo: totalSent,
             errors: errors.length > 0 ? errors : undefined
-        });
+        };
+
+        // บันทึก FunctionLog
+        try {
+            await base44.asServiceRole.entities.FunctionLog.create({
+                function_name: 'sendMaintenanceNotifications',
+                run_timestamp: new Date().toISOString(),
+                status: 'success',
+                message: result.message,
+                execution_time_ms: executionTime,
+                total_sent: totalSent,
+                triggered_by: 'cron',
+                details: result
+            });
+        } catch (logError) {
+            console.error('Failed to create FunctionLog:', logError);
+        }
+
+        return Response.json(result);
 
     } catch (error) {
+        const executionTime = Date.now() - startTime;
         console.error('Error:', error);
+        
+        // บันทึก error log
+        try {
+            await base44.asServiceRole.entities.FunctionLog.create({
+                function_name: 'sendMaintenanceNotifications',
+                run_timestamp: new Date().toISOString(),
+                status: 'error',
+                message: error.message,
+                execution_time_ms: executionTime,
+                triggered_by: 'cron',
+                details: { error: error.message, stack: error.stack }
+            });
+        } catch (logError) {
+            console.error('Failed to log error:', logError);
+        }
+        
         return Response.json({ 
             success: false, 
             error: error.message 

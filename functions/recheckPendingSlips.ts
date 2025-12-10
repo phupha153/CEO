@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 // Cron Job สำหรับตรวจสอบสลิปที่รอการยืนยันซ้ำ (ทุก 15-30 นาที)
 Deno.serve(async (req) => {
+    const startTime = Date.now();
     console.log('========================================');
     console.log('🔄 RECHECK PENDING SLIPS - CRON JOB');
     console.log(`📅 Timestamp: ${new Date().toISOString()}`);
@@ -315,17 +316,54 @@ Deno.serve(async (req) => {
         console.log(`   Skipped: ${skippedCount}`);
         console.log('========================================');
 
-        return Response.json({ 
+        const executionTime = Date.now() - startTime;
+        const result = {
             success: true, 
             message: 'Recheck completed',
             processed: pendingRecheckPayments.length,
             successCount,
             failCount,
             skippedCount
-        });
+        };
+
+        // บันทึก FunctionLog
+        try {
+            await base44.asServiceRole.entities.FunctionLog.create({
+                function_name: 'recheckPendingSlips',
+                run_timestamp: new Date().toISOString(),
+                status: successCount > 0 || skippedCount > 0 ? 'success' : 'error',
+                message: `ตรวจสอบสลิปสำเร็จ ${successCount} / ล้มเหลว ${failCount} / ข้าม ${skippedCount}`,
+                execution_time_ms: executionTime,
+                total_sent: successCount,
+                total_failed: failCount,
+                triggered_by: 'cron',
+                details: result
+            });
+        } catch (logError) {
+            console.error('Failed to create FunctionLog:', logError);
+        }
+
+        return Response.json(result);
 
     } catch (error) {
+        const executionTime = Date.now() - startTime;
         console.error('❌ Cron Job Error:', error);
+        
+        // บันทึก error log
+        try {
+            await base44.asServiceRole.entities.FunctionLog.create({
+                function_name: 'recheckPendingSlips',
+                run_timestamp: new Date().toISOString(),
+                status: 'error',
+                message: error.message,
+                execution_time_ms: executionTime,
+                triggered_by: 'cron',
+                details: { error: error.message, stack: error.stack }
+            });
+        } catch (logError) {
+            console.error('Failed to log error:', logError);
+        }
+        
         return Response.json({ success: false, error: error.message }, { status: 500 });
     }
 });

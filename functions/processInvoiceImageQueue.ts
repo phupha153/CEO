@@ -627,12 +627,48 @@ Deno.serve(async (req) => {
         const summaryMessage = `สร้างรูป ${imageGenerated} ใบ (ล้มเหลว ${imageFailed}), ส่ง LINE ${lineSent} ราย, เหลืออีก ${remaining} ใบ [${Math.round(totalElapsed/1000)}s]`;
         console.log(`\n✅ ${summaryMessage}`);
 
+        // สร้าง branch_results
+        const branchResults = [];
+        const branchStats = {};
+        
+        for (const result of imageResults) {
+            if (!result.payment?.branch_id) continue;
+            const branchId = result.payment.branch_id;
+            
+            if (!branchStats[branchId]) {
+                branchStats[branchId] = { sent: 0, failed: 0 };
+            }
+            
+            if (result.success) {
+                branchStats[branchId].sent++;
+            } else {
+                branchStats[branchId].failed++;
+            }
+        }
+        
+        const branches = await base44.asServiceRole.entities.Branch.list();
+        Object.entries(branchStats).forEach(([branchId, stats]) => {
+            const branch = branches.find(b => b.id === branchId);
+            branchResults.push({
+                branch_id: branchId,
+                branch_name: branch?.branch_name || 'Unknown',
+                status: stats.failed > 0 ? 'partial' : 'success',
+                sent: stats.sent,
+                failed: stats.failed
+            });
+        });
+
         try {
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'processInvoiceImageQueue',
                 run_timestamp: new Date().toISOString(),
                 status: 'success',
                 message: summaryMessage,
+                execution_time_ms: totalElapsed,
+                total_sent: lineSent,
+                total_failed: lineFailed,
+                branch_results: branchResults,
+                triggered_by: targetBranchId ? 'manual_branch' : 'cron',
                 details: {
                     processed: paymentsToProcess.length,
                     imageGenerated,
@@ -641,8 +677,7 @@ Deno.serve(async (req) => {
                     lineFailed,
                     batchSize,
                     concurrentLimit
-                },
-                triggered_by: targetBranchId ? 'manual_branch' : 'cron'
+                }
             });
         } catch (logError) {
             console.error('⚠️ Failed to write function log:', logError.message);
@@ -663,6 +698,7 @@ Deno.serve(async (req) => {
         });
 
     } catch (error) {
+        const executionTime = startTime ? Date.now() - startTime : 0;
         console.error('❌ Error:', error);
 
         if (base44) {
@@ -672,8 +708,9 @@ Deno.serve(async (req) => {
                     run_timestamp: new Date().toISOString(),
                     status: 'error',
                     message: error.message || 'Unknown error',
-                    details: { error: error.stack || String(error) },
-                    triggered_by: 'unknown'
+                    execution_time_ms: executionTime,
+                    triggered_by: targetBranchId ? 'manual_branch' : 'cron',
+                    details: { error: error.stack || String(error) }
                 });
             } catch (logError) {
                 console.error('⚠️ Failed to write ERROR function log:', logError.message);

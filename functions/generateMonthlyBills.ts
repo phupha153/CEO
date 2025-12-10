@@ -683,6 +683,7 @@ Deno.serve(async (req) => {
         }
 
         // Summary
+        const executionTime = startTime ? Date.now() - startTime : 0;
         const monthName = thailandTime.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
         let summaryMessage = `สร้างบิลสำเร็จ ${createdCount} รายการ`;
         
@@ -720,8 +721,10 @@ Deno.serve(async (req) => {
                 run_timestamp: new Date().toISOString(),
                 status: 'success',
                 message: summaryMessage,
-                details: summaryData,
-                triggered_by: targetBranchId ? 'manual_branch' : 'manual_all',
+                execution_time_ms: executionTime,
+                total_sent: createdCount,
+                triggered_by: targetBranchId ? 'manual_branch' : 'cron',
+                details: summaryData
             });
         } catch (logError) {
             console.error('⚠️ Failed to write function log:', logError.message);
@@ -730,6 +733,7 @@ Deno.serve(async (req) => {
         return Response.json(summaryData);
 
     } catch (error) {
+        const executionTime = startTime ? Date.now() - startTime : 0;
         console.error('❌ Error:', error);
 
         if (base44) {
@@ -739,8 +743,9 @@ Deno.serve(async (req) => {
                     run_timestamp: new Date().toISOString(),
                     status: 'error',
                     message: error.message || 'Unknown error',
-                    details: { error: error.stack || String(error) },
-                    triggered_by: targetBranchId ? 'manual_branch' : (forceCreate ? 'manual_force' : 'scheduled'),
+                    execution_time_ms: executionTime,
+                    triggered_by: targetBranchId ? 'manual_branch' : 'cron',
+                    details: { error: error.stack || String(error) }
                 });
             } catch (logError) {
                 console.error('⚠️ Failed to write ERROR function log:', logError.message);
