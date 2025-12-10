@@ -304,15 +304,23 @@ Deno.serve(async (req) => {
         // 2. Fetch Payments ที่ต้องสร้างรูป
         // เงื่อนไข: status != 'paid' AND (invoice_image_status = 'pending' OR invoice_image_status = null) AND bill_sent_date = null
         const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
-        
-        // ⭐ ดึง Payment แบบ pagination เพื่อรองรับมากกว่า 500 รายการ
+
+        // ⭐ ดึง Payment 2 รอบ: รอบแรกดึงที่ไม่มีรูป (ลำดับความสำคัญสูงสุด), รอบสองดึงที่มีรูปแล้ว
         let allPayments = [];
+
+        // รอบ 1: ดึง Payment ที่ยังไม่มีรูป (invoice_image_url = null) จำกัด 5000 รายการ
         let skip = 0;
         const fetchLimit = 1000;
         let hasMore = true;
-        
-        while (hasMore) {
-            const batch = await base44.asServiceRole.entities.Payment.filter(paymentFilter, '-created_date', fetchLimit, skip);
+
+        console.log('📥 Fetching payments without images first...');
+        while (hasMore && allPayments.length < 5000) {
+            const batch = await base44.asServiceRole.entities.Payment.filter(
+                { ...paymentFilter, invoice_image_url: null }, 
+                '-created_date', 
+                fetchLimit, 
+                skip
+            );
             if (!batch || batch.length === 0) {
                 hasMore = false;
             } else {
@@ -322,12 +330,38 @@ Deno.serve(async (req) => {
                     hasMore = false;
                 }
             }
-            // จำกัดไม่เกิน 15000 รายการเพื่อป้องกัน memory issue
-            if (allPayments.length >= 15000) {
+        }
+        console.log(`📥 Found ${allPayments.length} payments without images`);
+
+        // รอบ 2: ดึง Payment ที่มีรูปแล้ว (เผื่อต้อง regenerate หรือส่ง LINE)
+        skip = 0;
+        hasMore = true;
+        const paymentsWithImages = [];
+
+        console.log('📥 Fetching payments with images...');
+        while (hasMore && paymentsWithImages.length < 5000) {
+            const batch = await base44.asServiceRole.entities.Payment.filter(
+                paymentFilter, 
+                '-created_date', 
+                fetchLimit, 
+                skip
+            );
+            if (!batch || batch.length === 0) {
                 hasMore = false;
+            } else {
+                // กรองเฉพาะที่มีรูปแล้ว
+                const withImages = batch.filter(p => p.invoice_image_url);
+                paymentsWithImages.push(...withImages);
+                skip += batch.length;
+                if (batch.length < fetchLimit) {
+                    hasMore = false;
+                }
             }
         }
-        console.log(`📥 Fetched ${allPayments.length} total payments`);
+
+        // รวมทั้งสองรอบ - ลำดับความสำคัญ: ไม่มีรูปก่อน
+        allPayments = [...allPayments, ...paymentsWithImages];
+        console.log(`📥 Fetched ${allPayments.length} total payments (${allPayments.filter(p => !p.invoice_image_url).length} without images)`);
 
         // ⭐ สร้างรูปทุกสาขา แต่ส่ง LINE เฉพาะสาขาที่เปิด auto_send
         // ⭐ รวม 'generating' ด้วย เผื่อรอบก่อน timeout ค้างไว้
