@@ -575,14 +575,42 @@ Deno.serve(async (req) => {
                         try {
                             const lineToken = getConfigValue('line_channel_access_token', branchId, '');
                             if (lineToken) {
-                                let msg = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
+                                let msg = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
                                 msg += `สวัสดีคุณ ${tenant.full_name}\n`;
                                 msg += `ห้อง ${room?.room_number || 'N/A'}\n\n`;
-                                msg += `💰 ยอดรวม: ${payment.total_amount.toLocaleString()} บาท\n`;
+                                msg += `รายละเอียดค่าใช้จ่าย:\n`;
+                                msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+                                
+                                if (payment.rent_amount > 0) {
+                                    msg += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+                                }
+                                if (payment.electricity_amount > 0) {
+                                    msg += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
+                                }
+                                if (payment.water_amount > 0) {
+                                    msg += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
+                                }
+                                if (payment.internet_amount > 0) {
+                                    msg += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
+                                }
+                                if (payment.common_fee_amount > 0) {
+                                    msg += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
+                                }
+                                if (payment.parking_fee_amount > 0) {
+                                    msg += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
+                                }
+                                if (payment.other_amount > 0) {
+                                    msg += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
+                                }
+                                
+                                msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+                                msg += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
                                 msg += `(${numberToThaiText(payment.total_amount)})\n\n`;
-                                msg += `📅 กำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
-                                msg += `\n💳 โอนเงินได้ที่: ${bankName} ${bankAcc} (${bankOwner})\n`;
-                                if (imageUrl) msg += `\n📄 ดูใบแจ้งหนี้: ${imageUrl}`;
+                                msg += `📅 ครบกำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
+                                msg += `สถานะ: รอชำระ\n\n`;
+                                msg += `💳 โอนเงินได้ที่: ${bankName} ${bankAcc} (${bankOwner})\n`;
+                                if (imageUrl) msg += `\n📄 ดูใบแจ้งหนี้: ${imageUrl}\n\n`;
+                                msg += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
 
                                 const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
                                     method: 'POST',
@@ -621,7 +649,42 @@ Deno.serve(async (req) => {
                             console.log(`🔍 Payment ${payment.id}: Facebook check - hasFacebookId=${hasFacebookId}, fbToken=${fbToken ? 'exists' : 'missing'}, facebook_user_id=${tenant.facebook_user_id}`);
                             
                             if (fbToken) {
-                                const fbMsg = `🏠 ${buildingName} - แจ้งเตือนค่าเช่า\n\nสวัสดีคุณ ${tenant.full_name}\nห้อง ${room?.room_number || 'N/A'}\n\n💰 ยอดรวม: ${payment.total_amount.toLocaleString()} บาท\n(${numberToThaiText(payment.total_amount)})\n\n📅 กำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n\n💳 โอนเงินได้ที่: ${bankName} ${bankAcc} (${bankOwner})${imageUrl ? `\n\n📄 ดูใบแจ้งหนี้: ${imageUrl}` : ''}`;
+                                let fbMsg = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
+                                fbMsg += `สวัสดีคุณ ${tenant.full_name}\n`;
+                                fbMsg += `ห้อง ${room?.room_number || 'N/A'}\n\n`;
+                                fbMsg += `รายละเอียดค่าใช้จ่าย:\n`;
+                                fbMsg += `━━━━━━━━━━━━━━━━━━━━\n`;
+                                
+                                if (payment.rent_amount > 0) {
+                                    fbMsg += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+                                }
+                                if (payment.electricity_amount > 0) {
+                                    fbMsg += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
+                                }
+                                if (payment.water_amount > 0) {
+                                    fbMsg += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
+                                }
+                                if (payment.internet_amount > 0) {
+                                    fbMsg += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
+                                }
+                                if (payment.common_fee_amount > 0) {
+                                    fbMsg += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
+                                }
+                                if (payment.parking_fee_amount > 0) {
+                                    fbMsg += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
+                                }
+                                if (payment.other_amount > 0) {
+                                    fbMsg += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
+                                }
+                                
+                                fbMsg += `━━━━━━━━━━━━━━━━━━━━\n`;
+                                fbMsg += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
+                                fbMsg += `(${numberToThaiText(payment.total_amount)})\n\n`;
+                                fbMsg += `📅 ครบกำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
+                                fbMsg += `สถานะ: รอชำระ\n\n`;
+                                fbMsg += `💳 โอนเงินได้ที่: ${bankName} ${bankAcc} (${bankOwner})`;
+                                if (imageUrl) fbMsg += `\n\n📄 ดูใบแจ้งหนี้: ${imageUrl}`;
+                                fbMsg += `\n\n📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
                                 
                                 console.log(`📘 Attempting to send Facebook to ${tenant.facebook_user_id}...`);
                                 const fbResponse = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
