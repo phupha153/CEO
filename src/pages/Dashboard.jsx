@@ -139,6 +139,25 @@ export default function Dashboard() {
     }
   });
 
+  const generateConnectedTestDataMutation = useMutation({
+    mutationFn: async () => {
+      toast.info('🔗 กำลังสร้างข้อมูลที่เชื่อมกัน...', { duration: 2000 });
+      const response = await base44.functions.invoke('generateConnectedTestData', {
+        branch_id: selectedBranchId
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(`✅ สร้างข้อมูลสำเร็จ!\n\n🏠 ${data.data.rooms} ห้อง\n👥 ${data.data.tenants} ผู้เช่า\n📅 ${data.data.bookings} การจอง\n⚡ ${data.data.meterReadings} มิเตอร์`, {
+        duration: 5000
+      });
+      queryClient.invalidateQueries();
+    },
+    onError: (error) => {
+      toast.error(`❌ เกิดข้อผิดพลาด: ${error.message}`);
+    }
+  });
+
   const getMainDateRange = () => {
     const now = getCurrentDate();
     const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
