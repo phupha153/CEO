@@ -556,7 +556,8 @@ Deno.serve(async (req) => {
                 
                 if (currentPrepaid >= totalAmount) {
                     status = 'paid';
-                    paymentDate = format(thailandTime, 'yyyy-MM-dd');
+                    // ⭐ บันทึกทั้งวันและเวลาเมื่อชำระด้วยเงินล่วงหน้า
+                    paymentDate = now.toISOString();
                     updatesToProcess.push({ 
                         tenantId: tenant.id, 
                         newBalance: currentPrepaid - totalAmount 
