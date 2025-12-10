@@ -259,36 +259,62 @@ export default function ChatWindow({
                 </Button>
               </div>
 
-            <div className="text-center mb-4">
+            <div className="text-center mb-4 pb-4 border-b">
               {conversation.line_picture_url || conversation.facebook_picture_url ? (
                 <img 
                   src={conversation.line_picture_url || conversation.facebook_picture_url} 
                   alt="" 
-                  className="w-20 h-20 rounded-full object-cover mx-auto"
+                  className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-slate-100"
                 />
               ) : (
-                <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto ${
+                <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto border-4 border-white shadow-lg ${
                   conversation.facebook_user_id 
                     ? 'bg-gradient-to-br from-blue-500 to-blue-600'
                     : 'bg-gradient-to-br from-green-400 to-emerald-500'
                 }`}>
                   {conversation.facebook_user_id ? (
-                    <Facebook className="w-10 h-10 text-white" />
+                    <Facebook className="w-12 h-12 text-white" />
                   ) : (
-                    <User className="w-10 h-10 text-white" />
+                    <User className="w-12 h-12 text-white" />
                   )}
                 </div>
               )}
-              <p className="font-semibold mt-2">{displayName}</p>
-              {conversation.line_display_name && !conversation.facebook_user_id && (
-                <p className="text-xs text-slate-500">LINE: {conversation.line_display_name}</p>
-              )}
-              {conversation.facebook_display_name && conversation.facebook_user_id && (
-                <p className="text-xs text-slate-500">Facebook: {conversation.facebook_display_name}</p>
-              )}
-              {conversation.facebook_user_id && (
-                <p className="text-xs text-slate-500 mt-1">Facebook ID: {conversation.facebook_user_id}</p>
-              )}
+              <p className="font-bold text-lg mt-3">{displayName}</p>
+              
+              {/* Platform Badge */}
+              <Badge className={`mt-2 ${
+                conversation.facebook_user_id 
+                  ? 'bg-blue-100 text-blue-700' 
+                  : 'bg-green-100 text-green-700'
+              }`}>
+                {conversation.facebook_user_id ? (
+                  <>
+                    <Facebook className="w-3 h-3 mr-1" />
+                    Facebook
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.193 0-.378-.09-.503-.234l-1.89-2.181v1.787c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.27.173-.51.43-.595.063-.021.13-.03.196-.03.195 0 .38.089.503.234l1.89 2.181V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.001zm-5.741 0c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.003zm-2.466.63H4.917c-.345 0-.63-.285-.63-.63V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629z"/>
+                    </svg>
+                    LINE
+                  </>
+                )}
+              </Badge>
+              
+              {/* User IDs */}
+              <div className="mt-3 space-y-1 text-xs text-slate-500">
+                {conversation.line_user_id && (
+                  <p className="font-mono bg-slate-50 p-2 rounded break-all">
+                    LINE: {conversation.line_user_id}
+                  </p>
+                )}
+                {conversation.facebook_user_id && (
+                  <p className="font-mono bg-blue-50 p-2 rounded break-all text-blue-700">
+                    Facebook: {conversation.facebook_user_id}
+                  </p>
+                )}
+              </div>
             </div>
 
             {tenant ? (
