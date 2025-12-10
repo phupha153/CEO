@@ -3,6 +3,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 // Due date reminder function - sends LINE notifications on payment due dates
 // Version: 2025-11-27 - Added tracking for sent reminders
 Deno.serve(async (req) => {
+    const startTime = Date.now();
+    
     try {
         const base44 = createClientFromRequest(req);
         
@@ -425,12 +427,87 @@ Deno.serve(async (req) => {
         };
 
         console.log('🎉 Due date reminder completed:', result);
+        
+        const executionTime = Date.now() - startTime;
+        
+        // สร้าง branch_results
+        try {
+            const branchResults = [];
+            const branchStats = {};
+            
+            recipients.forEach(r => {
+                const branchId = r.metadata.branchId;
+                if (!branchStats[branchId]) {
+                    branchStats[branchId] = { sent: 0, failed: 0 };
+                }
+                branchStats[branchId].sent++;
+            });
+            
+            sendErrors.forEach(err => {
+                const match = err.match(/ห้อง\s+([^\s:]+)/);
+                if (match) {
+                    const roomNum = match[1];
+                    const recipient = recipients.find(r => r.metadata.roomNumber === roomNum);
+                    if (recipient) {
+                        const branchId = recipient.metadata.branchId;
+                        if (!branchStats[branchId]) {
+                            branchStats[branchId] = { sent: 0, failed: 0 };
+                        }
+                        branchStats[branchId].failed++;
+                    }
+                }
+            });
+            
+            const branches = await base44.asServiceRole.entities.Branch.list();
+            Object.entries(branchStats).forEach(([branchId, stats]) => {
+                const branch = branches.find(b => b.id === branchId);
+                branchResults.push({
+                    branch_id: branchId,
+                    branch_name: branch?.branch_name || 'Unknown',
+                    status: stats.failed > 0 ? 'partial' : 'success',
+                    sent: stats.sent,
+                    failed: stats.failed
+                });
+            });
+            
+            await base44.asServiceRole.entities.FunctionLog.create({
+                function_name: 'sendDueDateReminders',
+                run_timestamp: new Date().toISOString(),
+                status: sendErrors.length > 0 && sentCount === 0 ? 'error' : 'success',
+                message: result.message,
+                execution_time_ms: executionTime,
+                total_sent: sentCount,
+                total_failed: sendErrors.length,
+                branch_results: branchResults,
+                triggered_by: 'cron',
+                details: result
+            });
+        } catch (logError) {
+            console.error('Failed to create FunctionLog:', logError);
+        }
 
         return Response.json(result);
 
     } catch (error) {
+        const executionTime = Date.now() - startTime;
         console.error('❌ Error in sendDueDateReminders:', error);
         console.error('📍 Error stack:', error.stack);
+        
+        // บันทึก error log
+        try {
+            await base44.asServiceRole.entities.FunctionLog.create({
+                function_name: 'sendDueDateReminders',
+                run_timestamp: new Date().toISOString(),
+                status: 'error',
+                message: error.message,
+                execution_time_ms: executionTime,
+                triggered_by: 'cron',
+                details: { error: error.message, stack: error.stack }
+            });
+        } catch (logError) {
+            console.error('Failed to log error:', logError);
+        }
+        
         return Response.json({ 
             success: false,
             error: error.message,
