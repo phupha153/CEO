@@ -54,12 +54,12 @@ Deno.serve(async (req) => {
 
         const actualBranchId = payment.branch_id;
 
-        // ดึงข้อมูลที่เกี่ยวข้อง - ใช้ list แล้ว filter เองเพื่อความเสถียร
-        console.log(`🔍 Looking for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}`);
+        // ดึงข้อมูลที่เกี่ยวข้อง - ดึงเฉพาะสาขาเพื่อความแม่นยำ
+        console.log(`🔍 Looking for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}, branch_id: ${actualBranchId}`);
         
         const [allTenants, allRooms, allBranches, configs] = await Promise.all([
-            base44.asServiceRole.entities.Tenant.list('-created_date', 5000),
-            base44.asServiceRole.entities.Room.list('-created_date', 5000),
+            base44.asServiceRole.entities.Tenant.filter({ branch_id: actualBranchId }, '-created_date', 5000),
+            base44.asServiceRole.entities.Room.filter({ branch_id: actualBranchId }, '-created_date', 5000),
             base44.asServiceRole.entities.Branch.list(),
             base44.asServiceRole.entities.Config.list()
         ]);
