@@ -246,320 +246,320 @@ export default function ChatWindow({
               className="fixed right-0 top-0 bottom-0 w-80 bg-white shadow-2xl z-[1000] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-slate-800">ข้อมูลผู้ติดต่อ</h3>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => {
-                    console.log('❌ Close profile panel (X button)');
-                    setShowProfile(false);
-                  }}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-
-            <div className="text-center mb-4 pb-4 border-b">
-              {conversation.line_picture_url || conversation.facebook_picture_url ? (
-                <img 
-                  src={conversation.line_picture_url || conversation.facebook_picture_url} 
-                  alt="" 
-                  className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-slate-100"
-                />
-              ) : (
-                <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto border-4 border-white shadow-lg ${
-                  conversation.facebook_user_id 
-                    ? 'bg-gradient-to-br from-blue-500 to-blue-600'
-                    : 'bg-gradient-to-br from-green-400 to-emerald-500'
-                }`}>
-                  {conversation.facebook_user_id ? (
-                    <Facebook className="w-12 h-12 text-white" />
-                  ) : (
-                    <User className="w-12 h-12 text-white" />
-                  )}
-                </div>
-              )}
-              <p className="font-bold text-lg mt-3">{displayName}</p>
-              
-              {/* Platform Badge */}
-              <Badge className={`mt-2 ${
-                conversation.facebook_user_id 
-                  ? 'bg-blue-100 text-blue-700' 
-                  : 'bg-green-100 text-green-700'
-              }`}>
-                {conversation.facebook_user_id ? (
-                  <>
-                    <Facebook className="w-3 h-3 mr-1" />
-                    Facebook
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.193 0-.378-.09-.503-.234l-1.89-2.181v1.787c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.27.173-.51.43-.595.063-.021.13-.03.196-.03.195 0 .38.089.503.234l1.89 2.181V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.001zm-5.741 0c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.003zm-2.466.63H4.917c-.345 0-.63-.285-.63-.63V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629z"/>
-                    </svg>
-                    LINE
-                  </>
-                )}
-              </Badge>
-              
-              {/* User IDs */}
-              <div className="mt-3 space-y-1 text-xs text-slate-500">
-                {conversation.line_user_id && (
-                  <p className="font-mono bg-slate-50 p-2 rounded break-all">
-                    LINE: {conversation.line_user_id}
-                  </p>
-                )}
-                {conversation.facebook_user_id && (
-                  <p className="font-mono bg-blue-50 p-2 rounded break-all text-blue-700">
-                    Facebook: {conversation.facebook_user_id}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {tenant ? (
-              <div className="space-y-3 text-sm">
-                <div className="p-3 bg-green-50 rounded-lg">
-                  <p className="text-green-800 font-medium flex items-center gap-1">
-                    <CheckCircle className="w-4 h-4" />
-                    ผู้เช่าในระบบ
-                  </p>
-                </div>
-
-                {tenant.phone && (
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <Phone className="w-4 h-4" />
-                    <span>{tenant.phone}</span>
-                  </div>
-                )}
-                {tenant.room_number && (
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <Home className="w-4 h-4" />
-                    <span>ห้อง {tenant.room_number}</span>
-                  </div>
-                )}
-                
-                {/* แสดง LINE User ID */}
-                {conversation?.line_user_id && (
-                  <div className="flex items-start gap-2 text-slate-500 text-xs">
-                    <span className="flex-shrink-0">LINE ID:</span>
-                    <span className="break-all font-mono">{conversation.line_user_id}</span>
-                  </div>
-                )}
-                
-                {/* แสดง Facebook User ID */}
-                {conversation?.facebook_user_id && (
-                  <div className="flex items-start gap-2 text-slate-500 text-xs">
-                    <span className="flex-shrink-0">Facebook ID:</span>
-                    <span className="break-all font-mono">{conversation.facebook_user_id}</span>
-                  </div>
-                )}
-
-                {/* ปุ่มยกเลิกการเชื่อมต่อ - รองรับทั้ง LINE และ Facebook */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-3 text-red-600 border-red-200 hover:bg-red-50"
-                  disabled={linking}
-                  onClick={async () => {
-                    const platform = conversation.facebook_user_id ? 'Facebook' : 'LINE';
-                    const confirmed = window.confirm(`ต้องการยกเลิกการเชื่อมต่อ ${platform} ของผู้เช่านี้?`);
-                    if (!confirmed) return;
-
-                    setLinking(true);
-                    try {
-                      // อัพเดท tenant โดยลบ line_user_id หรือ facebook_user_id
-                      const updateData = conversation.facebook_user_id 
-                        ? { facebook_user_id: null }
-                        : { line_user_id: null };
-                      
-                      await base44.entities.Tenant.update(tenant.id, updateData);
-                      toast.success(`ยกเลิกการเชื่อมต่อ ${platform} สำเร็จ`);
-                      
-                      // รีเฟรชข้อมูลและปิด profile panel
-                      if (onRefresh) onRefresh();
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-slate-800">ข้อมูลผู้ติดต่อ</h3>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => {
+                      console.log('❌ Close profile panel (X button)');
                       setShowProfile(false);
-                    } catch (err) {
-                      console.error('Unlink error:', err);
-                      toast.error('ยกเลิกการเชื่อมต่อไม่สำเร็จ');
-                    } finally {
-                      setLinking(false);
-                    }
-                  }}
-                >
-                  {linking ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                  ) : (
-                    <X className="w-4 h-4 mr-1" />
-                  )}
-                  ยกเลิกการเชื่อมต่อ {conversation.facebook_user_id ? 'Facebook' : 'LINE'}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="p-3 bg-orange-50 rounded-lg text-sm">
-                  <p className="text-orange-800">
-                    ผู้ติดต่อนี้ยังไม่ได้เชื่อมต่อกับผู้เช่าในระบบ
-                  </p>
-                </div>
-                
-                {/* แสดง LINE User ID สำหรับกรณียังไม่เชื่อมต่อ */}
-                {conversation?.line_user_id && (
-                  <div className="p-2 bg-slate-50 rounded-lg">
-                    <p className="text-xs text-slate-500 mb-1">LINE User ID:</p>
-                    <p className="text-xs font-mono text-slate-700 break-all">{conversation.line_user_id}</p>
-                  </div>
-                )}
-                
-                {/* แสดง Facebook User ID สำหรับกรณียังไม่เชื่อมต่อ */}
-                {conversation?.facebook_user_id && (
-                  <div className="p-2 bg-slate-50 rounded-lg">
-                    <p className="text-xs text-slate-500 mb-1">Facebook User ID:</p>
-                    <p className="text-xs font-mono text-slate-700 break-all">{conversation.facebook_user_id}</p>
-                  </div>
-                )}
-
-                {/* Link to Tenant by Room */}
-                <div className="space-y-2">
-                  <p className="text-xs font-medium text-slate-600">
-                    เชื่อมต่อกับห้อง:
-                  </p>
-                  <select
-                    value={selectedRoomId}
-                    onChange={(e) => setSelectedRoomId(e.target.value)}
-                    className="w-full text-sm border rounded-lg px-3 py-2"
-                  >
-                    <option value="">-- เลือกห้อง --</option>
-                  {(() => {
-                    // ⭐ กรองผู้เช่าที่ยังไม่มี LINE หรือ Facebook (ตาม platform ที่กำลังใช้)
-                    const isFacebook = !!conversation.facebook_user_id;
-                    const tenantsWithoutPlatform = tenants.filter(t => {
-                      if (t.status === 'moved_out') return false;
-                      return isFacebook ? !t.facebook_user_id : !t.line_user_id;
-                    });
-                    
-                    // สร้าง Map ของ tenant กับห้องจาก bookings
-                    const tenantRoomMap = {};
-                    bookings
-                      .filter(b => b.status === 'active')
-                      .forEach(booking => {
-                        const room = rooms.find(r => r.id === booking.room_id);
-                        if (room) {
-                          tenantRoomMap[booking.tenant_id] = room.room_number;
-                        }
-                      });
-                    
-                    return tenantsWithoutPlatform
-                      .map(tenant => {
-                        const roomNumber = tenant.room_number || tenantRoomMap[tenant.id];
-                        return { tenant, roomNumber };
-                      })
-                      .filter(({ roomNumber }) => roomNumber)
-                      .sort((a, b) => {
-                        return (a.roomNumber || '').localeCompare(b.roomNumber || '', 'th', { numeric: true });
-                      })
-                      .map(({ tenant, roomNumber }) => (
-                        <option key={tenant.id} value={tenant.id}>
-                          ห้อง {roomNumber} - {tenant.full_name}
-                        </option>
-                      ));
-                  })()}
-                  </select>
-                  
-                  {/* Debug: แสดงสาเหตุถ้าไม่มีห้องให้เลือก */}
-                  {(() => {
-                    const isFacebook = !!conversation.facebook_user_id;
-                    const platform = isFacebook ? 'Facebook' : 'LINE';
-                    const tenantsWithoutPlatform = tenants.filter(t => {
-                      if (t.status === 'moved_out') return false;
-                      return isFacebook ? !t.facebook_user_id : !t.line_user_id;
-                    });
-                    
-                    if (tenantsWithoutPlatform.length === 0) {
-                      return (
-                        <p className="text-xs text-orange-600 mt-1">
-                          ⚠️ ผู้เช่าทุกคนมี {platform} แล้ว หรือยังไม่มีผู้เช่าในระบบ
-                        </p>
-                      );
-                    }
-                    
-                    const tenantRoomMap = {};
-                    bookings
-                      .filter(b => b.status === 'active')
-                      .forEach(booking => {
-                        const room = rooms.find(r => r.id === booking.room_id);
-                        if (room) {
-                          tenantRoomMap[booking.tenant_id] = room.room_number;
-                        }
-                      });
-                    
-                    const tenantsWithRoom = tenantsWithoutPlatform.filter(t => 
-                      t.room_number || tenantRoomMap[t.id]
-                    );
-                    
-                    if (tenantsWithRoom.length === 0) {
-                      return (
-                        <p className="text-xs text-orange-600 mt-1">
-                          ⚠️ มีผู้เช่า {tenantsWithoutPlatform.length} คนที่ยังไม่มี {platform}<br/>
-                          แต่ยังไม่มีสัญญา active หรือยังไม่ได้ผูกห้อง
-                        </p>
-                      );
-                    }
-                    
-                    return (
-                      <p className="text-xs text-green-600 mt-1">
-                        ✓ พบ {tenantsWithRoom.length} ห้องให้เลือก
-                      </p>
-                    );
-                  })()}
-                  <Button
-                    size="sm"
-                    className={`w-full ${
-                      conversation.facebook_user_id 
-                        ? 'bg-blue-600 hover:bg-blue-700' 
-                        : 'bg-green-600 hover:bg-green-700'
-                    }`}
-                    disabled={!selectedRoomId || linking}
-                    onClick={async () => {
-                      if (!selectedRoomId) return;
-                      setLinking(true);
-                      try {
-                        // อัพเดท tenant ด้วย line_user_id หรือ facebook_user_id
-                        const updateData = conversation.facebook_user_id 
-                          ? { facebook_user_id: conversation.facebook_user_id }
-                          : { line_user_id: conversation.line_user_id };
-                        
-                        await base44.entities.Tenant.update(selectedRoomId, updateData);
-                        
-                        const platform = conversation.facebook_user_id ? 'Facebook' : 'LINE';
-                        toast.success(`เชื่อมต่อ ${platform} สำเร็จ`);
-                        setSelectedRoomId('');
-                        
-                        if (onRefresh) onRefresh();
-                      } catch (error) {
-                        console.error('Link error:', error);
-                        toast.error('เชื่อมต่อไม่สำเร็จ: ' + error.message);
-                      } finally {
-                        setLinking(false);
-                      }
                     }}
                   >
-                    {linking ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                    ) : (
-                      <Link className="w-4 h-4 mr-1" />
-                    )}
-                    เชื่อมต่อ {conversation.facebook_user_id ? 'Facebook' : 'LINE'}
+                    <X className="w-4 h-4" />
                   </Button>
                 </div>
+
+                <div className="text-center mb-4 pb-4 border-b">
+                  {conversation.line_picture_url || conversation.facebook_picture_url ? (
+                    <img 
+                      src={conversation.line_picture_url || conversation.facebook_picture_url} 
+                      alt="" 
+                      className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-slate-100"
+                    />
+                  ) : (
+                    <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto border-4 border-white shadow-lg ${
+                      conversation.facebook_user_id 
+                        ? 'bg-gradient-to-br from-blue-500 to-blue-600'
+                        : 'bg-gradient-to-br from-green-400 to-emerald-500'
+                    }`}>
+                      {conversation.facebook_user_id ? (
+                        <Facebook className="w-12 h-12 text-white" />
+                      ) : (
+                        <User className="w-12 h-12 text-white" />
+                      )}
+                    </div>
+                  )}
+                  <p className="font-bold text-lg mt-3">{displayName}</p>
+                  
+                  {/* Platform Badge */}
+                  <Badge className={`mt-2 ${
+                    conversation.facebook_user_id 
+                      ? 'bg-blue-100 text-blue-700' 
+                      : 'bg-green-100 text-green-700'
+                  }`}>
+                    {conversation.facebook_user_id ? (
+                      <>
+                        <Facebook className="w-3 h-3 mr-1" />
+                        Facebook
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.193 0-.378-.09-.503-.234l-1.89-2.181v1.787c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.27.173-.51.43-.595.063-.021.13-.03.196-.03.195 0 .38.089.503.234l1.89 2.181V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.001zm-5.741 0c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.003zm-2.466.63H4.917c-.345 0-.63-.285-.63-.63V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629z"/>
+                        </svg>
+                        LINE
+                      </>
+                    )}
+                  </Badge>
+                  
+                  {/* User IDs */}
+                  <div className="mt-3 space-y-1 text-xs text-slate-500">
+                    {conversation.line_user_id && (
+                      <p className="font-mono bg-slate-50 p-2 rounded break-all">
+                        LINE: {conversation.line_user_id}
+                      </p>
+                    )}
+                    {conversation.facebook_user_id && (
+                      <p className="font-mono bg-blue-50 p-2 rounded break-all text-blue-700">
+                        Facebook: {conversation.facebook_user_id}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {tenant ? (
+                  <div className="space-y-3 text-sm">
+                    <div className="p-3 bg-green-50 rounded-lg">
+                      <p className="text-green-800 font-medium flex items-center gap-1">
+                        <CheckCircle className="w-4 h-4" />
+                        ผู้เช่าในระบบ
+                      </p>
+                    </div>
+
+                    {tenant.phone && (
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Phone className="w-4 h-4" />
+                        <span>{tenant.phone}</span>
+                      </div>
+                    )}
+                    {tenant.room_number && (
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Home className="w-4 h-4" />
+                        <span>ห้อง {tenant.room_number}</span>
+                      </div>
+                    )}
+                    
+                    {/* แสดง LINE User ID */}
+                    {conversation?.line_user_id && (
+                      <div className="flex items-start gap-2 text-slate-500 text-xs">
+                        <span className="flex-shrink-0">LINE ID:</span>
+                        <span className="break-all font-mono">{conversation.line_user_id}</span>
+                      </div>
+                    )}
+                    
+                    {/* แสดง Facebook User ID */}
+                    {conversation?.facebook_user_id && (
+                      <div className="flex items-start gap-2 text-slate-500 text-xs">
+                        <span className="flex-shrink-0">Facebook ID:</span>
+                        <span className="break-all font-mono">{conversation.facebook_user_id}</span>
+                      </div>
+                    )}
+
+                    {/* ปุ่มยกเลิกการเชื่อมต่อ - รองรับทั้ง LINE และ Facebook */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-3 text-red-600 border-red-200 hover:bg-red-50"
+                      disabled={linking}
+                      onClick={async () => {
+                        const platform = conversation.facebook_user_id ? 'Facebook' : 'LINE';
+                        const confirmed = window.confirm(`ต้องการยกเลิกการเชื่อมต่อ ${platform} ของผู้เช่านี้?`);
+                        if (!confirmed) return;
+
+                        setLinking(true);
+                        try {
+                          // อัพเดท tenant โดยลบ line_user_id หรือ facebook_user_id
+                          const updateData = conversation.facebook_user_id 
+                            ? { facebook_user_id: null }
+                            : { line_user_id: null };
+                          
+                          await base44.entities.Tenant.update(tenant.id, updateData);
+                          toast.success(`ยกเลิกการเชื่อมต่อ ${platform} สำเร็จ`);
+                          
+                          // รีเฟรชข้อมูลและปิด profile panel
+                          if (onRefresh) onRefresh();
+                          setShowProfile(false);
+                        } catch (err) {
+                          console.error('Unlink error:', err);
+                          toast.error('ยกเลิกการเชื่อมต่อไม่สำเร็จ');
+                        } finally {
+                          setLinking(false);
+                        }
+                      }}
+                    >
+                      {linking ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                      ) : (
+                        <X className="w-4 h-4 mr-1" />
+                      )}
+                      ยกเลิกการเชื่อมต่อ {conversation.facebook_user_id ? 'Facebook' : 'LINE'}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-orange-50 rounded-lg text-sm">
+                      <p className="text-orange-800">
+                        ผู้ติดต่อนี้ยังไม่ได้เชื่อมต่อกับผู้เช่าในระบบ
+                      </p>
+                    </div>
+                    
+                    {/* แสดง LINE User ID สำหรับกรณียังไม่เชื่อมต่อ */}
+                    {conversation?.line_user_id && (
+                      <div className="p-2 bg-slate-50 rounded-lg">
+                        <p className="text-xs text-slate-500 mb-1">LINE User ID:</p>
+                        <p className="text-xs font-mono text-slate-700 break-all">{conversation.line_user_id}</p>
+                      </div>
+                    )}
+                    
+                    {/* แสดง Facebook User ID สำหรับกรณียังไม่เชื่อมต่อ */}
+                    {conversation?.facebook_user_id && (
+                      <div className="p-2 bg-slate-50 rounded-lg">
+                        <p className="text-xs text-slate-500 mb-1">Facebook User ID:</p>
+                        <p className="text-xs font-mono text-slate-700 break-all">{conversation.facebook_user_id}</p>
+                      </div>
+                    )}
+
+                    {/* Link to Tenant by Room */}
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-slate-600">
+                        เชื่อมต่อกับห้อง:
+                      </p>
+                      <select
+                        value={selectedRoomId}
+                        onChange={(e) => setSelectedRoomId(e.target.value)}
+                        className="w-full text-sm border rounded-lg px-3 py-2"
+                      >
+                        <option value="">-- เลือกห้อง --</option>
+                      {(() => {
+                        // ⭐ กรองผู้เช่าที่ยังไม่มี LINE หรือ Facebook (ตาม platform ที่กำลังใช้)
+                        const isFacebook = !!conversation.facebook_user_id;
+                        const tenantsWithoutPlatform = tenants.filter(t => {
+                          if (t.status === 'moved_out') return false;
+                          return isFacebook ? !t.facebook_user_id : !t.line_user_id;
+                        });
+                        
+                        // สร้าง Map ของ tenant กับห้องจาก bookings
+                        const tenantRoomMap = {};
+                        bookings
+                          .filter(b => b.status === 'active')
+                          .forEach(booking => {
+                            const room = rooms.find(r => r.id === booking.room_id);
+                            if (room) {
+                              tenantRoomMap[booking.tenant_id] = room.room_number;
+                            }
+                          });
+                        
+                        return tenantsWithoutPlatform
+                          .map(tenant => {
+                            const roomNumber = tenant.room_number || tenantRoomMap[tenant.id];
+                            return { tenant, roomNumber };
+                          })
+                          .filter(({ roomNumber }) => roomNumber)
+                          .sort((a, b) => {
+                            return (a.roomNumber || '').localeCompare(b.roomNumber || '', 'th', { numeric: true });
+                          })
+                          .map(({ tenant, roomNumber }) => (
+                            <option key={tenant.id} value={tenant.id}>
+                              ห้อง {roomNumber} - {tenant.full_name}
+                            </option>
+                          ));
+                      })()}
+                      </select>
+                      
+                      {/* Debug: แสดงสาเหตุถ้าไม่มีห้องให้เลือก */}
+                      {(() => {
+                        const isFacebook = !!conversation.facebook_user_id;
+                        const platform = isFacebook ? 'Facebook' : 'LINE';
+                        const tenantsWithoutPlatform = tenants.filter(t => {
+                          if (t.status === 'moved_out') return false;
+                          return isFacebook ? !t.facebook_user_id : !t.line_user_id;
+                        });
+                        
+                        if (tenantsWithoutPlatform.length === 0) {
+                          return (
+                            <p className="text-xs text-orange-600 mt-1">
+                              ⚠️ ผู้เช่าทุกคนมี {platform} แล้ว หรือยังไม่มีผู้เช่าในระบบ
+                            </p>
+                          );
+                        }
+                        
+                        const tenantRoomMap = {};
+                        bookings
+                          .filter(b => b.status === 'active')
+                          .forEach(booking => {
+                            const room = rooms.find(r => r.id === booking.room_id);
+                            if (room) {
+                              tenantRoomMap[booking.tenant_id] = room.room_number;
+                            }
+                          });
+                        
+                        const tenantsWithRoom = tenantsWithoutPlatform.filter(t => 
+                          t.room_number || tenantRoomMap[t.id]
+                        );
+                        
+                        if (tenantsWithRoom.length === 0) {
+                          return (
+                            <p className="text-xs text-orange-600 mt-1">
+                              ⚠️ มีผู้เช่า {tenantsWithoutPlatform.length} คนที่ยังไม่มี {platform}<br/>
+                              แต่ยังไม่มีสัญญา active หรือยังไม่ได้ผูกห้อง
+                            </p>
+                          );
+                        }
+                        
+                        return (
+                          <p className="text-xs text-green-600 mt-1">
+                            ✓ พบ {tenantsWithRoom.length} ห้องให้เลือก
+                          </p>
+                        );
+                      })()}
+                      <Button
+                        size="sm"
+                        className={`w-full ${
+                          conversation.facebook_user_id 
+                            ? 'bg-blue-600 hover:bg-blue-700' 
+                            : 'bg-green-600 hover:bg-green-700'
+                        }`}
+                        disabled={!selectedRoomId || linking}
+                        onClick={async () => {
+                          if (!selectedRoomId) return;
+                          setLinking(true);
+                          try {
+                            // อัพเดท tenant ด้วย line_user_id หรือ facebook_user_id
+                            const updateData = conversation.facebook_user_id 
+                              ? { facebook_user_id: conversation.facebook_user_id }
+                              : { line_user_id: conversation.line_user_id };
+                            
+                            await base44.entities.Tenant.update(selectedRoomId, updateData);
+                            
+                            const platform = conversation.facebook_user_id ? 'Facebook' : 'LINE';
+                            toast.success(`เชื่อมต่อ ${platform} สำเร็จ`);
+                            setSelectedRoomId('');
+                            
+                            if (onRefresh) onRefresh();
+                          } catch (error) {
+                            console.error('Link error:', error);
+                            toast.error('เชื่อมต่อไม่สำเร็จ: ' + error.message);
+                          } finally {
+                            setLinking(false);
+                          }
+                        }}
+                      >
+                        {linking ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                        ) : (
+                          <Link className="w-4 h-4 mr-1" />
+                        )}
+                        เชื่อมต่อ {conversation.facebook_user_id ? 'Facebook' : 'LINE'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-            </div>
-          </motion.div>
-        </>
-      )}
+            </motion.div>
+          </>
+        )}
       </AnimatePresence>
 
       {/* Input */}
