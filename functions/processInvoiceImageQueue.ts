@@ -495,8 +495,8 @@ Deno.serve(async (req) => {
 
                         console.log(`✅ Payment ${payment.id}: Image created`);
 
-                        // ⭐ รอ 10 วินาที เพื่อไม่ให้โดน rate limit (Free tier = 5-6 req/min max)
-                        await delay(10000);
+                        // ⭐ รอ 2 วินาที ระหว่างการสร้างรูป
+                        await delay(2000);
 
                         return { 
                             payment: { ...payment, invoice_image_url: imageUrl }, 
