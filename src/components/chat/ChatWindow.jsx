@@ -6,6 +6,7 @@ import {
   Send, User, Phone, Home, Loader2, 
   CheckCircle, Info, Sparkles, X, Link, Save, Facebook
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { base44 } from "@/api/base44Client";
@@ -220,30 +221,31 @@ export default function ChatWindow({
       </div>
 
       {/* Profile Panel - Slide from right */}
-      {showProfile && (
-        <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black/50 z-[999] animate-in fade-in duration-200"
-            onClick={() => {
-              console.log('❌ Close profile panel (backdrop click)');
-              setShowProfile(false);
-            }}
-          />
-          
-          {/* Profile Panel - Fixed Right Sidebar with Slide Animation */}
-          <div 
-            className="fixed right-0 top-0 bottom-0 w-80 bg-white shadow-2xl z-[1000] overflow-y-auto animate-in slide-in-from-right duration-300"
-            onClick={(e) => e.stopPropagation()}
-            style={{ 
-              position: 'fixed',
-              right: 0,
-              top: 0,
-              bottom: 0,
-              maxWidth: '320px',
-              width: '100%'
-            }}
-          >
+      <AnimatePresence>
+        {showProfile && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 z-[999]"
+              onClick={() => {
+                console.log('❌ Close profile panel (backdrop click)');
+                setShowProfile(false);
+              }}
+            />
+            
+            {/* Profile Panel - Slide from Right */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 bottom-0 w-80 bg-white shadow-2xl z-[1000] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-slate-800">ข้อมูลผู้ติดต่อ</h3>
