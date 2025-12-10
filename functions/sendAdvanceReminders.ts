@@ -2,6 +2,25 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 // Version: 2025-12-10 - Updated message format to match sendPaymentReminder
 
+// ⭐ ฟังก์ชันสร้าง hash จากข้อมูลบิล เพื่อตรวจจับการเปลี่ยนแปลง
+function generatePaymentHash(payment) {
+    const dataToHash = {
+        rent_amount: payment.rent_amount || 0,
+        water_units: payment.water_units || 0,
+        water_amount: payment.water_amount || 0,
+        electricity_units: payment.electricity_units || 0,
+        electricity_amount: payment.electricity_amount || 0,
+        internet_amount: payment.internet_amount || 0,
+        common_fee_amount: payment.common_fee_amount || 0,
+        parking_fee_amount: payment.parking_fee_amount || 0,
+        other_amount: payment.other_amount || 0,
+        total_amount: payment.total_amount || 0,
+        due_date: payment.due_date || ''
+    };
+    const jsonStr = JSON.stringify(dataToHash);
+    return btoa(jsonStr).substring(0, 32);
+}
+
 // ฟังก์ชันแปลงตัวเลขเป็นตัวหนังสือไทย
 function numberToThaiText(number) {
     if (number === undefined || number === null || isNaN(number) || number === 0) return 'ศูนย์บาทถ้วน';
@@ -248,6 +267,9 @@ Deno.serve(async (req) => {
             });
         }
 
+        // ⭐ ตัวแปรนับจำนวน Payment ที่ถูกข้ามเพราะยังไม่มีรูป
+        let skippedNoImage = 0;
+
         for (const payment of paymentsToProcess) {
             try {
                 const paymentBranchId = payment.branch_id;
@@ -261,13 +283,25 @@ Deno.serve(async (req) => {
                     continue;
                 }
 
+                // ⭐ ตรวจสอบว่ามีรูปใบแจ้งหนี้และ hash ตรงกันหรือไม่
+                const invoiceImageUrl = payment.invoice_image_url || null;
+                const currentHash = generatePaymentHash(payment);
+                const savedHash = payment.invoice_data_hash || '';
+
+                // ถ้าไม่มีรูปหรือ hash ไม่ตรง = ข้อมูลไม่ครบ → ข้ามไป
+                if (!invoiceImageUrl || (savedHash && currentHash !== savedHash)) {
+                    console.log(`⏭️ Skipping payment ${payment.id}: No invoice image or hash mismatch (has_image=${!!invoiceImageUrl}, hash_match=${currentHash === savedHash})`);
+                    skippedNoImage++;
+                    continue;
+                }
+
                 // ⭐ ดึง config เฉพาะสาขาของบิลนี้
                 const branchBankName = getConfigValue('bank_name', 'กสิกร', paymentBranchId);
                 const branchBankAccountNumber = getConfigValue('bank_account_number', '0722835522', paymentBranchId);
                 const branchBankAccountName = getConfigValue('bank_account_name', 'ธนานนท์ พรมพักตร์', paymentBranchId);
                 const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', paymentBranchId);
                 const branchAdvanceDays = parseInt(getConfigValue('bill_advance_notice_days', '3', paymentBranchId));
-                
+
                 console.log(`📋 Branch ${paymentBranchId}: bank=${branchBankName}, acc=${branchBankAccountNumber}, name=${branchBankAccountName}`);
 
                 // สร้างข้อความเตือนล่วงหน้า (เหมือน sendPaymentReminder template 'advance')
@@ -283,7 +317,7 @@ Deno.serve(async (req) => {
                 message += `ห้อง ${roomNum}\n\n`;
                 message += `รายละเอียดค่าใช้จ่าย:\n`;
                 message += `━━━━━━━━━━━━━━━━━━━━\n`;
-                
+
                 if (payment.rent_amount > 0) {
                     message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
                 }
@@ -305,35 +339,14 @@ Deno.serve(async (req) => {
                 if (payment.other_amount > 0) {
                     message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
                 }
-                
+
                 message += `━━━━━━━━━━━━━━━━━━━━\n`;
                 message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
                 message += `(${numberToThaiText(payment.total_amount)})\n\n`;
                 message += `📅 ครบกำหนดชำระ: ${dueDateStr}\n`;
                 message += `สถานะ: รอชำระ\n\n`;
                 message += `💳 โอนเงินได้ที่: ${branchBankName} ${branchBankAccountNumber} (${branchBankAccountName})\n\n`;
-
-                // ⭐ สร้างรูปใบแจ้งหนี้ก่อนส่ง
-                let invoiceImageUrl = payment.invoice_image_url || null;
-                
-                if (!invoiceImageUrl) {
-                    try {
-                        console.log(`🖼️ Generating invoice image for payment ${payment.id}...`);
-                        const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
-                            paymentId: payment.id
-                        });
-                        if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
-                            invoiceImageUrl = invoiceResult.data.invoice_image_url;
-                            console.log(`✅ Invoice image generated: ${invoiceImageUrl}`);
-                        }
-                    } catch (invoiceError) {
-                        console.error(`❌ Error generating invoice image:`, invoiceError.message);
-                    }
-                }
-                
-                if (invoiceImageUrl) {
-                    message += `📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}\n\n`;
-                }
+                message += `📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}\n\n`;
                 message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
                 message += `ขอบคุณค่ะ 🙏`;
 
@@ -463,7 +476,7 @@ Deno.serve(async (req) => {
             success: true,
             message: testLineUserId 
                 ? `🧪 ส่งข้อความทดสอบสำเร็จ (Test Mode)` 
-                : `ส่งการแจ้งเตือนล่วงหน้าสำเร็จ ${sentCount}/${recipients.length} รายการ${targetBranchId ? ` (สาขา: ${targetBranchId})` : ' (ทุกสาขา)'}${totalRemaining > 0 ? ` | เหลืออีก ${totalRemaining} บิล` : ''}`,
+                : `ส่งการแจ้งเตือนล่วงหน้าสำเร็จ ${sentCount}/${recipients.length} รายการ${targetBranchId ? ` (สาขา: ${targetBranchId})` : ' (ทุกสาขา)'}${totalRemaining > 0 ? ` | เหลืออีก ${totalRemaining} บิล` : ''}${skippedNoImage > 0 ? ` | ข้าม ${skippedNoImage} บิล (ยังไม่มีรูป)` : ''}`,
             sent: sentCount,
             total: testLineUserId ? 1 : recipients.length,
             remaining: totalRemaining,
@@ -473,6 +486,7 @@ Deno.serve(async (req) => {
             testMode: !!testLineUserId,
             enabledBranches: enabledBranches,
             skippedDueToDisabled: skippedCount || 0,
+            skippedNoImage: skippedNoImage,
             errors: sendErrors.length > 0 ? sendErrors : undefined,
             thailandTime: thailandTime.toLocaleString('th-TH')
         };
