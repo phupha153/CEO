@@ -31,7 +31,8 @@ import {
   TestTube,
   Building2,
   Zap,
-  TrendingUp
+  TrendingUp,
+  Trash2
 } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import TestSlipUploader from "@/components/testing/TestSlipUploader";
@@ -160,6 +161,8 @@ export default function CronJobSettings() {
   const [showProgressDialog, setShowProgressDialog] = useState(false);
   const [selectedBranchesForDelete, setSelectedBranchesForDelete] = useState([]);
   const [showAlertSettings, setShowAlertSettings] = useState(false);
+  const [deletingPayments, setDeletingPayments] = useState(false);
+  const [deleteResult, setDeleteResult] = useState(null);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -402,6 +405,106 @@ export default function CronJobSettings() {
 
         {/* Developer Test: อัพโหลดสลิปเพื่อทดสอบ */}
         <TestSlipUploader />
+
+        {/* ลบ Payment สาขา Wresdent */}
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="text-red-800 flex items-center gap-2">
+              <Trash2 className="w-5 h-5" />
+              🗑️ ลบ Payment - Wresdent 123
+            </CardTitle>
+            <CardDescription className="text-red-700">
+              ลบการชำระเงินทั้งหมดของสาขาทดสอบ (Branch ID: 692eae1308315df66d99c351)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+                <div className="text-sm text-yellow-800">
+                  <p className="font-semibold mb-1">⚠️ คำเตือน</p>
+                  <p>การดำเนินการนี้จะลบ Payment ประมาณ <strong>102 รายการ</strong></p>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              onClick={async () => {
+                if (!confirm('⚠️ ยืนยันการลบ Payment ทั้งหมดของสาขา Wresdent 123?')) return;
+
+                setDeletingPayments(true);
+                setDeleteResult(null);
+
+                try {
+                  const response = await base44.functions.invoke('deletePaymentsByBranchDirect', {
+                    branch_id: '692eae1308315df66d99c351'
+                  });
+
+                  const data = response.data;
+                  setDeleteResult(data);
+                  
+                  if (data.success) {
+                    toast.success(`ลบสำเร็จ ${data.deleted} รายการ`);
+                  } else {
+                    toast.error(data.error || 'เกิดข้อผิดพลาด');
+                  }
+                } catch (error) {
+                  setDeleteResult({ success: false, error: error.message });
+                  toast.error('เกิดข้อผิดพลาด: ' + error.message);
+                } finally {
+                  setDeletingPayments(false);
+                }
+              }}
+              disabled={deletingPayments}
+              className="w-full bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700"
+            >
+              {deletingPayments ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  กำลังลบ...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-5 h-5 mr-2" />
+                  ลบ Payment ทั้งหมด
+                </>
+              )}
+            </Button>
+
+            {deleteResult && (
+              <div className={`p-4 rounded-xl border-2 ${
+                deleteResult.success 
+                  ? 'bg-green-50 border-green-200' 
+                  : 'bg-red-50 border-red-200'
+              }`}>
+                <div className="flex items-start gap-3">
+                  {deleteResult.success ? (
+                    <CheckCircle2 className="w-6 h-6 text-green-600 mt-0.5" />
+                  ) : (
+                    <XCircle className="w-6 h-6 text-red-600 mt-0.5" />
+                  )}
+                  <div>
+                    <p className={`font-semibold mb-2 ${
+                      deleteResult.success ? 'text-green-800' : 'text-red-800'
+                    }`}>
+                      {deleteResult.success ? '✅ สำเร็จ!' : '❌ เกิดข้อผิดพลาด'}
+                    </p>
+                    {deleteResult.success && (
+                      <div className="text-sm text-green-700 space-y-1">
+                        <p>ลบสำเร็จ: <strong>{deleteResult.deleted}</strong> รายการ</p>
+                        <p>จากทั้งหมด: <strong>{deleteResult.total}</strong> รายการ</p>
+                        <p className="text-xs mt-2 text-green-600">{deleteResult.message}</p>
+                      </div>
+                    )}
+                    {!deleteResult.success && (
+                      <p className="text-sm text-red-700">{deleteResult.error}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* เลือกสาขาสำหรับลบ Cron Job */}
         <Card className="border-red-200 bg-red-50">
