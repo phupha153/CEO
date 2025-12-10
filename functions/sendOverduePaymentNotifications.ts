@@ -27,14 +27,46 @@ Deno.serve(async (req) => {
         const daysThreshold = parseInt(getConfig('overdue_days_threshold') || '3');
         const recipients = getConfig('overdue_notification_recipients') || '';
         
-        if (!recipients) {
+        console.log('📋 Configuration check:');
+        console.log(`   - overdue_notifications_enabled: ${enabled}`);
+        console.log(`   - overdue_days_threshold: ${daysThreshold}`);
+        console.log(`   - overdue_notification_recipients (raw): "${recipients}"`);
+        console.log(`   - branch_id filter: ${branch_id || 'ALL BRANCHES'}`);
+        
+        if (!recipients || recipients.trim() === '') {
+            console.error('❌ No recipients configured');
+            console.log('💡 Solution: Go to Settings → Notifications → Admin Notifications');
+            console.log('💡 Add LINE User IDs (comma-separated) in "overdue_notification_recipients"');
+            console.log('💡 Example: U1234567890abc,U0987654321xyz');
+            
             return Response.json({ 
                 success: false, 
-                error: 'ไม่พบผู้รับการแจ้งเตือน กรุณาตั้งค่าใน LINE User ID' 
+                error: 'ไม่พบผู้รับการแจ้งเตือน กรุณาตั้งค่าใน Settings → การแจ้งเตือน',
+                details: {
+                    configKey: 'overdue_notification_recipients',
+                    currentValue: recipients,
+                    required: 'LINE User ID (comma-separated)',
+                    example: 'U1234567890abc,U0987654321xyz',
+                    howToFind: 'Get LINE User ID from LINE Developer Console or by sending a message to your LINE Bot'
+                }
             });
         }
 
         const recipientIds = recipients.split(',').map(id => id.trim()).filter(id => id);
+        console.log(`✅ Found ${recipientIds.length} recipient(s): ${recipientIds.join(', ')}`);
+        
+        if (recipientIds.length === 0) {
+            console.error('❌ No valid recipient IDs after parsing');
+            return Response.json({
+                success: false,
+                error: 'รูปแบบ LINE User ID ไม่ถูกต้อง',
+                details: {
+                    rawValue: recipients,
+                    parsedCount: 0,
+                    required: 'LINE User IDs separated by commas'
+                }
+            });
+        }
 
         // ⭐ Helper function สำหรับดึงข้อมูลแบบ pagination
         async function fetchAllWithPagination(entity, batchSize = 5000) {
@@ -58,18 +90,37 @@ Deno.serve(async (req) => {
         }
 
         // ดึงข้อมูล payments ที่เกินกำหนด (ใช้ pagination)
+        console.log('🔍 Fetching all payments...');
         const allPayments = await fetchAllWithPagination(base44.asServiceRole.entities.Payment);
+        console.log(`✅ Loaded ${allPayments.length} total payments`);
+        
+        const today = startOfDay(new Date());
+        console.log(`📅 Today: ${today.toISOString().split('T')[0]}`);
+        
         const overduePayments = allPayments.filter(payment => {
             if (branch_id && payment.branch_id !== branch_id) return false;
             if (payment.status !== 'pending' && payment.status !== 'overdue') return false;
             if (!payment.due_date) return false;
 
             const dueDate = startOfDay(parseISO(payment.due_date));
-            const today = startOfDay(new Date());
             const daysDiff = differenceInDays(today, dueDate);
 
             return daysDiff >= daysThreshold;
         });
+        
+        console.log(`📊 Filter results:`);
+        console.log(`   - Total payments: ${allPayments.length}`);
+        console.log(`   - Overdue (>= ${daysThreshold} days): ${overduePayments.length}`);
+        console.log(`   - Branch filter: ${branch_id || 'NONE (all branches)'}`);
+        
+        if (overduePayments.length > 0) {
+            console.log(`📋 Sample overdue payments:`);
+            overduePayments.slice(0, 3).forEach((p, i) => {
+                const dueDate = startOfDay(parseISO(p.due_date));
+                const daysDiff = differenceInDays(today, dueDate);
+                console.log(`   ${i+1}. Payment ${p.id?.substring(0, 8)}: ${daysDiff} days overdue, ${p.total_amount}฿, status: ${p.status}`);
+            });
+        }
 
         // ⭐ อัปเดต late_fee_amount และ status เป็น overdue
         const updatePromises = [];
@@ -137,10 +188,16 @@ Deno.serve(async (req) => {
         }
 
         if (overduePayments.length === 0) {
+            console.log('✅ No overdue payments found - nothing to send');
             return Response.json({ 
                 success: true, 
                 message: 'ไม่มีรายการค้างชำระที่ต้องแจ้งเตือน',
-                overdueCount: 0
+                overdueCount: 0,
+                details: {
+                    totalPayments: allPayments.length,
+                    daysThreshold: daysThreshold,
+                    branchFilter: branch_id || 'all'
+                }
             });
         }
 
@@ -174,17 +231,28 @@ Deno.serve(async (req) => {
 
         // ส่งข้อความแจ้งเตือน
         const lineAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+        console.log(`🔑 LINE Token check: ${lineAccessToken ? '✅ Found' : '❌ Not found'}`);
+        
         if (!lineAccessToken) {
+            console.error('❌ LINE_CHANNEL_ACCESS_TOKEN not set in environment');
+            console.log('💡 Solution: Set LINE_CHANNEL_ACCESS_TOKEN in Dashboard → Settings → Secrets');
             return Response.json({ 
                 success: false, 
-                error: 'ไม่พบ LINE_CHANNEL_ACCESS_TOKEN' 
+                error: 'ไม่พบ LINE_CHANNEL_ACCESS_TOKEN กรุณาตั้งค่าใน Secrets',
+                details: {
+                    secretName: 'LINE_CHANNEL_ACCESS_TOKEN',
+                    howToSet: 'Dashboard → Settings → Secrets → Add Secret'
+                }
             });
         }
 
         let totalSent = 0;
         const errors = [];
 
+        console.log(`📤 Sending notifications to ${recipientIds.length} recipient(s)...`);
+
         for (const recipientId of recipientIds) {
+            console.log(`📨 Sending to ${recipientId}...`);
             // สร้างข้อความสรุปแบบสั้นกระชับ เน้นเกินกำหนด
             let message = `🔴 เกินกำหนดชำระ\n\n`;
             message += `มี ${overduePayments.length} ห้องค้างชำระ\n\n`;
@@ -219,28 +287,47 @@ Deno.serve(async (req) => {
 
                 if (lineResponse.ok) {
                     totalSent++;
+                    console.log(`✅ Sent to ${recipientId}`);
                 } else {
                     const errorData = await lineResponse.json();
-                    errors.push(`Failed to send to ${recipientId}: ${errorData.message || 'Unknown error'}`);
+                    const errorMsg = `Failed to send to ${recipientId}: ${errorData.message || 'Unknown error'}`;
+                    console.error(`❌ ${errorMsg}`, errorData);
+                    errors.push(errorMsg);
                 }
             } catch (error) {
-                errors.push(`Error sending to ${recipientId}: ${error.message}`);
+                const errorMsg = `Error sending to ${recipientId}: ${error.message}`;
+                console.error(`❌ ${errorMsg}`);
+                errors.push(errorMsg);
             }
         }
+
+        console.log(`🎉 Notification sending completed`);
+        console.log(`   - Total sent: ${totalSent}/${recipientIds.length}`);
+        console.log(`   - Errors: ${errors.length}`);
 
         return Response.json({
             success: true,
             message: `ส่งการแจ้งเตือนสำเร็จ ${totalSent}/${recipientIds.length} ผู้รับ`,
             overdueCount: overduePayments.length,
             sentTo: totalSent,
-            errors: errors.length > 0 ? errors : undefined
+            recipients: recipientIds,
+            errors: errors.length > 0 ? errors : undefined,
+            details: {
+                totalPayments: allPayments.length,
+                overduePayments: overduePayments.length,
+                daysThreshold: daysThreshold,
+                recipientCount: recipientIds.length
+            }
         });
 
     } catch (error) {
-        console.error('Error:', error);
+        console.error('❌ Fatal error in sendOverduePaymentNotifications:', error);
+        console.error('📍 Stack trace:', error.stack);
         return Response.json({ 
             success: false, 
-            error: error.message 
+            error: error.message,
+            stack: error.stack,
+            details: String(error)
         }, { status: 500 });
     }
 });
