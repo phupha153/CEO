@@ -308,33 +308,61 @@ export default function Announcements() {
     if (!selectedConversation || !content.trim()) return;
 
     try {
-      // ส่งข้อความผ่าน LINE
-      const response = await base44.functions.invoke('sendLineMessage', {
-        to: selectedConversation.line_user_id,
-        message: content,
-        branch_id: selectedBranchId
-      });
+      const user = await base44.auth.me();
+      
+      // ⭐ เช็คว่าเป็น Facebook หรือ LINE
+      if (selectedConversation.platform === 'facebook' || selectedConversation.facebook_user_id) {
+        // ส่งผ่าน Facebook
+        const response = await base44.functions.invoke('sendFacebookMessage', {
+          recipientId: selectedConversation.facebook_user_id,
+          message: content,
+          branch_id: selectedBranchId
+        });
 
-      // เช็ค error จาก response
-      if (response.data?.error) {
-        throw new Error(response.data.error + (response.data.details ? ': ' + JSON.stringify(response.data.details) : ''));
+        if (response.data?.error) {
+          throw new Error(response.data.error);
+        }
+
+        // บันทึกข้อความขาออก
+        await base44.entities.FacebookMessage.create({
+          branch_id: selectedBranchId,
+          tenant_id: selectedConversation.tenant_id,
+          facebook_user_id: selectedConversation.facebook_user_id,
+          facebook_display_name: selectedConversation.facebook_display_name,
+          direction: 'outgoing',
+          message_type: 'text',
+          content: content,
+          sent_by: user?.email
+        });
+
+        queryClient.invalidateQueries(['facebookMessages', selectedBranchId]);
+      } else {
+        // ส่งผ่าน LINE
+        const response = await base44.functions.invoke('sendLineMessage', {
+          to: selectedConversation.line_user_id,
+          message: content,
+          branch_id: selectedBranchId
+        });
+
+        if (response.data?.error) {
+          throw new Error(response.data.error + (response.data.details ? ': ' + JSON.stringify(response.data.details) : ''));
+        }
+
+        // บันทึกข้อความขาออก
+        await base44.entities.LineMessage.create({
+          branch_id: selectedBranchId,
+          tenant_id: selectedConversation.tenant_id,
+          line_user_id: selectedConversation.line_user_id,
+          line_display_name: selectedConversation.line_display_name,
+          direction: 'outgoing',
+          message_type: 'text',
+          content: content,
+          sent_by: user?.email
+        });
+
+        queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
       }
 
-      // บันทึกข้อความขาออก
-      const user = await base44.auth.me();
-      await base44.entities.LineMessage.create({
-        branch_id: selectedBranchId,
-        tenant_id: selectedConversation.tenant_id,
-        line_user_id: selectedConversation.line_user_id,
-        line_display_name: selectedConversation.line_display_name,
-        direction: 'outgoing',
-        message_type: 'text',
-        content: content,
-        sent_by: user?.email
-      });
-
-      // Refresh messages
-      queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
       toast.success('ส่งข้อความสำเร็จ');
     } catch (error) {
       console.error('Send error:', error);
@@ -622,10 +650,14 @@ export default function Announcements() {
                   conversation={selectedConversation}
                   messages={selectedMessages}
                   tenant={selectedConversation ? (
-                    // ⭐ หา tenant ที่มี line_user_id ตรงกับ conversation
-                    tenants.find(t => t.line_user_id === selectedConversation.line_user_id) ||
+                    // ⭐ หา tenant ที่มี line_user_id หรือ facebook_user_id ตรงกับ conversation
+                    tenants.find(t => 
+                      t.line_user_id === selectedConversation.line_user_id ||
+                      t.facebook_user_id === selectedConversation.facebook_user_id
+                    ) ||
                     tenantsMap[selectedConversation.tenant_id] ||
-                    tenantsMap[selectedConversation.line_user_id]
+                    tenantsMap[selectedConversation.line_user_id] ||
+                    tenantsMap[selectedConversation.facebook_user_id]
                   ) : null}
                   tenants={tenants}
                   rooms={rooms}
