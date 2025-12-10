@@ -318,16 +318,17 @@ export default function CronJobSettings() {
                 <div className="bg-white p-4 rounded-xl border-2 border-blue-200">
                   <div className="text-center">
                     <p className="text-3xl font-bold text-blue-600">
-                      {allPayments.length.toLocaleString()}
+                      {allPayments.filter(p => p.status !== 'paid').length.toLocaleString()}
                     </p>
                     <p className="text-xs text-slate-600 mt-1">การชำระเงินทั้งหมด</p>
+                    <p className="text-xs text-slate-400 mt-0.5">(ยังไม่ชำระ)</p>
                   </div>
                 </div>
 
                 <div className="bg-white p-4 rounded-xl border-2 border-green-200">
                   <div className="text-center">
                     <p className="text-3xl font-bold text-green-600">
-                      {allPayments.filter(p => p.invoice_image_url).length.toLocaleString()}
+                      {allPayments.filter(p => p.status !== 'paid' && p.invoice_image_url).length.toLocaleString()}
                     </p>
                     <p className="text-xs text-slate-600 mt-1">มีใบแจ้งหนี้แล้ว</p>
                   </div>
@@ -336,7 +337,7 @@ export default function CronJobSettings() {
                 <div className="bg-white p-4 rounded-xl border-2 border-orange-200">
                   <div className="text-center">
                     <p className="text-3xl font-bold text-orange-600">
-                      {allPayments.filter(p => !p.invoice_image_url).length.toLocaleString()}
+                      {allPayments.filter(p => p.status !== 'paid' && !p.invoice_image_url).length.toLocaleString()}
                     </p>
                     <p className="text-xs text-slate-600 mt-1">ยังไม่มีใบแจ้งหนี้</p>
                   </div>
@@ -345,7 +346,7 @@ export default function CronJobSettings() {
                 <div className="bg-white p-4 rounded-xl border-2 border-purple-200">
                   <div className="text-center">
                     <p className="text-3xl font-bold text-purple-600">
-                      {allPayments.filter(p => p.invoice_image_url && !p.bill_sent_date).length.toLocaleString()}
+                      {allPayments.filter(p => p.status !== 'paid' && p.invoice_image_url && !p.bill_sent_date).length.toLocaleString()}
                     </p>
                     <p className="text-xs text-slate-600 mt-1">มีรูปแต่ยังไม่ส่ง</p>
                   </div>
