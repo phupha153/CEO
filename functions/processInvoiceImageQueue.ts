@@ -262,7 +262,7 @@ Deno.serve(async (req) => {
     let targetBranchId = null;
     let batchSize = 10000; // รองรับ 10,000 รายการ (Cron จะรันต่อเนื่อง)
     let concurrentLimit = 1; // สร้างทีละ 1 รูป (Free tier Browserless = ~5-10 req/min)
-    let maxRunTime = 58000; // 58 วินาที (Deno timeout = 60s)
+    let maxRunTime = 88000; // 88 วินาที (ใกล้ 90s แต่เว้นเวลาไว้ปิด gracefully)
     let skipLineSend = false; // ⭐ โหมดทดสอบ - สร้างรูปอย่างเดียว ไม่ส่ง LINE
 
     try {
