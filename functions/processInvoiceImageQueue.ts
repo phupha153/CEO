@@ -492,8 +492,12 @@ Deno.serve(async (req) => {
                             invoice_image_status: 'completed',
                             invoice_data_hash: newHash
                         });
-                        
+
                         console.log(`✅ Payment ${payment.id}: Image created`);
+
+                        // ⭐ รอ 5 วินาที เพื่อไม่ให้โดน rate limit
+                        await delay(5000);
+
                         return { 
                             payment: { ...payment, invoice_image_url: imageUrl }, 
                             room, 
