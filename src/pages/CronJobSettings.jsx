@@ -166,6 +166,11 @@ export default function CronJobSettings() {
     queryFn: () => base44.entities.Branch.list(),
   });
 
+  const { data: configs = [] } = useQuery({
+    queryKey: ['configs'],
+    queryFn: () => base44.entities.Config.list(),
+  });
+
   const { data: functionLogs = [], refetch: refetchLogs } = useQuery({
     queryKey: ['functionLogs'],
     queryFn: () => base44.entities.FunctionLog.list('-run_timestamp', 100),
@@ -277,6 +282,99 @@ export default function CronJobSettings() {
                   <br />
                   หน้านี้ใช้สำหรับทดสอบและดูสถานะการทำงานเท่านั้น
                 </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Branch Reminder Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">สถานะการแจ้งเตือนแต่ละสาขา</CardTitle>
+            <CardDescription>ดูว่าสาขาไหนเปิด/ปิดการแจ้งเตือนอัตโนมัติ</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* แจ้งเตือนล่วงหน้า */}
+            <div className="border rounded-xl p-4 bg-amber-50">
+              <div className="flex items-center gap-2 mb-3">
+                <Bell className="w-5 h-5 text-amber-600" />
+                <h3 className="font-semibold text-slate-800">แจ้งเตือนล่วงหน้า (sendAdvanceReminders)</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {allBranches.map(branch => {
+                  const config = configs.find(c => c.key === 'send_advance_reminder' && c.branch_id === branch.id);
+                  const isEnabled = config?.value === 'true';
+                  return (
+                    <div key={branch.id} className={`p-2 rounded-lg border text-xs ${
+                      isEnabled 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-slate-50 border-slate-200'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-slate-800 truncate">{branch.branch_name}</span>
+                        <Badge variant={isEnabled ? 'default' : 'outline'} className="text-xs">
+                          {isEnabled ? '✅ เปิด' : '❌ ปิด'}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* แจ้งเตือนวันครบกำหนด */}
+            <div className="border rounded-xl p-4 bg-red-50">
+              <div className="flex items-center gap-2 mb-3">
+                <Calendar className="w-5 h-5 text-red-600" />
+                <h3 className="font-semibold text-slate-800">แจ้งเตือนวันครบกำหนด (sendDueDateReminders)</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {allBranches.map(branch => {
+                  const config = configs.find(c => c.key === 'send_due_date_reminder' && c.branch_id === branch.id);
+                  const isEnabled = config?.value === 'true';
+                  return (
+                    <div key={branch.id} className={`p-2 rounded-lg border text-xs ${
+                      isEnabled 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-slate-50 border-slate-200'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-slate-800 truncate">{branch.branch_name}</span>
+                        <Badge variant={isEnabled ? 'default' : 'outline'} className="text-xs">
+                          {isEnabled ? '✅ เปิด' : '❌ ปิด'}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* แจ้งเตือนค้างชำระ */}
+            <div className="border rounded-xl p-4 bg-orange-50">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="w-5 h-5 text-orange-600" />
+                <h3 className="font-semibold text-slate-800">แจ้งเตือนค้างชำระ (sendAutomatedOverdueReminders)</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {allBranches.map(branch => {
+                  const config = configs.find(c => c.key === 'send_overdue_reminder' && c.branch_id === branch.id);
+                  const isEnabled = config?.value === 'true';
+                  return (
+                    <div key={branch.id} className={`p-2 rounded-lg border text-xs ${
+                      isEnabled 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-slate-50 border-slate-200'
+                    }`}>
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-slate-800 truncate">{branch.branch_name}</span>
+                        <Badge variant={isEnabled ? 'default' : 'outline'} className="text-xs">
+                          {isEnabled ? '✅ เปิด' : '❌ ปิด'}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </CardContent>
