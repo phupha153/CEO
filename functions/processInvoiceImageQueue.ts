@@ -623,7 +623,6 @@ Deno.serve(async (req) => {
                         });
                     }
                 }
-            }
             } else {
                 console.log('🧪 Test mode - skipping LINE send for all payments in this chunk');
             }
