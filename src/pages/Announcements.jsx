@@ -134,6 +134,17 @@ export default function Announcements() {
     enabled: !!selectedBranchId,
   });
 
+  const { data: announcementHistory = [] } = useQuery({
+    queryKey: ['announcementHistory', selectedBranchId],
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      const history = await base44.entities.AnnouncementHistory.filter({ branch_id: selectedBranchId }, '-sent_date', 50);
+      return history;
+    },
+    staleTime: 30 * 1000,
+    enabled: !!selectedBranchId,
+  });
+
   // สร้าง conversations จากข้อความ - รวมทั้ง LINE และ Facebook
   const conversations = React.useMemo(() => {
     const convMap = new Map();
@@ -410,6 +421,25 @@ export default function Announcements() {
 
         setProgress(100);
         setCurrentSending(''); // Clear after batch completes
+
+        // บันทึกประวัติการส่ง
+        try {
+          const user = await base44.auth.me();
+          await base44.entities.AnnouncementHistory.create({
+            branch_id: selectedBranchId,
+            message: message,
+            target_type: targetType,
+            recipient_count: targets.length,
+            success_count: apiResult.successfulSends || 0,
+            failed_count: apiResult.failedSends || 0,
+            sent_by: user?.email,
+            sent_date: new Date().toISOString(),
+            platform: 'line'
+          });
+          queryClient.invalidateQueries(['announcementHistory', selectedBranchId]);
+        } catch (historyError) {
+          console.error('Failed to save announcement history:', historyError);
+        }
 
         if (apiResult.failedSends === 0) {
           toast.success(`ส่งข้อความสำเร็จทั้งหมด ${apiResult.successfulSends} คน`);
@@ -995,6 +1025,55 @@ export default function Announcements() {
               </ul>
             </CardContent>
           </Card>
+
+          {/* ประวัติการส่งประกาศ */}
+          {announcementHistory.length > 0 && (
+            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-lg">📜 ประวัติการส่งประกาศ</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {announcementHistory.map((history) => (
+                    <div 
+                      key={history.id}
+                      className="p-4 rounded-lg border bg-white hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-slate-800 line-clamp-2">
+                            {history.message}
+                          </p>
+                        </div>
+                        <Badge 
+                          variant={history.failed_count === 0 ? 'default' : 'secondary'}
+                          className={history.failed_count === 0 ? 'bg-green-500' : 'bg-orange-500'}
+                        >
+                          {history.success_count}/{history.recipient_count}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex items-center justify-between text-xs text-slate-500">
+                        <div className="flex items-center gap-3">
+                          <span>📅 {new Date(history.sent_date).toLocaleDateString('th-TH', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}</span>
+                          <span>👤 {history.sent_by || 'ไม่ระบุ'}</span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">
+                          {history.target_type === 'all' ? 'ทุกคน' : 'เลือกเอง'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
             </div>
           </TabsContent>
         </Tabs>
