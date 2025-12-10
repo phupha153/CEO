@@ -191,6 +191,12 @@ export default function CronJobSettings() {
     refetchInterval: 30000,
   });
 
+  const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
+    queryKey: ['allPayments'],
+    queryFn: () => base44.entities.Payment.list('-created_date', 10000),
+    refetchInterval: 30000,
+  });
+
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
 
   // ถ้าไม่ใช่ developer ให้ redirect
@@ -292,6 +298,62 @@ export default function CronJobSettings() {
             ตั้งค่าการแจ้งเตือน
           </Button>
         </div>
+
+        {/* Payment Statistics Card */}
+        <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              สถิติการชำระเงิน
+            </CardTitle>
+            <CardDescription>ภาพรวมการชำระเงินและใบแจ้งหนี้ทั้งหมด</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {paymentsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-white p-4 rounded-xl border-2 border-blue-200">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-blue-600">
+                      {allPayments.length.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-slate-600 mt-1">การชำระเงินทั้งหมด</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border-2 border-green-200">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-green-600">
+                      {allPayments.filter(p => p.invoice_image_url).length.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-slate-600 mt-1">มีใบแจ้งหนี้แล้ว</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border-2 border-orange-200">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-orange-600">
+                      {allPayments.filter(p => !p.invoice_image_url).length.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-slate-600 mt-1">ยังไม่มีใบแจ้งหนี้</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border-2 border-purple-200">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-purple-600">
+                      {allPayments.filter(p => p.invoice_image_url && !p.bill_sent_date).length.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-slate-600 mt-1">มีรูปแต่ยังไม่ส่ง</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Info Card */}
         <Card className="border-amber-200 bg-amber-50">
