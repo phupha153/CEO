@@ -77,6 +77,56 @@ const CRON_JOBS = [
     apis: ['LINE_CHANNEL_ACCESS_TOKEN', 'BROWSERLESS_API_KEY']
   },
   {
+    id: 'sendAutomatedOverdueReminders',
+    name: 'แจ้งเตือนค้างชำระอัตโนมัติ (LINE)',
+    description: 'ส่งแจ้งเตือนให้ลูกค้าที่ค้างชำระผ่าน LINE อัตโนมัติ',
+    icon: AlertTriangle,
+    color: 'from-orange-500 to-red-500',
+    recommendedInterval: 'วันละ 1 ครั้ง',
+    functionName: 'sendAutomatedOverdueReminders',
+    apis: ['LINE_CHANNEL_ACCESS_TOKEN']
+  },
+  {
+    id: 'sendOverduePaymentNotifications',
+    name: 'แจ้งเตือน Admin บิลค้างชำระ',
+    description: 'ส่งสรุปบิลค้างชำระให้แอดมินและคำนวณค่าปรับ',
+    icon: Mail,
+    color: 'from-rose-500 to-pink-500',
+    recommendedInterval: 'วันละ 1 ครั้ง',
+    functionName: 'sendOverduePaymentNotifications',
+    apis: []
+  },
+  {
+    id: 'sendVacantRoomNotifications',
+    name: 'แจ้งเตือนห้องว่าง',
+    description: 'แจ้งเตือนห้องที่ว่างเกินกำหนดให้แอดมิน',
+    icon: DoorOpen,
+    color: 'from-cyan-500 to-blue-500',
+    recommendedInterval: 'สัปดาห์ละ 1 ครั้ง',
+    functionName: 'sendVacantRoomNotifications',
+    apis: []
+  },
+  {
+    id: 'sendMaintenanceNotifications',
+    name: 'แจ้งเตือนงานซ่อมบำรุง',
+    description: 'แจ้งเตือนงานซ่อมที่ค้างให้แอดมิน',
+    icon: Wrench,
+    color: 'from-teal-500 to-green-500',
+    recommendedInterval: 'วันละ 1 ครั้ง',
+    functionName: 'sendMaintenanceNotifications',
+    apis: []
+  },
+  {
+    id: 'sendContractExpiryNotifications',
+    name: 'แจ้งเตือนสัญญาใกล้หมดอายุ',
+    description: 'แจ้งเตือนสัญญาที่ใกล้หมดอายุให้แอดมิน',
+    icon: ScrollText,
+    color: 'from-violet-500 to-purple-500',
+    recommendedInterval: 'สัปดาห์ละ 1 ครั้ง',
+    functionName: 'sendContractExpiryNotifications',
+    apis: []
+  },
+  {
     id: 'generateMonthlyBills',
     name: 'สร้างบิลรายเดือน',
     description: 'สร้างบิลค่าเช่ารายเดือนอัตโนมัติ (สร้างข้อมูลบิลเท่านั้น ไม่สร้างรูป)',
