@@ -271,17 +271,22 @@ Deno.serve(async (req) => {
                 // ⭐ ใช้ late_fee_amount จากบิล (ถูกอัปเดตโดย sendOverduePaymentNotifications)
                 const lateFee = payment.late_fee_amount || 0;
                 
+                // ⚠️ total_amount รวมค่าปรับแล้ว ต้องลบออกเพื่อแสดงยอดเดิม
+                const originalAmount = payment.total_amount - lateFee;
+                const totalWithLateFee = payment.total_amount;
+                
                 // ⭐ สร้างข้อความตาม template
                 if (template === 'overdue') {
                     // ข้อความเกินกำหนด
-                    const totalWithLateFee = (payment.total_amount || 0) + lateFee;
-                    const lateFeeText = lateFee > 0 ? `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท\n💰 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท` : '';
-                    
                     message = `🔴 แจ้งเตือนเกินกำหนดชำระ\n\n`;
                     message += `${buildingName}\n`;
                     message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
-                    message += `💰 ยอดเงิน: ${amount} บาท${lateFeeText}\n`;
-                    message += `เกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
+                    message += `💰 ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
+                    if (lateFee > 0) {
+                        message += `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท`;
+                    }
+                    message += `\n💰 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
+                    message += `\nเกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
                     message += `กรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
                     message += `💳 โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
                     message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
