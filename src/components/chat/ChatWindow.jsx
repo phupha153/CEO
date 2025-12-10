@@ -239,7 +239,12 @@ export default function ChatWindow({
                 </div>
               )}
               <p className="font-semibold mt-2">{displayName}</p>
-              <p className="text-xs text-slate-500">LINE: {conversation.line_display_name}</p>
+              {conversation.line_display_name && (
+                <p className="text-xs text-slate-500">LINE: {conversation.line_display_name}</p>
+              )}
+              {conversation.facebook_user_id && (
+                <p className="text-xs text-slate-500">Facebook ID: {conversation.facebook_user_id}</p>
+              )}
             </div>
 
             {tenant ? (
@@ -269,6 +274,14 @@ export default function ChatWindow({
                   <div className="flex items-start gap-2 text-slate-500 text-xs">
                     <span className="flex-shrink-0">LINE ID:</span>
                     <span className="break-all font-mono">{conversation.line_user_id}</span>
+                  </div>
+                )}
+                
+                {/* แสดง Facebook User ID */}
+                {conversation?.facebook_user_id && (
+                  <div className="flex items-start gap-2 text-slate-500 text-xs">
+                    <span className="flex-shrink-0">Facebook ID:</span>
+                    <span className="break-all font-mono">{conversation.facebook_user_id}</span>
                   </div>
                 )}
 
@@ -316,6 +329,14 @@ export default function ChatWindow({
                   <div className="p-2 bg-slate-50 rounded-lg">
                     <p className="text-xs text-slate-500 mb-1">LINE User ID:</p>
                     <p className="text-xs font-mono text-slate-700 break-all">{conversation.line_user_id}</p>
+                  </div>
+                )}
+                
+                {/* แสดง Facebook User ID สำหรับกรณียังไม่เชื่อมต่อ */}
+                {conversation?.facebook_user_id && (
+                  <div className="p-2 bg-slate-50 rounded-lg">
+                    <p className="text-xs text-slate-500 mb-1">Facebook User ID:</p>
+                    <p className="text-xs font-mono text-slate-700 break-all">{conversation.facebook_user_id}</p>
                   </div>
                 )}
 
