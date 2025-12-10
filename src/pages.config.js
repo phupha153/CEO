@@ -52,6 +52,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import FacebookSetupGuide from './pages/FacebookSetupGuide';
 import FacebookScreencastGuide from './pages/FacebookScreencastGuide';
 import Welcome from './pages/Welcome';
+import QuickDeletePayments from './pages/QuickDeletePayments';
 import __Layout from './Layout.jsx';
 
 
@@ -110,6 +111,7 @@ export const PAGES = {
     "FacebookSetupGuide": FacebookSetupGuide,
     "FacebookScreencastGuide": FacebookScreencastGuide,
     "Welcome": Welcome,
+    "QuickDeletePayments": QuickDeletePayments,
 }
 
 export const pagesConfig = {
