@@ -501,8 +501,9 @@ export default function Dashboard() {
       .filter(p => p.payment_date)
       .sort((a, b) => {
         try {
-          const dateA = parseISO(a.payment_date);
-          const dateB = parseISO(b.payment_date);
+          // Sort by created_date (which has time) instead of payment_date (which may only have date)
+          const dateA = parseISO(a.created_date);
+          const dateB = parseISO(b.created_date);
           if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0;
           return dateB.getTime() - dateA.getTime();
         } catch {
