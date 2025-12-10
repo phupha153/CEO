@@ -386,6 +386,7 @@ Deno.serve(async (req) => {
         let imageFailed = 0;
         let lineSent = 0;
         let lineFailed = 0;
+        let allImageResults = []; // ⭐ เก็บผลลัพธ์ทั้งหมดไว้ข้างนอก loop
 
         // แบ่งเป็นกลุ่มละ concurrentLimit
         const chunks = [];
@@ -482,6 +483,7 @@ Deno.serve(async (req) => {
             });
 
             const imageResults = await Promise.all(imagePromises);
+            allImageResults.push(...imageResults); // ⭐ เก็บผลลัพธ์ไว้
 
             // Count results
             for (const result of imageResults) {
@@ -630,7 +632,7 @@ Deno.serve(async (req) => {
         const branchResults = [];
         const branchStats = {};
         
-        for (const result of imageResults) {
+        for (const result of allImageResults) { // ⭐ ใช้ allImageResults แทน imageResults
             if (!result.payment?.branch_id) continue;
             const branchId = result.payment.branch_id;
             
