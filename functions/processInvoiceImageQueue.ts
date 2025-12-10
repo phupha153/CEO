@@ -261,7 +261,7 @@ Deno.serve(async (req) => {
     let base44 = null;
     let targetBranchId = null;
     let batchSize = 10000; // รองรับ 10,000 รายการ (Cron จะรันต่อเนื่อง)
-    let concurrentLimit = 1; // สร้างทีละ 1 รูป (Free tier Browserless)
+    let concurrentLimit = 1; // สร้างทีละ 1 รูป (Free tier Browserless = ~5-10 req/min)
     let maxRunTime = 58000; // 58 วินาที (Deno timeout = 60s)
     let skipLineSend = false; // ⭐ โหมดทดสอบ - สร้างรูปอย่างเดียว ไม่ส่ง LINE
 
@@ -276,7 +276,7 @@ Deno.serve(async (req) => {
                 const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
                 batchSize = body.batch_size || 30;
-                concurrentLimit = body.concurrent_limit || 3;
+                concurrentLimit = body.concurrent_limit || 1; // ⭐ Default = 1 เพื่อไม่โดน rate limit
                 skipLineSend = body.skip_line_send === true;
             }
         } catch (e) {
@@ -495,8 +495,8 @@ Deno.serve(async (req) => {
 
                         console.log(`✅ Payment ${payment.id}: Image created`);
 
-                        // ⭐ รอ 5 วินาที เพื่อไม่ให้โดน rate limit
-                        await delay(5000);
+                        // ⭐ รอ 10 วินาที เพื่อไม่ให้โดน rate limit (Free tier = 5-6 req/min max)
+                        await delay(10000);
 
                         return { 
                             payment: { ...payment, invoice_image_url: imageUrl }, 
