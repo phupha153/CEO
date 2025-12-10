@@ -3,9 +3,11 @@ import { differenceInDays, parseISO, startOfDay } from 'npm:date-fns@3.6.0';
 
 // ส่งการแจ้งเตือนค้างชำระอัตโนมัติให้ผู้เช่า
 Deno.serve(async (req) => {
+    const startTime = Date.now();
+
     try {
         const base44 = createClientFromRequest(req);
-        
+
         console.log('🔴 Starting automated overdue reminders...');
 
         // Parse request body
@@ -358,6 +360,48 @@ Deno.serve(async (req) => {
             }
         }
 
+        const executionTime = Date.now() - startTime;
+
+        // สร้างผลลัพธ์แยกตามสาขา
+        const branchResults = [];
+        const branchStats = {};
+
+        recipients.forEach(r => {
+            const branchId = r.metadata.branchId;
+            if (!branchStats[branchId]) {
+                branchStats[branchId] = { sent: 0, failed: 0, channel: r.metadata.channel };
+            }
+            branchStats[branchId].sent++;
+        });
+
+        sendErrors.forEach(err => {
+            const match = err.match(/ห้อง\s+([^\s:]+)/);
+            const roomMatch = match ? match[1] : null;
+            if (roomMatch) {
+                const recipient = recipients.find(r => r.metadata.roomNumber === roomMatch);
+                if (recipient) {
+                    const branchId = recipient.metadata.branchId;
+                    if (!branchStats[branchId]) {
+                        branchStats[branchId] = { sent: 0, failed: 0 };
+                    }
+                    branchStats[branchId].failed++;
+                }
+            }
+        });
+
+        const branches = await base44.asServiceRole.entities.Branch.list();
+        Object.entries(branchStats).forEach(([branchId, stats]) => {
+            const branch = branches.find(b => b.id === branchId);
+            branchResults.push({
+                branch_id: branchId,
+                branch_name: branch?.branch_name || 'Unknown',
+                status: stats.failed > 0 ? 'partial' : 'success',
+                sent: stats.sent,
+                failed: stats.failed,
+                channel: stats.channel
+            });
+        });
+
         const responseResult = {
             success: true,
             message: testLineUserId 
@@ -378,6 +422,24 @@ Deno.serve(async (req) => {
         };
 
         console.log('🎉 Automated overdue reminder completed:', responseResult);
+
+        // บันทึก FunctionLog
+        try {
+            await base44.asServiceRole.entities.FunctionLog.create({
+                function_name: 'sendAutomatedOverdueReminders',
+                run_timestamp: new Date().toISOString(),
+                status: sendErrors.length > 0 && sentCount === 0 ? 'error' : 'success',
+                message: responseResult.message,
+                execution_time_ms: executionTime,
+                total_sent: sentCount,
+                total_failed: sendErrors.length,
+                branch_results: branchResults,
+                triggered_by: 'cron',
+                details: responseResult
+            });
+        } catch (logError) {
+            console.error('Failed to create FunctionLog:', logError);
+        }
 
         return Response.json(responseResult);
 
