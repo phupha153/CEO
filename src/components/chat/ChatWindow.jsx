@@ -140,13 +140,17 @@ export default function ChatWindow({
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setShowProfile(!showProfile)}
+          onClick={() => {
+            console.log('🔍 Toggle Profile:', !showProfile, 'Tenant:', tenant?.full_name, 'Facebook ID:', conversation.facebook_user_id);
+            setShowProfile(!showProfile);
+          }}
+          className="hover:bg-slate-100"
         >
           <Info className="w-5 h-5" />
         </Button>
       </div>
 
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex overflow-hidden relative h-full">
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {loading ? (
@@ -221,17 +225,18 @@ export default function ChatWindow({
           <>
             {/* Mobile Overlay Backdrop */}
             <div 
-              className="md:hidden fixed inset-0 bg-black/50 z-40"
-              onClick={() => setShowProfile(false)}
+              className="md:hidden fixed inset-0 bg-black/50 z-[100]"
+              onClick={() => {
+                console.log('❌ Close profile panel (backdrop)');
+                setShowProfile(false);
+              }}
             />
             
             {/* Profile Panel */}
-            <div className="
-              w-64 bg-white p-4 overflow-y-auto
-              md:relative md:border-l
-              fixed right-0 top-0 bottom-0 z-50 md:z-auto
-              shadow-2xl md:shadow-none
-            ">
+            <div 
+              className="w-80 bg-white p-4 overflow-y-auto border-l shadow-xl md:relative fixed right-0 top-0 bottom-0 z-[101] md:z-auto"
+              style={{ maxHeight: '100%' }}
+            >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-slate-800">ข้อมูลผู้ติดต่อ</h3>
                 <Button variant="ghost" size="icon" onClick={() => setShowProfile(false)}>
