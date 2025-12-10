@@ -146,7 +146,7 @@ export default function ChatWindow({
         </Button>
       </div>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {loading ? (
@@ -216,15 +216,28 @@ export default function ChatWindow({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Profile Panel */}
+        {/* Profile Panel - Desktop: sidebar, Mobile: overlay */}
         {showProfile && (
-          <div className="w-64 bg-white border-l p-4 overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-slate-800">ข้อมูลผู้ติดต่อ</h3>
-              <Button variant="ghost" size="icon" onClick={() => setShowProfile(false)}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
+          <>
+            {/* Mobile Overlay Backdrop */}
+            <div 
+              className="md:hidden fixed inset-0 bg-black/50 z-40"
+              onClick={() => setShowProfile(false)}
+            />
+            
+            {/* Profile Panel */}
+            <div className="
+              w-64 bg-white p-4 overflow-y-auto
+              md:relative md:border-l
+              fixed right-0 top-0 bottom-0 z-50 md:z-auto
+              shadow-2xl md:shadow-none
+            ">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-slate-800">ข้อมูลผู้ติดต่อ</h3>
+                <Button variant="ghost" size="icon" onClick={() => setShowProfile(false)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
 
             <div className="text-center mb-4">
               {conversation.line_picture_url ? (
