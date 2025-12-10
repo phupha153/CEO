@@ -710,8 +710,6 @@ export default function CronJobSettings() {
                   const hasErrors = jobLogs.some(log => log.status === 'error');
                   const Icon = job.icon;
 
-                  if (jobLogs.length === 0) return null;
-
                   return (
                     <div key={job.id} className="border rounded-xl p-4 bg-white">
                       <div className="flex items-center gap-3 mb-3">
@@ -733,7 +731,11 @@ export default function CronJobSettings() {
                       <Separator className="mb-3" />
 
                       <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {jobLogs.map((log, index) => (
+                        {jobLogs.length === 0 ? (
+                          <div className="text-center py-8 text-slate-400">
+                            <p className="text-sm">ยังไม่มีประวัติการทำงาน</p>
+                          </div>
+                        ) : jobLogs.map((log, index) => (
                           <div 
                             key={log.id || index}
                             className={`p-2.5 rounded-lg border transition-colors ${
@@ -773,12 +775,12 @@ export default function CronJobSettings() {
                                 </p>
                               </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+                            </div>
+                            )))}
+                            </div>
+                            </div>
+                            );
+                            })}
               </div>
             )}
           </CardContent>
