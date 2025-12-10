@@ -1104,6 +1104,34 @@ export default function Dashboard() {
                   <div className="flex flex-wrap items-center gap-3">
                     <Button
                       onClick={() => {
+                        if (generateConnectedTestDataMutation.isPending) {
+                          toast.warning('⏳ กรุณารอให้การสร้างข้อมูลเสร็จก่อน');
+                          return;
+                        }
+                        if (confirm('🔗 สร้างข้อมูลทดสอบที่เชื่อมกัน 100%?\n\n✅ ห้อง + ผู้เช่า + การจอง + มิเตอร์\n✅ พร้อมใช้กับ generateMonthlyBills\n\n⚠️ จะลบข้อมูลเก่าของสาขานี้ทั้งหมด')) {
+                          generateConnectedTestDataMutation.mutate();
+                        }
+                      }}
+                      disabled={generateConnectedTestDataMutation.isPending}
+                      size="sm"
+                      className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                      data-onboarding="create-test-data-button"
+                    >
+                      {generateConnectedTestDataMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          กำลังสร้าง...
+                        </>
+                      ) : (
+                        <>
+                          <Database className="w-4 h-4 mr-2" />
+                          สร้างข้อมูลที่เชื่อมกัน
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
+                      onClick={() => {
                         if (generateTestDataMutation.isPending) {
                           toast.warning('⏳ กรุณารอให้การสร้างข้อมูลเสร็จก่อน');
                           return;
@@ -1115,7 +1143,6 @@ export default function Dashboard() {
                       disabled={generateTestDataMutation.isPending}
                       size="sm"
                       className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
-                      data-onboarding="create-test-data-button"
                     >
                       {generateTestDataMutation.isPending ? (
                         <>
@@ -1125,7 +1152,7 @@ export default function Dashboard() {
                       ) : (
                         <>
                           <Database className="w-4 h-4 mr-2" />
-                          สร้างข้อมูลทดสอบ
+                          สร้างข้อมูลแบบเดิม
                         </>
                       )}
                     </Button>
