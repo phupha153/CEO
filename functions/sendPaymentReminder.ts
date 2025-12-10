@@ -308,47 +308,19 @@ Deno.serve(async (req) => {
                     message += `ชื่อ: ${bankAccountName}\n\n`;
                     message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
                 } else {
-                    // ข้อความปกติ (advance, due_date หรือไม่ระบุ)
-                    message = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
-                    message += `สวัสดีคุณ ${tenant.full_name}\n`;
-                    message += `ห้อง ${roomNum}\n\n`;
-                    message += `รายละเอียดค่าใช้จ่าย:\n`;
-                    message += `━━━━━━━━━━━━━━━━━━━━\n`;
+                    // ข้อความล่วงหน้า (advance) - แบบสั้นกระชับเหมือน sendAdvanceReminders
+                    const advanceDays = parseInt(getConfigValue('bill_advance_notice_days', branchId, '3'));
                     
-                    if (payment.rent_amount > 0) {
-                        message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
-                    }
-                    if (payment.electricity_amount > 0) {
-                        message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-                    }
-                    if (payment.water_amount > 0) {
-                        message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
-                    }
-                    if (payment.internet_amount > 0) {
-                        message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
-                    }
-                    if (payment.common_fee_amount > 0) {
-                        message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
-                    }
-                    if (payment.parking_fee_amount > 0) {
-                        message += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
-                    }
-                    if (payment.other_amount > 0) {
-                        message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
-                    }
-                    
-                    message += `━━━━━━━━━━━━━━━━━━━━\n`;
-                    message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
-                    message += `(${numberToThaiText(payment.total_amount)})\n\n`;
-                    message += `📅 ครบกำหนดชำระ: ${dueDateStr}\n`;
-                    
-                    if (daysOverdue > 0) {
-                        message += `⚠️ สถานะ: ${statusText}\n\n`;
-                    } else {
-                        message += `สถานะ: ${statusText}\n\n`;
-                    }
-                    
-                    message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber} (${bankAccountName})\n\n`;
+                    message = `⚠️ แจ้งเตือนล่วงหน้า\n\n`;
+                    message += `🏠 ${buildingName}\n`;
+                    message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+                    message += `สวัสดีคุณ ${tenant.full_name} ห้อง ${roomNum}\n\n`;
+                    message += `📅 อีก ${advanceDays} วัน จะถึงวันครบกำหนดชำระ (${dueDateStr})\n\n`;
+                    message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
+                    message += `💳 โอนเงินได้ที่:\n`;
+                    message += `ธนาคาร: ${bankName}\n`;
+                    message += `เลขบัญชี: ${bankAccountNumber}\n`;
+                    message += `ชื่อบัญชี: ${bankAccountName}\n\n`;
                 }
             }
 
