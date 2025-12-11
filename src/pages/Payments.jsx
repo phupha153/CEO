@@ -1845,6 +1845,9 @@ ${JSON.stringify(bookingsData, null, 2)}
   };
 
   const handleLongPressStart = (e, paymentId) => {
+    // ⭐ ถ้าอยู่ใน selection mode แล้ว ไม่ต้อง start timer ให้คลิกเลือกได้เลย
+    if (isSelectionMode) return;
+    
     e.preventDefault();
     const timer = setTimeout(() => {
       setIsSelectionMode(true);
@@ -1856,7 +1859,9 @@ ${JSON.stringify(bookingsData, null, 2)}
   };
 
   const handleLongPressEnd = (e) => {
-    if (e) e.preventDefault();
+    // ⭐ ถ้าอยู่ใน selection mode แล้ว ไม่ต้อง preventDefault
+    if (!isSelectionMode && e) e.preventDefault();
+    
     if (longPressTimer) {
       clearTimeout(longPressTimer);
       setLongPressTimer(null);
@@ -2425,10 +2430,10 @@ Return JSON.`;
                   variant="default"
                   size="sm"
                   onClick={selectAllFilteredPayments}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md px-4 py-2 h-auto"
                 >
-                  <CheckSquare className="w-4 h-4 mr-2" />
-                  เลือกทุกรายการ ({filteredPayments.length})
+                  <CheckSquare className="w-5 h-5 mr-2" />
+                  <span className="font-semibold">เลือกทุกรายการ ({filteredPayments.length})</span>
                 </Button>
               )}
             </div>
