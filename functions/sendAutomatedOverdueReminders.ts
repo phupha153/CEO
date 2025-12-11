@@ -594,12 +594,14 @@ Deno.serve(async (req) => {
             console.log(`   📄 Message preview:\n${message.substring(0, 200)}...\n`);
 
             messageCreationDetails.push({
-                paymentId: payment.id,
+                paymentId: latestPayment.id,
                 roomNumber: roomNumber,
                 tenantName: tenant.full_name,
                 hasInvoiceUrl,
-                invoiceUrl: payment.invoice_image_url || 'N/A',
+                invoiceUrl: latestPayment.invoice_image_url || 'N/A',
                 messageLength: message.length,
+                lateFee: lateFee,
+                totalAmount: totalWithLateFee,
                 channels: {
                     line: hasLine,
                     facebook: hasFacebook
@@ -611,7 +613,7 @@ Deno.serve(async (req) => {
                 facebookUserId: hasFacebook ? tenant.facebook_user_id : null,
                 message: message,
                 metadata: {
-                    paymentId: payment.id,
+                    paymentId: latestPayment.id,
                     tenantId: tenant.id,
                     tenantName: tenant.full_name,
                     roomNumber: roomNumber,
