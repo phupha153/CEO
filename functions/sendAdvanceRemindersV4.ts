@@ -238,40 +238,40 @@ Deno.serve(async (req) => {
                 debugCounts.paid++;
                 return false;
             }
-            
+
             // 2. Due date check
             if (!p.due_date) {
                 debugCounts.noDueDate++;
                 return false;
             }
-            
-            // 3. Already sent check
-            if (p.advance_reminder_sent_date) {
+
+            // 3. Already sent check - ⭐⭐⭐ เพิ่มเช็ค bill_sent_date ด้วย
+            if (p.advance_reminder_sent_date || p.bill_sent_date) {
                 debugCounts.alreadySent++;
                 return false;
             }
-            
+
             // 4. Branch filter
             if (targetBranchId && p.branch_id !== targetBranchId) return false;
-            
+
             // 5. Branch enabled check
             if (!enabledBranches.includes(p.branch_id)) {
                 debugCounts.branchDisabled++;
                 return false;
             }
-            
+
             // 6. Date calculation
             const branchAdvanceDays = parseInt(getConfigValue('bill_advance_notice_days', '3', p.branch_id));
             const dueDate = new Date(p.due_date);
             const notifyDate = new Date(dueDate);
             notifyDate.setDate(dueDate.getDate() - branchAdvanceDays);
             const notifyDateString = notifyDate.toISOString().split('T')[0];
-            
+
             if (notifyDateString !== todayDateString) {
                 debugCounts.wrongDate++;
                 return false;
             }
-            
+
             // 7. Image check
             if (!p.invoice_image_url) {
                 debugCounts.noImage++;
@@ -287,7 +287,7 @@ Deno.serve(async (req) => {
                 });
                 return false;
             }
-            
+
             // 8. Hash check (if exists)
             if (p.invoice_data_hash) {
                 const currentHash = generatePaymentHash(p);
@@ -296,7 +296,7 @@ Deno.serve(async (req) => {
                     return false;
                 }
             }
-            
+
             debugCounts.passed++;
             return true;
         });
