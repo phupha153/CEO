@@ -394,9 +394,19 @@ export default function RenewalPage() {
                             <span className="text-slate-700">ระยะเวลา:</span>
                             <span className="font-bold text-slate-800">{packageDuration} เดือน</span>
                           </div>
-                          <div className="flex justify-between items-center pt-2 border-t border-blue-200">
-                            <span className="font-bold text-slate-800">ยอดรวม:</span>
-                            <span className="text-2xl font-bold text-blue-600">{totalWithVAT.toLocaleString(undefined, { maximumFractionDigits: 2 })} ฿</span>
+                          <div className="border-t border-blue-200 pt-3 space-y-2">
+                            <div className="flex justify-between text-slate-600">
+                              <span>ค่าบริการ ({packageDuration} เดือน)</span>
+                              <span>{priceBeforeVAT.toLocaleString()} ฿</span>
+                            </div>
+                            <div className="flex justify-between text-slate-600">
+                              <span>VAT 7%</span>
+                              <span>{vat.toFixed(2)} ฿</span>
+                            </div>
+                            <div className="flex justify-between items-center pt-2 border-t border-blue-200">
+                              <span className="font-bold text-slate-800">ยอดชำระทั้งหมด:</span>
+                              <span className="text-2xl font-bold text-blue-600">{totalWithVAT.toLocaleString(undefined, { maximumFractionDigits: 2 })} ฿</span>
+                            </div>
                           </div>
                         </div>
                       </div>
