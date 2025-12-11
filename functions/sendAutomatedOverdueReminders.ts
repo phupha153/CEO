@@ -281,6 +281,7 @@ Deno.serve(async (req) => {
 
         // 3. ดึงข้อมูลแบบกรองเฉพาะที่จำเป็น - filter status ตั้งแต่ query
         console.log('🔍 Fetching filtered overdue payments...');
+        console.log('⭐ Using NEW VERSION with STEP 1+2+3 (late fee calc + invoice gen + messaging)');
 
         const today = startOfDay(new Date());
         const todayString = today.toISOString().split('T')[0];
