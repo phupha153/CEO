@@ -47,7 +47,9 @@ Deno.serve(async (req) => {
       user_name,
       branch_id,
       branch_ids,
-      app_mode: requestAppMode
+      app_mode: requestAppMode,
+      discount_code,
+      discount_amount
     } = payload;
 
     console.log('=== Processing Subscription Payment ===');
@@ -563,6 +565,47 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ⭐⭐⭐ บันทึกการใช้โค้ดส่วนลดไปยัง CRM
+    if (discount_code && discount_amount > 0) {
+      try {
+        console.log('🎟️ Marking discount code as used in CRM...');
+        
+        const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
+        const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
+
+        if (CRM_API_KEY && CRM_APP_ID) {
+          const markUsedResponse = await fetch(`https://base44-crm-production.up.railway.app/api/use-discount-code`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': CRM_API_KEY,
+              'x-app-id': CRM_APP_ID
+            },
+            body: JSON.stringify({
+              code: discount_code,
+              user_email: user_email || user.email,
+              app_id: CRM_APP_ID,
+              package_id: package_id,
+              package_name: package_name,
+              discount_amount: discount_amount,
+              total_amount: total_amount,
+              payment_date: new Date().toISOString()
+            })
+          });
+
+          if (markUsedResponse.ok) {
+            const markData = await markUsedResponse.json();
+            console.log('✅ Discount code marked as used:', markData);
+          } else {
+            console.warn('⚠️ Failed to mark discount code as used:', await markUsedResponse.text());
+          }
+        }
+      } catch (codeError) {
+        console.error('❌ Error marking discount code:', codeError.message);
+        // ไม่ block การทำงานหลัก
+      }
+    }
+
     // ⭐⭐⭐ ส่งข้อมูลไปยัง CRM ผ่าน sendSubscriptionToCRM function
     try {
       console.log('📤 Sending subscription data to CRM...');
@@ -587,7 +630,9 @@ Deno.serve(async (req) => {
         app_mode: appMode,
         branch_ids: (appMode === 'multi_tenant' && targetBranchIds) ? targetBranchIds : null,
         branch_id: branch_id || null,
-        test_mode: testModeEnabled
+        test_mode: testModeEnabled,
+        discount_code: discount_code || null,
+        discount_amount: discount_amount || 0
       };
 
       console.log('📤 CRM Payload:', JSON.stringify(crmPayload, null, 2));
