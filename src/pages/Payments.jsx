@@ -1884,13 +1884,17 @@ ${JSON.stringify(bookingsData, null, 2)}
         .slice(0, 10);
 
       const prompt = `คุณเป็นผู้ช่วย AI สำหรับระบบจัดการหอพัก ตอบเป็นภาษาไทยเท่านั้น
-        
+
+วันที่ปัจจุบัน: ${format(new Date(), 'yyyy-MM-dd')}
 ผู้ใช้ต้องการดำเนินการกับการชำระเงินที่เลือก ${selectedPaymentIds.length} รายการ
 คำสั่งผู้ใช้: "${bulkAIQuery}"
 ตัวอย่างการชำระเงินที่เลือก: ${JSON.stringify(selectedPaymentsData)}
 
 กรุณาวิเคราะห์ว่าเป็นการดำเนินการอะไร:
 - ถ้าแก้ไขสถานะ: action="update_status" พร้อม new_status ("paid", "pending", "overdue")
+- ถ้าแก้ไขวันครบกำหนด: action="update_status" พร้อม due_date (รูปแบบ YYYY-MM-DD เช่น "2025-12-11")
+  - "เปลี่ยนวันครบกำหนดเป็นวันนี้" → due_date = "${format(new Date(), 'yyyy-MM-dd')}"
+  - "เปลี่ยนเป็นพรุ่งนี้" → due_date = "${format(new Date(Date.now() + 86400000), 'yyyy-MM-dd')}"
 - ถ้าส่งแจ้งเตือน/บิลทาง LINE: action="send_line" 
   - พร้อม message_type: "reminder" (แจ้งเตือนชำระ) หรือ "receipt" (ใบเสร็จ)
 - ถ้าลบ: action="delete"
@@ -1907,6 +1911,7 @@ Return JSON.`;
           properties: {
             action: { type: "string", enum: ["update_status", "send_line", "delete", "none"] },
             new_status: { type: "string", enum: ["paid", "pending", "overdue"] },
+            due_date: { type: "string" },
             message_type: { type: "string", enum: ["reminder", "receipt"] },
             description: { type: "string" },
             confirmation_message: { type: "string" }
@@ -1937,9 +1942,14 @@ Return JSON.`;
         const chunkSize = 10;
         for (let i = 0; i < selectedPaymentIds.length; i += chunkSize) {
           const chunk = selectedPaymentIds.slice(i, i + chunkSize);
-          const promises = chunk.map(id => 
-            base44.entities.Payment.update(id, { status: bulkAIResult.new_status })
-          );
+          const updateData = { status: bulkAIResult.new_status };
+          
+          // ⭐ ถ้ามีการส่ง due_date มาด้วย ให้อัปเดตด้วย
+          if (bulkAIResult.due_date) {
+            updateData.due_date = bulkAIResult.due_date;
+          }
+          
+          const promises = chunk.map(id => base44.entities.Payment.update(id, updateData));
           await Promise.all(promises);
         }
         
@@ -1947,7 +1957,7 @@ Return JSON.`;
         setSelectedPaymentIds([]);
         setBulkAIResult(null);
         setBulkAIQuery('');
-        toast.success(`อัปเดตสถานะเป็น ${bulkAIResult.new_status} สำเร็จ ${selectedPaymentIds.length} รายการ`);
+        toast.success(`อัปเดต ${bulkAIResult.due_date ? 'วันครบกำหนดและสถานะ' : 'สถานะเป็น ' + bulkAIResult.new_status} สำเร็จ ${selectedPaymentIds.length} รายการ`);
         
       } else if (bulkAIResult.action === 'send_line') {
         const paymentsToSend = filteredPayments.filter(p => selectedPaymentIds.includes(p.id));
@@ -4131,10 +4141,19 @@ Return JSON.`;
                         <p className="font-semibold text-slate-800">{bulkAIResult.confirmation_message}</p>
                         <p className="text-sm text-slate-600 mt-1">{bulkAIResult.description}</p>
                         
-                        {bulkAIResult.action === 'update_status' && bulkAIResult.new_status && (
-                          <Badge className="mt-2 bg-blue-100 text-blue-700">
-                            สถานะใหม่: {bulkAIResult.new_status}
-                          </Badge>
+                        {bulkAIResult.action === 'update_status' && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {bulkAIResult.new_status && (
+                              <Badge className="bg-blue-100 text-blue-700">
+                                สถานะใหม่: {bulkAIResult.new_status}
+                              </Badge>
+                            )}
+                            {bulkAIResult.due_date && (
+                              <Badge className="bg-green-100 text-green-700">
+                                วันครบกำหนด: {format(parseISO(bulkAIResult.due_date), 'd MMM yyyy', { locale: th })}
+                              </Badge>
+                            )}
+                          </div>
                         )}
                         {bulkAIResult.action === 'send_line' && bulkAIResult.message_type && (
                           <Badge className="mt-2 bg-green-100 text-green-700">
