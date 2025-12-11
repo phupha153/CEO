@@ -19,6 +19,9 @@ export default function RenewalPage() {
   const [processingPayment, setProcessingPayment] = useState(false);
   const [slipUrl, setSlipUrl] = useState('');
   const [errorDetails, setErrorDetails] = useState(null);
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountData, setDiscountData] = useState(null);
+  const [validatingCode, setValidatingCode] = useState(false);
   
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -55,9 +58,48 @@ export default function RenewalPage() {
   const daysRemaining = getDaysRemaining();
   const isExpired = daysRemaining < 0;
 
+  const handleValidateCode = async () => {
+    if (!discountCode.trim()) {
+      toast.error('กรุณากรอกโค้ดส่วนลด');
+      return;
+    }
+
+    setValidatingCode(true);
+    try {
+      const result = await base44.functions.invoke('validateDiscountCode', {
+        code: discountCode.trim()
+      });
+
+      if (result.data.valid) {
+        setDiscountData(result.data);
+        toast.success(`ใช้โค้ดสำเร็จ! ส่วนลด ${result.data.discount_type === 'percent' ? result.data.discount_value + '%' : result.data.discount_value.toLocaleString() + '฿'}`);
+      } else {
+        setDiscountData(null);
+        toast.error(result.data.error || 'โค้ดไม่ถูกต้อง');
+      }
+    } catch (error) {
+      setDiscountData(null);
+      toast.error('ไม่สามารถตรวจสอบโค้ดได้');
+    } finally {
+      setValidatingCode(false);
+    }
+  };
+
   const priceBeforeVAT = packagePrice;
   const vat = priceBeforeVAT * 0.07;
-  const totalWithVAT = priceBeforeVAT + vat;
+  let totalBeforeCodeDiscount = priceBeforeVAT + vat;
+  
+  // คำนวณส่วนลดจากโค้ด
+  let codeDiscount = 0;
+  if (discountData && discountData.valid) {
+    if (discountData.discount_type === 'percent') {
+      codeDiscount = (totalBeforeCodeDiscount * discountData.discount_value) / 100;
+    } else if (discountData.discount_type === 'fixed') {
+      codeDiscount = discountData.discount_value;
+    }
+  }
+  
+  const totalWithVAT = Math.max(0, totalBeforeCodeDiscount - codeDiscount);
 
   const handleSlipUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -116,7 +158,9 @@ export default function RenewalPage() {
         user_email: currentUser.email,
         user_name: currentUser.full_name,
         branch_ids: [selectedBranchId],
-        app_mode: 'renewal'
+        app_mode: 'renewal',
+        discount_code: discountData?.code || null,
+        discount_amount: codeDiscount || 0
       };
 
       console.log('📦 Sending payment data:', paymentData);
@@ -287,6 +331,60 @@ export default function RenewalPage() {
                         </div>
                       </div>
 
+                      <div className="bg-white rounded-xl p-4 border border-slate-200 mb-6">
+                        <h4 className="font-bold text-slate-800 mb-3 text-sm">โค้ดส่วนลด (ถ้ามี)</h4>
+                        <div className="flex gap-2 mb-3">
+                          <Input
+                            value={discountCode}
+                            onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                            placeholder="กรอกโค้ดส่วนลด"
+                            className="flex-1"
+                            disabled={validatingCode}
+                          />
+                          <Button
+                            onClick={handleValidateCode}
+                            disabled={validatingCode || !discountCode.trim()}
+                            variant="outline"
+                            className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                          >
+                            {validatingCode ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              'ใช้โค้ด'
+                            )}
+                          </Button>
+                        </div>
+                        {discountData && discountData.valid && (
+                          <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                                <span className="text-sm font-semibold text-green-800">
+                                  {discountData.code}
+                                </span>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => {
+                                  setDiscountData(null);
+                                  setDiscountCode('');
+                                }}
+                                className="h-6 w-6 p-0 text-green-600 hover:text-green-700"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            {discountData.description && (
+                              <p className="text-xs text-green-700 mt-1">{discountData.description}</p>
+                            )}
+                            <p className="text-xs text-green-600 mt-1">
+                              ใช้ไปแล้ว {discountData.current_uses}/{discountData.max_uses} ครั้ง
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
                       <div className="pt-6">
                         <Label className="text-sm font-semibold text-slate-800 mb-3 block">
                           อัปโหลดหลักฐานการโอนเงิน
@@ -403,6 +501,12 @@ export default function RenewalPage() {
                               <span>VAT 7%</span>
                               <span>{vat.toFixed(2)} ฿</span>
                             </div>
+                            {codeDiscount > 0 && (
+                              <div className="flex justify-between text-orange-600 font-semibold">
+                                <span>ส่วนลดจากโค้ด {discountData?.code}</span>
+                                <span>-{codeDiscount.toFixed(2)} ฿</span>
+                              </div>
+                            )}
                             <div className="flex justify-between items-center pt-2 border-t border-blue-200">
                               <span className="font-bold text-slate-800">ยอดชำระทั้งหมด:</span>
                               <span className="text-2xl font-bold text-blue-600">{totalWithVAT.toLocaleString(undefined, { maximumFractionDigits: 2 })} ฿</span>
