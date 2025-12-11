@@ -571,8 +571,7 @@ Deno.serve(async (req) => {
         console.log('🎟️ Marking discount code as used in CRM...');
         
         const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
-        const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
-        const CRM_REGISTERED_APP_ID = 'DORM-1763306051935093';
+        const APP_ID = 'DORM-1763306051935093';
 
         if (CRM_API_KEY) {
           const markUsedResponse = await fetch(`https://base44-crm-production.up.railway.app/api/useDiscountCode`, {
@@ -580,12 +579,12 @@ Deno.serve(async (req) => {
             headers: {
               'Content-Type': 'application/json',
               'x-api-key': CRM_API_KEY,
-              'x-app-id': CRM_REGISTERED_APP_ID
+              'x-app-id': APP_ID
             },
             body: JSON.stringify({
               code: discount_code,
               user_email: user_email || user.email,
-              app_id: CRM_REGISTERED_APP_ID,
+              app_id: APP_ID,
               package_id: package_id,
               package_name: package_name,
               discount_amount: discount_amount,
