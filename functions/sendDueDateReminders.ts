@@ -135,11 +135,10 @@ Deno.serve(async (req) => {
 
         console.log(`📊 Payments due today (${todayString}): ${allPayments.length}`);
 
-        // กรองบิลที่ยังไม่ได้ส่งแจ้งเตือน และสาขาเปิดใช้งาน
+        // กรองบิลที่ยังไม่ได้ส่งแจ้งเตือนวันครบกำหนด และสาขาเปิดใช้งาน
         const dueToday = allPayments.filter(p => {
+            // ⭐ เช็คเฉพาะว่าส่งแจ้งเตือนวันครบกำหนดไปแล้วหรือยัง (ไม่เช็ค advance_reminder)
             if (p.due_date_reminder_sent_date) return false;
-            if (p.advance_reminder_sent_date) return false;
-            if (p.bill_sent_date) return false;
             if (!enabledBranches.includes(p.branch_id)) return false;
             return true;
         });
