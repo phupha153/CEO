@@ -37,20 +37,20 @@ Deno.serve(async (req) => {
         console.log('🔍 CRM_API_KEY length:', CRM_API_KEY?.length);
 
         const requestBody = {
+          api_key: CRM_API_KEY,
           code: code.trim().toUpperCase(),
           user_email: user.email,
           app_id: APP_ID
         };
-        console.log('📤 Request Body:', JSON.stringify(requestBody, null, 2));
+        console.log('📤 Request Body:', JSON.stringify({ ...requestBody, api_key: '***' }, null, 2));
 
         const response = await fetch(`https://base44-crm-production.up.railway.app/api/validateDiscountCode`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': CRM_API_KEY
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(requestBody)
-            });
+        });
 
         if (!response.ok) {
             const errorText = await response.text();
