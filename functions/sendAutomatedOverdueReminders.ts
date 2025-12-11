@@ -502,7 +502,80 @@ Deno.serve(async (req) => {
         console.log(`   - Failed: ${invoicesFailed}`);
         console.log(`   - Skipped: ${paymentsToProcess.length - invoicesGenerated - invoicesFailed}`);
 
-        // ⭐⭐⭐ ดึง payment ใหม่ทั้งหมดหลังสร้างรูป เพื่อให้ได้ invoice_image_url และ late_fee_amount ล่าสุด
+        // ⭐⭐⭐ คำนวณและอัปเดตค่าปรับก่อน (ต้องทำก่อนสร้างข้อความ)
+        console.log(`\n💰 ========== CALCULATING LATE FEES ==========`);
+        for (const payment of paymentsToProcess) {
+            const dueDate = startOfDay(parseISO(payment.due_date));
+            const daysOverdue = differenceInDays(today, dueDate);
+            
+            if (daysOverdue <= 0) continue;
+            
+            const branchId = payment.branch_id;
+            let lateFee = 0;
+            
+            // เช็คว่าใช้ระบบ tiers หรือไม่
+            const branchTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === branchId);
+            const globalTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
+            const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
+            const tiersEnabled = tiersEnabledConfig?.value === 'true';
+            
+            if (tiersEnabled) {
+                const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === branchId);
+                const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
+                const tiersConfig = branchTiersConfig || globalTiersConfig;
+                
+                if (tiersConfig?.value) {
+                    try {
+                        const tiers = JSON.parse(tiersConfig.value);
+                        for (const tier of tiers) {
+                            const daysFrom = tier.days_from || 1;
+                            const daysTo = tier.days_to || 999;
+                            const feePerDay = parseFloat(tier.fee_per_day || 0);
+                            if (daysOverdue >= daysFrom) {
+                                const daysInTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+                                if (daysInTier > 0) lateFee += daysInTier * feePerDay;
+                            }
+                            if (daysOverdue <= daysTo) break;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing tiers:', e);
+                    }
+                }
+            } else {
+                const branchConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === branchId);
+                const globalConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
+                const config = branchConfig || globalConfig;
+                const feePerDay = parseFloat(config?.value || '0');
+                if (!isNaN(feePerDay) && feePerDay > 0) {
+                    lateFee = daysOverdue * feePerDay;
+                }
+            }
+            
+            // อัปเดตค่าปรับและ total_amount
+            const currentLateFee = payment.late_fee_amount || 0;
+            const baseAmount = payment.total_amount - currentLateFee;
+            const newTotalAmount = baseAmount + lateFee;
+            
+            const room = roomMap.get(payment.room_id);
+            console.log(`💰 Payment ${payment.id.substring(0,8)} (ห้อง ${room?.room_number}): ${daysOverdue} วัน → ค่าปรับ ${lateFee} บาท`);
+            
+            await base44.asServiceRole.entities.Payment.update(payment.id, {
+                status: 'overdue',
+                late_fee_amount: lateFee,
+                total_amount: newTotalAmount
+            });
+            
+            // อัปเดต payment object
+            payment.late_fee_amount = lateFee;
+            payment.total_amount = newTotalAmount;
+            payment.status = 'overdue';
+            
+            await delay(200);
+        }
+        
+        console.log(`✅ Late fees calculated and updated for ${paymentsToProcess.length} payments`);
+        
+        // ⭐⭐⭐ ดึง payment ใหม่ทั้งหมดหลังคำนวณค่าปรับและสร้างรูป
         console.log(`\n🔄 Refreshing payment data to get latest invoice URLs and late fees...`);
         const paymentIds = paymentsToProcess.map(p => p.id);
         const refreshedPaymentsArray = await Promise.all(
