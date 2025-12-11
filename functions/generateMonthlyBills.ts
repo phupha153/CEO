@@ -189,6 +189,7 @@ Deno.serve(async (req) => {
         });
 
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
+        await delay(1500); // ⭐ พักหลัง Step 1
 
         // ⭐⭐⭐ Normalize entities ก่อน
         const normalizeEntity = (entity) => {
@@ -338,11 +339,14 @@ Deno.serve(async (req) => {
 
 
 
-                if (hasMore) await delay(200);
+                if (hasMore) await delay(500); // ⭐ เพิ่ม delay ระหว่าง batch
             }
             
             console.log(`   - สาขา ${branchId}: ${branchPayments.length} payments`);
             recentPayments = recentPayments.concat(branchPayments);
+            
+            // ⭐ Delay ระหว่างสาขาเพื่อหลีกเลี่ยง rate limit
+            await delay(1500);
         }
 
         console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments.length} (only target branches)`);
