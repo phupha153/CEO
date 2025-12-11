@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -246,8 +247,8 @@ export default function ChatWindow({
           </div>
         </div>
 
-      {/* Profile Panel - Fixed Overlay Slide from Right */}
-      {showProfile && (
+      {/* Profile Panel - Use Portal to render at document.body */}
+      {showProfile && createPortal(
         <>
           {/* Backdrop */}
           <div 
@@ -257,7 +258,7 @@ export default function ChatWindow({
               setShowProfile(false);
             }}
           />
-          
+
           {/* Profile Panel - Fixed Right Sidebar with Slide Animation */}
           <div 
             className="fixed right-0 top-0 bottom-0 w-80 bg-white shadow-2xl z-[1000] overflow-y-auto animate-in slide-in-from-right duration-300"
@@ -582,9 +583,10 @@ export default function ChatWindow({
                 </div>
               )}
             </div>
-          </div>
-        </>
-      )}
+            </div>
+            </>,
+            document.body
+            )}
     </div>
   );
 }
