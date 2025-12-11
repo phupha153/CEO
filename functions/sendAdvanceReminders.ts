@@ -181,33 +181,38 @@ Deno.serve(async (req) => {
         console.log('   With due_date:', payments.filter(p => p.due_date).length);
         console.log('   Already sent reminder:', payments.filter(p => p.advance_reminder_sent_date).length);
 
+        // Pre-load branch and room info for debugging
+        const branchesData = await base44.asServiceRole.entities.Branch.list();
+        const branchMap = new Map(branchesData.map(b => [b.id, b.branch_name]));
+
         // Filter payments
-        console.log('\n🔍 FILTERING (showing first 5 payments)...\n');
+        console.log('\n🔍 FILTERING (first 5 payments with details)...\n');
         
         let debugCount = 0;
         let upcomingPayments = payments.filter(p => {
             const shouldDebug = debugCount < 5;
             
             if (shouldDebug) {
-                console.log(`━━━ Payment ${debugCount + 1} ━━━`);
-                console.log('ID:', p.id);
-                console.log('Status:', p.status);
-                console.log('Due Date:', p.due_date || 'NONE');
-                console.log('Has Image:', !!p.invoice_image_url ? 'YES' : 'NO');
+                const tenant = tenantMap.get(p.tenant_id);
+                const room = roomMap.get(p.room_id);
+                const branchName = branchMap.get(p.branch_id) || 'Unknown';
+                
+                console.log(`━━━ [${branchName}] ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'ไม่ทราบชื่อ'} ━━━`);
+                console.log('Status:', p.status, '| Due:', p.due_date || 'NONE', '| Image:', !!p.invoice_image_url ? 'YES' : 'NO');
                 console.log('Already Sent:', p.advance_reminder_sent_date || 'NO');
                 debugCount++;
             }
             
             if (p.status === 'paid') {
-                if (shouldDebug) console.log('❌ SKIP: Paid');
+                if (shouldDebug) console.log('❌ SKIP: Paid\n');
                 return false;
             }
             if (!p.due_date) {
-                if (shouldDebug) console.log('❌ SKIP: No due_date');
+                if (shouldDebug) console.log('❌ SKIP: No due_date\n');
                 return false;
             }
             if (p.advance_reminder_sent_date) {
-                if (shouldDebug) console.log('❌ SKIP: Already sent');
+                if (shouldDebug) console.log('❌ SKIP: Already sent\n');
                 return false;
             }
             
@@ -217,25 +222,14 @@ Deno.serve(async (req) => {
             notifyDate.setDate(dueDate.getDate() - branchAdvanceDays);
             const notifyDateString = notifyDate.toISOString().split('T')[0];
             
-            if (shouldDebug) {
-                console.log('Advance Days:', branchAdvanceDays);
-                console.log('Should Notify On:', notifyDateString);
-                console.log('Today:', todayDateString);
-                console.log('Match:', notifyDateString === todayDateString ? 'YES ✅' : 'NO ❌');
-            }
-            
             const shouldNotifyToday = notifyDateString === todayDateString;
             
-            if (targetBranchId && p.branch_id !== targetBranchId) {
-                if (shouldDebug) console.log('❌ SKIP: Wrong branch');
-                return false;
+            if (shouldDebug) {
+                console.log(`Notify on: ${notifyDateString} (${branchAdvanceDays} days before) | Today: ${todayDateString}`);
+                console.log(shouldNotifyToday ? '✅ PASS!\n' : '❌ SKIP: Not today\n');
             }
             
-            if (shouldDebug && shouldNotifyToday) {
-                console.log('✅ PASS!\n');
-            } else if (shouldDebug) {
-                console.log('');
-            }
+            if (targetBranchId && p.branch_id !== targetBranchId) return false;
             
             return shouldNotifyToday;
         });
@@ -268,6 +262,7 @@ Deno.serve(async (req) => {
         for (const payment of paymentsToProcess) {
             const tenant = tenantMap.get(payment.tenant_id);
             const room = roomMap.get(payment.room_id);
+            const branchName = branchMap.get(payment.branch_id) || 'Unknown';
 
             if (!tenant) continue;
 
@@ -275,7 +270,7 @@ Deno.serve(async (req) => {
             const hasFacebook = !!tenant.facebook_user_id;
 
             if (!hasLine && !hasFacebook) {
-                console.log(`⚠️ ${room?.room_number}: No LINE/Facebook`);
+                console.log(`⚠️ [${branchName}] ห้อง ${room?.room_number} - ${tenant.full_name}: ไม่มี LINE/Facebook`);
                 continue;
             }
 
@@ -284,7 +279,7 @@ Deno.serve(async (req) => {
             const savedHash = payment.invoice_data_hash || '';
 
             if (!invoiceImageUrl || (savedHash && currentHash !== savedHash)) {
-                console.log(`⏭️ ${room?.room_number}: No image or hash mismatch`);
+                console.log(`⏭️ [${branchName}] ห้อง ${room?.room_number} - ${tenant.full_name}: ${!invoiceImageUrl ? 'ไม่มีรูปบิล' : 'hash ไม่ตรง'}`);
                 skippedNoImage++;
                 continue;
             }
