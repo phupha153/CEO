@@ -27,11 +27,10 @@ Deno.serve(async (req) => {
         }
 
         const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
-        const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
         const CRM_REGISTERED_APP_ID = 'DORM-1763306051935093';
 
-        if (!CRM_API_KEY || !CRM_APP_ID) {
-            console.error('❌ Missing CRM_API_KEY or CRM_APP_ID');
+        if (!CRM_API_KEY) {
+            console.error('❌ Missing CRM_API_KEY');
             return Response.json({
                 success: false,
                 error: 'ระบบไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแล'
@@ -41,7 +40,8 @@ Deno.serve(async (req) => {
         console.log('🎟️ Marking discount code as used in CRM...');
         console.log('🔍 Code:', code);
         console.log('🔍 User email:', user_email || user.email);
-        console.log('🔍 App ID:', CRM_REGISTERED_APP_ID);
+        console.log('🔍 x-app-id (header):', CRM_REGISTERED_APP_ID);
+        console.log('🔍 app_id (body):', CRM_REGISTERED_APP_ID);
 
         // เรียก CRM API บันทึกการใช้โค้ด
         const response = await fetch(`https://base44-crm-production.up.railway.app/api/useDiscountCode`, {
