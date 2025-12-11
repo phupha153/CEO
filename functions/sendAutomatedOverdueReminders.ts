@@ -225,25 +225,10 @@ Deno.serve(async (req) => {
             }
         }
 
-        // 6. อัปเดต overdue_reminder_sent_date แบบ bulk
-        const now = new Date().toISOString();
-        const paymentIdsToUpdate = recipients.map(r => r.metadata.paymentId);
-        
-        const updateBatchSize = 50;
-        for (let i = 0; i < paymentIdsToUpdate.length; i += updateBatchSize) {
-            const batch = paymentIdsToUpdate.slice(i, i + updateBatchSize);
-            await Promise.all(
-                batch.map(id => 
-                    base44.asServiceRole.entities.Payment.update(id, { overdue_reminder_sent_date: now })
-                        .catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
-                )
-            );
-            console.log(`✅ Updated overdue_reminder_sent_date: ${Math.min(i + updateBatchSize, paymentIdsToUpdate.length)}/${paymentIdsToUpdate.length}`);
-        }
-
-        // 7. ส่งข้อความ
+        // 6. ส่งข้อความ
         let sentCount = 0;
         let sendErrors = [];
+        const successfulPaymentIds = new Set();
 
         const lineRecipients = recipients.filter(r => r.lineUserId);
         const facebookRecipients = recipients.filter(r => r.facebookUserId);
@@ -251,37 +236,29 @@ Deno.serve(async (req) => {
         console.log(`📊 Recipients: ${lineRecipients.length} LINE, ${facebookRecipients.length} Facebook`);
 
         if (recipients.length > 0) {
-            // TEST MODE
             if (testLineUserId) {
                 console.log(`🧪 TEST MODE: Sending sample to ${testLineUserId}`);
-                
-                const sampleRecipient = recipients[0];
+                const sample = recipients[0];
                 
                 try {
                     const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
                         recipients: [{
                             lineUserId: testLineUserId,
-                            message: sampleRecipient.message,
-                            metadata: { ...sampleRecipient.metadata, testMode: true }
+                            message: sample.message,
+                            metadata: { ...sample.metadata, testMode: true }
                         }],
-                        options: {
-                            batchSize: 1,
-                            retryAttempts: 2
-                        }
+                        options: { batchSize: 1, retryAttempts: 2 }
                     });
 
-                    const result = batchResult.data;
-                    sentCount = result.success;
-
-                    if (result.success > 0) {
-                        console.log(`✅ Test message sent successfully`);
-                    }
+                    sentCount = batchResult.data.success || 0;
+                    if (sentCount > 0) successfulPaymentIds.add(sample.metadata.paymentId);
+                    console.log(`✅ Test sent: ${sentCount}`);
                 } catch (error) {
-                    console.error('❌ Error sending test message:', error);
-                    sendErrors.push(`Test mode error: ${error.message}`);
+                    console.error('❌ Test error:', error);
+                    sendErrors.push(`Test: ${error.message}`);
                 }
             } else {
-                // ส่งจริง - LINE
+                // LINE
                 if (lineRecipients.length > 0) {
                     console.log(`📤 Sending ${lineRecipients.length} LINE overdue reminders...`);
                     
@@ -291,11 +268,9 @@ Deno.serve(async (req) => {
                         chunks.push(lineRecipients.slice(i, i + CHUNK_SIZE));
                     }
 
-                    console.log(`📦 Split into ${chunks.length} chunks`);
-
                     for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
                         const chunk = chunks[chunkIdx];
-                        console.log(`📤 Chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} messages)`);
+                        console.log(`📤 Chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} msgs)`);
 
                         try {
                             const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
@@ -310,19 +285,26 @@ Deno.serve(async (req) => {
 
                             const result = batchResult.data;
                             sentCount += result.success || 0;
-                        
+                            
+                            const failedPaymentIds = new Set();
                             if (result.errors && result.errors.length > 0) {
                                 result.errors.slice(0, 5).forEach(err => {
-                                    const meta = err.metadata;
-                                    sendErrors.push(`ห้อง ${meta?.roomNumber || 'N/A'}: ${err.error}`);
+                                    sendErrors.push(`ห้อง ${err.metadata?.roomNumber || 'N/A'}: ${err.error}`);
+                                    if (err.metadata?.paymentId) failedPaymentIds.add(err.metadata.paymentId);
                                 });
                             }
+                            
+                            chunk.forEach(r => {
+                                if (!failedPaymentIds.has(r.metadata.paymentId)) {
+                                    successfulPaymentIds.add(r.metadata.paymentId);
+                                }
+                            });
 
                             console.log(`✅ Chunk ${chunkIdx + 1}: sent ${result.success || 0}/${chunk.length}`);
 
                         } catch (error) {
                             console.error(`❌ Chunk ${chunkIdx + 1} error:`, error.message);
-                            sendErrors.push(`Chunk ${chunkIdx + 1} error: ${error.message}`);
+                            sendErrors.push(`Chunk ${chunkIdx + 1}: ${error.message}`);
                         }
 
                         if (chunkIdx < chunks.length - 1) {
@@ -331,7 +313,7 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                // ส่งจริง - Facebook
+                // Facebook
                 if (facebookRecipients.length > 0) {
                     console.log(`📤 Sending ${facebookRecipients.length} Facebook reminders...`);
 
@@ -343,7 +325,8 @@ Deno.serve(async (req) => {
                                 branch_id: recipient.metadata.branchId
                             });
                             sentCount++;
-                            console.log(`✅ Facebook sent to ${recipient.metadata.tenantName}`);
+                            successfulPaymentIds.add(recipient.metadata.paymentId);
+                            console.log(`✅ Facebook → ${recipient.metadata.tenantName}`);
                         } catch (error) {
                             console.error(`❌ Facebook error:`, error);
                             sendErrors.push(`Facebook ห้อง ${recipient.metadata.roomNumber}: ${error.message}`);
@@ -351,6 +334,25 @@ Deno.serve(async (req) => {
                     }
                 }
             }
+        }
+
+        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ
+        console.log(`📝 Updating sent_date for ${successfulPaymentIds.size} successful payments...`);
+        const now_iso = new Date().toISOString();
+        const updateBatchSize = 50;
+        const paymentIdsArray = Array.from(successfulPaymentIds);
+        
+        for (let i = 0; i < paymentIdsArray.length; i += updateBatchSize) {
+            const batch = paymentIdsArray.slice(i, i + updateBatchSize);
+            await Promise.all(
+                batch.map(id => 
+                    base44.asServiceRole.entities.Payment.update(id, { 
+                        overdue_reminder_sent_date: now_iso
+                    })
+                        .catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
+                )
+            );
+            console.log(`✅ Updated ${Math.min(i + updateBatchSize, paymentIdsArray.length)}/${paymentIdsArray.length}`);
         }
 
         const executionTime = Date.now() - startTime;

@@ -68,175 +68,91 @@ Deno.serve(async (req) => {
             return globalConfig?.value || defaultValue;
         };
 
+        // ⭐ Helper function สำหรับดึงข้อมูลแบบ pagination
+        async function fetchAll(entity, filter = null) {
+            let allData = [];
+            let skip = 0;
+            let hasMore = true;
+            
+            while (hasMore) {
+                const batch = filter 
+                    ? await entity.filter(filter, '-created_date', 5000, skip)
+                    : await entity.list('-created_date', 5000, skip);
+                    
+                if (!Array.isArray(batch) || batch.length === 0) {
+                    hasMore = false;
+                } else {
+                    allData = allData.concat(batch);
+                    skip += batch.length;
+                    if (batch.length < 5000) hasMore = false;
+                }
+            }
+            return allData;
+        }
+
         // ⭐ ดึงวันที่จาก test_current_date ถ้ามี (สำหรับทดสอบ)
         const testDateConfig = configs.find(c => c.key === 'test_current_date' && !c.branch_id);
         let todayString;
         
         if (testDateConfig && testDateConfig.value && testDateConfig.value.trim() !== '') {
-            // ใช้วันที่ทดสอบ
             todayString = testDateConfig.value.trim();
             console.log(`🧪 TEST MODE: Using test_current_date = ${todayString}`);
         } else {
-            // ⭐ ใช้เวลาไทย (UTC+7) แทน UTC
             const now = new Date();
-            const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000)); // เพิ่ม 7 ชม.
+            const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
             todayString = thailandTime.toISOString().split('T')[0];
-            console.log(`📅 Using Thailand date: ${todayString} (UTC: ${now.toISOString()})`);
+            console.log(`📅 Using Thailand date: ${todayString}`);
         }
 
-        // 3. ดึง payments แยกตาม branch เพื่อไม่ให้ JSON ใหญ่เกินไป
-        console.log(`🔍 Fetching payments for ${enabledBranches.length} branches on ${todayString}...`);
+        // 3. ดึงข้อมูลทั้งหมดแบบ pagination
+        console.log('🔍 Fetching all data...');
 
-        let allPayments = [];
-        let fetchedBranches = 0;
+        const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : null;
+        const [allPayments, allTenants, allRooms] = await Promise.all([
+            fetchAll(base44.asServiceRole.entities.Payment, paymentFilter),
+            fetchAll(base44.asServiceRole.entities.Tenant),
+            fetchAll(base44.asServiceRole.entities.Room)
+        ]);
 
-        // ดึงทีละ branch จากสาขาที่เปิดการแจ้งเตือน
-        for (const branchId of enabledBranches) {
-            try {
-                // ⭐ ดึง payment ทั้งหมดของสาขา แล้วกรองเองใน JavaScript
-                const branchPayments = await base44.asServiceRole.entities.Payment.filter({ 
-                    branch_id: branchId
-                });
-
-                const branchPaymentsArray = Array.isArray(branchPayments) ? branchPayments : [];
-
-                // กรองหา payment ที่ due_date = todayString และยังไม่ชำระ
-                const dueTodayPayments = branchPaymentsArray.filter(p => {
-                    if (p.status === 'paid') return false;
-                    if (!p.due_date) return false;
-
-                    const dueDateStr = p.due_date.split('T')[0];
-                    return dueDateStr === todayString;
-                });
-
-                allPayments = allPayments.concat(dueTodayPayments);
-                fetchedBranches++;
-
-                if (dueTodayPayments.length > 0) {
-                    console.log(`✅ Branch ${branchId.substring(0, 8)}: ${dueTodayPayments.length} payments due today (from ${branchPaymentsArray.length} total)`);
-                    // Debug: แสดงตัวอย่าง payment
-                    dueTodayPayments.slice(0, 2).forEach(p => {
-                        console.log(`   📄 Payment ${p.id?.substring(0, 8)}: due ${p.due_date}, status ${p.status}, amount ${p.total_amount}`);
-                    });
-                }
-            } catch (err) {
-                console.error(`❌ Error fetching payments for branch ${branchId.substring(0, 8)}:`, err.message);
-            }
-        }
-
-        console.log(`✅ Fetched ${fetchedBranches}/${enabledBranches.length} branches`);
-        console.log(`✅ Total payments due today: ${allPayments.length}`);
-
-        const payments = allPayments;
+        const tenantMap = new Map(allTenants.map(t => [t.id, t]));
+        const roomMap = new Map(allRooms.map(r => [r.id, r]));
         
+        console.log(`✅ Loaded ${allPayments.length} payments, ${allTenants.length} tenants, ${allRooms.length} rooms`);
 
+        // กรองหา payment ที่ due_date = วันนี้
+        const paymentsWithDueDate = allPayments.filter(p => {
+            if (p.status === 'paid') return false;
+            if (!p.due_date) return false;
+
+            const dueDateStr = p.due_date.split('T')[0];
+            return dueDateStr === todayString;
+        });
+
+        console.log(`📊 Payments due today (${todayString}): ${paymentsWithDueDate.length}`);
 
         // กรองบิลที่ยังไม่ได้ส่งแจ้งเตือน และสาขาเปิดใช้งาน
-        const dueToday = payments.filter(p => {
-            // ⭐ ถ้าส่งแจ้งเตือนวันครบกำหนดไปแล้ว ไม่ต้องส่งซ้ำ
-            if (p.due_date_reminder_sent_date) {
-                console.log(`⏭️ Skipping payment ${p.id} - already sent due date reminder`);
-                return false;
-            }
-
-            // ⭐ ถ้าส่งแจ้งเตือนล่วงหน้าไปแล้ว ก็ไม่ต้องส่งครบกำหนดอีก
-            if (p.advance_reminder_sent_date) {
-                console.log(`⏭️ Skipping payment ${p.id} - already sent advance reminder`);
-                return false;
-            }
-
-            // ⭐ ถ้าส่งบิลไปแล้ว (bill_sent_date) ก็ไม่ต้องส่งซ้ำ
-            if (p.bill_sent_date) {
-                console.log(`⏭️ Skipping payment ${p.id} - already sent bill`);
-                return false;
-            }
-
-            // ⭐ เช็คว่าสาขานี้เปิดการแจ้งเตือนหรือไม่
-            if (!enabledBranches.includes(p.branch_id)) {
-                console.log(`⏭️ Skipping payment ${p.id} - branch ${p.branch_id} has due date reminder disabled`);
-                return false;
-            }
-
+        const dueToday = paymentsWithDueDate.filter(p => {
+            if (p.due_date_reminder_sent_date) return false;
+            if (p.advance_reminder_sent_date) return false;
+            if (p.bill_sent_date) return false;
+            if (!enabledBranches.includes(p.branch_id)) return false;
             return true;
         });
 
         const totalDueToday = dueToday.length;
-        console.log(`📊 Found ${totalDueToday} payments due today`);
+        console.log(`📊 Found ${totalDueToday} payments ready to send`);
 
-        // ⭐ จำกัดจำนวนบิลที่จะประมวลผลในรอบนี้
         const paymentsToProcess = dueToday.slice(0, limit);
         const totalRemaining = totalDueToday - paymentsToProcess.length;
 
         console.log(`📋 Processing this round: ${paymentsToProcess.length}`);
         console.log(`📋 Remaining for next round: ${totalRemaining}`);
 
-        if (totalDueToday === 0) {
-            return Response.json({
-                success: true,
-                message: 'ไม่มีบิลที่ครบกำหนดชำระวันนี้',
-                sent: 0,
-                total: 0,
-                remaining: 0,
-                hasMore: false
-            });
-        }
-
-        // ⭐ ดึงข้อมูล Tenant และ Room แบบ batch เพื่อลด rate limit
-        console.log('📥 Pre-fetching tenants and rooms in batches...');
-        const tenantIds = [...new Set(dueToday.map(p => p.tenant_id).filter(Boolean))];
-        const roomIds = [...new Set(dueToday.map(p => p.room_id).filter(Boolean))];
-        
-        let allTenants = [];
-        let allRooms = [];
-        
-        // ⭐ ดึง tenant แบบ batch 50 รายการต่อครั้ง
-        const tenantBatchSize = 50;
-        for (let i = 0; i < tenantIds.length; i += tenantBatchSize) {
-            const batchIds = tenantIds.slice(i, i + tenantBatchSize);
-            try {
-                const batchTenants = await base44.asServiceRole.entities.Tenant.list('-created_date', 10000);
-                const filtered = batchTenants.filter(t => batchIds.includes(t.id));
-                allTenants = allTenants.concat(filtered);
-                console.log(`📥 Tenant batch ${Math.floor(i / tenantBatchSize) + 1}: ${filtered.length}/${batchIds.length} found`);
-                
-                // delay เล็กน้อยเพื่อลด rate limit
-                if (i + tenantBatchSize < tenantIds.length) {
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                }
-            } catch (e) {
-                console.error(`❌ Error fetching tenant batch:`, e.message);
-            }
-        }
-        
-        // ⭐ ดึง room แบบ batch
-        const roomBatchSize = 100;
-        for (let i = 0; i < roomIds.length; i += roomBatchSize) {
-            const batchIds = roomIds.slice(i, i + roomBatchSize);
-            try {
-                const batchRooms = await base44.asServiceRole.entities.Room.list('-created_date', 10000);
-                const filtered = batchRooms.filter(r => batchIds.includes(r.id));
-                allRooms = allRooms.concat(filtered);
-                console.log(`📥 Room batch ${Math.floor(i / roomBatchSize) + 1}: ${filtered.length}/${batchIds.length} found`);
-                
-                if (i + roomBatchSize < roomIds.length) {
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                }
-            } catch (e) {
-                console.error(`❌ Error fetching room batch:`, e.message);
-            }
-        }
-        
-        const tenantMap = new Map(allTenants.map(t => [t.id, t]));
-        const roomMap = new Map(allRooms.map(r => [r.id, r]));
-        
-        console.log(`✅ Loaded ${allTenants.length} tenants, ${allRooms.length} rooms`);
-
-        // 4. เตรียมข้อความสำหรับแต่ละบิล (grouped by branch)
+        // 4. เตรียมข้อความสำหรับแต่ละบิล
         const recipients = [];
 
         for (const payment of paymentsToProcess) {
             try {
-                // ⭐ ใช้ Map lookup แทน API call ในลูป
                 const tenant = tenantMap.get(payment.tenant_id);
                 const room = roomMap.get(payment.room_id);
 
@@ -289,103 +205,97 @@ Deno.serve(async (req) => {
             }
         }
 
-        // 5. ส่งข้อความ (แยก LINE และ Facebook)
+        // 5. ส่งข้อความ
         let sentCount = 0;
         let sendErrors = [];
+        const successfulPaymentIds = new Set();
 
-        // แยก recipients ตาม channel
         const lineRecipients = recipients.filter(r => r.lineUserId);
-        const facebookRecipients = recipients.filter(r => !r.lineUserId && r.facebookUserId);
+        const facebookRecipients = recipients.filter(r => r.facebookUserId);
 
         console.log(`📊 Recipients: ${lineRecipients.length} LINE, ${facebookRecipients.length} Facebook`);
 
         if (recipients.length > 0) {
-            // ⭐ TEST MODE: ถ้ามี test_line_user_id ให้ส่งไปหาคนเดียวแทน
             if (testLineUserId) {
                 console.log(`🧪 TEST MODE: Sending sample to ${testLineUserId}`);
-                
-                const sampleRecipient = recipients[0];
+                const sample = recipients[0];
                 
                 try {
                     const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
                         recipients: [{
                             lineUserId: testLineUserId,
-                            message: sampleRecipient.message,
-                            metadata: { ...sampleRecipient.metadata, testMode: true }
+                            message: sample.message,
+                            metadata: { ...sample.metadata, testMode: true }
                         }],
-                        options: {
-                            batchSize: 1,
-                            retryAttempts: 2
-                        }
+                        options: { batchSize: 1, retryAttempts: 2 }
                     });
 
-                    const result = batchResult.data;
-                    sentCount = result.success;
-
-                    if (result.success > 0) {
-                        console.log(`✅ Test message sent successfully`);
-                    }
+                    sentCount = batchResult.data.success || 0;
+                    if (sentCount > 0) successfulPaymentIds.add(sample.metadata.paymentId);
+                    console.log(`✅ Test sent: ${sentCount}`);
                 } catch (error) {
-                    console.error('❌ Error sending test message:', error);
-                    sendErrors.push(`Test mode error: ${error.message}`);
+                    console.error('❌ Test error:', error);
+                    sendErrors.push(`Test: ${error.message}`);
                 }
             } else {
-                // ส่งจริง - LINE
+                // LINE
                 if (lineRecipients.length > 0) {
-                    try {
-                        console.log(`📤 Sending ${lineRecipients.length} LINE reminders...`);
-                        
-                        const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                            recipients: lineRecipients,
-                            options: {
-                                batchSize: 20,
-                                delayBetweenBatches: 2000,
-                                delayBetweenMessages: 100,
-                                retryAttempts: 3
-                            }
-                        });
+                    console.log(`📤 Sending ${lineRecipients.length} LINE messages...`);
+                    
+                    const CHUNK_SIZE = 50;
+                    const chunks = [];
+                    for (let i = 0; i < lineRecipients.length; i += CHUNK_SIZE) {
+                        chunks.push(lineRecipients.slice(i, i + CHUNK_SIZE));
+                    }
 
-                        const result = batchResult.data;
-                        sentCount += result.success || 0;
-                        
-                        // ⭐ รวบรวม paymentId ที่ส่งไม่สำเร็จ
-                        const failedPaymentIds = new Set();
-                        if (result.errors && result.errors.length > 0) {
-                            result.errors.forEach(err => {
-                                const meta = err.metadata;
-                                sendErrors.push(`LINE ห้อง ${meta?.roomNumber || 'N/A'}: ${err.error}`);
-                                if (meta?.paymentId) failedPaymentIds.add(meta.paymentId);
+                    for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
+                        const chunk = chunks[chunkIdx];
+                        console.log(`📤 Chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} msgs)`);
+
+                        try {
+                            const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                                recipients: chunk,
+                                options: {
+                                    batchSize: 10,
+                                    delayBetweenBatches: 2000,
+                                    delayBetweenMessages: 150,
+                                    retryAttempts: 3
+                                }
                             });
-                        }
 
-                        // ⭐ บันทึกว่าส่งสำเร็จ - ใช้ lineRecipients ที่ไม่อยู่ใน failedPaymentIds
-                        const successfulRecipients = lineRecipients.filter(r => !failedPaymentIds.has(r.metadata.paymentId));
-                        console.log(`📝 Updating ${successfulRecipients.length} payments as sent...`);
-                        
-                        for (const recipient of successfulRecipients) {
-                            try {
-                                const timestamp = new Date().toISOString();
-                                await base44.asServiceRole.entities.Payment.update(recipient.metadata.paymentId, {
-                                    due_date_reminder_sent_date: timestamp,
-                                    bill_sent_date: timestamp
+                            const result = batchResult.data;
+                            sentCount += result.success || 0;
+                            
+                            const failedPaymentIds = new Set();
+                            if (result.errors && result.errors.length > 0) {
+                                result.errors.slice(0, 5).forEach(err => {
+                                    sendErrors.push(`ห้อง ${err.metadata?.roomNumber || 'N/A'}: ${err.error}`);
+                                    if (err.metadata?.paymentId) failedPaymentIds.add(err.metadata.paymentId);
                                 });
-                                console.log(`✅ Updated payment ${recipient.metadata.paymentId}`);
-                            } catch (updateErr) {
-                                console.error(`⚠️ Failed to update sent date for ${recipient.metadata.paymentId}:`, updateErr.message);
                             }
+                            
+                            chunk.forEach(r => {
+                                if (!failedPaymentIds.has(r.metadata.paymentId)) {
+                                    successfulPaymentIds.add(r.metadata.paymentId);
+                                }
+                            });
+
+                            console.log(`✅ Chunk ${chunkIdx + 1}: sent ${result.success || 0}/${chunk.length}`);
+
+                        } catch (error) {
+                            console.error(`❌ Chunk ${chunkIdx + 1} error:`, error.message);
+                            sendErrors.push(`Chunk ${chunkIdx + 1}: ${error.message}`);
                         }
 
-                        console.log(`📊 LINE reminders: ${result.success}/${lineRecipients.length} sent`);
-
-                    } catch (error) {
-                        console.error('❌ Error sending LINE messages:', error);
-                        sendErrors.push(`LINE error: ${error.message}`);
+                        if (chunkIdx < chunks.length - 1) {
+                            await new Promise(r => setTimeout(r, 1000));
+                        }
                     }
                 }
 
-                // ส่งจริง - Facebook
+                // Facebook
                 if (facebookRecipients.length > 0) {
-                    console.log(`📤 Sending ${facebookRecipients.length} Facebook reminders...`);
+                    console.log(`📤 Sending ${facebookRecipients.length} Facebook messages...`);
 
                     for (const recipient of facebookRecipients) {
                         try {
@@ -395,26 +305,36 @@ Deno.serve(async (req) => {
                                 branch_id: recipient.metadata.branchId
                             });
                             sentCount++;
-                            console.log(`✅ Facebook sent to ${recipient.metadata.tenantName}`);
-
-                            // ⭐ บันทึกว่าส่งสำเร็จแล้ว
-                            try {
-                                const timestamp = new Date().toISOString();
-                                await base44.asServiceRole.entities.Payment.update(recipient.metadata.paymentId, {
-                                    due_date_reminder_sent_date: timestamp,
-                                    bill_sent_date: timestamp
-                                });
-                            } catch (updateErr) {
-                                console.error(`⚠️ Failed to update sent date:`, updateErr.message);
-                            }
+                            successfulPaymentIds.add(recipient.metadata.paymentId);
+                            console.log(`✅ Facebook → ${recipient.metadata.tenantName}`);
                         } catch (error) {
-                            console.error(`❌ Facebook error for ${recipient.metadata.tenantName}:`, error);
+                            console.error(`❌ Facebook error:`, error);
                             sendErrors.push(`Facebook ห้อง ${recipient.metadata.roomNumber}: ${error.message}`);
                         }
                     }
                 }
-                }
-                }
+            }
+        }
+
+        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ
+        console.log(`📝 Updating sent_date for ${successfulPaymentIds.size} successful payments...`);
+        const now_iso = new Date().toISOString();
+        const updateBatchSize = 50;
+        const paymentIdsArray = Array.from(successfulPaymentIds);
+        
+        for (let i = 0; i < paymentIdsArray.length; i += updateBatchSize) {
+            const batch = paymentIdsArray.slice(i, i + updateBatchSize);
+            await Promise.all(
+                batch.map(id => 
+                    base44.asServiceRole.entities.Payment.update(id, { 
+                        due_date_reminder_sent_date: now_iso,
+                        bill_sent_date: now_iso
+                    })
+                        .catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
+                )
+            );
+            console.log(`✅ Updated ${Math.min(i + updateBatchSize, paymentIdsArray.length)}/${paymentIdsArray.length}`);
+        }
 
         const result = {
             success: true,
