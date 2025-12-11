@@ -279,10 +279,20 @@ Deno.serve(async (req) => {
                 const tenant = tenantMap.get(payment.tenant_id);
                 const room = roomMap.get(payment.room_id);
 
-                if (!tenant || (!tenant.line_user_id && !tenant.facebook_user_id)) {
-                    console.log(`⚠️ No LINE/Facebook User ID for payment ${payment.id}`);
+                if (!tenant) {
+                    console.log(`⚠️ No tenant found for payment ${payment.id}`);
                     continue;
                 }
+
+                const hasLine = !!tenant.line_user_id;
+                const hasFacebook = !!tenant.facebook_user_id;
+
+                if (!hasLine && !hasFacebook) {
+                    console.log(`⚠️ Payment ${payment.id} - Tenant ${tenant.full_name} (ห้อง ${room?.room_number}): ไม่มี LINE หรือ Facebook เชื่อมต่อ`);
+                    continue;
+                }
+
+                console.log(`✅ Payment ${payment.id} - Tenant ${tenant.full_name} (ห้อง ${room?.room_number}): LINE=${hasLine}, Facebook=${hasFacebook}`);
 
                 // ⭐ ตรวจสอบว่ามีรูปใบแจ้งหนี้และ hash ตรงกันหรือไม่
                 const invoiceImageUrl = payment.invoice_image_url || null;
@@ -352,14 +362,17 @@ Deno.serve(async (req) => {
                 message += `ขอบคุณค่ะ 🙏`;
 
                 recipients.push({
-                    lineUserId: tenant.line_user_id,
-                    facebookUserId: tenant.facebook_user_id,
+                    lineUserId: tenant.line_user_id || null,
+                    facebookUserId: tenant.facebook_user_id || null,
                     message: message,
                     metadata: {
                         paymentId: payment.id,
                         tenantId: tenant.id,
                         roomNumber: room?.room_number,
-                        branchId: paymentBranchId
+                        branchId: paymentBranchId,
+                        tenantName: tenant.full_name,
+                        hasLine: hasLine,
+                        hasFacebook: hasFacebook
                     }
                 });
 
@@ -367,6 +380,12 @@ Deno.serve(async (req) => {
                 console.error(`❌ Error processing payment ${payment.id}:`, error);
             }
         }
+
+        console.log(`\n📊 สรุปผู้รับทั้งหมด: ${recipients.length} รายการ`);
+        const lineCount = recipients.filter(r => r.lineUserId).length;
+        const facebookCount = recipients.filter(r => r.facebookUserId).length;
+        console.log(`   📱 LINE: ${lineCount} คน`);
+        console.log(`   💬 Facebook: ${facebookCount} คน\n`);
 
         // ⭐ อัปเดต advance_reminder_sent_date แบบ bulk
         const now = new Date().toISOString();
