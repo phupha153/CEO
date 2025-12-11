@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Calendar, CheckCircle, Upload, Loader2, X, Check, Crown, ArrowLeft, AlertCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { differenceInDays, parseISO } from "date-fns";
 import { toast } from "sonner";
