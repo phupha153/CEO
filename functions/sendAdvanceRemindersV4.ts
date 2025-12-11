@@ -175,8 +175,38 @@ Deno.serve(async (req) => {
         console.log('   จำนวน Tenant ทั้งหมด:', allTenants.length);
         console.log('   จำนวน Room ทั้งหมด:', allRooms.length);
 
+        // ⭐⭐⭐ สรุปบิลทั้งหมดก่อนกรอง
+        console.log('\n📊 สรุปบิลทั้งหมดก่อนเริ่มกรอง:');
+        console.log('════════════════════════════════════════════════════');
+        console.log(`   📦 จำนวนบิลทั้งหมด: ${allPayments.length} บิล`);
+        
+        // แยกตามสาขา
+        const billsByBranch = {};
+        allPayments.forEach(p => {
+            const bid = p.branch_id;
+            if (!billsByBranch[bid]) billsByBranch[bid] = 0;
+            billsByBranch[bid]++;
+        });
+        
+        console.log(`   🏢 จำนวนสาขา: ${Object.keys(billsByBranch).length} สาขา`);
+        Object.entries(billsByBranch).forEach(([bid, count]) => {
+            const bName = branchMap.get(bid) || bid.substring(0, 8);
+            console.log(`      - ${bName}: ${count} บิล`);
+        });
+        
+        // แยกตาม status
+        const paidCount = allPayments.filter(p => p.status === 'paid').length;
+        const pendingCount = allPayments.filter(p => p.status === 'pending' || p.status === 'overdue').length;
+        console.log(`   📊 สถานะบิล: ชำระแล้ว ${paidCount}, รอชำระ ${pendingCount}`);
+        
+        // มีรูปใบแจ้งหนี้กี่ใบ
+        const withImageCount = allPayments.filter(p => p.invoice_image_url).length;
+        const noImageCount = allPayments.filter(p => !p.invoice_image_url).length;
+        console.log(`   🖼️ รูปใบแจ้งหนี้: มีรูป ${withImageCount}, ไม่มีรูป ${noImageCount}`);
+        console.log('════════════════════════════════════════════════════\n');
+
         // ⭐⭐⭐ กรองข้อมูลครั้งเดียว
-        console.log('\n🔍 เริ่มกรองข้อมูล...\n');
+        console.log('🔍 เริ่มกรองข้อมูล...\n');
         console.log('════════════════════════════════════════════════════');
         console.log('เงื่อนไขในการกรอง:');
         console.log('  ✓ ยังไม่ได้ชำระเงิน');
