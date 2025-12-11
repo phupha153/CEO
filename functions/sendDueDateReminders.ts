@@ -12,12 +12,14 @@ Deno.serve(async (req) => {
 
         // Parse request body to check for test mode and limit
         let testLineUserId = null;
+        let targetBranchId = null;
         let limit = 20; // จำนวนบิลสูงสุดที่จะส่งต่อครั้ง (default 20)
         try {
             const text = await req.text();
             if (text) {
                 const body = JSON.parse(text);
                 testLineUserId = body.test_line_user_id || null;
+                targetBranchId = body.branch_id || null;
                 limit = body.limit || 20;
             }
         } catch (parseError) {
@@ -424,7 +426,8 @@ Deno.serve(async (req) => {
         
         // บันทึก error log
         try {
-            await base44.asServiceRole.entities.FunctionLog.create({
+            const base44ForLog = createClientFromRequest(req);
+            await base44ForLog.asServiceRole.entities.FunctionLog.create({
                 function_name: 'sendDueDateReminders',
                 run_timestamp: new Date().toISOString(),
                 status: 'error',
