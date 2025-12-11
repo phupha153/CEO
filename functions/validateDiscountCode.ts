@@ -52,16 +52,31 @@ Deno.serve(async (req) => {
             body: JSON.stringify(requestBody)
         });
 
+        console.log('📥 Response Status:', response.status);
+        console.log('📥 Response Headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
+
+        const responseText = await response.text();
+        console.log('📥 Response Body (raw):', responseText);
+
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ CRM validation failed:', response.status, errorText);
+            console.error('❌ CRM validation failed:', response.status, responseText);
             return Response.json({
                 valid: false,
                 error: 'ไม่สามารถตรวจสอบโค้ดได้'
             });
         }
 
-        const data = await response.json();
+        let data;
+        try {
+            data = JSON.parse(responseText);
+            console.log('📥 Response Body (parsed):', JSON.stringify(data, null, 2));
+        } catch (e) {
+            console.error('❌ Failed to parse response:', e);
+            return Response.json({
+                valid: false,
+                error: 'ระบบตอบกลับผิดรูปแบบ'
+            });
+        }
 
         if (data.valid) {
             console.log('✅ Code is valid:', data);
