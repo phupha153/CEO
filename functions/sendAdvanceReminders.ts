@@ -183,22 +183,28 @@ Deno.serve(async (req) => {
         console.log('   Tenants:', allTenants.length);
         console.log('   Rooms:', allRooms.length);
 
-        // Status breakdown
-        const statusCounts = {};
-        payments.forEach(p => {
-            statusCounts[p.status || 'unknown'] = (statusCounts[p.status || 'unknown'] || 0) + 1;
-        });
-        
-        console.log('\n📊 PAYMENT STATUS:');
-        Object.entries(statusCounts).forEach(([status, count]) => {
-            console.log(`   ${status}: ${count}`);
-        });
-        console.log('   With due_date:', payments.filter(p => p.due_date).length);
-        console.log('   Already sent reminder:', payments.filter(p => p.advance_reminder_sent_date).length);
-
-        // Pre-load branch and room info for debugging
+        // Pre-load branch and room info
         const branchesData = await base44.asServiceRole.entities.Branch.list();
         const branchMap = new Map(branchesData.map(b => [b.id, b.branch_name]));
+
+        // ⭐⭐⭐ วิเคราะห์บิลที่มีรูปว่าทำไมไม่ผ่าน filter
+        console.log('\n🔍 ANALYZING PAYMENTS WITH IMAGES:');
+        const sampleWithImage = paymentsHasImage.slice(0, 5);
+        for (const p of sampleWithImage) {
+            const tenant = tenantMap.get(p.tenant_id);
+            const room = roomMap.get(p.room_id);
+            const branchName = branchMap.get(p.branch_id) || 'Unknown';
+            const branchAdvanceDays = parseInt(getConfigValue('bill_advance_notice_days', '3', p.branch_id));
+            const dueDate = new Date(p.due_date);
+            const notifyDate = new Date(dueDate);
+            notifyDate.setDate(dueDate.getDate() - branchAdvanceDays);
+            const notifyDateString = notifyDate.toISOString().split('T')[0];
+
+            console.log(`━━━ [${branchName}] ห้อง ${room?.room_number} - ${tenant?.full_name} ━━━`);
+            console.log(`Due: ${p.due_date} | ต้องแจ้งวันที่: ${notifyDateString} | วันนี้: ${todayDateString}`);
+            console.log(`Already sent: ${p.advance_reminder_sent_date ? 'YES' : 'NO'} | Status: ${p.status}`);
+            console.log(notifyDateString === todayDateString ? '✅ ตรงกับวันนี้!' : '❌ ไม่ตรงกับวันนี้');
+        }
 
         // Filter payments
         console.log('\n🔍 FILTERING (first 5 payments with details)...\n');
