@@ -570,62 +570,34 @@ Deno.serve(async (req) => {
       try {
         console.log('🎟️ Marking discount code as used in CRM...');
         
-        const CRM_SERVICE_ROLE_KEY = Deno.env.get("CRM_SERVICE_ROLE_KEY");
-        const CRM_APP_ID = '6919c20da02654368aa1f2d8';
+        const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
+        const CRM_APP_ID = Deno.env.get("BASE44_APP_ID");
 
-        if (CRM_SERVICE_ROLE_KEY) {
-          // 1. หา DiscountCode record
-          const codeResponse = await fetch(`https://app.base44.com/api/apps/${CRM_APP_ID}/entities/DiscountCode?code=${encodeURIComponent(discount_code)}`, {
-            method: 'GET',
+        if (CRM_API_KEY && CRM_APP_ID) {
+          const markUsedResponse = await fetch(`https://base44-crm-production.up.railway.app/api/useDiscountCode`, {
+            method: 'POST',
             headers: {
-              'Authorization': `Bearer ${CRM_SERVICE_ROLE_KEY}`,
-              'Content-Type': 'application/json'
-            }
+              'Content-Type': 'application/json',
+              'x-api-key': CRM_API_KEY,
+              'x-app-id': CRM_APP_ID
+            },
+            body: JSON.stringify({
+              code: discount_code,
+              user_email: user_email || user.email,
+              app_id: CRM_APP_ID,
+              package_id: package_id,
+              package_name: package_name,
+              discount_amount: discount_amount,
+              total_amount: total_amount,
+              payment_date: new Date().toISOString()
+            })
           });
 
-          if (codeResponse.ok) {
-            const codes = await codeResponse.json();
-            if (codes.length > 0) {
-              const codeRecord = codes[0];
-              const newUsageCount = (codeRecord.current_uses || 0) + 1;
-
-              // 2. อัปเดต current_uses
-              await fetch(`https://app.base44.com/api/apps/${CRM_APP_ID}/entities/DiscountCode/${codeRecord.id}`, {
-                method: 'PATCH',
-                headers: {
-                  'Authorization': `Bearer ${CRM_SERVICE_ROLE_KEY}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  current_uses: newUsageCount
-                })
-              });
-
-              console.log(`✅ Updated discount code usage: ${codeRecord.current_uses || 0} → ${newUsageCount}`);
-
-              // 3. บันทึกประวัติการใช้งาน
-              await fetch(`https://app.base44.com/api/apps/${CRM_APP_ID}/entities/DiscountCodeUsage`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${CRM_SERVICE_ROLE_KEY}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  code: discount_code,
-                  discount_code_id: codeRecord.id,
-                  user_email: user_email || user.email,
-                  user_name: user_name || user.full_name,
-                  package_id: package_id,
-                  package_name: package_name,
-                  discount_amount: discount_amount,
-                  total_amount: total_amount,
-                  used_at: new Date().toISOString(),
-                  app_id: Deno.env.get("BASE44_APP_ID") || 'unknown'
-                })
-              });
-
-              console.log(`✅ Created DiscountCodeUsage record`);
-            }
+          if (markUsedResponse.ok) {
+            const markData = await markUsedResponse.json();
+            console.log('✅ Discount code marked as used:', markData);
+          } else {
+            console.warn('⚠️ Failed to mark discount code as used:', await markUsedResponse.text());
           }
         }
       } catch (codeError) {
