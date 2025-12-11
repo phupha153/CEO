@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-// Version: 2025-12-11-v3-MINIMAL - เหลือแต่ log สำคัญ
-// Last updated: 2025-12-11 15:30 Thailand Time
+// Version: 2025-12-11-v4-CLEAN - filter ครั้งเดียว
+// Last updated: 2025-12-11 16:00 Thailand Time
 
 function generatePaymentHash(payment) {
     const dataToHash = {
@@ -74,7 +74,7 @@ function numberToThaiText(number) {
 }
 
 Deno.serve(async (req) => {
-    const VERSION = 'v3-MINIMAL';
+    const VERSION = 'v4-CLEAN';
     
     console.log('\n\n');
     console.log('████████████████████████████████████████████████████');
@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
         const todayDateString = thailandTime.toISOString().split('T')[0];
         console.log('📅 Today:', todayDateString);
 
-        // Fetch data (silent pagination)
+        // Fetch data
         async function fetchAll(entity, filter = null) {
             let allData = [];
             let skip = 0;
@@ -153,90 +153,37 @@ Deno.serve(async (req) => {
             return allData;
         }
 
-        // ⭐⭐⭐ ดึง Payment 2 รอบ: รอบ 1 = มีรูป (สำคัญสุด), รอบ 2 = ไม่มีรูป
-        console.log('\n📥 FETCHING PAYMENTS (2 rounds)...');
+        console.log('\n📥 FETCHING DATA...');
 
         const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : null;
-
-        // รอบ 1: ดึง Payment ที่มีรูป (invoice_image_url != null)
-        const paymentsWithImage = await fetchAll(base44.asServiceRole.entities.Payment, paymentFilter);
-        const paymentsHasImage = paymentsWithImage.filter(p => p.invoice_image_url);
-
-        // รอบ 2: ดึง Payment ที่ไม่มีรูป (invoice_image_url = null) - จำกัดแค่ 1000 รายการ
-        const paymentsNoImage = paymentsWithImage.filter(p => !p.invoice_image_url).slice(0, 1000);
-
-        // รวมกัน - มีรูปมาก่อน
-        const payments = [...paymentsHasImage, ...paymentsNoImage];
-
-        const [allTenants, allRooms] = await Promise.all([
+        const [allPayments, allTenants, allRooms, branchesData] = await Promise.all([
+            fetchAll(base44.asServiceRole.entities.Payment, paymentFilter),
             fetchAll(base44.asServiceRole.entities.Tenant),
-            fetchAll(base44.asServiceRole.entities.Room)
+            fetchAll(base44.asServiceRole.entities.Room),
+            base44.asServiceRole.entities.Branch.list()
         ]);
 
         const tenantMap = new Map(allTenants.map(t => [t.id, t]));
         const roomMap = new Map(allRooms.map(r => [r.id, r]));
+        const branchMap = new Map(branchesData.map(b => [b.id, b.branch_name]));
 
         console.log('\n📦 DATA LOADED:');
-        console.log('   Payments (มีรูป):', paymentsHasImage.length);
-        console.log('   Payments (ไม่มีรูป):', paymentsNoImage.length);
-        console.log('   Payments (รวม):', payments.length);
+        console.log('   Payments:', allPayments.length);
         console.log('   Tenants:', allTenants.length);
         console.log('   Rooms:', allRooms.length);
 
-        // Pre-load branch and room info
-        const branchesData = await base44.asServiceRole.entities.Branch.list();
-        const branchMap = new Map(branchesData.map(b => [b.id, b.branch_name]));
-
-        // ⭐⭐⭐ วิเคราะห์บิลที่มีรูปทั้งหมด
-        console.log('\n🔍 ANALYZING ALL PAYMENTS WITH IMAGES:');
-        console.log(`   Total with image: ${paymentsHasImage.length}`);
-
-        let matchTodayCount = 0;
-        let alreadySentCount = 0;
-        let wrongDateCount = 0;
-
-        for (const p of paymentsHasImage) {
-            if (!p.due_date) continue;
-
-            const branchAdvanceDays = parseInt(getConfigValue('bill_advance_notice_days', '3', p.branch_id));
-            const dueDate = new Date(p.due_date);
-            const notifyDate = new Date(dueDate);
-            notifyDate.setDate(dueDate.getDate() - branchAdvanceDays);
-            const notifyDateString = notifyDate.toISOString().split('T')[0];
-
-            const matchToday = notifyDateString === todayDateString;
-            const alreadySent = !!p.advance_reminder_sent_date;
-
-            if (matchToday && !alreadySent) {
-                const tenant = tenantMap.get(p.tenant_id);
-                const room = roomMap.get(p.room_id);
-                const branchName = branchMap.get(p.branch_id) || 'Unknown';
-                console.log(`✅ READY TO SEND: [${branchName}] ห้อง ${room?.room_number} - ${tenant?.full_name}`);
-                matchTodayCount++;
-            } else if (alreadySent) {
-                alreadySentCount++;
-            } else if (!matchToday) {
-                wrongDateCount++;
-            }
-        }
-
-        console.log(`\n📊 SUMMARY (บิลที่มีรูป ${paymentsHasImage.length} ใบ):`);
-        console.log(`   ✅ ตรงวันนี้+ยังไม่ส่ง: ${matchTodayCount}`);
-        console.log(`   ⏭️ ส่งไปแล้ว: ${alreadySentCount}`);
-        console.log(`   📅 ไม่ตรงวันนี้: ${wrongDateCount}`)
-
-        // ⭐⭐⭐ Filter payments ครั้งเดียว - รวม date check + image check + hash check
-        console.log('\n🔍 FILTERING...\n');
+        // ⭐⭐⭐ FILTER ครั้งเดียว - เช็คทุกอย่างพร้อมกัน
+        console.log('\n🔍 FILTERING (all-in-one)...\n');
         
-        let upcomingPayments = payments.filter(p => {
-            // Basic checks
+        let readyToSend = allPayments.filter(p => {
+            // 1. Basic checks
             if (p.status === 'paid') return false;
             if (!p.due_date) return false;
             if (p.advance_reminder_sent_date) return false;
             if (targetBranchId && p.branch_id !== targetBranchId) return false;
             if (!enabledBranches.includes(p.branch_id)) return false;
             
-            // Date check
+            // 2. Date check
             const branchAdvanceDays = parseInt(getConfigValue('bill_advance_notice_days', '3', p.branch_id));
             const dueDate = new Date(p.due_date);
             const notifyDate = new Date(dueDate);
@@ -245,7 +192,7 @@ Deno.serve(async (req) => {
             
             if (notifyDateString !== todayDateString) return false;
             
-            // Image + Hash check
+            // 3. Image + Hash check
             if (!p.invoice_image_url) return false;
             if (p.invoice_data_hash) {
                 const currentHash = generatePaymentHash(p);
@@ -257,12 +204,11 @@ Deno.serve(async (req) => {
         
         console.log('════════════════════════════════════════════════════');
         console.log('📊 FILTER RESULT:');
-        console.log('   Total Checked:', payments.length);
-        console.log('   ✅ Passed (ready to send):', upcomingPayments.length);
-        console.log('   ❌ Filtered Out:', payments.length - upcomingPayments.length);
+        console.log('   Total Payments:', allPayments.length);
+        console.log('   ✅ Ready to Send:', readyToSend.length);
         console.log('════════════════════════════════════════════════════\n');
 
-        if (upcomingPayments.length === 0) {
+        if (readyToSend.length === 0) {
             return Response.json({
                 success: true,
                 message: 'ไม่มีบิลที่ต้องส่งแจ้งเตือนล่วงหน้าวันนี้',
@@ -271,226 +217,16 @@ Deno.serve(async (req) => {
             });
         }
 
-        // จำกัดจำนวนที่จะประมวลผล
-        const paymentsToProcess = upcomingPayments.slice(0, limit);
-        
-        console.log(`📋 To Process: ${paymentsToProcess.length}/${upcomingPayments.length}`);
+        // จำกัดจำนวน
+        const paymentsToProcess = readyToSend.slice(0, limit);
+        console.log(`📋 Processing: ${paymentsToProcess.length}/${readyToSend.length}`);
 
         const recipients = [];
 
+        for (const payment of paymentsToProcess) {
+            const tenant = tenantMap.get(payment.tenant_id);
+            const room = roomMap.get(payment.room_id);
+
+            if (!tenant || (!tenant.line_user_id && !tenant.facebook_user_id)) continue;
+
             const branchBankName = getConfigValue('bank_name', 'กสิกร', payment.branch_id);
-            const branchBankAccountNumber = getConfigValue('bank_account_number', '0722835522', payment.branch_id);
-            const branchBankAccountName = getConfigValue('bank_account_name', 'ธนานนท์ พรมพักตร์', payment.branch_id);
-            const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', payment.branch_id);
-
-            const dueDateStr = new Date(payment.due_date).toLocaleDateString('th-TH', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            const roomNum = room?.room_number || 'N/A';
-
-            let message = `📢 ${branchBuildingName} - แจ้งเตือนค่าเช่า\n\n`;
-            message += `สวัสดีคุณ ${tenant.full_name}\n`;
-            message += `ห้อง ${roomNum}\n\n`;
-            message += `รายละเอียดค่าใช้จ่าย:\n`;
-            message += `━━━━━━━━━━━━━━━━━━━━\n`;
-
-            if (payment.rent_amount > 0) {
-                message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
-            }
-            if (payment.electricity_amount > 0) {
-                message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-            }
-            if (payment.water_amount > 0) {
-                message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
-            }
-            if (payment.internet_amount > 0) {
-                message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
-            }
-            if (payment.common_fee_amount > 0) {
-                message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
-            }
-            if (payment.parking_fee_amount > 0) {
-                message += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
-            }
-            if (payment.other_amount > 0) {
-                message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
-            }
-
-            message += `━━━━━━━━━━━━━━━━━━━━\n`;
-            message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
-            message += `(${numberToThaiText(payment.total_amount)})\n\n`;
-            message += `📅 ครบกำหนดชำระ: ${dueDateStr}\n`;
-            message += `สถานะ: รอชำระ\n\n`;
-            message += `💳 โอนเงินได้ที่: ${branchBankName} ${branchBankAccountNumber} (${branchBankAccountName})\n\n`;
-            message += `📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}\n\n`;
-            message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
-            message += `ขอบคุณค่ะ 🙏`;
-
-            recipients.push({
-                lineUserId: tenant.line_user_id || null,
-                facebookUserId: tenant.facebook_user_id || null,
-                message: message,
-                metadata: {
-                    paymentId: payment.id,
-                    tenantId: tenant.id,
-                    roomNumber: room?.room_number,
-                    branchId: payment.branch_id,
-                    tenantName: tenant.full_name
-                }
-            });
-        }
-
-        console.log('\n📤 RECIPIENTS:', recipients.length);
-        console.log('   LINE:', recipients.filter(r => r.lineUserId).length);
-        console.log('   Facebook:', recipients.filter(r => r.facebookUserId).length);
-        console.log('   Skipped (no image):', skippedNoImage, '\n');
-
-        if (recipients.length === 0) {
-            return Response.json({
-                success: true,
-                message: 'ไม่มีผู้รับที่พร้อมส่ง (ตรวจสอบรูปใบแจ้งหนี้)',
-                sent: 0,
-                skippedNoImage
-            });
-        }
-
-        // Update advance_reminder_sent_date
-        const nowISO = new Date().toISOString();
-        const paymentIds = recipients.map(r => r.metadata.paymentId);
-        
-        for (let i = 0; i < paymentIds.length; i += 50) {
-            const batch = paymentIds.slice(i, i + 50);
-            await Promise.all(
-                batch.map(id => 
-                    base44.asServiceRole.entities.Payment.update(id, { advance_reminder_sent_date: nowISO })
-                        .catch(() => {})
-                )
-            );
-        }
-
-        // Send messages
-        let sentCount = 0;
-        let sendErrors = [];
-
-        if (recipients.length > 0) {
-            const lineRecipients = recipients.filter(r => r.lineUserId);
-            const facebookRecipients = recipients.filter(r => r.facebookUserId);
-
-            // TEST MODE
-            if (testLineUserId) {
-                console.log('🧪 TEST MODE - sending to:', testLineUserId);
-                
-                try {
-                    const sampleRecipient = lineRecipients[0] || recipients[0];
-                    const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                        recipients: [{
-                            lineUserId: testLineUserId,
-                            message: sampleRecipient.message,
-                            metadata: { ...sampleRecipient.metadata, testMode: true }
-                        }],
-                        options: { batchSize: 1, retryAttempts: 2 }
-                    });
-
-                    sentCount = batchResult.data.success || 0;
-                    console.log(sentCount > 0 ? '✅ Test sent' : '❌ Test failed');
-                } catch (error) {
-                    console.error('❌ Test error:', error.message);
-                    sendErrors.push(error.message);
-                }
-            } else {
-                // Send LINE
-                if (lineRecipients.length > 0) {
-                    const chunks = [];
-                    for (let i = 0; i < lineRecipients.length; i += 50) {
-                        chunks.push(lineRecipients.slice(i, i + 50));
-                    }
-
-                    for (const chunk of chunks) {
-                        try {
-                            const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                                recipients: chunk,
-                                options: {
-                                    batchSize: 10,
-                                    delayBetweenBatches: 2000,
-                                    delayBetweenMessages: 150,
-                                    retryAttempts: 3
-                                }
-                            });
-
-                            sentCount += batchResult.data.success || 0;
-                        
-                            if (batchResult.data.errors?.length > 0) {
-                                batchResult.data.errors.slice(0, 3).forEach(err => {
-                                    sendErrors.push(`ห้อง ${err.metadata?.roomNumber}: ${err.error}`);
-                                });
-                            }
-                        } catch (error) {
-                            console.error('❌ LINE chunk error:', error.message);
-                            sendErrors.push(error.message);
-                        }
-
-                        await new Promise(r => setTimeout(r, 1000));
-                    }
-                }
-
-                // Send Facebook
-                if (facebookRecipients.length > 0) {
-                    for (const recipient of facebookRecipients) {
-                        try {
-                            await base44.asServiceRole.functions.invoke('sendFacebookMessage', {
-                                recipientId: recipient.facebookUserId,
-                                message: recipient.message
-                            });
-                            sentCount++;
-                        } catch (error) {
-                            console.error(`❌ Facebook error (${recipient.metadata.roomNumber}):`, error.message);
-                            sendErrors.push(`Facebook ${recipient.metadata.roomNumber}: ${error.message}`);
-                        }
-                        await new Promise(r => setTimeout(r, 500));
-                    }
-                }
-            }
-        }
-
-        console.log('\n════════════════════════════════════════════════════');
-        console.log('🎉 COMPLETED:');
-        console.log('   Sent:', sentCount, '/', recipients.length);
-        console.log('   Errors:', sendErrors.length);
-        console.log('════════════════════════════════════════════════════\n');
-
-        const responseResult = {
-            success: true,
-            message: `ส่งแจ้งเตือนล่วงหน้า ${sentCount}/${recipients.length} รายการ`,
-            sent: sentCount,
-            total: recipients.length,
-            skippedNoImage,
-            errors: sendErrors.length > 0 ? sendErrors.slice(0, 5) : undefined
-        };
-
-        // Log to database
-        try {
-            await base44.asServiceRole.entities.FunctionLog.create({
-                function_name: 'sendAdvanceReminders',
-                run_timestamp: new Date().toISOString(),
-                status: sendErrors.length > 0 && sentCount === 0 ? 'error' : 'success',
-                message: responseResult.message,
-                total_sent: sentCount,
-                total_failed: sendErrors.length,
-                triggered_by: 'cron',
-                details: responseResult
-            });
-        } catch (logError) {}
-
-        return Response.json(responseResult);
-
-    } catch (error) {
-        console.error('\n❌ FATAL ERROR:', error.message);
-        console.error('Stack:', error.stack);
-        return Response.json({ 
-            success: false,
-            error: error.message
-        }, { status: 500 });
-    }
-});
