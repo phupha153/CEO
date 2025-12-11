@@ -46,8 +46,7 @@ Deno.serve(async (req) => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-api-key': CRM_API_KEY,
-                'x-app-id': APP_ID
+                'x-api-key': CRM_API_KEY
             },
             body: JSON.stringify({
                 code: code.trim().toUpperCase(),
