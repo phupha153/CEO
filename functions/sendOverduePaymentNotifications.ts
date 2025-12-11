@@ -71,13 +71,15 @@ Deno.serve(async (req) => {
         }
 
         // ⭐ Helper function สำหรับดึงข้อมูลแบบ pagination
-        async function fetchAllWithPagination(entity, batchSize = 5000) {
+        async function fetchAllWithPagination(entity, filter = null, batchSize = 5000) {
             let allData = [];
             let skip = 0;
             let hasMore = true;
             
             while (hasMore) {
-                const batch = await entity.list('-created_date', batchSize, skip);
+                const batch = filter 
+                    ? await entity.filter(filter, '-created_date', batchSize, skip)
+                    : await entity.list('-created_date', batchSize, skip);
                 if (!Array.isArray(batch) || batch.length === 0) {
                     hasMore = false;
                 } else {
@@ -91,17 +93,26 @@ Deno.serve(async (req) => {
             return allData;
         }
 
-        // ดึงข้อมูล payments ที่เกินกำหนด (ใช้ pagination)
-        console.log('🔍 Fetching all payments...');
-        const allPayments = await fetchAllWithPagination(base44.asServiceRole.entities.Payment);
-        console.log(`✅ Loaded ${allPayments.length} total payments`);
-        
+        // ⭐ ดึงเฉพาะ payment ที่ status = pending/overdue (กรองใน database)
+        console.log('🔍 Fetching overdue payments with filter...');
         const today = startOfDay(new Date());
         console.log(`📅 Today: ${today.toISOString().split('T')[0]}`);
         
+        const paymentFilter = branch_id 
+            ? { branch_id: branch_id }
+            : {};
+        
+        // ดึงทั้ง pending และ overdue
+        const [pendingPayments, existingOverdue] = await Promise.all([
+            fetchAllWithPagination(base44.asServiceRole.entities.Payment, { ...paymentFilter, status: 'pending' }),
+            fetchAllWithPagination(base44.asServiceRole.entities.Payment, { ...paymentFilter, status: 'overdue' })
+        ]);
+        
+        const allPayments = [...pendingPayments, ...existingOverdue];
+        console.log(`✅ Loaded ${allPayments.length} pending/overdue payments (${pendingPayments.length} pending, ${existingOverdue.length} overdue)`);
+        
+        // กรองใน memory เฉพาะที่เกิน threshold
         const overduePayments = allPayments.filter(payment => {
-            if (branch_id && payment.branch_id !== branch_id) return false;
-            if (payment.status !== 'pending' && payment.status !== 'overdue') return false;
             if (!payment.due_date) return false;
 
             const dueDate = startOfDay(parseISO(payment.due_date));
@@ -124,69 +135,76 @@ Deno.serve(async (req) => {
             });
         }
 
-        // ⭐ อัปเดต late_fee_amount และ status เป็น overdue
-        const updatePromises = [];
-        for (const payment of overduePayments) {
-            const dueDate = startOfDay(parseISO(payment.due_date));
-            const today = startOfDay(new Date());
-            const daysOverdue = differenceInDays(today, dueDate);
+        // ⭐ อัปเดต late_fee_amount และ status เป็น overdue - แบบ batch เพื่อหลีกเลี่ยง rate limit
+        console.log(`📝 Updating late fees for ${overduePayments.length} payments...`);
+        const updateBatchSize = 10; // ลด batch size
+        
+        for (let i = 0; i < overduePayments.length; i += updateBatchSize) {
+            const batch = overduePayments.slice(i, i + updateBatchSize);
+            
+            await Promise.all(
+                batch.map(async (payment) => {
+                    const dueDate = startOfDay(parseISO(payment.due_date));
+                    const today = startOfDay(new Date());
+                    const daysOverdue = differenceInDays(today, dueDate);
 
-            // คำนวณค่าปรับ
-            let lateFee = 0;
-            const branchId = payment.branch_id;
-            
-            const branchTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === branchId);
-            const globalTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
-            const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
-            const tiersEnabled = tiersEnabledConfig?.value === 'true';
-            
-            if (tiersEnabled) {
-                const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === branchId);
-                const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
-                const tiersConfig = branchTiersConfig || globalTiersConfig;
-                
-                if (tiersConfig?.value) {
-                    try {
-                        const tiers = JSON.parse(tiersConfig.value);
-                        for (const tier of tiers) {
-                            const daysFrom = tier.days_from || 1;
-                            const daysTo = tier.days_to || 999;
-                            const feePerDay = parseFloat(tier.fee_per_day || 0);
-                            if (daysOverdue >= daysFrom) {
-                                const daysInTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
-                                if (daysInTier > 0) lateFee += daysInTier * feePerDay;
+                    // คำนวณค่าปรับ
+                    let lateFee = 0;
+                    const branchId = payment.branch_id;
+                    
+                    const branchTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === branchId);
+                    const globalTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
+                    const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
+                    const tiersEnabled = tiersEnabledConfig?.value === 'true';
+                    
+                    if (tiersEnabled) {
+                        const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === branchId);
+                        const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
+                        const tiersConfig = branchTiersConfig || globalTiersConfig;
+                        
+                        if (tiersConfig?.value) {
+                            try {
+                                const tiers = JSON.parse(tiersConfig.value);
+                                for (const tier of tiers) {
+                                    const daysFrom = tier.days_from || 1;
+                                    const daysTo = tier.days_to || 999;
+                                    const feePerDay = parseFloat(tier.fee_per_day || 0);
+                                    if (daysOverdue >= daysFrom) {
+                                        const daysInTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+                                        if (daysInTier > 0) lateFee += daysInTier * feePerDay;
+                                    }
+                                    if (daysOverdue <= daysTo) break;
+                                }
+                            } catch (e) {
+                                console.error('Error parsing tiers:', e);
                             }
-                            if (daysOverdue <= daysTo) break;
                         }
-                    } catch (e) {
-                        console.error('Error parsing tiers:', e);
+                    } else {
+                        const branchConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === branchId);
+                        const globalConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
+                        const config = branchConfig || globalConfig;
+                        const feePerDay = parseFloat(config?.value || '0');
+                        if (!isNaN(feePerDay) && feePerDay > 0) {
+                            lateFee = daysOverdue * feePerDay;
+                        }
                     }
-                }
-            } else {
-                const branchConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === branchId);
-                const globalConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
-                const config = branchConfig || globalConfig;
-                const feePerDay = parseFloat(config?.value || '0');
-                if (!isNaN(feePerDay) && feePerDay > 0) {
-                    lateFee = daysOverdue * feePerDay;
-                }
-            }
 
-            // อัปเดต payment ด้วย late_fee_amount และ total_amount ใหม่
-            const newTotalAmount = (payment.total_amount || 0) + lateFee;
-            updatePromises.push(
-                base44.asServiceRole.entities.Payment.update(payment.id, {
-                    status: 'overdue',
-                    late_fee_amount: lateFee,
-                    total_amount: newTotalAmount
-                }).catch(err => console.error(`Failed to update payment ${payment.id}:`, err))
+                    // อัปเดต payment ด้วย late_fee_amount และ total_amount ใหม่
+                    const newTotalAmount = (payment.total_amount || 0) + lateFee;
+                    return base44.asServiceRole.entities.Payment.update(payment.id, {
+                        status: 'overdue',
+                        late_fee_amount: lateFee,
+                        total_amount: newTotalAmount
+                    }).catch(err => console.error(`Failed to update payment ${payment.id}:`, err));
+                })
             );
-        }
-
-        // รอให้ทุก update เสร็จ
-        if (updatePromises.length > 0) {
-            await Promise.all(updatePromises);
-            console.log(`✅ Updated ${updatePromises.length} payments with late fees`);
+            
+            console.log(`✅ Updated ${Math.min(i + updateBatchSize, overduePayments.length)}/${overduePayments.length}`);
+            
+            // เพิ่ม delay ระหว่าง batch
+            if (i + updateBatchSize < overduePayments.length) {
+                await new Promise(r => setTimeout(r, 500));
+            }
         }
 
         if (overduePayments.length === 0) {
@@ -203,9 +221,29 @@ Deno.serve(async (req) => {
             });
         }
 
-        // ดึงข้อมูลห้องและผู้เช่า (ใช้ pagination)
-        const allRooms = await fetchAllWithPagination(base44.asServiceRole.entities.Room);
-        const allTenants = await fetchAllWithPagination(base44.asServiceRole.entities.Tenant);
+        // ⭐ ดึงเฉพาะ room และ tenant ที่จำเป็น - ไม่ดึงทั้งหมด
+        const uniqueRoomIds = [...new Set(overduePayments.map(p => p.room_id).filter(id => id))];
+        const uniqueTenantIds = [...new Set(overduePayments.map(p => p.tenant_id).filter(id => id))];
+        
+        console.log(`📥 Fetching ${uniqueRoomIds.length} rooms and ${uniqueTenantIds.length} tenants...`);
+        
+        const [roomsBatch, tenantsBatch] = await Promise.all([
+            uniqueRoomIds.length > 0 
+                ? Promise.all(uniqueRoomIds.map(id => 
+                    base44.asServiceRole.entities.Room.filter({ id }).catch(() => null)
+                  )).then(results => results.flat().filter(Boolean))
+                : [],
+            uniqueTenantIds.length > 0
+                ? Promise.all(uniqueTenantIds.map(id => 
+                    base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null)
+                  )).then(results => results.flat().filter(Boolean))
+                : []
+        ]);
+
+        const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
+        const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
+        
+        console.log(`✅ Loaded ${roomsBatch.length} rooms, ${tenantsBatch.length} tenants`);
 
         // จัดกลุ่ม payments ตามสาขา
         const paymentsByBranch = {};
@@ -215,11 +253,10 @@ Deno.serve(async (req) => {
                 paymentsByBranch[branchId] = [];
             }
             
-            const room = allRooms.find(r => r.id === payment.room_id);
-            const tenant = allTenants.find(t => t.id === payment.tenant_id);
+            const room = roomMap.get(payment.room_id);
+            const tenant = tenantMap.get(payment.tenant_id);
             
             const dueDate = startOfDay(parseISO(payment.due_date));
-            const today = startOfDay(new Date());
             const daysOverdue = differenceInDays(today, dueDate);
 
             paymentsByBranch[branchId].push({
@@ -323,8 +360,9 @@ Deno.serve(async (req) => {
             }
         };
 
-        // บันทึก FunctionLog
+        // บันทึก FunctionLog - หลีกเลี่ยง rate limit
         try {
+            await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'sendOverduePaymentNotifications',
                 run_timestamp: new Date().toISOString(),
@@ -346,8 +384,9 @@ Deno.serve(async (req) => {
         console.error('❌ Fatal error in sendOverduePaymentNotifications:', error);
         console.error('📍 Stack trace:', error.stack);
         
-        // บันทึก error log
+        // บันทึก error log - หลีกเลี่ยง rate limit
         try {
+            await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'sendOverduePaymentNotifications',
                 run_timestamp: new Date().toISOString(),
