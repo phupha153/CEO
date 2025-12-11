@@ -921,6 +921,10 @@ Deno.serve(async (req) => {
             facebookCount: facebookRecipients.length
         };
 
+        console.log('\n⏱️ ========== EXECUTION TIME ==========');
+        console.log(`   ⏱️ Function executed in: ${executionTime}ms (${(executionTime / 1000).toFixed(2)} seconds)`);
+        console.log('========================================\n');
+        
         console.log('🎉 Automated overdue reminder completed:', responseResult);
 
         // บันทึก FunctionLog - หลีกเลี่ยง rate limit
