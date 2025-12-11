@@ -545,20 +545,23 @@ Deno.serve(async (req) => {
             }
 
             // คำนวณจำนวนวันที่เกินกำหนด
-            const dueDate = startOfDay(parseISO(payment.due_date));
+            const dueDate = startOfDay(parseISO(latestPayment.due_date));
             const daysOverdue = differenceInDays(today, dueDate);
 
             // ดึง config เฉพาะสาขา
-            const paymentBranchId = payment.branch_id;
+            const paymentBranchId = latestPayment.branch_id;
             const branchBankName = getConfigValue('bank_name', 'กสิกร', paymentBranchId);
             const branchBankAccountNumber = getConfigValue('bank_account_number', '0722835522', paymentBranchId);
             const branchBankAccountName = getConfigValue('bank_account_name', 'ธนานนท์ พรมพักตร์', paymentBranchId);
             const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', paymentBranchId);
 
-            // ⭐ ดึงค่าปรับจาก payment.late_fee_amount
-            const lateFee = payment.late_fee_amount || 0;
-            const originalAmount = payment.total_amount - lateFee;
-            const totalWithLateFee = payment.total_amount;
+            // ⭐ ดึงค่าปรับจาก latestPayment.late_fee_amount
+            const lateFee = latestPayment.late_fee_amount || 0;
+            const originalAmount = latestPayment.total_amount - lateFee;
+            const totalWithLateFee = latestPayment.total_amount;
+            
+            console.log(`   - latestPayment.late_fee_amount: ${latestPayment.late_fee_amount || 0} บาท`);
+            console.log(`   - latestPayment.total_amount: ${latestPayment.total_amount || 0} บาท`);
 
             // สร้างข้อความ
             let message = `🔴 แจ้งเตือนเกินกำหนดชำระ\n\n`;
