@@ -138,22 +138,21 @@ Deno.serve(async (req) => {
             errors: []
         };
 
-        // ⭐ ถ้ามี recipients ส่งมาจาก sendPaymentReminder ให้ใช้ message ที่ส่งมาตรงๆ
+        // ⭐ ถ้ามี recipients ส่งมาจาก sendPaymentReminder ให้ใช้เลย
         if (passedRecipients && Array.isArray(passedRecipients) && passedRecipients.length > 0) {
             console.log(`📤 Processing ${passedRecipients.length} Facebook recipients from caller...`);
             
             for (const recipient of passedRecipients) {
                 const facebookUserId = recipient.facebookUserId;
-                const message = recipient.message; // ⭐ ใช้ message ที่ส่งมา (มีค่าปรับแล้ว)
+                const message = recipient.message;
                 const branchId = recipient.metadata?.branchId;
                 
                 console.log(`📋 Recipient: facebookUserId=${facebookUserId}, branchId=${branchId}, messageLength=${message?.length || 0}`);
-                console.log(`📄 Message preview: ${message?.substring(0, 200)}...`);
                 
                 if (!facebookUserId || !message) {
                     console.log(`⚠️ Skipping: missing facebookUserId or message`);
                     results.failed++;
-                    results.errors.push({ error: 'Missing facebookUserId or message', metadata: recipient.metadata });
+                    results.errors.push({ error: 'Missing facebookUserId or message' });
                     continue;
                 }
                 
@@ -168,7 +167,7 @@ Deno.serve(async (req) => {
                     continue;
                 }
 
-                // ⭐⭐⭐ ส่งข้อความที่ผ่านมาตรงๆ (มีค่าปรับและใบแจ้งหนี้อยู่แล้ว)
+                // ส่งข้อความ
                 console.log(`📤 Sending to Facebook: ${facebookUserId}`);
                 const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, facebookUserId, message, branchId, user?.email || 'system');
                 
@@ -190,8 +189,8 @@ Deno.serve(async (req) => {
             return Response.json({ 
                 success: results.success > 0,
                 message: `ส่งข้อความ Facebook สำเร็จ ${results.success}/${results.success + results.failed} รายการ`,
-                success: results.success,
-                failed: results.failed,
+                successCount: results.success,
+                failCount: results.failed,
                 errors: results.errors
             });
         }
