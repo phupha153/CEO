@@ -518,11 +518,14 @@ Deno.serve(async (req) => {
         const messageCreationDetails = [];
 
         for (const payment of paymentsToProcess) {
-            const tenant = tenantMap.get(payment.tenant_id);
-            const room = roomMap.get(payment.room_id);
+            // ⭐⭐⭐ ใช้ payment ที่ refresh แล้ว (มี invoice_image_url และ late_fee_amount ล่าสุด)
+            const latestPayment = refreshedPaymentMap.get(payment.id) || payment;
+            
+            const tenant = tenantMap.get(latestPayment.tenant_id);
+            const room = roomMap.get(latestPayment.room_id);
             const roomNumber = room?.room_number || 'N/A';
             
-            console.log(`\n💬 Payment ${payment.id.substring(0,8)} (ห้อง ${roomNumber}):`);
+            console.log(`\n💬 Payment ${latestPayment.id.substring(0,8)} (ห้อง ${roomNumber}):`);
 
             if (!tenant) {
                 console.log(`   ❌ ไม่พบข้อมูล tenant - ข้าม`);
