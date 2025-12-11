@@ -1844,7 +1844,8 @@ ${JSON.stringify(bookingsData, null, 2)}
     setShowDetailDialog(true);
   };
 
-  const handleLongPressStart = (paymentId) => {
+  const handleLongPressStart = (e, paymentId) => {
+    e.preventDefault();
     const timer = setTimeout(() => {
       setIsSelectionMode(true);
       setSelectedPaymentIds([paymentId]);
@@ -1854,7 +1855,8 @@ ${JSON.stringify(bookingsData, null, 2)}
     setLongPressTarget(paymentId);
   };
 
-  const handleLongPressEnd = () => {
+  const handleLongPressEnd = (e) => {
+    if (e) e.preventDefault();
     if (longPressTimer) {
       clearTimeout(longPressTimer);
       setLongPressTimer(null);
@@ -2684,14 +2686,15 @@ Return JSON.`;
                           )}
                           <div className={isSelectionMode && isSelected ? 'ring-2 ring-blue-500 rounded-2xl' : ''}>
                             <Card 
-                              className={`bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg hover:shadow-xl transition-all cursor-pointer ${effectiveStatus === 'overdue' ? 'border-red-300 bg-red-50/50' : ''} ${needsManualReview ? 'border-amber-300 bg-amber-50/30' : ''} ${longPressTarget === payment.id ? 'scale-95' : ''}`}
+                              className={`select-none bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg hover:shadow-xl transition-all cursor-pointer ${effectiveStatus === 'overdue' ? 'border-red-300 bg-red-50/50' : ''} ${needsManualReview ? 'border-amber-300 bg-amber-50/30' : ''} ${longPressTarget === payment.id ? 'scale-95' : ''}`}
                               onClick={() => handlePaymentClick(payment)}
-                              onMouseDown={() => handleLongPressStart(payment.id)}
+                              onMouseDown={(e) => handleLongPressStart(e, payment.id)}
                               onMouseUp={handleLongPressEnd}
                               onMouseLeave={handleLongPressEnd}
-                              onTouchStart={() => handleLongPressStart(payment.id)}
+                              onTouchStart={(e) => handleLongPressStart(e, payment.id)}
                               onTouchEnd={handleLongPressEnd}
                               onTouchCancel={handleLongPressEnd}
+                              onContextMenu={(e) => e.preventDefault()}
                             >
                             <CardContent className="p-4 md:p-6">
                               <div className="flex items-start gap-3 mb-3">
@@ -3152,14 +3155,15 @@ Return JSON.`;
                             return (
                               <tr 
                                 key={payment.id} 
-                                className={`border-b hover:bg-slate-50 cursor-pointer ${effectiveStatus === 'overdue' ? 'bg-red-50/50' : ''} ${isSelected ? 'bg-blue-50/50' : ''} ${longPressTarget === payment.id ? 'bg-blue-100' : ''}`}
+                                className={`select-none border-b hover:bg-slate-50 cursor-pointer ${effectiveStatus === 'overdue' ? 'bg-red-50/50' : ''} ${isSelected ? 'bg-blue-50/50' : ''} ${longPressTarget === payment.id ? 'bg-blue-100' : ''}`}
                                 onClick={() => handlePaymentClick(payment)}
-                                onMouseDown={() => handleLongPressStart(payment.id)}
+                                onMouseDown={(e) => handleLongPressStart(e, payment.id)}
                                 onMouseUp={handleLongPressEnd}
                                 onMouseLeave={handleLongPressEnd}
-                                onTouchStart={() => handleLongPressStart(payment.id)}
+                                onTouchStart={(e) => handleLongPressStart(e, payment.id)}
                                 onTouchEnd={handleLongPressEnd}
                                 onTouchCancel={handleLongPressEnd}
+                                onContextMenu={(e) => e.preventDefault()}
                               >
                                 {isSelectionMode && (
                                   <td className="px-4 py-3 text-center">
@@ -3423,13 +3427,24 @@ Return JSON.`;
                                    <Dialog>
                                      <DialogTrigger asChild>
                                        <button
-                                         className={`${bgColor} ${textColor} rounded-lg p-2 text-center transition-all shadow-sm hover:shadow-md cursor-pointer w-full relative ${isSelected && isSelectionMode ? 'ring-2 ring-blue-400' : ''}`}
+                                         className={`select-none ${bgColor} ${textColor} rounded-lg p-2 text-center transition-all shadow-sm hover:shadow-md cursor-pointer w-full relative ${isSelected && isSelectionMode ? 'ring-2 ring-blue-400' : ''} ${longPressTarget === roomPayment?.id ? 'scale-95' : ''}`}
                                          onClick={(e) => {
                                            if (isSelectionMode && roomPayment) {
                                              e.preventDefault();
                                              togglePaymentSelection(roomPayment.id);
                                            }
                                          }}
+                                         onMouseDown={(e) => {
+                                           if (roomPayment) handleLongPressStart(e, roomPayment.id);
+                                         }}
+                                         onMouseUp={handleLongPressEnd}
+                                         onMouseLeave={handleLongPressEnd}
+                                         onTouchStart={(e) => {
+                                           if (roomPayment) handleLongPressStart(e, roomPayment.id);
+                                         }}
+                                         onTouchEnd={handleLongPressEnd}
+                                         onTouchCancel={handleLongPressEnd}
+                                         onContextMenu={(e) => e.preventDefault()}
                                        >
                                          <p className="font-bold text-sm">{room.room_number}</p>
                                          {roomPayment && (
