@@ -1025,7 +1025,16 @@ export default function Dashboard() {
                                                   const date = parseISO(dateStr);
                                                   if (isNaN(date.getTime())) return 'ข้อมูลไม่ถูกต้อง';
                                                   
-                                                  return format(date, 'd MMM yyyy HH:mm น.', { locale: th });
+                                                  // ⭐ แสดงเป็นเวลาไทยเสมอ (UTC+7) ไม่ว่า browser จะอยู่ที่ไหน
+                                                  return date.toLocaleString('th-TH', {
+                                                    timeZone: 'Asia/Bangkok',
+                                                    day: 'numeric',
+                                                    month: 'short',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                    hour12: false
+                                                  }) + ' น.';
                                                 } catch {
                                                   return 'ข้อมูลไม่ถูกต้อง';
                                                 }
