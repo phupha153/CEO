@@ -27,9 +27,9 @@ Deno.serve(async (req) => {
         }
 
         const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
-        const APP_ID = 'DORM-1763306051935093';
+        const APP_ID = Deno.env.get("CRM_APP_ID");
 
-        if (!CRM_API_KEY) {
+        if (!CRM_API_KEY || !APP_ID) {
             console.error('❌ Missing CRM_API_KEY');
             return Response.json({
                 success: false,
