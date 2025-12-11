@@ -610,7 +610,7 @@ export default function Announcements() {
                 </div>
               )}
               
-              <div className="flex h-[600px]">
+              <div className="flex h-[600px] relative">
                 {/* Sidebar */}
                 <div className="w-80 border-r flex-shrink-0">
                   <ChatSidebar
