@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
                 branch_id: branchId,
                 full_name: `${firstName} ${lastName} ${i}`,
                 phone: `08${String(i).padStart(8, '0')}`,
-                facebook_user_id: '8313911041968773',
+                facebook_user_id: '24594617136884643',
                 status: 'active'
             });
         }
