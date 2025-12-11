@@ -27,8 +27,10 @@ function generatePaymentHash(payment) {
         common_fee_amount: payment.common_fee_amount || 0,
         parking_fee_amount: payment.parking_fee_amount || 0,
         other_amount: payment.other_amount || 0,
+        late_fee_amount: payment.late_fee_amount || 0,
         total_amount: payment.total_amount || 0,
-        due_date: payment.due_date || ''
+        due_date: payment.due_date || '',
+        status: payment.status || 'pending'
     };
     const jsonStr = JSON.stringify(dataToHash);
     return btoa(jsonStr).substring(0, 32);
@@ -92,6 +94,7 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     if (payment.common_fee_amount > 0) lineItems.push({ name: 'ค่าส่วนกลาง', total: payment.common_fee_amount });
     if (payment.parking_fee_amount > 0) lineItems.push({ name: 'ค่าที่จอดรถ', total: payment.parking_fee_amount });
     if (payment.other_amount > 0) lineItems.push({ name: 'ค่าใช้จ่ายอื่นๆ', total: payment.other_amount });
+    if (payment.late_fee_amount > 0) lineItems.push({ name: '⚠️ ค่าปรับชำระล่าช้า', total: payment.late_fee_amount });
 
     // สร้าง HTML แบบ compact
     const htmlContent = `<!DOCTYPE html>
@@ -403,17 +406,29 @@ Deno.serve(async (req) => {
             });
         }
 
-        // 3. Fetch related data
-        const paymentRoomIds = [...new Set(paymentsToProcess.map(p => p.room_id).filter(Boolean))];
-        const paymentTenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id).filter(Boolean))];
-
-        const [rooms, tenants] = await Promise.all([
-            base44.asServiceRole.entities.Room.filter({}, '-room_number', 5000),
-            base44.asServiceRole.entities.Tenant.filter({}, '-created_date', 5000)
+        // 3. ดึงเฉพาะ tenant และ room ที่จำเป็น - ไม่ดึงทั้งหมด
+        const uniqueTenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id).filter(id => id))];
+        const uniqueRoomIds = [...new Set(paymentsToProcess.map(p => p.room_id).filter(id => id))];
+        
+        console.log(`📥 Fetching ${uniqueTenantIds.length} tenants and ${uniqueRoomIds.length} rooms...`);
+        
+        const [tenantsBatch, roomsBatch] = await Promise.all([
+            uniqueTenantIds.length > 0 
+                ? Promise.all(uniqueTenantIds.map(id => 
+                    base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null)
+                  )).then(results => results.flat().filter(Boolean))
+                : [],
+            uniqueRoomIds.length > 0
+                ? Promise.all(uniqueRoomIds.map(id => 
+                    base44.asServiceRole.entities.Room.filter({ id }).catch(() => null)
+                  )).then(results => results.flat().filter(Boolean))
+                : []
         ]);
 
-        const roomMap = new Map((rooms || []).map(r => [r.id, r]));
-        const tenantMap = new Map((tenants || []).map(t => [t.id, t]));
+        const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
+        const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
+        
+        console.log(`✅ Loaded ${paymentsToProcess.length} payments, ${tenantsBatch.length} tenants, ${roomsBatch.length} rooms`);
 
         // 4. Process in batches of `concurrentLimit`
         let imageGenerated = 0;
@@ -446,14 +461,20 @@ Deno.serve(async (req) => {
                 const room = roomMap.get(payment.room_id);
                 const tenant = tenantMap.get(payment.tenant_id);
 
-                // ⭐ เช็คว่าต้องสร้างรูปใหม่หรือไม่ (ถ้าบิลถูกแก้ไข)
+                // ⭐ เช็คว่าต้องสร้างรูปใหม่หรือไม่ (ถ้าบิลถูกแก้ไข หรือมีค่าปรับเพิ่ม)
                 let needsRegenerate = false;
                 if (payment.invoice_image_url && payment.invoice_data_hash) {
                     const currentHash = generatePaymentHash(payment);
                     if (currentHash !== payment.invoice_data_hash) {
                         needsRegenerate = true;
-                        console.log(`🔄 Payment ${payment.id}: Hash mismatch - regenerating image`);
+                        console.log(`🔄 Payment ${payment.id}: Hash mismatch (old=${payment.invoice_data_hash.substring(0,8)}, new=${currentHash.substring(0,8)}) - regenerating`);
                     }
+                }
+                
+                // ⭐ ถ้าเป็น overdue และมีค่าปรับแต่ยังไม่มี hash = ต้องสร้างใหม่
+                if (payment.status === 'overdue' && payment.late_fee_amount > 0 && !payment.invoice_data_hash) {
+                    needsRegenerate = true;
+                    console.log(`🔄 Payment ${payment.id}: Overdue with late fee but no hash - regenerating`);
                 }
                 
                 // ถ้ามีรูปแล้วและไม่ต้องสร้างใหม่ ข้ามการสร้าง
@@ -756,6 +777,7 @@ Deno.serve(async (req) => {
         });
 
         try {
+            await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'processInvoiceImageQueue',
                 run_timestamp: new Date().toISOString(),
@@ -800,6 +822,7 @@ Deno.serve(async (req) => {
 
         if (base44) {
             try {
+                await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
                 await base44.asServiceRole.entities.FunctionLog.create({
                     function_name: 'processInvoiceImageQueue',
                     run_timestamp: new Date().toISOString(),
