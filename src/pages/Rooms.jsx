@@ -52,6 +52,29 @@ export default function RoomsPage() {
   const [bulkAIQuery, setBulkAIQuery] = useState('');
   const [bulkAIResult, setBulkAIResult] = useState(null);
   const [isBulkExecuting, setIsBulkExecuting] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState(null);
+  const [longPressTarget, setLongPressTarget] = useState(null);
+
+  // ⭐ Click outside handler เพื่อยกเลิก selection mode
+  useEffect(() => {
+    if (!isSelectionMode) return;
+
+    const handleClickOutside = (e) => {
+      // ถ้าคลิกที่ปุ่มหรือ checkbox ให้ข้ามไป
+      if (e.target.closest('[data-selection-control]')) return;
+      
+      // ถ้าคลิกบน card ให้ข้ามไป
+      if (e.target.closest('[data-room-item]')) return;
+      
+      // ถ้าคลิกข้างนอก = ยกเลิก selection mode
+      setIsSelectionMode(false);
+      setSelectedRooms([]);
+      toast.info('ยกเลิกการเลือกแล้ว', { duration: 1500 });
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isSelectionMode]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
@@ -1066,6 +1089,26 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     }
   });
 
+  const handleLongPressStart = (e, roomId) => {
+    if (isSelectionMode) return;
+    
+    const timer = setTimeout(() => {
+      setIsSelectionMode(true);
+      setSelectedRooms([roomId]);
+      toast.info('เข้าสู่โหมดเลือกหลายห้อง', { duration: 2000 });
+    }, 500);
+    setLongPressTimer(timer);
+    setLongPressTarget(roomId);
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setLongPressTarget(null);
+  };
+
   const toggleRoomSelection = (roomId) => {
     setSelectedRooms(prev => 
       prev.includes(roomId) 
@@ -2013,6 +2056,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 }
               }}
               className="shadow-sm"
+              data-selection-control
             >
               {isSelectionMode ? (
                 <><X className="w-4 h-4 mr-2" /> ยกเลิกการเลือก</>
@@ -2184,13 +2228,46 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                 exit={{ opacity: 0, scale: 0.9 }}
                                 whileHover={{ scale: 1.05 }}
                                 transition={{ duration: 0.2 }}
+                                data-room-item
                               >
                                 <Card
-                                  className={`relative overflow-hidden cursor-pointer bg-gradient-to-br ${expiringSoon ? 'from-rose-500 to-pink-600' : getRoomColor(room.status)} shadow-lg hover:shadow-2xl transition-all duration-300 rounded-2xl ${selectedRooms.includes(room.id) ? 'ring-4 ring-blue-400 ring-offset-2' : ''} h-full min-h-[140px]`}
-                                  onClick={() => isSelectionMode ? toggleRoomSelection(room.id) : handleRoomClick(room)}
+                                  className={`select-none relative overflow-hidden cursor-pointer bg-gradient-to-br ${expiringSoon ? 'from-rose-500 to-pink-600' : getRoomColor(room.status)} shadow-lg hover:shadow-2xl transition-all duration-300 rounded-2xl ${selectedRooms.includes(room.id) ? 'ring-4 ring-blue-400 ring-offset-2' : ''} ${longPressTarget === room.id ? 'scale-95' : ''} h-full min-h-[140px]`}
+                                  onClick={() => {
+                                    if (isSelectionMode) {
+                                      toggleRoomSelection(room.id);
+                                    } else {
+                                      handleRoomClick(room);
+                                    }
+                                  }}
+                                  onMouseDown={(e) => {
+                                    if (!isSelectionMode) handleLongPressStart(e, room.id);
+                                  }}
+                                  onMouseUp={() => {
+                                    if (!isSelectionMode) handleLongPressEnd();
+                                  }}
+                                  onMouseLeave={() => {
+                                    if (!isSelectionMode) handleLongPressEnd();
+                                  }}
+                                  onTouchStart={(e) => {
+                                    if (!isSelectionMode) handleLongPressStart(e, room.id);
+                                  }}
+                                  onTouchEnd={() => {
+                                    if (!isSelectionMode) handleLongPressEnd();
+                                  }}
+                                  onTouchCancel={() => {
+                                    if (!isSelectionMode) handleLongPressEnd();
+                                  }}
+                                  onContextMenu={(e) => e.preventDefault()}
                                 >
                                   {isSelectionMode && (
-                                    <div className="absolute top-2 left-2 z-20" onClick={(e) => { e.stopPropagation(); toggleRoomSelection(room.id); }}>
+                                    <div 
+                                      className="absolute top-2 left-2 z-20" 
+                                      onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        toggleRoomSelection(room.id); 
+                                      }}
+                                      data-selection-control
+                                    >
                                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedRooms.includes(room.id) ? 'bg-blue-600 border-blue-600' : 'bg-white/30 border-white/70 hover:bg-white/50'}`}>
                                         {selectedRooms.includes(room.id) && <Check className="w-4 h-4 text-white" />}
                                       </div>
@@ -2283,6 +2360,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       size="sm"
                       onClick={toggleSelectAllInPage}
                       className="rounded-xl text-blue-600 border-blue-200 hover:bg-blue-50"
+                      data-selection-control
                     >
                       {paginatedRooms.every(r => selectedRooms.includes(r.id)) ? 'ยกเลิกเลือกหน้านี้' : 'เลือกทั้งหมดในหน้านี้'}
                     </Button>
@@ -3223,6 +3301,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                         size="sm" 
                         onClick={() => setSelectedRooms([])}
                         className="text-red-600 hover:bg-red-50"
+                        data-selection-control
                       >
                         <X className="w-4 h-4 mr-1" />
                         ยกเลิก
