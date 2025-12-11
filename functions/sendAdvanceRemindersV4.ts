@@ -420,7 +420,7 @@ Deno.serve(async (req) => {
 
         console.log(`📤 Prepared ${recipients.length} recipients\n`);
 
-        // Update advance_reminder_sent_date
+        // Update advance_reminder_sent_date และ bill_sent_date
         const now_iso = new Date().toISOString();
         const updateBatchSize = 50;
         const paymentIdsToUpdate = recipients.map(r => r.metadata.paymentId);
@@ -429,7 +429,10 @@ Deno.serve(async (req) => {
             const batch = paymentIdsToUpdate.slice(i, i + updateBatchSize);
             await Promise.all(
                 batch.map(id => 
-                    base44.asServiceRole.entities.Payment.update(id, { advance_reminder_sent_date: now_iso })
+                    base44.asServiceRole.entities.Payment.update(id, { 
+                        advance_reminder_sent_date: now_iso,
+                        bill_sent_date: now_iso
+                    })
                         .catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
                 )
             );
