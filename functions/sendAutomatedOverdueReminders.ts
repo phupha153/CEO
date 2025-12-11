@@ -384,10 +384,11 @@ Deno.serve(async (req) => {
             });
         }
 
-        // ⭐ สร้างใบแจ้งหนี้สำหรับ payment ที่ยังไม่มีหรือ hash ไม่ตรง
-        console.log(`🖼️ Checking and generating invoices for ${paymentsToProcess.length} payments...`);
+        // ⭐ สร้างใบแจ้งหนี้สำหรับทุก payment ก่อนส่งข้อความ
+        console.log(`🖼️ Generating invoices for ${paymentsToProcess.length} payments...`);
         let invoicesGenerated = 0;
         let invoicesFailed = 0;
+        const invoiceGenerationDetails = [];
         
         for (const payment of paymentsToProcess) {
             try {
