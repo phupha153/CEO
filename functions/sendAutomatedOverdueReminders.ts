@@ -91,24 +91,20 @@ Deno.serve(async (req) => {
             return allData;
         }
 
-        // 3. ดึงข้อมูลทั้งหมด
-        console.log('🔍 Fetching payments...');
-        const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : null;
-        const [allPayments, allTenants, allRooms] = await Promise.all([
-            fetchAllWithPagination(base44.asServiceRole.entities.Payment, paymentFilter),
-            fetchAllWithPagination(base44.asServiceRole.entities.Tenant),
-            fetchAllWithPagination(base44.asServiceRole.entities.Room)
-        ]);
-
-        // สร้าง Map สำหรับ lookup
-        const tenantMap = new Map(allTenants.map(t => [t.id, t]));
-        const roomMap = new Map(allRooms.map(r => [r.id, r]));
+        // 3. ดึงข้อมูลแบบกรองเฉพาะที่จำเป็น - ไม่ดึงทั้งหมด
+        console.log('🔍 Fetching filtered overdue payments...');
         
-        console.log(`✅ Loaded ${allPayments.length} payments, ${allTenants.length} tenants, ${allRooms.length} rooms`);
-
-        // 4. กรองหา payment ที่ค้างชำระ (status = overdue หรือ pending ที่เกินกำหนดแล้ว)
         const today = startOfDay(new Date());
+        const todayString = today.toISOString().split('T')[0];
         
+        // ⭐ ดึงเฉพาะ payment ที่ status = pending/overdue และยังไม่ชำระ
+        const paymentFilter = targetBranchId 
+            ? { branch_id: targetBranchId }
+            : {};
+        
+        let allPayments = await fetchAllWithPagination(base44.asServiceRole.entities.Payment, paymentFilter);
+        
+        // กรองใน memory หา payment ที่ค้างชำระ (เกินกำหนดอย่างน้อย 1 วัน)
         let overduePayments = allPayments.filter(p => {
             if (p.status === 'paid') return false;
             if (!p.due_date) return false;
@@ -116,7 +112,6 @@ Deno.serve(async (req) => {
             const dueDate = startOfDay(parseISO(p.due_date));
             const daysOverdue = differenceInDays(today, dueDate);
 
-            // เกินกำหนดอย่างน้อย 1 วัน
             return daysOverdue > 0;
         });
 
@@ -149,6 +144,30 @@ Deno.serve(async (req) => {
         console.log(`📋 Processing this round: ${paymentsToProcess.length}`);
         console.log(`📋 Remaining for next round: ${totalRemaining}`);
         console.log(`⏭️ Skipped (disabled branches or sent today): ${skippedCount}`);
+
+        // ⭐ ดึง tenant และ room เฉพาะที่จำเป็น
+        const uniqueTenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id).filter(id => id))];
+        const uniqueRoomIds = [...new Set(paymentsToProcess.map(p => p.room_id).filter(id => id))];
+        
+        console.log(`📥 Fetching ${uniqueTenantIds.length} tenants and ${uniqueRoomIds.length} rooms...`);
+        
+        const [tenantsBatch, roomsBatch] = await Promise.all([
+            uniqueTenantIds.length > 0 
+                ? Promise.all(uniqueTenantIds.map(id => 
+                    base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null)
+                  )).then(results => results.flat().filter(Boolean))
+                : [],
+            uniqueRoomIds.length > 0
+                ? Promise.all(uniqueRoomIds.map(id => 
+                    base44.asServiceRole.entities.Room.filter({ id }).catch(() => null)
+                  )).then(results => results.flat().filter(Boolean))
+                : []
+        ]);
+
+        const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
+        const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
+        
+        console.log(`✅ Loaded ${paymentsToProcess.length} relevant payments, ${tenantsBatch.length} tenants, ${roomsBatch.length} rooms`);
 
         if (paymentsToProcess.length === 0) {
             return Response.json({
@@ -336,10 +355,10 @@ Deno.serve(async (req) => {
             }
         }
 
-        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ
+        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ - ลด batch size เพื่อหลีกเลี่ยง rate limit
         console.log(`📝 Updating sent_date for ${successfulPaymentIds.size} successful payments...`);
         const now_iso = new Date().toISOString();
-        const updateBatchSize = 50;
+        const updateBatchSize = 10; // ลดจาก 50 เป็น 10
         const paymentIdsArray = Array.from(successfulPaymentIds);
         
         for (let i = 0; i < paymentIdsArray.length; i += updateBatchSize) {
@@ -353,6 +372,11 @@ Deno.serve(async (req) => {
                 )
             );
             console.log(`✅ Updated ${Math.min(i + updateBatchSize, paymentIdsArray.length)}/${paymentIdsArray.length}`);
+            
+            // ⭐ เพิ่ม delay ระหว่าง batch
+            if (i + updateBatchSize < paymentIdsArray.length) {
+                await new Promise(r => setTimeout(r, 500));
+            }
         }
 
         const executionTime = Date.now() - startTime;
@@ -418,8 +442,9 @@ Deno.serve(async (req) => {
 
         console.log('🎉 Automated overdue reminder completed:', responseResult);
 
-        // บันทึก FunctionLog
+        // บันทึก FunctionLog - หลีกเลี่ยง rate limit
         try {
+            await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'sendAutomatedOverdueReminders',
                 run_timestamp: new Date().toISOString(),
