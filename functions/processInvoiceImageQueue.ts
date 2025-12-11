@@ -463,12 +463,15 @@ Deno.serve(async (req) => {
                 }
 
                 try {
-                    // Mark as generating
+                    // Get branch name
+                    const branchId = payment.branch_id;
+                    const branchName = getConfigValue('building_name', branchId, 'W RESIDENTS');
+                    
                     await base44.asServiceRole.entities.Payment.update(payment.id, {
                         invoice_image_status: 'generating'
                     });
 
-                    console.log(`🖼️ Generating image for payment ${payment.id} (Room: ${room?.room_number || 'N/A'})...`);
+                    console.log(`🖼️ [${branchName}] ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`);
                     
                     // ⭐ เรียก getPublicInvoice + สร้างรูปเองภายใน function นี้เลย
                     const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', {
@@ -493,7 +496,7 @@ Deno.serve(async (req) => {
                             invoice_data_hash: newHash
                         });
 
-                        console.log(`✅ Payment ${payment.id}: Image created`);
+                        console.log(`✅ [${branchName}] ห้อง ${room?.room_number || 'N/A'}: Image OK`);
 
                         // ⭐ รอ 1 วินาที ระหว่างการสร้างรูป
                         await delay(1000);
@@ -509,7 +512,7 @@ Deno.serve(async (req) => {
                         throw new Error('Failed to generate invoice image');
                     }
                 } catch (error) {
-                    console.error(`❌ Payment ${payment.id}: Image generation failed - ${error.message}`);
+                    console.error(`❌ [${branchName}] ห้อง ${room?.room_number || 'N/A'}: ${error.message}`);
                     
                     // Mark as failed
                     await base44.asServiceRole.entities.Payment.update(payment.id, {
@@ -540,27 +543,16 @@ Deno.serve(async (req) => {
                     
                     const { payment, room, tenant, imageUrl } = result;
                     
-                    // ⭐ เช็คว่าสาขานี้เปิดส่งบิลอัตโนมัติหรือไม่
+                    const branchName = getConfigValue('building_name', payment.branch_id, 'W RESIDENTS');
                     const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', payment.branch_id, 'false') === 'true';
-                    if (!autoSendEnabled) {
-                        console.log(`⏭️ Payment ${payment.id}: Branch auto_send disabled - skip notification`);
-                        continue;
-                    }
+                    
+                    if (!autoSendEnabled) continue;
+                    if (payment.bill_sent_date) continue;
 
-                    // ข้ามถ้าส่งไปแล้ว
-                    if (payment.bill_sent_date) {
-                        console.log(`⏭️ Payment ${payment.id}: Already sent - skip`);
-                        continue;
-                    }
-
-                    // ⭐ เช็คว่ามี LINE หรือ Facebook อย่างน้อยหนึ่งตัว
                     const hasLineId = !!tenant?.line_user_id;
                     const hasFacebookId = !!tenant?.facebook_user_id;
                     
-                    if (!hasLineId && !hasFacebookId) {
-                        console.log(`⏭️ Payment ${payment.id}: No LINE or Facebook ID - skip notification`);
-                        continue;
-                    }
+                    if (!hasLineId && !hasFacebookId) continue;
 
                     const branchId = payment.branch_id;
                     const bankName = getConfigValue('bank_name', branchId, 'กสิกร');
@@ -625,19 +617,18 @@ Deno.serve(async (req) => {
                                 });
 
                                 if (lineResponse.ok) {
-                                    console.log(`📤 Payment ${payment.id}: LINE sent to ${tenant.full_name}`);
+                                    console.log(`✅ [${branchName}] ห้อง ${room?.room_number}: LINE ส่งแล้ว`);
                                     lineSent++;
                                     messageSent = true;
                                 } else {
                                     const errorText = await lineResponse.text();
-                                    console.error(`❌ Payment ${payment.id}: LINE failed - ${errorText}`);
+                                    console.error(`❌ [${branchName}] ห้อง ${room?.room_number}: LINE failed`);
                                     lineFailed++;
                                 }
                                 
                                 await delay(500);
                             }
                         } catch (lineError) {
-                            console.error(`❌ Payment ${payment.id}: LINE error - ${lineError.message}`);
                             lineFailed++;
                         }
                     }
@@ -646,7 +637,6 @@ Deno.serve(async (req) => {
                     if (hasFacebookId) {
                         try {
                             const fbToken = getConfigValue('facebook_page_access_token', branchId, '');
-                            console.log(`🔍 Payment ${payment.id}: Facebook check - hasFacebookId=${hasFacebookId}, fbToken=${fbToken ? 'exists' : 'missing'}, facebook_user_id=${tenant.facebook_user_id}`);
                             
                             if (fbToken) {
                                 let fbMsg = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
@@ -686,7 +676,6 @@ Deno.serve(async (req) => {
                                 if (imageUrl) fbMsg += `\n\n📄 ดูใบแจ้งหนี้: ${imageUrl}`;
                                 fbMsg += `\n\n📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
                                 
-                                console.log(`📘 Attempting to send Facebook to ${tenant.facebook_user_id}...`);
                                 const fbResponse = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
@@ -699,22 +688,15 @@ Deno.serve(async (req) => {
                                 });
                                 
                                 if (fbResponse.ok) {
-                                    console.log(`✅ Payment ${payment.id}: Facebook sent successfully to ${tenant.full_name}`);
+                                    console.log(`✅ [${branchName}] ห้อง ${room?.room_number}: Facebook ส่งแล้ว`);
                                     messageSent = true;
                                 } else {
-                                    const fbError = await fbResponse.text();
-                                    console.error(`❌ Payment ${payment.id}: Facebook API error - ${fbError}`);
+                                    console.error(`❌ [${branchName}] ห้อง ${room?.room_number}: Facebook failed`);
                                 }
                                 
                                 await delay(200);
-                            } else {
-                                console.log(`⏭️ Payment ${payment.id}: No Facebook token configured for branch`);
                             }
-                        } catch (fbError) {
-                            console.error(`❌ Payment ${payment.id}: Facebook exception - ${fbError.message}`);
-                        }
-                    } else {
-                        console.log(`⏭️ Payment ${payment.id}: No Facebook User ID on tenant`);
+                        } catch (fbError) {}
                     }
 
                     // ⭐ Update bill_sent_date ถ้าส่งสำเร็จอย่างน้อย 1 ช่องทาง
