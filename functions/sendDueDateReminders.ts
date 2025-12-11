@@ -106,40 +106,69 @@ Deno.serve(async (req) => {
             console.log(`📅 Using Thailand date: ${todayString}`);
         }
 
-        // 3. ดึงข้อมูลทั้งหมดแบบ pagination
-        console.log('🔍 Fetching all data...');
+        // 3. ดึงข้อมูลแบบกรองเฉพาะที่จำเป็น - ไม่ดึงทั้งหมด
+        console.log('🔍 Fetching filtered data...');
 
-        const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : null;
-        const [allPayments, allTenants, allRooms] = await Promise.all([
-            fetchAll(base44.asServiceRole.entities.Payment, paymentFilter),
-            fetchAll(base44.asServiceRole.entities.Tenant),
-            fetchAll(base44.asServiceRole.entities.Room)
-        ]);
-
-        const tenantMap = new Map(allTenants.map(t => [t.id, t]));
-        const roomMap = new Map(allRooms.map(r => [r.id, r]));
+        // ⭐ ดึงเฉพาะ payment ที่ due_date = วันนี้ และยังไม่ชำระ และสาขาเปิดใช้งาน
+        const paymentFilter = {
+            due_date: todayString,
+            status: 'pending'
+        };
         
-        console.log(`✅ Loaded ${allPayments.length} payments, ${allTenants.length} tenants, ${allRooms.length} rooms`);
+        if (targetBranchId) {
+            paymentFilter.branch_id = targetBranchId;
+        }
 
-        // กรองหา payment ที่ due_date = วันนี้
-        const paymentsWithDueDate = allPayments.filter(p => {
-            if (p.status === 'paid') return false;
-            if (!p.due_date) return false;
+        let allPayments = await fetchAll(base44.asServiceRole.entities.Payment, paymentFilter);
+        
+        // เพิ่มเช็ค overdue ด้วย (กรณีที่ระบบตั้งเป็น overdue แต่ยังไม่ชำระ)
+        const overdueFilter = {
+            due_date: todayString,
+            status: 'overdue'
+        };
+        if (targetBranchId) {
+            overdueFilter.branch_id = targetBranchId;
+        }
+        
+        const overduePayments = await fetchAll(base44.asServiceRole.entities.Payment, overdueFilter);
+        allPayments = [...allPayments, ...overduePayments];
 
-            const dueDateStr = p.due_date.split('T')[0];
-            return dueDateStr === todayString;
-        });
-
-        console.log(`📊 Payments due today (${todayString}): ${paymentsWithDueDate.length}`);
+        console.log(`📊 Payments due today (${todayString}): ${allPayments.length}`);
 
         // กรองบิลที่ยังไม่ได้ส่งแจ้งเตือน และสาขาเปิดใช้งาน
-        const dueToday = paymentsWithDueDate.filter(p => {
+        const dueToday = allPayments.filter(p => {
             if (p.due_date_reminder_sent_date) return false;
             if (p.advance_reminder_sent_date) return false;
             if (p.bill_sent_date) return false;
             if (!enabledBranches.includes(p.branch_id)) return false;
             return true;
         });
+        
+        console.log(`📊 After filtering: ${dueToday.length} payments need reminder`);
+
+        // ⭐ ดึง tenant และ room เฉพาะที่จำเป็น
+        const uniqueTenantIds = [...new Set(dueToday.map(p => p.tenant_id).filter(id => id))];
+        const uniqueRoomIds = [...new Set(dueToday.map(p => p.room_id).filter(id => id))];
+        
+        console.log(`📥 Fetching ${uniqueTenantIds.length} tenants and ${uniqueRoomIds.length} rooms...`);
+        
+        const [tenantsBatch, roomsBatch] = await Promise.all([
+            uniqueTenantIds.length > 0 
+                ? Promise.all(uniqueTenantIds.map(id => 
+                    base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null)
+                  )).then(results => results.flat().filter(Boolean))
+                : [],
+            uniqueRoomIds.length > 0
+                ? Promise.all(uniqueRoomIds.map(id => 
+                    base44.asServiceRole.entities.Room.filter({ id }).catch(() => null)
+                  )).then(results => results.flat().filter(Boolean))
+                : []
+        ]);
+
+        const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
+        const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
+        
+        console.log(`✅ Loaded ${dueToday.length} relevant payments, ${tenantsBatch.length} tenants, ${roomsBatch.length} rooms`);
 
         const totalDueToday = dueToday.length;
         console.log(`📊 Found ${totalDueToday} payments ready to send`);
