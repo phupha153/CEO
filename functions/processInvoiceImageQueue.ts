@@ -544,9 +544,14 @@ Deno.serve(async (req) => {
                     const { payment, room, tenant, imageUrl } = result;
                     
                     const branchName = getConfigValue('building_name', payment.branch_id, 'W RESIDENTS');
+                    
+                    // ⭐⭐⭐ เช็คว่าสาขานี้เปิดการส่งบิลอัตโนมัติหรือไม่ - ต้องเช็คก่อนทุกอย่าง
                     const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', payment.branch_id, 'false') === 'true';
                     
-                    if (!autoSendEnabled) continue;
+                    if (!autoSendEnabled) {
+                        console.log(`⏭️ [${branchName}] ห้อง ${room?.room_number}: ข้ามการส่ง (ไม่ได้เปิด auto_send)`);
+                        continue;
+                    }
                     if (payment.bill_sent_date) continue;
 
                     const hasLineId = !!tenant?.line_user_id;
