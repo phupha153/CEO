@@ -153,18 +153,33 @@ Deno.serve(async (req) => {
             return allData;
         }
 
+        // ⭐⭐⭐ ดึง Payment 2 รอบ: รอบ 1 = มีรูป (สำคัญสุด), รอบ 2 = ไม่มีรูป
+        console.log('\n📥 FETCHING PAYMENTS (2 rounds)...');
+
         const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : null;
-        const [payments, allTenants, allRooms] = await Promise.all([
-            fetchAll(base44.asServiceRole.entities.Payment, paymentFilter),
+
+        // รอบ 1: ดึง Payment ที่มีรูป (invoice_image_url != null)
+        const paymentsWithImage = await fetchAll(base44.asServiceRole.entities.Payment, paymentFilter);
+        const paymentsHasImage = paymentsWithImage.filter(p => p.invoice_image_url);
+
+        // รอบ 2: ดึง Payment ที่ไม่มีรูป (invoice_image_url = null) - จำกัดแค่ 1000 รายการ
+        const paymentsNoImage = paymentsWithImage.filter(p => !p.invoice_image_url).slice(0, 1000);
+
+        // รวมกัน - มีรูปมาก่อน
+        const payments = [...paymentsHasImage, ...paymentsNoImage];
+
+        const [allTenants, allRooms] = await Promise.all([
             fetchAll(base44.asServiceRole.entities.Tenant),
             fetchAll(base44.asServiceRole.entities.Room)
         ]);
-        
+
         const tenantMap = new Map(allTenants.map(t => [t.id, t]));
         const roomMap = new Map(allRooms.map(r => [r.id, r]));
-        
+
         console.log('\n📦 DATA LOADED:');
-        console.log('   Payments:', payments.length);
+        console.log('   Payments (มีรูป):', paymentsHasImage.length);
+        console.log('   Payments (ไม่มีรูป):', paymentsNoImage.length);
+        console.log('   Payments (รวม):', payments.length);
         console.log('   Tenants:', allTenants.length);
         console.log('   Rooms:', allRooms.length);
 
@@ -250,31 +265,10 @@ Deno.serve(async (req) => {
             });
         }
 
-        // ⭐⭐⭐ จัดลำดับให้บิลที่มีรูปครบมาก่อน
-        upcomingPayments.sort((a, b) => {
-            const aHasImage = !!a.invoice_image_url;
-            const bHasImage = !!b.invoice_image_url;
-            
-            // มีรูป มาก่อน ไม่มีรูป
-            if (aHasImage && !bHasImage) return -1;
-            if (!aHasImage && bHasImage) return 1;
-            
-            // ถ้าทั้งคู่มีรูป เช็ค hash
-            if (aHasImage && bHasImage) {
-                const aHashMatch = a.invoice_data_hash && generatePaymentHash(a) === a.invoice_data_hash;
-                const bHashMatch = b.invoice_data_hash && generatePaymentHash(b) === b.invoice_data_hash;
-                
-                // hash ตรง มาก่อน hash ไม่ตรง
-                if (aHashMatch && !bHashMatch) return -1;
-                if (!aHashMatch && bHashMatch) return 1;
-            }
-            
-            return 0;
-        });
-        
+        // ไม่ต้อง sort เพราะ fetch มาเรียงแล้ว
         const withImage = upcomingPayments.filter(p => p.invoice_image_url).length;
         const withoutImage = upcomingPayments.length - withImage;
-        console.log(`🔄 After sort: ${withImage} มีรูป, ${withoutImage} ไม่มีรูป`);
+        console.log(`📊 Upcoming: ${withImage} มีรูป, ${withoutImage} ไม่มีรูป`);
 
         // Process recipients
         const paymentsFromEnabledBranches = upcomingPayments.filter(p => enabledBranches.includes(p.branch_id));
