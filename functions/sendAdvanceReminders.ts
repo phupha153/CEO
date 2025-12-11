@@ -1,9 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-// Version: 2025-12-11-v2 - FULL DEBUG MODE WITH FACEBOOK SUPPORT
-// Last updated: 2025-12-11 15:00 Thailand Time
+// Version: 2025-12-11-v3-MINIMAL - เหลือแต่ log สำคัญ
+// Last updated: 2025-12-11 15:30 Thailand Time
 
-// ⭐ ฟังก์ชันสร้าง hash จากข้อมูลบิล เพื่อตรวจจับการเปลี่ยนแปลง
 function generatePaymentHash(payment) {
     const dataToHash = {
         rent_amount: payment.rent_amount || 0,
@@ -22,7 +21,6 @@ function generatePaymentHash(payment) {
     return btoa(jsonStr).substring(0, 32);
 }
 
-// ฟังก์ชันแปลงตัวเลขเป็นตัวหนังสือไทย
 function numberToThaiText(number) {
     if (number === undefined || number === null || isNaN(number) || number === 0) return 'ศูนย์บาทถ้วน';
 
@@ -74,53 +72,37 @@ function numberToThaiText(number) {
     
     return text;
 }
+
 Deno.serve(async (req) => {
-    const VERSION = '2025-12-11-v2';
-    const startTime = Date.now();
+    const VERSION = 'v3-MINIMAL';
     
-    // ⭐⭐⭐ TOP LOG - จะโชว์ก่อนอื่นเสมอ
-    console.log('\n\n\n');
-    console.log('█████████████████████████████████████████████████████████████');
-    console.log('█                                                           █');
-    console.log('█   🚀 ADVANCE REMINDER DEBUG v' + VERSION + '        █');
-    console.log('█                                                           █');
-    console.log('█████████████████████████████████████████████████████████████');
-    console.log('⏰ START TIME:', new Date().toISOString());
-    console.log('🌏 THAILAND TIME:', new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }));
-    console.log('═══════════════════════════════════════════════════════════\n');
+    console.log('\n\n');
+    console.log('████████████████████████████████████████████████████');
+    console.log('█  🚀 ADVANCE REMINDER ' + VERSION + '           █');
+    console.log('████████████████████████████████████████████████████');
+    console.log('⏰ START:', new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }));
+    console.log('════════════════════════════════════════════════════\n');
     
     try {
         const base44 = createClientFromRequest(req);
-        console.log('✅ Base44 client initialized');
 
-        // Parse request body to check for branch_id, test mode, and limit
+        // Parse request
         let targetBranchId = null;
         let testLineUserId = null;
-        let limit = 30; // จำนวนบิลสูงสุดที่จะส่งต่อครั้ง (default 30)
-        let body = {};
+        let limit = 30;
         try {
             const text = await req.text();
             if (text) {
-                body = JSON.parse(text);
+                const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
                 testLineUserId = body.test_line_user_id || null;
                 limit = body.limit || 30;
             }
-        } catch (parseError) {
-            console.log('⚠️ No body or parse error:', parseError.message);
-        }
+        } catch (parseError) {}
 
-        console.log('\n📋 === REQUEST PARAMETERS ===');
-        console.log('   Target Branch:', targetBranchId || 'ALL BRANCHES');
-        console.log('   Limit per run:', limit);
-        console.log('   Test LINE User ID:', testLineUserId || 'NONE (Production Mode)');
-
-        // 1. ดึงการตั้งค่าจาก Config
-        console.log('\n⚙️ === LOADING CONFIGURATIONS ===');
+        // Load configs
         const configs = await base44.asServiceRole.entities.Config.list();
-        console.log(`   Loaded ${configs.length} config items`);
         
-        // Helper function to get config value by branch
         const getConfigValue = (key, defaultValue, branchId = null) => {
             if (branchId) {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
@@ -130,421 +112,313 @@ Deno.serve(async (req) => {
             return globalConfig?.value || defaultValue;
         };
 
-        // ⭐ สรุปสถานะการเปิด/ปิดแจ้งเตือนล่วงหน้าแต่ละสาขา
         const branchReminderConfigs = configs.filter(c => c.key === 'send_advance_reminder');
         const enabledBranches = branchReminderConfigs.filter(c => c.value === 'true').map(c => c.branch_id);
-        const disabledBranches = branchReminderConfigs.filter(c => c.value !== 'true').map(c => c.branch_id);
-        
-        console.log(`📊 Branch reminder status summary:`);
-        console.log(`   ✅ Enabled branches (${enabledBranches.length}): ${enabledBranches.join(', ') || 'none'}`);
-        console.log(`   ❌ Disabled branches (${disabledBranches.length}): ${disabledBranches.length} branches`);
 
-        // ถ้าไม่มีสาขาไหนเปิดเลย
+        console.log('📊 Enabled branches:', enabledBranches.length, '/', branchReminderConfigs.length);
+
         if (enabledBranches.length === 0) {
-            console.log('⚠️ No branches have advance reminders enabled');
             return Response.json({
                 success: true,
-                message: 'ไม่มีสาขาใดเปิดการแจ้งเตือนล่วงหน้า กรุณาเปิดในหน้าตั้งค่า > บิล',
-                sent: 0,
-                enabledBranches: [],
-                disabledBranches: disabledBranches.length
+                message: 'ไม่มีสาขาเปิดการแจ้งเตือนล่วงหน้า',
+                sent: 0
             });
         }
 
-        // 2. คำนวณวันปัจจุบัน
+        // Calculate today
         const now = new Date();
-        const thailandTimeString = now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
-        const thailandTime = new Date(thailandTimeString);
+        const thailandTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
         const todayDateString = thailandTime.toISOString().split('T')[0];
+        console.log('📅 Today:', todayDateString);
 
-        console.log('\n📅 === DATE CALCULATIONS ===');
-        console.log(`   Today (Thailand Timezone): ${todayDateString}`);
-        console.log(`   Thailand Time Full: ${thailandTime.toLocaleString('th-TH')}`);
-        
-        // ⭐ แสดง advance days แต่ละสาขา
-        console.log('\n⏰ === ADVANCE NOTICE DAYS PER BRANCH ===');
-        enabledBranches.forEach(branchId => {
-            const days = parseInt(getConfigValue('bill_advance_notice_days', '3', branchId));
-            console.log(`   Branch ${branchId}: ${days} days advance notice`);
-        });
-
-        // 3. หาบิลที่วันนี้ = due_date - advanceDays (ยังไม่ชำระ)
-        console.log('\n🔍 === FETCHING DATABASE RECORDS ===');
-        
-        // ⭐ Helper function สำหรับดึงข้อมูลแบบ pagination (รองรับมากกว่า 10,000 รายการ)
-        async function fetchAllWithPagination(entity, filter = null, batchSize = 5000) {
+        // Fetch data (silent pagination)
+        async function fetchAll(entity, filter = null) {
             let allData = [];
             let skip = 0;
             let hasMore = true;
             
             while (hasMore) {
                 const batch = filter 
-                    ? await entity.filter(filter, '-created_date', batchSize, skip)
-                    : await entity.list('-created_date', batchSize, skip);
+                    ? await entity.filter(filter, '-created_date', 5000, skip)
+                    : await entity.list('-created_date', 5000, skip);
                     
                 if (!Array.isArray(batch) || batch.length === 0) {
                     hasMore = false;
                 } else {
                     allData = allData.concat(batch);
                     skip += batch.length;
-                    if (batch.length < batchSize) {
-                        hasMore = false;
-                    }
+                    if (batch.length < 5000) hasMore = false;
                 }
-                console.log(`📊 Fetched ${allData.length} records...`);
             }
             return allData;
         }
 
-        // ⭐ ดึงข้อมูลทั้งหมดแบบ parallel และ pagination
         const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : null;
         const [payments, allTenants, allRooms] = await Promise.all([
-            fetchAllWithPagination(base44.asServiceRole.entities.Payment, paymentFilter),
-            fetchAllWithPagination(base44.asServiceRole.entities.Tenant),
-            fetchAllWithPagination(base44.asServiceRole.entities.Room)
+            fetchAll(base44.asServiceRole.entities.Payment, paymentFilter),
+            fetchAll(base44.asServiceRole.entities.Tenant),
+            fetchAll(base44.asServiceRole.entities.Room)
         ]);
         
-        // สร้าง Map สำหรับ lookup เร็วขึ้น O(1)
         const tenantMap = new Map(allTenants.map(t => [t.id, t]));
         const roomMap = new Map(allRooms.map(r => [r.id, r]));
         
-        console.log(`   ✅ Loaded ${payments.length} payments`);
-        console.log(`   ✅ Loaded ${allTenants.length} tenants`);
-        console.log(`   ✅ Loaded ${allRooms.length} rooms`);
+        console.log('\n📦 DATA LOADED:');
+        console.log('   Payments:', payments.length);
+        console.log('   Tenants:', allTenants.length);
+        console.log('   Rooms:', allRooms.length);
 
-        // ⭐⭐⭐ DEBUG: แสดงข้อมูลบิลทั้งหมดก่อน filter
-        console.log('\n🔍 === PAYMENT ANALYSIS (BEFORE FILTERING) ===');
-        console.log(`📋 Total payments in database: ${payments.length}`);
-        
-        // นับจำนวนตามสถานะ
+        // Status breakdown
         const statusCounts = {};
-        const withDueDateCount = payments.filter(p => p.due_date).length;
-        const withAdvanceReminderSent = payments.filter(p => p.advance_reminder_sent_date).length;
-        
         payments.forEach(p => {
             statusCounts[p.status || 'unknown'] = (statusCounts[p.status || 'unknown'] || 0) + 1;
         });
         
-        console.log(`📊 Payment status breakdown:`, JSON.stringify(statusCounts, null, 2));
-        console.log(`📅 Payments with due_date: ${withDueDateCount}`);
-        console.log(`📨 Payments with advance_reminder_sent: ${withAdvanceReminderSent}`);
+        console.log('\n📊 PAYMENT STATUS:');
+        Object.entries(statusCounts).forEach(([status, count]) => {
+            console.log(`   ${status}: ${count}`);
+        });
+        console.log('   With due_date:', payments.filter(p => p.due_date).length);
+        console.log('   Already sent reminder:', payments.filter(p => p.advance_reminder_sent_date).length);
 
-        console.log('\n🔍 === DETAILED PAYMENT FILTERING (First 10) ===');
+        // Filter payments
+        console.log('\n🔍 FILTERING (showing first 5 payments)...\n');
         
+        let debugCount = 0;
         let upcomingPayments = payments.filter(p => {
-            // DEBUG: แสดงรายละเอียดการ filter แต่ละบิล (สำหรับ 10 บิลแรก)
-            const debugIndex = payments.indexOf(p);
-            const shouldDebug = debugIndex < 10;
+            const shouldDebug = debugCount < 5;
             
             if (shouldDebug) {
-                console.log(`\n━━━ Payment ${debugIndex + 1}/${payments.length} ━━━`);
-                console.log(`   ID: ${p.id}`);
-                console.log(`   Status: ${p.status}`);
-                console.log(`   Due Date: ${p.due_date || 'NONE'}`);
-                console.log(`   Has Invoice Image: ${!!p.invoice_image_url ? 'YES' : 'NO'}`);
-                console.log(`   Advance Reminder Sent: ${p.advance_reminder_sent_date || 'NO'}`);
-                console.log(`   Branch ID: ${p.branch_id}`);
-                console.log(`   Tenant ID: ${p.tenant_id}`);
+                console.log(`━━━ Payment ${debugCount + 1} ━━━`);
+                console.log('ID:', p.id);
+                console.log('Status:', p.status);
+                console.log('Due Date:', p.due_date || 'NONE');
+                console.log('Has Image:', !!p.invoice_image_url ? 'YES' : 'NO');
+                console.log('Already Sent:', p.advance_reminder_sent_date || 'NO');
+                debugCount++;
             }
             
             if (p.status === 'paid') {
-                if (shouldDebug) console.log(`   ❌ FILTERED OUT: Already paid`);
+                if (shouldDebug) console.log('❌ SKIP: Paid');
                 return false;
             }
             if (!p.due_date) {
-                if (shouldDebug) console.log(`   ❌ FILTERED OUT: No due_date`);
+                if (shouldDebug) console.log('❌ SKIP: No due_date');
                 return false;
             }
-            
-            // ⭐ ถ้าส่งแจ้งเตือนล่วงหน้าไปแล้ว ไม่ต้องส่งซ้ำ
             if (p.advance_reminder_sent_date) {
-                if (shouldDebug) console.log(`   ⏭️ FILTERED OUT: Already sent (${p.advance_reminder_sent_date})`);
+                if (shouldDebug) console.log('❌ SKIP: Already sent');
                 return false;
             }
             
-            // ⭐ ดึง advanceDays เฉพาะสาขาของบิลนี้
-            const paymentBranchId = p.branch_id;
-            const branchAdvanceDays = parseInt(getConfigValue('bill_advance_notice_days', '3', paymentBranchId));
-            
-            // คำนวณวันที่ควรแจ้งเตือน = due_date - advanceDays
+            const branchAdvanceDays = parseInt(getConfigValue('bill_advance_notice_days', '3', p.branch_id));
             const dueDate = new Date(p.due_date);
             const notifyDate = new Date(dueDate);
             notifyDate.setDate(dueDate.getDate() - branchAdvanceDays);
             const notifyDateString = notifyDate.toISOString().split('T')[0];
             
             if (shouldDebug) {
-                console.log(`   Due Date: ${p.due_date}`);
-                console.log(`   Branch Advance Days: ${branchAdvanceDays}`);
-                console.log(`   Notify Date Calculated: ${notifyDateString}`);
-                console.log(`   Today: ${todayDateString}`);
-                console.log(`   Match: ${notifyDateString === todayDateString}`);
+                console.log('Advance Days:', branchAdvanceDays);
+                console.log('Should Notify On:', notifyDateString);
+                console.log('Today:', todayDateString);
+                console.log('Match:', notifyDateString === todayDateString ? 'YES ✅' : 'NO ❌');
             }
             
-            // ตรวจสอบว่าวันนี้ = วันที่ควรแจ้งเตือนหรือไม่
             const shouldNotifyToday = notifyDateString === todayDateString;
             
-            if (!shouldNotifyToday && shouldDebug) {
-                console.log(`   ❌ FILTERED OUT: Not due today for advance reminder`);
-            }
-            
-            // ถ้าระบุ branch_id ให้กรองตาม branch
             if (targetBranchId && p.branch_id !== targetBranchId) {
-                if (shouldDebug) console.log(`   ❌ FILTERED OUT: Wrong branch`);
+                if (shouldDebug) console.log('❌ SKIP: Wrong branch');
                 return false;
             }
             
             if (shouldDebug && shouldNotifyToday) {
-                console.log(`   ✅ PASS: Should send advance reminder today!`);
+                console.log('✅ PASS!\n');
+            } else if (shouldDebug) {
+                console.log('');
             }
             
             return shouldNotifyToday;
         });
         
-        console.log('\n═══════════════════════════════════════════════════════════');
-        console.log('📊 === FILTER RESULTS SUMMARY ===');
-        console.log(`   Total Payments Checked: ${payments.length}`);
-        console.log(`   ✅ Passed All Filters: ${upcomingPayments.length}`);
-        console.log(`   ❌ Filtered Out: ${payments.length - upcomingPayments.length}`);
-        console.log('═══════════════════════════════════════════════════════════\n');
+        console.log('════════════════════════════════════════════════════');
+        console.log('📊 FILTER RESULT:');
+        console.log('   Total Checked:', payments.length);
+        console.log('   ✅ Passed:', upcomingPayments.length);
+        console.log('   ❌ Filtered Out:', payments.length - upcomingPayments.length);
+        console.log('════════════════════════════════════════════════════\n');
 
-        const totalUpcomingPayments = upcomingPayments.length; // เก็บจำนวนทั้งหมดไว้ก่อน
-        console.log(`📊 Found ${totalUpcomingPayments} payments due soon ${targetBranchId ? `in branch ${targetBranchId}` : 'in all branches'}`);
-
-        if (totalUpcomingPayments === 0) {
+        if (upcomingPayments.length === 0) {
             return Response.json({
                 success: true,
-                message: targetBranchId 
-                    ? `ไม่มีบิลที่จะครบกำหนดเร็วๆ นี้ (สาขา: ${targetBranchId})` 
-                    : `ไม่มีบิลที่จะครบกำหนดเร็วๆ นี้`,
+                message: 'ไม่มีบิลที่ต้องส่งแจ้งเตือนล่วงหน้าวันนี้',
                 sent: 0,
-                total: 0,
-                remaining: 0,
-                hasMore: false,
-                targetBranchId: targetBranchId || 'all'
+                total: 0
             });
         }
 
-        // 4. เตรียมข้อความสำหรับแต่ละบิล (grouped by branch)
-        const recipients = [];
-
-        // ⭐ กรองเฉพาะบิลจากสาขาที่เปิดการแจ้งเตือน
+        // Process recipients
         const paymentsFromEnabledBranches = upcomingPayments.filter(p => enabledBranches.includes(p.branch_id));
-        const skippedCount = upcomingPayments.length - paymentsFromEnabledBranches.length;
-        
-        // ⭐ จำกัดจำนวนบิลที่จะประมวลผลในรอบนี้
         const paymentsToProcess = paymentsFromEnabledBranches.slice(0, limit);
-        const totalRemaining = paymentsFromEnabledBranches.length - paymentsToProcess.length;
         
-        console.log(`📋 Payments from enabled branches: ${paymentsFromEnabledBranches.length}`);
-        console.log(`📋 Processing this round: ${paymentsToProcess.length}`);
-        console.log(`📋 Remaining for next round: ${totalRemaining}`);
-        console.log(`⏭️ Skipped payments (disabled branches): ${skippedCount}`);
+        console.log('📋 To Process:', paymentsToProcess.length);
 
-        if (paymentsFromEnabledBranches.length === 0 && upcomingPayments.length > 0) {
-            return Response.json({
-                success: true,
-                message: `มีบิลที่ครบกำหนด ${upcomingPayments.length} รายการ แต่สาขาเหล่านั้นปิดการแจ้งเตือนล่วงหน้า`,
-                sent: 0,
-                total: 0,
-                remaining: 0,
-                hasMore: false,
-                totalPaymentsDue: upcomingPayments.length,
-                skippedDueToDisabled: skippedCount,
-                enabledBranches: enabledBranches
-            });
-        }
-
-        // ⭐ ตัวแปรนับจำนวน Payment ที่ถูกข้ามเพราะยังไม่มีรูป
+        const recipients = [];
         let skippedNoImage = 0;
 
         for (const payment of paymentsToProcess) {
-            try {
-                const paymentBranchId = payment.branch_id;
+            const tenant = tenantMap.get(payment.tenant_id);
+            const room = roomMap.get(payment.room_id);
 
-                // ⭐ ใช้ Map lookup แทนการเรียก API ทีละตัว (O(1) แทน O(n))
-                const tenant = tenantMap.get(payment.tenant_id);
-                const room = roomMap.get(payment.room_id);
+            if (!tenant) continue;
 
-                if (!tenant) {
-                    console.log(`⚠️ No tenant found for payment ${payment.id}`);
-                    continue;
-                }
+            const hasLine = !!tenant.line_user_id;
+            const hasFacebook = !!tenant.facebook_user_id;
 
-                const hasLine = !!tenant.line_user_id;
-                const hasFacebook = !!tenant.facebook_user_id;
-
-                if (!hasLine && !hasFacebook) {
-                    console.log(`⚠️ Payment ${payment.id} - Tenant ${tenant.full_name} (ห้อง ${room?.room_number}): ไม่มี LINE หรือ Facebook เชื่อมต่อ`);
-                    continue;
-                }
-
-                console.log(`✅ Payment ${payment.id} - Tenant ${tenant.full_name} (ห้อง ${room?.room_number}): LINE=${hasLine}, Facebook=${hasFacebook}`);
-
-                // ⭐ ตรวจสอบว่ามีรูปใบแจ้งหนี้และ hash ตรงกันหรือไม่
-                const invoiceImageUrl = payment.invoice_image_url || null;
-                const currentHash = generatePaymentHash(payment);
-                const savedHash = payment.invoice_data_hash || '';
-
-                // ถ้าไม่มีรูปหรือ hash ไม่ตรง = ข้อมูลไม่ครบ → ข้ามไป
-                if (!invoiceImageUrl || (savedHash && currentHash !== savedHash)) {
-                    console.log(`⏭️ Skipping payment ${payment.id}: No invoice image or hash mismatch (has_image=${!!invoiceImageUrl}, hash_match=${currentHash === savedHash})`);
-                    skippedNoImage++;
-                    continue;
-                }
-
-                // ⭐ ดึง config เฉพาะสาขาของบิลนี้
-                const branchBankName = getConfigValue('bank_name', 'กสิกร', paymentBranchId);
-                const branchBankAccountNumber = getConfigValue('bank_account_number', '0722835522', paymentBranchId);
-                const branchBankAccountName = getConfigValue('bank_account_name', 'ธนานนท์ พรมพักตร์', paymentBranchId);
-                const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', paymentBranchId);
-                const branchAdvanceDays = parseInt(getConfigValue('bill_advance_notice_days', '3', paymentBranchId));
-
-                console.log(`📋 Branch ${paymentBranchId}: bank=${branchBankName}, acc=${branchBankAccountNumber}, name=${branchBankAccountName}`);
-
-                // สร้างข้อความเตือนล่วงหน้า (เหมือน sendPaymentReminder template 'advance')
-                const dueDateStr = new Date(payment.due_date).toLocaleDateString('th-TH', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-                const roomNum = room?.room_number || 'N/A';
-
-                let message = `📢 ${branchBuildingName} - แจ้งเตือนค่าเช่า\n\n`;
-                message += `สวัสดีคุณ ${tenant.full_name}\n`;
-                message += `ห้อง ${roomNum}\n\n`;
-                message += `รายละเอียดค่าใช้จ่าย:\n`;
-                message += `━━━━━━━━━━━━━━━━━━━━\n`;
-
-                if (payment.rent_amount > 0) {
-                    message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
-                }
-                if (payment.electricity_amount > 0) {
-                    message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-                }
-                if (payment.water_amount > 0) {
-                    message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
-                }
-                if (payment.internet_amount > 0) {
-                    message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
-                }
-                if (payment.common_fee_amount > 0) {
-                    message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
-                }
-                if (payment.parking_fee_amount > 0) {
-                    message += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
-                }
-                if (payment.other_amount > 0) {
-                    message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
-                }
-
-                message += `━━━━━━━━━━━━━━━━━━━━\n`;
-                message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
-                message += `(${numberToThaiText(payment.total_amount)})\n\n`;
-                message += `📅 ครบกำหนดชำระ: ${dueDateStr}\n`;
-                message += `สถานะ: รอชำระ\n\n`;
-                message += `💳 โอนเงินได้ที่: ${branchBankName} ${branchBankAccountNumber} (${branchBankAccountName})\n\n`;
-                message += `📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}\n\n`;
-                message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
-                message += `ขอบคุณค่ะ 🙏`;
-
-                recipients.push({
-                    lineUserId: tenant.line_user_id || null,
-                    facebookUserId: tenant.facebook_user_id || null,
-                    message: message,
-                    metadata: {
-                        paymentId: payment.id,
-                        tenantId: tenant.id,
-                        roomNumber: room?.room_number,
-                        branchId: paymentBranchId,
-                        tenantName: tenant.full_name,
-                        hasLine: hasLine,
-                        hasFacebook: hasFacebook
-                    }
-                });
-
-            } catch (error) {
-                console.error(`❌ Error processing payment ${payment.id}:`, error);
+            if (!hasLine && !hasFacebook) {
+                console.log(`⚠️ ${room?.room_number}: No LINE/Facebook`);
+                continue;
             }
+
+            const invoiceImageUrl = payment.invoice_image_url || null;
+            const currentHash = generatePaymentHash(payment);
+            const savedHash = payment.invoice_data_hash || '';
+
+            if (!invoiceImageUrl || (savedHash && currentHash !== savedHash)) {
+                console.log(`⏭️ ${room?.room_number}: No image or hash mismatch`);
+                skippedNoImage++;
+                continue;
+            }
+
+            const branchBankName = getConfigValue('bank_name', 'กสิกร', payment.branch_id);
+            const branchBankAccountNumber = getConfigValue('bank_account_number', '0722835522', payment.branch_id);
+            const branchBankAccountName = getConfigValue('bank_account_name', 'ธนานนท์ พรมพักตร์', payment.branch_id);
+            const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', payment.branch_id);
+
+            const dueDateStr = new Date(payment.due_date).toLocaleDateString('th-TH', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            const roomNum = room?.room_number || 'N/A';
+
+            let message = `📢 ${branchBuildingName} - แจ้งเตือนค่าเช่า\n\n`;
+            message += `สวัสดีคุณ ${tenant.full_name}\n`;
+            message += `ห้อง ${roomNum}\n\n`;
+            message += `รายละเอียดค่าใช้จ่าย:\n`;
+            message += `━━━━━━━━━━━━━━━━━━━━\n`;
+
+            if (payment.rent_amount > 0) {
+                message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+            }
+            if (payment.electricity_amount > 0) {
+                message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
+            }
+            if (payment.water_amount > 0) {
+                message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
+            }
+            if (payment.internet_amount > 0) {
+                message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
+            }
+            if (payment.common_fee_amount > 0) {
+                message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
+            }
+            if (payment.parking_fee_amount > 0) {
+                message += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
+            }
+            if (payment.other_amount > 0) {
+                message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
+            }
+
+            message += `━━━━━━━━━━━━━━━━━━━━\n`;
+            message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
+            message += `(${numberToThaiText(payment.total_amount)})\n\n`;
+            message += `📅 ครบกำหนดชำระ: ${dueDateStr}\n`;
+            message += `สถานะ: รอชำระ\n\n`;
+            message += `💳 โอนเงินได้ที่: ${branchBankName} ${branchBankAccountNumber} (${branchBankAccountName})\n\n`;
+            message += `📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}\n\n`;
+            message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
+            message += `ขอบคุณค่ะ 🙏`;
+
+            recipients.push({
+                lineUserId: tenant.line_user_id || null,
+                facebookUserId: tenant.facebook_user_id || null,
+                message: message,
+                metadata: {
+                    paymentId: payment.id,
+                    tenantId: tenant.id,
+                    roomNumber: room?.room_number,
+                    branchId: payment.branch_id,
+                    tenantName: tenant.full_name
+                }
+            });
         }
 
-        console.log(`\n📊 สรุปผู้รับทั้งหมด: ${recipients.length} รายการ`);
-        const lineCount = recipients.filter(r => r.lineUserId).length;
-        const facebookCount = recipients.filter(r => r.facebookUserId).length;
-        console.log(`   📱 LINE: ${lineCount} คน`);
-        console.log(`   💬 Facebook: ${facebookCount} คน\n`);
+        console.log('\n📤 RECIPIENTS:', recipients.length);
+        console.log('   LINE:', recipients.filter(r => r.lineUserId).length);
+        console.log('   Facebook:', recipients.filter(r => r.facebookUserId).length);
+        console.log('   Skipped (no image):', skippedNoImage, '\n');
 
-        // ⭐ อัปเดต advance_reminder_sent_date แบบ bulk
-        const now = new Date().toISOString();
-        const paymentIdsToUpdate = recipients.map(r => r.metadata.paymentId);
+        if (recipients.length === 0) {
+            return Response.json({
+                success: true,
+                message: 'ไม่มีผู้รับที่พร้อมส่ง (ตรวจสอบรูปใบแจ้งหนี้)',
+                sent: 0,
+                skippedNoImage
+            });
+        }
+
+        // Update advance_reminder_sent_date
+        const nowISO = new Date().toISOString();
+        const paymentIds = recipients.map(r => r.metadata.paymentId);
         
-        const updateBatchSize = 50;
-        for (let i = 0; i < paymentIdsToUpdate.length; i += updateBatchSize) {
-            const batch = paymentIdsToUpdate.slice(i, i + updateBatchSize);
+        for (let i = 0; i < paymentIds.length; i += 50) {
+            const batch = paymentIds.slice(i, i + 50);
             await Promise.all(
                 batch.map(id => 
-                    base44.asServiceRole.entities.Payment.update(id, { advance_reminder_sent_date: now })
-                        .catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
+                    base44.asServiceRole.entities.Payment.update(id, { advance_reminder_sent_date: nowISO })
+                        .catch(() => {})
                 )
             );
-            console.log(`✅ Updated advance_reminder_sent_date: ${Math.min(i + updateBatchSize, paymentIdsToUpdate.length)}/${paymentIdsToUpdate.length}`);
         }
 
-        // 5. ส่งข้อความ (รองรับทั้ง LINE และ Facebook)
+        // Send messages
         let sentCount = 0;
         let sendErrors = [];
 
         if (recipients.length > 0) {
-            // แยกผู้รับเป็น LINE และ Facebook
             const lineRecipients = recipients.filter(r => r.lineUserId);
             const facebookRecipients = recipients.filter(r => r.facebookUserId);
 
-            console.log(`📤 Total recipients: ${recipients.length} (LINE: ${lineRecipients.length}, Facebook: ${facebookRecipients.length})`);
-
-            // ⭐ TEST MODE: ถ้ามี test_line_user_id ให้ส่งไปหาคนเดียวแทน
+            // TEST MODE
             if (testLineUserId) {
-                console.log(`🧪 TEST MODE: Sending sample to ${testLineUserId}`);
-                
-                // เลือกบิลตัวอย่างตัวแรก
-                const sampleRecipient = lineRecipients[0] || recipients[0];
+                console.log('🧪 TEST MODE - sending to:', testLineUserId);
                 
                 try {
+                    const sampleRecipient = lineRecipients[0] || recipients[0];
                     const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
                         recipients: [{
                             lineUserId: testLineUserId,
                             message: sampleRecipient.message,
                             metadata: { ...sampleRecipient.metadata, testMode: true }
                         }],
-                        options: {
-                            batchSize: 1,
-                            retryAttempts: 2
-                        }
+                        options: { batchSize: 1, retryAttempts: 2 }
                     });
 
-                    const result = batchResult.data;
-                    sentCount = result.success;
-
-                    if (result.success > 0) {
-                        console.log(`✅ Test message sent successfully`);
-                    }
+                    sentCount = batchResult.data.success || 0;
+                    console.log(sentCount > 0 ? '✅ Test sent' : '❌ Test failed');
                 } catch (error) {
-                    console.error('❌ Error sending test message:', error);
-                    sendErrors.push(`Test mode error: ${error.message}`);
+                    console.error('❌ Test error:', error.message);
+                    sendErrors.push(error.message);
                 }
             } else {
-                // ส่ง LINE Messages
+                // Send LINE
                 if (lineRecipients.length > 0) {
-                    console.log(`📤 Sending ${lineRecipients.length} LINE advance reminders...`);
-                    
-                    const CHUNK_SIZE = 50;
                     const chunks = [];
-                    for (let i = 0; i < lineRecipients.length; i += CHUNK_SIZE) {
-                        chunks.push(lineRecipients.slice(i, i + CHUNK_SIZE));
+                    for (let i = 0; i < lineRecipients.length; i += 50) {
+                        chunks.push(lineRecipients.slice(i, i + 50));
                     }
 
-                    for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
-                        const chunk = chunks[chunkIdx];
-                        console.log(`📤 LINE chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} messages)`);
-
+                    for (const chunk of chunks) {
                         try {
                             const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
                                 recipients: chunk,
@@ -556,145 +430,78 @@ Deno.serve(async (req) => {
                                 }
                             });
 
-                            const result = batchResult.data;
-                            sentCount += result.success || 0;
+                            sentCount += batchResult.data.success || 0;
                         
-                            if (result.errors && result.errors.length > 0) {
-                                result.errors.slice(0, 5).forEach(err => {
-                                    const meta = err.metadata;
-                                    sendErrors.push(`ห้อง ${meta?.roomNumber || 'N/A'}: ${err.error}`);
+                            if (batchResult.data.errors?.length > 0) {
+                                batchResult.data.errors.slice(0, 3).forEach(err => {
+                                    sendErrors.push(`ห้อง ${err.metadata?.roomNumber}: ${err.error}`);
                                 });
                             }
-
-                            console.log(`✅ LINE chunk ${chunkIdx + 1}: sent ${result.success || 0}/${chunk.length}`);
                         } catch (error) {
-                            console.error(`❌ LINE chunk ${chunkIdx + 1} error:`, error.message);
-                            sendErrors.push(`LINE chunk ${chunkIdx + 1} error: ${error.message}`);
+                            console.error('❌ LINE chunk error:', error.message);
+                            sendErrors.push(error.message);
                         }
 
-                        if (chunkIdx < chunks.length - 1) {
-                            await new Promise(r => setTimeout(r, 1000));
-                        }
+                        await new Promise(r => setTimeout(r, 1000));
                     }
                 }
 
-                // ส่ง Facebook Messages แบบทีละรายการ
+                // Send Facebook
                 if (facebookRecipients.length > 0) {
-                    console.log(`📤 Sending ${facebookRecipients.length} Facebook advance reminders...`);
-                    
-                    for (let i = 0; i < facebookRecipients.length; i++) {
-                        const recipient = facebookRecipients[i];
+                    for (const recipient of facebookRecipients) {
                         try {
                             await base44.asServiceRole.functions.invoke('sendFacebookMessage', {
                                 recipientId: recipient.facebookUserId,
                                 message: recipient.message
                             });
                             sentCount++;
-                            console.log(`✅ Facebook ${i + 1}/${facebookRecipients.length}: sent to ${recipient.metadata.roomNumber}`);
                         } catch (error) {
-                            console.error(`❌ Facebook send error (${recipient.metadata.roomNumber}):`, error.message);
-                            sendErrors.push(`Facebook ห้อง ${recipient.metadata.roomNumber}: ${error.message}`);
+                            console.error(`❌ Facebook error (${recipient.metadata.roomNumber}):`, error.message);
+                            sendErrors.push(`Facebook ${recipient.metadata.roomNumber}: ${error.message}`);
                         }
-                        
-                        // Delay เล็กน้อยระหว่างข้อความ
-                        if (i < facebookRecipients.length - 1) {
-                            await new Promise(r => setTimeout(r, 500));
-                        }
+                        await new Promise(r => setTimeout(r, 500));
                     }
                 }
-
-                console.log(`📊 Total advance reminders sent: ${sentCount}/${recipients.length} (LINE: ${lineRecipients.length}, Facebook: ${facebookRecipients.length})`);
             }
         }
 
-        const executionTime = Date.now() - startTime;
-
-        // สร้างผลลัพธ์แยกตามสาขา
-        const branchResults = [];
-        const branchStats = {};
-
-        recipients.forEach(r => {
-            const branchId = r.metadata.branchId;
-            if (!branchStats[branchId]) {
-                branchStats[branchId] = { sent: 0, failed: 0 };
-            }
-            branchStats[branchId].sent++;
-        });
-
-        sendErrors.forEach(err => {
-            // พยายามดึง branch_id จาก error message
-            const match = err.match(/branch[_\s]?id[:\s]+([a-f0-9]+)/i);
-            if (match && match[1]) {
-                const branchId = match[1];
-                if (!branchStats[branchId]) {
-                    branchStats[branchId] = { sent: 0, failed: 0 };
-                }
-                branchStats[branchId].failed++;
-            }
-        });
-
-        // แปลง branchStats เป็น array
-        const branches = await base44.asServiceRole.entities.Branch.list();
-        Object.entries(branchStats).forEach(([branchId, stats]) => {
-            const branch = branches.find(b => b.id === branchId);
-            branchResults.push({
-                branch_id: branchId,
-                branch_name: branch?.branch_name || 'Unknown',
-                status: stats.failed > 0 ? 'partial' : 'success',
-                sent: stats.sent,
-                failed: stats.failed
-            });
-        });
+        console.log('\n════════════════════════════════════════════════════');
+        console.log('🎉 COMPLETED:');
+        console.log('   Sent:', sentCount, '/', recipients.length);
+        console.log('   Errors:', sendErrors.length);
+        console.log('════════════════════════════════════════════════════\n');
 
         const responseResult = {
             success: true,
-            message: testLineUserId 
-                ? `🧪 ส่งข้อความทดสอบสำเร็จ (Test Mode)` 
-                : `ส่งการแจ้งเตือนล่วงหน้าสำเร็จ ${sentCount}/${recipients.length} รายการ${targetBranchId ? ` (สาขา: ${targetBranchId})` : ' (ทุกสาขา)'}${totalRemaining > 0 ? ` | เหลืออีก ${totalRemaining} บิล` : ''}${skippedNoImage > 0 ? ` | ข้าม ${skippedNoImage} บิล (ยังไม่มีรูป)` : ''}`,
+            message: `ส่งแจ้งเตือนล่วงหน้า ${sentCount}/${recipients.length} รายการ`,
             sent: sentCount,
-            total: testLineUserId ? 1 : recipients.length,
-            remaining: totalRemaining,
-            hasMore: totalRemaining > 0,
-            limit: limit,
-            targetBranchId: targetBranchId || 'all',
-            testMode: !!testLineUserId,
-            enabledBranches: enabledBranches,
-            skippedDueToDisabled: skippedCount || 0,
-            skippedNoImage: skippedNoImage,
-            errors: sendErrors.length > 0 ? sendErrors : undefined,
-            thailandTime: thailandTime.toLocaleString('th-TH')
+            total: recipients.length,
+            skippedNoImage,
+            errors: sendErrors.length > 0 ? sendErrors.slice(0, 5) : undefined
         };
 
-        console.log('🎉 Advance reminder completed:', responseResult);
-
-        // บันทึก FunctionLog พร้อม execution_time และ branch_results
+        // Log to database
         try {
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'sendAdvanceReminders',
                 run_timestamp: new Date().toISOString(),
                 status: sendErrors.length > 0 && sentCount === 0 ? 'error' : 'success',
                 message: responseResult.message,
-                execution_time_ms: executionTime,
                 total_sent: sentCount,
                 total_failed: sendErrors.length,
-                branch_results: branchResults,
                 triggered_by: 'cron',
                 details: responseResult
             });
-        } catch (logError) {
-            console.error('Failed to create FunctionLog:', logError);
-        }
+        } catch (logError) {}
 
         return Response.json(responseResult);
 
     } catch (error) {
-        console.error('❌ Error in sendAdvanceReminders:', error);
-        console.error('📍 Error stack:', error.stack);
+        console.error('\n❌ FATAL ERROR:', error.message);
+        console.error('Stack:', error.stack);
         return Response.json({ 
             success: false,
-            error: error.message,
-            stack: error.stack,
-            details: String(error)
+            error: error.message
         }, { status: 500 });
     }
 });
