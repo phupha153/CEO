@@ -193,7 +193,19 @@ export default function CronJobSettings() {
 
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['allPayments'],
-    queryFn: () => base44.entities.Payment.list('-created_date', 10000),
+    queryFn: () => base44.entities.Payment.list('-created_date', 50000),
+    refetchInterval: 30000,
+  });
+
+  const { data: allTenants = [], isLoading: tenantsLoading } = useQuery({
+    queryKey: ['allTenants'],
+    queryFn: () => base44.entities.Tenant.list('-created_date', 10000),
+    refetchInterval: 30000,
+  });
+
+  const { data: allRooms = [], isLoading: roomsLoading } = useQuery({
+    queryKey: ['allRooms'],
+    queryFn: () => base44.entities.Room.list('-created_date', 10000),
     refetchInterval: 30000,
   });
 
@@ -309,46 +321,74 @@ export default function CronJobSettings() {
             <CardDescription>ภาพรวมการชำระเงินและใบแจ้งหนี้ทั้งหมด</CardDescription>
           </CardHeader>
           <CardContent>
-            {paymentsLoading ? (
+            {paymentsLoading || tenantsLoading || roomsLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-xl border-2 border-blue-200">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                <div className="bg-white p-4 rounded-xl border-2 border-gray-200">
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-blue-600">
-                      {allPayments.filter(p => p.status !== 'paid').length.toLocaleString()}
+                    <p className="text-3xl font-bold text-gray-800">
+                      {allPayments.length.toLocaleString()}
                     </p>
-                    <p className="text-xs text-slate-600 mt-1">การชำระเงินทั้งหมด</p>
-                    <p className="text-xs text-slate-400 mt-0.5">(ยังไม่ชำระ)</p>
+                    <p className="text-xs text-slate-600 mt-1">บิลทั้งหมด</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border-2 border-cyan-200">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-cyan-600">
+                      {allTenants.length.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-slate-600 mt-1">ผู้เช่าทั้งหมด</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-xl border-2 border-teal-200">
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-teal-600">
+                      {allRooms.length.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-slate-600 mt-1">ห้องพักทั้งหมด</p>
                   </div>
                 </div>
 
                 <div className="bg-white p-4 rounded-xl border-2 border-green-200">
                   <div className="text-center">
                     <p className="text-3xl font-bold text-green-600">
-                      {allPayments.filter(p => p.status !== 'paid' && p.invoice_image_url).length.toLocaleString()}
+                      {allPayments.filter(p => p.invoice_image_url).length.toLocaleString()}
                     </p>
                     <p className="text-xs text-slate-600 mt-1">มีใบแจ้งหนี้แล้ว</p>
                   </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border-2 border-orange-200">
+                <div className="bg-white p-4 rounded-xl border-2 border-pink-200">
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-orange-600">
-                      {allPayments.filter(p => p.status !== 'paid' && !p.invoice_image_url).length.toLocaleString()}
+                    <p className="text-3xl font-bold text-pink-600">
+                      {allPayments.filter(p => p.invoice_image_url && (p.bill_sent_date || p.advance_reminder_sent_date || p.due_date_reminder_sent_date) && p.status !== 'paid').length.toLocaleString()}
                     </p>
-                    <p className="text-xs text-slate-600 mt-1">ยังไม่มีใบแจ้งหนี้</p>
+                    <p className="text-xs text-slate-600 mt-1">บิลที่ส่งแล้ว</p>
                   </div>
                 </div>
 
-                <div className="bg-white p-4 rounded-xl border-2 border-purple-200">
+                <div className="bg-white p-4 rounded-xl border-2 border-amber-200">
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-purple-600">
-                      {allPayments.filter(p => p.status !== 'paid' && p.invoice_image_url && !p.bill_sent_date).length.toLocaleString()}
+                    <p className="text-3xl font-bold text-amber-600">
+                      {(() => {
+                        const enabledBranchIds = configs
+                          .filter(c => (c.key === 'send_advance_reminder' || c.key === 'send_due_date_reminder' || c.key === 'send_overdue_reminder') && c.value === 'true')
+                          .map(c => c.branch_id);
+                        return allPayments.filter(p => 
+                          p.status !== 'paid' && 
+                          p.invoice_image_url && 
+                          !p.bill_sent_date && 
+                          enabledBranchIds.includes(p.branch_id)
+                        ).length.toLocaleString();
+                      })()}
                     </p>
-                    <p className="text-xs text-slate-600 mt-1">มีรูปแต่ยังไม่ส่ง</p>
+                    <p className="text-xs text-slate-600 mt-1">บิลที่รอระบบส่ง</p>
+                    <p className="text-xs text-slate-400 mt-0.5">(เปิดการแจ้งเตือน)</p>
                   </div>
                 </div>
               </div>
