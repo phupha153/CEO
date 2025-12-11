@@ -55,9 +55,17 @@ export default function RoomsPage() {
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [longPressTarget, setLongPressTarget] = useState(null);
 
-  // ⭐ Click outside handler เพื่อยกเลิก selection mode
+  // ⭐ Escape key handler เพื่อยกเลิก selection mode
   useEffect(() => {
     if (!isSelectionMode) return;
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setIsSelectionMode(false);
+        setSelectedRooms([]);
+        toast.info('ยกเลิกการเลือกแล้ว', { duration: 1500 });
+      }
+    };
 
     const handleClickOutside = (e) => {
       // ถ้าคลิกที่ปุ่มหรือ checkbox ให้ข้ามไป
@@ -66,14 +74,22 @@ export default function RoomsPage() {
       // ถ้าคลิกบน card ให้ข้ามไป
       if (e.target.closest('[data-room-item]')) return;
       
+      // ⭐ ถ้าคลิกที่ input, textarea, button, dialog ให้ข้ามไป
+      if (e.target.closest('input, textarea, button, select, [role="dialog"], [role="menu"]')) return;
+      
       // ถ้าคลิกข้างนอก = ยกเลิก selection mode
       setIsSelectionMode(false);
       setSelectedRooms([]);
       toast.info('ยกเลิกการเลือกแล้ว', { duration: 1500 });
     };
 
+    document.addEventListener('keydown', handleEscape);
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isSelectionMode]);
 
   const [currentPage, setCurrentPage] = useState(1);

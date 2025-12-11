@@ -80,9 +80,17 @@ export default function PaymentsPage() {
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [longPressTarget, setLongPressTarget] = useState(null);
 
-  // ⭐ Click outside handler เพื่อยกเลิก selection mode
+  // ⭐ Escape key handler เพื่อยกเลิก selection mode
   useEffect(() => {
     if (!isSelectionMode) return;
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setIsSelectionMode(false);
+        setSelectedPaymentIds([]);
+        toast.info('ยกเลิกการเลือกแล้ว', { duration: 1500 });
+      }
+    };
 
     const handleClickOutside = (e) => {
       // ถ้าคลิกที่ปุ่มหรือ checkbox ให้ข้ามไป
@@ -91,14 +99,22 @@ export default function PaymentsPage() {
       // ถ้าคลิกบน card หรือ table row ให้ข้ามไป
       if (e.target.closest('[data-payment-item]')) return;
       
+      // ⭐ ถ้าคลิกที่ input, textarea, button, dialog ให้ข้ามไป
+      if (e.target.closest('input, textarea, button, select, [role="dialog"], [role="menu"]')) return;
+      
       // ถ้าคลิกข้างนอก = ยกเลิก selection mode
       setIsSelectionMode(false);
       setSelectedPaymentIds([]);
       toast.info('ยกเลิกการเลือกแล้ว', { duration: 1500 });
     };
 
+    document.addEventListener('keydown', handleEscape);
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [isSelectionMode]);
 
   const [formData, setFormData] = useState({
