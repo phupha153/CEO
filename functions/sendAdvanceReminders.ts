@@ -265,16 +265,32 @@ Deno.serve(async (req) => {
             });
         }
 
-        // ไม่ต้อง sort เพราะ fetch มาเรียงแล้ว
-        const withImage = upcomingPayments.filter(p => p.invoice_image_url).length;
-        const withoutImage = upcomingPayments.length - withImage;
-        console.log(`📊 Upcoming: ${withImage} มีรูป, ${withoutImage} ไม่มีรูป`);
-
-        // Process recipients
+        // ⭐⭐⭐ แยกประมวลผล: กลุ่มที่มีรูปก่อน แล้วค่อยกลุ่มที่ไม่มีรูป
         const paymentsFromEnabledBranches = upcomingPayments.filter(p => enabledBranches.includes(p.branch_id));
-        const paymentsToProcess = paymentsFromEnabledBranches.slice(0, limit);
-        
-        console.log('📋 To Process:', paymentsToProcess.length);
+
+        // แยกเป็น 2 กลุ่ม
+        const paymentsWithImage = paymentsFromEnabledBranches.filter(p => {
+            const hasImage = !!p.invoice_image_url;
+            const hashMatch = p.invoice_data_hash && generatePaymentHash(p) === p.invoice_data_hash;
+            return hasImage && hashMatch;
+        });
+
+        const paymentsNoImage = paymentsFromEnabledBranches.filter(p => {
+            const hasImage = !!p.invoice_image_url;
+            const hashMatch = p.invoice_data_hash && generatePaymentHash(p) === p.invoice_data_hash;
+            return !hasImage || !hashMatch;
+        });
+
+        // ประมวลผลที่มีรูปก่อน (ทั้งหมด) แล้วค่อยที่ไม่มีรูป (ตาม limit)
+        const paymentsToProcess = [
+            ...paymentsWithImage,
+            ...paymentsNoImage.slice(0, Math.max(0, limit - paymentsWithImage.length))
+        ];
+
+        console.log(`📊 Enabled branches: ${paymentsFromEnabledBranches.length}`);
+        console.log(`   มีรูป+hash ตรง: ${paymentsWithImage.length} (process ทั้งหมด)`);
+        console.log(`   ไม่มีรูป/hash ผิด: ${paymentsNoImage.length} (process ${Math.min(paymentsNoImage.length, Math.max(0, limit - paymentsWithImage.length))})`);
+        console.log(`📋 To Process: ${paymentsToProcess.length}`);
 
         const recipients = [];
         let skippedNoImage = 0;
@@ -289,17 +305,13 @@ Deno.serve(async (req) => {
             const hasLine = !!tenant.line_user_id;
             const hasFacebook = !!tenant.facebook_user_id;
 
-            if (!hasLine && !hasFacebook) {
-                console.log(`⚠️ [${branchName}] ห้อง ${room?.room_number} - ${tenant.full_name}: ไม่มี LINE/Facebook`);
-                continue;
-            }
+            if (!hasLine && !hasFacebook) continue;
 
             const invoiceImageUrl = payment.invoice_image_url || null;
             const currentHash = generatePaymentHash(payment);
             const savedHash = payment.invoice_data_hash || '';
 
             if (!invoiceImageUrl || (savedHash && currentHash !== savedHash)) {
-                console.log(`⏭️ [${branchName}] ห้อง ${room?.room_number} - ${tenant.full_name}: ${!invoiceImageUrl ? 'ไม่มีรูปบิล' : 'hash ไม่ตรง'}`);
                 skippedNoImage++;
                 continue;
             }
