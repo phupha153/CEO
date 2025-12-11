@@ -170,22 +170,22 @@ Deno.serve(async (req) => {
         const roomMap = new Map(allRooms.map(r => [r.id, r]));
         const branchMap = new Map(branchesData.map(b => [b.id, b.branch_name]));
 
-        console.log('\n📦 DATA LOADED:');
-        console.log('   Total Payments:', allPayments.length);
-        console.log('   Total Tenants:', allTenants.length);
-        console.log('   Total Rooms:', allRooms.length);
+        console.log('\n📦 โหลดข้อมูลแล้ว:');
+        console.log('   จำนวน Payment ทั้งหมด:', allPayments.length);
+        console.log('   จำนวน Tenant ทั้งหมด:', allTenants.length);
+        console.log('   จำนวน Room ทั้งหมด:', allRooms.length);
 
-        // ⭐⭐⭐ SINGLE FILTER - เช็คทุกอย่างพร้อมกัน
-        console.log('\n🔍 STARTING SINGLE FILTER PASS...\n');
+        // ⭐⭐⭐ กรองข้อมูลครั้งเดียว
+        console.log('\n🔍 เริ่มกรองข้อมูล...\n');
         console.log('════════════════════════════════════════════════════');
-        console.log('Checking each payment for:');
-        console.log('  ✓ Not paid');
-        console.log('  ✓ Has due_date');
-        console.log('  ✓ Not sent yet (advance_reminder_sent_date)');
-        console.log('  ✓ Branch enabled');
-        console.log('  ✓ Due date matches notify date (today)');
-        console.log('  ✓ Has invoice_image_url');
-        console.log('  ✓ Hash matches (if exists)');
+        console.log('เงื่อนไขในการกรอง:');
+        console.log('  ✓ ยังไม่ได้ชำระเงิน');
+        console.log('  ✓ มีวันครบกำหนด');
+        console.log('  ✓ ยังไม่ได้ส่งแจ้งเตือนล่วงหน้า');
+        console.log('  ✓ สาขาเปิดใช้งานการแจ้งเตือน');
+        console.log('  ✓ วันแจ้งเตือนตรงกับวันนี้');
+        console.log('  ✓ มีรูปใบแจ้งหนี้');
+        console.log('  ✓ Hash ตรงกัน (ถ้ามี)');
         console.log('════════════════════════════════════════════════════\n');
         
         const debugCounts = {
@@ -199,6 +199,8 @@ Deno.serve(async (req) => {
             hashMismatch: 0,
             passed: 0
         };
+
+        const paymentsWithoutImage = [];
 
         let readyToSend = allPayments.filter(p => {
             // 1. Status check
@@ -243,6 +245,16 @@ Deno.serve(async (req) => {
             // 7. Image check
             if (!p.invoice_image_url) {
                 debugCounts.noImage++;
+                const room = roomMap.get(p.room_id);
+                const tenant = tenantMap.get(p.tenant_id);
+                paymentsWithoutImage.push({
+                    id: p.id,
+                    room: room?.room_number || 'N/A',
+                    tenant: tenant?.full_name || 'N/A',
+                    due_date: p.due_date,
+                    total: p.total_amount,
+                    branch_id: p.branch_id
+                });
                 return false;
             }
             
@@ -259,18 +271,33 @@ Deno.serve(async (req) => {
             return true;
         });
         
-        console.log('📊 FILTER RESULTS:');
+        console.log('📊 สรุปผลการกรอง:');
         console.log('════════════════════════════════════════════════════');
-        console.log('   Total Payments:', debugCounts.total);
-        console.log('   ❌ Paid:', debugCounts.paid);
-        console.log('   ❌ No Due Date:', debugCounts.noDueDate);
-        console.log('   ❌ Already Sent:', debugCounts.alreadySent);
-        console.log('   ❌ Branch Disabled:', debugCounts.branchDisabled);
-        console.log('   ❌ Wrong Date:', debugCounts.wrongDate);
-        console.log('   ❌ No Image:', debugCounts.noImage);
-        console.log('   ❌ Hash Mismatch:', debugCounts.hashMismatch);
-        console.log('   ✅ READY TO SEND:', debugCounts.passed);
+        console.log('   จำนวน Payment ทั้งหมด:', debugCounts.total);
+        console.log('   ❌ ชำระแล้ว:', debugCounts.paid, 'รายการ');
+        console.log('   ❌ ไม่มีวันครบกำหนด:', debugCounts.noDueDate, 'รายการ');
+        console.log('   ❌ ส่งแจ้งเตือนแล้ว:', debugCounts.alreadySent, 'รายการ');
+        console.log('   ❌ สาขาปิดการแจ้งเตือน:', debugCounts.branchDisabled, 'รายการ');
+        console.log('   ❌ วันแจ้งเตือนไม่ตรง:', debugCounts.wrongDate, 'รายการ');
+        console.log('   ❌ ไม่มีรูปใบแจ้งหนี้:', debugCounts.noImage, 'รายการ');
+        console.log('   ❌ Hash ไม่ตรงกัน:', debugCounts.hashMismatch, 'รายการ');
+        console.log('   ✅ พร้อมส่ง:', debugCounts.passed, 'รายการ');
         console.log('════════════════════════════════════════════════════\n');
+
+        // แสดงรายละเอียด Payment ที่ไม่มีรูป
+        if (paymentsWithoutImage.length > 0) {
+            console.log('⚠️ รายละเอียด Payment ที่ไม่มีรูปใบแจ้งหนี้:');
+            console.log('════════════════════════════════════════════════════');
+            paymentsWithoutImage.slice(0, 10).forEach((p, idx) => {
+                const branchName = branchMap.get(p.branch_id) || p.branch_id;
+                console.log(`   ${idx + 1}. ห้อง ${p.room} | ${p.tenant} | ${branchName}`);
+                console.log(`      ครบกำหนด: ${p.due_date} | จำนวน: ${p.total?.toLocaleString()} บาท`);
+            });
+            if (paymentsWithoutImage.length > 10) {
+                console.log(`   ... และอีก ${paymentsWithoutImage.length - 10} รายการ`);
+            }
+            console.log('════════════════════════════════════════════════════\n');
+        }
 
         if (readyToSend.length === 0) {
             return Response.json({
@@ -464,7 +491,9 @@ Deno.serve(async (req) => {
         };
 
         console.log('\n════════════════════════════════════════════════════');
-        console.log('🎉 COMPLETED');
+        console.log('🎉 เสร็จสิ้น');
+        console.log('════════════════════════════════════════════════════');
+        console.log(`เวลาที่ใช้: ${Date.now() - performance.now()} ms`);
         console.log('════════════════════════════════════════════════════\n');
 
         return Response.json(result);
