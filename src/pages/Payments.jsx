@@ -77,6 +77,8 @@ export default function PaymentsPage() {
   const [bulkAIQuery, setBulkAIQuery] = useState('');
   const [bulkAIResult, setBulkAIResult] = useState(null);
   const [isBulkExecuting, setIsBulkExecuting] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState(null);
+  const [longPressTarget, setLongPressTarget] = useState(null);
 
   const [formData, setFormData] = useState({
     booking_id: '',
@@ -1842,6 +1844,24 @@ ${JSON.stringify(bookingsData, null, 2)}
     setShowDetailDialog(true);
   };
 
+  const handleLongPressStart = (paymentId) => {
+    const timer = setTimeout(() => {
+      setIsSelectionMode(true);
+      setSelectedPaymentIds([paymentId]);
+      toast.info('เข้าสู่โหมดเลือกหลายรายการ', { duration: 2000 });
+    }, 500);
+    setLongPressTimer(timer);
+    setLongPressTarget(paymentId);
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setLongPressTarget(null);
+  };
+
   const togglePaymentSelection = (paymentId) => {
     setSelectedPaymentIds(prev =>
       prev.includes(paymentId)
@@ -2664,8 +2684,14 @@ Return JSON.`;
                           )}
                           <div className={isSelectionMode && isSelected ? 'ring-2 ring-blue-500 rounded-2xl' : ''}>
                             <Card 
-                              className={`bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg hover:shadow-xl transition-all cursor-pointer ${effectiveStatus === 'overdue' ? 'border-red-300 bg-red-50/50' : ''} ${needsManualReview ? 'border-amber-300 bg-amber-50/30' : ''}`}
+                              className={`bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg hover:shadow-xl transition-all cursor-pointer ${effectiveStatus === 'overdue' ? 'border-red-300 bg-red-50/50' : ''} ${needsManualReview ? 'border-amber-300 bg-amber-50/30' : ''} ${longPressTarget === payment.id ? 'scale-95' : ''}`}
                               onClick={() => handlePaymentClick(payment)}
+                              onMouseDown={() => handleLongPressStart(payment.id)}
+                              onMouseUp={handleLongPressEnd}
+                              onMouseLeave={handleLongPressEnd}
+                              onTouchStart={() => handleLongPressStart(payment.id)}
+                              onTouchEnd={handleLongPressEnd}
+                              onTouchCancel={handleLongPressEnd}
                             >
                             <CardContent className="p-4 md:p-6">
                               <div className="flex items-start gap-3 mb-3">
@@ -3124,7 +3150,17 @@ Return JSON.`;
                             const isSelected = selectedPaymentIds.includes(payment.id);
 
                             return (
-                              <tr key={payment.id} className={`border-b hover:bg-slate-50 ${effectiveStatus === 'overdue' ? 'bg-red-50/50' : ''} ${isSelected ? 'bg-blue-50/50' : ''}`}>
+                              <tr 
+                                key={payment.id} 
+                                className={`border-b hover:bg-slate-50 cursor-pointer ${effectiveStatus === 'overdue' ? 'bg-red-50/50' : ''} ${isSelected ? 'bg-blue-50/50' : ''} ${longPressTarget === payment.id ? 'bg-blue-100' : ''}`}
+                                onClick={() => handlePaymentClick(payment)}
+                                onMouseDown={() => handleLongPressStart(payment.id)}
+                                onMouseUp={handleLongPressEnd}
+                                onMouseLeave={handleLongPressEnd}
+                                onTouchStart={() => handleLongPressStart(payment.id)}
+                                onTouchEnd={handleLongPressEnd}
+                                onTouchCancel={handleLongPressEnd}
+                              >
                                 {isSelectionMode && (
                                   <td className="px-4 py-3 text-center">
                                     <div
