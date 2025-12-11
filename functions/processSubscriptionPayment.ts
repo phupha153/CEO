@@ -602,6 +602,29 @@ Deno.serve(async (req) => {
               });
 
               console.log(`✅ Updated discount code usage: ${codeRecord.current_uses || 0} → ${newUsageCount}`);
+
+              // 3. บันทึกประวัติการใช้งาน
+              await fetch(`https://app.base44.com/api/apps/${CRM_APP_ID}/entities/DiscountCodeUsage`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${CRM_SERVICE_ROLE_KEY}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  code: discount_code,
+                  discount_code_id: codeRecord.id,
+                  user_email: user_email || user.email,
+                  user_name: user_name || user.full_name,
+                  package_id: package_id,
+                  package_name: package_name,
+                  discount_amount: discount_amount,
+                  total_amount: total_amount,
+                  used_at: new Date().toISOString(),
+                  app_id: Deno.env.get("BASE44_APP_ID") || 'unknown'
+                })
+              });
+
+              console.log(`✅ Created DiscountCodeUsage record`);
             }
           }
         }
