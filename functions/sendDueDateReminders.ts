@@ -139,6 +139,18 @@ Deno.serve(async (req) => {
                 return false;
             }
 
+            // ⭐ ถ้าส่งแจ้งเตือนล่วงหน้าไปแล้ว ก็ไม่ต้องส่งครบกำหนดอีก
+            if (p.advance_reminder_sent_date) {
+                console.log(`⏭️ Skipping payment ${p.id} - already sent advance reminder`);
+                return false;
+            }
+
+            // ⭐ ถ้าส่งบิลไปแล้ว (bill_sent_date) ก็ไม่ต้องส่งซ้ำ
+            if (p.bill_sent_date) {
+                console.log(`⏭️ Skipping payment ${p.id} - already sent bill`);
+                return false;
+            }
+
             // ⭐ เช็คว่าสาขานี้เปิดการแจ้งเตือนหรือไม่
             if (!enabledBranches.includes(p.branch_id)) {
                 console.log(`⏭️ Skipping payment ${p.id} - branch ${p.branch_id} has due date reminder disabled`);
