@@ -272,7 +272,9 @@ Deno.serve(async (req) => {
             return 0;
         });
         
-        console.log('🔄 Sorted payments: มีรูปครบมาก่อน');
+        const withImage = upcomingPayments.filter(p => p.invoice_image_url).length;
+        const withoutImage = upcomingPayments.length - withImage;
+        console.log(`🔄 After sort: ${withImage} มีรูป, ${withoutImage} ไม่มีรูป`);
 
         // Process recipients
         const paymentsFromEnabledBranches = upcomingPayments.filter(p => enabledBranches.includes(p.branch_id));
