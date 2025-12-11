@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest, createClient } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
     try {
@@ -27,9 +27,10 @@ Deno.serve(async (req) => {
         }
 
         const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
+        const CRM_SERVICE_ROLE_KEY = Deno.env.get("CRM_SERVICE_ROLE_KEY");
 
-        if (!CRM_APP_ID) {
-            console.error('❌ Missing CRM_APP_ID');
+        if (!CRM_APP_ID || !CRM_SERVICE_ROLE_KEY) {
+            console.error('❌ Missing CRM_APP_ID or CRM_SERVICE_ROLE_KEY');
             return Response.json({
                 success: false,
                 error: 'ระบบไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแล'
@@ -40,6 +41,12 @@ Deno.serve(async (req) => {
         console.log('🔍 Code:', code);
         console.log('🔍 User email:', user_email || user.email);
         console.log('🔍 App ID:', CRM_APP_ID);
+
+        const crmClient = createClient({
+            appId: CRM_APP_ID,
+            serviceRoleKey: CRM_SERVICE_ROLE_KEY,
+            baseURL: 'https://app.base44.com'
+        });
 
         const response = await fetch(`https://base44-crm-production.up.railway.app/api/useDiscountCode`, {
             method: 'POST',
