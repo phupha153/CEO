@@ -627,6 +627,20 @@ Deno.serve(async (req) => {
         console.log(`   - Total messages: ${recipients.length}`);
         console.log(`   - With invoice URL: ${messageCreationDetails.filter(d => d.hasInvoiceUrl).length}`);
         console.log(`   - Without invoice URL: ${messageCreationDetails.filter(d => !d.hasInvoiceUrl).length}`);
+        console.log(`   - With late fee: ${messageCreationDetails.filter(d => d.lateFee > 0).length}`);
+        console.log(`   - No late fee: ${messageCreationDetails.filter(d => d.lateFee === 0).length}`);
+        
+        // แสดงตัวอย่างข้อความ 3 รายการแรก
+        console.log(`\n📝 ========== MESSAGE EXAMPLES (first 3) ==========`);
+        messageCreationDetails.slice(0, 3).forEach((detail, idx) => {
+            const recipient = recipients[idx];
+            console.log(`\n${idx + 1}. ห้อง ${detail.roomNumber} (${detail.tenantName}):`);
+            console.log(`   📊 Invoice URL: ${detail.hasInvoiceUrl ? '✅ มี' : '❌ ไม่มี'}`);
+            console.log(`   💰 Late Fee: ${detail.lateFee} บาท`);
+            console.log(`   💰 Total: ${detail.totalAmount} บาท`);
+            console.log(`   📱 Channels: LINE=${detail.channels.line ? '✅' : '❌'}, FB=${detail.channels.facebook ? '✅' : '❌'}`);
+            console.log(`   📄 Message:\n${recipient?.message || 'N/A'}\n`);
+        });
 
         // 6. ส่งข้อความ
         let sentCount = 0;
