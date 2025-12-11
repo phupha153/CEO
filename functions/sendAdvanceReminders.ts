@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-// Version: 2025-12-10 - Updated message format to match sendPaymentReminder
+// Version: 2025-12-11-v2 - FULL DEBUG MODE WITH FACEBOOK SUPPORT
+// Last updated: 2025-12-11 15:00 Thailand Time
 
 // ⭐ ฟังก์ชันสร้าง hash จากข้อมูลบิล เพื่อตรวจจับการเปลี่ยนแปลง
 function generatePaymentHash(payment) {
@@ -74,12 +75,19 @@ function numberToThaiText(number) {
     return text;
 }
 Deno.serve(async (req) => {
+    const VERSION = '2025-12-11-v2';
     const startTime = Date.now();
-    console.log('\n\n');
-    console.log('═══════════════════════════════════════════════════════════');
-    console.log('🚀 ADVANCE REMINDER - DETAILED DEBUG MODE');
-    console.log('═══════════════════════════════════════════════════════════');
-    console.log('⏰ Function started at:', new Date().toISOString());
+    
+    // ⭐⭐⭐ TOP LOG - จะโชว์ก่อนอื่นเสมอ
+    console.log('\n\n\n');
+    console.log('█████████████████████████████████████████████████████████████');
+    console.log('█                                                           █');
+    console.log('█   🚀 ADVANCE REMINDER DEBUG v' + VERSION + '        █');
+    console.log('█                                                           █');
+    console.log('█████████████████████████████████████████████████████████████');
+    console.log('⏰ START TIME:', new Date().toISOString());
+    console.log('🌏 THAILAND TIME:', new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }));
+    console.log('═══════════════════════════════════════════════════════════\n');
     
     try {
         const base44 = createClientFromRequest(req);
