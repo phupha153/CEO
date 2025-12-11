@@ -449,12 +449,33 @@ export default function RoomsPage() {
         const fullRoom = rooms.find(room => room.id === r.id);
         const booking = getActiveBooking(r.id);
         const tenant = booking ? getTenantInfo(booking.tenant_id) : null;
+        
+        // ⭐ หาบิลล่าสุดของห้องนี้
+        const roomPayments = payments.filter(p => p.room_id === r.id);
+        const latestPendingPayment = roomPayments
+          .filter(p => p.status === 'pending' || p.status === 'overdue')
+          .sort((a, b) => new Date(b.due_date || 0) - new Date(a.due_date || 0))[0];
+        
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        
         return {
           ...r,
           last_ac_cleaning_date: fullRoom?.last_ac_cleaning_date || null,
           tenant_name: tenant?.full_name || null,
           tenant_phone: tenant?.phone || null,
-          vehicles: tenant?.vehicles || []
+          vehicles: tenant?.vehicles || [],
+          // ⭐ เพิ่มข้อมูลสถานะการส่งข้อความ
+          has_pending_payment: !!latestPendingPayment,
+          payment_due_date: latestPendingPayment?.due_date || null,
+          bill_sent: !!latestPendingPayment?.bill_sent_date,
+          bill_sent_date: latestPendingPayment?.bill_sent_date || null,
+          due_date_reminder_sent: !!latestPendingPayment?.due_date_reminder_sent_date,
+          due_date_reminder_sent_date: latestPendingPayment?.due_date_reminder_sent_date || null,
+          overdue_reminder_sent: !!latestPendingPayment?.overdue_reminder_sent_date,
+          overdue_reminder_sent_date: latestPendingPayment?.overdue_reminder_sent_date || null,
+          is_overdue: latestPendingPayment?.due_date ? (todayStr > latestPendingPayment.due_date) : false,
+          is_due_today: latestPendingPayment?.due_date === todayStr
         };
       });
 
@@ -481,6 +502,19 @@ ${targetRoom ? `
 
 📋 ข้อมูลห้องทั้งหมด (${roomsWithAC.length} ห้อง):
 ${JSON.stringify(roomsWithAC, null, 2)}
+
+📬 **การส่งข้อความแจ้งเตือน - ฟิลด์สำคัญ:**
+- bill_sent: true/false = ส่งบิลไปแล้วหรือยัง
+- due_date_reminder_sent: true/false = ส่งแจ้งเตือนครบกำหนดแล้วหรือยัง
+- overdue_reminder_sent: true/false = ส่งแจ้งเตือนเกินกำหนดแล้วหรือยัง
+- is_overdue: true/false = เกินกำหนดชำระแล้วหรือยัง
+- is_due_today: true/false = วันนี้เป็นวันครบกำหนดหรือไม่
+
+**ตัวอย่างคำถามที่ควรตอบได้:**
+- "ห้องไหนยังไม่ส่งบิล" → กรองห้องที่ has_pending_payment=true และ bill_sent=false
+- "ห้องไหนยังไม่ส่งแจ้งครบกำหนด" → กรองห้องที่ is_due_today=true และ due_date_reminder_sent=false
+- "ห้องไหนยังไม่ส่งแจ้งเกินกำหนด" → กรองห้องที่ is_overdue=true และ overdue_reminder_sent=false
+- "ห้องไหนยังไม่ส่งข้อความเลย" → กรองห้องที่ has_pending_payment=true และ bill_sent=false และ due_date_reminder_sent=false และ overdue_reminder_sent=false
 
 ⚠️ **สำคัญมาก - การตีความค่าส่วนกลาง:**
 - ถ้า common_fee = null หรือ undefined = ใช้ค่ากลาง (${branchCommonFeeValue} บาท)
