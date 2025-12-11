@@ -18,35 +18,29 @@ Deno.serve(async (req) => {
             });
         }
 
-        const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
-        const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
+        const CRM_SERVICE_ROLE_KEY = Deno.env.get("CRM_SERVICE_ROLE_KEY");
+        const CRM_APP_ID = '6919c20da02654368aa1f2d8';
 
-        if (!CRM_API_KEY || !CRM_APP_ID) {
-            console.error('❌ Missing CRM credentials');
+        if (!CRM_SERVICE_ROLE_KEY) {
+            console.error('❌ Missing CRM_SERVICE_ROLE_KEY');
             return Response.json({
                 valid: false,
                 error: 'ระบบไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแล'
             });
         }
 
-        // เรียก CRM API ตรวจสอบโค้ด
-        const response = await fetch(`https://base44-crm-production.up.railway.app/api/validate-discount-code`, {
-            method: 'POST',
+        // เรียก CRM ตรวจสอบโค้ดโดยตรงจาก entity DiscountCode
+        const response = await fetch(`https://app.base44.com/api/apps/${CRM_APP_ID}/entities/DiscountCode?code=${encodeURIComponent(code.trim().toUpperCase())}`, {
+            method: 'GET',
             headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': CRM_API_KEY,
-                'x-app-id': CRM_APP_ID
-            },
-            body: JSON.stringify({
-                code: code.trim().toUpperCase(),
-                user_email: user.email,
-                app_id: CRM_APP_ID
-            })
+                'Authorization': `Bearer ${CRM_SERVICE_ROLE_KEY}`,
+                'Content-Type': 'application/json'
+            }
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('❌ CRM validation failed:', response.status, errorText);
+            console.error('❌ CRM fetch failed:', response.status, errorText);
             return Response.json({
                 valid: false,
                 error: 'ไม่สามารถตรวจสอบโค้ดได้'
@@ -54,25 +48,56 @@ Deno.serve(async (req) => {
         }
 
         const data = await response.json();
-
-        if (data.valid) {
-            return Response.json({
-                valid: true,
-                code: data.code,
-                discount_type: data.discount_type,
-                discount_value: data.discount_value,
-                max_uses: data.max_uses,
-                current_uses: data.current_uses,
-                remaining_uses: data.remaining_uses,
-                expires_at: data.expires_at,
-                description: data.description
-            });
-        } else {
+        const discountCodes = Array.isArray(data) ? data : [];
+        
+        if (discountCodes.length === 0) {
             return Response.json({
                 valid: false,
-                error: data.error || 'โค้ดไม่ถูกต้องหรือหมดอายุแล้ว'
+                error: 'โค้ดไม่ถูกต้อง'
             });
         }
+
+        const discountCode = discountCodes[0];
+
+        // เช็คว่าโค้ดยังใช้งานได้หรือไม่
+        const now = new Date();
+        const expiresAt = discountCode.expires_at ? new Date(discountCode.expires_at) : null;
+
+        if (!discountCode.is_active) {
+            return Response.json({
+                valid: false,
+                error: 'โค้ดนี้ถูกปิดการใช้งานแล้ว'
+            });
+        }
+
+        if (expiresAt && now > expiresAt) {
+            return Response.json({
+                valid: false,
+                error: 'โค้ดหมดอายุแล้ว'
+            });
+        }
+
+        const maxUses = discountCode.max_uses || 0;
+        const currentUses = discountCode.current_uses || 0;
+        
+        if (maxUses > 0 && currentUses >= maxUses) {
+            return Response.json({
+                valid: false,
+                error: 'โค้ดถูกใช้งานครบแล้ว'
+            });
+        }
+
+        return Response.json({
+            valid: true,
+            code: discountCode.code,
+            discount_type: discountCode.discount_type,
+            discount_value: discountCode.discount_value,
+            max_uses: maxUses,
+            current_uses: currentUses,
+            remaining_uses: maxUses > 0 ? maxUses - currentUses : 999,
+            expires_at: discountCode.expires_at,
+            description: discountCode.description || ''
+        });
 
     } catch (error) {
         console.error('❌ Error in validateDiscountCode:', error);
