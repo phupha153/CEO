@@ -138,34 +138,11 @@ export default function PaymentsPage() {
 
   const getTodayDateString = () => {
     try {
-      // ⭐ บันทึกเวลาไทยจริงๆ (UTC+7) โดยใช้ Intl API
+      // ⭐ บันทึกเวลาปัจจุบันแบบ UTC (เพื่อให้ทุก browser แสดงเวลาตรงกัน)
       const now = new Date();
-      const thFormatter = new Intl.DateTimeFormat('en-CA', { 
-        timeZone: 'Asia/Bangkok',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      });
-      
-      const parts = thFormatter.formatToParts(now);
-      const year = parts.find(p => p.type === 'year').value;
-      const month = parts.find(p => p.type === 'month').value;
-      const day = parts.find(p => p.type === 'day').value;
-      const hour = parts.find(p => p.type === 'hour').value;
-      const minute = parts.find(p => p.type === 'minute').value;
-      const second = parts.find(p => p.type === 'second').value;
-      
-      // สร้าง ISO string แบบเวลาไทย
-      return `${year}-${month}-${day}T${hour}:${minute}:${second}+07:00`;
+      return now.toISOString(); // บันทึกเป็น UTC timestamp
     } catch {
-      const now = new Date();
-      const offset = 7 * 60; // UTC+7
-      const thTime = new Date(now.getTime() + offset * 60 * 1000);
-      return thTime.toISOString().replace('Z', '+07:00');
+      return new Date().toISOString();
     }
   };
 
