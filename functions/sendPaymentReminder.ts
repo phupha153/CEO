@@ -240,6 +240,71 @@ Deno.serve(async (req) => {
                 }
             }
 
+            // ⭐⭐⭐ คำนวณค่าปรับแบบ real-time (ไม่พึ่ง late_fee_amount เดิม)
+            const branchId = payment.branch_id;
+            let calculatedLateFee = 0;
+
+            if (daysOverdue > 0) {
+                // เช็คว่าใช้ระบบ tiers หรือไม่
+                const branchTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === branchId);
+                const globalTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
+                const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
+                const tiersEnabled = tiersEnabledConfig?.value === 'true';
+
+                if (tiersEnabled) {
+                    const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === branchId);
+                    const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
+                    const tiersConfig = branchTiersConfig || globalTiersConfig;
+
+                    if (tiersConfig?.value) {
+                        try {
+                            const tiers = JSON.parse(tiersConfig.value);
+                            for (const tier of tiers) {
+                                const daysFrom = tier.days_from || 1;
+                                const daysTo = tier.days_to || 999;
+                                const feePerDay = parseFloat(tier.fee_per_day || 0);
+                                if (daysOverdue >= daysFrom) {
+                                    const daysInTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+                                    if (daysInTier > 0) calculatedLateFee += daysInTier * feePerDay;
+                                }
+                                if (daysOverdue <= daysTo) break;
+                            }
+                        } catch (e) {
+                            console.error('Error parsing tiers:', e);
+                        }
+                    }
+                } else {
+                    const branchConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === branchId);
+                    const globalConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
+                    const config = branchConfig || globalConfig;
+                    const feePerDay = parseFloat(config?.value || '0');
+                    if (!isNaN(feePerDay) && feePerDay > 0) {
+                        calculatedLateFee = daysOverdue * feePerDay;
+                    }
+                }
+
+                console.log(`   💰 Calculated late fee: ${calculatedLateFee} บาท (${daysOverdue} วัน)`);
+
+                // ⭐ อัปเดต late_fee_amount กลับไป database
+                const oldLateFee = payment.late_fee_amount || 0;
+                if (calculatedLateFee !== oldLateFee) {
+                    const originalAmount = payment.total_amount - oldLateFee;
+                    const newTotalAmount = originalAmount + calculatedLateFee;
+                    
+                    await base44.asServiceRole.entities.Payment.update(payment.id, {
+                        late_fee_amount: calculatedLateFee,
+                        total_amount: newTotalAmount,
+                        status: 'overdue'
+                    });
+                    
+                    payment.late_fee_amount = calculatedLateFee;
+                    payment.total_amount = newTotalAmount;
+                    payment.status = 'overdue';
+                    
+                    console.log(`   ✅ Updated: late_fee=${calculatedLateFee}฿, total=${newTotalAmount}฿, status=overdue`);
+                }
+            }
+
             // ใช้ due_date จาก payment โดยตรง (ที่คำนวณจาก pay_day ของสาขาตอนสร้างบิลแล้ว)
             let dueDateStr = 'ไม่ระบุ';
             if (payment.due_date) {
@@ -251,7 +316,6 @@ Deno.serve(async (req) => {
             }
 
             // ⭐ ดึง config ตาม branchId ของ payment
-            const branchId = payment.branch_id;
             const bankAccountNumber = getConfigValue('bank_account_number', branchId, '0722835522');
             const bankAccountName = getConfigValue('bank_account_name', branchId, 'ธนานนท์ พรมพักตร์');
             const bankName = getConfigValue('bank_name', branchId, 'กสิกร');
@@ -266,14 +330,11 @@ Deno.serve(async (req) => {
             } else {
                 // ⭐ สร้างข้อความตาม template parameter
                 const roomNum = room?.room_number || 'N/A';
-                const amount = (payment.total_amount || 0).toLocaleString();
                 
-                // ⭐ ใช้ late_fee_amount จากบิล (ถูกอัปเดตโดย sendOverduePaymentNotifications)
-                const lateFee = payment.late_fee_amount || 0;
-                
-                // ⚠️ total_amount รวมค่าปรับแล้ว ต้องลบออกเพื่อแสดงยอดเดิม
-                const originalAmount = payment.total_amount - lateFee;
-                const totalWithLateFee = payment.total_amount;
+                // ⭐⭐⭐ ใช้ค่าปรับที่คำนวณใหม่ (calculatedLateFee)
+                const lateFee = calculatedLateFee;
+                const originalAmount = payment.total_amount - (payment.late_fee_amount || 0);
+                const totalWithLateFee = originalAmount + lateFee;
                 
                 // ⭐ สร้างข้อความตาม template
                 if (template === 'overdue') {
