@@ -29,6 +29,10 @@ Deno.serve(async (req) => {
             });
         }
 
+        console.log('🔍 Debug - CRM_APP_ID:', CRM_APP_ID);
+        console.log('🔍 Debug - Code:', code.trim().toUpperCase());
+        console.log('🔍 Debug - User email:', user.email);
+
         // เรียก CRM API ตรวจสอบโค้ด
         const response = await fetch(`https://base44-crm-production.up.railway.app/api/validateDiscountCode`, {
             method: 'POST',
