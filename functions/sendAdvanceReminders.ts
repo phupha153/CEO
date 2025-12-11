@@ -250,6 +250,30 @@ Deno.serve(async (req) => {
             });
         }
 
+        // ⭐⭐⭐ จัดลำดับให้บิลที่มีรูปครบมาก่อน
+        upcomingPayments.sort((a, b) => {
+            const aHasImage = !!a.invoice_image_url;
+            const bHasImage = !!b.invoice_image_url;
+            
+            // มีรูป มาก่อน ไม่มีรูป
+            if (aHasImage && !bHasImage) return -1;
+            if (!aHasImage && bHasImage) return 1;
+            
+            // ถ้าทั้งคู่มีรูป เช็ค hash
+            if (aHasImage && bHasImage) {
+                const aHashMatch = a.invoice_data_hash && generatePaymentHash(a) === a.invoice_data_hash;
+                const bHashMatch = b.invoice_data_hash && generatePaymentHash(b) === b.invoice_data_hash;
+                
+                // hash ตรง มาก่อน hash ไม่ตรง
+                if (aHashMatch && !bHashMatch) return -1;
+                if (!aHashMatch && bHashMatch) return 1;
+            }
+            
+            return 0;
+        });
+        
+        console.log('🔄 Sorted payments: มีรูปครบมาก่อน');
+
         // Process recipients
         const paymentsFromEnabledBranches = upcomingPayments.filter(p => enabledBranches.includes(p.branch_id));
         const paymentsToProcess = paymentsFromEnabledBranches.slice(0, limit);
