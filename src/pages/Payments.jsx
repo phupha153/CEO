@@ -1448,6 +1448,23 @@ export default function PaymentsPage() {
     }
 
     try {
+      // ⭐ ถ้าส่งเกินกำหนด ให้สร้างรูปใบแจ้งหนี้ใหม่ก่อน (เพื่อให้รวมค่าปรับ)
+      if (template === 'overdue' && paymentId) {
+        try {
+          console.log('🖼️ Regenerating invoice with late fee for overdue reminder...');
+          await base44.functions.invoke('generateInvoiceImage', {
+            paymentId: paymentId,
+            forceRegenerate: true
+          });
+          console.log('✅ Invoice regenerated before sending overdue reminder');
+          // รอ 1 วิเพื่อให้ database อัปเดตรูป
+          await new Promise(r => setTimeout(r, 1000));
+        } catch (invoiceError) {
+          console.error('⚠️ Failed to regenerate invoice:', invoiceError);
+          // ยังส่งข้อความต่อแม้สร้างรูปไม่สำเร็จ
+        }
+      }
+      
       const response = await base44.functions.invoke('sendPaymentReminder', {
         paymentId: paymentId,
         branch_id: selectedBranchId,
