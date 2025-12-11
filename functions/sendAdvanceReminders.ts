@@ -192,13 +192,42 @@ Deno.serve(async (req) => {
         
         console.log(`📦 Loaded ${payments.length} payments, ${allTenants.length} tenants, ${allRooms.length} rooms`);
 
+        // ⭐⭐⭐ DEBUG: แสดงข้อมูลบิลทั้งหมดก่อน filter
+        console.log(`\n🔍 === DEBUG: Payment Filtering Details ===`);
+        console.log(`📋 Total payments in DB: ${payments.length}`);
+        
+        // นับจำนวนตามสถานะ
+        const statusCounts = {};
+        payments.forEach(p => {
+            statusCounts[p.status || 'unknown'] = (statusCounts[p.status || 'unknown'] || 0) + 1;
+        });
+        console.log(`📊 Payment status breakdown:`, statusCounts);
+
         let upcomingPayments = payments.filter(p => {
-            if (p.status === 'paid') return false;
-            if (!p.due_date) return false;
+            // DEBUG: แสดงรายละเอียดการ filter แต่ละบิล (สำหรับ 10 บิลแรก)
+            const debugIndex = payments.indexOf(p);
+            const shouldDebug = debugIndex < 10;
+            
+            if (shouldDebug) {
+                console.log(`\n🔍 [Payment ${debugIndex + 1}] ID: ${p.id}`);
+                console.log(`   Status: ${p.status}`);
+                console.log(`   Due Date: ${p.due_date}`);
+                console.log(`   Advance Reminder Sent: ${p.advance_reminder_sent_date || 'NO'}`);
+                console.log(`   Branch ID: ${p.branch_id}`);
+            }
+            
+            if (p.status === 'paid') {
+                if (shouldDebug) console.log(`   ❌ FILTERED OUT: Already paid`);
+                return false;
+            }
+            if (!p.due_date) {
+                if (shouldDebug) console.log(`   ❌ FILTERED OUT: No due_date`);
+                return false;
+            }
             
             // ⭐ ถ้าส่งแจ้งเตือนล่วงหน้าไปแล้ว ไม่ต้องส่งซ้ำ
             if (p.advance_reminder_sent_date) {
-                console.log(`⏭️ Skipping payment ${p.id} - already sent advance reminder`);
+                if (shouldDebug) console.log(`   ⏭️ FILTERED OUT: Already sent (${p.advance_reminder_sent_date})`);
                 return false;
             }
             
@@ -212,14 +241,36 @@ Deno.serve(async (req) => {
             notifyDate.setDate(dueDate.getDate() - branchAdvanceDays);
             const notifyDateString = notifyDate.toISOString().split('T')[0];
             
+            if (shouldDebug) {
+                console.log(`   Due Date: ${p.due_date}`);
+                console.log(`   Branch Advance Days: ${branchAdvanceDays}`);
+                console.log(`   Notify Date Calculated: ${notifyDateString}`);
+                console.log(`   Today: ${todayDateString}`);
+                console.log(`   Match: ${notifyDateString === todayDateString}`);
+            }
+            
             // ตรวจสอบว่าวันนี้ = วันที่ควรแจ้งเตือนหรือไม่
             const shouldNotifyToday = notifyDateString === todayDateString;
             
+            if (!shouldNotifyToday && shouldDebug) {
+                console.log(`   ❌ FILTERED OUT: Not due today for advance reminder`);
+            }
+            
             // ถ้าระบุ branch_id ให้กรองตาม branch
-            if (targetBranchId && p.branch_id !== targetBranchId) return false;
+            if (targetBranchId && p.branch_id !== targetBranchId) {
+                if (shouldDebug) console.log(`   ❌ FILTERED OUT: Wrong branch`);
+                return false;
+            }
+            
+            if (shouldDebug && shouldNotifyToday) {
+                console.log(`   ✅ PASS: Should send advance reminder today!`);
+            }
             
             return shouldNotifyToday;
         });
+        
+        console.log(`\n📊 === Filter Results ===`);
+        console.log(`✅ Payments that passed filter: ${upcomingPayments.length}`);
 
         const totalUpcomingPayments = upcomingPayments.length; // เก็บจำนวนทั้งหมดไว้ก่อน
         console.log(`📊 Found ${totalUpcomingPayments} payments due soon ${targetBranchId ? `in branch ${targetBranchId}` : 'in all branches'}`);
