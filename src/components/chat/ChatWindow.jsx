@@ -65,10 +65,9 @@ export default function ChatWindow({
   const displayName = tenant?.full_name || conversation.line_display_name || 'ไม่ทราบชื่อ';
 
   return (
-    <>
-      <div className="flex-1 flex flex-col bg-slate-50 h-full relative">
-        {/* Header */}
-        <div className="bg-white border-b px-4 py-3 flex items-center justify-between z-10 relative">
+    <div className="flex-1 flex flex-col bg-slate-50 h-full relative">
+      {/* Header */}
+      <div className="bg-white border-b px-4 py-3 flex items-center justify-between z-10 relative">
         <div className="flex items-center gap-3">
           <div className="relative">
             {conversation.line_picture_url || conversation.facebook_picture_url ? (
@@ -587,6 +586,6 @@ export default function ChatWindow({
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }
