@@ -420,27 +420,10 @@ Deno.serve(async (req) => {
 
         console.log(`📤 Prepared ${recipients.length} recipients\n`);
 
-        // Update advance_reminder_sent_date และ bill_sent_date
-        const now_iso = new Date().toISOString();
-        const updateBatchSize = 50;
-        const paymentIdsToUpdate = recipients.map(r => r.metadata.paymentId);
-        
-        for (let i = 0; i < paymentIdsToUpdate.length; i += updateBatchSize) {
-            const batch = paymentIdsToUpdate.slice(i, i + updateBatchSize);
-            await Promise.all(
-                batch.map(id => 
-                    base44.asServiceRole.entities.Payment.update(id, { 
-                        advance_reminder_sent_date: now_iso,
-                        bill_sent_date: now_iso
-                    })
-                        .catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
-                )
-            );
-        }
-
         // Send messages
         let sentCount = 0;
         let sendErrors = [];
+        const successfulPaymentIds = new Set(); // ⭐ เก็บ ID ที่ส่งสำเร็จจริงๆ
 
         const lineRecipients = recipients.filter(r => r.lineUserId);
         const facebookRecipients = recipients.filter(r => r.facebookUserId);
@@ -464,6 +447,7 @@ Deno.serve(async (req) => {
                     });
 
                     sentCount = batchResult.data.success || 0;
+                    if (sentCount > 0) successfulPaymentIds.add(sample.metadata.paymentId);
                     console.log(`✅ Test sent: ${sentCount}\n`);
                 } catch (error) {
                     console.error('❌ Test error:', error.message);
@@ -497,12 +481,22 @@ Deno.serve(async (req) => {
 
                             const result = batchResult.data;
                             sentCount += result.success || 0;
-                        
+                            
+                            // ⭐ เก็บ paymentId ที่ส่งสำเร็จ
+                            const failedPaymentIds = new Set();
                             if (result.errors && result.errors.length > 0) {
                                 result.errors.slice(0, 5).forEach(err => {
                                     sendErrors.push(`ห้อง ${err.metadata?.roomNumber || 'N/A'}: ${err.error}`);
+                                    if (err.metadata?.paymentId) failedPaymentIds.add(err.metadata.paymentId);
                                 });
                             }
+                            
+                            // เฉพาะที่ส่งสำเร็จ
+                            chunk.forEach(r => {
+                                if (!failedPaymentIds.has(r.metadata.paymentId)) {
+                                    successfulPaymentIds.add(r.metadata.paymentId);
+                                }
+                            });
 
                             console.log(`✅ Chunk ${chunkIdx + 1}: sent ${result.success || 0}/${chunk.length}\n`);
 
@@ -530,6 +524,7 @@ Deno.serve(async (req) => {
                                 branch_id: recipient.metadata.branchId
                             });
                             sentCount++;
+                            successfulPaymentIds.add(recipient.metadata.paymentId); // ⭐ เพิ่มเข้า successful
                             console.log(`✅ Facebook → ${recipient.metadata.tenantName}`);
                         } catch (error) {
                             console.error(`❌ Facebook error:`, error.message);
@@ -538,6 +533,26 @@ Deno.serve(async (req) => {
                     }
                 }
             }
+        }
+
+        // ⭐⭐⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จจริงๆ
+        console.log(`\n📝 Updating sent_date for ${successfulPaymentIds.size} successful payments...\n`);
+        const now_iso = new Date().toISOString();
+        const updateBatchSize = 50;
+        const paymentIdsArray = Array.from(successfulPaymentIds);
+        
+        for (let i = 0; i < paymentIdsArray.length; i += updateBatchSize) {
+            const batch = paymentIdsArray.slice(i, i + updateBatchSize);
+            await Promise.all(
+                batch.map(id => 
+                    base44.asServiceRole.entities.Payment.update(id, { 
+                        advance_reminder_sent_date: now_iso,
+                        bill_sent_date: now_iso
+                    })
+                        .catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
+                )
+            );
+            console.log(`✅ Updated ${Math.min(i + updateBatchSize, paymentIdsArray.length)}/${paymentIdsArray.length}`);
         }
 
         const totalRemaining = readyToSend.length - paymentsToProcess.length;
