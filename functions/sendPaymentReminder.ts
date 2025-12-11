@@ -413,64 +413,57 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // ⭐ สร้างและใส่ลิงก์ใบแจ้งหนี้เฉพาะกรณี 'advance' เท่านั้น
-            // กรณี 'due_date' และ 'overdue' ส่งแค่เลขบัญชีธนาคาร
-            const shouldIncludeInvoice = template === 'advance';
-            
-            let invoiceImageUrl = null;
-            
-            if (shouldIncludeInvoice) {
-                invoiceImageUrl = payment.invoice_image_url || null;
-                const currentHash = generatePaymentHash(payment);
-                const savedHash = payment.invoice_data_hash || '';
+            // ⭐⭐⭐ สร้างและใส่ลิงก์ใบแจ้งหนี้ในทุกกรณี (ไม่ใช่แค่ advance)
+            let invoiceImageUrl = payment.invoice_image_url || null;
+            const currentHash = generatePaymentHash(payment);
+            const savedHash = payment.invoice_data_hash || '';
 
-                let needsRegenerate = false;
-                let needsHashUpdate = false;
+            let needsRegenerate = false;
+            let needsHashUpdate = false;
 
-                if (!invoiceImageUrl) {
-                    needsRegenerate = true;
-                } else if (!savedHash) {
-                    needsHashUpdate = true;
-                    console.log(`📝 Payment ${payment.id}: Has image but no hash - will save hash without regenerating`);
-                } else if (currentHash !== savedHash) {
-                    needsRegenerate = true;
-                }
+            if (!invoiceImageUrl) {
+                needsRegenerate = true;
+            } else if (!savedHash) {
+                needsHashUpdate = true;
+                console.log(`📝 Payment ${payment.id}: Has image but no hash - will save hash without regenerating`);
+            } else if (currentHash !== savedHash) {
+                needsRegenerate = true;
+            }
 
-                if (needsRegenerate) {
-                    const reason = !invoiceImageUrl ? 'ยังไม่มีรูป' : 'บิลถูกแก้ไข (hash mismatch)';
-                    console.log(`🖼️ Generating invoice image for payment ${payment.id} (${reason})...`);
-                    console.log(`   Current hash: ${currentHash}, Saved hash: ${savedHash || 'none'}`);
+            if (needsRegenerate) {
+                const reason = !invoiceImageUrl ? 'ยังไม่มีรูป' : 'บิลถูกแก้ไข (hash mismatch)';
+                console.log(`🖼️ Generating invoice image for payment ${payment.id} (${reason})...`);
+                console.log(`   Current hash: ${currentHash}, Saved hash: ${savedHash || 'none'}`);
 
-                    try {
-                        const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
-                            paymentId: payment.id,
-                            forceRegenerate: true
-                        });
-                        if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
-                            invoiceImageUrl = invoiceResult.data.invoice_image_url;
-                            console.log(`✅ Invoice image generated: ${invoiceImageUrl}`);
-                        } else {
-                            console.error(`❌ Failed to generate invoice image: ${invoiceResult.data?.error || 'Unknown error'}`);
-                        }
-                    } catch (invoiceError) {
-                        console.error(`❌ Error generating invoice image:`, invoiceError.message);
+                try {
+                    const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
+                        paymentId: payment.id,
+                        forceRegenerate: true
+                    });
+                    if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
+                        invoiceImageUrl = invoiceResult.data.invoice_image_url;
+                        console.log(`✅ Invoice image generated: ${invoiceImageUrl}`);
+                    } else {
+                        console.error(`❌ Failed to generate invoice image: ${invoiceResult.data?.error || 'Unknown error'}`);
                     }
-                } else if (needsHashUpdate) {
-                    try {
-                        await base44.asServiceRole.entities.Payment.update(payment.id, {
-                            invoice_data_hash: currentHash
-                        });
-                        console.log(`✅ Payment ${payment.id}: Hash saved (${currentHash})`);
-                    } catch (hashError) {
-                        console.error(`⚠️ Failed to save hash:`, hashError.message);
-                    }
-                } else {
-                    console.log(`✅ Using existing invoice image for payment ${payment.id} (hash matched)`);
+                } catch (invoiceError) {
+                    console.error(`❌ Error generating invoice image:`, invoiceError.message);
                 }
+            } else if (needsHashUpdate) {
+                try {
+                    await base44.asServiceRole.entities.Payment.update(payment.id, {
+                        invoice_data_hash: currentHash
+                    });
+                    console.log(`✅ Payment ${payment.id}: Hash saved (${currentHash})`);
+                } catch (hashError) {
+                    console.error(`⚠️ Failed to save hash:`, hashError.message);
+                }
+            } else {
+                console.log(`✅ Using existing invoice image for payment ${payment.id} (hash matched)`);
             }
             
-            // เพิ่มลิงก์ใบแจ้งหนี้เฉพาะ template 'advance'
-            if (shouldIncludeInvoice && invoiceImageUrl) {
+            // ⭐ เพิ่มลิงก์ใบแจ้งหนี้ในทุกกรณี
+            if (invoiceImageUrl) {
                 message += `\n\n📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}`;
             }
             
