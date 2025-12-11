@@ -385,7 +385,8 @@ Deno.serve(async (req) => {
         }
 
         // ⭐ สร้างใบแจ้งหนี้สำหรับทุก payment ก่อนส่งข้อความ
-        console.log(`🖼️ Generating invoices for ${paymentsToProcess.length} payments...`);
+        console.log(`\n🖼️ ========== INVOICE GENERATION ==========`);
+        console.log(`🖼️ Checking and generating invoices for ${paymentsToProcess.length} payments...`);
         let invoicesGenerated = 0;
         let invoicesFailed = 0;
         const invoiceGenerationDetails = [];
@@ -396,6 +397,12 @@ Deno.serve(async (req) => {
             const roomNumber = room?.room_number || 'N/A';
             const tenantName = tenant?.full_name || 'N/A';
             
+            console.log(`\n🔍 Payment ${payment.id.substring(0,8)} (ห้อง ${roomNumber} - ${tenantName}):`);
+            console.log(`   - invoice_image_url: ${payment.invoice_image_url ? 'มี' : 'ไม่มี'}`);
+            console.log(`   - invoice_data_hash: ${payment.invoice_data_hash || 'ไม่มี'}`);
+            console.log(`   - late_fee_amount: ${payment.late_fee_amount || 0} บาท`);
+            console.log(`   - total_amount: ${payment.total_amount || 0} บาท`);
+            
             try {
                 // เช็คว่าต้องสร้างใบแจ้งหนี้ใหม่หรือไม่
                 let needsRegenerate = false;
@@ -404,22 +411,24 @@ Deno.serve(async (req) => {
                 if (!payment.invoice_image_url) {
                     needsRegenerate = true;
                     reason = 'ไม่มีรูปใบแจ้งหนี้';
-                    console.log(`🆕 Payment ${payment.id} (ห้อง ${roomNumber}): ${reason} - generating`);
+                    console.log(`   🆕 Reason: ${reason}`);
                 } else if (payment.invoice_data_hash) {
                     const currentHash = generatePaymentHash(payment);
+                    console.log(`   🔑 Hash comparison: ${payment.invoice_data_hash.substring(0,12)} vs ${currentHash.substring(0,12)}`);
                     if (currentHash !== payment.invoice_data_hash) {
                         needsRegenerate = true;
                         reason = 'ข้อมูลบิลเปลี่ยน (มีค่าปรับเพิ่ม)';
-                        console.log(`🔄 Payment ${payment.id} (ห้อง ${roomNumber}): ${reason} (hash: ${payment.invoice_data_hash?.substring(0,8)} → ${currentHash.substring(0,8)})`);
+                        console.log(`   🔄 Reason: ${reason}`);
                     }
                 } else if (payment.late_fee_amount > 0) {
                     needsRegenerate = true;
                     reason = 'มีค่าปรับแต่ไม่มี hash';
-                    console.log(`⚠️ Payment ${payment.id} (ห้อง ${roomNumber}): ${reason} - regenerating`);
+                    console.log(`   ⚠️ Reason: ${reason}`);
                 }
                 
                 if (needsRegenerate) {
-                    // สร้างรูปใบแจ้งหนี้
+                    console.log(`   🔨 ACTION: Generating new invoice...`);
+                    
                     await base44.asServiceRole.entities.Payment.update(payment.id, {
                         invoice_image_status: 'generating'
                     });
@@ -455,12 +464,13 @@ Deno.serve(async (req) => {
                             imageUrl,
                             success: true
                         });
-                        console.log(`✅ Payment ${payment.id} (ห้อง ${roomNumber}): สร้างรูปสำเร็จ → ${imageUrl.substring(0, 50)}...`);
+                        console.log(`   ✅ SUCCESS: Invoice generated → ${imageUrl.substring(0, 50)}...`);
+                        console.log(`   📝 New hash: ${newHash.substring(0,12)}`);
                         
-                        await delay(1200); // รอ 1.2 วิ เพื่อหลีกเลี่ยง rate limit
+                        await delay(1200);
                     }
                 } else {
-                    console.log(`⏭️ Payment ${payment.id} (ห้อง ${roomNumber}): มีรูปแล้วและ hash ตรงกัน - ข้าม`);
+                    console.log(`   ⏭️ SKIP: มีรูปแล้วและ hash ตรงกัน`);
                     invoiceGenerationDetails.push({
                         paymentId: payment.id,
                         roomNumber,
@@ -479,7 +489,7 @@ Deno.serve(async (req) => {
                     error: error.message,
                     success: false
                 });
-                console.error(`❌ Payment ${payment.id} (ห้อง ${roomNumber}): ล้มเหลว - ${error.message}`);
+                console.error(`   ❌ FAILED: ${error.message}`);
                 
                 await base44.asServiceRole.entities.Payment.update(payment.id, {
                     invoice_image_status: 'failed'
@@ -487,7 +497,10 @@ Deno.serve(async (req) => {
             }
         }
         
-        console.log(`📊 Invoice generation summary: ${invoicesGenerated} generated, ${invoicesFailed} failed, ${paymentsToProcess.length - invoicesGenerated - invoicesFailed} skipped`);
+        console.log(`\n📊 ========== INVOICE GENERATION SUMMARY ==========`);
+        console.log(`   - Generated: ${invoicesGenerated}`);
+        console.log(`   - Failed: ${invoicesFailed}`);
+        console.log(`   - Skipped: ${paymentsToProcess.length - invoicesGenerated - invoicesFailed}`);
         
         // แสดงรายละเอียดการสร้างรูป
         console.log(`\n📋 Invoice generation details:`);
