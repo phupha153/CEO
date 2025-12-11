@@ -1883,6 +1883,12 @@ ${JSON.stringify(bookingsData, null, 2)}
     }
   };
 
+  const selectAllFilteredPayments = () => {
+    const allFilteredIds = filteredPayments.map(p => p.id);
+    setSelectedPaymentIds(allFilteredIds);
+    toast.success(`เลือกแล้ว ${allFilteredIds.length} รายการทั้งหมด`, { duration: 2000 });
+  };
+
   const handleBulkAIRequest = async () => {
     if (!bulkAIQuery.trim()) return;
     
@@ -2401,17 +2407,31 @@ Return JSON.`;
 
           {/* ปุ่มจัดการบิล + เลือกหลายรายการ */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-4 py-3">
-            <Button
-              variant={isSelectionMode ? 'destructive' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setIsSelectionMode(!isSelectionMode);
-                if (isSelectionMode) setSelectedPaymentIds([]);
-              }}
-              className="shadow-sm"
-            >
-              {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายรายการ</>}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={isSelectionMode ? 'destructive' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setIsSelectionMode(!isSelectionMode);
+                  if (isSelectionMode) setSelectedPaymentIds([]);
+                }}
+                className="shadow-sm"
+              >
+                {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายรายการ</>}
+              </Button>
+
+              {isSelectionMode && filteredPayments.length > 0 && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={selectAllFilteredPayments}
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md"
+                >
+                  <CheckSquare className="w-4 h-4 mr-2" />
+                  เลือกทุกรายการ ({filteredPayments.length})
+                </Button>
+              )}
+            </div>
 
             <div className="flex items-center gap-2">
               {canAdd && (
