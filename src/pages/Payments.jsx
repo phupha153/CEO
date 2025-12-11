@@ -138,17 +138,11 @@ export default function PaymentsPage() {
 
   const getTodayDateString = () => {
     try {
+      // ⭐ ใช้ ISO timestamp เพื่อบันทึกทั้งวันและเวลาที่ชำระจริง
       const currentDate = getCurrentDate();
-      const year = currentDate.getFullYear();
-      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-      const day = String(currentDate.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+      return currentDate.toISOString();
     } catch {
-      const d = new Date();
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+      return new Date().toISOString();
     }
   };
 
