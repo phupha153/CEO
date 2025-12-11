@@ -1,6 +1,194 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import { differenceInDays, parseISO, startOfDay } from 'npm:date-fns@3.6.0';
 
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// ⭐ สร้าง hash จากข้อมูลบิล เพื่อตรวจจับการเปลี่ยนแปลง
+function generatePaymentHash(payment) {
+    const dataToHash = {
+        rent_amount: payment.rent_amount || 0,
+        water_units: payment.water_units || 0,
+        water_amount: payment.water_amount || 0,
+        electricity_units: payment.electricity_units || 0,
+        electricity_amount: payment.electricity_amount || 0,
+        internet_amount: payment.internet_amount || 0,
+        common_fee_amount: payment.common_fee_amount || 0,
+        parking_fee_amount: payment.parking_fee_amount || 0,
+        other_amount: payment.other_amount || 0,
+        late_fee_amount: payment.late_fee_amount || 0,
+        total_amount: payment.total_amount || 0,
+        due_date: payment.due_date || '',
+        status: payment.status || 'pending'
+    };
+    const jsonStr = JSON.stringify(dataToHash);
+    return btoa(jsonStr).substring(0, 32);
+}
+
+// ⭐ สร้างรูปใบแจ้งหนี้ inline
+async function generateInvoiceScreenshot(base44, paymentId, invoice) {
+    const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
+    if (!BROWSERLESS_API_KEY) {
+        throw new Error("BROWSERLESS_API_KEY not set");
+    }
+
+    const payment = invoice;
+    const room = invoice.room || { room_number: 'N/A', floor: 0 };
+    const tenant = invoice.tenant || { full_name: 'ไม่ระบุ', phone: '' };
+    const bank = invoice.bank || {};
+    const recipient = invoice.recipient || {};
+
+    const buildingName = recipient.building_name || 'W RESIDENTS';
+    const buildingLogo = recipient.building_logo || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
+    const buildingAddress = recipient.building_address || '';
+    const buildingPhone = recipient.building_phone || '';
+    const companyName = recipient.company_name || '';
+    const taxId = recipient.tax_id || '';
+    
+    const bankName = bank.name || 'กสิกรไทย';
+    const bankAccountNumber = bank.account_number || '';
+    const bankAccountName = bank.account_name || '';
+
+    const escapeHtml = (text) => {
+        if (!text) return '';
+        return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return 'ไม่ระบุ';
+        try {
+            const date = new Date(dateString);
+            const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+                'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+            const day = date.getDate();
+            const month = thaiMonths[date.getMonth()];
+            const year = date.getFullYear() + 543;
+            return `${day} ${month} ${year}`;
+        } catch { return 'ไม่ระบุ'; }
+    };
+
+    const invoiceNumber = `INV-${paymentId.slice(0, 8).toUpperCase()}`;
+    const issueDateText = formatDate(new Date().toISOString().split('T')[0]);
+    const dueDateText = formatDate(payment.due_date);
+    const isOverdue = payment.status === 'overdue' || (payment.status === 'pending' && payment.due_date && new Date() > new Date(payment.due_date));
+    const daysOverdue = isOverdue ? Math.ceil((new Date() - new Date(payment.due_date)) / (1000 * 60 * 60 * 24)) : 0;
+
+    // สร้าง line items
+    const lineItems = [];
+    if (payment.rent_amount > 0) lineItems.push({ name: 'ค่าเช่า', total: payment.rent_amount });
+    if (payment.electricity_amount > 0) lineItems.push({ name: `ค่าไฟฟ้า ${payment.electricity_units || 0} หน่วย`, total: payment.electricity_amount });
+    if (payment.water_amount > 0) lineItems.push({ name: `ค่าน้ำประปา ${payment.water_units || 0} หน่วย`, total: payment.water_amount });
+    if (payment.internet_amount > 0) lineItems.push({ name: 'ค่าอินเทอร์เน็ต', total: payment.internet_amount });
+    if (payment.common_fee_amount > 0) lineItems.push({ name: 'ค่าส่วนกลาง', total: payment.common_fee_amount });
+    if (payment.parking_fee_amount > 0) lineItems.push({ name: 'ค่าที่จอดรถ', total: payment.parking_fee_amount });
+    if (payment.other_amount > 0) lineItems.push({ name: 'ค่าใช้จ่ายอื่นๆ', total: payment.other_amount });
+    if (payment.late_fee_amount > 0) lineItems.push({ name: '⚠️ ค่าปรับชำระล่าช้า', total: payment.late_fee_amount });
+
+    // สร้าง HTML แบบ compact
+    const htmlContent = `<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8"><style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Sarabun', 'Tahoma', sans-serif; padding: 12px; background: #f1f5f9; }
+.container { max-width: 600px; margin: 0 auto; padding: 16px; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+.header { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; }
+.header-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; margin-bottom: 12px; }
+.logo-section { display: flex; align-items: center; gap: 8px; }
+.logo { width: 40px; height: 40px; object-fit: contain; }
+.company-name { font-size: 18px; font-weight: bold; color: #1e293b; }
+.invoice-title { text-align: right; }
+.invoice-title h2 { font-size: 16px; font-weight: bold; color: ${isOverdue ? '#dc2626' : '#2563eb'}; }
+.issuer-info { font-size: 11px; color: #64748b; line-height: 1.5; }
+.invoice-meta { margin-top: 12px; font-size: 11px; line-height: 1.6; }
+.invoice-meta .due-date { color: #dc2626; font-weight: bold; }
+.overdue-warning { background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.overdue-warning .text-bold { font-size: 13px; font-weight: bold; color: #991b1b; }
+.customer-section { margin-bottom: 12px; }
+.customer-section h3 { font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 6px; }
+.customer-box { background: #f8fafc; border-radius: 8px; padding: 12px; }
+.customer-box .name { font-weight: bold; font-size: 13px; color: #1e293b; }
+.customer-box .detail { font-size: 11px; color: #64748b; margin-top: 2px; }
+table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11px; }
+table th { padding: 8px 4px; text-align: left; font-weight: 600; color: #334155; border-bottom: 2px solid #cbd5e1; }
+table td { padding: 8px 4px; border-bottom: 1px solid #e2e8f0; }
+.text-right { text-align: right; }
+.font-semibold { font-weight: 600; color: #1e293b; }
+.total-section { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.total-box { border-top: 2px solid #cbd5e1; padding-top: 8px; }
+.total-amount { font-weight: bold; font-size: 18px; color: ${isOverdue ? '#dc2626' : '#2563eb'}; }
+.payment-info { background: #eff6ff; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; border: 1px solid #bfdbfe; font-size: 10px; }
+.footer { text-align: center; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; }
+</style></head><body>
+<div class="container">
+<div class="header">
+<div class="header-top">
+<div class="logo-section">
+<img src="${escapeHtml(buildingLogo)}" alt="Logo" class="logo" />
+<div><div class="company-name">${escapeHtml(buildingName)}</div></div>
+</div>
+<div class="invoice-title"><h2>ใบแจ้งหนี้${isOverdue ? ' (เกินกำหนด)' : ''}</h2></div>
+</div>
+<div class="issuer-info">
+${companyName ? `<p>${escapeHtml(companyName)}</p>` : ''}
+<p>${escapeHtml(buildingAddress)}</p>
+${buildingPhone ? `<p>โทร: ${escapeHtml(buildingPhone)}</p>` : ''}
+${taxId ? `<p>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(taxId)}</p>` : ''}
+</div>
+<div class="invoice-meta">
+<p><b>เลขที่:</b> ${escapeHtml(invoiceNumber)}</p>
+<p><b>วันที่ออก:</b> ${escapeHtml(issueDateText)}</p>
+<p><b class="due-date">ครบกำหนด:</b> <span class="due-date">${escapeHtml(dueDateText)}</span></p>
+</div>
+</div>
+${isOverdue ? `<div class="overdue-warning"><p class="text-bold">⚠️ เกินกำหนดชำระแล้ว ${daysOverdue} วัน</p></div>` : ''}
+<div class="customer-section">
+<h3>ผู้เช่า</h3>
+<div class="customer-box">
+<p class="name">${escapeHtml(tenant.full_name)}</p>
+<p class="detail">ห้อง ${escapeHtml(room.room_number)}</p>
+<p class="detail">โทร: ${escapeHtml(tenant.phone || 'ไม่ระบุ')}</p>
+</div>
+</div>
+<table>
+<thead><tr><th>ลำดับ</th><th>รายการ</th><th class="text-right">จำนวนเงิน</th></tr></thead>
+<tbody>
+${lineItems.map((item, idx) => `<tr><td>${idx + 1}</td><td>${escapeHtml(item.name)}</td><td class="text-right font-semibold">${(item.total || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td></tr>`).join('')}
+</tbody>
+</table>
+<div class="total-section">
+<div class="total-box">
+<span><b>รวมทั้งสิ้น</b></span>
+<span class="total-amount" style="margin-left:24px">${(payment.total_amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
+</div>
+</div>
+<div class="payment-info">
+<p>💳 โอนเงินได้ที่: ${escapeHtml(bankName)} ${escapeHtml(bankAccountNumber)} (${escapeHtml(bankAccountName)})</p>
+</div>
+<div class="footer"><p>ขอบคุณที่ใช้บริการ ${escapeHtml(buildingName)}</p></div>
+</div>
+</body></html>`;
+
+    // เรียก Browserless
+    const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            html: htmlContent,
+            options: { type: 'png', fullPage: true }
+        })
+    });
+
+    if (!browserlessResponse.ok) {
+        const errText = await browserlessResponse.text();
+        throw new Error(`Browserless error: ${errText}`);
+    }
+
+    // Upload image
+    const imageBlob = await browserlessResponse.blob();
+    const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
+    const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file: imageFile });
+    
+    return file_url;
+}
+
 // ส่งการแจ้งเตือนค้างชำระอัตโนมัติให้ผู้เช่า
 Deno.serve(async (req) => {
     const startTime = Date.now();
@@ -91,36 +279,47 @@ Deno.serve(async (req) => {
             return allData;
         }
 
-        // 3. ดึงข้อมูลทั้งหมด
-        console.log('🔍 Fetching payments...');
-        const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : null;
-        const [allPayments, allTenants, allRooms] = await Promise.all([
-            fetchAllWithPagination(base44.asServiceRole.entities.Payment, paymentFilter),
-            fetchAllWithPagination(base44.asServiceRole.entities.Tenant),
-            fetchAllWithPagination(base44.asServiceRole.entities.Room)
-        ]);
+        // 3. ดึงข้อมูลแบบกรองเฉพาะที่จำเป็น - filter status ตั้งแต่ query
+        console.log('🔍 Fetching filtered overdue payments...');
 
-        // สร้าง Map สำหรับ lookup
-        const tenantMap = new Map(allTenants.map(t => [t.id, t]));
-        const roomMap = new Map(allRooms.map(r => [r.id, r]));
-        
-        console.log(`✅ Loaded ${allPayments.length} payments, ${allTenants.length} tenants, ${allRooms.length} rooms`);
-
-        // 4. กรองหา payment ที่ค้างชำระ (status = overdue หรือ pending ที่เกินกำหนดแล้ว)
         const today = startOfDay(new Date());
-        
-        let overduePayments = allPayments.filter(p => {
-            if (p.status === 'paid') return false;
+        const todayString = today.toISOString().split('T')[0];
+
+        // ⭐ ดึงเฉพาะ payment ที่ยังไม่ชำระ (pending/overdue) - ลด memory/network
+        const paymentFilter = {
+            status: 'pending'  // ดึงเฉพาะที่ยังไม่จ่าย
+        };
+
+        if (targetBranchId) {
+            paymentFilter.branch_id = targetBranchId;
+        }
+
+        let pendingPayments = await fetchAllWithPagination(base44.asServiceRole.entities.Payment, paymentFilter);
+
+        // เพิ่มเช็ค status='overdue' ด้วย (กรณีที่ระบบตั้งเป็น overdue แล้ว)
+        const overdueFilter = {
+            status: 'overdue'
+        };
+        if (targetBranchId) {
+            overdueFilter.branch_id = targetBranchId;
+        }
+
+        const overdueByStatus = await fetchAllWithPagination(base44.asServiceRole.entities.Payment, overdueFilter);
+        const allUnpaidPayments = [...pendingPayments, ...overdueByStatus];
+
+        console.log(`📊 Fetched ${allUnpaidPayments.length} unpaid payments (pending+overdue)`);
+
+        // กรองใน memory หา payment ที่เกินกำหนดจริงๆ (due_date < today)
+        let overduePayments = allUnpaidPayments.filter(p => {
             if (!p.due_date) return false;
 
             const dueDate = startOfDay(parseISO(p.due_date));
             const daysOverdue = differenceInDays(today, dueDate);
 
-            // เกินกำหนดอย่างน้อย 1 วัน
             return daysOverdue > 0;
         });
 
-        console.log(`📊 Found ${overduePayments.length} overdue payments`);
+        console.log(`📊 Found ${overduePayments.length} actually overdue payments`);
 
         // กรองเฉพาะสาขาที่เปิดการแจ้งเตือน และยังไม่ส่งในวันนี้
         const todayString = today.toISOString().split('T')[0];
@@ -149,6 +348,30 @@ Deno.serve(async (req) => {
         console.log(`📋 Processing this round: ${paymentsToProcess.length}`);
         console.log(`📋 Remaining for next round: ${totalRemaining}`);
         console.log(`⏭️ Skipped (disabled branches or sent today): ${skippedCount}`);
+
+        // ⭐ ดึง tenant และ room เฉพาะที่จำเป็น
+        const uniqueTenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id).filter(id => id))];
+        const uniqueRoomIds = [...new Set(paymentsToProcess.map(p => p.room_id).filter(id => id))];
+        
+        console.log(`📥 Fetching ${uniqueTenantIds.length} tenants and ${uniqueRoomIds.length} rooms...`);
+        
+        const [tenantsBatch, roomsBatch] = await Promise.all([
+            uniqueTenantIds.length > 0 
+                ? Promise.all(uniqueTenantIds.map(id => 
+                    base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null)
+                  )).then(results => results.flat().filter(Boolean))
+                : [],
+            uniqueRoomIds.length > 0
+                ? Promise.all(uniqueRoomIds.map(id => 
+                    base44.asServiceRole.entities.Room.filter({ id }).catch(() => null)
+                  )).then(results => results.flat().filter(Boolean))
+                : []
+        ]);
+
+        const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
+        const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
+        
+        console.log(`✅ Loaded ${paymentsToProcess.length} relevant payments, ${tenantsBatch.length} tenants, ${roomsBatch.length} rooms`);
 
         if (paymentsToProcess.length === 0) {
             return Response.json({
@@ -202,6 +425,12 @@ Deno.serve(async (req) => {
                 }
                 message += `\n💰 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
                 message += `\nเกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
+
+                // ⭐ เพิ่มลิงก์ใบแจ้งหนี้
+                if (payment.invoice_image_url) {
+                    message += `📄 ดูใบแจ้งหนี้: ${payment.invoice_image_url}\n\n`;
+                }
+
                 message += `กรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
                 message += `💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อบัญชี: ${branchBankAccountName}\n\n`;
                 message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
@@ -327,6 +556,8 @@ Deno.serve(async (req) => {
                             sentCount++;
                             successfulPaymentIds.add(recipient.metadata.paymentId);
                             console.log(`✅ Facebook → ${recipient.metadata.tenantName}`);
+
+                            await delay(300);
                         } catch (error) {
                             console.error(`❌ Facebook error:`, error);
                             sendErrors.push(`Facebook ห้อง ${recipient.metadata.roomNumber}: ${error.message}`);
@@ -336,10 +567,10 @@ Deno.serve(async (req) => {
             }
         }
 
-        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ
+        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ - ลด batch size เพื่อหลีกเลี่ยง rate limit
         console.log(`📝 Updating sent_date for ${successfulPaymentIds.size} successful payments...`);
         const now_iso = new Date().toISOString();
-        const updateBatchSize = 50;
+        const updateBatchSize = 10; // ลดจาก 50 เป็น 10
         const paymentIdsArray = Array.from(successfulPaymentIds);
         
         for (let i = 0; i < paymentIdsArray.length; i += updateBatchSize) {
@@ -353,6 +584,11 @@ Deno.serve(async (req) => {
                 )
             );
             console.log(`✅ Updated ${Math.min(i + updateBatchSize, paymentIdsArray.length)}/${paymentIdsArray.length}`);
+            
+            // ⭐ เพิ่ม delay ระหว่าง batch
+            if (i + updateBatchSize < paymentIdsArray.length) {
+                await new Promise(r => setTimeout(r, 500));
+            }
         }
 
         const executionTime = Date.now() - startTime;
@@ -411,6 +647,8 @@ Deno.serve(async (req) => {
             testMode: !!testLineUserId,
             enabledBranches: enabledBranches,
             skippedDueToDisabled: skippedCount,
+            invoicesGenerated: invoicesGenerated,
+            invoicesFailed: invoicesFailed,
             errors: sendErrors.length > 0 ? sendErrors : undefined,
             lineCount: lineRecipients.length,
             facebookCount: facebookRecipients.length
@@ -418,8 +656,9 @@ Deno.serve(async (req) => {
 
         console.log('🎉 Automated overdue reminder completed:', responseResult);
 
-        // บันทึก FunctionLog
+        // บันทึก FunctionLog - หลีกเลี่ยง rate limit
         try {
+            await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'sendAutomatedOverdueReminders',
                 run_timestamp: new Date().toISOString(),
