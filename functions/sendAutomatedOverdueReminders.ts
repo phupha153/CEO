@@ -487,22 +487,41 @@ Deno.serve(async (req) => {
             }
         }
         
-        console.log(`📊 Invoice generation: ${invoicesGenerated} generated, ${invoicesFailed} failed`);
+        console.log(`📊 Invoice generation summary: ${invoicesGenerated} generated, ${invoicesFailed} failed, ${paymentsToProcess.length - invoicesGenerated - invoicesFailed} skipped`);
+        
+        // แสดงรายละเอียดการสร้างรูป
+        console.log(`\n📋 Invoice generation details:`);
+        invoiceGenerationDetails.forEach((detail, idx) => {
+            if (detail.success) {
+                console.log(`   ${idx + 1}. ✅ ห้อง ${detail.roomNumber} (${detail.tenantName}): ${detail.reason} → มีรูปแล้ว`);
+            } else if (detail.skipped) {
+                console.log(`   ${idx + 1}. ⏭️ ห้อง ${detail.roomNumber} (${detail.tenantName}): ${detail.reason}`);
+            } else {
+                console.log(`   ${idx + 1}. ❌ ห้อง ${detail.roomNumber} (${detail.tenantName}): ${detail.error}`);
+            }
+        });
 
         // 5. เตรียมข้อความสำหรับแต่ละบิล
         const recipients = [];
+        const messageCreationDetails = [];
 
         for (const payment of paymentsToProcess) {
             try {
                 const tenant = tenantMap.get(payment.tenant_id);
                 const room = roomMap.get(payment.room_id);
 
-                if (!tenant) continue;
+                if (!tenant) {
+                    console.log(`⚠️ Payment ${payment.id}: ไม่พบข้อมูล tenant - ข้าม`);
+                    continue;
+                }
 
                 const hasLine = tenant.line_user_id && tenant.line_user_id.trim() !== '';
                 const hasFacebook = tenant.facebook_user_id && tenant.facebook_user_id.trim() !== '';
                 
-                if (!hasLine && !hasFacebook) continue;
+                if (!hasLine && !hasFacebook) {
+                    console.log(`⚠️ Payment ${payment.id} (ห้อง ${room?.room_number}): ไม่มี LINE/Facebook ID - ข้าม`);
+                    continue;
+                }
 
                 // คำนวณจำนวนวันที่เกินกำหนด
                 const dueDate = startOfDay(parseISO(payment.due_date));
@@ -531,14 +550,31 @@ Deno.serve(async (req) => {
                 message += `\n💰 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
                 message += `\nเกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
 
-                // ⭐ เพิ่มลิงก์ใบแจ้งหนี้
-                if (payment.invoice_image_url) {
+                // ⭐ เช็คและแสดงลิงก์ใบแจ้งหนี้พร้อม log
+                const hasInvoiceUrl = payment.invoice_image_url && payment.invoice_image_url.trim() !== '';
+                if (hasInvoiceUrl) {
                     message += `📄 ดูใบแจ้งหนี้: ${payment.invoice_image_url}\n\n`;
+                    console.log(`✅ Payment ${payment.id} (ห้อง ${room?.room_number}): มีลิงก์ใบแจ้งหนี้ → ${payment.invoice_image_url.substring(0, 50)}...`);
+                } else {
+                    console.log(`⚠️ Payment ${payment.id} (ห้อง ${room?.room_number}): ไม่มีลิงก์ใบแจ้งหนี้ในข้อความ (invoice_image_url = ${payment.invoice_image_url || 'null'})`);
                 }
 
                 message += `กรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
                 message += `💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อบัญชี: ${branchBankAccountName}\n\n`;
                 message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
+
+                messageCreationDetails.push({
+                    paymentId: payment.id,
+                    roomNumber: room?.room_number,
+                    tenantName: tenant.full_name,
+                    hasInvoiceUrl,
+                    invoiceUrl: payment.invoice_image_url || 'N/A',
+                    messageLength: message.length,
+                    channels: {
+                        line: hasLine,
+                        facebook: hasFacebook
+                    }
+                });
 
                 recipients.push({
                     lineUserId: hasLine ? tenant.line_user_id : null,
@@ -558,6 +594,20 @@ Deno.serve(async (req) => {
                 console.error(`❌ Error processing payment ${payment.id}:`, error);
             }
         }
+        
+        console.log(`\n📋 Message creation summary: ${recipients.length} messages created`);
+        console.log(`   - With invoice URL: ${messageCreationDetails.filter(d => d.hasInvoiceUrl).length}`);
+        console.log(`   - Without invoice URL: ${messageCreationDetails.filter(d => !d.hasInvoiceUrl).length}`);
+        
+        // แสดงตัวอย่างข้อความ 3 รายการแรก
+        console.log(`\n📝 Sample messages (first 3):`);
+        messageCreationDetails.slice(0, 3).forEach((detail, idx) => {
+            console.log(`   ${idx + 1}. ห้อง ${detail.roomNumber} (${detail.tenantName}):`);
+            console.log(`      - Has invoice URL: ${detail.hasInvoiceUrl ? '✅ YES' : '❌ NO'}`);
+            console.log(`      - Invoice URL: ${detail.invoiceUrl.substring(0, 60)}...`);
+            console.log(`      - Message length: ${detail.messageLength} chars`);
+            console.log(`      - Channels: LINE=${detail.channels.line}, FB=${detail.channels.facebook}`);
+        });
 
         // 6. ส่งข้อความ
         let sentCount = 0;
