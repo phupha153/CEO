@@ -26,11 +26,10 @@ Deno.serve(async (req) => {
             });
         }
 
-        const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
         const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
 
-        if (!CRM_API_KEY || !CRM_APP_ID) {
-            console.error('❌ Missing CRM_API_KEY');
+        if (!CRM_APP_ID) {
+            console.error('❌ Missing CRM_APP_ID');
             return Response.json({
                 success: false,
                 error: 'ระบบไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแล'
@@ -48,7 +47,6 @@ Deno.serve(async (req) => {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                api_key: CRM_API_KEY,
                 code: code.trim().toUpperCase(),
                 user_email: user_email || user.email,
                 app_id: CRM_APP_ID,
