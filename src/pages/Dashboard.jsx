@@ -996,16 +996,21 @@ export default function Dashboard() {
                                             <p className="font-medium text-slate-800 text-sm md:text-base">ห้อง {room?.room_number || 'N/A'}</p>
                                             <p className="text-xs text-slate-500">
                                               {(() => {
-                                                if (!payment.payment_date) return 'N/A';
                                                 try {
-                                                  const date = parseISO(payment.payment_date);
+                                                  // ใช้ payment_date ถ้ามีเวลา ไม่งั้นใช้ created_date
+                                                  const paymentDateStr = payment.payment_date;
+                                                  const createdDateStr = payment.created_date;
+                                                  
+                                                  if (!paymentDateStr && !createdDateStr) return 'N/A';
+                                                  
+                                                  // ถ้า payment_date มีเวลา (มี T หรือ :) ใช้เลย
+                                                  const hasTime = paymentDateStr && (paymentDateStr.includes('T') || paymentDateStr.includes(':'));
+                                                  const dateStr = hasTime ? paymentDateStr : (createdDateStr || paymentDateStr);
+                                                  
+                                                  const date = parseISO(dateStr);
                                                   if (isNaN(date.getTime())) return 'ข้อมูลไม่ถูกต้อง';
                                                   
-                                                  // ถ้า payment_date มีเวลา (มี T หรือ :) = แสดงเวลาด้วย
-                                                  const hasTime = payment.payment_date.includes('T') || payment.payment_date.includes(':');
-                                                  return hasTime 
-                                                    ? format(date, 'd MMM yyyy HH:mm น.', { locale: th })
-                                                    : format(date, 'd MMM yyyy', { locale: th });
+                                                  return format(date, 'd MMM yyyy HH:mm น.', { locale: th });
                                                 } catch {
                                                   return 'ข้อมูลไม่ถูกต้อง';
                                                 }
