@@ -571,6 +571,7 @@ Deno.serve(async (req) => {
         console.log('🎟️ Marking discount code as used in CRM...');
         
         const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
+        const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
         const CRM_REGISTERED_APP_ID = 'DORM-1763306051935093';
 
         if (CRM_API_KEY) {

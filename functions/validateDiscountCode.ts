@@ -19,18 +19,19 @@ Deno.serve(async (req) => {
         }
 
         const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
+        const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
         const CRM_REGISTERED_APP_ID = 'DORM-1763306051935093';
 
-        if (!CRM_API_KEY) {
-            console.error('❌ Missing CRM_API_KEY');
+        if (!CRM_API_KEY || !CRM_APP_ID) {
+            console.error('❌ Missing CRM_API_KEY or CRM_APP_ID');
             return Response.json({
                 valid: false,
                 error: 'ระบบไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแล'
             });
         }
 
-        console.log('🔍 Debug - x-app-id (header):', CRM_REGISTERED_APP_ID);
-        console.log('🔍 Debug - app_id (body):', CRM_REGISTERED_APP_ID);
+        console.log('🔍 Debug - CRM_APP_ID (header):', CRM_APP_ID);
+        console.log('🔍 Debug - CRM_REGISTERED_APP_ID (body):', CRM_REGISTERED_APP_ID);
         console.log('🔍 Debug - Code:', code.trim().toUpperCase());
         console.log('🔍 Debug - User email:', user.email);
 
