@@ -454,6 +454,76 @@ Deno.serve(async (req) => {
             });
         }
 
+        // ⭐ สร้างใบแจ้งหนี้สำหรับ payment ที่ยังไม่มีหรือ hash ไม่ตรง
+        console.log(`🖼️ Checking and generating invoices for ${paymentsToProcess.length} payments...`);
+        let invoicesGenerated = 0;
+        let invoicesFailed = 0;
+        
+        for (const payment of paymentsToProcess) {
+            try {
+                // เช็คว่าต้องสร้างใบแจ้งหนี้ใหม่หรือไม่
+                let needsRegenerate = false;
+                
+                if (!payment.invoice_image_url) {
+                    needsRegenerate = true;
+                    console.log(`🆕 Payment ${payment.id}: No invoice image - generating`);
+                } else if (payment.invoice_data_hash) {
+                    const currentHash = generatePaymentHash(payment);
+                    if (currentHash !== payment.invoice_data_hash) {
+                        needsRegenerate = true;
+                        console.log(`🔄 Payment ${payment.id}: Hash mismatch - regenerating`);
+                    }
+                } else if (payment.late_fee_amount > 0) {
+                    needsRegenerate = true;
+                    console.log(`⚠️ Payment ${payment.id}: Has late fee but no hash - regenerating`);
+                }
+                
+                if (needsRegenerate) {
+                    // สร้างรูปใบแจ้งหนี้
+                    await base44.asServiceRole.entities.Payment.update(payment.id, {
+                        invoice_image_status: 'generating'
+                    });
+                    
+                    const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', {
+                        paymentId: payment.id
+                    });
+                    
+                    if (!invoiceDataResult.data?.success || !invoiceDataResult.data?.invoice) {
+                        throw new Error('ไม่พบข้อมูลใบแจ้งหนี้');
+                    }
+                    
+                    const imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoiceDataResult.data.invoice);
+                    
+                    if (imageUrl) {
+                        const newHash = generatePaymentHash(payment);
+                        await base44.asServiceRole.entities.Payment.update(payment.id, {
+                            invoice_image_url: imageUrl,
+                            invoice_image_status: 'completed',
+                            invoice_data_hash: newHash
+                        });
+                        
+                        // อัปเดต payment object ในหน่วยความจำ
+                        payment.invoice_image_url = imageUrl;
+                        payment.invoice_data_hash = newHash;
+                        
+                        invoicesGenerated++;
+                        console.log(`✅ Payment ${payment.id}: Invoice generated`);
+                        
+                        await delay(1200); // รอ 1.2 วิ เพื่อหลีกเลี่ยง rate limit
+                    }
+                }
+            } catch (error) {
+                invoicesFailed++;
+                console.error(`❌ Payment ${payment.id}: Failed to generate invoice -`, error.message);
+                
+                await base44.asServiceRole.entities.Payment.update(payment.id, {
+                    invoice_image_status: 'failed'
+                }).catch(() => {});
+            }
+        }
+        
+        console.log(`📊 Invoice generation: ${invoicesGenerated} generated, ${invoicesFailed} failed`);
+
         // 5. เตรียมข้อความสำหรับแต่ละบิล
         const recipients = [];
 
