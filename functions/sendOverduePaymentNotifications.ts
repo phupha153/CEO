@@ -36,20 +36,19 @@ Deno.serve(async (req) => {
         console.log(`   - branch_id filter: ${branch_id || 'ALL BRANCHES'}`);
         
         if (!recipients || recipients.trim() === '') {
-            console.error('❌ No recipients configured');
-            console.log('💡 Solution: Go to Settings → Notifications → Admin Notifications');
+            console.log('⚠️ No recipients configured - skipping (not an error)');
+            console.log('💡 To enable: Settings → Notifications → Admin Notifications');
             console.log('💡 Add LINE User IDs (comma-separated) in "overdue_notification_recipients"');
-            console.log('💡 Example: U1234567890abc,U0987654321xyz');
             
             return Response.json({ 
-                success: false, 
-                error: 'ไม่พบผู้รับการแจ้งเตือน กรุณาตั้งค่าใน Settings → การแจ้งเตือน',
+                success: true, 
+                message: 'ไม่มีผู้รับการแจ้งเตือน ข้าม (ตั้งค่าได้ที่ Settings → การแจ้งเตือน)',
+                sent: 0,
+                overdueCount: 0,
+                skipped: true,
                 details: {
-                    configKey: 'overdue_notification_recipients',
-                    currentValue: recipients,
-                    required: 'LINE User ID (comma-separated)',
-                    example: 'U1234567890abc,U0987654321xyz',
-                    howToFind: 'Get LINE User ID from LINE Developer Console or by sending a message to your LINE Bot'
+                    reason: 'no_recipients',
+                    howToEnable: 'Settings → Notifications → overdue_notification_recipients'
                 }
             });
         }
