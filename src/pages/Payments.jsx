@@ -80,6 +80,27 @@ export default function PaymentsPage() {
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [longPressTarget, setLongPressTarget] = useState(null);
 
+  // ⭐ Click outside handler เพื่อยกเลิก selection mode
+  useEffect(() => {
+    if (!isSelectionMode) return;
+
+    const handleClickOutside = (e) => {
+      // ถ้าคลิกที่ปุ่มหรือ checkbox ให้ข้ามไป
+      if (e.target.closest('[data-selection-control]')) return;
+      
+      // ถ้าคลิกบน card หรือ table row ให้ข้ามไป
+      if (e.target.closest('[data-payment-item]')) return;
+      
+      // ถ้าคลิกข้างนอก = ยกเลิก selection mode
+      setIsSelectionMode(false);
+      setSelectedPaymentIds([]);
+      toast.info('ยกเลิกการเลือกแล้ว', { duration: 1500 });
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isSelectionMode]);
+
   const [formData, setFormData] = useState({
     booking_id: '',
     tenant_id: '',
@@ -1853,7 +1874,7 @@ ${JSON.stringify(bookingsData, null, 2)}
     // ⭐ ถ้าอยู่ใน selection mode แล้ว ไม่ต้อง start timer ให้คลิกเลือกได้เลย
     if (isSelectionMode) return;
     
-    e.preventDefault();
+    // ⭐ เอา preventDefault() ออกเพื่อให้ click event ทำงานได้ปกติ
     const timer = setTimeout(() => {
       setIsSelectionMode(true);
       setSelectedPaymentIds([paymentId]);
@@ -1864,9 +1885,6 @@ ${JSON.stringify(bookingsData, null, 2)}
   };
 
   const handleLongPressEnd = (e) => {
-    // ⭐ ถ้าอยู่ใน selection mode แล้ว ไม่ต้อง preventDefault
-    if (!isSelectionMode && e) e.preventDefault();
-    
     if (longPressTimer) {
       clearTimeout(longPressTimer);
       setLongPressTimer(null);
@@ -2417,7 +2435,7 @@ Return JSON.`;
 
           {/* ปุ่มจัดการบิล + เลือกหลายรายการ */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-4 py-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" data-selection-control>
               <Button
                 variant={isSelectionMode ? 'destructive' : 'outline'}
                 size="sm"
@@ -2698,7 +2716,7 @@ Return JSON.`;
                       const isSelected = selectedPaymentIds.includes(payment.id);
 
                       return (
-                        <motion.div key={payment.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="relative">
+                        <motion.div key={payment.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="relative" data-payment-item>
                           {isSelectionMode && (
                             <div
                               className={`absolute top-3 left-3 z-10 w-10 h-10 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all ${
@@ -2710,6 +2728,7 @@ Return JSON.`;
                                 e.stopPropagation();
                                 togglePaymentSelection(payment.id);
                               }}
+                              data-selection-control
                             >
                               {isSelected && <Check className="w-6 h-6" />}
                             </div>
@@ -2717,7 +2736,13 @@ Return JSON.`;
                           <div className={isSelectionMode && isSelected ? 'ring-2 ring-blue-500 rounded-2xl' : ''}>
                             <Card 
                               className={`select-none bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg hover:shadow-xl transition-all cursor-pointer ${effectiveStatus === 'overdue' ? 'border-red-300 bg-red-50/50' : ''} ${needsManualReview ? 'border-amber-300 bg-amber-50/30' : ''} ${longPressTarget === payment.id ? 'scale-95' : ''}`}
-                              onClick={() => handlePaymentClick(payment, false)}
+                              onClick={() => {
+                                if (isSelectionMode) {
+                                  togglePaymentSelection(payment.id);
+                                } else {
+                                  handlePaymentClick(payment, false);
+                                }
+                              }}
                               onMouseDown={(e) => {
                                 if (!isSelectionMode) handleLongPressStart(e, payment.id);
                               }}
@@ -2958,16 +2983,16 @@ Return JSON.`;
                                 </span>
                               </div>
 
-                              <div className="flex flex-wrap gap-2 mt-4">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleExpanded(payment.id);
-                                  }}
-                                  className="border-slate-300 hover:bg-slate-50"
-                                >
+                              <div className="flex flex-wrap gap-2 mt-4" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleExpanded(payment.id);
+                                }}
+                                className="border-slate-300 hover:bg-slate-50"
+                              >
                                   {isExpanded ? (
                                     <>
                                       <ChevronUp className="w-4 h-4 mr-1" />
@@ -3201,14 +3226,33 @@ Return JSON.`;
                               <tr 
                                 key={payment.id} 
                                 className={`select-none border-b hover:bg-slate-50 cursor-pointer ${effectiveStatus === 'overdue' ? 'bg-red-50/50' : ''} ${isSelected ? 'bg-blue-50/50' : ''} ${longPressTarget === payment.id ? 'bg-blue-100' : ''}`}
-                                onClick={() => handlePaymentClick(payment)}
-                                onMouseDown={(e) => handleLongPressStart(e, payment.id)}
-                                onMouseUp={handleLongPressEnd}
-                                onMouseLeave={handleLongPressEnd}
-                                onTouchStart={(e) => handleLongPressStart(e, payment.id)}
-                                onTouchEnd={handleLongPressEnd}
-                                onTouchCancel={handleLongPressEnd}
+                                onClick={() => {
+                                  if (isSelectionMode) {
+                                    togglePaymentSelection(payment.id);
+                                  } else {
+                                    handlePaymentClick(payment);
+                                  }
+                                }}
+                                onMouseDown={(e) => {
+                                  if (!isSelectionMode) handleLongPressStart(e, payment.id);
+                                }}
+                                onMouseUp={() => {
+                                  if (!isSelectionMode) handleLongPressEnd();
+                                }}
+                                onMouseLeave={() => {
+                                  if (!isSelectionMode) handleLongPressEnd();
+                                }}
+                                onTouchStart={(e) => {
+                                  if (!isSelectionMode) handleLongPressStart(e, payment.id);
+                                }}
+                                onTouchEnd={() => {
+                                  if (!isSelectionMode) handleLongPressEnd();
+                                }}
+                                onTouchCancel={() => {
+                                  if (!isSelectionMode) handleLongPressEnd();
+                                }}
                                 onContextMenu={(e) => e.preventDefault()}
+                                data-payment-item
                               >
                                 {isSelectionMode && (
                                   <td className="px-4 py-3 text-center">
@@ -3475,16 +3519,25 @@ Return JSON.`;
                                            }
                                          }}
                                          onMouseDown={(e) => {
-                                           if (roomPayment) handleLongPressStart(e, roomPayment.id);
+                                           if (roomPayment && !isSelectionMode) handleLongPressStart(e, roomPayment.id);
                                          }}
-                                         onMouseUp={handleLongPressEnd}
-                                         onMouseLeave={handleLongPressEnd}
+                                         onMouseUp={() => {
+                                           if (!isSelectionMode) handleLongPressEnd();
+                                         }}
+                                         onMouseLeave={() => {
+                                           if (!isSelectionMode) handleLongPressEnd();
+                                         }}
                                          onTouchStart={(e) => {
-                                           if (roomPayment) handleLongPressStart(e, roomPayment.id);
+                                           if (roomPayment && !isSelectionMode) handleLongPressStart(e, roomPayment.id);
                                          }}
-                                         onTouchEnd={handleLongPressEnd}
-                                         onTouchCancel={handleLongPressEnd}
+                                         onTouchEnd={() => {
+                                           if (!isSelectionMode) handleLongPressEnd();
+                                         }}
+                                         onTouchCancel={() => {
+                                           if (!isSelectionMode) handleLongPressEnd();
+                                         }}
                                          onContextMenu={(e) => e.preventDefault()}
+                                         data-payment-item
                                        >
                                          <p className="font-bold text-sm">{room.room_number}</p>
                                          {roomPayment && (
