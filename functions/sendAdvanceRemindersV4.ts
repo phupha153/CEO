@@ -245,22 +245,16 @@ Deno.serve(async (req) => {
                 return false;
             }
 
-            // 3. Already sent check - ⭐⭐⭐ เพิ่มเช็ค bill_sent_date ด้วย
-            if (p.advance_reminder_sent_date || p.bill_sent_date) {
-                debugCounts.alreadySent++;
-                return false;
-            }
-
-            // 4. Branch filter
+            // 3. Branch filter (check early)
             if (targetBranchId && p.branch_id !== targetBranchId) return false;
 
-            // 5. Branch enabled check
+            // 4. Branch enabled check
             if (!enabledBranches.includes(p.branch_id)) {
                 debugCounts.branchDisabled++;
                 return false;
             }
 
-            // 6. Date calculation
+            // 5. Date calculation
             const branchAdvanceDays = parseInt(getConfigValue('bill_advance_notice_days', '3', p.branch_id));
             const dueDate = new Date(p.due_date);
             const notifyDate = new Date(dueDate);
@@ -272,7 +266,7 @@ Deno.serve(async (req) => {
                 return false;
             }
 
-            // 7. Image check
+            // 6. Image check
             if (!p.invoice_image_url) {
                 debugCounts.noImage++;
                 const room = roomMap.get(p.room_id);
@@ -288,13 +282,21 @@ Deno.serve(async (req) => {
                 return false;
             }
 
-            // 8. Hash check (if exists)
+            // 7. ⭐⭐⭐ Hash check FIRST - ถ้า hash ไม่ตรง = บิลถูกแก้ไข ต้องส่งใหม่
             if (p.invoice_data_hash) {
                 const currentHash = generatePaymentHash(p);
                 if (currentHash !== p.invoice_data_hash) {
                     debugCounts.hashMismatch++;
-                    return false;
+                    // ⭐ บิลถูกแก้ไข - ล้าง bill_sent_date และให้ส่งใหม่
+                    console.log(`⚠️ Payment ${p.id.substring(0, 8)} hash mismatch - will resend`);
+                    return true; // ส่งได้ ไม่สนใจ bill_sent_date
                 }
+            }
+
+            // 8. Already sent check - เช็คหลัง hash เท่านั้น
+            if (p.advance_reminder_sent_date || p.bill_sent_date) {
+                debugCounts.alreadySent++;
+                return false;
             }
 
             debugCounts.passed++;
