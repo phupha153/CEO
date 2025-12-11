@@ -1000,15 +1000,27 @@ export default function Dashboard() {
                                             <p className="text-xs text-slate-500">
                                               {(() => {
                                                 try {
-                                                  // ใช้ payment_date ถ้ามีเวลา ไม่งั้นใช้ created_date
+                                                  // ลำดับความสำคัญ: payment_date (ถ้ามีเวลา) > updated_date > created_date
                                                   const paymentDateStr = payment.payment_date;
+                                                  const updatedDateStr = payment.updated_date;
                                                   const createdDateStr = payment.created_date;
                                                   
-                                                  if (!paymentDateStr && !createdDateStr) return 'N/A';
+                                                  let dateStr;
                                                   
-                                                  // ถ้า payment_date มีเวลา (มี T หรือ :) ใช้เลย
-                                                  const hasTime = paymentDateStr && (paymentDateStr.includes('T') || paymentDateStr.includes(':'));
-                                                  const dateStr = hasTime ? paymentDateStr : (createdDateStr || paymentDateStr);
+                                                  // ถ้า payment_date มีเวลา (timestamp เต็ม) ใช้เลย
+                                                  if (paymentDateStr && (paymentDateStr.includes('T') || paymentDateStr.includes(':'))) {
+                                                    dateStr = paymentDateStr;
+                                                  } 
+                                                  // ถ้า status = 'paid' และมี updated_date ใช้ updated_date (เวลาที่ update status)
+                                                  else if (payment.status === 'paid' && updatedDateStr) {
+                                                    dateStr = updatedDateStr;
+                                                  }
+                                                  // fallback ไป created_date
+                                                  else {
+                                                    dateStr = createdDateStr;
+                                                  }
+                                                  
+                                                  if (!dateStr) return 'N/A';
                                                   
                                                   const date = parseISO(dateStr);
                                                   if (isNaN(date.getTime())) return 'ข้อมูลไม่ถูกต้อง';
