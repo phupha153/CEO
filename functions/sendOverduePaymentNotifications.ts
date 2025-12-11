@@ -18,56 +18,49 @@ Deno.serve(async (req) => {
             return config?.value;
         };
 
-        const enabled = getConfig('overdue_notifications_enabled') === 'true';
-        if (!enabled && !test_mode) {
-            return Response.json({ 
-                success: false, 
-                message: 'การแจ้งเตือนค้างชำระถูกปิดใช้งาน' 
-            });
-        }
-
-        const daysThreshold = parseInt(getConfig('overdue_days_threshold') || '3');
+        // ⭐ เช็ค recipients ก่อนเลย - ถ้าไม่มีก็ไม่ต้องดึงข้อมูล
         const recipients = getConfig('overdue_notification_recipients') || '';
         
-        console.log('📋 Configuration check:');
-        console.log(`   - overdue_notifications_enabled: ${enabled}`);
-        console.log(`   - overdue_days_threshold: ${daysThreshold}`);
-        console.log(`   - overdue_notification_recipients (raw): "${recipients}"`);
-        console.log(`   - branch_id filter: ${branch_id || 'ALL BRANCHES'}`);
-        
         if (!recipients || recipients.trim() === '') {
-            console.log('⚠️ No recipients configured - skipping (not an error)');
-            console.log('💡 To enable: Settings → Notifications → Admin Notifications');
-            console.log('💡 Add LINE User IDs (comma-separated) in "overdue_notification_recipients"');
-            
+            console.log('⚠️ No recipients - skip immediately (no data fetching needed)');
             return Response.json({ 
                 success: true, 
-                message: 'ไม่มีผู้รับการแจ้งเตือน ข้าม (ตั้งค่าได้ที่ Settings → การแจ้งเตือน)',
+                message: 'ไม่มีผู้รับการแจ้งเตือน ข้าม',
                 sent: 0,
-                overdueCount: 0,
-                skipped: true,
-                details: {
-                    reason: 'no_recipients',
-                    howToEnable: 'Settings → Notifications → overdue_notification_recipients'
-                }
+                skipped: true
             });
         }
 
         const recipientIds = recipients.split(',').map(id => id.trim()).filter(id => id);
-        console.log(`✅ Found ${recipientIds.length} recipient(s): ${recipientIds.join(', ')}`);
-        
         if (recipientIds.length === 0) {
-            console.error('❌ No valid recipient IDs after parsing');
+            console.log('⚠️ No valid recipients - skip immediately');
             return Response.json({
-                success: false,
-                error: 'รูปแบบ LINE User ID ไม่ถูกต้อง',
-                details: {
-                    rawValue: recipients,
-                    parsedCount: 0,
-                    required: 'LINE User IDs separated by commas'
-                }
+                success: true,
+                message: 'ไม่มีผู้รับที่ถูกต้อง ข้าม',
+                sent: 0,
+                skipped: true
             });
         }
+
+        console.log(`✅ Recipients: ${recipientIds.length} (${recipientIds.join(', ')})`);
+
+        const enabled = getConfig('overdue_notifications_enabled') === 'true';
+        if (!enabled && !test_mode) {
+            return Response.json({ 
+                success: true, 
+                message: 'การแจ้งเตือนถูกปิด ข้าม',
+                sent: 0,
+                skipped: true
+            });
+        }
+
+        const daysThreshold = parseInt(getConfig('overdue_days_threshold') || '3');
+        
+        console.log('📋 Configuration:');
+        console.log(`   - Days threshold: ${daysThreshold}`);
+        console.log(`   - Branch filter: ${branch_id || 'ALL'}`);
+        console.log(`   - Recipients: ${recipientIds.length}`);
+        console.log(`   - Enabled: ${enabled}`);
 
         // ⭐ Helper function สำหรับดึงข้อมูลแบบ pagination
         async function fetchAllWithPagination(entity, filter = null, batchSize = 5000) {
