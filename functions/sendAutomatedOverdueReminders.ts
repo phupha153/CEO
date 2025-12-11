@@ -189,14 +189,15 @@ ${lineItems.map((item, idx) => `<tr><td>${idx + 1}</td><td>${escapeHtml(item.nam
     return file_url;
 }
 
-// ส่งการแจ้งเตือนค้างชำระอัตโนมัติให้ผู้เช่า
+// ส่งการแจ้งเตือนค้างชำระอัตโนมัติให้ผู้เช่า (V2 - WITH LATE FEE CALC + INVOICE GEN)
 Deno.serve(async (req) => {
     const startTime = Date.now();
 
     try {
         const base44 = createClientFromRequest(req);
 
-        console.log('🔴 Starting automated overdue reminders...');
+        console.log('🔴🔴🔴 Starting automated overdue reminders V2 (WITH INVOICE + LATE FEE)...');
+        console.log('⭐⭐⭐ This version includes: STEP 1=Late Fee Calc, STEP 2=Invoice Gen, STEP 3=Messaging');
 
         // Parse request body
         let targetBranchId = null;
