@@ -383,11 +383,10 @@ Deno.serve(async (req) => {
                             sentCount++;
                             console.log(`✅ Facebook sent to ${recipient.metadata.tenantName}`);
 
-                            // ⭐ บันทึกว่าส่งสำเร็จแล้ว - อัปเดตทั้ง due_date_reminder_sent_date และ bill_sent_date
+                            // ⭐ บันทึกว่าส่งสำเร็จแล้ว
                             try {
                                 await base44.asServiceRole.entities.Payment.update(recipient.metadata.paymentId, {
-                                    due_date_reminder_sent_date: new Date().toISOString(),
-                                    bill_sent_date: new Date().toISOString()
+                                    due_date_reminder_sent_date: new Date().toISOString()
                                 });
                             } catch (updateErr) {
                                 console.error(`⚠️ Failed to update sent date:`, updateErr.message);
