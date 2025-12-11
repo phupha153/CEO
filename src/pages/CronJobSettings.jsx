@@ -368,6 +368,26 @@ export default function CronJobSettings() {
                 .filter(c => (c.key === 'send_advance_reminder' || c.key === 'send_due_date_reminder' || c.key === 'send_overdue_reminder') && c.value === 'true')
                 .map(c => c.branch_id);
 
+              const today = new Date();
+              const todayStr = today.toISOString().split('T')[0];
+              
+              // ⭐ นับห้องที่รอส่งแจ้งครบกำหนด
+              const dueTodayPayments = filteredPayments.filter(p => 
+                p.status !== 'paid' && 
+                p.due_date === todayStr &&
+                !p.due_date_reminder_sent_date
+              );
+              
+              // ⭐ นับห้องที่รอส่งแจ้งเกินกำหนด
+              const overduePayments = filteredPayments.filter(p => {
+                if (p.status === 'paid' || !p.due_date) return false;
+                return p.due_date < todayStr && !p.overdue_reminder_sent_date;
+              });
+
+              // สร้าง Map สำหรับดึงข้อมูลห้องและผู้เช่า
+              const roomMap = new Map(filteredRooms.map(r => [r.id, r]));
+              const tenantMap = new Map(filteredTenants.map(t => [t.id, t]));
+
               return (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                   <div className="bg-white p-4 rounded-xl border-2 border-gray-200">
@@ -427,6 +447,34 @@ export default function CronJobSettings() {
                       </p>
                       <p className="text-xs text-slate-600 mt-1">บิลที่รอระบบส่ง</p>
                       <p className="text-xs text-slate-400 mt-0.5">(เปิดการแจ้งเตือน)</p>
+                    </div>
+                  </div>
+
+                  {/* ⭐ รอส่งแจ้งครบกำหนด */}
+                  <div className="bg-white p-4 rounded-xl border-2 border-red-200 cursor-pointer hover:shadow-md transition-shadow" title={dueTodayPayments.map(p => {
+                    const room = roomMap.get(p.room_id);
+                    return `ห้อง ${room?.room_number || 'N/A'}`;
+                  }).join(', ')}>
+                    <div className="text-center">
+                      <p className="text-3xl font-bold text-red-600">
+                        {dueTodayPayments.length.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-slate-600 mt-1">รอส่งแจ้งครบกำหนด</p>
+                      <p className="text-xs text-slate-400 mt-0.5">(วันนี้)</p>
+                    </div>
+                  </div>
+
+                  {/* ⭐ รอส่งแจ้งเกินกำหนด */}
+                  <div className="bg-white p-4 rounded-xl border-2 border-orange-200 cursor-pointer hover:shadow-md transition-shadow" title={overduePayments.map(p => {
+                    const room = roomMap.get(p.room_id);
+                    return `ห้อง ${room?.room_number || 'N/A'}`;
+                  }).join(', ')}>
+                    <div className="text-center">
+                      <p className="text-3xl font-bold text-orange-600">
+                        {overduePayments.length.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-slate-600 mt-1">รอส่งแจ้งเกินกำหนด</p>
+                      <p className="text-xs text-slate-400 mt-0.5">(ค้างชำระ)</p>
                     </div>
                   </div>
                 </div>
