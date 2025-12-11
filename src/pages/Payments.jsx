@@ -1835,9 +1835,14 @@ ${JSON.stringify(bookingsData, null, 2)}
     setAiResult(prev => prev ? { ...prev, answer: 'ยกเลิกการดำเนินการแล้ว ไม่มีการเปลี่ยนแปลงข้อมูล' } : null);
   };
 
-  const handlePaymentClick = (payment) => {
-    if (isSelectionMode) {
+  const handlePaymentClick = (payment, fromCheckbox = false) => {
+    if (isSelectionMode && fromCheckbox) {
       togglePaymentSelection(payment.id);
+      return;
+    }
+    if (isSelectionMode && !fromCheckbox) {
+      setSelectedPayment(payment);
+      setShowDetailDialog(true);
       return;
     }
     setSelectedPayment(payment);
@@ -2696,25 +2701,41 @@ Return JSON.`;
                         <motion.div key={payment.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="relative">
                           {isSelectionMode && (
                             <div
-                              className={`absolute top-3 left-3 z-10 w-6 h-6 rounded-lg border-2 flex items-center justify-center pointer-events-none transition-all ${
+                              className={`absolute top-3 left-3 z-10 w-10 h-10 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all ${
                                 isSelected
                                   ? 'bg-blue-600 border-blue-600 text-white'
-                                  : 'bg-white/90 border-slate-300'
+                                  : 'bg-white/90 border-slate-300 hover:border-blue-400 hover:bg-blue-50'
                               }`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                togglePaymentSelection(payment.id);
+                              }}
                             >
-                              {isSelected && <Check className="w-4 h-4" />}
+                              {isSelected && <Check className="w-6 h-6" />}
                             </div>
                           )}
                           <div className={isSelectionMode && isSelected ? 'ring-2 ring-blue-500 rounded-2xl' : ''}>
                             <Card 
                               className={`select-none bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg hover:shadow-xl transition-all cursor-pointer ${effectiveStatus === 'overdue' ? 'border-red-300 bg-red-50/50' : ''} ${needsManualReview ? 'border-amber-300 bg-amber-50/30' : ''} ${longPressTarget === payment.id ? 'scale-95' : ''}`}
-                              onClick={() => handlePaymentClick(payment)}
-                              onMouseDown={(e) => handleLongPressStart(e, payment.id)}
-                              onMouseUp={handleLongPressEnd}
-                              onMouseLeave={handleLongPressEnd}
-                              onTouchStart={(e) => handleLongPressStart(e, payment.id)}
-                              onTouchEnd={handleLongPressEnd}
-                              onTouchCancel={handleLongPressEnd}
+                              onClick={() => handlePaymentClick(payment, false)}
+                              onMouseDown={(e) => {
+                                if (!isSelectionMode) handleLongPressStart(e, payment.id);
+                              }}
+                              onMouseUp={() => {
+                                if (!isSelectionMode) handleLongPressEnd();
+                              }}
+                              onMouseLeave={() => {
+                                if (!isSelectionMode) handleLongPressEnd();
+                              }}
+                              onTouchStart={(e) => {
+                                if (!isSelectionMode) handleLongPressStart(e, payment.id);
+                              }}
+                              onTouchEnd={() => {
+                                if (!isSelectionMode) handleLongPressEnd();
+                              }}
+                              onTouchCancel={() => {
+                                if (!isSelectionMode) handleLongPressEnd();
+                              }}
                               onContextMenu={(e) => e.preventDefault()}
                             >
                             <CardContent className="p-4 md:p-6">
