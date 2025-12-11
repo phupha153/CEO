@@ -502,6 +502,16 @@ Deno.serve(async (req) => {
         console.log(`   - Failed: ${invoicesFailed}`);
         console.log(`   - Skipped: ${paymentsToProcess.length - invoicesGenerated - invoicesFailed}`);
 
+        // ⭐⭐⭐ ดึง payment ใหม่ทั้งหมดหลังสร้างรูป เพื่อให้ได้ invoice_image_url และ late_fee_amount ล่าสุด
+        console.log(`\n🔄 Refreshing payment data to get latest invoice URLs and late fees...`);
+        const paymentIds = paymentsToProcess.map(p => p.id);
+        const refreshedPaymentsArray = await Promise.all(
+            paymentIds.map(id => base44.asServiceRole.entities.Payment.filter({ id }).catch(() => null))
+        );
+        const refreshedPayments = refreshedPaymentsArray.flat().filter(Boolean);
+        const refreshedPaymentMap = new Map(refreshedPayments.map(p => [p.id, p]));
+        console.log(`✅ Refreshed ${refreshedPayments.length} payments with latest data`);
+
         // 5. เตรียมข้อความสำหรับแต่ละบิล
         console.log(`\n💬 ========== MESSAGE CREATION ==========`);
         const recipients = [];
