@@ -75,13 +75,15 @@ function numberToThaiText(number) {
 }
 Deno.serve(async (req) => {
     const startTime = Date.now();
-    console.log('🚀 sendAdvanceReminders function started');
+    console.log('\n\n');
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('🚀 ADVANCE REMINDER - DETAILED DEBUG MODE');
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('⏰ Function started at:', new Date().toISOString());
     
     try {
-        console.log('📢 Starting advance reminder check...');
-        
         const base44 = createClientFromRequest(req);
-        console.log('✅ Base44 client created');
+        console.log('✅ Base44 client initialized');
 
         // Parse request body to check for branch_id, test mode, and limit
         let targetBranchId = null;
@@ -100,11 +102,15 @@ Deno.serve(async (req) => {
             console.log('⚠️ No body or parse error:', parseError.message);
         }
 
-        console.log('📋 Target branch:', targetBranchId || 'ALL BRANCHES');
-        console.log('📊 Limit per run:', limit);
+        console.log('\n📋 === REQUEST PARAMETERS ===');
+        console.log('   Target Branch:', targetBranchId || 'ALL BRANCHES');
+        console.log('   Limit per run:', limit);
+        console.log('   Test LINE User ID:', testLineUserId || 'NONE (Production Mode)');
 
         // 1. ดึงการตั้งค่าจาก Config
+        console.log('\n⚙️ === LOADING CONFIGURATIONS ===');
         const configs = await base44.asServiceRole.entities.Config.list();
+        console.log(`   Loaded ${configs.length} config items`);
         
         // Helper function to get config value by branch
         const getConfigValue = (key, defaultValue, branchId = null) => {
@@ -137,21 +143,25 @@ Deno.serve(async (req) => {
             });
         }
 
-        // ⭐ ดึง advanceDays เฉพาะตอนแสดง log (จะใช้ค่าเฉพาะสาขาตอน loop)
-        const defaultAdvanceDays = parseInt(getConfigValue('bill_advance_notice_days', '3', targetBranchId));
-        console.log(`📅 Default advance notice: ${defaultAdvanceDays} days`);
-
         // 2. คำนวณวันปัจจุบัน
         const now = new Date();
         const thailandTimeString = now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
         const thailandTime = new Date(thailandTimeString);
         const todayDateString = thailandTime.toISOString().split('T')[0];
 
-        console.log(`📅 Today (Thailand): ${todayDateString}`);
-        console.log(`📅 Default advance notice days: ${defaultAdvanceDays}`);
+        console.log('\n📅 === DATE CALCULATIONS ===');
+        console.log(`   Today (Thailand Timezone): ${todayDateString}`);
+        console.log(`   Thailand Time Full: ${thailandTime.toLocaleString('th-TH')}`);
+        
+        // ⭐ แสดง advance days แต่ละสาขา
+        console.log('\n⏰ === ADVANCE NOTICE DAYS PER BRANCH ===');
+        enabledBranches.forEach(branchId => {
+            const days = parseInt(getConfigValue('bill_advance_notice_days', '3', branchId));
+            console.log(`   Branch ${branchId}: ${days} days advance notice`);
+        });
 
         // 3. หาบิลที่วันนี้ = due_date - advanceDays (ยังไม่ชำระ)
-        console.log('🔍 Fetching data with pagination...');
+        console.log('\n🔍 === FETCHING DATABASE RECORDS ===');
         
         // ⭐ Helper function สำหรับดึงข้อมูลแบบ pagination (รองรับมากกว่า 10,000 รายการ)
         async function fetchAllWithPagination(entity, filter = null, batchSize = 5000) {
@@ -190,30 +200,43 @@ Deno.serve(async (req) => {
         const tenantMap = new Map(allTenants.map(t => [t.id, t]));
         const roomMap = new Map(allRooms.map(r => [r.id, r]));
         
-        console.log(`📦 Loaded ${payments.length} payments, ${allTenants.length} tenants, ${allRooms.length} rooms`);
+        console.log(`   ✅ Loaded ${payments.length} payments`);
+        console.log(`   ✅ Loaded ${allTenants.length} tenants`);
+        console.log(`   ✅ Loaded ${allRooms.length} rooms`);
 
         // ⭐⭐⭐ DEBUG: แสดงข้อมูลบิลทั้งหมดก่อน filter
-        console.log(`\n🔍 === DEBUG: Payment Filtering Details ===`);
-        console.log(`📋 Total payments in DB: ${payments.length}`);
+        console.log('\n🔍 === PAYMENT ANALYSIS (BEFORE FILTERING) ===');
+        console.log(`📋 Total payments in database: ${payments.length}`);
         
         // นับจำนวนตามสถานะ
         const statusCounts = {};
+        const withDueDateCount = payments.filter(p => p.due_date).length;
+        const withAdvanceReminderSent = payments.filter(p => p.advance_reminder_sent_date).length;
+        
         payments.forEach(p => {
             statusCounts[p.status || 'unknown'] = (statusCounts[p.status || 'unknown'] || 0) + 1;
         });
-        console.log(`📊 Payment status breakdown:`, statusCounts);
+        
+        console.log(`📊 Payment status breakdown:`, JSON.stringify(statusCounts, null, 2));
+        console.log(`📅 Payments with due_date: ${withDueDateCount}`);
+        console.log(`📨 Payments with advance_reminder_sent: ${withAdvanceReminderSent}`);
 
+        console.log('\n🔍 === DETAILED PAYMENT FILTERING (First 10) ===');
+        
         let upcomingPayments = payments.filter(p => {
             // DEBUG: แสดงรายละเอียดการ filter แต่ละบิล (สำหรับ 10 บิลแรก)
             const debugIndex = payments.indexOf(p);
             const shouldDebug = debugIndex < 10;
             
             if (shouldDebug) {
-                console.log(`\n🔍 [Payment ${debugIndex + 1}] ID: ${p.id}`);
+                console.log(`\n━━━ Payment ${debugIndex + 1}/${payments.length} ━━━`);
+                console.log(`   ID: ${p.id}`);
                 console.log(`   Status: ${p.status}`);
-                console.log(`   Due Date: ${p.due_date}`);
+                console.log(`   Due Date: ${p.due_date || 'NONE'}`);
+                console.log(`   Has Invoice Image: ${!!p.invoice_image_url ? 'YES' : 'NO'}`);
                 console.log(`   Advance Reminder Sent: ${p.advance_reminder_sent_date || 'NO'}`);
                 console.log(`   Branch ID: ${p.branch_id}`);
+                console.log(`   Tenant ID: ${p.tenant_id}`);
             }
             
             if (p.status === 'paid') {
@@ -269,8 +292,12 @@ Deno.serve(async (req) => {
             return shouldNotifyToday;
         });
         
-        console.log(`\n📊 === Filter Results ===`);
-        console.log(`✅ Payments that passed filter: ${upcomingPayments.length}`);
+        console.log('\n═══════════════════════════════════════════════════════════');
+        console.log('📊 === FILTER RESULTS SUMMARY ===');
+        console.log(`   Total Payments Checked: ${payments.length}`);
+        console.log(`   ✅ Passed All Filters: ${upcomingPayments.length}`);
+        console.log(`   ❌ Filtered Out: ${payments.length - upcomingPayments.length}`);
+        console.log('═══════════════════════════════════════════════════════════\n');
 
         const totalUpcomingPayments = upcomingPayments.length; // เก็บจำนวนทั้งหมดไว้ก่อน
         console.log(`📊 Found ${totalUpcomingPayments} payments due soon ${targetBranchId ? `in branch ${targetBranchId}` : 'in all branches'}`);
