@@ -25,7 +25,7 @@ export default function SendAdvanceReminderButton({ branchId, compact = false, p
     setResult(null);
     
     try {
-      const response = await base44.functions.invoke('sendAdvanceReminders', {
+      const response = await base44.functions.invoke('sendAdvanceRemindersV4', {
         branch_id: branchId || null
       });
       
