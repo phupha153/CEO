@@ -346,10 +346,10 @@ Deno.serve(async (req) => {
             }
         }
 
-        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ
+        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ - ลด batch size เพื่อหลีกเลี่ยง rate limit
         console.log(`📝 Updating sent_date for ${successfulPaymentIds.size} successful payments...`);
         const now_iso = new Date().toISOString();
-        const updateBatchSize = 50;
+        const updateBatchSize = 10; // ลดจาก 50 เป็น 10 เพื่อหลีกเลี่ยง rate limit
         const paymentIdsArray = Array.from(successfulPaymentIds);
         
         for (let i = 0; i < paymentIdsArray.length; i += updateBatchSize) {
@@ -364,6 +364,11 @@ Deno.serve(async (req) => {
                 )
             );
             console.log(`✅ Updated ${Math.min(i + updateBatchSize, paymentIdsArray.length)}/${paymentIdsArray.length}`);
+            
+            // ⭐ เพิ่ม delay ระหว่าง batch
+            if (i + updateBatchSize < paymentIdsArray.length) {
+                await new Promise(r => setTimeout(r, 500));
+            }
         }
 
         const result = {
@@ -389,11 +394,13 @@ Deno.serve(async (req) => {
         
         const executionTime = Date.now() - startTime;
         
-        // สร้าง branch_results
+        // สร้าง branch_results - หลีกเลี่ยง rate limit
         try {
+            await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
+
             const branchResults = [];
             const branchStats = {};
-            
+
             recipients.forEach(r => {
                 const branchId = r.metadata.branchId;
                 if (!branchStats[branchId]) {
@@ -401,7 +408,7 @@ Deno.serve(async (req) => {
                 }
                 branchStats[branchId].sent++;
             });
-            
+
             sendErrors.forEach(err => {
                 const match = err.match(/ห้อง\s+([^\s:]+)/);
                 if (match) {
@@ -416,7 +423,7 @@ Deno.serve(async (req) => {
                     }
                 }
             });
-            
+
             const branches = await base44.asServiceRole.entities.Branch.list();
             Object.entries(branchStats).forEach(([branchId, stats]) => {
                 const branch = branches.find(b => b.id === branchId);
@@ -428,7 +435,7 @@ Deno.serve(async (req) => {
                     failed: stats.failed
                 });
             });
-            
+
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'sendDueDateReminders',
                 run_timestamp: new Date().toISOString(),
@@ -452,8 +459,9 @@ Deno.serve(async (req) => {
         console.error('❌ Error in sendDueDateReminders:', error);
         console.error('📍 Error stack:', error.stack);
         
-        // บันทึก error log
+        // บันทึก error log - หลีกเลี่ยง rate limit
         try {
+            await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
             const base44ForLog = createClientFromRequest(req);
             await base44ForLog.asServiceRole.entities.FunctionLog.create({
                 function_name: 'sendDueDateReminders',
