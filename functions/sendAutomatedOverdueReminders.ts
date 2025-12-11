@@ -804,6 +804,8 @@ Deno.serve(async (req) => {
             skippedDueToDisabled: skippedCount,
             invoicesGenerated: invoicesGenerated,
             invoicesFailed: invoicesFailed,
+            invoiceGenerationDetails: invoiceGenerationDetails,
+            messageCreationDetails: messageCreationDetails,
             errors: sendErrors.length > 0 ? sendErrors : undefined,
             lineCount: lineRecipients.length,
             facebookCount: facebookRecipients.length
