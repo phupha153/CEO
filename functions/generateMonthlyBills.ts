@@ -410,13 +410,6 @@ Deno.serve(async (req) => {
         console.log(`📅 Current date: ${currentDay}/${currentMonth + 1}/${currentYear} (Thailand time)`);
         console.log(`🔧 Force create: ${forceCreate}`);
 
-        // กรองเฉพาะห้องที่อยู่ในสาขาที่ตรงวัน (branchIdsToProcess ถูกกำหนดไว้ก่อนหน้าแล้ว)
-        let roomsToProcess = roomsWithBooking.filter(room => {
-            return branchIdsToProcess.includes(room.branch_id);
-        });
-
-        console.log(`✅ Rooms to process (after branch/date filter): ${roomsToProcess.length}`);
-
         // 4. Prepare Payments (In-Memory Calculation)
         const paymentsToCreate = [];
         const updatesToProcess = []; // For prepaid balance updates
