@@ -20,9 +20,8 @@ Deno.serve(async (req) => {
 
         const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
         const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
-        const CRM_SERVICE_ROLE_KEY = Deno.env.get("CRM_SERVICE_ROLE_KEY");
 
-        if (!CRM_API_KEY || !CRM_APP_ID || !CRM_SERVICE_ROLE_KEY) {
+        if (!CRM_API_KEY || !CRM_APP_ID) {
             console.error('❌ Missing CRM_API_KEY');
             return Response.json({
                 valid: false,
@@ -39,7 +38,6 @@ Deno.serve(async (req) => {
 
         const requestBody = {
           api_key: CRM_API_KEY,
-          service_role_key: CRM_SERVICE_ROLE_KEY,
           code: code.trim().toUpperCase(),
           user_email: user.email,
           app_id: CRM_APP_ID
