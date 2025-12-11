@@ -517,11 +517,14 @@ export default function Dashboard() {
         });
 
     return payments
-      .filter(p => p.payment_date)
+      .filter(p => p.status === 'paid' && (p.payment_date || p.created_date))
       .sort((a, b) => {
         try {
-          const dateA = parseISO(a.payment_date);
-          const dateB = parseISO(b.payment_date);
+          // ใช้ payment_date ถ้ามี ไม่งั้นใช้ created_date
+          const dateStrA = a.payment_date || a.created_date;
+          const dateStrB = b.payment_date || b.created_date;
+          const dateA = parseISO(dateStrA);
+          const dateB = parseISO(dateStrB);
           if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0;
           return dateB.getTime() - dateA.getTime();
         } catch {
