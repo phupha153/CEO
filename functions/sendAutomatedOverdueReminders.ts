@@ -574,13 +574,13 @@ Deno.serve(async (req) => {
             message += `\n💰 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
             message += `\nเกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
 
-            // ⭐ เช็คและแสดงลิงก์ใบแจ้งหนี้
-            const hasInvoiceUrl = payment.invoice_image_url && payment.invoice_image_url.trim() !== '';
-            console.log(`   - invoice_image_url: ${payment.invoice_image_url || 'null'}`);
+            // ⭐ เช็คและแสดงลิงก์ใบแจ้งหนี้จาก latestPayment
+            const hasInvoiceUrl = latestPayment.invoice_image_url && latestPayment.invoice_image_url.trim() !== '';
+            console.log(`   - invoice_image_url: ${latestPayment.invoice_image_url || 'null'}`);
             console.log(`   - hasInvoiceUrl check: ${hasInvoiceUrl}`);
             
             if (hasInvoiceUrl) {
-                message += `📄 ดูใบแจ้งหนี้: ${payment.invoice_image_url}\n\n`;
+                message += `📄 ดูใบแจ้งหนี้: ${latestPayment.invoice_image_url}\n\n`;
                 console.log(`   ✅ WILL INCLUDE invoice URL in message`);
             } else {
                 console.log(`   ❌ WILL NOT include invoice URL (ไม่มีหรือเป็น empty string)`);
