@@ -279,8 +279,8 @@ Deno.serve(async (req) => {
                 const tenant = tenantMap.get(payment.tenant_id);
                 const room = roomMap.get(payment.room_id);
 
-                if (!tenant || !tenant.line_user_id) {
-                    console.log(`⚠️ No LINE User ID for payment ${payment.id}`);
+                if (!tenant || (!tenant.line_user_id && !tenant.facebook_user_id)) {
+                    console.log(`⚠️ No LINE/Facebook User ID for payment ${payment.id}`);
                     continue;
                 }
 
@@ -353,6 +353,7 @@ Deno.serve(async (req) => {
 
                 recipients.push({
                     lineUserId: tenant.line_user_id,
+                    facebookUserId: tenant.facebook_user_id,
                     message: message,
                     metadata: {
                         paymentId: payment.id,
@@ -383,17 +384,23 @@ Deno.serve(async (req) => {
             console.log(`✅ Updated advance_reminder_sent_date: ${Math.min(i + updateBatchSize, paymentIdsToUpdate.length)}/${paymentIdsToUpdate.length}`);
         }
 
-        // 5. ส่งข้อความ (ใช้ test mode ถ้ามี testLineUserId)
+        // 5. ส่งข้อความ (รองรับทั้ง LINE และ Facebook)
         let sentCount = 0;
         let sendErrors = [];
 
         if (recipients.length > 0) {
+            // แยกผู้รับเป็น LINE และ Facebook
+            const lineRecipients = recipients.filter(r => r.lineUserId);
+            const facebookRecipients = recipients.filter(r => r.facebookUserId);
+
+            console.log(`📤 Total recipients: ${recipients.length} (LINE: ${lineRecipients.length}, Facebook: ${facebookRecipients.length})`);
+
             // ⭐ TEST MODE: ถ้ามี test_line_user_id ให้ส่งไปหาคนเดียวแทน
             if (testLineUserId) {
                 console.log(`🧪 TEST MODE: Sending sample to ${testLineUserId}`);
                 
                 // เลือกบิลตัวอย่างตัวแรก
-                const sampleRecipient = recipients[0];
+                const sampleRecipient = lineRecipients[0] || recipients[0];
                 
                 try {
                     const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
@@ -419,57 +426,79 @@ Deno.serve(async (req) => {
                     sendErrors.push(`Test mode error: ${error.message}`);
                 }
             } else {
-                // ⭐ ส่งจริง - แบ่งเป็น chunks เพื่อป้องกัน timeout
-                console.log(`📤 Sending ${recipients.length} advance reminders in chunks...`);
-                
-                const CHUNK_SIZE = 50; // ส่งทีละ 50 เพื่อป้องกัน timeout
-                const chunks = [];
-                for (let i = 0; i < recipients.length; i += CHUNK_SIZE) {
-                    chunks.push(recipients.slice(i, i + CHUNK_SIZE));
-                }
-
-                console.log(`📦 Split into ${chunks.length} chunks of max ${CHUNK_SIZE} each`);
-
-                for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
-                    const chunk = chunks[chunkIdx];
-                    console.log(`📤 Sending chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} messages)`);
-
-                    try {
-                        const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                            recipients: chunk,
-                            options: {
-                                batchSize: 10,
-                                delayBetweenBatches: 2000,
-                                delayBetweenMessages: 150,
-                                retryAttempts: 3
-                            }
-                        });
-
-                        const result = batchResult.data;
-                        sentCount += result.success || 0;
+                // ส่ง LINE Messages
+                if (lineRecipients.length > 0) {
+                    console.log(`📤 Sending ${lineRecipients.length} LINE advance reminders...`);
                     
-                        if (result.errors && result.errors.length > 0) {
-                            result.errors.slice(0, 5).forEach(err => {
-                                const meta = err.metadata;
-                                sendErrors.push(`ห้อง ${meta?.roomNumber || 'N/A'}: ${err.error}`);
+                    const CHUNK_SIZE = 50;
+                    const chunks = [];
+                    for (let i = 0; i < lineRecipients.length; i += CHUNK_SIZE) {
+                        chunks.push(lineRecipients.slice(i, i + CHUNK_SIZE));
+                    }
+
+                    for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
+                        const chunk = chunks[chunkIdx];
+                        console.log(`📤 LINE chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} messages)`);
+
+                        try {
+                            const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                                recipients: chunk,
+                                options: {
+                                    batchSize: 10,
+                                    delayBetweenBatches: 2000,
+                                    delayBetweenMessages: 150,
+                                    retryAttempts: 3
+                                }
                             });
+
+                            const result = batchResult.data;
+                            sentCount += result.success || 0;
+                        
+                            if (result.errors && result.errors.length > 0) {
+                                result.errors.slice(0, 5).forEach(err => {
+                                    const meta = err.metadata;
+                                    sendErrors.push(`ห้อง ${meta?.roomNumber || 'N/A'}: ${err.error}`);
+                                });
+                            }
+
+                            console.log(`✅ LINE chunk ${chunkIdx + 1}: sent ${result.success || 0}/${chunk.length}`);
+                        } catch (error) {
+                            console.error(`❌ LINE chunk ${chunkIdx + 1} error:`, error.message);
+                            sendErrors.push(`LINE chunk ${chunkIdx + 1} error: ${error.message}`);
                         }
 
-                        console.log(`✅ Chunk ${chunkIdx + 1}: sent ${result.success || 0}/${chunk.length}`);
-
-                    } catch (error) {
-                        console.error(`❌ Chunk ${chunkIdx + 1} error:`, error.message);
-                        sendErrors.push(`Chunk ${chunkIdx + 1} error: ${error.message}`);
-                    }
-
-                    // หน่วงเวลาระหว่าง chunk เพื่อไม่ให้ overload
-                    if (chunkIdx < chunks.length - 1) {
-                        console.log(`⏳ Waiting 1s before next chunk...`);
-                        await new Promise(r => setTimeout(r, 1000));
+                        if (chunkIdx < chunks.length - 1) {
+                            await new Promise(r => setTimeout(r, 1000));
+                        }
                     }
                 }
 
-                console.log(`📊 Advance reminders: ${sentCount}/${recipients.length} sent successfully`);
+                // ส่ง Facebook Messages แบบทีละรายการ
+                if (facebookRecipients.length > 0) {
+                    console.log(`📤 Sending ${facebookRecipients.length} Facebook advance reminders...`);
+                    
+                    for (let i = 0; i < facebookRecipients.length; i++) {
+                        const recipient = facebookRecipients[i];
+                        try {
+                            await base44.asServiceRole.functions.invoke('sendFacebookMessage', {
+                                recipientId: recipient.facebookUserId,
+                                message: recipient.message
+                            });
+                            sentCount++;
+                            console.log(`✅ Facebook ${i + 1}/${facebookRecipients.length}: sent to ${recipient.metadata.roomNumber}`);
+                        } catch (error) {
+                            console.error(`❌ Facebook send error (${recipient.metadata.roomNumber}):`, error.message);
+                            sendErrors.push(`Facebook ห้อง ${recipient.metadata.roomNumber}: ${error.message}`);
+                        }
+                        
+                        // Delay เล็กน้อยระหว่างข้อความ
+                        if (i < facebookRecipients.length - 1) {
+                            await new Promise(r => setTimeout(r, 500));
+                        }
+                    }
+                }
+
+                console.log(`📊 Total advance reminders sent: ${sentCount}/${recipients.length} (LINE: ${lineRecipients.length}, Facebook: ${facebookRecipients.length})`);
             }
         }
 
