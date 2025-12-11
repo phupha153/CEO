@@ -65,9 +65,10 @@ export default function ChatWindow({
   const displayName = tenant?.full_name || conversation.line_display_name || 'ไม่ทราบชื่อ';
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-50 h-full relative">
-      {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between z-10 relative">
+    <>
+      <div className="flex-1 flex flex-col bg-slate-50 h-full relative">
+        {/* Header */}
+        <div className="bg-white border-b px-4 py-3 flex items-center justify-between z-10 relative">
         <div className="flex items-center gap-3">
           <div className="relative">
             {conversation.line_picture_url || conversation.facebook_picture_url ? (
@@ -214,9 +215,40 @@ export default function ChatWindow({
             })
           )}
           <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input */}
+        <div className="bg-white border-t p-3">
+          <div className="flex items-center gap-2">
+            <Input
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="พิมพ์ข้อความ..."
+              className="flex-1"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              disabled={sending}
+            />
+            <Button
+              onClick={handleSend}
+              disabled={!newMessage.trim() || sending}
+              className="bg-blue-500 hover:bg-blue-600"
+            >
+              {sending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {/* Profile Panel - Slide from right */}
+      {/* Profile Panel - Fixed Overlay Slide from Right */}
       {showProfile && (
         <>
           {/* Backdrop */}
@@ -555,36 +587,6 @@ export default function ChatWindow({
           </div>
         </>
       )}
-
-      {/* Input */}
-      <div className="bg-white border-t p-3">
-        <div className="flex items-center gap-2">
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="พิมพ์ข้อความ..."
-            className="flex-1"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            disabled={sending}
-          />
-          <Button
-            onClick={handleSend}
-            disabled={!newMessage.trim() || sending}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
-            {sending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </Button>
-        </div>
-      </div>
-    </div>
+    </>
   );
 }
