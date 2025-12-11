@@ -302,8 +302,8 @@ Deno.serve(async (req) => {
         
         console.log(`✅ Loaded ${tenants.length} tenants, ${meterReadings.length} meter readings`);
         
-        // ⭐⭐⭐ STEP 4: ดึง Payment **เฉพาะสาขาที่ต้องสร้างบิล** (ลดจาก 25,500 → เฉพาะที่ต้องการ)
-        console.log('📦 Step 4: Fetching payments for target branches only...');
+        // ⭐⭐⭐ STEP 4: ดึง Payment **เฉพาะสาขาที่ต้องสร้างบิล**
+        console.log(`📦 Step 4: Fetching payments for ${branchIdsToProcess.length} target branches...`);
         
         let recentPayments = [];
         const BATCH_SIZE = 500;
