@@ -998,19 +998,14 @@ export default function Dashboard() {
                                               {(() => {
                                                 if (!payment.payment_date) return 'N/A';
                                                 try {
-                                                  // ใช้ created_date แทนถ้า payment_date มีแต่เป็นแค่วันที่ (ไม่มีเวลา)
-                                                  const paymentDateStr = payment.payment_date;
-                                                  const createdDateStr = payment.created_date;
-                                                  
-                                                  // เช็คว่า payment_date มีเวลาหรือไม่
-                                                  const hasTime = paymentDateStr.includes('T') || paymentDateStr.includes(':');
-                                                  
-                                                  // ถ้า payment_date เป็นแค่วันที่ (YYYY-MM-DD) ให้ใช้ created_date แทน
-                                                  const dateToShow = hasTime ? paymentDateStr : createdDateStr;
-                                                  
-                                                  const date = parseISO(dateToShow);
+                                                  const date = parseISO(payment.payment_date);
                                                   if (isNaN(date.getTime())) return 'ข้อมูลไม่ถูกต้อง';
-                                                  return format(date, 'd MMM yyyy HH:mm น.', { locale: th });
+                                                  
+                                                  // ถ้า payment_date มีเวลา (มี T หรือ :) = แสดงเวลาด้วย
+                                                  const hasTime = payment.payment_date.includes('T') || payment.payment_date.includes(':');
+                                                  return hasTime 
+                                                    ? format(date, 'd MMM yyyy HH:mm น.', { locale: th })
+                                                    : format(date, 'd MMM yyyy', { locale: th });
                                                 } catch {
                                                   return 'ข้อมูลไม่ถูกต้อง';
                                                 }
