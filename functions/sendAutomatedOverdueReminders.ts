@@ -391,22 +391,31 @@ Deno.serve(async (req) => {
         const invoiceGenerationDetails = [];
         
         for (const payment of paymentsToProcess) {
+            const room = roomMap.get(payment.room_id);
+            const tenant = tenantMap.get(payment.tenant_id);
+            const roomNumber = room?.room_number || 'N/A';
+            const tenantName = tenant?.full_name || 'N/A';
+            
             try {
                 // เช็คว่าต้องสร้างใบแจ้งหนี้ใหม่หรือไม่
                 let needsRegenerate = false;
+                let reason = '';
                 
                 if (!payment.invoice_image_url) {
                     needsRegenerate = true;
-                    console.log(`🆕 Payment ${payment.id}: No invoice image - generating`);
+                    reason = 'ไม่มีรูปใบแจ้งหนี้';
+                    console.log(`🆕 Payment ${payment.id} (ห้อง ${roomNumber}): ${reason} - generating`);
                 } else if (payment.invoice_data_hash) {
                     const currentHash = generatePaymentHash(payment);
                     if (currentHash !== payment.invoice_data_hash) {
                         needsRegenerate = true;
-                        console.log(`🔄 Payment ${payment.id}: Hash mismatch - regenerating`);
+                        reason = 'ข้อมูลบิลเปลี่ยน (มีค่าปรับเพิ่ม)';
+                        console.log(`🔄 Payment ${payment.id} (ห้อง ${roomNumber}): ${reason} (hash: ${payment.invoice_data_hash?.substring(0,8)} → ${currentHash.substring(0,8)})`);
                     }
                 } else if (payment.late_fee_amount > 0) {
                     needsRegenerate = true;
-                    console.log(`⚠️ Payment ${payment.id}: Has late fee but no hash - regenerating`);
+                    reason = 'มีค่าปรับแต่ไม่มี hash';
+                    console.log(`⚠️ Payment ${payment.id} (ห้อง ${roomNumber}): ${reason} - regenerating`);
                 }
                 
                 if (needsRegenerate) {
@@ -438,14 +447,39 @@ Deno.serve(async (req) => {
                         payment.invoice_data_hash = newHash;
                         
                         invoicesGenerated++;
-                        console.log(`✅ Payment ${payment.id}: Invoice generated`);
+                        invoiceGenerationDetails.push({
+                            paymentId: payment.id,
+                            roomNumber,
+                            tenantName,
+                            reason,
+                            imageUrl,
+                            success: true
+                        });
+                        console.log(`✅ Payment ${payment.id} (ห้อง ${roomNumber}): สร้างรูปสำเร็จ → ${imageUrl.substring(0, 50)}...`);
                         
                         await delay(1200); // รอ 1.2 วิ เพื่อหลีกเลี่ยง rate limit
                     }
+                } else {
+                    console.log(`⏭️ Payment ${payment.id} (ห้อง ${roomNumber}): มีรูปแล้วและ hash ตรงกัน - ข้าม`);
+                    invoiceGenerationDetails.push({
+                        paymentId: payment.id,
+                        roomNumber,
+                        tenantName,
+                        reason: 'มีรูปแล้ว',
+                        imageUrl: payment.invoice_image_url,
+                        skipped: true
+                    });
                 }
             } catch (error) {
                 invoicesFailed++;
-                console.error(`❌ Payment ${payment.id}: Failed to generate invoice -`, error.message);
+                invoiceGenerationDetails.push({
+                    paymentId: payment.id,
+                    roomNumber,
+                    tenantName,
+                    error: error.message,
+                    success: false
+                });
+                console.error(`❌ Payment ${payment.id} (ห้อง ${roomNumber}): ล้มเหลว - ${error.message}`);
                 
                 await base44.asServiceRole.entities.Payment.update(payment.id, {
                     invoice_image_status: 'failed'
