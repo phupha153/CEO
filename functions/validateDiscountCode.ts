@@ -19,34 +19,32 @@ Deno.serve(async (req) => {
         }
 
         const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
-        const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
-        const CRM_REGISTERED_APP_ID = 'DORM-1763306051935093';
+        const APP_ID = 'DORM-1763306051935093';
 
-        if (!CRM_API_KEY || !CRM_APP_ID) {
-            console.error('❌ Missing CRM_API_KEY or CRM_APP_ID');
+        if (!CRM_API_KEY) {
+            console.error('❌ Missing CRM_API_KEY');
             return Response.json({
                 valid: false,
                 error: 'ระบบไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแล'
             });
         }
 
-        console.log('🔍 Debug - CRM_APP_ID (header):', CRM_APP_ID);
-        console.log('🔍 Debug - CRM_REGISTERED_APP_ID (body):', CRM_REGISTERED_APP_ID);
-        console.log('🔍 Debug - Code:', code.trim().toUpperCase());
-        console.log('🔍 Debug - User email:', user.email);
+        console.log('🔍 Validating discount code...');
+        console.log('🔍 Code:', code.trim().toUpperCase());
+        console.log('🔍 User email:', user.email);
+        console.log('🔍 App ID:', APP_ID);
 
-        // เรียก CRM API ตรวจสอบโค้ด
         const response = await fetch(`https://base44-crm-production.up.railway.app/api/validateDiscountCode`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': CRM_API_KEY,
-                'x-app-id': CRM_REGISTERED_APP_ID
+                'x-app-id': APP_ID
             },
             body: JSON.stringify({
                 code: code.trim().toUpperCase(),
                 user_email: user.email,
-                app_id: CRM_REGISTERED_APP_ID
+                app_id: APP_ID
             })
         });
 
@@ -62,6 +60,7 @@ Deno.serve(async (req) => {
         const data = await response.json();
 
         if (data.valid) {
+            console.log('✅ Code is valid:', data);
             return Response.json({
                 valid: true,
                 code: data.code,
