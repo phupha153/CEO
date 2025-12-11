@@ -327,22 +327,55 @@ Deno.serve(async (req) => {
             const branchBankAccountName = getConfigValue('bank_account_name', 'ธนานนท์ พรมพักตร์', payment.branch_id);
             const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', payment.branch_id);
 
-            const totalThai = numberToThaiText(payment.total_amount);
+            // สร้างข้อความรูปแบบเดียวกับ sendPaymentReminder (template normal)
+            let message = `📢 ${branchBuildingName} - แจ้งเตือนค่าเช่า\n\n`;
+            message += `สวัสดีคุณ ${tenant.full_name}\n`;
+            message += `ห้อง ${room?.room_number || 'N/A'}\n\n`;
+            message += `รายละเอียดค่าใช้จ่าย:\n`;
+            message += `━━━━━━━━━━━━━━━━━━━━\n`;
+            
+            if (payment.rent_amount > 0) {
+                message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+            }
+            if (payment.electricity_amount > 0) {
+                message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
+            }
+            if (payment.water_amount > 0) {
+                message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
+            }
+            if (payment.internet_amount > 0) {
+                message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
+            }
+            if (payment.common_fee_amount > 0) {
+                message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
+            }
+            if (payment.parking_fee_amount > 0) {
+                message += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
+            }
+            if (payment.other_amount > 0) {
+                message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
+            }
+            
+            message += `━━━━━━━━━━━━━━━━━━━━\n`;
+            message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
+            message += `(${numberToThaiText(payment.total_amount)})\n\n`;
+            message += `📅 ครบกำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
+            message += `สถานะ: รอชำระ\n\n`;
+            message += `💳 โอนเงินได้ที่: ${branchBankName} ${branchBankAccountNumber} (${branchBankAccountName})\n\n`;
 
-            let message = `🔔 แจ้งเตือนล่วงหน้า\n\n`;
-            message += `${branchBuildingName}\n`;
-            message += `คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n`;
-            message += `💰 ยอดเงิน: ${payment.total_amount.toLocaleString()} บาท\n`;
-            message += `(${totalThai})\n`;
-            message += `📅 ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}\n\n`;
-            message += `กรุณาเตรียมชำระค่ะ\n\n`;
-            message += `💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อบัญชี: ${branchBankAccountName}\n\n`;
-            message += `ส่งหลักฐานการโอนหลังชำระเงินค่ะ 🙏`;
+            // เพิ่มลิงก์ใบแจ้งหนี้ (รูปภาพ)
+            const invoiceImageUrl = payment.invoice_image_url;
+            if (invoiceImageUrl) {
+                message += `\n\n📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}`;
+            }
+            
+            message += `\n\n📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
+            message += `ขอบคุณค่ะ 🙏`;
 
             recipients.push({
                 lineUserId: tenant.line_user_id || null,
                 facebookUserId: tenant.facebook_user_id || null,
-                imageUrl: payment.invoice_image_url,
+                imageUrl: invoiceImageUrl,
                 message: message,
                 metadata: {
                     paymentId: payment.id,
