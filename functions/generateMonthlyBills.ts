@@ -86,21 +86,16 @@ Deno.serve(async (req) => {
     console.log('⬇️ SCROLL DOWN TO SEE PAYMENT DEBUG ⬇️');
     console.log('========================================');
 
-    const startTime = Date.now(); // ⭐ ย้ายมาไว้ข้างนอก try เพื่อให้ catch block เข้าถึงได้
+    const startTime = Date.now();
     let base44 = null;
     let targetBranchId = null;
     let forceCreate = false;
     let resendNotifications = false;
     
     try {
-
-        // Clone request FIRST before SDK reads the body
         const clonedReq = req.clone();
-        
-        // Now create SDK client (this may consume the original request body)
         base44 = createClientFromRequest(req);
 
-        // Parse request body from cloned request
         try {
             const text = await clonedReq.text();
             if (text && text.trim()) {
@@ -126,10 +121,8 @@ Deno.serve(async (req) => {
             return globalConfig?.value || defaultValue;
         };
 
-        // 2. Check Date - ใช้ Intl.DateTimeFormat เพื่อความแม่นยำ
+        // 2. Check Date
         const now = new Date();
-        
-        // ใช้ Intl.DateTimeFormat เพื่อดึงวันที่ตาม timezone ไทยอย่างถูกต้อง
         const thFormatter = new Intl.DateTimeFormat('en-CA', { 
             timeZone: 'Asia/Bangkok',
             year: 'numeric',
@@ -138,20 +131,17 @@ Deno.serve(async (req) => {
         });
         const thDateParts = thFormatter.formatToParts(now);
         const currentYear = parseInt(thDateParts.find(p => p.type === 'year').value);
-        const currentMonth = parseInt(thDateParts.find(p => p.type === 'month').value) - 1; // 0-indexed
+        const currentMonth = parseInt(thDateParts.find(p => p.type === 'month').value) - 1;
         const currentDay = parseInt(thDateParts.find(p => p.type === 'day').value);
-        
-        // สร้าง thailandTime สำหรับใช้ format อื่นๆ
         const thailandTime = new Date(currentYear, currentMonth, currentDay);
         
         console.log(`🕐 Server UTC time: ${now.toISOString()}`);
         console.log(`🇹🇭 Thailand date: ${currentDay}/${currentMonth + 1}/${currentYear}`);
 
-        // 3. Fetch Data (Retry wrapped)
+        // 3. Fetch Data
         let allRooms = [], bookings = [], meterReadings = [], tenants = [];
-        let existingPaymentsMap = new Map(); // key: "room_id|YYYY-MM", value: payment object
+        let existingPaymentsMap = new Map();
         
-        // ⭐ Helper function สำหรับดึงข้อมูลแบบ pagination
         async function fetchWithPagination(entity, filter, sortBy, batchSize = 5000) {
             let allData = [];
             let skip = 0;
@@ -172,8 +162,8 @@ Deno.serve(async (req) => {
             return allData;
         }
 
-        // ⭐⭐⭐ STEP 1: ดึงเฉพาะ rooms และ bookings ก่อน เพื่อหาว่าสาขาไหนต้องสร้างบิล
-        console.log('📦 Step 1: Fetching rooms and bookings to determine branches...');
+        // STEP 1: Fetch rooms and bookings
+        console.log('📦 Step 1: Fetching rooms and bookings...');
         
         await retryOperation(async () => {
             const filter = targetBranchId ? { branch_id: targetBranchId } : {};
@@ -191,7 +181,6 @@ Deno.serve(async (req) => {
         console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
         await delay(1500); // ⭐ พักหลัง Step 1
 
-        // ⭐⭐⭐ Normalize entities ก่อน
         const normalizeEntity = (entity) => {
             if (!entity) return null;
             if (entity.data && typeof entity.data === 'object') {
@@ -203,7 +192,6 @@ Deno.serve(async (req) => {
         allRooms = allRooms.map(normalizeEntity).filter(Boolean);
         bookings = bookings.map(normalizeEntity).filter(Boolean);
 
-        // Filter Rooms
         const monthlyRooms = allRooms.filter(room => room.room_type === 'monthly');
         console.log(`🏠 Monthly rooms: ${monthlyRooms.length}`);
 
@@ -212,7 +200,7 @@ Deno.serve(async (req) => {
         });
         console.log(`📋 Rooms with active booking: ${roomsWithBooking.length}`);
 
-        // ⭐⭐⭐ STEP 2: หาสาขาที่ตรงวันสร้างบิล **ก่อน** ดึง payment
+        // STEP 2: หาสาขาที่ตรงวันสร้างบิล
         const branchIds = [...new Set(roomsWithBooking.map(r => r.branch_id).filter(Boolean))];
         const branchGenDayMap = {};
         const branchesToProcess = [];
@@ -240,83 +228,60 @@ Deno.serve(async (req) => {
             console.log(`   (ข้ามแสดงรายละเอียด - มี ${branchesSkipped.length} สาขา)`);
         }
 
-        // ⭐⭐⭐ ถ้าไม่มีสาขาที่ต้องสร้างบิล = return เลย (ไม่ต้องดึง payment เลย!)
         const branchIdsToProcess = branchesToProcess.map(b => b.branchId);
         
-        // ⭐⭐⭐ กรองห้องที่ต้องสร้างบิล (ตามสาขาที่ตรงวัน) - ต้องประกาศก่อนใช้งาน
-        let roomsToProcess = roomsWithBooking.filter(room => {
-            return branchIdsToProcess.includes(room.branch_id);
-        });
-
-        console.log(`✅ Rooms to process (after branch/date filter): ${roomsToProcess.length}`);
-
         if (branchIdsToProcess.length === 0) {
             const reason = branchesSkipped.length > 0
-                ? `ไม่มีสาขาที่ตรงวันสร้างบิลวันนี้ (${currentDay}) - สาขาที่ข้าม: ${branchesSkipped.map(b => `${b.branchId}(วันที่${b.genDay})`).join(', ')}`
+                ? `ไม่มีสาขาที่ตรงวันสร้างบิลวันนี้ (${currentDay})`
                 : 'ไม่มีห้องที่ต้องสร้างบิล';
             console.log(`⏭️ ${reason}`);
             return Response.json({ 
                 success: true, 
                 message: reason, 
-                generatedCount: 0,
-                debug: {
-                    currentDay,
-                    forceCreate,
-                    totalRooms: allRooms.length,
-                    monthlyRooms: monthlyRooms.length,
-                    roomsWithBooking: roomsWithBooking.length,
-                    branchGenDayMap,
-                    branchesToProcess: [],
-                    branchesSkipped: branchesSkipped.map(b => ({ id: b.branchId, genDay: b.genDay }))
-                }
+                generatedCount: 0
             });
         }
 
-        // ⭐⭐⭐ STEP 3: ดึงเฉพาะ tenant ที่มี booking active และ meter reading ของห้องที่ต้องสร้างบิล
-        console.log(`📦 Step 3: Fetching targeted data for ${roomsToProcess.length} rooms...`);
+        // STEP 3: ดึงข้อมูลเพิ่มเติม (ทีละสาขา)
+        console.log(`📦 Step 3: Fetching data for ${branchIdsToProcess.length} branches...`);
         
-        // ดึง tenant เฉพาะที่มี booking
-        const uniqueTenantIds = [...new Set(bookings.map(b => b.tenant_id).filter(id => id))];
-        const uniqueRoomIds = [...new Set(roomsToProcess.map(r => r.id).filter(id => id))];
+        for (let idx = 0; idx < branchIdsToProcess.length; idx++) {
+            const branchId = branchIdsToProcess[idx];
+            console.log(`   📥 Branch ${idx + 1}/${branchIdsToProcess.length}...`);
+            
+            await retryOperation(async () => {
+                const [m, t] = await Promise.all([
+                    fetchWithPagination(base44.asServiceRole.entities.MeterReading, { branch_id: branchId }, '-reading_date'),
+                    fetchWithPagination(base44.asServiceRole.entities.Tenant, { branch_id: branchId }, '-created_date')
+                ]);
+                
+                meterReadings = meterReadings.concat(m || []);
+                tenants = tenants.concat(t || []);
+            });
+            
+            if (idx < branchIdsToProcess.length - 1) {
+                await delay(1000);
+            }
+        }
         
-        console.log(`📥 Fetching ${uniqueTenantIds.length} tenants and meter readings for ${uniqueRoomIds.length} rooms...`);
-        
-        await retryOperation(async () => {
-            const [t, m] = await Promise.all([
-                uniqueTenantIds.length > 0 
-                    ? Promise.all(uniqueTenantIds.map(id => 
-                        base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null)
-                      )).then(results => results.flat().filter(Boolean))
-                    : [],
-                uniqueRoomIds.length > 0
-                    ? Promise.all(uniqueRoomIds.map(id => 
-                        base44.asServiceRole.entities.MeterReading.filter({ room_id: id }).catch(() => null)
-                      )).then(results => results.flat().filter(Boolean))
-                    : []
-            ]);
-            tenants = t;
-            meterReadings = m;
-        });
-        
-        tenants = tenants.map(normalizeEntity).filter(Boolean);
         meterReadings = meterReadings.map(normalizeEntity).filter(Boolean);
+        tenants = tenants.map(normalizeEntity).filter(Boolean);
         
-        console.log(`✅ Loaded ${tenants.length} tenants, ${meterReadings.length} meter readings`);
+        console.log(`📦 Fetched: ${meterReadings.length} meter readings, ${tenants.length} tenants`);
+        await delay(2000); // ⭐ พักก่อน Step 4
         
-        // ⭐⭐⭐ STEP 4: ดึง Payment **เฉพาะสาขาที่ต้องสร้างบิล**
-        console.log(`📦 Step 4: Fetching payments for ${branchIdsToProcess.length} target branches...`);
+        // STEP 4: ดึง Payment (ทีละสาขา)
+        console.log(`📦 Step 4: Fetching payments...`);
         
         let recentPayments = [];
-        const BATCH_SIZE = 500;
+        const BATCH_SIZE = 200; // ⭐ ลด batch size
 
         for (const branchId of branchIdsToProcess) {
             let branchPayments = [];
             let skip = 0;
             let hasMore = true;
-            let batchNum = 0;
 
             while (hasMore) {
-                batchNum++;
                 await retryOperation(async () => {
                     const batch = await base44.asServiceRole.entities.Payment.filter(
                         { branch_id: branchId }, 
@@ -337,32 +302,16 @@ Deno.serve(async (req) => {
                     }
                 });
 
-
-
-                if (hasMore) await delay(500); // ⭐ เพิ่ม delay ระหว่าง batch
+                if (hasMore) await delay(800); // ⭐ เพิ่ม delay
             }
             
             console.log(`   - สาขา ${branchId}: ${branchPayments.length} payments`);
             recentPayments = recentPayments.concat(branchPayments);
-            
-            // ⭐ Delay ระหว่างสาขาเพื่อหลีกเลี่ยง rate limit
-            await delay(1500);
+            await delay(1500); // ⭐ พักระหว่างสาขา
         }
 
-        console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments.length} (only target branches)`);
+        console.log(`⭐ TOTAL PAYMENTS: ${recentPayments.length}`);
         
-        // ⭐ สรุปจำนวน payment ต่อสาขา
-        const paymentCountByBranch = {};
-        for (const p of recentPayments) {
-            const bid = p.branch_id || p.data?.branch_id || 'unknown';
-            paymentCountByBranch[bid] = (paymentCountByBranch[bid] || 0) + 1;
-        }
-        console.log(`📊 Payment count by branch:`);
-        for (const [bid, count] of Object.entries(paymentCountByBranch)) {
-            console.log(`   - ${bid}: ${count} payments`);
-        }
-        
-        // ⭐⭐⭐ Normalize payments
         const normalizedPayments = [];
         
         for (const p of recentPayments) {
@@ -398,7 +347,6 @@ Deno.serve(async (req) => {
         
         console.log(`📊 Normalized: ${normalizedPayments.length} payments`);
         
-        // สร้าง Map
         for (const p of normalizedPayments) {
             if (!p.due_date) continue;
             
@@ -411,24 +359,25 @@ Deno.serve(async (req) => {
         }
         
         console.log(`🗺️ Existing payments map: ${existingPaymentsMap.size} entries`);
-        console.log(`📅 Current date: ${currentDay}/${currentMonth + 1}/${currentYear} (Thailand time)`);
-        console.log(`🔧 Force create: ${forceCreate}`);
 
-        // 4. Prepare Payments (In-Memory Calculation)
+        let roomsToProcess = roomsWithBooking.filter(room => {
+            return branchIdsToProcess.includes(room.branch_id);
+        });
+
+        console.log(`✅ Rooms to process: ${roomsToProcess.length}`);
+
+        // 4. Prepare Payments
         const paymentsToCreate = [];
-        const updatesToProcess = []; // For prepaid balance updates
+        const updatesToProcess = [];
         const billsToSend = [];
-        let skippedDueToExistingBill = 0; // นับจำนวนห้องที่ข้ามเพราะมีบิลแล้ว
-        
-        // To map back created payments later
-        const paymentReferenceMap = new Map(); // key: "room_id", value: metadata
+        let skippedDueToExistingBill = 0;
+        const paymentReferenceMap = new Map();
 
         for (const room of roomsToProcess) {
             try {
                 const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
                 if (!activeBooking) continue;
 
-                // Check existing bill
                 const roomBranchId = room.branch_id;
                 const roomPayDay = parseInt(getConfigValue('pay_day', '5', roomBranchId));
                 
@@ -441,14 +390,11 @@ Deno.serve(async (req) => {
                     if (roomDueMonth > 11) { roomDueMonth = 0; roomDueYear = currentYear + 1; }
                 }
                 
-                // ⭐ ตรวจสอบว่ามีบิลของเดือนนี้อยู่แล้วหรือไม่ (ป้องกันสร้างซ้ำ)
-                // ใช้ Map lookup แทน array.find() เพื่อประสิทธิภาพสูงสุด O(1)
-                const targetDueYearMonth = `${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`; // e.g., "2025-01"
+                const targetDueYearMonth = `${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`;
                 const mapKey = `${room.id}|${targetDueYearMonth}`;
                 
                 let existingBill = existingPaymentsMap.get(mapKey) || null;
 
-                // ⭐ FALLBACK: scan จาก normalizedPayments array
                 if (!existingBill) {
                     for (const p of normalizedPayments) {
                         if (p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
@@ -458,11 +404,9 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                // ⭐⭐⭐ ถ้ามีบิลอยู่แล้ว = ข้ามไป (ไม่ว่าจะ force หรือไม่ก็ตาม)
                 if (existingBill) {
                     skippedDueToExistingBill++;
                     
-                    // ถ้าต้องการส่งแจ้งเตือนซ้ำ
                     if (resendNotifications) {
                         const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
                         if (tenant?.line_user_id) {
@@ -472,7 +416,6 @@ Deno.serve(async (req) => {
                     continue;
                 }
 
-                // Calculate Amounts
                 const roomMeters = meterReadings.filter(m => m.room_id === room.id);
                 roomMeters.sort((a, b) => new Date(b.created_date || b.reading_date) - new Date(a.created_date || a.reading_date));
                 
@@ -481,7 +424,6 @@ Deno.serve(async (req) => {
                 let waterUnits = latestMeter?.water_units || 0;
                 let elecUnits = latestMeter?.electricity_units || 0;
                 
-                // Rates
                 const waterRate = (room.water_rate !== undefined && room.water_rate !== null) 
                     ? parseFloat(room.water_rate) 
                     : parseFloat(getConfigValue('water_rate', '18', roomBranchId));
@@ -496,7 +438,6 @@ Deno.serve(async (req) => {
                 const carFee = parseFloat(getConfigValue('car_parking_fee', '0', roomBranchId));
                 const motoFee = parseFloat(getConfigValue('motorcycle_parking_fee', '0', roomBranchId));
 
-                // ⭐ ตรวจสอบค่าขั้นต่ำ
                 let waterMinimumApplied = false;
                 let electricityMinimumApplied = false;
                 let waterMinimumCharge = 0;
@@ -524,11 +465,10 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                // Parking & Tenant
                 const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
                 
                 if (!tenant || tenant.status === 'moved_out') {
-                    console.log(`⏭️ Room ${room.room_number}: Tenant moved out or deleted - skip`);
+                    console.log(`⏭️ Room ${room.room_number}: Tenant moved out - skip`);
                     continue;
                 }
                 
@@ -541,7 +481,6 @@ Deno.serve(async (req) => {
                     if (cars > 0 || motos > 0) parkingDetails = `รถยนต์ ${cars}, มอเตอร์ไซค์ ${motos}`;
                 }
 
-                // Other Monthly Fees
                 let otherMonthlyFeesAmount = 0;
                 let otherFeesDetails = '';
                 
@@ -559,14 +498,12 @@ Deno.serve(async (req) => {
                 
                 const totalAmount = (room.price || 0) + waterAmount + electricityAmount + internetRate + commonFee + parkingAmount + otherMonthlyFeesAmount;
 
-                // Check Prepaid
                 let status = 'pending';
                 let paymentDate = null;
                 const currentPrepaid = tenant?.prepaid_balance || 0;
                 
                 if (currentPrepaid >= totalAmount) {
                     status = 'paid';
-                    // ⭐ บันทึกทั้งวันและเวลาเมื่อชำระด้วยเงินล่วงหน้า
                     paymentDate = now.toISOString();
                     updatesToProcess.push({ 
                         tenantId: tenant.id, 
@@ -622,7 +559,7 @@ Deno.serve(async (req) => {
         // 5. Bulk Create Payments
         let createdCount = 0;
         if (paymentsToCreate.length > 0) {
-            console.log(`🚀 Creating ${paymentsToCreate.length} bills in batches...`);
+            console.log(`🚀 Creating ${paymentsToCreate.length} bills...`);
             
             const batches = [];
             for (let i = 0; i < paymentsToCreate.length; i += 50) {
@@ -650,7 +587,7 @@ Deno.serve(async (req) => {
 
         // 6. Update Prepaid Balances
         if (updatesToProcess.length > 0) {
-            console.log(`💰 Updating ${updatesToProcess.length} tenant balances...`);
+            console.log(`💰 Updating ${updatesToProcess.length} balances...`);
             for (const update of updatesToProcess) {
                 await retryOperation(async () => {
                     await base44.asServiceRole.entities.Tenant.update(update.tenantId, {
@@ -661,19 +598,19 @@ Deno.serve(async (req) => {
             }
         }
 
-        // 7. Process invoice queue if needed
+        // 7. Process invoice queue
         let sentCount = 0;
         let failedCount = 0;
         let pendingImageCount = 0;
         
         if (billsToSend.length > 0) {
-            console.log(`📝 ${billsToSend.length} bills marked for image generation`);
+            console.log(`📝 ${billsToSend.length} bills for images`);
             pendingImageCount = billsToSend.length;
             
             const shouldAutoProcess = getConfigValue('auto_process_invoice_queue_after_generation', 'false', targetBranchId) === 'true';
             
             if (shouldAutoProcess && billsToSend.length <= 30) {
-                console.log(`🚀 Auto-triggering processInvoiceImageQueue for ${billsToSend.length} bills...`);
+                console.log(`🚀 Auto-processing...`);
                 
                 try {
                     const queueResult = await base44.asServiceRole.functions.invoke('processInvoiceImageQueue', {
@@ -685,10 +622,10 @@ Deno.serve(async (req) => {
                     if (queueResult.data?.success) {
                         sentCount = queueResult.data.lineSent || 0;
                         failedCount = queueResult.data.lineFailed || 0;
-                        console.log(`✅ processInvoiceImageQueue completed: sent ${sentCount}, failed ${failedCount}`);
+                        console.log(`✅ Queue done: sent ${sentCount}, failed ${failedCount}`);
                     }
                 } catch (queueError) {
-                    console.error(`⚠️ processInvoiceImageQueue error:`, queueError.message);
+                    console.error(`⚠️ Queue error:`, queueError.message);
                 }
             }
         }
@@ -699,13 +636,13 @@ Deno.serve(async (req) => {
         let summaryMessage = `สร้างบิลสำเร็จ ${createdCount} รายการ`;
         
         if (skippedDueToExistingBill > 0) {
-            summaryMessage += `, ข้ามเพราะมีบิลแล้ว ${skippedDueToExistingBill} ห้อง`;
+            summaryMessage += `, ข้าม ${skippedDueToExistingBill} ห้อง`;
         }
         if (pendingImageCount > 0) {
             summaryMessage += `, รอสร้างรูป ${pendingImageCount} ใบ`;
         }
         if (sentCount > 0 || failedCount > 0) {
-            summaryMessage += `, ส่งไลน์ ${sentCount} รายการ (ล้มเหลว ${failedCount})`;
+            summaryMessage += `, ส่ง ${sentCount} (ล้มเหลว ${failedCount})`;
         }
 
         const summaryData = {
@@ -715,19 +652,11 @@ Deno.serve(async (req) => {
             skippedDueToExistingBill,
             pendingImageCount,
             sentCount,
-            failedCount,
-            summary: {
-                month: monthName,
-                totalRoomsToProcess: roomsToProcess.length,
-                created: createdCount,
-                skipped: skippedDueToExistingBill,
-                pendingImages: pendingImageCount,
-                branchesSkipped: branchesSkipped.map(b => ({ id: b.branchId, genDay: b.genDay })),
-            }
+            failedCount
         };
 
         try {
-            await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
+            await delay(1000);
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'generateMonthlyBills',
                 run_timestamp: new Date().toISOString(),
@@ -739,7 +668,7 @@ Deno.serve(async (req) => {
                 details: summaryData
             });
         } catch (logError) {
-            console.error('⚠️ Failed to write function log:', logError.message);
+            console.error('⚠️ Log error:', logError.message);
         }
 
         return Response.json(summaryData);
@@ -750,7 +679,7 @@ Deno.serve(async (req) => {
 
         if (base44) {
             try {
-                await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
+                await delay(1000);
                 await base44.asServiceRole.entities.FunctionLog.create({
                     function_name: 'generateMonthlyBills',
                     run_timestamp: new Date().toISOString(),
@@ -761,7 +690,7 @@ Deno.serve(async (req) => {
                     details: { error: error.stack || String(error) }
                 });
             } catch (logError) {
-                console.error('⚠️ Failed to write ERROR function log:', logError.message);
+                console.error('⚠️ Log error:', logError.message);
             }
         }
 
