@@ -245,7 +245,6 @@ export default function ChatWindow({
             </Button>
           </div>
         </div>
-      </div>
 
       {/* Profile Panel - Fixed Overlay Slide from Right */}
       {showProfile && (
