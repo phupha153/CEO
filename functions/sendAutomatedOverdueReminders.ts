@@ -628,15 +628,16 @@ Deno.serve(async (req) => {
             const branchBankAccountName = getConfigValue('bank_account_name', 'ธนานนท์ พรมพักตร์', paymentBranchId);
             const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', paymentBranchId);
 
-            // ⭐ ดึงค่าปรับจาก latestPayment.late_fee_amount
+            // ⭐⭐⭐ ใช้ latestPayment (ที่ refresh แล้ว) สำหรับค่าปรับและ invoice URL
             const lateFee = latestPayment.late_fee_amount || 0;
             const originalAmount = latestPayment.total_amount - lateFee;
             const totalWithLateFee = latestPayment.total_amount;
             
             console.log(`   - latestPayment.late_fee_amount: ${latestPayment.late_fee_amount || 0} บาท`);
             console.log(`   - latestPayment.total_amount: ${latestPayment.total_amount || 0} บาท`);
+            console.log(`   - latestPayment.invoice_image_url: ${latestPayment.invoice_image_url ? '✅ มี' : '❌ ไม่มี'}`);
 
-            // สร้างข้อความ
+            // สร้างข้อความแบบเดียวกับ sendPaymentReminder template='overdue'
             let message = `🔴 แจ้งเตือนเกินกำหนดชำระ\n\n`;
             message += `${branchBuildingName}\n`;
             message += `คุณ ${tenant.full_name} ห้อง ${roomNumber}\n`;
@@ -647,21 +648,18 @@ Deno.serve(async (req) => {
             message += `\n💰 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
             message += `\nเกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
 
-            // ⭐ เช็คและแสดงลิงก์ใบแจ้งหนี้จาก latestPayment
+            // ⭐⭐⭐ เพิ่มลิงก์ใบแจ้งหนี้ (ตามแบบ sendAdvanceRemindersV4)
             const hasInvoiceUrl = latestPayment.invoice_image_url && latestPayment.invoice_image_url.trim() !== '';
-            console.log(`   - invoice_image_url: ${latestPayment.invoice_image_url || 'null'}`);
-            console.log(`   - hasInvoiceUrl check: ${hasInvoiceUrl}`);
-            
             if (hasInvoiceUrl) {
                 message += `📄 ดูใบแจ้งหนี้: ${latestPayment.invoice_image_url}\n\n`;
-                console.log(`   ✅ WILL INCLUDE invoice URL in message`);
+                console.log(`   ✅ INCLUDED invoice URL in message`);
             } else {
-                console.log(`   ❌ WILL NOT include invoice URL (ไม่มีหรือเป็น empty string)`);
+                console.log(`   ⚠️ NO invoice URL to include`);
             }
 
             message += `กรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
             message += `💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อบัญชี: ${branchBankAccountName}\n\n`;
-            message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
+            message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
 
             console.log(`   📏 Final message length: ${message.length} chars`);
             console.log(`   📄 Message preview:\n${message.substring(0, 200)}...\n`);
