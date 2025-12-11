@@ -2671,15 +2671,11 @@ Return JSON.`;
                         <motion.div key={payment.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="relative">
                           {isSelectionMode && (
                             <div
-                              className={`absolute top-3 left-3 z-10 w-6 h-6 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all ${
+                              className={`absolute top-3 left-3 z-10 w-6 h-6 rounded-lg border-2 flex items-center justify-center pointer-events-none transition-all ${
                                 isSelected
                                   ? 'bg-blue-600 border-blue-600 text-white'
-                                  : 'bg-white/90 border-slate-300 hover:border-blue-400'
+                                  : 'bg-white/90 border-slate-300'
                               }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                togglePaymentSelection(payment.id);
-                              }}
                             >
                               {isSelected && <Check className="w-4 h-4" />}
                             </div>
@@ -3120,7 +3116,10 @@ Return JSON.`;
                                       ? 'bg-blue-600 border-blue-600 text-white'
                                       : 'bg-white border-slate-300 hover:border-blue-400'
                                   }`}
-                                  onClick={toggleSelectAllInPage}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleSelectAllInPage();
+                                  }}
                                 >
                                   {paginatedPayments.every(p => selectedPaymentIds.includes(p.id)) && (
                                     <Check className="w-3 h-3" />
@@ -3168,12 +3167,11 @@ Return JSON.`;
                                 {isSelectionMode && (
                                   <td className="px-4 py-3 text-center">
                                     <div
-                                      className={`w-5 h-5 mx-auto rounded border-2 flex items-center justify-center cursor-pointer transition-all ${
+                                      className={`w-5 h-5 mx-auto rounded border-2 flex items-center justify-center pointer-events-none transition-all ${
                                         isSelected
                                           ? 'bg-blue-600 border-blue-600 text-white'
-                                          : 'bg-white border-slate-300 hover:border-blue-400'
+                                          : 'bg-white border-slate-300'
                                       }`}
-                                      onClick={() => togglePaymentSelection(payment.id)}
                                     >
                                       {isSelected && <Check className="w-3 h-3" />}
                                     </div>
@@ -3411,15 +3409,11 @@ Return JSON.`;
                                  <div key={room.id} className="relative">
                                    {isSelectionMode && roomPayment && (
                                      <div
-                                       className={`absolute -top-1 -right-1 z-20 w-4 h-4 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${
+                                       className={`absolute -top-1 -right-1 z-20 w-4 h-4 rounded-full border-2 flex items-center justify-center pointer-events-none transition-all ${
                                          isSelected
                                            ? 'bg-blue-600 border-white'
                                            : 'bg-white border-slate-300'
                                        }`}
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         togglePaymentSelection(roomPayment.id);
-                                       }}
                                      >
                                        {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                                      </div>
