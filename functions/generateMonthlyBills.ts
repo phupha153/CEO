@@ -87,6 +87,12 @@ Deno.serve(async (req) => {
     console.log('========================================');
 
     const startTime = Date.now();
+    
+    // ⭐ ตั้ง timeout 1.5 นาที (90 วินาที)
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Function timeout after 90 seconds')), 90000);
+    });
+
     let base44 = null;
     let targetBranchId = null;
     let forceCreate = false;
@@ -675,6 +681,12 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         const executionTime = Date.now() - startTime;
+        
+        // ⭐ เช็คว่าเป็น timeout error หรือไม่
+        if (error.message?.includes('timeout')) {
+            console.error('⏱️ Function timeout - กรุณาลองใหม่หรือแบ่งการทำงานเป็นหลายรอบ');
+        }
+        
         console.error('❌ Error:', error);
 
         if (base44) {
