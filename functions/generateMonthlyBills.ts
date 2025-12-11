@@ -264,36 +264,31 @@ Deno.serve(async (req) => {
             });
         }
 
-        // ⭐⭐⭐ STEP 3: ดึงเฉพาะ tenant ที่มี booking active และ meter reading ของห้องที่ต้องสร้างบิล
-        console.log(`📦 Step 3: Fetching targeted data for ${roomsToProcess.length} rooms...`);
-        
-        // ดึง tenant เฉพาะที่มี booking
-        const uniqueTenantIds = [...new Set(bookings.map(b => b.tenant_id).filter(id => id))];
-        const uniqueRoomIds = [...new Set(roomsToProcess.map(r => r.id).filter(id => id))];
-        
-        console.log(`📥 Fetching ${uniqueTenantIds.length} tenants and meter readings for ${uniqueRoomIds.length} rooms...`);
+        // ⭐⭐⭐ STEP 3: ดึงข้อมูลเพิ่มเติม **เฉพาะสาขาที่ต้องสร้างบิล**
+        console.log(`📦 Step 3: Fetching additional data for ${branchIdsToProcess.length} branches...`);
         
         await retryOperation(async () => {
-            const [t, m] = await Promise.all([
-                uniqueTenantIds.length > 0 
-                    ? Promise.all(uniqueTenantIds.map(id => 
-                        base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null)
-                      )).then(results => results.flat().filter(Boolean))
-                    : [],
-                uniqueRoomIds.length > 0
-                    ? Promise.all(uniqueRoomIds.map(id => 
-                        base44.asServiceRole.entities.MeterReading.filter({ room_id: id }).catch(() => null)
-                      )).then(results => results.flat().filter(Boolean))
-                    : []
-            ]);
-            tenants = t;
-            meterReadings = m;
+            // ดึง MeterReading และ Tenant เฉพาะสาขาที่ต้องการ
+            const branchPromises = branchIdsToProcess.map(async (branchId) => {
+                const [m, t] = await Promise.all([
+                    fetchWithPagination(base44.asServiceRole.entities.MeterReading, { branch_id: branchId }, '-reading_date'),
+                    fetchWithPagination(base44.asServiceRole.entities.Tenant, { branch_id: branchId }, '-created_date')
+                ]);
+                return { branchId, meterReadings: m || [], tenants: t || [] };
+            });
+            
+            const results = await Promise.all(branchPromises);
+            
+            for (const result of results) {
+                meterReadings = meterReadings.concat(result.meterReadings);
+                tenants = tenants.concat(result.tenants);
+            }
         });
         
-        tenants = tenants.map(normalizeEntity).filter(Boolean);
         meterReadings = meterReadings.map(normalizeEntity).filter(Boolean);
+        tenants = tenants.map(normalizeEntity).filter(Boolean);
         
-        console.log(`✅ Loaded ${tenants.length} tenants, ${meterReadings.length} meter readings`);
+        console.log(`📦 Fetched: ${meterReadings.length} meter readings, ${tenants.length} tenants`);
         
         // ⭐⭐⭐ STEP 4: ดึง Payment **เฉพาะสาขาที่ต้องสร้างบิล** (ลดจาก 25,500 → เฉพาะที่ต้องการ)
         console.log('📦 Step 4: Fetching payments for target branches only...');
@@ -723,7 +718,6 @@ Deno.serve(async (req) => {
         };
 
         try {
-            await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'generateMonthlyBills',
                 run_timestamp: new Date().toISOString(),
@@ -746,7 +740,6 @@ Deno.serve(async (req) => {
 
         if (base44) {
             try {
-                await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
                 await base44.asServiceRole.entities.FunctionLog.create({
                     function_name: 'generateMonthlyBills',
                     run_timestamp: new Date().toISOString(),

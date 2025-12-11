@@ -403,29 +403,17 @@ Deno.serve(async (req) => {
             });
         }
 
-        // 3. ดึงเฉพาะ tenant และ room ที่จำเป็น - ไม่ดึงทั้งหมด
-        const uniqueTenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id).filter(id => id))];
-        const uniqueRoomIds = [...new Set(paymentsToProcess.map(p => p.room_id).filter(id => id))];
-        
-        console.log(`📥 Fetching ${uniqueTenantIds.length} tenants and ${uniqueRoomIds.length} rooms...`);
-        
-        const [tenantsBatch, roomsBatch] = await Promise.all([
-            uniqueTenantIds.length > 0 
-                ? Promise.all(uniqueTenantIds.map(id => 
-                    base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null)
-                  )).then(results => results.flat().filter(Boolean))
-                : [],
-            uniqueRoomIds.length > 0
-                ? Promise.all(uniqueRoomIds.map(id => 
-                    base44.asServiceRole.entities.Room.filter({ id }).catch(() => null)
-                  )).then(results => results.flat().filter(Boolean))
-                : []
+        // 3. Fetch related data
+        const paymentRoomIds = [...new Set(paymentsToProcess.map(p => p.room_id).filter(Boolean))];
+        const paymentTenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id).filter(Boolean))];
+
+        const [rooms, tenants] = await Promise.all([
+            base44.asServiceRole.entities.Room.filter({}, '-room_number', 5000),
+            base44.asServiceRole.entities.Tenant.filter({}, '-created_date', 5000)
         ]);
 
-        const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
-        const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
-        
-        console.log(`✅ Loaded ${paymentsToProcess.length} payments, ${tenantsBatch.length} tenants, ${roomsBatch.length} rooms`);
+        const roomMap = new Map((rooms || []).map(r => [r.id, r]));
+        const tenantMap = new Map((tenants || []).map(t => [t.id, t]));
 
         // 4. Process in batches of `concurrentLimit`
         let imageGenerated = 0;
@@ -768,7 +756,6 @@ Deno.serve(async (req) => {
         });
 
         try {
-            await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'processInvoiceImageQueue',
                 run_timestamp: new Date().toISOString(),
@@ -813,7 +800,6 @@ Deno.serve(async (req) => {
 
         if (base44) {
             try {
-                await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
                 await base44.asServiceRole.entities.FunctionLog.create({
                     function_name: 'processInvoiceImageQueue',
                     run_timestamp: new Date().toISOString(),
