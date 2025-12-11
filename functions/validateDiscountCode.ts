@@ -19,9 +19,9 @@ Deno.serve(async (req) => {
         }
 
         const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
-        const CRM_REGISTERED_APP_ID = 'DORM-1763306051935093';
+        const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
 
-        if (!CRM_API_KEY) {
+        if (!CRM_API_KEY || !CRM_APP_ID) {
             console.error('❌ Missing CRM_API_KEY');
             return Response.json({
                 valid: false,
@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
         console.log('🔍 Validating discount code...');
         console.log('🔍 Code:', code.trim().toUpperCase());
         console.log('🔍 User email:', user.email);
-        console.log('🔍 App ID:', CRM_REGISTERED_APP_ID);
+        console.log('🔍 App ID:', CRM_APP_ID);
         console.log('🔍 CRM_API_KEY exists:', !!CRM_API_KEY);
         console.log('🔍 CRM_API_KEY length:', CRM_API_KEY?.length);
 
@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
           api_key: CRM_API_KEY,
           code: code.trim().toUpperCase(),
           user_email: user.email,
-          app_id: CRM_REGISTERED_APP_ID
+          app_id: CRM_APP_ID
         };
         console.log('📤 Request Body:', JSON.stringify({ ...requestBody, api_key: '***' }, null, 2));
 
