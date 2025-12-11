@@ -225,59 +225,40 @@ Deno.serve(async (req) => {
         console.log(`   ⏭️ ส่งไปแล้ว: ${alreadySentCount}`);
         console.log(`   📅 ไม่ตรงวันนี้: ${wrongDateCount}`)
 
-        // Filter payments
-        console.log('\n🔍 FILTERING (first 5 payments with details)...\n');
+        // ⭐⭐⭐ Filter payments ครั้งเดียว - รวม date check + image check + hash check
+        console.log('\n🔍 FILTERING...\n');
         
-        let debugCount = 0;
         let upcomingPayments = payments.filter(p => {
-            const shouldDebug = debugCount < 5;
+            // Basic checks
+            if (p.status === 'paid') return false;
+            if (!p.due_date) return false;
+            if (p.advance_reminder_sent_date) return false;
+            if (targetBranchId && p.branch_id !== targetBranchId) return false;
+            if (!enabledBranches.includes(p.branch_id)) return false;
             
-            if (shouldDebug) {
-                const tenant = tenantMap.get(p.tenant_id);
-                const room = roomMap.get(p.room_id);
-                const branchName = branchMap.get(p.branch_id) || 'Unknown';
-                
-                console.log(`━━━ [${branchName}] ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'ไม่ทราบชื่อ'} ━━━`);
-                console.log('Status:', p.status, '| Due:', p.due_date || 'NONE', '| Image:', !!p.invoice_image_url ? 'YES' : 'NO');
-                console.log('Already Sent:', p.advance_reminder_sent_date || 'NO');
-                debugCount++;
-            }
-            
-            if (p.status === 'paid') {
-                if (shouldDebug) console.log('❌ SKIP: Paid\n');
-                return false;
-            }
-            if (!p.due_date) {
-                if (shouldDebug) console.log('❌ SKIP: No due_date\n');
-                return false;
-            }
-            if (p.advance_reminder_sent_date) {
-                if (shouldDebug) console.log('❌ SKIP: Already sent\n');
-                return false;
-            }
-            
+            // Date check
             const branchAdvanceDays = parseInt(getConfigValue('bill_advance_notice_days', '3', p.branch_id));
             const dueDate = new Date(p.due_date);
             const notifyDate = new Date(dueDate);
             notifyDate.setDate(dueDate.getDate() - branchAdvanceDays);
             const notifyDateString = notifyDate.toISOString().split('T')[0];
             
-            const shouldNotifyToday = notifyDateString === todayDateString;
+            if (notifyDateString !== todayDateString) return false;
             
-            if (shouldDebug) {
-                console.log(`Notify on: ${notifyDateString} (${branchAdvanceDays} days before) | Today: ${todayDateString}`);
-                console.log(shouldNotifyToday ? '✅ PASS!\n' : '❌ SKIP: Not today\n');
+            // Image + Hash check
+            if (!p.invoice_image_url) return false;
+            if (p.invoice_data_hash) {
+                const currentHash = generatePaymentHash(p);
+                if (currentHash !== p.invoice_data_hash) return false;
             }
             
-            if (targetBranchId && p.branch_id !== targetBranchId) return false;
-            
-            return shouldNotifyToday;
+            return true;
         });
         
         console.log('════════════════════════════════════════════════════');
         console.log('📊 FILTER RESULT:');
         console.log('   Total Checked:', payments.length);
-        console.log('   ✅ Passed:', upcomingPayments.length);
+        console.log('   ✅ Passed (ready to send):', upcomingPayments.length);
         console.log('   ❌ Filtered Out:', payments.length - upcomingPayments.length);
         console.log('════════════════════════════════════════════════════\n');
 
@@ -290,56 +271,12 @@ Deno.serve(async (req) => {
             });
         }
 
-        // ⭐⭐⭐ แยกประมวลผล: กลุ่มที่มีรูปก่อน แล้วค่อยกลุ่มที่ไม่มีรูป
-        const paymentsFromEnabledBranches = upcomingPayments.filter(p => enabledBranches.includes(p.branch_id));
-
-        // แยกเป็น 2 กลุ่ม
-        const paymentsWithImage = paymentsFromEnabledBranches.filter(p => {
-            const hasImage = !!p.invoice_image_url;
-            const hashMatch = p.invoice_data_hash && generatePaymentHash(p) === p.invoice_data_hash;
-            return hasImage && hashMatch;
-        });
-
-        const paymentsNoImage = paymentsFromEnabledBranches.filter(p => {
-            const hasImage = !!p.invoice_image_url;
-            const hashMatch = p.invoice_data_hash && generatePaymentHash(p) === p.invoice_data_hash;
-            return !hasImage || !hashMatch;
-        });
-
-        // ประมวลผลที่มีรูปก่อน (ทั้งหมด) แล้วค่อยที่ไม่มีรูป (ตาม limit)
-        const paymentsToProcess = [
-            ...paymentsWithImage,
-            ...paymentsNoImage.slice(0, Math.max(0, limit - paymentsWithImage.length))
-        ];
-
-        console.log(`📊 Enabled branches: ${paymentsFromEnabledBranches.length}`);
-        console.log(`   มีรูป+hash ตรง: ${paymentsWithImage.length} (process ทั้งหมด)`);
-        console.log(`   ไม่มีรูป/hash ผิด: ${paymentsNoImage.length} (process ${Math.min(paymentsNoImage.length, Math.max(0, limit - paymentsWithImage.length))})`);
-        console.log(`📋 To Process: ${paymentsToProcess.length}`);
+        // จำกัดจำนวนที่จะประมวลผล
+        const paymentsToProcess = upcomingPayments.slice(0, limit);
+        
+        console.log(`📋 To Process: ${paymentsToProcess.length}/${upcomingPayments.length}`);
 
         const recipients = [];
-        let skippedNoImage = 0;
-
-        for (const payment of paymentsToProcess) {
-            const tenant = tenantMap.get(payment.tenant_id);
-            const room = roomMap.get(payment.room_id);
-            const branchName = branchMap.get(payment.branch_id) || 'Unknown';
-
-            if (!tenant) continue;
-
-            const hasLine = !!tenant.line_user_id;
-            const hasFacebook = !!tenant.facebook_user_id;
-
-            if (!hasLine && !hasFacebook) continue;
-
-            const invoiceImageUrl = payment.invoice_image_url || null;
-            const currentHash = generatePaymentHash(payment);
-            const savedHash = payment.invoice_data_hash || '';
-
-            if (!invoiceImageUrl || (savedHash && currentHash !== savedHash)) {
-                skippedNoImage++;
-                continue;
-            }
 
             const branchBankName = getConfigValue('bank_name', 'กสิกร', payment.branch_id);
             const branchBankAccountNumber = getConfigValue('bank_account_number', '0722835522', payment.branch_id);
