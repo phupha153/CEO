@@ -352,8 +352,10 @@ Deno.serve(async (req) => {
                         
                         for (const recipient of successfulRecipients) {
                             try {
+                                const timestamp = new Date().toISOString();
                                 await base44.asServiceRole.entities.Payment.update(recipient.metadata.paymentId, {
-                                    due_date_reminder_sent_date: new Date().toISOString()
+                                    due_date_reminder_sent_date: timestamp,
+                                    bill_sent_date: timestamp
                                 });
                                 console.log(`✅ Updated payment ${recipient.metadata.paymentId}`);
                             } catch (updateErr) {
@@ -385,8 +387,10 @@ Deno.serve(async (req) => {
 
                             // ⭐ บันทึกว่าส่งสำเร็จแล้ว
                             try {
+                                const timestamp = new Date().toISOString();
                                 await base44.asServiceRole.entities.Payment.update(recipient.metadata.paymentId, {
-                                    due_date_reminder_sent_date: new Date().toISOString()
+                                    due_date_reminder_sent_date: timestamp,
+                                    bill_sent_date: timestamp
                                 });
                             } catch (updateErr) {
                                 console.error(`⚠️ Failed to update sent date:`, updateErr.message);
