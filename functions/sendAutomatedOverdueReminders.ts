@@ -199,21 +199,17 @@ Deno.serve(async (req) => {
         console.log('🔴🔴🔴 Starting automated overdue reminders V2 (WITH INVOICE + LATE FEE)...');
         console.log('⭐⭐⭐ This version includes: STEP 1=Late Fee Calc, STEP 2=Invoice Gen, STEP 3=Messaging');
 
-        // ⏱️ Timeout Protection - ต้องเสร็จภายใน 120 วินาที (2 นาที)
-        const MAX_EXECUTION_TIME = 120000; // 2 นาที
-        const isTimeout = () => (Date.now() - startTime) > MAX_EXECUTION_TIME;
-
         // Parse request body
         let targetBranchId = null;
         let testLineUserId = null;
-        let limit = 10; // ⭐ ลดจาก 20 เป็น 10 เพื่อให้รันเร็วขึ้น
+        let limit = 20;
         try {
             const text = await req.text();
             if (text) {
                 const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
                 testLineUserId = body.test_line_user_id || null;
-                limit = body.limit || 10;
+                limit = body.limit || 20;
             }
         } catch (parseError) {
             console.log('⚠️ No body or parse error:', parseError.message);
@@ -221,7 +217,6 @@ Deno.serve(async (req) => {
 
         console.log('📋 Target branch:', targetBranchId || 'ALL BRANCHES');
         console.log('📊 Limit per run:', limit);
-        console.log('⏱️ Max execution time: 120s');
 
         // 1. ดึงการตั้งค่าจาก Config
         const configs = await base44.asServiceRole.entities.Config.list();
@@ -392,13 +387,7 @@ Deno.serve(async (req) => {
 
         // ⭐⭐⭐ ขั้นตอนที่ 1: คำนวณและอัปเดตค่าปรับก่อน (ต้องทำก่อนสร้างรูป)
         console.log(`\n💰 ========== STEP 1: CALCULATING LATE FEES ==========`);
-        for (let i = 0; i < paymentsToProcess.length; i++) {
-            if (isTimeout()) {
-                console.log(`⏱️ TIMEOUT APPROACHING - Stopping at payment ${i}/${paymentsToProcess.length}`);
-                break;
-            }
-            
-            const payment = paymentsToProcess[i];
+        for (const payment of paymentsToProcess) {
             const dueDate = startOfDay(parseISO(payment.due_date));
             const daysOverdue = differenceInDays(today, dueDate);
 
@@ -467,7 +456,7 @@ Deno.serve(async (req) => {
             payment.total_amount = newTotalAmount;
             payment.status = 'overdue';
 
-            await delay(100); // ⭐ ลดจาก 200ms เป็น 100ms
+            await delay(200);
         }
         
         console.log(`✅ Late fees calculated and updated for ${paymentsToProcess.length} payments`);
@@ -479,13 +468,7 @@ Deno.serve(async (req) => {
         let invoicesFailed = 0;
         const invoiceGenerationDetails = [];
         
-        for (let i = 0; i < paymentsToProcess.length; i++) {
-            if (isTimeout()) {
-                console.log(`⏱️ TIMEOUT APPROACHING - Stopping invoice gen at ${i}/${paymentsToProcess.length}`);
-                break;
-            }
-            
-            const payment = paymentsToProcess[i];
+        for (const payment of paymentsToProcess) {
             const room = roomMap.get(payment.room_id);
             const tenant = tenantMap.get(payment.tenant_id);
             const roomNumber = room?.room_number || 'N/A';
@@ -561,7 +544,7 @@ Deno.serve(async (req) => {
                         console.log(`   ✅ SUCCESS: Invoice generated → ${imageUrl.substring(0, 50)}...`);
                         console.log(`   📝 New hash: ${newHash.substring(0,12)}`);
                         
-                        await delay(800); // ⭐ ลดจาก 1200ms เป็น 800ms
+                        await delay(1200);
                     }
                 } else {
                     console.log(`   ⏭️ SKIP: มีรูปแล้วและ hash ตรงกัน`);
@@ -613,13 +596,7 @@ Deno.serve(async (req) => {
         const recipients = [];
         const messageCreationDetails = [];
 
-        for (let i = 0; i < paymentsToProcess.length; i++) {
-            if (isTimeout()) {
-                console.log(`⏱️ TIMEOUT APPROACHING - Stopping message creation at ${i}/${paymentsToProcess.length}`);
-                break;
-            }
-            
-            const payment = paymentsToProcess[i];
+        for (const payment of paymentsToProcess) {
             // ⭐⭐⭐ ใช้ payment ที่ refresh แล้ว (มี invoice_image_url และ late_fee_amount ล่าสุด)
             const latestPayment = refreshedPaymentMap.get(payment.id) || payment;
             
@@ -750,9 +727,7 @@ Deno.serve(async (req) => {
         const lineRecipients = recipients.filter(r => r.lineUserId);
         const facebookRecipients = recipients.filter(r => r.facebookUserId);
 
-        console.log(`\n📤 ========== STEP 4: SENDING MESSAGES ==========`);
         console.log(`📊 Recipients: ${lineRecipients.length} LINE, ${facebookRecipients.length} Facebook`);
-        console.log(`⏱️ Time elapsed: ${((Date.now() - startTime) / 1000).toFixed(1)}s / 120s`);
 
         if (recipients.length > 0) {
             if (testLineUserId) {
@@ -778,32 +753,27 @@ Deno.serve(async (req) => {
                 }
             } else {
                 // LINE
-                if (lineRecipients.length > 0 && !isTimeout()) {
+                if (lineRecipients.length > 0) {
                     console.log(`📤 Sending ${lineRecipients.length} LINE overdue reminders...`);
                     
-                    const CHUNK_SIZE = 30; // ⭐ ลดจาก 50 เป็น 30
+                    const CHUNK_SIZE = 50;
                     const chunks = [];
                     for (let i = 0; i < lineRecipients.length; i += CHUNK_SIZE) {
                         chunks.push(lineRecipients.slice(i, i + CHUNK_SIZE));
                     }
 
                     for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
-                        if (isTimeout()) {
-                            console.log(`⏱️ TIMEOUT - Stopping at chunk ${chunkIdx + 1}/${chunks.length}`);
-                            break;
-                        }
-
                         const chunk = chunks[chunkIdx];
-                        console.log(`📤 Chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} msgs) - Time: ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+                        console.log(`📤 Chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} msgs)`);
 
                         try {
                             const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
                                 recipients: chunk,
                                 options: {
                                     batchSize: 10,
-                                    delayBetweenBatches: 1500, // ⭐ ลดจาก 2000ms
-                                    delayBetweenMessages: 100, // ⭐ ลดจาก 150ms
-                                    retryAttempts: 2 // ⭐ ลดจาก 3
+                                    delayBetweenBatches: 2000,
+                                    delayBetweenMessages: 150,
+                                    retryAttempts: 3
                                 }
                             });
 
@@ -831,23 +801,17 @@ Deno.serve(async (req) => {
                             sendErrors.push(`Chunk ${chunkIdx + 1}: ${error.message}`);
                         }
 
-                        if (chunkIdx < chunks.length - 1 && !isTimeout()) {
-                            await new Promise(r => setTimeout(r, 500)); // ⭐ ลดจาก 1000ms
+                        if (chunkIdx < chunks.length - 1) {
+                            await new Promise(r => setTimeout(r, 1000));
                         }
                     }
                 }
 
                 // Facebook
-                if (facebookRecipients.length > 0 && !isTimeout()) {
+                if (facebookRecipients.length > 0) {
                     console.log(`📤 Sending ${facebookRecipients.length} Facebook reminders...`);
 
-                    for (let i = 0; i < facebookRecipients.length; i++) {
-                        if (isTimeout()) {
-                            console.log(`⏱️ TIMEOUT - Stopping at Facebook ${i}/${facebookRecipients.length}`);
-                            break;
-                        }
-
-                        const recipient = facebookRecipients[i];
+                    for (const recipient of facebookRecipients) {
                         try {
                             await base44.asServiceRole.functions.invoke('sendFacebookMessage', {
                                 to: recipient.facebookUserId,
@@ -858,7 +822,7 @@ Deno.serve(async (req) => {
                             successfulPaymentIds.add(recipient.metadata.paymentId);
                             console.log(`✅ Facebook → ${recipient.metadata.tenantName}`);
 
-                            await delay(200); // ⭐ ลดจาก 300ms
+                            await delay(300);
                         } catch (error) {
                             console.error(`❌ Facebook error:`, error);
                             sendErrors.push(`Facebook ห้อง ${recipient.metadata.roomNumber}: ${error.message}`);
@@ -934,14 +898,11 @@ Deno.serve(async (req) => {
             });
         });
 
-        const executionTimeSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
-        const wasTimeout = isTimeout();
-
         const responseResult = {
             success: true,
             message: testLineUserId 
                 ? `🧪 ส่งข้อความทดสอบสำเร็จ (Test Mode)` 
-                : `ส่งการแจ้งเตือนค้างชำระสำเร็จ ${sentCount}/${recipients.length} รายการ${totalRemaining > 0 ? ` | เหลืออีก ${totalRemaining} บิล` : ''}${wasTimeout ? ' ⏱️ (Timeout)' : ''}`,
+                : `ส่งการแจ้งเตือนค้างชำระสำเร็จ ${sentCount}/${recipients.length} รายการ${totalRemaining > 0 ? ` | เหลืออีก ${totalRemaining} บิล` : ''}`,
             sent: sentCount,
             total: testLineUserId ? 1 : recipients.length,
             remaining: totalRemaining,
@@ -957,12 +918,10 @@ Deno.serve(async (req) => {
             messageCreationDetails: messageCreationDetails,
             errors: sendErrors.length > 0 ? sendErrors : undefined,
             lineCount: lineRecipients.length,
-            facebookCount: facebookRecipients.length,
-            executionTimeSeconds: executionTimeSeconds,
-            wasTimeout: wasTimeout
+            facebookCount: facebookRecipients.length
         };
 
-        console.log(`🎉 Automated overdue reminder completed in ${executionTimeSeconds}s:`, responseResult);
+        console.log('🎉 Automated overdue reminder completed:', responseResult);
 
         // บันทึก FunctionLog - หลีกเลี่ยง rate limit
         try {
