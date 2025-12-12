@@ -145,40 +145,22 @@ Deno.serve(async (req) => {
         
         console.log(`📊 After filtering: ${dueToday.length} payments need reminder`);
 
-        // ⭐ ดึง tenant และ room เฉพาะที่จำเป็น - ใช้ batch fetching แบบ pagination เพื่อหลีกเลี่ยง rate limit
+        // ⭐ ดึง tenant และ room เฉพาะที่จำเป็น
         const uniqueTenantIds = [...new Set(dueToday.map(p => p.tenant_id).filter(id => id))];
         const uniqueRoomIds = [...new Set(dueToday.map(p => p.room_id).filter(id => id))];
         
         console.log(`📥 Fetching ${uniqueTenantIds.length} tenants and ${uniqueRoomIds.length} rooms...`);
         
-        // ⭐ ใช้ fetchAll helper แทนการ map Promise.all เพื่อลด concurrent requests
-        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-        
-        async function fetchByIdsBatched(entity, ids, batchSize = 20) {
-            const results = [];
-            for (let i = 0; i < ids.length; i += batchSize) {
-                const batch = ids.slice(i, i + batchSize);
-                const batchResults = await Promise.all(
-                    batch.map(id => entity.filter({ id }).catch(() => null))
-                );
-                results.push(...batchResults.flat().filter(Boolean));
-                
-                // ⭐ เพิ่ม delay ระหว่าง batch เพื่อหลีกเลี่ยง rate limit
-                if (i + batchSize < ids.length) {
-                    await delay(300);
-                }
-                
-                console.log(`   ✅ Fetched ${Math.min(i + batchSize, ids.length)}/${ids.length}`);
-            }
-            return results;
-        }
-        
         const [tenantsBatch, roomsBatch] = await Promise.all([
             uniqueTenantIds.length > 0 
-                ? fetchByIdsBatched(base44.asServiceRole.entities.Tenant, uniqueTenantIds, 15)
+                ? Promise.all(uniqueTenantIds.map(id => 
+                    base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null)
+                  )).then(results => results.flat().filter(Boolean))
                 : [],
             uniqueRoomIds.length > 0
-                ? fetchByIdsBatched(base44.asServiceRole.entities.Room, uniqueRoomIds, 15)
+                ? Promise.all(uniqueRoomIds.map(id => 
+                    base44.asServiceRole.entities.Room.filter({ id }).catch(() => null)
+                  )).then(results => results.flat().filter(Boolean))
                 : []
         ]);
 
