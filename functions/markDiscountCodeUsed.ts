@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     }
 
     // เรียก API CRM เพื่อบันทึกการใช้โค้ดส่วนลด
-    const crmResponse = await fetch('https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/getDiscountCode', {
+    const crmResponse = await fetch('https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/useDiscountCode', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -26,7 +26,6 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({ 
         code: code.toUpperCase(),
-        action: 'mark_used',
         user_email: user_email
       })
     });
