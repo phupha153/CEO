@@ -847,7 +847,7 @@ export default function PackageSelectionPage() {
                               }
                             });
                           }}
-                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 py-6"
+                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 py-6 mt-8"
                         >
                           ดำเนินการชำระเงิน
                         </Button>
