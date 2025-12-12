@@ -34,17 +34,15 @@ Deno.serve(async (req) => {
     let discountCodes = [];
     try {
       const crmApiKey = Deno.env.get("CRM_API_KEY");
-      console.log('🔑 DEBUG getPackagesFromCRM: CRM_API_KEY value:', crmApiKey);
-      console.log('🔑 DEBUG getPackagesFromCRM: CRM_API_KEY length:', crmApiKey?.length);
-      console.log('🔑 DEBUG getPackagesFromCRM: CRM_API_KEY last 6 chars:', crmApiKey ? crmApiKey.substring(crmApiKey.length - 6) : 'NOT SET');
+      const discountUrl = 'https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/getDiscountCode';
+      console.log('📡 Calling CRM for discount codes:', discountUrl);
 
-      const discountResponse = await fetch('https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/getDiscountCode', {
-        method: 'POST',
+      const discountResponse = await fetch(discountUrl, {
+        method: 'GET',
         headers: { 
-          'Content-Type': 'application/json',
-          'x-api-key': crmApiKey || ''
-        },
-        body: JSON.stringify({})
+          'x-api-key': crmApiKey || '',
+          'Content-Type': 'application/json'
+        }
       });
       const discountData = await discountResponse.json();
       discountCodes = discountData.discount_codes || [];
