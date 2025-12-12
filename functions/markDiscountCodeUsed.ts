@@ -31,16 +31,21 @@ Deno.serve(async (req) => {
       const url = 'https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/useDiscountCode';
       console.log('📡 Calling CRM URL:', url);
       
+      const requestBody = {
+        code: code.toUpperCase(),
+        discount_amount: 0,
+        customer_email: user_email
+      };
+      
+      console.log('📤 Request body:', JSON.stringify(requestBody));
+      
       crmResponse = await fetch(url, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'x-api-key': crmApiKey
         },
-        body: JSON.stringify({ 
-          code: code.toUpperCase(),
-          user_email: user_email
-        })
+        body: JSON.stringify(requestBody)
       });
     } catch (fetchError) {
       console.error('❌ Fetch error:', fetchError.message);
