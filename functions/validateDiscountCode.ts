@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
           'x-api-key': crmApiKey
         },
         body: JSON.stringify({ 
-          code: code.toUpperCase(),
+          discount_code: code.toUpperCase(),
           action: 'validate',
           package_id: package_id,
           total_amount: total_amount
