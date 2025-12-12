@@ -10,6 +10,10 @@ Deno.serve(async (req) => {
     }
 
     const crmApiKey = Deno.env.get("CRM_API_KEY");
+    console.log('🔑 DEBUG: CRM_API_KEY value:', crmApiKey);
+    console.log('🔑 DEBUG: CRM_API_KEY length:', crmApiKey?.length);
+    console.log('🔑 DEBUG: CRM_API_KEY last 6 chars:', crmApiKey ? crmApiKey.substring(crmApiKey.length - 6) : 'NOT SET');
+
     if (!crmApiKey) {
       console.error('❌ CRM_API_KEY not set');
       return Response.json({ 
