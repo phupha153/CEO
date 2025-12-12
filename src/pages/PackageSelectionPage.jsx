@@ -15,13 +15,7 @@ import { createPageUrl } from "@/utils";
 
 export default function PackageSelectionPage() {
   const [selectedPackageId, setSelectedPackageId] = useState('');
-  const [selectedBranches, setSelectedBranches] = useState([]);
-  const [billingCycle, setBillingCycle] = useState('1'); // '1', '3', or '12' months
-  const [step, setStep] = useState(1);
-  const [uploadingSlip, setUploadingSlip] = useState(false);
-  const [processingPayment, setProcessingPayment] = useState(false);
-  const [slipUrl, setSlipUrl] = useState('');
-  const [errorDetails, setErrorDetails] = useState(null);
+  const [billingCycle, setBillingCycle] = useState('1');
   const [debugMode, setDebugMode] = useState(false);
   const [expandedPackageId, setExpandedPackageId] = useState(null);
   const [discountCode, setDiscountCode] = useState('');
@@ -96,30 +90,13 @@ export default function PackageSelectionPage() {
   const promptpay = getConfigValue('promptpay', '0812345678');
 
   const appMode = getConfigValue('app_mode', 'single_tenant');
+
   const userAccessibleBranches = currentUser?.accessible_branches || [];
-  
-  // Filter branches ที่ผู้ใช้สามารถซื้อแพ็กเกจได้
   const purchasableBranches = useMemo(() => {
-    // Developer ที่ไม่มี accessible_branches เห็นทุกสาขา, คนอื่นเห็นเฉพาะที่มีสิทธิ์
     const canViewAllBranches = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
     if (canViewAllBranches) return branches;
     return branches.filter(b => userAccessibleBranches.includes(b.id));
   }, [branches, userRole, userAccessibleBranches]);
-
-  // ตรวจสอบว่าสาขาไหนยังไม่มี active paid package
-  const branchesNeedingPackage = useMemo(() => {
-    return purchasableBranches.filter(branch => {
-      const activePaidPackage = branchPackages.find(bp =>
-        bp.branch_id === branch.id &&
-        bp.status === 'active' &&
-        bp.package_id !== 'trial' &&
-        bp.price_per_month > 0
-      );
-      return !activePaidPackage;
-    });
-  }, [purchasableBranches, branchPackages]);
-
-  // ไม่ต้อง auto-select branches เพราะจะใช้ owner_email แทน
 
   const packages = (crmPackages?.packages || [])
     .filter(p => p.app_system === 'dormitory')
@@ -204,25 +181,7 @@ export default function PackageSelectionPage() {
     };
   }, [selectedPackage, billingCycle, appliedDiscount]);
 
-  const handleSlipUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    setUploadingSlip(true);
-    setErrorDetails(null);
-    
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setSlipUrl(file_url);
-      toast.success('อัปโหลดสลิปสำเร็จ');
-      setStep(2);
-    } catch (error) {
-      toast.error('อัปโหลดสลิปไม่สำเร็จ');
-      setErrorDetails('ไม่สามารถอัปโหลดไฟล์ได้: ' + error.message);
-    } finally {
-      setUploadingSlip(false);
-    }
-  };
 
   const handleValidateDiscount = async () => {
     if (!discountCode.trim()) {
@@ -253,84 +212,7 @@ export default function PackageSelectionPage() {
     }
   };
 
-  const handleConfirmPayment = async () => {
-    setProcessingPayment(true);
-    setErrorDetails(null);
-    
-    try {
-      // ✅ ตรวจสอบว่ามี currentUser.email ก่อนส่ง
-      if (!currentUser || !currentUser.email) {
-        toast.error('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
-        setErrorDetails('ไม่พบ email ผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
-        setProcessingPayment(false);
-        return;
-      }
 
-      if (!currentUser?.email || typeof currentUser.email !== 'string' || currentUser.email.trim() === '') {
-        toast.error('ข้อมูลผู้ใช้ไม่ถูกต้อง กรุณาเข้าสู่ระบบใหม่');
-        setErrorDetails('ไม่พบข้อมูล email ของผู้ใช้ กรุณา Logout และ Login ใหม่');
-        setProcessingPayment(false);
-        return;
-      }
-      
-      // ✅ ไม่ส่ง branch_ids - ให้ function ใช้ owner_email หาสาขาเอง
-      const result = await base44.functions.invoke('processSubscriptionPayment', {
-        package_id: selectedPackageId,
-        package_name: typeof selectedPackage.package_name === 'string' ? selectedPackage.package_name : (selectedPackage.package_name?.name ? String(selectedPackage.package_name.name) : ''),
-        duration_months: parseInt(billingCycle),
-        price_per_month: calculatePrice.monthlyPrice,
-        total_amount: calculatePrice.finalTotal,
-        original_amount: calculatePrice.subtotal,
-        discount_code: appliedDiscount ? discountCode.trim() : null,
-        discount_amount: appliedDiscount?.discount_amount || 0,
-        slip_url: slipUrl,
-        user_email: currentUser.email,
-        user_name: currentUser.full_name,
-        app_mode: appMode
-      });
-
-      if (result.data.success) {
-        // ⭐ ไม่ต้อง mark discount code ที่นี่ - ให้ processSubscriptionPayment ทำเอง
-        queryClient.invalidateQueries({ queryKey: ['appSubscriptions'] });
-        queryClient.invalidateQueries({ queryKey: ['branchPackages'] });
-        setStep(3);
-        toast.success('เปิดใช้งานแพ็กเกจสำเร็จ!');
-        
-        setTimeout(() => {
-          navigate(createPageUrl('Dashboard'));
-        }, 3000);
-      } else {
-        const errorMsg = result.data.error || result.data.message || 'เกิดข้อผิดพลาด';
-        const errorDetail = result.data.details || '';
-        const fullError = errorDetail ? `${errorMsg}\n\n${errorDetail}` : errorMsg;
-        
-        toast.error(errorMsg, { 
-          duration: 10000,
-          description: errorDetail ? errorDetail.substring(0, 100) : undefined
-        });
-        setErrorDetails(fullError);
-      }
-    } catch (error) {
-      let errorMsg = 'ไม่สามารถดำเนินการได้';
-      let errorDetail = '';
-      
-      if (error?.response?.data) {
-        errorMsg = error.response.data.error || error.response.data.message || errorMsg;
-        errorDetail = error.response.data.details || '';
-      } else if (error?.data) {
-        errorMsg = error.data.error || error.data.message || errorMsg;
-        errorDetail = error.data.details || '';
-      } else if (error?.message) {
-        errorMsg = error.message;
-      }
-      
-      const fullError = errorDetail ? `${errorMsg}\n\n${errorDetail}` : errorMsg;
-      toast.error(errorMsg, { duration: 10000 });
-      setErrorDetails(fullError);
-    } finally {
-      setProcessingPayment(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -699,7 +581,31 @@ export default function PackageSelectionPage() {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     if (isDisabled) return;
-                                    setSelectedPackageId(pkg.id);
+                                    
+                                    const pkgName = typeof pkg.package_name === 'string' 
+                                      ? pkg.package_name 
+                                      : (pkg.package_name?.name ? String(pkg.package_name.name) : '');
+                                    
+                                    // ถ้าส่วนลดเป็น 100% ให้ไปหน้าชำระเงินทันที
+                                    if (calculatePrice.finalTotal === 0 || (appliedDiscount && calculatePrice.finalTotal === 0)) {
+                                      navigate(createPageUrl('PackagePaymentPage'), {
+                                        state: {
+                                          packageData: {
+                                            packageId: pkg.id,
+                                            packageName: pkgName,
+                                            durationMonths: parseInt(billingCycle),
+                                            monthlyPrice: calculatePrice.monthlyPrice,
+                                            subtotal: calculatePrice.subtotal,
+                                            discountCode: appliedDiscount ? discountCode.trim() : null,
+                                            discountAmount: calculatePrice.discountAmount,
+                                            finalTotal: calculatePrice.finalTotal,
+                                            isFree: true
+                                          }
+                                        }
+                                      });
+                                    } else {
+                                      setSelectedPackageId(pkg.id);
+                                    }
                                   }}
                                   disabled={isDisabled}
                                   className={`w-full py-4 text-sm font-semibold rounded-2xl mb-6 transition-all ${
@@ -848,8 +754,6 @@ export default function PackageSelectionPage() {
                           </div>
                         )}
 
-
-
                         <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 mb-4 border border-blue-200">
                           <div className="space-y-3">
                             <div className="flex justify-between text-sm">
@@ -877,7 +781,7 @@ export default function PackageSelectionPage() {
                           </div>
                         </div>
 
-                        {/* Discount Code Section - Compact */}
+                        {/* Discount Code Section */}
                         <div className="mb-6">
                           <div className="flex gap-2 items-start">
                             <Input
@@ -925,57 +829,32 @@ export default function PackageSelectionPage() {
                           )}
                         </div>
 
-                        <div className="bg-white rounded-xl p-4 border border-slate-200 mb-6">
-                          <h4 className="font-bold text-slate-800 mb-3 text-sm">ข้อมูลการโอนเงิน</h4>
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div>
-                              <p className="text-xs text-slate-500 mb-1">ธนาคาร</p>
-                              <p className="font-semibold text-slate-800">{bankName}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-slate-500 mb-1">เลขที่บัญชี</p>
-                              <p className="font-bold text-slate-800">{accountNumber}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-slate-500 mb-1">ชื่อบัญชี</p>
-                              <p className="font-semibold text-slate-800">{accountName}</p>
-                            </div>
-                            {promptpay && (
-                              <div>
-                                <p className="text-xs text-slate-500 mb-1">พร้อมเพย์</p>
-                                <p className="font-bold text-slate-800">{promptpay}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <label className="block cursor-pointer">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleSlipUpload}
-                            disabled={uploadingSlip}
-                            className="hidden"
-                          />
-                          <div className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl transition-all ${
-                            uploadingSlip 
-                              ? 'border-slate-300 bg-slate-50 cursor-not-allowed' 
-                              : 'border-blue-400 bg-blue-50 hover:bg-blue-100 hover:border-blue-500'
-                          }`}>
-                            {uploadingSlip ? (
-                              <div className="text-center">
-                                <Loader2 className="w-8 h-8 text-blue-600 mx-auto mb-2 animate-spin" />
-                                <p className="text-sm font-semibold text-slate-700">กำลังอัปโหลด...</p>
-                              </div>
-                            ) : (
-                              <div className="text-center">
-                                <Upload className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                                <p className="text-sm font-semibold text-slate-800">คลิกเพื่ออัปโหลดสลิป</p>
-                                <p className="text-xs text-slate-500 mt-1">PNG, JPG (ไม่เกิน 10MB)</p>
-                              </div>
-                            )}
-                          </div>
-                        </label>
+                        <Button
+                          onClick={() => {
+                            const pkgName = typeof selectedPackage?.package_name === 'string' 
+                              ? selectedPackage.package_name 
+                              : (selectedPackage?.package_name?.name ? String(selectedPackage.package_name.name) : '');
+                            
+                            navigate(createPageUrl('PackagePaymentPage'), {
+                              state: {
+                                packageData: {
+                                  packageId: selectedPackageId,
+                                  packageName: pkgName,
+                                  durationMonths: parseInt(billingCycle),
+                                  monthlyPrice: calculatePrice.monthlyPrice,
+                                  subtotal: calculatePrice.subtotal,
+                                  discountCode: appliedDiscount ? discountCode.trim() : null,
+                                  discountAmount: calculatePrice.discountAmount,
+                                  finalTotal: calculatePrice.finalTotal,
+                                  branchCount: purchasableBranches.length
+                                }
+                              }
+                            });
+                          }}
+                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 py-6"
+                        >
+                          ดำเนินการชำระเงิน
+                        </Button>
                       </CardContent>
                     </Card>
                   </motion.div>
@@ -983,172 +862,7 @@ export default function PackageSelectionPage() {
               </motion.div>
             )}
 
-            {step === 2 && (
-              <motion.div
-                key="step2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="max-w-2xl mx-auto"
-              >
-                <Card className="bg-white/90 backdrop-blur-xl shadow-2xl">
-                  <CardContent className="p-8">
-                    <div className="text-center mb-6">
-                      <div className={`w-16 h-16 rounded-full ${errorDetails ? 'bg-red-100' : 'bg-blue-100'} flex items-center justify-center mx-auto mb-4`}>
-                        {errorDetails ? (
-                          <AlertCircle className="w-8 h-8 text-red-600" />
-                        ) : (
-                          <CheckCircle className="w-8 h-8 text-blue-600" />
-                        )}
-                      </div>
-                      <h2 className="text-2xl font-bold text-slate-800 mb-2">
-                        {errorDetails ? 'เกิดข้อผิดพลาด' : 'ตรวจสอบสลิป'}
-                      </h2>
-                      <p className="text-slate-600">
-                        {errorDetails ? 'กรุณาตรวจสอบและลองใหม่อีกครั้ง' : 'กรุณาตรวจสอบความถูกต้องก่อนยืนยัน'}
-                      </p>
-                    </div>
 
-                    {errorDetails && (
-                      <Alert className="mb-6 bg-red-50 border-red-200">
-                        <AlertCircle className="w-5 h-5 text-red-600" />
-                        <AlertDescription className="text-red-800">
-                          <pre className="text-sm whitespace-pre-wrap leading-relaxed">
-                            {errorDetails}
-                          </pre>
-                        </AlertDescription>
-                      </Alert>
-                    )}
-
-                    {slipUrl && (
-                      <div className="bg-slate-50 rounded-xl p-4 border-2 border-slate-200 mb-6">
-                        <img 
-                          src={slipUrl} 
-                          alt="สลิปการโอนเงิน" 
-                          className="w-full max-h-96 object-contain rounded-xl"
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSlipUrl('');
-                            setStep(1);
-                            setErrorDetails(null);
-                          }}
-                          className="w-full mt-3 text-red-600 hover:text-red-700"
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          อัปโหลดใหม่
-                        </Button>
-                      </div>
-                    )}
-
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200 mb-6">
-                      <div className="space-y-3 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-slate-700">แพ็กเกจ:</span>
-                          <span className="font-bold text-slate-800">
-                            {typeof selectedPackage?.package_name === 'string' 
-                              ? selectedPackage.package_name 
-                              : (selectedPackage?.package_name?.name ? String(selectedPackage.package_name.name) : '')}
-                          </span>
-                        </div>
-                        {appMode === 'multi_tenant' && selectedBranches.length > 1 && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-700">จำนวนสาขา:</span>
-                            <span className="font-bold text-slate-800">{selectedBranches.length} สาขา</span>
-                          </div>
-                        )}
-                        <div className="flex justify-between">
-                          <span className="text-slate-700">ระยะเวลา:</span>
-                          <span className="font-bold text-slate-800">{billingCycle} เดือน</span>
-                        </div>
-                        <div className="flex justify-between items-center pt-2 border-t border-blue-200">
-                          <span className="font-bold text-slate-800">ยอดรวม (รวม VAT 7%):</span>
-                          <span className="text-2xl font-bold text-blue-600">{calculatePrice.subtotal.toLocaleString()} ฿</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {errorDetails ? (
-                      <Button
-                        onClick={() => {
-                          setSlipUrl('');
-                          setStep(1);
-                          setErrorDetails(null);
-                        }}
-                        className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 py-6"
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        ลองใหม่อีกครั้ง
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={handleConfirmPayment}
-                        disabled={processingPayment}
-                        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 py-6"
-                      >
-                        {processingPayment ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            กำลังดำเนินการ...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            ยืนยันการชำระเงิน
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {step === 3 && (
-              <motion.div
-                key="step3"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="max-w-2xl mx-auto"
-              >
-                <Card className="bg-white/90 backdrop-blur-xl shadow-2xl">
-                  <CardContent className="p-8 text-center">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", duration: 0.6 }}
-                      className="mb-6"
-                    >
-                      <div className="relative w-24 h-24 mx-auto">
-                        <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full blur-2xl opacity-40 animate-pulse" />
-                        <div className="relative w-full h-full rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center shadow-2xl">
-                          <CheckCircle className="w-14 h-14 text-white" />
-                        </div>
-                      </div>
-                    </motion.div>
-                    
-                    <h2 className="text-3xl font-bold text-slate-800 mb-2">เปิดใช้งานสำเร็จ!</h2>
-                    <p className="text-slate-600 mb-6">แพ็กเกจของคุณถูกเปิดใช้งานแล้ว</p>
-
-                    <Card className="bg-green-50 border-green-200">
-                      <CardContent className="p-6">
-                        <Crown className="w-12 h-12 text-green-600 mx-auto mb-3" />
-                        <p className="text-green-800 font-semibold mb-2">
-                          ยินดีต้อนรับสู่ {typeof selectedPackage?.package_name === 'string' 
-                            ? selectedPackage.package_name 
-                            : (selectedPackage?.package_name?.name ? String(selectedPackage.package_name.name) : 'แพ็กเกจใหม่')}!
-                        </p>
-                        <p className="text-sm text-green-700">
-                          ระบบจะนำคุณกลับไปยังแดชบอร์ดในอีกสักครู่...
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
           </AnimatePresence>
         </div>
       </div>

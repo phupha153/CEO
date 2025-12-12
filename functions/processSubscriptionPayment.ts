@@ -50,7 +50,8 @@ Deno.serve(async (req) => {
       user_name,
       branch_id,
       branch_ids,
-      app_mode: requestAppMode
+      app_mode: requestAppMode,
+      is_free
     } = payload;
 
     console.log('=== Processing Subscription Payment ===');
@@ -63,11 +64,20 @@ Deno.serve(async (req) => {
       custom_role: user.custom_role
     }, null, 2));
 
-    if (!package_name || !duration_months || !price_per_month || !total_amount || !slip_url) {
+    if (!package_name || !duration_months || !price_per_month || total_amount === undefined) {
       console.log('Missing required fields');
       return Response.json({ 
         success: false,
         error: 'ข้อมูลไม่ครบถ้วน กรุณาลองใหม่อีกครั้ง' 
+      }, { status: 400 });
+    }
+
+    // ถ้าเป็นแพ็กเกจฟรี (ส่วนลด 100%) ไม่ต้องมี slip_url
+    if (!is_free && !slip_url) {
+      console.log('Missing slip_url for paid package');
+      return Response.json({ 
+        success: false,
+        error: 'กรุณาอัปโหลดสลิปการโอนเงิน' 
       }, { status: 400 });
     }
 
@@ -98,9 +108,20 @@ Deno.serve(async (req) => {
     console.log('🏦 Expected account name:', expectedAccountName);
     console.log('🧪 Test Mode:', testModeEnabled ? 'ENABLED' : 'DISABLED');
     console.log('📱 App Mode:', appMode);
+    console.log('💰 Is Free Package:', is_free ? 'YES' : 'NO');
 
-    console.log('\n=== Verifying Slip with Slip2Go ===');
-    
+    // ถ้าเป็นแพ็กเกจฟรี ข้ามการ verify slip
+    let slipData = null;
+    let slipAmount = 0;
+    let senderName = 'N/A';
+    let senderAccount = '';
+    let receiverAccount = '';
+    let receiverProxyAccount = '';
+    let receiverName = '';
+
+    if (!is_free && slip_url) {
+      console.log('\n=== Verifying Slip with Slip2Go ===');
+
     const verifyPayload = {
       payload: {
         imageUrl: slip_url
@@ -135,28 +156,28 @@ Deno.serve(async (req) => {
     }
 
     const isSuccess = response.ok && (data.code === "200000" || data.message === "Slip found.");
-    
+
     if (!isSuccess) {
       console.log('❌ Slip verification failed');
-      
+
       let errorMessage = 'ไม่สามารถตรวจสอบสลิปได้';
       let errorDetails = 'กรุณาลองใหม่อีกครั้ง';
-      
+
       if (data?.message === 'File is Incorrect' || data?.code === '400002') {
         errorMessage = '❌ ระบบอ่านสลิปไม่ได้';
         errorDetails = `กรุณาตรวจสอบว่า:
-📸 สลิปชัดเจน อ่านได้
-📱 เป็นสลิปจริงจากแอปธนาคาร (มี QR Code)
-💰 มียอดเงินและวันที่แสดงอย่างชัดเจน
+    📸 สลิปชัดเจน อ่านได้
+    📱 เป็นสลิปจริงจากแอปธนาคาร (มี QR Code)
+    💰 มียอดเงินและวันที่แสดงอย่างชัดเจน
 
-💡 แนะนำ: ใช้ Screenshot จากแอปธนาคารโดยตรง แทนการถ่ายรูปจากหน้าจอ`;
+    💡 แนะนำ: ใช้ Screenshot จากแอปธนาคารโดยตรง แทนการถ่ายรูปจากหน้าจอ`;
       } else if (data?.message) {
         errorMessage = data.message;
         if (data?.code) {
           errorDetails = `Error code: ${data.code}`;
         }
       }
-      
+
       return Response.json({ 
         success: false,
         error: errorMessage,
@@ -165,17 +186,17 @@ Deno.serve(async (req) => {
     }
 
     console.log('✅ Slip read successfully!');
-    
-    const slipData = data.data;
-    const slipAmount = parseFloat(slipData.amount || 0);
+
+    slipData = data.data;
+    slipAmount = parseFloat(slipData.amount || 0);
     const expectedAmount = parseFloat(total_amount);
-    const receiverAccount = slipData.receiver?.account?.bank?.account || '';
+    receiverAccount = slipData.receiver?.account?.bank?.account || '';
     const receiverProxyType = slipData.receiver?.account?.proxy?.type || '';
-    const receiverProxyAccount = slipData.receiver?.account?.proxy?.account || '';
-    const receiverName = slipData.receiver?.account?.name || '';
-    const senderName = slipData.sender?.account?.name || 'N/A';
-    const senderAccount = slipData.sender?.account?.bank?.account || '';
-    
+    receiverProxyAccount = slipData.receiver?.account?.proxy?.account || '';
+    receiverName = slipData.receiver?.account?.name || '';
+    senderName = slipData.sender?.account?.name || 'N/A';
+    senderAccount = slipData.sender?.account?.bank?.account || '';
+
     console.log('💰 Slip amount:', slipAmount);
     console.log('💰 Expected amount:', expectedAmount);
     console.log('🏦 Receiver name:', receiverName);
@@ -205,46 +226,46 @@ Deno.serve(async (req) => {
       }
 
       let accountMatch = false;
-      
+
       const compareAccountWithMask = (actual, expected) => {
         const cleanActual = actual.replace(/-/g, '');
         const cleanExpected = expected.replace(/[^0-9]/g, '');
-        
+
         if (cleanActual.includes('xxx') || cleanActual.includes('XXX')) {
           const visibleParts = cleanActual.split(/xxx|XXX/i);
-          
+
           return visibleParts.every(part => {
             if (!part || part.length === 0) return true;
             return cleanExpected.includes(part);
           });
         }
-        
+
         return cleanActual === cleanExpected || 
                cleanActual.includes(cleanExpected) || 
                cleanExpected.includes(cleanActual);
       };
-      
+
       if (expectedAccountNumber && receiverAccount) {
         if (compareAccountWithMask(receiverAccount, expectedAccountNumber)) {
           accountMatch = true;
           console.log('✅ Account number matches (with mask)');
         }
       }
-      
+
       if (!accountMatch && expectedPromptPay && receiverProxyAccount) {
         const cleanPromptPay = expectedPromptPay.replace(/[^0-9]/g, '');
         const cleanReceiverProxy = receiverProxyAccount.replace(/[^0-9]/g, '');
-        
+
         if (cleanReceiverProxy.includes(cleanPromptPay) || cleanPromptPay.includes(cleanReceiverProxy)) {
           accountMatch = true;
           console.log('✅ PromptPay matches');
         }
       }
-      
+
       if (!accountMatch && expectedAccountName && receiverName) {
         const cleanExpectedName = expectedAccountName.toLowerCase().replace(/\s+/g, '');
         const cleanReceiverName = receiverName.toLowerCase().replace(/\s+/g, '');
-        
+
         if (cleanReceiverName.includes(cleanExpectedName) || cleanExpectedName.includes(cleanReceiverName)) {
           accountMatch = true;
           console.log('✅ Account name matches');
@@ -253,13 +274,13 @@ Deno.serve(async (req) => {
 
       if (!accountMatch) {
         console.log('❌ Account mismatch!');
-        
+
         const receiverInfo = receiverAccount 
           ? `เลขบัญชี: ${receiverAccount}` 
           : receiverProxyAccount 
             ? `${receiverProxyType}: ${receiverProxyAccount}` 
             : receiverName;
-        
+
         return Response.json({ 
           success: false,
           error: '❌ โอนเงินไปผิดบัญชี',
@@ -269,6 +290,7 @@ Deno.serve(async (req) => {
     }
 
     console.log('✅ All verifications passed!');
+    }
     
     // ✅ Declare shared variables at function scope
     let startDate, endDate, daysToAdd, targetBranchIds = null;
@@ -465,13 +487,15 @@ Deno.serve(async (req) => {
             branch_id: targetBranchId,
             package_id: package_id,
             package_name: package_name,
-            owner_email: ownerEmail.trim(), // 🔒 Force trim to ensure no whitespace
+            owner_email: ownerEmail.trim(),
             subscription_start_date: startDate.toISOString().split('T')[0],
             subscription_end_date: endDate.toISOString().split('T')[0],
             status: 'active',
             price_per_month: parseFloat(price_per_month),
             features: [],
-            notes: `✅ ชำระเงินเมื่อ ${new Date().toISOString().split('T')[0]}\n✅ ตรวจสอบสลิปโดย Slip2Go${testModeEnabled ? ' (TEST MODE)' : ''}\n💰 จำนวนเงิน: ${slipAmount.toLocaleString()} บาท\n👤 จาก: ${senderName}\n🏦 เข้าบัญชี: ${receiverAccount || receiverProxyAccount || receiverName}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)${targetBranchIds.length > 1 ? `\n🏢 ซื้อพร้อมกับอีก ${targetBranchIds.length - 1} สาขา` : ''}`
+            notes: is_free 
+              ? `🎉 แพ็กเกจฟรี (ส่วนลด 100%)\n✅ เปิดใช้งานเมื่อ ${new Date().toISOString().split('T')[0]}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)${discount_code ? `\n🎟️ รหัสส่วนลด: ${discount_code}` : ''}${targetBranchIds.length > 1 ? `\n🏢 ใช้ได้กับ ${targetBranchIds.length} สาขา` : ''}`
+              : `✅ ชำระเงินเมื่อ ${new Date().toISOString().split('T')[0]}\n✅ ตรวจสอบสลิปโดย Slip2Go${testModeEnabled ? ' (TEST MODE)' : ''}\n💰 จำนวนเงิน: ${slipAmount.toLocaleString()} บาท\n👤 จาก: ${senderName}\n🏦 เข้าบัญชี: ${receiverAccount || receiverProxyAccount || receiverName}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)${targetBranchIds.length > 1 ? `\n🏢 ซื้อพร้อมกับอีก ${targetBranchIds.length - 1} สาขา` : ''}`
           };
           
           console.log('➕ Step 4: Creating new package');
@@ -548,10 +572,12 @@ Deno.serve(async (req) => {
         subscription_duration_months: duration_months,
         price_per_month: price_per_month,
         total_price: total_amount,
-        slip_url: slip_url,
+        slip_url: slip_url || null,
         payment_status: 'paid',
         features: currentSub?.features || [],
-        notes: `✅ ชำระเงินเมื่อ ${new Date().toISOString().split('T')[0]}\n✅ ตรวจสอบสลิปโดย Slip2Go${testModeEnabled ? ' (TEST MODE)' : ''}\n💰 จำนวนเงิน: ${slipAmount.toLocaleString()} บาท\n👤 จาก: ${senderName}\n🏦 เข้าบัญชี: ${receiverAccount || receiverProxyAccount || receiverName}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)`
+        notes: is_free
+          ? `🎉 แพ็กเกจฟรี (ส่วนลด 100%)\n✅ เปิดใช้งานเมื่อ ${new Date().toISOString().split('T')[0]}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)${discount_code ? `\n🎟️ รหัสส่วนลด: ${discount_code}` : ''}`
+          : `✅ ชำระเงินเมื่อ ${new Date().toISOString().split('T')[0]}\n✅ ตรวจสอบสลิปโดย Slip2Go${testModeEnabled ? ' (TEST MODE)' : ''}\n💰 จำนวนเงิน: ${slipAmount.toLocaleString()} บาท\n👤 จาก: ${senderName}\n🏦 เข้าบัญชี: ${receiverAccount || receiverProxyAccount || receiverName}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)`
       };
 
       if (currentSub) {
