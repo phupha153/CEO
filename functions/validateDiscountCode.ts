@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest, createClient } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
     try {
@@ -19,9 +19,10 @@ Deno.serve(async (req) => {
         }
 
         const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
+        const CRM_SERVICE_ROLE_KEY = Deno.env.get("CRM_SERVICE_ROLE_KEY");
 
-        if (!CRM_APP_ID) {
-            console.error('❌ Missing CRM_APP_ID');
+        if (!CRM_APP_ID || !CRM_SERVICE_ROLE_KEY) {
+            console.error('❌ Missing CRM credentials');
             return Response.json({
                 valid: false,
                 error: 'ระบบไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแล'
@@ -33,49 +34,23 @@ Deno.serve(async (req) => {
         console.log('🔍 User email:', user.email);
         console.log('🔍 App ID:', CRM_APP_ID);
 
+        const crmClient = createClient({
+            appId: CRM_APP_ID,
+            serviceRoleKey: CRM_SERVICE_ROLE_KEY,
+            baseURL: 'https://app.base44.com'
+        });
+
         const requestBody = {
-          code: code.trim().toUpperCase(),
-          user_email: user.email,
-          app_id: CRM_APP_ID
+            code: code.trim().toUpperCase(),
+            user_email: user.email,
+            app_id: CRM_APP_ID
         };
         console.log('📤 Request Body:', JSON.stringify(requestBody, null, 2));
 
-        const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
-        
-        const response = await fetch(`https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/validateDiscountCode`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'api_key': CRM_API_KEY
-            },
-            body: JSON.stringify(requestBody)
-        });
+        const response = await crmClient.functions.invoke('validateDiscountCode', requestBody);
+        const data = response.data;
 
-        console.log('📥 Response Status:', response.status);
-        console.log('📥 Response Headers:', JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
-
-        const responseText = await response.text();
-        console.log('📥 Response Body (raw):', responseText);
-
-        if (!response.ok) {
-            console.error('❌ CRM validation failed:', response.status, responseText);
-            return Response.json({
-                valid: false,
-                error: 'ไม่สามารถตรวจสอบโค้ดได้'
-            });
-        }
-
-        let data;
-        try {
-            data = JSON.parse(responseText);
-            console.log('📥 Response Body (parsed):', JSON.stringify(data, null, 2));
-        } catch (e) {
-            console.error('❌ Failed to parse response:', e);
-            return Response.json({
-                valid: false,
-                error: 'ระบบตอบกลับผิดรูปแบบ'
-            });
-        }
+        console.log('📥 Response:', JSON.stringify(data, null, 2));
 
         if (data.valid) {
             console.log('✅ Code is valid:', data);

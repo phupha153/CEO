@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest, createClient } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
     try {
@@ -27,9 +27,10 @@ Deno.serve(async (req) => {
         }
 
         const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
+        const CRM_SERVICE_ROLE_KEY = Deno.env.get("CRM_SERVICE_ROLE_KEY");
 
-        if (!CRM_APP_ID) {
-            console.error('❌ Missing CRM_APP_ID');
+        if (!CRM_APP_ID || !CRM_SERVICE_ROLE_KEY) {
+            console.error('❌ Missing CRM credentials');
             return Response.json({
                 success: false,
                 error: 'ระบบไม่พร้อมใช้งาน กรุณาติดต่อผู้ดูแล'
@@ -41,36 +42,25 @@ Deno.serve(async (req) => {
         console.log('🔍 User email:', user_email || user.email);
         console.log('🔍 App ID:', CRM_APP_ID);
 
-        const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
-        
-        const response = await fetch(`https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/useDiscountCode`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'api_key': CRM_API_KEY
-            },
-            body: JSON.stringify({
-                code: code.trim().toUpperCase(),
-                user_email: user_email || user.email,
-                app_id: CRM_APP_ID,
-                package_id: package_id || null,
-                package_name: package_name || null,
-                discount_amount: discount_amount || 0,
-                total_amount: total_amount || 0,
-                payment_date: payment_date || new Date().toISOString()
-            })
+        const crmClient = createClient({
+            appId: CRM_APP_ID,
+            serviceRoleKey: CRM_SERVICE_ROLE_KEY,
+            baseURL: 'https://app.base44.com'
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ CRM marking failed:', response.status, errorText);
-            return Response.json({
-                success: false,
-                error: 'ไม่สามารถบันทึกการใช้โค้ดได้'
-            });
-        }
+        const requestBody = {
+            code: code.trim().toUpperCase(),
+            user_email: user_email || user.email,
+            app_id: CRM_APP_ID,
+            package_id: package_id || null,
+            package_name: package_name || null,
+            discount_amount: discount_amount || 0,
+            total_amount: total_amount || 0,
+            payment_date: payment_date || new Date().toISOString()
+        };
 
-        const data = await response.json();
+        const response = await crmClient.functions.invoke('useDiscountCode', requestBody);
+        const data = response.data;
 
         if (data.success) {
             console.log('✅ Discount code marked as used:', data);
