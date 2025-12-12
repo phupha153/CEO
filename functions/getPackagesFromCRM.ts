@@ -26,9 +26,12 @@ Deno.serve(async (req) => {
       baseURL: 'https://app.base44.com'
     });
 
-    console.log('Fetching packages from CRM...');
+    console.log('Fetching packages and discount codes from CRM...');
 
-    const packages = await crmClient.entities.Package.list('-created_date', 100);
+    const [packages, discountCodes] = await Promise.all([
+      crmClient.entities.Package.list('-created_date', 100),
+      crmClient.entities.DiscountCode.list('-created_date', 200)
+    ]);
     
     console.log('✅ Success! Packages:', packages?.length || 0);
     
@@ -48,6 +51,7 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       packages: mappedPackages,
+      discount_codes: discountCodes || [],
       active_subscriptions: []
     });
 

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Crown, Check, Upload, Loader2, CheckCircle, ArrowLeft, X, AlertCircle, Building2, Users, Settings, Sparkles, Pencil } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +24,9 @@ export default function PackageSelectionPage() {
   const [errorDetails, setErrorDetails] = useState(null);
   const [debugMode, setDebugMode] = useState(false);
   const [expandedPackageId, setExpandedPackageId] = useState(null);
+  const [discountCode, setDiscountCode] = useState('');
+  const [validatingDiscount, setValidatingDiscount] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
   
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -128,7 +132,7 @@ export default function PackageSelectionPage() {
   const selectedPackage = packages.find(p => p.id === selectedPackageId);
   
   const calculatePrice = useMemo(() => {
-    if (!selectedPackage || !billingCycle) return { subtotal: 0, vat: 0, total: 0, branchCount: 0, discount: 0, monthlyPrice: 0, baseMonthlyPrice: 0, discountPercent: 0, savings: 0 };
+    if (!selectedPackage || !billingCycle) return { subtotal: 0, vat: 0, total: 0, branchCount: 0, discount: 0, monthlyPrice: 0, baseMonthlyPrice: 0, discountPercent: 0, savings: 0, discountAmount: 0, finalTotal: 0 };
     
     const months = parseInt(billingCycle);
     
@@ -180,6 +184,10 @@ export default function PackageSelectionPage() {
     const subtotal = totalPrice;
     const discountPercent = savings > 0 && baseMonthlyPrice > 0 ? Math.round((savings / (baseMonthlyPrice * months)) * 100) : 0;
     
+    // คำนวณส่วนลดจากโค้ด
+    const discountAmount = appliedDiscount?.discount_amount || 0;
+    const finalTotal = Math.max(0, subtotal - discountAmount);
+    
     return { 
       subtotal, 
       vat: 0,
@@ -190,9 +198,11 @@ export default function PackageSelectionPage() {
       discountPercent,
       savings,
       monthlyPrice, 
-      baseMonthlyPrice 
+      baseMonthlyPrice,
+      discountAmount,
+      finalTotal
     };
-  }, [selectedPackage, billingCycle]);
+  }, [selectedPackage, billingCycle, appliedDiscount]);
 
   const handleSlipUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -211,6 +221,35 @@ export default function PackageSelectionPage() {
       setErrorDetails('ไม่สามารถอัปโหลดไฟล์ได้: ' + error.message);
     } finally {
       setUploadingSlip(false);
+    }
+  };
+
+  const handleValidateDiscount = async () => {
+    if (!discountCode.trim()) {
+      toast.error('กรุณาใส่รหัสส่วนลด');
+      return;
+    }
+
+    setValidatingDiscount(true);
+    try {
+      const result = await base44.functions.invoke('validateDiscountCode', {
+        code: discountCode.trim(),
+        package_id: selectedPackageId,
+        total_amount: calculatePrice.subtotal
+      });
+
+      if (result.data.success) {
+        setAppliedDiscount(result.data);
+        toast.success(`ใช้รหัสส่วนลดสำเร็จ! ลด ${result.data.discount_amount.toLocaleString()} บาท`);
+      } else {
+        toast.error(result.data.error || 'รหัสส่วนลดไม่ถูกต้อง');
+        setAppliedDiscount(null);
+      }
+    } catch (error) {
+      toast.error('ไม่สามารถตรวจสอบรหัสส่วนลดได้');
+      setAppliedDiscount(null);
+    } finally {
+      setValidatingDiscount(false);
     }
   };
 
@@ -240,7 +279,10 @@ export default function PackageSelectionPage() {
         package_name: typeof selectedPackage.package_name === 'string' ? selectedPackage.package_name : (selectedPackage.package_name?.name ? String(selectedPackage.package_name.name) : ''),
         duration_months: parseInt(billingCycle),
         price_per_month: calculatePrice.monthlyPrice,
-        total_amount: calculatePrice.subtotal,
+        total_amount: calculatePrice.finalTotal,
+        original_amount: calculatePrice.subtotal,
+        discount_code: appliedDiscount ? discountCode.trim() : null,
+        discount_amount: appliedDiscount?.discount_amount || 0,
         slip_url: slipUrl,
         user_email: currentUser.email,
         user_name: currentUser.full_name,
@@ -248,6 +290,18 @@ export default function PackageSelectionPage() {
       });
 
       if (result.data.success) {
+        // บันทึกการใช้โค้ดส่วนลดใน CRM
+        if (appliedDiscount && discountCode.trim()) {
+          try {
+            await base44.functions.invoke('markDiscountCodeUsed', {
+              code: discountCode.trim(),
+              user_email: currentUser.email
+            });
+          } catch (error) {
+            console.error('Failed to mark discount code as used:', error);
+          }
+        }
+
         queryClient.invalidateQueries({ queryKey: ['appSubscriptions'] });
         queryClient.invalidateQueries({ queryKey: ['branchPackages'] });
         setStep(3);
@@ -807,6 +861,45 @@ export default function PackageSelectionPage() {
 
 
 
+                        {/* Discount Code Section */}
+                        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 mb-6 border border-purple-200">
+                          <h4 className="font-bold text-slate-800 mb-3 text-sm flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-purple-600" />
+                            รหัสส่วนลด (ถ้ามี)
+                          </h4>
+                          <div className="flex gap-2">
+                            <Input
+                              value={discountCode}
+                              onChange={(e) => {
+                                setDiscountCode(e.target.value.toUpperCase());
+                                setAppliedDiscount(null);
+                              }}
+                              placeholder="ใส่รหัสส่วนลด"
+                              className="flex-1"
+                              disabled={validatingDiscount}
+                            />
+                            <Button
+                              onClick={handleValidateDiscount}
+                              disabled={!discountCode.trim() || validatingDiscount}
+                              className="bg-gradient-to-r from-purple-600 to-pink-600"
+                            >
+                              {validatingDiscount ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                'ใช้'
+                              )}
+                            </Button>
+                          </div>
+                          {appliedDiscount && (
+                            <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                              <p className="text-sm text-green-800 font-semibold flex items-center gap-2">
+                                <Check className="w-4 h-4" />
+                                ส่วนลด: -{appliedDiscount.discount_amount.toLocaleString()} ฿
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
                         <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 mb-6 border border-blue-200">
                           <div className="space-y-3">
                             <div className="flex justify-between text-sm">
@@ -821,12 +914,27 @@ export default function PackageSelectionPage() {
                                 </p>
                               </div>
                             )}
+                            {appliedDiscount && (
+                              <div className="bg-green-50 rounded-lg p-2 border border-green-200">
+                                <p className="text-xs text-green-700 flex items-center gap-1">
+                                  <Check className="w-3 h-3" />
+                                  ส่วนลดจากโค้ด -{calculatePrice.discountAmount.toLocaleString()} ฿
+                                </p>
+                              </div>
+                            )}
                             <div className="pt-3 border-t-2 border-blue-300">
                               <div className="flex justify-between items-center">
                                 <span className="font-bold text-slate-800">ยอดรวมทั้งหมด ({billingCycle} เดือน)</span>
-                                <span className="text-3xl font-bold text-blue-600">
-                                  {calculatePrice.subtotal.toLocaleString()} ฿
-                                </span>
+                                <div className="text-right">
+                                  {appliedDiscount && (
+                                    <div className="text-sm text-slate-500 line-through mb-1">
+                                      {calculatePrice.subtotal.toLocaleString()} ฿
+                                    </div>
+                                  )}
+                                  <span className="text-3xl font-bold text-blue-600">
+                                    {calculatePrice.finalTotal.toLocaleString()} ฿
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           </div>
