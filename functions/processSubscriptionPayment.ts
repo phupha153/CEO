@@ -130,9 +130,9 @@ Deno.serve(async (req) => {
           console.log('❌ Discount validation failed:', errorMsg);
           
           // แจ้งรายละเอียดถ้าโค้ดใช้ครบแล้ว
-          let errorDetails = 'รหัสส่วนลดไม่ถูกต้องหรือถูกใช้ไปแล้ว กรุณาตรวจสอบและลองใหม่';
-          if (errorMsg.includes('usage limit') || errorMsg.includes('ใช้งานครบ') || errorMsg.includes('ถูกใช้ไปแล้ว')) {
-            errorDetails = '🎟️ รหัสส่วนลดนี้ถูกใช้งานครบจำนวนแล้ว\n\nกรุณาใช้รหัสส่วนลดอื่น หรือดำเนินการชำระเงินโดยไม่ใช้รหัสส่วนลด';
+          let errorDetails = 'โค้ดส่วนลดไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่';
+          if (errorMsg.includes('usage limit') || errorMsg.includes('ใช้งานครบ') || errorMsg.includes('ถูกใช้ไปแล้ว') || errorMsg.includes('ใช้โค้ด')) {
+            errorDetails = '🎟️ โค้ดส่วนลดนี้ใช้งานครบแล้ว\n\nกรุณาลองใช้โค้ดอื่น หรือชำระเงินเต็มจำนวน';
           }
           
           return Response.json({ 

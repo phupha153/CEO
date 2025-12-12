@@ -114,9 +114,9 @@ export default function PackagePaymentPage() {
         const errorMsg = result.data.error || 'รหัสส่วนลดไม่ถูกต้อง';
 
         // ตรวจสอบว่าเป็น error เรื่องใช้ครบแล้วหรือไม่
-        if (errorMsg.includes('usage limit') || errorMsg.includes('ใช้งานครบ') || errorMsg.includes('ถูกใช้ไปแล้ว')) {
-          toast.error('รหัสส่วนลดนี้ถูกใช้งานครบจำนวนแล้ว', {
-            description: 'กรุณาใช้รหัสส่วนลดอื่น หรือดำเนินการชำระเงินโดยไม่ใช้รหัสส่วนลด',
+        if (errorMsg.includes('usage limit') || errorMsg.includes('ใช้งานครบ') || errorMsg.includes('ถูกใช้ไปแล้ว') || errorMsg.includes('ใช้โค้ด')) {
+          toast.error('โค้ดส่วนลดนี้ใช้งานครบแล้ว', {
+            description: 'กรุณาลองใช้โค้ดอื่น หรือชำระเงินเต็มจำนวน',
             duration: 6000
           });
         } else {
