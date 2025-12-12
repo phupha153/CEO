@@ -71,6 +71,15 @@ Deno.serve(async (req) => {
 
     const discountCode = crmData.discount_code;
 
+    // ✅ เช็คว่าโค้ดใช้ครบจำนวนแล้วหรือยัง
+    if (discountCode.customer_limit && 
+        discountCode.customer_usage_count >= discountCode.customer_limit) {
+      return Response.json({ 
+        success: false,
+        error: 'รหัสส่วนลดนี้ถูกใช้งานครบจำนวนแล้ว'
+      });
+    }
+
     // คำนวณส่วนลด
     let discountAmount = 0;
     if (discountCode.discount_type === 'percentage') {
