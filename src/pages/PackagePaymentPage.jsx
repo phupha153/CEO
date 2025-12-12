@@ -245,12 +245,12 @@ export default function PackagePaymentPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="relative z-10 p-4">
         <Button
-          onClick={() => window.history.back()}
+          onClick={() => navigate(createPageUrl('PackageSelectionPage'))}
           variant="ghost"
           className="text-slate-600 hover:text-slate-800"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          กลับ
+          กลับไปเลือกแพ็กเกจ
         </Button>
       </div>
 
