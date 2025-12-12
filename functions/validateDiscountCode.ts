@@ -40,10 +40,13 @@ Deno.serve(async (req) => {
         };
         console.log('📤 Request Body:', JSON.stringify(requestBody, null, 2));
 
+        const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
+        
         const response = await fetch(`https://base44-crm-production.up.railway.app/api/validateDiscountCode`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'x-api-key': CRM_API_KEY
             },
             body: JSON.stringify(requestBody)
         });
