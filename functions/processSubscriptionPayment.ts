@@ -119,7 +119,8 @@ Deno.serve(async (req) => {
         const validateResponse = await base44.asServiceRole.functions.invoke('validateDiscountCode', {
           code: discount_code.trim(),
           package_id: package_id,
-          total_amount: original_amount || total_amount
+          total_amount: original_amount || total_amount,
+          customer_email: user_email || user.email
         });
         
         console.log('📡 Validation Response:', validateResponse.data);
