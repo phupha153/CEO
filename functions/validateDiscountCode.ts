@@ -11,35 +11,54 @@ Deno.serve(async (req) => {
 
     const crmApiKey = Deno.env.get("CRM_API_KEY");
     if (!crmApiKey) {
+      console.error('❌ CRM_API_KEY not set');
       return Response.json({ 
         success: false,
-        error: 'ไม่สามารถเชื่อมต่อ CRM ได้' 
+        error: 'ไม่สามารถเชื่อมต่อ CRM ได้ - ไม่พบ API Key' 
       });
     }
 
-    // เรียก API CRM เพื่อตรวจสอบโค้ดส่วนลด
-    const crmResponse = await fetch('https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/getDiscountCode', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'x-api-key': crmApiKey
-      },
-      body: JSON.stringify({ 
-        code: code.toUpperCase(),
-        action: 'validate',
-        package_id: package_id,
-        total_amount: total_amount
-      })
-    });
+    console.log('🔍 Validating discount code:', code.toUpperCase());
+    console.log('📦 Package ID:', package_id);
+    console.log('💰 Amount:', total_amount);
 
-    if (!crmResponse.ok) {
+    // เรียก API CRM เพื่อตรวจสอบโค้ดส่วนลด
+    let crmResponse;
+    try {
+      crmResponse = await fetch('https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/getDiscountCode', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-api-key': crmApiKey
+        },
+        body: JSON.stringify({ 
+          code: code.toUpperCase(),
+          action: 'validate',
+          package_id: package_id,
+          total_amount: total_amount
+        })
+      });
+    } catch (fetchError) {
+      console.error('❌ Fetch error:', fetchError.message);
       return Response.json({ 
         success: false,
-        error: 'ไม่สามารถเชื่อมต่อ CRM ได้' 
+        error: 'ไม่สามารถเชื่อมต่อ CRM ได้ - ' + fetchError.message
+      });
+    }
+
+    console.log('📡 CRM Response Status:', crmResponse.status);
+
+    if (!crmResponse.ok) {
+      const errorText = await crmResponse.text();
+      console.error('❌ CRM Error Response:', errorText);
+      return Response.json({ 
+        success: false,
+        error: `ไม่สามารถเชื่อมต่อ CRM ได้ (${crmResponse.status}): ${errorText.substring(0, 100)}`
       });
     }
 
     const crmData = await crmResponse.json();
+    console.log('✅ CRM Response:', crmData);
     
     if (!crmData.success || !crmData.discount_code) {
       return Response.json({ 
