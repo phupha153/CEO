@@ -110,6 +110,41 @@ Deno.serve(async (req) => {
     console.log('📱 App Mode:', appMode);
     console.log('💰 Is Free Package:', is_free ? 'YES' : 'NO');
 
+    // ⭐⭐⭐ ตรวจสอบ discount code ก่อนทำอะไรต่อ (ถ้ามี)
+    if (discount_code && discount_code.trim() !== '') {
+      console.log('\n=== Validating Discount Code ===');
+      console.log('🎟️ Discount Code:', discount_code);
+      
+      try {
+        const validateResponse = await base44.asServiceRole.functions.invoke('validateDiscountCode', {
+          code: discount_code.trim(),
+          package_id: package_id,
+          total_amount: original_amount || total_amount
+        });
+        
+        console.log('📡 Validation Response:', validateResponse.data);
+        
+        if (!validateResponse.data?.success) {
+          const errorMsg = validateResponse.data?.error || 'รหัสส่วนลดไม่สามารถใช้งานได้';
+          console.log('❌ Discount validation failed:', errorMsg);
+          return Response.json({ 
+            success: false,
+            error: errorMsg,
+            details: 'รหัสส่วนลดไม่ถูกต้องหรือถูกใช้ไปแล้ว กรุณาตรวจสอบและลองใหม่'
+          }, { status: 400 });
+        }
+        
+        console.log('✅ Discount code validated successfully');
+      } catch (validateError) {
+        console.error('❌ Discount validation error:', validateError.message);
+        return Response.json({ 
+          success: false,
+          error: 'ไม่สามารถตรวจสอบรหัสส่วนลดได้',
+          details: validateError.message
+        }, { status: 500 });
+      }
+    }
+
     // ถ้าเป็นแพ็กเกจฟรี ข้ามการ verify slip
     let slipData = null;
     let slipAmount = 0;
