@@ -98,9 +98,30 @@ export default function PackagePaymentPage() {
 
       if (result.data.success) {
         setAppliedDiscount(result.data);
-        toast.success(`ใช้รหัสส่วนลดสำเร็จ! ลด ${result.data.discount_amount.toLocaleString()} บาท`);
+
+        // แสดงข้อมูลการใช้งาน
+        let successMsg = `ใช้รหัสส่วนลดสำเร็จ! ลด ${result.data.discount_amount.toLocaleString()} บาท`;
+        if (result.data.usage_info) {
+          const { customer_limit, remaining_uses } = result.data.usage_info;
+          if (customer_limit && remaining_uses !== null) {
+            successMsg += `\n\n🎟️ เหลือใช้ได้อีก ${remaining_uses} ครั้ง (จาก ${customer_limit} ครั้ง)`;
+          }
+        }
+
+        toast.success(successMsg, { duration: 5000 });
       } else {
-        toast.error(result.data.error || 'รหัสส่วนลดไม่ถูกต้อง');
+        const errorMsg = result.data.error || 'รหัสส่วนลดไม่ถูกต้อง';
+
+        // ตรวจสอบว่าเป็น error เรื่องใช้ครบแล้วหรือไม่
+        if (errorMsg.includes('usage limit') || errorMsg.includes('ใช้งานครบ') || errorMsg.includes('ถูกใช้ไปแล้ว')) {
+          toast.error('รหัสส่วนลดนี้ถูกใช้งานครบจำนวนแล้ว', {
+            description: 'กรุณาใช้รหัสส่วนลดอื่น หรือดำเนินการชำระเงินโดยไม่ใช้รหัสส่วนลด',
+            duration: 6000
+          });
+        } else {
+          toast.error(errorMsg);
+        }
+
         setAppliedDiscount(null);
       }
     } catch (error) {
@@ -370,6 +391,11 @@ export default function PackagePaymentPage() {
                         -{appliedDiscount.discount_amount.toLocaleString()} ฿
                       </p>
                     </div>
+                    {appliedDiscount.usage_info && appliedDiscount.usage_info.remaining_uses !== null && (
+                      <p className="text-xs text-green-600 mt-1">
+                        🎟️ เหลือใช้ได้อีก {appliedDiscount.usage_info.remaining_uses} ครั้ง
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

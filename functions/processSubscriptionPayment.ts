@@ -127,10 +127,17 @@ Deno.serve(async (req) => {
         if (!validateResponse.data?.success) {
           const errorMsg = validateResponse.data?.error || 'รหัสส่วนลดไม่สามารถใช้งานได้';
           console.log('❌ Discount validation failed:', errorMsg);
+          
+          // แจ้งรายละเอียดถ้าโค้ดใช้ครบแล้ว
+          let errorDetails = 'รหัสส่วนลดไม่ถูกต้องหรือถูกใช้ไปแล้ว กรุณาตรวจสอบและลองใหม่';
+          if (errorMsg.includes('usage limit') || errorMsg.includes('ใช้งานครบ') || errorMsg.includes('ถูกใช้ไปแล้ว')) {
+            errorDetails = '🎟️ รหัสส่วนลดนี้ถูกใช้งานครบจำนวนแล้ว\n\nกรุณาใช้รหัสส่วนลดอื่น หรือดำเนินการชำระเงินโดยไม่ใช้รหัสส่วนลด';
+          }
+          
           return Response.json({ 
             success: false,
             error: errorMsg,
-            details: 'รหัสส่วนลดไม่ถูกต้องหรือถูกใช้ไปแล้ว กรุณาตรวจสอบและลองใหม่'
+            details: errorDetails
           }, { status: 400 });
         }
         

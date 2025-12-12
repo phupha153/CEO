@@ -84,12 +84,22 @@ Deno.serve(async (req) => {
 
     const finalAmount = Math.max(0, total_amount - discountAmount);
 
+    // ✅ เพิ่มข้อมูลการใช้งาน
+    const usageInfo = {
+      customer_limit: discountCode.customer_limit || null,
+      customer_usage_count: discountCode.customer_usage_count || 0,
+      remaining_uses: discountCode.customer_limit 
+        ? Math.max(0, discountCode.customer_limit - (discountCode.customer_usage_count || 0))
+        : null
+    };
+
     return Response.json({
       success: true,
       discount_code: discountCode,
       discount_amount: discountAmount,
       final_amount: finalAmount,
-      original_amount: total_amount
+      original_amount: total_amount,
+      usage_info: usageInfo
     });
 
   } catch (error) {
