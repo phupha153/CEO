@@ -67,6 +67,8 @@ export default function TenantsPage() {
   const [editingCells, setEditingCells] = useState({});
   const [bulkDeleteMode, setBulkDeleteMode] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [showDevPanel, setShowDevPanel] = useState(false);
+  const [creatingRatings, setCreatingRatings] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -151,6 +153,7 @@ export default function TenantsPage() {
 
   const userPermissions = currentUser?.permissions || [];
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const isDeveloper = userRole === 'developer';
 
   const canView = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('tenants_view');
   const canAdd = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('tenants_add');
@@ -2261,7 +2264,17 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
           <>
             {activeTab === 'tenants' && (
               <>
-
+                {isDeveloper && (
+                  <Button
+                    onClick={() => setShowDevPanel(!showDevPanel)}
+                    variant={showDevPanel ? 'default' : 'outline'}
+                    size="sm"
+                    className={showDevPanel ? 'bg-purple-600 text-white' : 'border-purple-600 text-purple-600 hover:bg-purple-50'}
+                  >
+                    <Sparkles className="w-4 h-4 md:mr-2" />
+                    <span className="hidden md:inline">{showDevPanel ? 'ซ่อนเครื่องมือ Dev' : 'เครื่องมือ Dev'}</span>
+                  </Button>
+                )}
                 <Button
                   onClick={handleDownloadExistingTenants}
                   variant="outline"
@@ -2322,6 +2335,72 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
             </TabsList>
 
             <TabsContent value="tenants" className="mt-6 space-y-6">
+              {showDevPanel && isDeveloper && (
+                <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-300 shadow-xl rounded-2xl">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-purple-600" />
+                        <h3 className="font-bold text-purple-900">🔒 เครื่องมือผู้พัฒนา</h3>
+                      </div>
+                      <Badge className="bg-purple-600 text-white">Developer Only</Badge>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <Alert className="bg-blue-50 border-blue-200">
+                        <AlertCircle className="w-4 h-4 text-blue-600" />
+                        <AlertDescription className="text-blue-800 text-sm">
+                          <p className="font-semibold mb-1">📊 สร้าง TenantRating จาก Payment Scores</p>
+                          <p className="text-xs">ผู้เช่าที่มี payment_scores แต่ยังไม่มี TenantRating จะถูกสร้างอัตโนมัติ</p>
+                        </AlertDescription>
+                      </Alert>
+
+                      <Button
+                        onClick={async () => {
+                          if (!selectedBranchId) {
+                            toast.error('กรุณาเลือกสาขาก่อน');
+                            return;
+                          }
+                          
+                          if (confirm(`สร้าง TenantRating จาก payment_scores สำหรับสาขา ${selectedBranchName}?`)) {
+                            setCreatingRatings(true);
+                            try {
+                              const result = await base44.functions.invoke('createRatingsFromPaymentScores', {
+                                branch_id: selectedBranchId
+                              });
+                              
+                              if (result.data.success) {
+                                queryClient.invalidateQueries(['tenantRatings', selectedBranchId]);
+                                toast.success(result.data.message || `สร้างคะแนนสำเร็จ ${result.data.created} รายการ`);
+                              } else {
+                                toast.error(result.data.error || 'เกิดข้อผิดพลาด');
+                              }
+                            } catch (error) {
+                              toast.error('เกิดข้อผิดพลาด: ' + error.message);
+                            } finally {
+                              setCreatingRatings(false);
+                            }
+                          }
+                        }}
+                        disabled={creatingRatings}
+                        className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                      >
+                        {creatingRatings ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            กำลังสร้างคะแนน...
+                          </>
+                        ) : (
+                          <>
+                            <Star className="w-4 h-4 mr-2" />
+                            สร้าง TenantRating อัตโนมัติ
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg rounded-3xl">
             <CardContent className="p-6 md:p-8 space-y-6 relative">
