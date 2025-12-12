@@ -1,5 +1,3 @@
-import { createClient } from 'npm:@base44/sdk@0.8.4';
-
 Deno.serve(async (req) => {
   try {
     const { code, user_email } = await req.json();
@@ -11,42 +9,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    const crmAppId = Deno.env.get("CRM_APP_ID");
-    const crmServiceRoleKey = Deno.env.get("CRM_SERVICE_ROLE_KEY");
-
-    if (!crmAppId || !crmServiceRoleKey) {
-      return Response.json({ 
-        success: false,
-        error: 'ไม่สามารถเชื่อมต่อ CRM ได้' 
-      });
-    }
-
-    const crmClient = createClient({
-      appId: crmAppId,
-      serviceRoleKey: crmServiceRoleKey,
-      baseURL: 'https://app.base44.com'
+    // เรียก API CRM เพื่อบันทึกการใช้โค้ดส่วนลด
+    const crmResponse = await fetch('https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/getDiscountCode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        code: code.toUpperCase(),
+        action: 'mark_used',
+        user_email: user_email
+      })
     });
 
-    // ดึง discount code จาก CRM
-    const discountCodes = await crmClient.entities.DiscountCode.filter({ code: code.toUpperCase() });
-    const discountCode = discountCodes[0];
-
-    if (!discountCode) {
+    const crmData = await crmResponse.json();
+    
+    if (!crmData.success) {
       return Response.json({ 
         success: false,
-        error: 'ไม่พบรหัสส่วนลดนี้' 
+        error: crmData.error || 'ไม่สามารถบันทึกการใช้รหัสส่วนลดได้' 
       });
     }
-
-    // เพิ่มจำนวนครั้งที่ใช้และบันทึกผู้ใช้
-    const currentUsageCount = discountCode.usage_count || 0;
-    const usedByEmails = discountCode.used_by_emails || [];
-
-    await crmClient.entities.DiscountCode.update(discountCode.id, {
-      usage_count: currentUsageCount + 1,
-      used_by_emails: [...usedByEmails, user_email],
-      last_used_date: new Date().toISOString()
-    });
 
     console.log(`✅ Discount code ${code} marked as used by ${user_email}`);
 

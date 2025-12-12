@@ -28,10 +28,22 @@ Deno.serve(async (req) => {
 
     console.log('Fetching packages and discount codes from CRM...');
 
-    const [packages, discountCodes] = await Promise.all([
-      crmClient.entities.Package.list('-created_date', 100),
-      crmClient.entities.DiscountCode.list('-created_date', 200)
-    ]);
+    const packages = await crmClient.entities.Package.list('-created_date', 100);
+    
+    // เรียก API ดึง discount codes จาก CRM
+    let discountCodes = [];
+    try {
+      const discountResponse = await fetch('https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/getDiscountCode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      const discountData = await discountResponse.json();
+      discountCodes = discountData.discount_codes || [];
+      console.log('✅ Fetched discount codes:', discountCodes.length);
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch discount codes:', error.message);
+    }
     
     console.log('✅ Success! Packages:', packages?.length || 0);
     

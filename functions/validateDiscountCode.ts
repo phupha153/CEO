@@ -1,5 +1,3 @@
-import { createClient } from 'npm:@base44/sdk@0.8.4';
-
 Deno.serve(async (req) => {
   try {
     const { code, package_id, total_amount } = await req.json();
@@ -11,25 +9,23 @@ Deno.serve(async (req) => {
       });
     }
 
-    const crmAppId = Deno.env.get("CRM_APP_ID");
-    const crmServiceRoleKey = Deno.env.get("CRM_SERVICE_ROLE_KEY");
+    // เรียก API CRM เพื่อตรวจสอบโค้ดส่วนลด
+    const crmResponse = await fetch('https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/getDiscountCode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code.toUpperCase() })
+    });
 
-    if (!crmAppId || !crmServiceRoleKey) {
+    const crmData = await crmResponse.json();
+    
+    if (!crmData.success || !crmData.discount_code) {
       return Response.json({ 
         success: false,
-        error: 'ไม่สามารถเชื่อมต่อ CRM ได้' 
+        error: crmData.error || 'ไม่พบรหัสส่วนลดนี้' 
       });
     }
 
-    const crmClient = createClient({
-      appId: crmAppId,
-      serviceRoleKey: crmServiceRoleKey,
-      baseURL: 'https://app.base44.com'
-    });
-
-    // ดึง discount code จาก CRM
-    const discountCodes = await crmClient.entities.DiscountCode.filter({ code: code.toUpperCase() });
-    const discountCode = discountCodes[0];
+    const discountCode = crmData.discount_code;
 
     if (!discountCode) {
       return Response.json({ 
