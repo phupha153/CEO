@@ -115,7 +115,7 @@ export default function PackagePaymentPage() {
 
         // ตรวจสอบว่าเป็น error เรื่องใช้ครบแล้วหรือไม่
         if (errorMsg.includes('usage limit') || errorMsg.includes('ใช้งานครบ') || errorMsg.includes('ถูกใช้ไปแล้ว') || errorMsg.includes('ใช้โค้ด')) {
-          toast.error('โค้ดส่วนลดนี้ใช้งานแล้ว', {
+          toast.error('โค้ดส่วนลดนี้ใช้งานครบแล้ว', {
             description: 'กรุณาลองใช้โค้ดอื่น หรือชำระเงินเต็มจำนวน',
             duration: 6000
           });

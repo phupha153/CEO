@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       console.log('❌ Customer usage limit reached');
       return Response.json({ 
         success: false,
-        error: 'คุณใช้โค้ดส่วนลดนี้ไปแล้ว'
+        error: 'คุณใช้รหัสส่วนลดนี้ครบจำนวนแล้ว'
       });
     }
 
