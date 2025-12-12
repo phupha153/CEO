@@ -252,14 +252,10 @@ export default function PackageSelectionPage() {
 
       <div className="relative z-10 min-h-[calc(100vh-80px)] flex items-center justify-center p-4">
         <div className="w-full max-w-7xl">
-          <AnimatePresence mode="wait">
-            {step === 1 && (
-              <motion.div
-                key="step1"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-              >
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
                 <div className="text-center mb-12">
                   <h1 className="text-4xl md:text-5xl font-bold mb-2">
                     <span className="text-slate-900">Small investment</span>
