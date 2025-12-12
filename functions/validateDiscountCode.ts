@@ -19,9 +19,9 @@ Deno.serve(async (req) => {
         }
 
         const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
-        const CRM_SERVICE_ROLE_KEY = Deno.env.get("CRM_SERVICE_ROLE_KEY");
+        const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
 
-        if (!CRM_APP_ID || !CRM_SERVICE_ROLE_KEY) {
+        if (!CRM_APP_ID || !CRM_API_KEY) {
             console.error('❌ Missing CRM credentials');
             return Response.json({
                 valid: false,
@@ -34,12 +34,6 @@ Deno.serve(async (req) => {
         console.log('🔍 User email:', user.email);
         console.log('🔍 App ID:', CRM_APP_ID);
 
-        const crmClient = createClient({
-            appId: CRM_APP_ID,
-            serviceRoleKey: CRM_SERVICE_ROLE_KEY,
-            baseURL: 'https://app.base44.com'
-        });
-
         const requestBody = {
             code: code.trim().toUpperCase(),
             user_email: user.email,
@@ -47,10 +41,38 @@ Deno.serve(async (req) => {
         };
         console.log('📤 Request Body:', JSON.stringify(requestBody, null, 2));
 
-        const response = await crmClient.functions.invoke('validateDiscountCode', requestBody);
-        const data = response.data;
+        const response = await fetch(`https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/validateDiscountCode`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api_key': CRM_API_KEY
+            },
+            body: JSON.stringify(requestBody)
+        });
 
-        console.log('📥 Response:', JSON.stringify(data, null, 2));
+        console.log('📥 Status:', response.status);
+        const responseText = await response.text();
+        console.log('📥 Response:', responseText);
+
+        if (!response.ok) {
+            console.error('❌ CRM validation failed:', response.status, responseText);
+            return Response.json({
+                valid: false,
+                error: 'ไม่สามารถตรวจสอบโค้ดได้'
+            });
+        }
+
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch {
+            return Response.json({
+                valid: false,
+                error: 'ระบบตอบกลับผิดรูปแบบ'
+            });
+        }
+
+        console.log('📥 Parsed:', JSON.stringify(data, null, 2));
 
         if (data.valid) {
             console.log('✅ Code is valid:', data);

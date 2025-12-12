@@ -27,9 +27,9 @@ Deno.serve(async (req) => {
         }
 
         const CRM_APP_ID = Deno.env.get("CRM_APP_ID");
-        const CRM_SERVICE_ROLE_KEY = Deno.env.get("CRM_SERVICE_ROLE_KEY");
+        const CRM_API_KEY = Deno.env.get("CRM_API_KEY");
 
-        if (!CRM_APP_ID || !CRM_SERVICE_ROLE_KEY) {
+        if (!CRM_APP_ID || !CRM_API_KEY) {
             console.error('❌ Missing CRM credentials');
             return Response.json({
                 success: false,
@@ -42,12 +42,6 @@ Deno.serve(async (req) => {
         console.log('🔍 User email:', user_email || user.email);
         console.log('🔍 App ID:', CRM_APP_ID);
 
-        const crmClient = createClient({
-            appId: CRM_APP_ID,
-            serviceRoleKey: CRM_SERVICE_ROLE_KEY,
-            baseURL: 'https://app.base44.com'
-        });
-
         const requestBody = {
             code: code.trim().toUpperCase(),
             user_email: user_email || user.email,
@@ -59,8 +53,36 @@ Deno.serve(async (req) => {
             payment_date: payment_date || new Date().toISOString()
         };
 
-        const response = await crmClient.functions.invoke('useDiscountCode', requestBody);
-        const data = response.data;
+        const response = await fetch(`https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/useDiscountCode`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api_key': CRM_API_KEY
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        console.log('📥 Status:', response.status);
+        const responseText = await response.text();
+        console.log('📥 Response:', responseText);
+
+        if (!response.ok) {
+            console.error('❌ CRM failed:', response.status, responseText);
+            return Response.json({
+                success: false,
+                error: 'ไม่สามารถบันทึกการใช้โค้ดได้'
+            });
+        }
+
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch {
+            return Response.json({
+                success: false,
+                error: 'ระบบตอบกลับผิดรูปแบบ'
+            });
+        }
 
         if (data.success) {
             console.log('✅ Discount code marked as used:', data);
