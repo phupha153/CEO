@@ -1090,6 +1090,7 @@ export default function Layout({ children, currentPageName }) {
       currentPageName === 'PrintReceipts' || 
       currentPageName === 'RenewalPage' ||
       currentPageName === 'PackageSelectionPage' ||
+      currentPageName === 'PackagePaymentPage' ||
       currentPageName === 'TrialExpiredPage' ||
       currentPageName === 'PackageExpiredPage' ||
       currentPageName === 'BranchSelection' ||
