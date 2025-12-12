@@ -810,47 +810,23 @@ export default function PackageSelectionPage() {
                         <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 mb-6 border border-blue-200">
                           <div className="space-y-3">
                             <div className="flex justify-between text-sm">
-                              <span className="text-slate-600">ราคาปกติต่อเดือน</span>
-                              <span className={calculatePrice.savings > 0 ? 'line-through text-slate-400' : 'font-semibold'}>
-                                {calculatePrice.baseMonthlyPrice.toLocaleString()} ฿
-                              </span>
+                              <span className="text-slate-600">ราคาต่อเดือน (รวม VAT 7%)</span>
+                              <span className="font-semibold">{calculatePrice.monthlyPrice.toLocaleString()} ฿</span>
                             </div>
                             {calculatePrice.savings > 0 && (
-                              <>
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-slate-600">ราคาพิเศษต่อเดือน</span>
-                                  <span className="font-semibold text-green-600">{calculatePrice.monthlyPrice.toLocaleString()} ฿</span>
-                                </div>
-                                <div className="bg-orange-50 rounded-lg p-2 border border-orange-200">
-                                  <p className="text-xs text-orange-700 flex items-center gap-1">
-                                    <Check className="w-3 h-3" />
-                                    ส่วนลด {calculatePrice.discountPercent}% ประหยัด {calculatePrice.savings.toLocaleString()} ฿
-                                  </p>
-                                </div>
-                              </>
+                              <div className="bg-orange-50 rounded-lg p-2 border border-orange-200">
+                                <p className="text-xs text-orange-700 flex items-center gap-1">
+                                  <Check className="w-3 h-3" />
+                                  ประหยัด {calculatePrice.savings.toLocaleString()} ฿ ({calculatePrice.discountPercent}%)
+                                </p>
+                              </div>
                             )}
-                            <div className="border-t border-blue-200 pt-3 space-y-2">
-                              <div className="flex justify-between text-sm text-slate-600">
-                                <span>ค่าบริการ ({billingCycle} เดือน)</span>
-                                <span>{(calculatePrice.monthlyPrice * parseInt(billingCycle)).toLocaleString()} ฿</span>
-                              </div>
-                              {calculatePrice.savings > 0 && (
-                                <div className="flex justify-between text-sm text-green-600">
-                                  <span>หักส่วนลด</span>
-                                  <span>-{calculatePrice.savings.toLocaleString()} ฿</span>
-                                </div>
-                              )}
-                              <div className="flex justify-between text-sm text-slate-600 pb-2">
-                                <span>VAT 7%</span>
-                                <span>รวมในราคาแล้ว</span>
-                              </div>
-                              <div className="pt-2 border-t-2 border-blue-300">
-                                <div className="flex justify-between items-center">
-                                  <span className="font-bold text-slate-800">ยอดชำระทั้งหมด</span>
-                                  <span className="text-3xl font-bold text-blue-600">
-                                    {calculatePrice.subtotal.toLocaleString()} ฿
-                                  </span>
-                                </div>
+                            <div className="pt-3 border-t-2 border-blue-300">
+                              <div className="flex justify-between items-center">
+                                <span className="font-bold text-slate-800">ยอดรวมทั้งหมด ({billingCycle} เดือน)</span>
+                                <span className="text-3xl font-bold text-blue-600">
+                                  {calculatePrice.subtotal.toLocaleString()} ฿
+                                </span>
                               </div>
                             </div>
                           </div>
