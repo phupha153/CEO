@@ -574,47 +574,61 @@ export default function PackageSelectionPage() {
 
                                 {/* Button */}
                                 <Button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (isDisabled) return;
-                                    
-                                    const pkgName = typeof pkg.package_name === 'string' 
-                                      ? pkg.package_name 
-                                      : (pkg.package_name?.name ? String(pkg.package_name.name) : '');
-                                    
-                                    // ถ้าส่วนลดเป็น 100% ให้ไปหน้าชำระเงินทันที
-                                    if (calculatePrice.finalTotal === 0 || (appliedDiscount && calculatePrice.finalTotal === 0)) {
-                                      navigate(createPageUrl('PackagePaymentPage'), {
-                                        state: {
-                                          packageData: {
-                                            packageId: pkg.id,
-                                            packageName: pkgName,
-                                            durationMonths: parseInt(billingCycle),
-                                            monthlyPrice: calculatePrice.monthlyPrice,
-                                            subtotal: calculatePrice.subtotal,
-                                            discountCode: appliedDiscount ? discountCode.trim() : null,
-                                            discountAmount: calculatePrice.discountAmount,
-                                            finalTotal: calculatePrice.finalTotal,
-                                            isFree: true
-                                          }
-                                        }
-                                      });
-                                    } else {
-                                      setSelectedPackageId(pkg.id);
-                                    }
-                                  }}
-                                  disabled={isDisabled}
-                                  className={`w-full py-4 text-sm font-semibold rounded-2xl mb-6 transition-all ${
-                                    isDisabled
-                                      ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                                      : isBasic
-                                      ? 'bg-slate-900 text-white hover:bg-slate-800'
-                                      : isPro
-                                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-md'
-                                      : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600 shadow-md'
-                                  }`}
+                                 onClick={(e) => {
+                                   e.stopPropagation();
+                                   if (isDisabled) return;
+
+                                   const pkgName = typeof pkg.package_name === 'string' 
+                                     ? pkg.package_name 
+                                     : (pkg.package_name?.name ? String(pkg.package_name.name) : '');
+
+                                   const pricing = pkg.pricing || {};
+                                   const hasNewStructure = pricing.monthly !== undefined;
+                                   const basePrice = hasNewStructure ? (pricing.monthly || 0) : (pkg.price_monthly || 0);
+                                   const months = parseInt(billingCycle);
+
+                                   let totalPrice = basePrice * months;
+                                   let monthlyPrice = basePrice;
+
+                                   if (months === 3) {
+                                     totalPrice = hasNewStructure ? (pricing.three_months || (basePrice * 3)) : (pkg.price_3_months || (basePrice * 3));
+                                     monthlyPrice = hasNewStructure ? (pricing.three_months_per_month || basePrice) : (totalPrice / 3);
+                                   } else if (months === 6) {
+                                     totalPrice = hasNewStructure ? (pricing.six_months || (basePrice * 6)) : (pkg.price_6_months || (basePrice * 6));
+                                     monthlyPrice = hasNewStructure ? (pricing.six_months_per_month || basePrice) : (totalPrice / 6);
+                                   } else if (months === 12) {
+                                     totalPrice = hasNewStructure ? (pricing.yearly || (basePrice * 12)) : (pkg.price_yearly || (basePrice * 12));
+                                     monthlyPrice = hasNewStructure ? (pricing.yearly_per_month || basePrice) : (totalPrice / 12);
+                                   }
+
+                                   navigate(createPageUrl('PackagePaymentPage'), {
+                                     state: {
+                                       packageData: {
+                                         packageId: pkg.id,
+                                         packageName: pkgName,
+                                         durationMonths: months,
+                                         monthlyPrice: monthlyPrice,
+                                         subtotal: totalPrice,
+                                         discountCode: null,
+                                         discountAmount: 0,
+                                         finalTotal: totalPrice,
+                                         isFree: false
+                                       }
+                                     }
+                                   });
+                                 }}
+                                 disabled={isDisabled}
+                                 className={`w-full py-4 text-sm font-semibold rounded-2xl mb-6 transition-all ${
+                                   isDisabled
+                                     ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                                     : isBasic
+                                     ? 'bg-slate-900 text-white hover:bg-slate-800'
+                                     : isPro
+                                     ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 shadow-md'
+                                     : 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white hover:from-amber-600 hover:to-yellow-600 shadow-md'
+                                 }`}
                                 >
-                                  เลือกแพ็กเกจนี้
+                                 เลือกแพ็กเกจนี้
                                 </Button>
 
                                 {/* Features */}
@@ -718,143 +732,8 @@ export default function PackageSelectionPage() {
                       );
                     })}
                     </div>
-                  </>
-                )}
-
-                {selectedPackageId && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                  >
-                    <Card className="max-w-3xl mx-auto bg-white/90 backdrop-blur-xl shadow-xl">
-                      <CardContent className="p-8">
-                        {appMode === 'multi_tenant' && (
-                          <div className="mb-6">
-                            <Alert className="bg-blue-50 border-blue-200">
-                              <Building2 className="w-5 h-5 text-blue-600" />
-                              <AlertDescription className="text-blue-800">
-                                <p className="font-semibold mb-2">📦 แพ็กเกจที่คุณซื้อจะใช้ได้กับทุกสาขาที่คุณมีสิทธิ์เข้าถึง</p>
-                                <div className="space-y-1 text-sm">
-                                  {purchasableBranches.map(branch => (
-                                    <div key={branch.id} className="flex items-center gap-2">
-                                      <Check className="w-4 h-4 text-blue-600" />
-                                      <span>{branch.branch_name}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                                <p className="text-xs mt-2 text-blue-700">
-                                  💡 ราคาเดียว ใช้ได้ทุกสาขา - ไม่มีค่าใช้จ่ายเพิ่มเติม
-                                </p>
-                              </AlertDescription>
-                            </Alert>
-                          </div>
-                        )}
-
-                        <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 mb-4 border border-blue-200">
-                          <div className="space-y-3">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-slate-600">ราคาต่อเดือน (รวม VAT 7%)</span>
-                              <span className="font-semibold">{calculatePrice.monthlyPrice.toLocaleString()} ฿</span>
-                            </div>
-                            {calculatePrice.savings > 0 && (
-                              <div className="bg-orange-50 rounded-lg p-2 border border-orange-200">
-                                <p className="text-xs text-orange-700 flex items-center gap-1">
-                                  <Check className="w-3 h-3" />
-                                  ประหยัด {calculatePrice.savings.toLocaleString()} ฿ ({calculatePrice.discountPercent}%)
-                                </p>
-                              </div>
-                            )}
-                            <div className="pt-3 border-t-2 border-blue-300">
-                              <div className="flex justify-between items-center">
-                                <span className="font-bold text-slate-800">ยอดรวมทั้งหมด ({billingCycle} เดือน)</span>
-                                <div className="text-right">
-                                  <span className="text-3xl font-bold text-blue-600">
-                                    {calculatePrice.subtotal.toLocaleString()} ฿
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Discount Code Section */}
-                        <div className="mb-6">
-                          <div className="flex gap-2 items-start">
-                            <Input
-                              value={discountCode}
-                              onChange={(e) => {
-                                setDiscountCode(e.target.value.toUpperCase());
-                                setAppliedDiscount(null);
-                              }}
-                              placeholder="รหัสส่วนลด (ถ้ามี)"
-                              className="flex-1 h-9 text-sm"
-                              disabled={validatingDiscount}
-                            />
-                            <Button
-                              onClick={handleValidateDiscount}
-                              disabled={!discountCode.trim() || validatingDiscount}
-                              size="sm"
-                              variant="outline"
-                              className="h-9 text-xs"
-                            >
-                              {validatingDiscount ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                'ใช้โค้ด'
-                              )}
-                            </Button>
-                          </div>
-                          {appliedDiscount && (
-                            <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-2">
-                              <div className="flex justify-between items-center">
-                                <p className="text-xs text-green-700 flex items-center gap-1">
-                                  <Check className="w-3 h-3" />
-                                  ส่วนลด
-                                </p>
-                                <p className="text-sm font-bold text-green-800">
-                                  -{calculatePrice.discountAmount.toLocaleString()} ฿
-                                </p>
-                              </div>
-                              <div className="flex justify-between items-center mt-1 pt-1 border-t border-green-200">
-                                <p className="text-xs font-semibold text-green-900">ยอดชำระ</p>
-                                <p className="text-lg font-bold text-green-900">
-                                  {calculatePrice.finalTotal.toLocaleString()} ฿
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        <Button
-                          onClick={() => {
-                            const pkgName = typeof selectedPackage?.package_name === 'string' 
-                              ? selectedPackage.package_name 
-                              : (selectedPackage?.package_name?.name ? String(selectedPackage.package_name.name) : '');
-                            
-                            navigate(createPageUrl('PackagePaymentPage'), {
-                              state: {
-                                packageData: {
-                                  packageId: selectedPackageId,
-                                  packageName: pkgName,
-                                  durationMonths: parseInt(billingCycle),
-                                  monthlyPrice: calculatePrice.monthlyPrice,
-                                  subtotal: calculatePrice.subtotal,
-                                  discountCode: appliedDiscount ? discountCode.trim() : null,
-                                  discountAmount: calculatePrice.discountAmount,
-                                  finalTotal: calculatePrice.finalTotal,
-                                  branchCount: purchasableBranches.length
-                                }
-                              }
-                            });
-                          }}
-                          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 py-6 mt-8"
-                        >
-                          ดำเนินการชำระเงิน
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                )}
+                    </>
+                    )}
               </motion.div>
             </div>
           </div>
