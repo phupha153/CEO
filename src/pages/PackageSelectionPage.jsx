@@ -218,7 +218,7 @@ export default function PackageSelectionPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="relative z-10 p-4 flex items-center justify-between">
         <Button
-          onClick={handleGoBack}
+          onClick={() => navigate(createPageUrl('Dashboard'))}
           variant="ghost"
           className="text-slate-600 hover:text-slate-800"
         >
