@@ -861,46 +861,7 @@ export default function PackageSelectionPage() {
 
 
 
-                        {/* Discount Code Section */}
-                        <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 mb-6 border border-purple-200">
-                          <h4 className="font-bold text-slate-800 mb-3 text-sm flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-purple-600" />
-                            รหัสส่วนลด (ถ้ามี)
-                          </h4>
-                          <div className="flex gap-2">
-                            <Input
-                              value={discountCode}
-                              onChange={(e) => {
-                                setDiscountCode(e.target.value.toUpperCase());
-                                setAppliedDiscount(null);
-                              }}
-                              placeholder="ใส่รหัสส่วนลด"
-                              className="flex-1"
-                              disabled={validatingDiscount}
-                            />
-                            <Button
-                              onClick={handleValidateDiscount}
-                              disabled={!discountCode.trim() || validatingDiscount}
-                              className="bg-gradient-to-r from-purple-600 to-pink-600"
-                            >
-                              {validatingDiscount ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                'ใช้'
-                              )}
-                            </Button>
-                          </div>
-                          {appliedDiscount && (
-                            <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
-                              <p className="text-sm text-green-800 font-semibold flex items-center gap-2">
-                                <Check className="w-4 h-4" />
-                                ส่วนลด: -{appliedDiscount.discount_amount.toLocaleString()} ฿
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 mb-6 border border-blue-200">
+                        <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl p-6 mb-4 border border-blue-200">
                           <div className="space-y-3">
                             <div className="flex justify-between text-sm">
                               <span className="text-slate-600">ราคาต่อเดือน (รวม VAT 7%)</span>
@@ -914,30 +875,65 @@ export default function PackageSelectionPage() {
                                 </p>
                               </div>
                             )}
-                            {appliedDiscount && (
-                              <div className="bg-green-50 rounded-lg p-2 border border-green-200">
-                                <p className="text-xs text-green-700 flex items-center gap-1">
-                                  <Check className="w-3 h-3" />
-                                  ส่วนลดจากโค้ด -{calculatePrice.discountAmount.toLocaleString()} ฿
-                                </p>
-                              </div>
-                            )}
                             <div className="pt-3 border-t-2 border-blue-300">
                               <div className="flex justify-between items-center">
                                 <span className="font-bold text-slate-800">ยอดรวมทั้งหมด ({billingCycle} เดือน)</span>
                                 <div className="text-right">
-                                  {appliedDiscount && (
-                                    <div className="text-sm text-slate-500 line-through mb-1">
-                                      {calculatePrice.subtotal.toLocaleString()} ฿
-                                    </div>
-                                  )}
                                   <span className="text-3xl font-bold text-blue-600">
-                                    {calculatePrice.finalTotal.toLocaleString()} ฿
+                                    {calculatePrice.subtotal.toLocaleString()} ฿
                                   </span>
                                 </div>
                               </div>
                             </div>
                           </div>
+                        </div>
+
+                        {/* Discount Code Section - Compact */}
+                        <div className="mb-6">
+                          <div className="flex gap-2 items-start">
+                            <Input
+                              value={discountCode}
+                              onChange={(e) => {
+                                setDiscountCode(e.target.value.toUpperCase());
+                                setAppliedDiscount(null);
+                              }}
+                              placeholder="รหัสส่วนลด (ถ้ามี)"
+                              className="flex-1 h-9 text-sm"
+                              disabled={validatingDiscount}
+                            />
+                            <Button
+                              onClick={handleValidateDiscount}
+                              disabled={!discountCode.trim() || validatingDiscount}
+                              size="sm"
+                              variant="outline"
+                              className="h-9 text-xs"
+                            >
+                              {validatingDiscount ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                'ใช้โค้ด'
+                              )}
+                            </Button>
+                          </div>
+                          {appliedDiscount && (
+                            <div className="mt-2 bg-green-50 border border-green-200 rounded-lg p-2">
+                              <div className="flex justify-between items-center">
+                                <p className="text-xs text-green-700 flex items-center gap-1">
+                                  <Check className="w-3 h-3" />
+                                  ส่วนลด
+                                </p>
+                                <p className="text-sm font-bold text-green-800">
+                                  -{calculatePrice.discountAmount.toLocaleString()} ฿
+                                </p>
+                              </div>
+                              <div className="flex justify-between items-center mt-1 pt-1 border-t border-green-200">
+                                <p className="text-xs font-semibold text-green-900">ยอดชำระ</p>
+                                <p className="text-lg font-bold text-green-900">
+                                  {calculatePrice.finalTotal.toLocaleString()} ฿
+                                </p>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div className="bg-white rounded-xl p-4 border border-slate-200 mb-6">
