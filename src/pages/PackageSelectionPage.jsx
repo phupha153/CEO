@@ -855,11 +855,7 @@ export default function PackageSelectionPage() {
                     </Card>
                   </motion.div>
                 )}
-              </motion.div>
-            )}
-
-
-          </AnimatePresence>
+          </motion.div>
         </div>
       </div>
     </div>
