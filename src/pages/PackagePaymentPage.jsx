@@ -93,7 +93,8 @@ export default function PackagePaymentPage() {
       const result = await base44.functions.invoke('validateDiscountCode', {
         code: discountCode.trim(),
         package_id: packageData.packageId,
-        total_amount: currentTotal
+        total_amount: currentTotal,
+        customer_email: currentUser?.email
       });
 
       if (result.data.success) {
