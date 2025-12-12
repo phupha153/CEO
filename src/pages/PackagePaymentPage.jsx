@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Upload, Loader2, CheckCircle, ArrowLeft, X, AlertCircle, Check, Building2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -16,6 +17,9 @@ export default function PackagePaymentPage() {
   const [slipUrl, setSlipUrl] = useState('');
   const [errorDetails, setErrorDetails] = useState(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [discountCode, setDiscountCode] = useState('');
+  const [validatingDiscount, setValidatingDiscount] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
   
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -92,8 +96,42 @@ export default function PackagePaymentPage() {
     }
   };
 
+  const handleValidateDiscount = async () => {
+    if (!discountCode.trim()) {
+      toast.error('กรุณาใส่รหัสส่วนลด');
+      return;
+    }
+
+    setValidatingDiscount(true);
+    try {
+      const currentTotal = appliedDiscount ? packageData.subtotal : packageData.finalTotal;
+      const result = await base44.functions.invoke('validateDiscountCode', {
+        code: discountCode.trim(),
+        package_id: packageData.packageId,
+        total_amount: currentTotal
+      });
+
+      if (result.data.success) {
+        setAppliedDiscount(result.data);
+        toast.success(`ใช้รหัสส่วนลดสำเร็จ! ลด ${result.data.discount_amount.toLocaleString()} บาท`);
+      } else {
+        toast.error(result.data.error || 'รหัสส่วนลดไม่ถูกต้อง');
+        setAppliedDiscount(null);
+      }
+    } catch (error) {
+      toast.error('ไม่สามารถตรวจสอบรหัสส่วนลดได้');
+      setAppliedDiscount(null);
+    } finally {
+      setValidatingDiscount(false);
+    }
+  };
+
   const handleConfirmPayment = async () => {
-    if (!slipUrl) {
+    const finalAmount = appliedDiscount ? appliedDiscount.final_amount : packageData.finalTotal;
+    const discountAmount = appliedDiscount ? appliedDiscount.discount_amount : (packageData.discountAmount || 0);
+    const isFree = finalAmount === 0;
+
+    if (!isFree && !slipUrl) {
       toast.error('กรุณาอัปโหลดสลิปก่อน');
       return;
     }
@@ -121,14 +159,15 @@ export default function PackagePaymentPage() {
         package_name: packageData.packageName,
         duration_months: packageData.durationMonths,
         price_per_month: packageData.monthlyPrice,
-        total_amount: packageData.finalTotal,
+        total_amount: finalAmount,
         original_amount: packageData.subtotal,
-        discount_code: packageData.discountCode || null,
-        discount_amount: packageData.discountAmount || 0,
+        discount_code: appliedDiscount ? discountCode.trim() : (packageData.discountCode || null),
+        discount_amount: discountAmount,
         slip_url: slipUrl,
         user_email: currentUser.email,
         user_name: currentUser.full_name,
-        app_mode: appMode
+        app_mode: appMode,
+        is_free: isFree
       });
 
       if (result.data.success) {
@@ -289,23 +328,65 @@ export default function PackagePaymentPage() {
                     <span className="text-slate-700">ระยะเวลา:</span>
                     <span className="font-bold text-slate-800">{packageData.durationMonths} เดือน</span>
                   </div>
-                  {packageData.discountAmount > 0 && (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-slate-700">ราคาปกติ:</span>
-                        <span className="line-through text-slate-500">{packageData.subtotal.toLocaleString()} ฿</span>
-                      </div>
-                      <div className="flex justify-between text-green-700">
-                        <span>ส่วนลด ({packageData.discountCode}):</span>
-                        <span className="font-bold">-{packageData.discountAmount.toLocaleString()} ฿</span>
-                      </div>
-                    </>
+                  <div className="flex justify-between">
+                    <span className="text-slate-700">ราคาปกติ:</span>
+                    <span className={appliedDiscount || packageData.discountAmount > 0 ? "line-through text-slate-500" : "font-bold text-slate-800"}>{packageData.subtotal.toLocaleString()} ฿</span>
+                  </div>
+                  {(appliedDiscount || packageData.discountAmount > 0) && (
+                    <div className="flex justify-between text-green-700">
+                      <span>ส่วนลด ({appliedDiscount ? discountCode : packageData.discountCode}):</span>
+                      <span className="font-bold">-{(appliedDiscount ? appliedDiscount.discount_amount : packageData.discountAmount).toLocaleString()} ฿</span>
+                    </div>
                   )}
                   <div className="flex justify-between items-center pt-2 border-t border-blue-200">
                     <span className="font-bold text-slate-800">ยอดชำระ:</span>
-                    <span className="text-2xl font-bold text-blue-600">{packageData.finalTotal.toLocaleString()} ฿</span>
+                    <span className="text-2xl font-bold text-blue-600">
+                      {(appliedDiscount ? appliedDiscount.final_amount : packageData.finalTotal).toLocaleString()} ฿
+                    </span>
                   </div>
                 </div>
+              </div>
+
+              {/* Discount Code Section */}
+              <div className="mb-6">
+                <div className="flex gap-2 items-start">
+                  <Input
+                    value={discountCode}
+                    onChange={(e) => {
+                      setDiscountCode(e.target.value.toUpperCase());
+                      setAppliedDiscount(null);
+                    }}
+                    placeholder="รหัสส่วนลด (ถ้ามี)"
+                    className="flex-1 h-10 text-sm"
+                    disabled={validatingDiscount}
+                  />
+                  <Button
+                    onClick={handleValidateDiscount}
+                    disabled={!discountCode.trim() || validatingDiscount}
+                    size="sm"
+                    variant="outline"
+                    className="h-10 text-sm"
+                  >
+                    {validatingDiscount ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      'ใช้โค้ด'
+                    )}
+                  </Button>
+                </div>
+                {appliedDiscount && (
+                  <div className="mt-3 bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm text-green-700 flex items-center gap-1">
+                        <Check className="w-4 h-4" />
+                        ส่วนลด
+                      </p>
+                      <p className="text-base font-bold text-green-800">
+                        -{appliedDiscount.discount_amount.toLocaleString()} ฿
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="bg-white rounded-xl p-4 border border-slate-200 mb-6">
@@ -354,7 +435,7 @@ export default function PackagePaymentPage() {
                 </div>
               )}
 
-              {!slipUrl && (
+              {!slipUrl && !packageData.isFree && (appliedDiscount ? appliedDiscount.final_amount : packageData.finalTotal) > 0 && (
                 <label className="block cursor-pointer">
                   <input
                     type="file"
@@ -384,6 +465,16 @@ export default function PackagePaymentPage() {
                 </label>
               )}
 
+              {(packageData.isFree || (appliedDiscount && appliedDiscount.final_amount === 0)) && (
+                <Alert className="mb-6 bg-green-50 border-green-200">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    <p className="font-semibold">🎉 แพ็กเกจฟรี!</p>
+                    <p className="text-sm mt-1">คุณได้รับส่วนลด 100% ไม่ต้องชำระเงิน</p>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {errorDetails ? (
                 <Button
                   onClick={() => {
@@ -398,7 +489,7 @@ export default function PackagePaymentPage() {
               ) : (
                 <Button
                   onClick={handleConfirmPayment}
-                  disabled={processingPayment || !slipUrl}
+                  disabled={processingPayment || (!slipUrl && !packageData.isFree && (!appliedDiscount || appliedDiscount.final_amount > 0))}
                   className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 py-6 mt-6"
                 >
                   {processingPayment ? (
@@ -409,7 +500,7 @@ export default function PackagePaymentPage() {
                   ) : (
                     <>
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      ยืนยันการชำระเงิน
+                      {packageData.isFree || (appliedDiscount && appliedDiscount.final_amount === 0) ? 'เปิดใช้งานแพ็กเกจ' : 'ยืนยันการชำระเงิน'}
                     </>
                   )}
                 </Button>
