@@ -112,14 +112,10 @@ export default function PackagePaymentPage() {
       } else {
         const errorMsg = result.data.error || 'รหัสส่วนลดไม่ถูกต้อง';
 
+        // ตรวจสอบว่าเป็น error เรื่องใช้ครบแล้วหรือไม่
         if (errorMsg.includes('usage limit') || errorMsg.includes('ใช้งานครบ') || errorMsg.includes('ถูกใช้ไปแล้ว')) {
           toast.error('รหัสส่วนลดนี้ถูกใช้งานครบจำนวนแล้ว', {
-            description: (
-              <div className="space-y-1 mt-1">
-                <p>กรุณาใช้รหัสส่วนลดอื่น</p>
-                <p>หรือดำเนินการชำระเงินโดยไม่ใช้รหัสส่วนลด</p>
-              </div>
-            ),
+            description: 'กรุณาใช้รหัสส่วนลดอื่น หรือดำเนินการชำระเงินโดยไม่ใช้รหัสส่วนลด',
             duration: 6000
           });
         } else {
