@@ -33,9 +33,13 @@ Deno.serve(async (req) => {
     // เรียก API ดึง discount codes จาก CRM
     let discountCodes = [];
     try {
+      const crmApiKey = Deno.env.get("CRM_API_KEY");
       const discountResponse = await fetch('https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/getDiscountCode', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-api-key': crmApiKey || ''
+        },
         body: JSON.stringify({})
       });
       const discountData = await discountResponse.json();
