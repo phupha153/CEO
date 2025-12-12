@@ -28,16 +28,15 @@ Deno.serve(async (req) => {
     // เรียก API CRM เพื่อบันทึกการใช้โค้ดส่วนลด
     let crmResponse;
     try {
-      crmResponse = await fetch('https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/useDiscountCode', {
-        method: 'POST',
+      const url = `https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/useDiscountCode?code=${encodeURIComponent(code.toUpperCase())}&user_email=${encodeURIComponent(user_email)}`;
+      console.log('📡 Calling CRM URL:', url);
+      
+      crmResponse = await fetch(url, {
+        method: 'GET',
         headers: { 
-          'Content-Type': 'application/json',
-          'x-api-key': crmApiKey
-        },
-        body: JSON.stringify({ 
-          code: code.toUpperCase(),
-          user_email: user_email
-        })
+          'x-api-key': crmApiKey,
+          'Content-Type': 'application/json'
+        }
       });
     } catch (fetchError) {
       console.error('❌ Fetch error:', fetchError.message);
