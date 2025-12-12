@@ -41,7 +41,10 @@ Deno.serve(async (req) => {
       package_name, 
       duration_months, 
       price_per_month, 
-      total_amount, 
+      total_amount,
+      original_amount,
+      discount_code,
+      discount_amount,
       slip_url,
       user_email,
       user_name,
@@ -577,6 +580,9 @@ Deno.serve(async (req) => {
         duration_months: parseInt(duration_months),
         price_per_month: parseFloat(price_per_month),
         total_amount: parseFloat(total_amount),
+        original_amount: original_amount ? parseFloat(original_amount) : parseFloat(total_amount),
+        discount_code: discount_code || null,
+        discount_amount: discount_amount ? parseFloat(discount_amount) : 0,
         verified_amount: slipAmount,
         payment_date: new Date().toISOString().split('T')[0],
         slip_url: slip_url,
@@ -614,6 +620,26 @@ Deno.serve(async (req) => {
       }
     } catch (lineError) {
       console.error('LINE notification error:', lineError);
+    }
+
+    // ⭐⭐⭐ บันทึกการใช้โค้ดส่วนลดใน CRM (หลังชำระเงินสำเร็จ)
+    if (discount_code && discount_code.trim() !== '') {
+      try {
+        console.log('📝 Marking discount code as used:', discount_code);
+        const markUsedResponse = await base44.asServiceRole.functions.invoke('markDiscountCodeUsed', {
+          code: discount_code.trim(),
+          user_email: user_email || user.email
+        });
+        
+        if (markUsedResponse.data?.success) {
+          console.log('✅ Discount code marked as used');
+        } else {
+          console.warn('⚠️ Failed to mark discount code:', markUsedResponse.data?.error);
+        }
+      } catch (discountError) {
+        console.error('❌ Error marking discount code:', discountError.message);
+        // ไม่ block การทำงานหลัก
+      }
     }
 
     console.log('✅ Payment processing completed successfully!');

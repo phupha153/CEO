@@ -290,18 +290,7 @@ export default function PackageSelectionPage() {
       });
 
       if (result.data.success) {
-        // บันทึกการใช้โค้ดส่วนลดใน CRM
-        if (appliedDiscount && discountCode.trim()) {
-          try {
-            await base44.functions.invoke('markDiscountCodeUsed', {
-              code: discountCode.trim(),
-              user_email: currentUser.email
-            });
-          } catch (error) {
-            console.error('Failed to mark discount code as used:', error);
-          }
-        }
-
+        // ⭐ ไม่ต้อง mark discount code ที่นี่ - ให้ processSubscriptionPayment ทำเอง
         queryClient.invalidateQueries({ queryKey: ['appSubscriptions'] });
         queryClient.invalidateQueries({ queryKey: ['branchPackages'] });
         setStep(3);
