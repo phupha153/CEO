@@ -855,9 +855,9 @@ export default function PackageSelectionPage() {
                     </Card>
                   </motion.div>
                 )}
-          </motion.div>
+              </motion.div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  );
-}
+      );
+    }
