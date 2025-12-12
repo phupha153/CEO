@@ -58,23 +58,8 @@ export default function PackagePaymentPage() {
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
 
   if (!packageData) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
-        <Card className="max-w-md bg-white/90 backdrop-blur-xl shadow-2xl">
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-slate-800 mb-2">ไม่พบข้อมูลแพ็กเกจ</h2>
-            <p className="text-slate-600 mb-6">กรุณาเลือกแพ็กเกจก่อน</p>
-            <Button
-              onClick={() => navigate(createPageUrl('PackageSelectionPage'))}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600"
-            >
-              กลับไปเลือกแพ็กเกจ
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    navigate(createPageUrl('PackageSelectionPage'), { replace: true });
+    return null;
   }
 
   const handleSlipUpload = async (e) => {
@@ -260,12 +245,12 @@ export default function PackagePaymentPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="relative z-10 p-4">
         <Button
-          onClick={() => navigate(createPageUrl('PackageSelectionPage'))}
+          onClick={() => window.history.back()}
           variant="ghost"
           className="text-slate-600 hover:text-slate-800"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          กลับไปเลือกแพ็กเกจ
+          กลับ
         </Button>
       </div>
 
