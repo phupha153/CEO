@@ -1,8 +1,8 @@
 Deno.serve(async (req) => {
   try {
-    const { code, user_email } = await req.json();
+    const { code, discount_amount, customer_email, original_amount, final_amount } = await req.json();
 
-    if (!code || !user_email) {
+    if (!code || !customer_email || discount_amount === undefined) {
       return Response.json({ 
         success: false,
         error: 'กรุณาระบุข้อมูลให้ครบถ้วน' 
@@ -23,7 +23,10 @@ Deno.serve(async (req) => {
     }
 
     console.log('📝 Marking discount code as used:', code.toUpperCase());
-    console.log('👤 User:', user_email);
+    console.log('👤 Customer:', customer_email);
+    console.log('💰 Discount Amount:', discount_amount);
+    console.log('💰 Original Amount:', original_amount);
+    console.log('💰 Final Amount:', final_amount);
 
     // เรียก API CRM เพื่อบันทึกการใช้โค้ดส่วนลด
     let crmResponse;
@@ -33,8 +36,10 @@ Deno.serve(async (req) => {
       
       const requestBody = {
         code: code.toUpperCase(),
-        discount_amount: 0,
-        customer_email: user_email
+        discount_amount: parseFloat(discount_amount) || 0,
+        customer_email: customer_email,
+        original_amount: original_amount ? parseFloat(original_amount) : undefined,
+        final_amount: final_amount ? parseFloat(final_amount) : undefined
       };
       
       console.log('📤 Request body:', JSON.stringify(requestBody));
@@ -76,7 +81,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`✅ Discount code ${code} marked as used by ${user_email}`);
+    console.log(`✅ Discount code ${code} marked as used by ${customer_email}`);
 
     return Response.json({
       success: true,

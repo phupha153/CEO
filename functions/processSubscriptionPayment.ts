@@ -654,7 +654,10 @@ Deno.serve(async (req) => {
         console.log('📝 Marking discount code as used:', discount_code);
         const markUsedResponse = await base44.asServiceRole.functions.invoke('markDiscountCodeUsed', {
           code: discount_code.trim(),
-          user_email: user_email || user.email
+          discount_amount: discount_amount ? parseFloat(discount_amount) : 0,
+          customer_email: user_email || user.email,
+          original_amount: original_amount ? parseFloat(original_amount) : parseFloat(total_amount),
+          final_amount: parseFloat(total_amount)
         });
         
         if (markUsedResponse.data?.success) {
