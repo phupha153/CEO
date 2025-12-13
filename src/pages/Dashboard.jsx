@@ -139,11 +139,14 @@ export default function Dashboard() {
     }
   });
 
+  const [showConnectedDataOptions, setShowConnectedDataOptions] = useState(false);
+
   const generateConnectedTestDataMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (count) => {
       toast.info('🔗 กำลังสร้างข้อมูลที่เชื่อมกัน...', { duration: 2000 });
       const response = await base44.functions.invoke('generateConnectedTestData', {
-        branch_id: selectedBranchId
+        branch_id: selectedBranchId,
+        count: count
       });
       return response.data;
     },
@@ -152,9 +155,11 @@ export default function Dashboard() {
         duration: 5000
       });
       queryClient.invalidateQueries();
+      setShowConnectedDataOptions(false);
     },
     onError: (error) => {
       toast.error(`❌ เกิดข้อผิดพลาด: ${error.message}`);
+      setShowConnectedDataOptions(false);
     }
   });
 
@@ -1126,33 +1131,57 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap items-center gap-3">
-                    <Button
-                      onClick={() => {
-                        if (generateConnectedTestDataMutation.isPending) {
-                          toast.warning('⏳ กรุณารอให้การสร้างข้อมูลเสร็จก่อน');
-                          return;
-                        }
-                        if (confirm('🔗 สร้างข้อมูลทดสอบที่เชื่อมกัน 100%?\n\n✅ ห้อง + ผู้เช่า + การจอง + มิเตอร์\n✅ พร้อมใช้กับ generateMonthlyBills\n\n⚠️ จะลบข้อมูลเก่าของสาขานี้ทั้งหมด')) {
-                          generateConnectedTestDataMutation.mutate();
-                        }
-                      }}
-                      disabled={generateConnectedTestDataMutation.isPending}
-                      size="sm"
-                      className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
-                      data-onboarding="create-test-data-button"
-                    >
-                      {generateConnectedTestDataMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          กำลังสร้าง...
-                        </>
-                      ) : (
-                        <>
-                          <Database className="w-4 h-4 mr-2" />
-                          สร้างข้อมูลที่เชื่อมกัน
-                        </>
-                      )}
-                    </Button>
+                    <Popover open={showConnectedDataOptions} onOpenChange={setShowConnectedDataOptions}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          disabled={generateConnectedTestDataMutation.isPending}
+                          size="sm"
+                          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                          data-onboarding="create-test-data-button"
+                        >
+                          {generateConnectedTestDataMutation.isPending ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                              กำลังสร้าง...
+                            </>
+                          ) : (
+                            <>
+                              <Database className="w-4 h-4 mr-2" />
+                              สร้างข้อมูลที่เชื่อมกัน
+                            </>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-3">
+                        <div className="space-y-3">
+                          <p className="text-sm font-semibold text-slate-800">เลือกจำนวนข้อมูล</p>
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              onClick={() => {
+                                if (confirm('🔗 สร้างข้อมูลทดสอบ 50 ห้อง?\n\n✅ ห้อง + ผู้เช่า + การจอง + มิเตอร์\n✅ พร้อมใช้กับ generateMonthlyBills')) {
+                                  generateConnectedTestDataMutation.mutate(50);
+                                }
+                              }}
+                              size="sm"
+                              className="w-full bg-blue-500 hover:bg-blue-600"
+                            >
+                              สร้าง 50 ห้อง
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                if (confirm('🔗 สร้างข้อมูลทดสอบ 100 ห้อง?\n\n✅ ห้อง + ผู้เช่า + การจอง + มิเตอร์\n✅ พร้อมใช้กับ generateMonthlyBills\n\n⚠️ อาจใช้เวลานานกว่า')) {
+                                  generateConnectedTestDataMutation.mutate(100);
+                                }
+                              }}
+                              size="sm"
+                              className="w-full bg-indigo-500 hover:bg-indigo-600"
+                            >
+                              สร้าง 100 ห้อง
+                            </Button>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
 
                     <Button
                       onClick={() => {
