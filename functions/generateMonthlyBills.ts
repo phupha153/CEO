@@ -144,41 +144,30 @@ Deno.serve(async (req) => {
         let allRooms = [], bookings = [], meterReadings = [], tenants = [];
         let existingPaymentsMap = new Map();
         
-        async function fetchWithPagination(entity, filter, sortBy, batchSize = 100) {
+        async function fetchWithPagination(entity, filter, sortBy, batchSize = 300) {
             let allData = [];
             let skip = 0;
             let iteration = 0;
             const MAX_ITERATIONS = 50;
-            
-            console.log(`   🔄 Starting pagination for filter:`, JSON.stringify(filter).substring(0, 100));
-            
+
             while (iteration < MAX_ITERATIONS) {
                 iteration++;
-                
+
                 const batch = await entity.filter(filter, sortBy, batchSize, skip);
                 const batchLength = Array.isArray(batch) ? batch.length : 0;
-                
-                console.log(`   📥 Batch ${iteration}: fetched ${batchLength} items (skip: ${skip}, total: ${allData.length + batchLength})`);
-                
+
                 // ⭐ หยุดเฉพาะเมื่อได้ 0 รายการเท่านั้น
                 if (batchLength === 0) {
-                    console.log(`   ⏹️ Done - empty batch`);
                     break;
                 }
-                
+
                 allData = allData.concat(batch);
                 skip += batchLength;
-                
-                // ⭐ ดึงต่อเสมอไม่ว่าจะได้เท่าไหร่ (เอา condition if batchLength < batchSize ออก)
-                console.log(`   ➡️ Continue to next batch...`);
-                await delay(500);
+
+                await delay(200);
             }
-            
-            if (iteration >= MAX_ITERATIONS) {
-                console.log(`   ⚠️ Stopped at max ${MAX_ITERATIONS} iterations`);
-            }
-            
-            console.log(`   ✅ FINAL: ${allData.length} items in ${iteration} batches`);
+
+            console.log(`   ✅ FINAL: ${allData.length} items`);
             return allData;
         }
 
@@ -212,35 +201,34 @@ Deno.serve(async (req) => {
         }
         
         console.log(`✅ Total rooms: ${allRooms.length}`);
-        await delay(500);
-        
+        await delay(200);
+
         // ⭐ Fetch Bookings แบบ pagination เต็มรูปแบบ
         console.log('📦 Step 1b: Fetching ALL active bookings...');
         let bookingSkip = 0;
         let fetchingBookings = true;
         const bookingFilter = { ...filter, status: 'active' };
-        
+
         while (fetchingBookings) {
             await retryOperation(async () => {
                 const batch = await base44.asServiceRole.entities.Booking.filter(bookingFilter, '-created_date', 500, bookingSkip);
                 const batchLength = Array.isArray(batch) ? batch.length : 0;
-                console.log(`   📅 Bookings batch: ${batchLength} items (skip: ${bookingSkip}, total: ${bookings.length + batchLength})`);
-                
+
                 if (batchLength > 0) {
                     bookings = bookings.concat(batch);
                     bookingSkip += batchLength;
                 }
-                
+
                 if (batchLength < 500) {
                     fetchingBookings = false;
                 }
             });
-            
-            if (fetchingBookings) await delay(500);
+
+            if (fetchingBookings) await delay(200);
         }
 
         console.log(`✅ Total bookings: ${bookings.length}`);
-        await delay(1500); // ⭐ พักหลัง Step 1
+        await delay(500); // ⭐ พักหลัง Step 1
 
         const normalizeEntity = (entity) => {
             if (!entity) return null;
@@ -318,18 +306,18 @@ Deno.serve(async (req) => {
                 
                 meterReadings = meterReadings.concat(m || []);
                 tenants = tenants.concat(t || []);
-            });
-            
-            if (idx < branchIdsToProcess.length - 1) {
-                await delay(1000);
-            }
-        }
+                });
+
+                if (idx < branchIdsToProcess.length - 1) {
+                await delay(300);
+                }
+                }
         
         meterReadings = meterReadings.map(normalizeEntity).filter(Boolean);
         tenants = tenants.map(normalizeEntity).filter(Boolean);
         
         console.log(`📦 Fetched: ${meterReadings.length} meter readings, ${tenants.length} tenants`);
-        await delay(2000); // ⭐ พักก่อน Step 4
+        await delay(500); // ⭐ พักก่อน Step 4
         
         // STEP 4: ดึง Payment ทั้งหมด (ไม่ใช้ fetchWithPagination)
         console.log(`📦 Step 4: Fetching ALL payments...`);
@@ -338,43 +326,42 @@ Deno.serve(async (req) => {
 
         for (const branchId of branchIdsToProcess) {
             console.log(`   📥 Fetching payments for branch: ${branchId}`);
-            
+
             let branchPayments = [];
             let paymentSkip = 0;
             let fetchingPayments = true;
             let batchNum = 0;
-            
+
             while (fetchingPayments && batchNum < 100) {
                 batchNum++;
-                
+
                 await retryOperation(async () => {
                     const batch = await base44.asServiceRole.entities.Payment.filter(
                         { branch_id: branchId },
                         '-created_date',
-                        100,
+                        300,
                         paymentSkip
                     );
-                    
+
                     const batchLength = Array.isArray(batch) ? batch.length : 0;
-                    console.log(`      💳 Batch ${batchNum}: ${batchLength} items (skip: ${paymentSkip}, total: ${branchPayments.length + batchLength})`);
-                    
+
                     if (batchLength > 0) {
                         branchPayments = branchPayments.concat(batch);
                         paymentSkip += batchLength;
                     }
-                    
+
                     // ⭐ หยุดเฉพาะเมื่อได้ 0 รายการ
                     if (batchLength === 0) {
                         fetchingPayments = false;
                     }
                 });
-                
-                if (fetchingPayments) await delay(500);
+
+                if (fetchingPayments) await delay(200);
             }
-            
-            console.log(`   ✅ สาขา ${branchId}: ${branchPayments.length} payments (${batchNum} batches)`);
+
+            console.log(`   ✅ สาขา ${branchId}: ${branchPayments.length} payments`);
             recentPayments = recentPayments.concat(branchPayments);
-            await delay(1000);
+            await delay(300);
         }
 
         console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments.length}`);
@@ -653,9 +640,9 @@ Deno.serve(async (req) => {
                         }
                     }
                     createdCount += created.length;
-                });
-                await delay(800);
-            }
+                    });
+                    await delay(500);
+                    }
         }
 
         // 6. Update Prepaid Balances
