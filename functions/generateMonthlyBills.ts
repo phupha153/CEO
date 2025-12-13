@@ -148,56 +148,72 @@ Deno.serve(async (req) => {
         let allRooms = [], bookings = [], meterReadings = [], tenants = [];
         let existingPaymentsMap = new Map();
         
-        async function fetchWithPagination(entity, filter, sortBy, batchSize = 200) {
+        async function fetchWithPagination(entity, filter, sortBy, batchSize = 100) {
             let allData = [];
             let skip = 0;
             let hasMore = true;
             let iteration = 0;
+            const MAX_ITERATIONS = 50;
             
-            while (hasMore) {
+            console.log(`   🔄 Starting pagination for filter:`, JSON.stringify(filter).substring(0, 100));
+            
+            while (hasMore && iteration < MAX_ITERATIONS) {
                 iteration++;
+                
                 const batch = await entity.filter(filter, sortBy, batchSize, skip);
                 const batchLength = Array.isArray(batch) ? batch.length : 0;
                 
-                console.log(`   📥 Batch ${iteration}: fetched ${batchLength} items (skip: ${skip})`);
+                console.log(`   📥 Batch ${iteration}: fetched ${batchLength} items (skip: ${skip}, total so far: ${allData.length + batchLength})`);
                 
                 if (batchLength === 0) {
+                    console.log(`   ⏹️ No more data (empty batch)`);
                     hasMore = false;
                 } else {
                     allData = allData.concat(batch);
                     skip += batchLength;
                     
-                    // ดึงต่อถ้ายังได้ครบ batch size
+                    // ⭐ ดึงต่อเสมอถ้าได้ครบ batch size (ไม่หยุดแม้จะได้น้อยกว่า)
                     if (batchLength < batchSize) {
+                        console.log(`   ⏹️ Last batch (${batchLength} < ${batchSize})`);
                         hasMore = false;
+                    } else {
+                        console.log(`   ➡️ Continue fetching (got full batch of ${batchSize})`);
                     }
                     
-                    // Delay เล็กน้อยเพื่อป้องกัน rate limit
-                    if (hasMore) await delay(300);
+                    if (hasMore) await delay(500);
                 }
+            }
+            
+            if (iteration >= MAX_ITERATIONS) {
+                console.log(`   ⚠️ Reached max iterations (${MAX_ITERATIONS})`);
             }
             
             console.log(`   ✅ Total fetched: ${allData.length} items in ${iteration} batches`);
             return allData;
         }
 
-        // STEP 1: Fetch rooms and bookings
-        console.log('📦 Step 1: Fetching rooms and bookings...');
+        // STEP 1: Fetch rooms and bookings (แยก fetch เพื่อ log ชัดเจน)
+        console.log('📦 Step 1a: Fetching rooms...');
+        
+        await retryOperation(async () => {
+            const filter = targetBranchId ? { branch_id: targetBranchId } : {};
+            const r = await fetchWithPagination(base44.asServiceRole.entities.Room, filter, '-room_number', 100);
+            allRooms = r || []; 
+        });
+        
+        console.log(`📦 Rooms fetched: ${allRooms.length}`);
+        await delay(1000);
+        
+        console.log('📦 Step 1b: Fetching bookings...');
         
         await retryOperation(async () => {
             const filter = targetBranchId ? { branch_id: targetBranchId } : {};
             const bookingFilter = { ...filter, status: 'active' };
-
-            const [r, b] = await Promise.all([
-                fetchWithPagination(base44.asServiceRole.entities.Room, filter, '-room_number'),
-                fetchWithPagination(base44.asServiceRole.entities.Booking, bookingFilter, '-created_date'),
-            ]);
-            
-            allRooms = r || []; 
+            const b = await fetchWithPagination(base44.asServiceRole.entities.Booking, bookingFilter, '-created_date', 100);
             bookings = b || []; 
         });
 
-        console.log(`📦 Fetched: ${allRooms.length} rooms, ${bookings.length} bookings`);
+        console.log(`📦 Bookings fetched: ${bookings.length}`);
         await delay(1500); // ⭐ พักหลัง Step 1
 
         const normalizeEntity = (entity) => {
