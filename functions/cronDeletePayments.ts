@@ -11,28 +11,37 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(emptyReq);
         
-        console.log(`🧹 [Cron] Starting TEST data deletion for ALL branches...`);
+        console.log(`🧹 [Cron] Starting TEST data deletion...`);
 
         const startTime = Date.now();
-        
-        // ⭐ ดึงข้อมูล TEST ทุกประเภท (ไม่กรอง branch_id)
         const batchSize = 300;
         
-        console.log(`🔍 [Cron] Fetching TEST data (batch size: ${batchSize})...`);
-        
-        // ดึงรายการสาขาที่ต้องการลบจาก Config
+        // ⭐ ดึงการตั้งค่าจาก CronDeleteConfig
         let selectedBranchIds = [];
+        let deleteEntities = {
+            Payment: true,
+            MeterReading: true,
+            Booking: false,
+            Tenant: false,
+            Room: false,
+            MaintenanceRequest: true,
+            Expense: true,
+            Contract: false,
+            MaterialDelivery: true
+        };
+        
         try {
-            const configs = await base44.asServiceRole.entities.Config.filter({ key: 'cron_delete_selected_branches' });
-            if (configs.length > 0 && configs[0].value) {
-                selectedBranchIds = JSON.parse(configs[0].value);
-                console.log(`📋 [Cron] Using selected branches from config: ${selectedBranchIds.length} branches`);
+            const configs = await base44.asServiceRole.entities.CronDeleteConfig.list('-updated_date', 1);
+            if (configs.length > 0) {
+                selectedBranchIds = configs[0].selected_branches || [];
+                deleteEntities = configs[0].delete_entities || deleteEntities;
+                console.log(`📋 [Cron] Config loaded: ${selectedBranchIds.length} branches, entities:`, deleteEntities);
             }
         } catch (e) {
-            console.warn(`⚠️ [Cron] Could not load selected branches:`, e.message);
+            console.warn(`⚠️ [Cron] Could not load config:`, e.message);
         }
         
-        // ถ้าไม่มีรายการที่เลือก ให้ใช้วิธีเดิม (เช็คจาก branch_code)
+        // ถ้าไม่มีรายการที่เลือก ให้ใช้วิธีเดิม (auto-detect)
         let testBranchIds = selectedBranchIds;
         if (testBranchIds.length === 0) {
             const allBranches = await base44.asServiceRole.entities.Branch.list();
@@ -41,87 +50,64 @@ Deno.serve(async (req) => {
                     b.branch_code?.includes('TEST') || 
                     b.branch_code?.includes('12345') ||
                     b.branch_code?.includes('5555') ||
-                    b.branch_code?.includes('COPY') ||
-                    b.branch_name?.includes('12345') ||
-                    b.branch_name?.includes('[TEST') ||
-                    b.notes?.includes('[TEST') ||
-                    b.description?.includes('[TEST')
+                    b.branch_code?.includes('COPY')
                 )
                 .map(b => b.id);
             console.log(`🏢 [Cron] Auto-detected ${testBranchIds.length} TEST branches`);
         }
         
-        console.log(`🎯 [Cron] Target branches: ${JSON.stringify(testBranchIds)}`);
+        console.log(`🎯 [Cron] Target branches: ${testBranchIds.length}`);
         
-        // ดึงข้อมูลทดสอบจากทุกสาขา
-        const [
-            testPayments,
-            testBookings,
-            testRooms,
-            testTenants,
-            testMeterReadings
-        ] = await Promise.all([
-            base44.asServiceRole.entities.Payment.list('-created_date', batchSize * 2),
-            base44.asServiceRole.entities.Booking.list('-created_date', batchSize),
-            base44.asServiceRole.entities.Room.list('-created_date', batchSize),
-            base44.asServiceRole.entities.Tenant.list('-created_date', batchSize),
-            base44.asServiceRole.entities.MeterReading.list('-created_date', batchSize)
-        ]);
+        // ⭐ ดึงข้อมูลตามที่เลือกเท่านั้น
+        const entitiesToFetch = [];
+        if (deleteEntities.Payment) entitiesToFetch.push({ name: 'Payment', entity: base44.asServiceRole.entities.Payment, size: batchSize * 2 });
+        if (deleteEntities.Booking) entitiesToFetch.push({ name: 'Booking', entity: base44.asServiceRole.entities.Booking, size: batchSize });
+        if (deleteEntities.Room) entitiesToFetch.push({ name: 'Room', entity: base44.asServiceRole.entities.Room, size: batchSize });
+        if (deleteEntities.Tenant) entitiesToFetch.push({ name: 'Tenant', entity: base44.asServiceRole.entities.Tenant, size: batchSize });
+        if (deleteEntities.MeterReading) entitiesToFetch.push({ name: 'MeterReading', entity: base44.asServiceRole.entities.MeterReading, size: batchSize });
+        if (deleteEntities.MaintenanceRequest) entitiesToFetch.push({ name: 'MaintenanceRequest', entity: base44.asServiceRole.entities.MaintenanceRequest, size: batchSize });
+        if (deleteEntities.Expense) entitiesToFetch.push({ name: 'Expense', entity: base44.asServiceRole.entities.Expense, size: batchSize });
+        if (deleteEntities.Contract) entitiesToFetch.push({ name: 'Contract', entity: base44.asServiceRole.entities.Contract, size: batchSize });
+        if (deleteEntities.MaterialDelivery) entitiesToFetch.push({ name: 'MaterialDelivery', entity: base44.asServiceRole.entities.MaterialDelivery, size: batchSize });
         
-        // กรองเฉพาะ TEST data (ใช้ is_sample, notes, หรือ branch_id ของสาขาทดสอบ)
-        const paymentsToDelete = (testPayments || []).filter(p => 
-            p.is_sample === true ||
-            testBranchIds.includes(p.branch_id) ||
-            p.notes?.includes('[TEST-') || 
-            p.notes?.includes('TEST-') ||
-            p.created_by?.includes('test-') ||
-            p.created_by?.includes('TEST-')
-        ).slice(0, batchSize);
+        const fetchResults = await Promise.all(
+            entitiesToFetch.map(e => e.entity.list('-created_date', e.size))
+        );
         
-        const bookingsToDelete = (testBookings || []).filter(b => 
-            b.is_sample === true ||
-            testBranchIds.includes(b.branch_id) ||
-            b.notes?.includes('[TEST-') || 
-            b.notes?.includes('TEST-') ||
-            b.created_by?.includes('test-') ||
-            b.created_by?.includes('TEST-')
-        ).slice(0, batchSize);
+        const testData = {};
+        entitiesToFetch.forEach((e, idx) => {
+            testData[e.name] = fetchResults[idx] || [];
+        });
         
-        const roomsToDelete = (testRooms || []).filter(r => 
-            r.is_sample === true ||
-            testBranchIds.includes(r.branch_id) ||
-            r.room_number?.includes('TEST-') || 
-            r.description?.includes('[TEST-') ||
-            r.description?.includes('TEST-') ||
-            r.created_by?.includes('test-') ||
-            r.created_by?.includes('TEST-')
-        ).slice(0, batchSize);
+        // ⭐ กรองเฉพาะ TEST data ตามที่เลือก
+        const filterTestData = (data, entityType) => {
+            return (data || []).filter(item => 
+                item.is_sample === true ||
+                testBranchIds.includes(item.branch_id) ||
+                item.notes?.includes('[TEST-') || 
+                item.notes?.includes('TEST-') ||
+                item.room_number?.includes('TEST-') ||
+                item.full_name?.includes('[TEST-') ||
+                item.full_name?.includes('TEST-') ||
+                item.description?.includes('[TEST-') ||
+                item.description?.includes('TEST-') ||
+                item.title?.includes('[TEST-') ||
+                item.created_by?.includes('test-') ||
+                item.created_by?.includes('TEST-')
+            ).slice(0, batchSize);
+        };
         
-        const tenantsToDelete = (testTenants || []).filter(t => 
-            t.is_sample === true ||
-            testBranchIds.includes(t.branch_id) ||
-            t.full_name?.includes('[TEST-') || 
-            t.full_name?.includes('TEST-') ||
-            t.notes?.includes('[TEST-') ||
-            t.notes?.includes('TEST-') ||
-            t.created_by?.includes('test-') ||
-            t.created_by?.includes('TEST-')
-        ).slice(0, batchSize);
+        const itemsToDelete = {};
+        let totalToDelete = 0;
         
-        const meterReadingsToDelete = (testMeterReadings || []).filter(mr => 
-            mr.is_sample === true ||
-            testBranchIds.includes(mr.branch_id) ||
-            mr.notes?.includes('[TEST-') || 
-            mr.notes?.includes('TEST-') ||
-            mr.created_by?.includes('test-') ||
-            mr.created_by?.includes('TEST-')
-        ).slice(0, batchSize);
-        
-        const totalToDelete = paymentsToDelete.length + bookingsToDelete.length + 
-                             roomsToDelete.length + tenantsToDelete.length + 
-                             meterReadingsToDelete.length;
-        
-        console.log(`📊 [Cron] Found TEST data: ${paymentsToDelete.length} payments, ${bookingsToDelete.length} bookings, ${roomsToDelete.length} rooms, ${tenantsToDelete.length} tenants, ${meterReadingsToDelete.length} meter readings`);
+        Object.keys(deleteEntities).forEach(entityName => {
+            if (deleteEntities[entityName] && testData[entityName]) {
+                const filtered = filterTestData(testData[entityName], entityName);
+                itemsToDelete[entityName] = filtered;
+                totalToDelete += filtered.length;
+                console.log(`📊 [Cron] ${entityName}: ${filtered.length} items`);
+            }
+        });
         
         if (totalToDelete === 0) {
             console.log(`✅ [Cron] No TEST data to delete - system clean!`);
@@ -132,102 +118,38 @@ Deno.serve(async (req) => {
             });
         }
         
-        const payments = paymentsToDelete;
-        
         // ลบข้อมูลทดสอบทีละประเภท
         console.log(`🗑️ [Cron] Starting deletion of ${totalToDelete} TEST items...`);
         
         let totalDeleted = 0;
+        const entityOrder = ['Payment', 'MeterReading', 'MaintenanceRequest', 'Expense', 'MaterialDelivery', 'Booking', 'Tenant', 'Room', 'Contract'];
         
-        // 1. ลบ Payments (batch size 300)
-        if (paymentsToDelete.length > 0) {
-            console.log(`💸 [Cron] Deleting ${paymentsToDelete.length} TEST payments...`);
-            for (const payment of paymentsToDelete) {
+        for (const entityName of entityOrder) {
+            const items = itemsToDelete[entityName];
+            if (!items || items.length === 0) continue;
+            
+            console.log(`🗑️ [Cron] Deleting ${items.length} ${entityName}...`);
+            
+            for (const item of items) {
                 try {
-                    await base44.asServiceRole.entities.Payment.delete(payment.id);
-                    totalDeleted++;
-                    if (totalDeleted % 50 === 0) {
-                        console.log(`✅ [${totalDeleted}/${totalToDelete}] Deleted payment ${payment.id}`);
-                    }
-                } catch (e) {
-                    // Silently skip 404 errors (already deleted by another instance)
-                    if (e.message?.includes('not found') || e.message?.includes('404') || e.status === 404) {
-                        totalDeleted++;
-                    } else {
-                        console.error(`❌ Error deleting payment:`, e.message);
-                    }
-                }
-            }
-        }
-        
-        // 2. ลบ Bookings และอัปเดตห้อง
-        if (bookingsToDelete.length > 0) {
-            console.log(`📋 [Cron] Deleting ${bookingsToDelete.length} TEST bookings...`);
-            for (const booking of bookingsToDelete) {
-                try {
-                    if (booking.room_id) {
-                        await base44.asServiceRole.entities.Room.update(booking.room_id, {
+                    // ถ้าเป็น Booking ให้อัปเดตห้องด้วย
+                    if (entityName === 'Booking' && item.room_id) {
+                        await base44.asServiceRole.entities.Room.update(item.room_id, {
                             status: 'available'
                         }).catch(() => {});
                     }
-                    await base44.asServiceRole.entities.Booking.delete(booking.id);
+                    
+                    await base44.asServiceRole.entities[entityName].delete(item.id);
                     totalDeleted++;
-                } catch (e) {
-                    if (e.message?.includes('not found') || e.message?.includes('404') || e.status === 404) {
-                        totalDeleted++;
-                    } else {
-                        console.error(`❌ Error deleting booking:`, e.message);
+                    
+                    if (totalDeleted % 50 === 0) {
+                        console.log(`✅ [${totalDeleted}/${totalToDelete}]`);
                     }
-                }
-            }
-        }
-        
-        // 3. ลบ Rooms
-        if (roomsToDelete.length > 0) {
-            console.log(`🏠 [Cron] Deleting ${roomsToDelete.length} TEST rooms...`);
-            for (const room of roomsToDelete) {
-                try {
-                    await base44.asServiceRole.entities.Room.delete(room.id);
-                    totalDeleted++;
                 } catch (e) {
                     if (e.message?.includes('not found') || e.message?.includes('404') || e.status === 404) {
                         totalDeleted++;
                     } else {
-                        console.error(`❌ Error deleting room:`, e.message);
-                    }
-                }
-            }
-        }
-        
-        // 4. ลบ Tenants
-        if (tenantsToDelete.length > 0) {
-            console.log(`👥 [Cron] Deleting ${tenantsToDelete.length} TEST tenants...`);
-            for (const tenant of tenantsToDelete) {
-                try {
-                    await base44.asServiceRole.entities.Tenant.delete(tenant.id);
-                    totalDeleted++;
-                } catch (e) {
-                    if (e.message?.includes('not found') || e.message?.includes('404') || e.status === 404) {
-                        totalDeleted++;
-                    } else {
-                        console.error(`❌ Error deleting tenant:`, e.message);
-                    }
-                }
-            }
-        }
-        
-        // 5. ลบ MeterReadings
-        if (meterReadingsToDelete.length > 0) {
-            console.log(`⚡ [Cron] Deleting ${meterReadingsToDelete.length} TEST meter readings...`);
-            for (const mr of meterReadingsToDelete) {
-                try {
-                    await base44.asServiceRole.entities.MeterReading.delete(mr.id);
-                    totalDeleted++;
-                } catch (e) {
-                    if (e.message?.includes('not found') || e.message?.includes('404') || e.status === 404) {
-                        totalDeleted++;
-                    } else {
-                        console.error(`❌ Error deleting meter reading:`, e.message);
+                        console.error(`❌ Error deleting ${entityName}:`, e.message);
                     }
                 }
             }
@@ -236,17 +158,12 @@ Deno.serve(async (req) => {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         console.log(`✅ [Cron] Deleted ${totalDeleted} items in ${elapsed}s`);
         
-        // ⭐ เช็คว่ายังมีข้อมูลเหลืออีกหรือไม่ - ถ้า entity ใดๆ ลบได้เต็ม batch หรือ fetch มาได้เต็ม batch = ยังมีเหลือ
-        const hasMoreData = paymentsToDelete.length === batchSize ||
-                           bookingsToDelete.length === batchSize ||
-                           roomsToDelete.length === batchSize ||
-                           tenantsToDelete.length === batchSize ||
-                           meterReadingsToDelete.length === batchSize ||
-                           testPayments.length >= batchSize * 2 || // Payment fetch เยอะกว่า เลยใช้ *2
-                           testBookings.length >= batchSize ||
-                           testRooms.length >= batchSize ||
-                           testTenants.length >= batchSize ||
-                           testMeterReadings.length >= batchSize;
+        // ⭐ เช็คว่ายังมีข้อมูลเหลืออีกหรือไม่
+        const hasMoreData = Object.values(itemsToDelete).some(items => items.length === batchSize) ||
+                           Object.values(testData).some((data, idx) => {
+                               const entityInfo = entitiesToFetch[idx];
+                               return data.length >= entityInfo.size;
+                           });
         
         if (hasMoreData) {
             console.log(`🔄 [Cron] More TEST data likely exists - calling self again...`);
