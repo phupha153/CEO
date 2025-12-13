@@ -598,43 +598,32 @@ export default function BranchManagement() {
         showBackButton={true}
         backUrl={createPageUrl('BranchSelection')}
         actions={
-          <div className="flex flex-col items-end gap-2">
-            <Button
-              onClick={() => {
-                if (!canAddMoreBranches) {
-                  toast.error(`ตอนนี้ใช้งานไป ${userOwnedBranchesCount}/${maxAllowedBranches} สาขาแล้ว - อัปเกรดเพื่อเพิ่มสาขา`);
-                  return;
-                }
-                setEditingBranch(null);
-                setFormData({
-                  branch_name: '',
-                  branch_code: '',
-                  address: '',
-                  phone: '',
-                  manager_name: '',
-                  image_url: '',
-                  description: '',
-                  bill_generation_day: '',
-                  payment_due_day: ''
-                });
-                setShowDialog(true);
-              }}
-              disabled={!canAddMoreBranches}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              เพิ่มสาขาใหม่
-            </Button>
-            {!canAddMoreBranches ? (
-              <p className="text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
-                ⚠️ ตอนนี้ใช้งานไป {userOwnedBranchesCount}/{maxAllowedBranches} สาขาแล้ว - อัปเกรดเพื่อเพิ่มสาขา
-              </p>
-            ) : (
-              <p className="text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                📊 ใช้งานไป {userOwnedBranchesCount}/{maxAllowedBranches} สาขา
-              </p>
-            )}
-          </div>
+          <Button
+            onClick={() => {
+              if (!canAddMoreBranches) {
+                toast.error(`ตอนนี้ใช้งานไป ${userOwnedBranchesCount}/${maxAllowedBranches} สาขาแล้ว - อัปเกรดเพื่อเพิ่มสาขา`);
+                return;
+              }
+              setEditingBranch(null);
+              setFormData({
+                branch_name: '',
+                branch_code: '',
+                address: '',
+                phone: '',
+                manager_name: '',
+                image_url: '',
+                description: '',
+                bill_generation_day: '',
+                payment_due_day: ''
+              });
+              setShowDialog(true);
+            }}
+            disabled={!canAddMoreBranches}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            เพิ่มสาขาใหม่
+          </Button>
         }
       />
 
