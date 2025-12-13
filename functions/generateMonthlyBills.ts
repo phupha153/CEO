@@ -403,6 +403,7 @@ Deno.serve(async (req) => {
         
         console.log(`📊 Normalized: ${normalizedPayments.length} payments`);
         
+        // ⭐ FIX: เก็บ Array แทน single entry เพื่อนับบิลซ้ำได้ถูกต้อง
         for (const p of normalizedPayments) {
             if (!p.due_date) continue;
             
@@ -410,11 +411,12 @@ Deno.serve(async (req) => {
             const mapKey = `${p.room_id}|${dueYearMonth}`;
             
             if (!existingPaymentsMap.has(mapKey)) {
-                existingPaymentsMap.set(mapKey, p);
+                existingPaymentsMap.set(mapKey, []);
             }
+            existingPaymentsMap.get(mapKey).push(p);
         }
         
-        console.log(`🗺️ Existing payments map: ${existingPaymentsMap.size} entries`);
+        console.log(`🗺️ Existing payments map: ${existingPaymentsMap.size} unique room-month pairs`);
 
         let roomsToProcess = roomsWithBooking.filter(room => {
             return branchIdsToProcess.includes(room.branch_id);
@@ -456,24 +458,16 @@ Deno.serve(async (req) => {
                 const mapKey = `${room.id}|${targetDueYearMonth}`;
                 
                 if (!forceSkipDuplicateCheck) {
-                    let existingBill = existingPaymentsMap.get(mapKey) || null;
+                    const existingBills = existingPaymentsMap.get(mapKey) || [];
 
-                    if (!existingBill) {
-                        for (const p of normalizedPayments) {
-                            if (p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
-                                existingBill = p;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (existingBill) {
+                    // ⭐ FIX: ถ้ามีบิลอยู่แล้ว (ไม่ว่ากี่ใบ) = ข้าม
+                    if (existingBills.length > 0) {
                         skippedDueToExistingBill++;
 
                         if (resendNotifications) {
                             const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
                             if (tenant?.line_user_id) {
-                                billsToSend.push({ payment: existingBill, tenant, room });
+                                billsToSend.push({ payment: existingBills[0], tenant, room });
                             }
                         }
                         continue;
