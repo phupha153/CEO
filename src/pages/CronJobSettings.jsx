@@ -35,7 +35,11 @@ import {
   TrendingUp,
   Trash2,
   Users,
-  Home
+  Home,
+  Save,
+  Database,
+  Wallet,
+  Gauge
 } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import TestSlipUploader from "@/components/testing/TestSlipUploader";
@@ -167,6 +171,17 @@ export default function CronJobSettings() {
   const [deletingPayments, setDeletingPayments] = useState(false);
   const [deleteResult, setDeleteResult] = useState(null);
   const [selectedStatsBranch, setSelectedStatsBranch] = useState('all');
+  const [cronDeleteEntities, setCronDeleteEntities] = useState({
+    Payment: true,
+    MeterReading: true,
+    Booking: false,
+    Tenant: false,
+    Room: false,
+    MaintenanceRequest: true,
+    Expense: true,
+    Contract: false,
+    MaterialDelivery: true
+  });
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -212,6 +227,20 @@ export default function CronJobSettings() {
     queryFn: () => base44.entities.Room.list('-created_date', 10000),
     refetchInterval: 30000,
   });
+
+  const { data: cronDeleteConfigs = [], refetch: refetchCronConfig } = useQuery({
+    queryKey: ['cronDeleteConfigs'],
+    queryFn: () => base44.entities.CronDeleteConfig.list('-updated_date', 1),
+    retry: 0,
+  });
+
+  useEffect(() => {
+    if (cronDeleteConfigs.length > 0) {
+      const config = cronDeleteConfigs[0];
+      setSelectedBranchesForDelete(config.selected_branches || []);
+      setCronDeleteEntities(config.delete_entities || cronDeleteEntities);
+    }
+  }, [cronDeleteConfigs]);
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
 
@@ -796,6 +825,71 @@ export default function CronJobSettings() {
               </div>
             </div>
 
+            {/* Entity Type Selection */}
+            <div className="bg-gradient-to-r from-orange-100 to-red-100 rounded-lg p-4 border-2 border-orange-300 mt-4">
+              <h4 className="font-bold text-orange-900 mb-3 flex items-center gap-2">
+                <Database className="w-5 h-5" />
+                📋 เลือกประเภทข้อมูลที่ Cron Job จะลบ
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+                {[
+                  { key: 'Payment', label: '💰 การชำระเงิน', icon: Wallet },
+                  { key: 'MeterReading', label: '📏 บันทึกมิเตอร์', icon: Gauge },
+                  { key: 'Booking', label: '📅 การจอง', icon: Calendar },
+                  { key: 'Tenant', label: '👥 ผู้เช่า', icon: Users },
+                  { key: 'Room', label: '🏠 ห้องพัก', icon: DoorOpen },
+                  { key: 'MaintenanceRequest', label: '🔧 แจ้งซ่อม', icon: Wrench },
+                  { key: 'Expense', label: '💸 ค่าใช้จ่าย', icon: Wallet },
+                  { key: 'Contract', label: '📄 สัญญา', icon: ScrollText },
+                  { key: 'MaterialDelivery', label: '📦 พัสดุ', icon: Package }
+                ].map(({ key, label, icon: EntityIcon }) => (
+                  <label 
+                    key={key}
+                    className={`flex items-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                      cronDeleteEntities[key]
+                        ? 'bg-red-100 border-red-400 text-red-900' 
+                        : 'bg-white border-slate-200 hover:border-orange-300'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={cronDeleteEntities[key]}
+                      onChange={(e) => setCronDeleteEntities({
+                        ...cronDeleteEntities,
+                        [key]: e.target.checked
+                      })}
+                      className="w-4 h-4"
+                    />
+                    <EntityIcon className="w-4 h-4" />
+                    <span className="text-sm font-medium">{label}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCronDeleteEntities({
+                    Payment: true, MeterReading: true, Booking: false, Tenant: false,
+                    Room: false, MaintenanceRequest: true, Expense: true, Contract: false, MaterialDelivery: true
+                  })}
+                >
+                  เลือกค่าเริ่มต้น
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCronDeleteEntities({
+                    Payment: true, MeterReading: true, Booking: true, Tenant: true,
+                    Room: true, MaintenanceRequest: true, Expense: true, Contract: true, MaterialDelivery: true
+                  })}
+                >
+                  เลือกทั้งหมด
+                </Button>
+              </div>
+            </div>
+
             <div className="flex gap-2">
               <Button
                 onClick={async () => {
@@ -805,53 +899,57 @@ export default function CronJobSettings() {
                   }
 
                   try {
-                    const config = {
-                      key: 'cron_delete_selected_branches',
-                      value: JSON.stringify(selectedBranchesForDelete),
-                      description: 'รายการ Branch IDs สำหรับ Cron Job ลบข้อมูลทดสอบ',
-                      category: 'general'
+                    const data = {
+                      selected_branches: selectedBranchesForDelete,
+                      delete_entities: cronDeleteEntities,
+                      last_updated: new Date().toISOString(),
+                      updated_by: currentUser?.email || 'unknown'
                     };
 
-                    const configs = await base44.entities.Config.filter({ key: 'cron_delete_selected_branches' });
-                    if (configs.length > 0) {
-                      await base44.entities.Config.update(configs[0].id, config);
+                    const existing = cronDeleteConfigs[0];
+                    if (existing) {
+                      await base44.entities.CronDeleteConfig.update(existing.id, data);
                     } else {
-                      await base44.entities.Config.create(config);
+                      await base44.entities.CronDeleteConfig.create(data);
                     }
-                    toast.success(`บันทึกรายการ ${selectedBranchesForDelete.length} สาขาสำเร็จ`);
+
+                    await refetchCronConfig();
+                    toast.success(`💾 บันทึกการตั้งค่าสำเร็จ - ${selectedBranchesForDelete.length} สาขา`);
                   } catch (error) {
                     toast.error('บันทึกไม่สำเร็จ: ' + error.message);
                   }
                 }}
-                className="bg-red-600 hover:bg-red-700 flex-1"
+                className="bg-blue-600 hover:bg-blue-700 flex-1"
                 disabled={selectedBranchesForDelete.length === 0}
               >
-                💾 บันทึกรายการสาขา
+                <Save className="w-4 h-4 mr-2" />
+                💾 บันทึกการตั้งค่า Cron Job
               </Button>
               <Button
                 onClick={async () => {
-                  try {
-                    const configs = await base44.entities.Config.filter({ key: 'cron_delete_selected_branches' });
-                    if (configs.length > 0) {
-                      const branchIds = JSON.parse(configs[0].value);
-                      setSelectedBranchesForDelete(branchIds);
-                      toast.success(`โหลดรายการ ${branchIds.length} สาขาแล้ว`);
-                    } else {
-                      toast.info('ยังไม่มีรายการที่บันทึกไว้');
-                    }
-                  } catch (error) {
-                    toast.error('โหลดไม่สำเร็จ: ' + error.message);
-                  }
+                  await refetchCronConfig();
+                  toast.success('🔄 โหลดการตั้งค่าล่าสุดแล้ว');
                 }}
                 variant="outline"
                 className="flex-1"
               >
+                <RefreshCw className="w-4 h-4 mr-2" />
                 🔄 โหลดรายการที่บันทึก
               </Button>
             </div>
             
+            <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-300">
+              <h4 className="font-semibold text-yellow-900 mb-2">💡 วิธีใช้งาน:</h4>
+              <ol className="text-sm text-yellow-800 space-y-1 list-decimal ml-5">
+                <li>เลือกสาขาที่ต้องการลบข้อมูลทดสอบ</li>
+                <li>เลือกประเภทข้อมูลที่ต้องการให้ Cron Job ลบ</li>
+                <li>กดปุ่ม "บันทึกการตั้งค่า Cron Job"</li>
+                <li>Cron Job จะลบข้อมูลทดสอบอัตโนมัติตามที่ตั้งค่า</li>
+              </ol>
+            </div>
+            
             <p className="text-xs text-red-600">
-              ⚠️ Cron Job จะลบข้อมูลทดสอบ (is_sample, TEST, 12345, 5555, COPY) ของสาขาที่เลือกเท่านั้น
+              ⚠️ Cron Job จะลบข้อมูลทดสอบ (is_sample, TEST, 12345, 5555, COPY) ของสาขาและประเภทข้อมูลที่เลือกเท่านั้น
             </p>
           </CardContent>
         </Card>
