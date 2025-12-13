@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
     console.log('========================================');
 
     const startTime = Date.now();
-    const MAX_BILLS_PER_RUN = 800; // ⭐ จำกัดสร้างแค่ 800 บิล/รอบ เพื่อป้องกัน rate limit
+    const MAX_BILLS_PER_RUN = 1000; // ⭐ จำกัดสร้างแค่ 1000 บิล/รอบ เพื่อป้องกัน rate limit
 
     let base44 = null;
     let targetBranchId = null;
