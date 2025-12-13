@@ -528,15 +528,19 @@ export default function TestingAdmin() {
             break;
           }
           
-          const deletePromises = items.map(item => 
-            base44.entities[entityName].delete(item.id).catch(e => {
+          // ⭐ ลบทีละรายการเพื่อป้องกัน rate limit
+          for (const item of items) {
+            try {
+              await base44.entities[entityName].delete(item.id);
+              entityDeleted++;
+              totalDeleted++;
+              
+              // ⭐ พัก 200ms ระหว่างการลบแต่ละรายการ
+              await new Promise(resolve => setTimeout(resolve, 200));
+            } catch (e) {
               console.warn(`Failed to delete ${entityName} ${item.id}:`, e.message);
-            })
-          );
-          
-          await Promise.all(deletePromises);
-          entityDeleted += items.length;
-          totalDeleted += items.length;
+            }
+          }
           
           setCustomDeleteProgress(prev => ({
             ...prev,
