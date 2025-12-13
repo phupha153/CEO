@@ -192,28 +192,64 @@ Deno.serve(async (req) => {
             return allData;
         }
 
-        // STEP 1: Fetch rooms and bookings (แยก fetch เพื่อ log ชัดเจน)
-        console.log('📦 Step 1a: Fetching rooms...');
+        // STEP 1: Fetch rooms and bookings - ใช้ limit สูงสุด
+        console.log('📦 Step 1: Fetching all data...');
         
-        await retryOperation(async () => {
-            const filter = targetBranchId ? { branch_id: targetBranchId } : {};
-            const r = await fetchWithPagination(base44.asServiceRole.entities.Room, filter, '-room_number', 100);
-            allRooms = r || []; 
-        });
+        const filter = targetBranchId ? { branch_id: targetBranchId } : {};
         
-        console.log(`📦 Rooms fetched: ${allRooms.length}`);
-        await delay(1000);
+        // ⭐ Fetch Rooms แบบ pagination เต็มรูปแบบ
+        console.log('📦 Step 1a: Fetching ALL rooms...');
+        let roomSkip = 0;
+        let fetchingRooms = true;
         
-        console.log('📦 Step 1b: Fetching bookings...');
+        while (fetchingRooms) {
+            await retryOperation(async () => {
+                const batch = await base44.asServiceRole.entities.Room.filter(filter, '-room_number', 500, roomSkip);
+                const batchLength = Array.isArray(batch) ? batch.length : 0;
+                console.log(`   🏠 Rooms batch: ${batchLength} items (skip: ${roomSkip}, total: ${allRooms.length + batchLength})`);
+                
+                if (batchLength > 0) {
+                    allRooms = allRooms.concat(batch);
+                    roomSkip += batchLength;
+                }
+                
+                if (batchLength < 500) {
+                    fetchingRooms = false;
+                }
+            });
+            
+            if (fetchingRooms) await delay(800);
+        }
         
-        await retryOperation(async () => {
-            const filter = targetBranchId ? { branch_id: targetBranchId } : {};
-            const bookingFilter = { ...filter, status: 'active' };
-            const b = await fetchWithPagination(base44.asServiceRole.entities.Booking, bookingFilter, '-created_date', 100);
-            bookings = b || []; 
-        });
+        console.log(`✅ Total rooms: ${allRooms.length}`);
+        await delay(1500);
+        
+        // ⭐ Fetch Bookings แบบ pagination เต็มรูปแบบ
+        console.log('📦 Step 1b: Fetching ALL active bookings...');
+        let bookingSkip = 0;
+        let fetchingBookings = true;
+        const bookingFilter = { ...filter, status: 'active' };
+        
+        while (fetchingBookings) {
+            await retryOperation(async () => {
+                const batch = await base44.asServiceRole.entities.Booking.filter(bookingFilter, '-created_date', 500, bookingSkip);
+                const batchLength = Array.isArray(batch) ? batch.length : 0;
+                console.log(`   📅 Bookings batch: ${batchLength} items (skip: ${bookingSkip}, total: ${bookings.length + batchLength})`);
+                
+                if (batchLength > 0) {
+                    bookings = bookings.concat(batch);
+                    bookingSkip += batchLength;
+                }
+                
+                if (batchLength < 500) {
+                    fetchingBookings = false;
+                }
+            });
+            
+            if (fetchingBookings) await delay(800);
+        }
 
-        console.log(`📦 Bookings fetched: ${bookings.length}`);
+        console.log(`✅ Total bookings: ${bookings.length}`);
         await delay(1500); // ⭐ พักหลัง Step 1
 
         const normalizeEntity = (entity) => {
