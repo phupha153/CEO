@@ -87,11 +87,7 @@ Deno.serve(async (req) => {
     console.log('========================================');
 
     const startTime = Date.now();
-    
-    // ⭐ ตั้ง timeout 2 นาที (120 วินาที)
-    const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Function timeout after 120 seconds')), 120000);
-    });
+    const MAX_BILLS_PER_RUN = 800; // ⭐ จำกัดสร้างแค่ 800 บิล/รอบ เพื่อป้องกัน rate limit
 
     let base44 = null;
     let targetBranchId = null;
@@ -442,9 +438,15 @@ Deno.serve(async (req) => {
         const updatesToProcess = [];
         const billsToSend = [];
         let skippedDueToExistingBill = 0;
+        let skippedDueToLimit = 0;
         const paymentReferenceMap = new Map();
 
         for (const room of roomsToProcess) {
+            // ⭐ ถ้าเกิน limit แล้ว ให้หยุดเตรียมบิล
+            if (paymentsToCreate.length >= MAX_BILLS_PER_RUN) {
+                skippedDueToLimit++;
+                continue;
+            }
             try {
                 const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
                 if (!activeBooking) continue;
@@ -705,9 +707,12 @@ Deno.serve(async (req) => {
         const executionTime = Date.now() - startTime;
         const monthName = thailandTime.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
         let summaryMessage = `สร้างบิลสำเร็จ ${createdCount} รายการ`;
-        
+
         if (skippedDueToExistingBill > 0) {
             summaryMessage += `, ข้าม ${skippedDueToExistingBill} ห้อง`;
+        }
+        if (skippedDueToLimit > 0) {
+            summaryMessage += `, ⚠️ เหลืออีก ${skippedDueToLimit} ห้อง (รันอีกครั้ง)`;
         }
         if (pendingImageCount > 0) {
             summaryMessage += `, รอสร้างรูป ${pendingImageCount} ใบ`;
@@ -721,6 +726,8 @@ Deno.serve(async (req) => {
             message: summaryMessage,
             generatedCount: createdCount,
             skippedDueToExistingBill,
+            skippedDueToLimit,
+            needMoreRuns: skippedDueToLimit > 0,
             pendingImageCount,
             sentCount,
             failedCount
