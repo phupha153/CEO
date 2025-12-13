@@ -426,19 +426,19 @@ export default function BranchSelection() {
 
 
 
-              {/* ✅ ถ้ามีสาขา → แสดงปุ่มดูภาพรวม + เพิ่มสาขา */}
+              {/* ✅ ถ้ามีสาขา → แสดงปุ่มดูภาพรวม + จัดการสาขา */}
               {!hasNoBranches && !hasNoAccess && (
                 <div className="flex flex-col gap-3 mb-6 items-center">
                   <div className="flex flex-wrap gap-3 justify-center">
-                    {/* ปุ่มดูภาพรวมทั้งหมด - แสดงเฉพาะเมื่อมีมากกว่า 1 สาขา และไม่ได้อยู่ใน trial mode */}
-                    {filteredBranches.length > 1 && !isTrialMode && (
+                    {/* ปุ่มรายงานรวมทั้งหมด - แสดงเฉพาะเมื่อมีมากกว่า 1 สาขา */}
+                    {filteredBranches.length > 1 && (
                       <Button
-                        onClick={handleViewAllBranches}
+                        onClick={() => navigate(createPageUrl('reports'))}
                         disabled={isNavigating}
-                        className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
+                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
                       >
-                        <Globe className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <span>ดูภาพรวมทั้งหมด</span>
+                        <BarChart3 className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <span>รายงานรวมทั้งหมด</span>
                       </Button>
                     )}
                     
@@ -446,21 +446,10 @@ export default function BranchSelection() {
                     {(userRole === 'developer' || userRole === 'owner') && (
                       <Button
                         onClick={() => navigate(createPageUrl('BranchManagement'))}
-                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
+                        className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
                       >
                         <Settings className="w-5 h-5 mr-2 flex-shrink-0" />
                         <span>จัดการสาขา</span>
-                      </Button>
-                    )}
-
-                    {/* ปุ่มเพิ่มสาขา - เปิด Dialog */}
-                    {(userRole === 'developer' || userRole === 'owner') && canAddMoreBranches && (
-                      <Button
-                        onClick={() => setShowDialog(true)}
-                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
-                      >
-                        <Plus className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <span>เพิ่มสาขา</span>
                       </Button>
                     )}
                   </div>
@@ -468,8 +457,8 @@ export default function BranchSelection() {
                 </div>
               )}
 
-              {/* ✅ ถ้าไม่มีสาขาเลย หรือไม่มีสิทธิ์ → แสดงกล่องเพิ่มสาขา */}
-              {(hasNoBranches || hasNoAccess) ? (
+              {/* ✅ ถ้าไม่มีสาขาเลย → แสดงกล่องเพิ่มสาขา */}
+              {hasNoBranches ? (
                 <div className="flex items-center justify-center py-12">
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -487,15 +476,21 @@ export default function BranchSelection() {
                           </div>
                         </div>
                         <h3 className="text-2xl font-bold text-slate-800 mb-3">เพิ่มสาขาแรก</h3>
-                        <p className="text-sm text-slate-600 mb-2">
-                          {hasNoBranches 
-                            ? 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ' 
-                            : 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ หรือติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา'}
-                        </p>
+                        <p className="text-sm text-slate-600 mb-2">เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ</p>
                         <p className="text-xs text-orange-600 font-medium">คลิกเพื่อเริ่มต้น</p>
                       </CardContent>
                     </Card>
                   </motion.div>
+                </div>
+              ) : hasNoAccess ? (
+                <div className="flex items-center justify-center py-12">
+                  <Card className="max-w-md w-full border-2 border-yellow-300 bg-yellow-50">
+                    <CardContent className="p-12 text-center">
+                      <Building2 className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
+                      <h3 className="text-xl font-bold text-slate-800 mb-2">ไม่มีสิทธิ์เข้าถึงสาขา</h3>
+                      <p className="text-sm text-slate-600">กรุณาติดต่อผู้ดูแลระบบเพื่อขอเข้าถึงสาขา</p>
+                    </CardContent>
+                  </Card>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
