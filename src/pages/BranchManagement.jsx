@@ -137,14 +137,17 @@ export default function BranchManagement() {
   
   const canAddMoreBranches = userRole === 'developer' || userOwnedBranchesCount < maxAllowedBranches;
 
-  console.log('Branch Limit Debug:', {
+  console.log('🔍 Branch Limit Debug:', {
     userEmail: currentUser?.email,
+    userPackages: userPackages.map(p => ({ branch_id: p.branch_id, package_id: p.package_id, price: p.price_per_month })),
+    userOwnedBranchIds: Array.from(userOwnedBranchIds),
     userOwnedBranchesCount,
     maxAllowedBranches,
     canAddMoreBranches,
     isTrialMode,
-    crmPackageInfo: crmPackageInfo?.max_branches,
-    userPackagesCount: userPackages.length
+    crmPackageInfo,
+    activePaidPackage,
+    comparison: `${userOwnedBranchesCount} < ${maxAllowedBranches} = ${userOwnedBranchesCount < maxAllowedBranches}`
   });
 
   const createMutation = useMutation({
@@ -618,10 +621,10 @@ export default function BranchManagement() {
               setShowDialog(true);
             }}
             disabled={!canAddMoreBranches}
-            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-500"
           >
             <Plus className="w-5 h-5 mr-2" />
-            เพิ่มสาขาใหม่
+            เพิ่มสาขาใหม่ {!canAddMoreBranches && `(${userOwnedBranchesCount}/${maxAllowedBranches})`}
           </Button>
         }
       />
