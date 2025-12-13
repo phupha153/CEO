@@ -335,27 +335,53 @@ Deno.serve(async (req) => {
         console.log(`📦 Fetched: ${meterReadings.length} meter readings, ${tenants.length} tenants`);
         await delay(2000); // ⭐ พักก่อน Step 4
         
-        // STEP 4: ดึง Payment (ทีละสาขา) - ใช้ fetchWithPagination แทน
-        console.log(`📦 Step 4: Fetching payments...`);
+        // STEP 4: ดึง Payment ทั้งหมด (ไม่ใช้ fetchWithPagination)
+        console.log(`📦 Step 4: Fetching ALL payments...`);
         
         let recentPayments = [];
 
         for (const branchId of branchIdsToProcess) {
-            const branchPayments = await retryOperation(async () => {
-                return await fetchWithPagination(
-                    base44.asServiceRole.entities.Payment,
-                    { branch_id: branchId },
-                    '-created_date',
-                    200
-                );
-            });
+            console.log(`   📥 Fetching payments for branch: ${branchId}`);
             
-            console.log(`   ✅ สาขา ${branchId}: ${branchPayments.length} payments`);
+            let branchPayments = [];
+            let paymentSkip = 0;
+            let fetchingPayments = true;
+            let batchNum = 0;
+            
+            while (fetchingPayments && batchNum < 100) {
+                batchNum++;
+                
+                await retryOperation(async () => {
+                    const batch = await base44.asServiceRole.entities.Payment.filter(
+                        { branch_id: branchId },
+                        '-created_date',
+                        100,
+                        paymentSkip
+                    );
+                    
+                    const batchLength = Array.isArray(batch) ? batch.length : 0;
+                    console.log(`      💳 Batch ${batchNum}: ${batchLength} items (skip: ${paymentSkip}, total: ${branchPayments.length + batchLength})`);
+                    
+                    if (batchLength > 0) {
+                        branchPayments = branchPayments.concat(batch);
+                        paymentSkip += batchLength;
+                    }
+                    
+                    // ⭐ หยุดเฉพาะเมื่อได้ 0 รายการ
+                    if (batchLength === 0) {
+                        fetchingPayments = false;
+                    }
+                });
+                
+                if (fetchingPayments) await delay(500);
+            }
+            
+            console.log(`   ✅ สาขา ${branchId}: ${branchPayments.length} payments (${batchNum} batches)`);
             recentPayments = recentPayments.concat(branchPayments);
             await delay(1000);
         }
 
-        console.log(`⭐ TOTAL PAYMENTS: ${recentPayments.length}`);
+        console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments.length}`);
         
         const normalizedPayments = [];
         
