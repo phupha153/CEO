@@ -88,9 +88,9 @@ Deno.serve(async (req) => {
 
     const startTime = Date.now();
     
-    // ⭐ ตั้ง timeout 1.5 นาที (90 วินาที)
+    // ⭐ ตั้ง timeout 2 นาที (120 วินาที)
     const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Function timeout after 90 seconds')), 90000);
+        setTimeout(() => reject(new Error('Function timeout after 120 seconds')), 120000);
     });
 
     let base44 = null;
@@ -212,11 +212,11 @@ Deno.serve(async (req) => {
                 }
             });
             
-            if (fetchingRooms) await delay(800);
+            if (fetchingRooms) await delay(500);
         }
         
         console.log(`✅ Total rooms: ${allRooms.length}`);
-        await delay(1500);
+        await delay(500);
         
         // ⭐ Fetch Bookings แบบ pagination เต็มรูปแบบ
         console.log('📦 Step 1b: Fetching ALL active bookings...');
@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
                 }
             });
             
-            if (fetchingBookings) await delay(800);
+            if (fetchingBookings) await delay(500);
         }
 
         console.log(`✅ Total bookings: ${bookings.length}`);
@@ -633,14 +633,14 @@ Deno.serve(async (req) => {
             console.log(`🚀 Creating ${paymentsToCreate.length} bills...`);
             
             const batches = [];
-            for (let i = 0; i < paymentsToCreate.length; i += 50) {
-                batches.push(paymentsToCreate.slice(i, i + 50));
+            for (let i = 0; i < paymentsToCreate.length; i += 100) {
+                batches.push(paymentsToCreate.slice(i, i + 100));
             }
 
             for (const batch of batches) {
                 await retryOperation(async () => {
                     const created = await base44.asServiceRole.entities.Payment.bulkCreate(batch);
-                    
+
                     for (const payment of created) {
                         const meta = paymentReferenceMap.get(payment.room_id);
                         if (meta && meta.tenant?.line_user_id) {
@@ -652,7 +652,7 @@ Deno.serve(async (req) => {
                     }
                     createdCount += created.length;
                 });
-                await delay(2000);
+                await delay(800);
             }
         }
 
@@ -665,7 +665,7 @@ Deno.serve(async (req) => {
                         prepaid_balance: update.newBalance
                     });
                 });
-                await delay(200);
+                await delay(100);
             }
         }
 
