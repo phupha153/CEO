@@ -33,6 +33,25 @@ export default function AddEmployeeDialog({ isOpen, onClose, onSuccess }) {
     enabled: isOpen,
   });
 
+  // ⭐ เช็คจำนวนผู้ใช้สูงสุดตามแพ็กเกจ
+  const { data: branchPackages = [] } = useQuery({
+    queryKey: ['branchPackages'],
+    queryFn: () => base44.entities.BranchPackage.list('-created_date', 200),
+    enabled: isOpen && !!currentUser,
+  });
+
+  const { data: packageFeatureConfigs = [] } = useQuery({
+    queryKey: ['packageFeatureConfigs'],
+    queryFn: () => base44.entities.PackageFeatureConfig.list(),
+    enabled: isOpen && !!currentUser,
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => base44.entities.User.list(),
+    enabled: isOpen && !!currentUser,
+  });
+
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   const userAccessibleBranches = currentUser?.accessible_branches;
 
@@ -58,18 +77,30 @@ export default function AddEmployeeDialog({ isOpen, onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ⭐ เช็ค trial mode - ห้ามเพิ่มพนักงาน
-    try {
-      const branchPackagesData = await base44.entities.BranchPackage.list('-created_date', 200);
-      const userPackages = currentUser?.email ? branchPackagesData.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
-      const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
-      
-      if (isTrialMode) {
-        toast.error('โหมดทดลองใช้งานได้แค่ 1 คน - อัปเกรดเพื่อเพิ่มพนักงาน');
-        return;
+    // ⭐ เช็คจำนวนผู้ใช้สูงสุดตามแพ็กเกจ
+    const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
+    const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
+    
+    let maxAllowedUsers = 1; // Default สำหรับ trial
+    
+    if (!isTrialMode && userPackages.length > 0) {
+      const activePaidPackage = userPackages.find(pkg => pkg.package_id !== 'trial' && pkg.price_per_month > 0);
+      if (activePaidPackage) {
+        const packageConfig = packageFeatureConfigs.find(c => c.package_id === activePaidPackage.package_id);
+        if (packageConfig?.max_users) {
+          maxAllowedUsers = packageConfig.max_users;
+        } else {
+          maxAllowedUsers = 999; // ไม่จำกัด
+        }
       }
-    } catch (error) {
-      console.error('Error checking trial mode:', error);
+    }
+    
+    // นับจำนวนผู้ใช้ปัจจุบัน
+    const currentUserCount = allUsers.length;
+    
+    if (currentUserCount >= maxAllowedUsers) {
+      toast.error(`เพิ่มได้สูงสุด ${maxAllowedUsers} คน - อัปเกรดเพื่อเพิ่มผู้ใช้ได้ไม่จำกัด`);
+      return;
     }
 
     // ⭐ ตรวจสอบว่าเลือกสาขาอย่างน้อย 1 สาขา
