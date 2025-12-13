@@ -133,8 +133,11 @@ export default function BranchManagement() {
     }
   }
   
+  // ⭐ นับจำนวนสาขาที่ user เป็นเจ้าของจริงๆ จาก BranchPackage (ไม่ใช่แค่ accessible_branches)
+  const userOwnedBranchesCount = userPackages.length;
+  
   const hasNoPackageAtAll = userPackages.length === 0;
-  const canAddMoreBranches = userRole === 'developer' || hasNoPackageAtAll || branches.length < maxAllowedBranches;
+  const canAddMoreBranches = userRole === 'developer' || hasNoPackageAtAll || userOwnedBranchesCount < maxAllowedBranches;
 
   const createMutation = useMutation({
     mutationFn: async (data) => {

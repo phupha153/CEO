@@ -333,9 +333,14 @@ export default function BranchSelection() {
     }, 300);
   };
 
-  const handleViewAllBranches = () => {
+  const handleViewReports = () => {
     if (isNavigating) return;
-    navigate(createPageUrl('AllBranchesDashboard'));
+    setIsNavigating(true);
+    
+    setTimeout(() => {
+      navigate(createPageUrl('reports'));
+      setIsNavigating(false);
+    }, 300);
   };
 
 
@@ -433,7 +438,7 @@ export default function BranchSelection() {
                     {/* ปุ่มรายงานรวมทั้งหมด - แสดงเฉพาะเมื่อมีมากกว่า 1 สาขา */}
                     {filteredBranches.length > 1 && (
                       <Button
-                        onClick={() => navigate(createPageUrl('reports'))}
+                        onClick={handleViewReports}
                         disabled={isNavigating}
                         className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
                       >
