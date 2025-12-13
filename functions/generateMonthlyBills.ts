@@ -148,23 +148,36 @@ Deno.serve(async (req) => {
         let allRooms = [], bookings = [], meterReadings = [], tenants = [];
         let existingPaymentsMap = new Map();
         
-        async function fetchWithPagination(entity, filter, sortBy, batchSize = 5000) {
+        async function fetchWithPagination(entity, filter, sortBy, batchSize = 200) {
             let allData = [];
             let skip = 0;
             let hasMore = true;
+            let iteration = 0;
             
             while (hasMore) {
+                iteration++;
                 const batch = await entity.filter(filter, sortBy, batchSize, skip);
-                if (!Array.isArray(batch) || batch.length === 0) {
+                const batchLength = Array.isArray(batch) ? batch.length : 0;
+                
+                console.log(`   📥 Batch ${iteration}: fetched ${batchLength} items (skip: ${skip})`);
+                
+                if (batchLength === 0) {
                     hasMore = false;
                 } else {
                     allData = allData.concat(batch);
-                    skip += batch.length;
-                    if (batch.length < batchSize) {
+                    skip += batchLength;
+                    
+                    // ดึงต่อถ้ายังได้ครบ batch size
+                    if (batchLength < batchSize) {
                         hasMore = false;
                     }
+                    
+                    // Delay เล็กน้อยเพื่อป้องกัน rate limit
+                    if (hasMore) await delay(300);
                 }
             }
+            
+            console.log(`   ✅ Total fetched: ${allData.length} items in ${iteration} batches`);
             return allData;
         }
 
@@ -276,44 +289,24 @@ Deno.serve(async (req) => {
         console.log(`📦 Fetched: ${meterReadings.length} meter readings, ${tenants.length} tenants`);
         await delay(2000); // ⭐ พักก่อน Step 4
         
-        // STEP 4: ดึง Payment (ทีละสาขา)
+        // STEP 4: ดึง Payment (ทีละสาขา) - ใช้ fetchWithPagination แทน
         console.log(`📦 Step 4: Fetching payments...`);
         
         let recentPayments = [];
-        const BATCH_SIZE = 200; // ⭐ ลด batch size
 
         for (const branchId of branchIdsToProcess) {
-            let branchPayments = [];
-            let skip = 0;
-            let hasMore = true;
-
-            while (hasMore) {
-                await retryOperation(async () => {
-                    const batch = await base44.asServiceRole.entities.Payment.filter(
-                        { branch_id: branchId }, 
-                        '-created_date', 
-                        BATCH_SIZE, 
-                        skip
-                    );
-
-                    if (Array.isArray(batch) && batch.length > 0) {
-                        branchPayments = branchPayments.concat(batch);
-                        skip += batch.length;
-
-                        if (batch.length < BATCH_SIZE) {
-                            hasMore = false;
-                        }
-                    } else {
-                        hasMore = false;
-                    }
-                });
-
-                if (hasMore) await delay(800); // ⭐ เพิ่ม delay
-            }
+            const branchPayments = await retryOperation(async () => {
+                return await fetchWithPagination(
+                    base44.asServiceRole.entities.Payment,
+                    { branch_id: branchId },
+                    '-created_date',
+                    200
+                );
+            });
             
-            console.log(`   - สาขา ${branchId}: ${branchPayments.length} payments`);
+            console.log(`   ✅ สาขา ${branchId}: ${branchPayments.length} payments`);
             recentPayments = recentPayments.concat(branchPayments);
-            await delay(1500); // ⭐ พักระหว่างสาขา
+            await delay(1000);
         }
 
         console.log(`⭐ TOTAL PAYMENTS: ${recentPayments.length}`);
