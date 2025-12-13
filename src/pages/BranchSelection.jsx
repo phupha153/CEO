@@ -163,8 +163,7 @@ export default function BranchSelection() {
   const userOwnedBranchIds = new Set(userPackages.map(pkg => pkg.branch_id));
   const userOwnedBranchesCount = userOwnedBranchIds.size;
   
-  const hasNoPackageAtAll = userPackages.length === 0;
-  const canAddMoreBranches = userRole === 'developer' || hasNoPackageAtAll || userOwnedBranchesCount < maxAllowedBranches;
+  const canAddMoreBranches = userRole === 'developer' || userOwnedBranchesCount < maxAllowedBranches;
 
   console.log('Branch Limit Check:', {
     userEmail: currentUser?.email,
