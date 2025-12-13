@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
     let targetBranchId = null;
     let forceCreate = false;
     let resendNotifications = false;
+    let forceSkipDuplicateCheck = false;
     
     try {
         const clonedReq = req.clone();
@@ -105,6 +106,7 @@ Deno.serve(async (req) => {
                 targetBranchId = body.branch_id || null;
                 forceCreate = body.force === true;
                 resendNotifications = body.resend_notifications === true;
+                forceSkipDuplicateCheck = body.force_skip_duplicate_check === true;
             }
         } catch (e) {
             console.log('⚠️ No valid JSON body or already consumed');
@@ -453,27 +455,29 @@ Deno.serve(async (req) => {
                 const targetDueYearMonth = `${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`;
                 const mapKey = `${room.id}|${targetDueYearMonth}`;
                 
-                let existingBill = existingPaymentsMap.get(mapKey) || null;
+                if (!forceSkipDuplicateCheck) {
+                    let existingBill = existingPaymentsMap.get(mapKey) || null;
 
-                if (!existingBill) {
-                    for (const p of normalizedPayments) {
-                        if (p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
-                            existingBill = p;
-                            break;
+                    if (!existingBill) {
+                        for (const p of normalizedPayments) {
+                            if (p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
+                                existingBill = p;
+                                break;
+                            }
                         }
                     }
-                }
 
-                if (existingBill) {
-                    skippedDueToExistingBill++;
-                    
-                    if (resendNotifications) {
-                        const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
-                        if (tenant?.line_user_id) {
-                            billsToSend.push({ payment: existingBill, tenant, room });
+                    if (existingBill) {
+                        skippedDueToExistingBill++;
+
+                        if (resendNotifications) {
+                            const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
+                            if (tenant?.line_user_id) {
+                                billsToSend.push({ payment: existingBill, tenant, room });
+                            }
                         }
+                        continue;
                     }
-                    continue;
                 }
 
                 const roomMeters = meterReadings.filter(m => m.room_id === room.id);

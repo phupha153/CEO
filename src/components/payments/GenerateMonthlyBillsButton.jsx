@@ -19,7 +19,8 @@ export default function GenerateMonthlyBillsButton({ branchId, onSuccess, compac
       
       const response = await base44.functions.invoke('generateMonthlyBills', {
         branch_id: branchId,
-        force: true
+        force: true,
+        force_skip_duplicate_check: true
       });
 
       if (response.data?.success) {
