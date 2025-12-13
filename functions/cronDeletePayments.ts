@@ -124,6 +124,8 @@ Deno.serve(async (req) => {
         let totalDeleted = 0;
         const entityOrder = ['Payment', 'MeterReading', 'MaintenanceRequest', 'Expense', 'MaterialDelivery', 'Booking', 'Tenant', 'Room', 'Contract'];
         
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        
         for (const entityName of entityOrder) {
             const items = itemsToDelete[entityName];
             if (!items || items.length === 0) continue;
@@ -142,12 +144,25 @@ Deno.serve(async (req) => {
                     await base44.asServiceRole.entities[entityName].delete(item.id);
                     totalDeleted++;
                     
+                    // ⭐ พัก 300ms ระหว่างแต่ละการลบเพื่อป้องกัน rate limit
+                    await delay(300);
+                    
                     if (totalDeleted % 50 === 0) {
                         console.log(`✅ [${totalDeleted}/${totalToDelete}]`);
                     }
                 } catch (e) {
                     if (e.message?.includes('not found') || e.message?.includes('404') || e.status === 404) {
                         totalDeleted++;
+                    } else if (e.message?.includes('Rate limit')) {
+                        console.warn(`⚠️ Rate limit - waiting 5s...`);
+                        await delay(5000);
+                        // ลองอีกครั้ง
+                        try {
+                            await base44.asServiceRole.entities[entityName].delete(item.id);
+                            totalDeleted++;
+                        } catch (retryError) {
+                            console.error(`❌ Retry failed for ${entityName}:`, retryError.message);
+                        }
                     } else {
                         console.error(`❌ Error deleting ${entityName}:`, e.message);
                     }
@@ -159,15 +174,10 @@ Deno.serve(async (req) => {
         console.log(`✅ [Cron] Deleted ${totalDeleted} items in ${elapsed}s`);
         
         // ⭐ เช็คว่ายังมีข้อมูลเหลืออีกหรือไม่
-        const hasMoreData = Object.values(itemsToDelete).some(items => items.length === batchSize) ||
-                           Object.values(testData).some((data, idx) => {
-                               const entityInfo = entitiesToFetch[idx];
-                               return data.length >= entityInfo.size;
-                           });
+        const hasMoreData = Object.values(itemsToDelete).some(items => items && items.length === batchSize);
         
         if (hasMoreData) {
             console.log(`🔄 [Cron] More TEST data likely exists - calling self again...`);
-            console.log(`📊 Fetched counts: Payments=${testPayments.length}, Bookings=${testBookings.length}, Rooms=${testRooms.length}, Tenants=${testTenants.length}, MeterReadings=${testMeterReadings.length}`);
             
             // เรียก function ตัวเองอีกครั้งแบบ async (ไม่รอผลลัพธ์)
             base44.asServiceRole.functions.invoke('cronDeletePayments', {})
