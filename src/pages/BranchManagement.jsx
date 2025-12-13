@@ -631,18 +631,22 @@ export default function BranchManagement() {
         <div className="max-w-7xl mx-auto space-y-6">
 
           {/* แสดงจำนวนสาขาที่ใช้งาน */}
-          <div className="mb-4">
-            <p className="text-xs text-slate-500">
+          <div className="flex justify-between items-center">
+            <div className="text-sm text-slate-600">
               {!canAddMoreBranches ? (
-                <span className="text-amber-600">
-                  ตอนนี้ใช้งานไป {userOwnedBranchesCount}/{maxAllowedBranches} สาขาแล้ว - อัปเกรดเพื่อเพิ่มสาขา
-                </span>
+                <div className="bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
+                  <span className="text-amber-700 font-medium">
+                    ตอนนี้ใช้งานไป {userOwnedBranchesCount}/{maxAllowedBranches} สาขาแล้ว - อัปเกรดเพื่อเพิ่มสาขา
+                  </span>
+                </div>
               ) : (
-                <span>
-                  ใช้งานไป {userOwnedBranchesCount}/{maxAllowedBranches} สาขา
-                </span>
+                <div className="bg-slate-50 px-4 py-2 rounded-lg border border-slate-200">
+                  <span className="text-slate-700 font-medium">
+                    ใช้งานไป {userOwnedBranchesCount}/{maxAllowedBranches} สาขา
+                  </span>
+                </div>
               )}
-            </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

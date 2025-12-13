@@ -1943,28 +1943,24 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // ⭐ นับเฉพาะสาขาที่ user เป็นเจ้าของ (unique branch_id จาก BranchPackage)
-                              const userPackagesCheck = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
-                              const userOwnedBranchIds = new Set(userPackagesCheck.map(pkg => pkg.branch_id));
-                              const totalUserOwnedBranches = userOwnedBranchIds.size;
+                              // นับจำนวนสาขาจริงในระบบ
+                              const totalBranchesInSystem = branches.length;
                               
-                              // เช็ค trial mode
+                              // ⭐ เช็ค trial mode - แสดง 1/1
+                              const userPackagesCheck = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
                               const isTrialModeCheck = userPackagesCheck.length > 0 && userPackagesCheck.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
                               
-                              // ดึง max_branches จาก crmPackageInfo
+                              // ดึง max_branches จาก crmPackageInfo (ข้อมูลล่าสุดจาก CRM) หรือใช้ 1 ถ้าเป็น trial
                               const maxBranches = isTrialModeCheck ? 1 : crmPackageInfo?.max_branches;
                               const hasLimit = maxBranches !== null && maxBranches !== undefined && maxBranches > 0;
-                              const usagePercent = hasLimit ? Math.min((totalUserOwnedBranches / maxBranches) * 100, 100) : 10;
-
-                              // กรองเฉพาะสาขาที่เป็นเจ้าของ
-                              const ownedBranches = branches.filter(b => userOwnedBranchIds.has(b.id));
+                              const usagePercent = hasLimit ? Math.min((totalBranchesInSystem / maxBranches) * 100, 100) : 10;
 
                               return (
                                 <div className="space-y-4">
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm text-slate-600">สาขาที่ดูแลทั้งหมด</span>
                                     <span className="text-2xl font-bold text-purple-600">
-                                      {totalUserOwnedBranches} {hasLimit && `/ ${maxBranches}`}
+                                      {totalBranchesInSystem} {hasLimit && `/ ${maxBranches}`}
                                     </span>
                                   </div>
                                   <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
@@ -1974,13 +1970,13 @@ export default function Settings() {
                                     />
                                   </div>
                                   <p className="text-xs text-slate-500">
-                                    {isTrialModeCheck ? `จำกัด ${maxBranches} สาขาในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalUserOwnedBranches)} สาขา`}
+                                    {isTrialModeCheck ? `จำกัด ${maxBranches} สาขาในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInSystem)} สาขา`}
                                   </p>
 
-                                  {ownedBranches.length > 0 && (
+                                  {branches.length > 0 && (
                                     <div className="pt-3 border-t border-slate-200 space-y-1">
                                       <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อสาขา:</p>
-                                      {ownedBranches.map(branch => (
+                                      {branches.map(branch => (
                                         <div key={branch.id} className="text-xs text-slate-600 flex items-center gap-1">
                                           <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                                           {branch.branch_name}
