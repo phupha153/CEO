@@ -129,7 +129,7 @@ export default function BranchManagement() {
     return crmPackages.packages.find(p => p.id === activePaidPackage.package_id);
   }, [activePaidPackage, crmPackages]);
   
-  const maxAllowedBranches = isTrialMode ? 1 : (crmPackageInfo?.max_branches || 999);
+  const maxAllowedBranches = isTrialMode ? 1 : (crmPackageInfo?.max_branches || 1);
   
   // ⭐ นับจำนวนสาขาจริงๆ ที่ user เป็นเจ้าของ (unique branch_id จาก BranchPackage)
   const userOwnedBranchIds = new Set(userPackages.map(pkg => pkg.branch_id));
