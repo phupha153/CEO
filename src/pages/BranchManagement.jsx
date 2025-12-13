@@ -107,12 +107,34 @@ export default function BranchManagement() {
     return allBranches.filter(b => userAccessibleBranches.includes(b.id));
   }, [allBranches, userAccessibleBranches]);
 
-  // เช็คว่าสามารถเพิ่มสาขาใหม่ได้หรือไม่
+  // เช็คจำนวนสาขาที่อนุญาตตามแพ็กเกจ
+  const { data: packageFeatureConfigs = [] } = useQuery({
+    queryKey: ['packageFeatureConfigs'],
+    queryFn: () => base44.entities.PackageFeatureConfig.list(),
+    enabled: !!currentUser,
+  });
+
   const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
   const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
-  const maxTrialBranches = 1;
+  
+  // ⭐ เช็คจำนวนสาขาสูงสุดจากแพ็กเกจ
+  let maxAllowedBranches = 1; // Default สำหรับ trial
+  
+  if (!isTrialMode && userPackages.length > 0) {
+    // หาแพ็กเกจที่มีจำนวนสาขาสูงสุด
+    const activePaidPackage = userPackages.find(pkg => pkg.package_id !== 'trial' && pkg.price_per_month > 0);
+    if (activePaidPackage) {
+      const packageConfig = packageFeatureConfigs.find(c => c.package_id === activePaidPackage.package_id);
+      if (packageConfig?.max_branches) {
+        maxAllowedBranches = packageConfig.max_branches;
+      } else {
+        maxAllowedBranches = 999; // ไม่จำกัดถ้าไม่ระบุ
+      }
+    }
+  }
+  
   const hasNoPackageAtAll = userPackages.length === 0;
-  const canAddMoreBranches = hasNoPackageAtAll || !isTrialMode || branches.length < maxTrialBranches;
+  const canAddMoreBranches = userRole === 'developer' || hasNoPackageAtAll || branches.length < maxAllowedBranches;
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -436,13 +458,9 @@ export default function BranchManagement() {
         return;
       }
       
-      const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
-      const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
-      const maxTrialBranches = 1;
-      const currentBranchCount = branches.length;
-      
-      if (isTrialMode && currentBranchCount >= maxTrialBranches) {
-        toast.error(`สร้างได้สูงสุด ${maxTrialBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด`);
+      // ⭐ เช็คว่าครบจำนวนสาขาตามแพ็กเกจหรือยัง
+      if (!canAddMoreBranches && userRole !== 'developer') {
+        toast.error(`สร้างได้สูงสุด ${maxAllowedBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด`);
         return;
       }
     }
@@ -593,7 +611,7 @@ export default function BranchManagement() {
             </Button>
             {!canAddMoreBranches && (
               <p className="text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
-                ⚠️ สร้างได้สูงสุด {maxTrialBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด
+                ⚠️ สร้างได้สูงสุด {maxAllowedBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด
               </p>
             )}
           </div>
