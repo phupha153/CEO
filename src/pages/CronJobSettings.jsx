@@ -268,7 +268,12 @@ export default function CronJobSettings() {
 
     try {
       // ถ้าเป็น cronDeletePayments ให้ส่ง branch_id ไปด้วย
-      const params = job.id === 'cronDeletePayments' ? { branch_id: cronBranchId } : {};
+      let params = {};
+      if (job.id === 'cronDeletePayments') {
+        params = { branch_id: cronBranchId };
+      } else if (job.id === 'generateMonthlyBills') {
+        params = { force_skip_duplicate_check: false }; // ⭐ ไม่ข้าม duplicate check
+      }
       const response = await base44.functions.invoke(job.functionName, params);
       
       setJobResults(prev => ({ 
