@@ -151,44 +151,38 @@ Deno.serve(async (req) => {
         async function fetchWithPagination(entity, filter, sortBy, batchSize = 100) {
             let allData = [];
             let skip = 0;
-            let hasMore = true;
             let iteration = 0;
             const MAX_ITERATIONS = 50;
             
             console.log(`   🔄 Starting pagination for filter:`, JSON.stringify(filter).substring(0, 100));
             
-            while (hasMore && iteration < MAX_ITERATIONS) {
+            while (iteration < MAX_ITERATIONS) {
                 iteration++;
                 
                 const batch = await entity.filter(filter, sortBy, batchSize, skip);
                 const batchLength = Array.isArray(batch) ? batch.length : 0;
                 
-                console.log(`   📥 Batch ${iteration}: fetched ${batchLength} items (skip: ${skip}, total so far: ${allData.length + batchLength})`);
+                console.log(`   📥 Batch ${iteration}: fetched ${batchLength} items (skip: ${skip}, total: ${allData.length + batchLength})`);
                 
+                // ⭐ หยุดเฉพาะเมื่อได้ 0 รายการเท่านั้น
                 if (batchLength === 0) {
-                    console.log(`   ⏹️ No more data (empty batch)`);
-                    hasMore = false;
-                } else {
-                    allData = allData.concat(batch);
-                    skip += batchLength;
-                    
-                    // ⭐ ดึงต่อเสมอถ้าได้ครบ batch size (ไม่หยุดแม้จะได้น้อยกว่า)
-                    if (batchLength < batchSize) {
-                        console.log(`   ⏹️ Last batch (${batchLength} < ${batchSize})`);
-                        hasMore = false;
-                    } else {
-                        console.log(`   ➡️ Continue fetching (got full batch of ${batchSize})`);
-                    }
-                    
-                    if (hasMore) await delay(500);
+                    console.log(`   ⏹️ Done - empty batch`);
+                    break;
                 }
+                
+                allData = allData.concat(batch);
+                skip += batchLength;
+                
+                // ⭐ ดึงต่อเสมอไม่ว่าจะได้เท่าไหร่ (เอา condition if batchLength < batchSize ออก)
+                console.log(`   ➡️ Continue to next batch...`);
+                await delay(500);
             }
             
             if (iteration >= MAX_ITERATIONS) {
-                console.log(`   ⚠️ Reached max iterations (${MAX_ITERATIONS})`);
+                console.log(`   ⚠️ Stopped at max ${MAX_ITERATIONS} iterations`);
             }
             
-            console.log(`   ✅ Total fetched: ${allData.length} items in ${iteration} batches`);
+            console.log(`   ✅ FINAL: ${allData.length} items in ${iteration} batches`);
             return allData;
         }
 
