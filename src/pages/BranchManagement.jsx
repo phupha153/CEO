@@ -107,37 +107,46 @@ export default function BranchManagement() {
     return allBranches.filter(b => userAccessibleBranches.includes(b.id));
   }, [allBranches, userAccessibleBranches]);
 
-  // เช็คจำนวนสาขาที่อนุญาตตามแพ็กเกจ
-  const { data: packageFeatureConfigs = [] } = useQuery({
-    queryKey: ['packageFeatureConfigs'],
-    queryFn: () => base44.entities.PackageFeatureConfig.list(),
+  const { data: crmPackages } = useQuery({
+    queryKey: ['crmPackages'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getPackagesFromCRM', {});
+      return response.data;
+    },
     enabled: !!currentUser,
+    staleTime: 5 * 60 * 1000,
   });
 
   const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
   const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
   
-  // ⭐ เช็คจำนวนสาขาสูงสุดจากแพ็กเกจ
-  let maxAllowedBranches = 1; // Default สำหรับ trial
+  // ⭐ หา active paid package
+  const activePaidPackage = userPackages.find(pkg => pkg.package_id !== 'trial' && pkg.price_per_month > 0);
   
-  if (!isTrialMode && userPackages.length > 0) {
-    // หาแพ็กเกจที่มีจำนวนสาขาสูงสุด
-    const activePaidPackage = userPackages.find(pkg => pkg.package_id !== 'trial' && pkg.price_per_month > 0);
-    if (activePaidPackage) {
-      const packageConfig = packageFeatureConfigs.find(c => c.package_id === activePaidPackage.package_id);
-      if (packageConfig?.max_branches) {
-        maxAllowedBranches = packageConfig.max_branches;
-      } else {
-        maxAllowedBranches = 999; // ไม่จำกัดถ้าไม่ระบุ
-      }
-    }
-  }
+  // ⭐ ดึง max_branches จาก CRM (เหมือนหน้า Settings)
+  const crmPackageInfo = React.useMemo(() => {
+    if (!activePaidPackage || !crmPackages?.packages) return null;
+    return crmPackages.packages.find(p => p.id === activePaidPackage.package_id);
+  }, [activePaidPackage, crmPackages]);
   
-  // ⭐ นับจำนวนสาขาที่ user เป็นเจ้าของจริงๆ จาก BranchPackage (ไม่ใช่แค่ accessible_branches)
-  const userOwnedBranchesCount = userPackages.length;
+  const maxAllowedBranches = isTrialMode ? 1 : (crmPackageInfo?.max_branches || 999);
+  
+  // ⭐ นับจำนวนสาขาจริงๆ ที่ user เป็นเจ้าของ (unique branch_id จาก BranchPackage)
+  const userOwnedBranchIds = new Set(userPackages.map(pkg => pkg.branch_id));
+  const userOwnedBranchesCount = userOwnedBranchIds.size;
   
   const hasNoPackageAtAll = userPackages.length === 0;
   const canAddMoreBranches = userRole === 'developer' || hasNoPackageAtAll || userOwnedBranchesCount < maxAllowedBranches;
+
+  console.log('Branch Limit Debug:', {
+    userEmail: currentUser?.email,
+    userOwnedBranchesCount,
+    maxAllowedBranches,
+    canAddMoreBranches,
+    isTrialMode,
+    crmPackageInfo: crmPackageInfo?.max_branches,
+    userPackagesCount: userPackages.length
+  });
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
