@@ -167,6 +167,15 @@ export default function BranchSelection() {
   const hasNoPackageAtAll = userPackages.length === 0;
   const canAddMoreBranches = userRole === 'developer' || hasNoPackageAtAll || userOwnedBranchesCount < maxAllowedBranches;
 
+  console.log('🔍 Branch Limit Check:', {
+    userEmail: currentUser?.email,
+    userOwnedBranchesCount,
+    maxAllowedBranches,
+    canAddMoreBranches,
+    isTrialMode,
+    userPackagesLength: userPackages.length
+  });
+
   // ✅ เช็คว่าไม่มีสาขาเลย หรือไม่มีสิทธิ์ในสาขาใดเลย
   const hasNoBranches = branches.length === 0;
   const hasNoAccess = !hasNoBranches && filteredBranches.length === 0;
@@ -453,34 +462,16 @@ export default function BranchSelection() {
 
 
 
-              {/* ✅ ถ้ามีสาขา → แสดงปุ่มดูภาพรวม + จัดการสาขา */}
-              {!hasNoBranches && !hasNoAccess && (
+              {/* ✅ ถ้ามีสาขา → แสดงปุ่มจัดการสาขา */}
+              {!hasNoBranches && !hasNoAccess && (userRole === 'developer' || userRole === 'owner') && (
                 <div className="flex flex-col gap-3 mb-6 items-center">
-                  <div className="flex flex-wrap gap-3 justify-center">
-                    {/* ปุ่มรายงานรวมทั้งหมด - แสดงเฉพาะเมื่อมีมากกว่า 1 สาขา */}
-                    {filteredBranches.length > 1 && (
-                      <Button
-                        onClick={handleViewReports}
-                        disabled={isNavigating}
-                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
-                      >
-                        <BarChart3 className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <span>รายงานรวมทั้งหมด</span>
-                      </Button>
-                    )}
-                    
-                    {/* ปุ่มจัดการสาขา - ไปหน้า BranchManagement */}
-                    {(userRole === 'developer' || userRole === 'owner') && (
-                      <Button
-                        onClick={() => navigate(createPageUrl('BranchManagement'))}
-                        className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
-                      >
-                        <Settings className="w-5 h-5 mr-2 flex-shrink-0" />
-                        <span>จัดการสาขา</span>
-                      </Button>
-                    )}
-                  </div>
-
+                  <Button
+                    onClick={() => navigate(createPageUrl('BranchManagement'))}
+                    className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white h-auto py-4 px-6 text-sm shadow-lg rounded-2xl font-medium"
+                  >
+                    <Settings className="w-5 h-5 mr-2 flex-shrink-0" />
+                    <span>จัดการสาขา</span>
+                  </Button>
                 </div>
               )}
 
@@ -490,21 +481,29 @@ export default function BranchSelection() {
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    whileHover={{ scale: 1.02 }}
-                    onClick={() => (userRole === 'developer' || userRole === 'owner') && setShowDialog(true)}
-                    className="cursor-pointer max-w-md w-full"
+                    whileHover={{ scale: canAddMoreBranches ? 1.02 : 1 }}
+                    onClick={() => canAddMoreBranches && (userRole === 'developer' || userRole === 'owner') && setShowDialog(true)}
+                    className={canAddMoreBranches ? "cursor-pointer max-w-md w-full" : "cursor-not-allowed max-w-md w-full"}
                   >
-                    <Card className="border-2 border-dashed border-orange-300 bg-gradient-to-br from-orange-50/80 to-orange-100/50 hover:bg-orange-50 hover:border-orange-400 hover:shadow-xl transition-all duration-300">
+                    <Card className={`border-2 border-dashed ${canAddMoreBranches ? 'border-orange-300 bg-gradient-to-br from-orange-50/80 to-orange-100/50 hover:bg-orange-50 hover:border-orange-400 hover:shadow-xl' : 'border-slate-300 bg-slate-100 opacity-50'} transition-all duration-300`}>
                       <CardContent className="p-16 text-center">
                         <div className="relative w-24 h-24 mx-auto mb-6">
-                          <div className="absolute inset-0 bg-orange-200/50 rounded-3xl blur-xl animate-pulse" style={{ animationDuration: '3s' }} />
-                          <div className="relative w-full h-full rounded-3xl bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center shadow-xl">
+                          <div className={`absolute inset-0 ${canAddMoreBranches ? 'bg-orange-200/50' : 'bg-slate-300/50'} rounded-3xl blur-xl animate-pulse`} style={{ animationDuration: '3s' }} />
+                          <div className={`relative w-full h-full rounded-3xl ${canAddMoreBranches ? 'bg-gradient-to-br from-orange-400 to-orange-500' : 'bg-slate-400'} flex items-center justify-center shadow-xl`}>
                             <Plus className="w-12 h-12 text-white" />
                           </div>
                         </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-3">เพิ่มสาขาแรก</h3>
-                        <p className="text-sm text-slate-600 mb-2">เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ</p>
-                        <p className="text-xs text-orange-600 font-medium">คลิกเพื่อเริ่มต้น</p>
+                        <h3 className="text-2xl font-bold text-slate-800 mb-3">
+                          {canAddMoreBranches ? 'เพิ่มสาขาแรก' : 'ครบจำนวนสาขาแล้ว'}
+                        </h3>
+                        <p className="text-sm text-slate-600 mb-2">
+                          {canAddMoreBranches 
+                            ? 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ' 
+                            : `ตอนนี้ใช้งานไป ${userOwnedBranchesCount}/${maxAllowedBranches} สาขาแล้ว`}
+                        </p>
+                        <p className={`text-xs font-medium ${canAddMoreBranches ? 'text-orange-600' : 'text-slate-500'}`}>
+                          {canAddMoreBranches ? 'คลิกเพื่อเริ่มต้น' : 'อัปเกรดแพ็กเกจเพื่อเพิ่มสาขา'}
+                        </p>
                       </CardContent>
                     </Card>
                   </motion.div>
