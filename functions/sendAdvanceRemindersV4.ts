@@ -178,11 +178,49 @@ Deno.serve(async (req) => {
 
         console.log('\n📥 FETCHING DATA...');
 
-        // ⭐ แก้: ถ้าไม่มี targetBranchId ให้ดึงทั้งหมดโดยไม่ใช้ filter
-        const [allPayments, allTenants, allRooms, branchesData] = await Promise.all([
-            targetBranchId 
-                ? fetchAll('Payment', base44.asServiceRole.entities.Payment, { branch_id: targetBranchId })
-                : fetchAll('Payment', base44.asServiceRole.entities.Payment, null),
+        // ⭐⭐⭐ แก้: ดึงข้อมูล Payment ทีละ batch แบบชัดเจน
+        console.log('\n🔍 Fetching Payments...');
+        let allPayments = [];
+        let paymentSkip = 0;
+        let hasMorePayments = true;
+        let paymentBatchCount = 0;
+
+        while (hasMorePayments) {
+            paymentBatchCount++;
+            console.log(`   📦 Payment Batch ${paymentBatchCount}: skip=${paymentSkip}, limit=5000`);
+            
+            let batch;
+            try {
+                if (targetBranchId) {
+                    batch = await base44.asServiceRole.entities.Payment.filter(
+                        { branch_id: targetBranchId }, 
+                        '-created_date', 
+                        5000, 
+                        paymentSkip
+                    );
+                } else {
+                    batch = await base44.asServiceRole.entities.Payment.list('-created_date', 5000, paymentSkip);
+                }
+                
+                console.log(`   ✅ Payment Batch ${paymentBatchCount}: got ${batch?.length || 0} items`);
+                
+                if (!Array.isArray(batch) || batch.length === 0) {
+                    hasMorePayments = false;
+                } else {
+                    allPayments = allPayments.concat(batch);
+                    paymentSkip += batch.length;
+                    if (batch.length < 5000) hasMorePayments = false;
+                }
+            } catch (error) {
+                console.error(`   ❌ Payment Batch ${paymentBatchCount} error:`, error.message);
+                hasMorePayments = false;
+            }
+        }
+        
+        console.log(`   ✅ Total Payments: ${allPayments.length} items\n`);
+
+        // ดึงข้อมูลอื่นๆ
+        const [allTenants, allRooms, branchesData] = await Promise.all([
             fetchAll('Tenant', base44.asServiceRole.entities.Tenant, null),
             fetchAll('Room', base44.asServiceRole.entities.Room, null),
             base44.asServiceRole.entities.Branch.list()
@@ -192,10 +230,11 @@ Deno.serve(async (req) => {
         const roomMap = new Map(allRooms.map(r => [r.id, r]));
         const branchMap = new Map(branchesData.map(b => [b.id, b.branch_name]));
 
-        console.log('\n📦 โหลดข้อมูลแล้ว:');
+        console.log('\n📦 โหลดข้อมูลทั้งหมดแล้ว:');
         console.log('   จำนวน Payment ทั้งหมด:', allPayments.length);
         console.log('   จำนวน Tenant ทั้งหมด:', allTenants.length);
         console.log('   จำนวน Room ทั้งหมด:', allRooms.length);
+        console.log('   จำนวน Branch ทั้งหมด:', branchesData.length);
 
         // ⭐⭐⭐ สรุปบิลทั้งหมดก่อนกรอง
         console.log('\n📊 สรุปบิลทั้งหมดก่อนเริ่มกรอง:');
