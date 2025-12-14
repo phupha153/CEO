@@ -72,8 +72,10 @@ function numberToThaiText(number) {
     return text;
 }
 
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 Deno.serve(async (req) => {
-    const VERSION = '🔥 V4-FINAL 🔥';
+    const VERSION = '🔥 V4-FIXED 🔥';
     
     console.log('\n\n');
     console.log('████████████████████████████████████████████████████');
@@ -134,42 +136,41 @@ Deno.serve(async (req) => {
         const todayDateString = thailandTime.toISOString().split('T')[0];
         console.log('📅 TODAY:', todayDateString);
 
-        // Fetch data - แก้ไขให้ debug และดึงข้อมูลได้ถูกต้อง
-        async function fetchAll(entityName, entity, filter = null) {
+        // ⭐⭐⭐ แก้: ใช้ filter แทน list เพราะ filter รองรับ skip ถูกต้อง
+        async function fetchAll(entityName, entity) {
             console.log(`\n🔍 Fetching ${entityName}...`);
-            console.log(`   Filter:`, filter ? JSON.stringify(filter) : 'NONE (list all)');
             
             let allData = [];
             let skip = 0;
             let hasMore = true;
             let batchCount = 0;
             
-            while (hasMore) {
+            while (hasMore && batchCount < 100) {
                 batchCount++;
-                console.log(`   📦 Batch ${batchCount}: skip=${skip}, limit=5000`);
+                console.log(`   📦 Batch ${batchCount}: skip=${skip}, limit=300`);
                 
                 let batch;
                 try {
-                    if (filter) {
-                        batch = await entity.filter(filter, '-created_date', 5000, skip);
-                    } else {
-                        batch = await entity.list('-created_date', 5000, skip);
-                    }
+                    // ⭐ ใช้ filter กับ {} เพื่อดึงทั้งหมด (เหมือน generateMonthlyBills)
+                    batch = await entity.filter({}, '-created_date', 300, skip);
                     
-                    console.log(`   ✅ Batch ${batchCount}: got ${batch?.length || 0} items`);
+                    const batchLength = Array.isArray(batch) ? batch.length : 0;
+                    console.log(`   ✅ Batch ${batchCount}: got ${batchLength} items`);
+                    
+                    if (batchLength === 0) {
+                        hasMore = false;
+                    } else {
+                        allData = allData.concat(batch);
+                        skip += batchLength;
+                        if (batchLength < 300) hasMore = false;
+                    }
                 } catch (error) {
                     console.error(`   ❌ Batch ${batchCount} error:`, error.message);
                     hasMore = false;
                     break;
                 }
-                    
-                if (!Array.isArray(batch) || batch.length === 0) {
-                    hasMore = false;
-                } else {
-                    allData = allData.concat(batch);
-                    skip += batch.length;
-                    if (batch.length < 5000) hasMore = false;
-                }
+                
+                if (hasMore) await delay(200);
             }
             
             console.log(`   ✅ Total ${entityName}: ${allData.length} items\n`);
@@ -178,51 +179,55 @@ Deno.serve(async (req) => {
 
         console.log('\n📥 FETCHING DATA...');
 
-        // ⭐⭐⭐ แก้: ดึงข้อมูล Payment ทีละ batch แบบชัดเจน
+        // ⭐⭐⭐ แก้: ดึงข้อมูล Payment โดยใช้ filter แทน list (เหมือน generateMonthlyBills)
         console.log('\n🔍 Fetching Payments...');
         let allPayments = [];
         let paymentSkip = 0;
         let hasMorePayments = true;
         let paymentBatchCount = 0;
 
-        while (hasMorePayments) {
+        while (hasMorePayments && paymentBatchCount < 100) {
             paymentBatchCount++;
-            console.log(`   📦 Payment Batch ${paymentBatchCount}: skip=${paymentSkip}, limit=5000`);
+            console.log(`   📦 Payment Batch ${paymentBatchCount}: skip=${paymentSkip}, limit=300`);
             
             let batch;
             try {
-                if (targetBranchId) {
-                    batch = await base44.asServiceRole.entities.Payment.filter(
-                        { branch_id: targetBranchId }, 
-                        '-created_date', 
-                        5000, 
-                        paymentSkip
-                    );
-                } else {
-                    batch = await base44.asServiceRole.entities.Payment.list('-created_date', 5000, paymentSkip);
-                }
+                // ⭐ ใช้ filter แทน list เพราะ filter รองรับ skip parameter ถูกต้อง
+                const filterQuery = targetBranchId ? { branch_id: targetBranchId } : {};
+                batch = await base44.asServiceRole.entities.Payment.filter(
+                    filterQuery, 
+                    '-created_date', 
+                    300,          // limit
+                    paymentSkip   // skip
+                );
                 
-                console.log(`   ✅ Payment Batch ${paymentBatchCount}: got ${batch?.length || 0} items`);
+                const batchLength = Array.isArray(batch) ? batch.length : 0;
+                console.log(`   ✅ Payment Batch ${paymentBatchCount}: got ${batchLength} items`);
                 
-                if (!Array.isArray(batch) || batch.length === 0) {
+                if (batchLength === 0) {
                     hasMorePayments = false;
                 } else {
                     allPayments = allPayments.concat(batch);
-                    paymentSkip += batch.length;
-                    if (batch.length < 5000) hasMorePayments = false;
+                    paymentSkip += batchLength;
+                    
+                    if (batchLength < 300) {
+                        hasMorePayments = false;
+                    }
                 }
             } catch (error) {
                 console.error(`   ❌ Payment Batch ${paymentBatchCount} error:`, error.message);
                 hasMorePayments = false;
             }
+            
+            if (hasMorePayments) await delay(200);
         }
         
         console.log(`   ✅ Total Payments: ${allPayments.length} items\n`);
 
         // ดึงข้อมูลอื่นๆ
         const [allTenants, allRooms, branchesData] = await Promise.all([
-            fetchAll('Tenant', base44.asServiceRole.entities.Tenant, null),
-            fetchAll('Room', base44.asServiceRole.entities.Room, null),
+            fetchAll('Tenant', base44.asServiceRole.entities.Tenant),
+            fetchAll('Room', base44.asServiceRole.entities.Room),
             base44.asServiceRole.entities.Branch.list()
         ]);
 
