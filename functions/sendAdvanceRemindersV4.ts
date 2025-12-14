@@ -158,9 +158,11 @@ Deno.serve(async (req) => {
 
         console.log('\n📥 FETCHING DATA...');
 
-        const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : null;
+        // ⭐ แก้: ถ้าไม่มี targetBranchId ให้ดึงทั้งหมดโดยไม่ใช้ filter
         const [allPayments, allTenants, allRooms, branchesData] = await Promise.all([
-            fetchAll(base44.asServiceRole.entities.Payment, paymentFilter),
+            targetBranchId 
+                ? fetchAll(base44.asServiceRole.entities.Payment, { branch_id: targetBranchId })
+                : fetchAll(base44.asServiceRole.entities.Payment),
             fetchAll(base44.asServiceRole.entities.Tenant),
             fetchAll(base44.asServiceRole.entities.Room),
             base44.asServiceRole.entities.Branch.list()
