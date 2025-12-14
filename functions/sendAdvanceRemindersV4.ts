@@ -134,16 +134,34 @@ Deno.serve(async (req) => {
         const todayDateString = thailandTime.toISOString().split('T')[0];
         console.log('📅 TODAY:', todayDateString);
 
-        // Fetch data
-        async function fetchAll(entity, filter = null) {
+        // Fetch data - แก้ไขให้ debug และดึงข้อมูลได้ถูกต้อง
+        async function fetchAll(entityName, entity, filter = null) {
+            console.log(`\n🔍 Fetching ${entityName}...`);
+            console.log(`   Filter:`, filter ? JSON.stringify(filter) : 'NONE (list all)');
+            
             let allData = [];
             let skip = 0;
             let hasMore = true;
+            let batchCount = 0;
             
             while (hasMore) {
-                const batch = filter 
-                    ? await entity.filter(filter, '-created_date', 5000, skip)
-                    : await entity.list('-created_date', 5000, skip);
+                batchCount++;
+                console.log(`   📦 Batch ${batchCount}: skip=${skip}, limit=5000`);
+                
+                let batch;
+                try {
+                    if (filter) {
+                        batch = await entity.filter(filter, '-created_date', 5000, skip);
+                    } else {
+                        batch = await entity.list('-created_date', 5000, skip);
+                    }
+                    
+                    console.log(`   ✅ Batch ${batchCount}: got ${batch?.length || 0} items`);
+                } catch (error) {
+                    console.error(`   ❌ Batch ${batchCount} error:`, error.message);
+                    hasMore = false;
+                    break;
+                }
                     
                 if (!Array.isArray(batch) || batch.length === 0) {
                     hasMore = false;
@@ -153,6 +171,8 @@ Deno.serve(async (req) => {
                     if (batch.length < 5000) hasMore = false;
                 }
             }
+            
+            console.log(`   ✅ Total ${entityName}: ${allData.length} items\n`);
             return allData;
         }
 
@@ -161,10 +181,10 @@ Deno.serve(async (req) => {
         // ⭐ แก้: ถ้าไม่มี targetBranchId ให้ดึงทั้งหมดโดยไม่ใช้ filter
         const [allPayments, allTenants, allRooms, branchesData] = await Promise.all([
             targetBranchId 
-                ? fetchAll(base44.asServiceRole.entities.Payment, { branch_id: targetBranchId })
-                : fetchAll(base44.asServiceRole.entities.Payment),
-            fetchAll(base44.asServiceRole.entities.Tenant),
-            fetchAll(base44.asServiceRole.entities.Room),
+                ? fetchAll('Payment', base44.asServiceRole.entities.Payment, { branch_id: targetBranchId })
+                : fetchAll('Payment', base44.asServiceRole.entities.Payment, null),
+            fetchAll('Tenant', base44.asServiceRole.entities.Tenant, null),
+            fetchAll('Room', base44.asServiceRole.entities.Room, null),
             base44.asServiceRole.entities.Branch.list()
         ]);
 
