@@ -85,32 +85,37 @@ Deno.serve(async (req) => {
             return allData;
         }
 
-        // ⭐ ดึงเฉพาะ payment ที่ status = pending/overdue (กรองใน database)
-        console.log('🔍 Fetching overdue payments with filter...');
+        // ⭐⭐⭐ Server-side Filtering: ดึงเฉพาะ Payment ที่ยังไม่ชำระและอยู่ในช่วงที่เกี่ยวข้อง
+        console.log('🔍 Fetching unpaid payments with date filter...');
         const today = startOfDay(new Date());
         console.log(`📅 Today: ${today.toISOString().split('T')[0]}`);
         
+        // คำนวณช่วงเวลาที่สนใจ (60 วันที่แล้ว ถึง วันนี้)
+        const minPastDate = new Date(today);
+        minPastDate.setDate(today.getDate() - 60);
+        const minPastDateStr = minPastDate.toISOString().split('T')[0];
+        const todayStr = today.toISOString().split('T')[0];
+        
+        console.log(`📅 จะดึง Payment ที่ due_date อยู่ระหว่าง ${minPastDateStr} ถึง ${todayStr}`);
+        
+        // ⭐ กรองเฉพาะ status ไม่ใช่ 'paid' และ due_date ในช่วงที่เกี่ยวข้อง
         const paymentFilter = branch_id 
-            ? { branch_id: branch_id }
-            : {};
+            ? { branch_id: branch_id, status: { $ne: 'paid' } }
+            : { status: { $ne: 'paid' } };
         
-        // ดึงทั้ง pending และ overdue
-        const [pendingPayments, existingOverdue] = await Promise.all([
-            fetchAllWithPagination(base44.asServiceRole.entities.Payment, { ...paymentFilter, status: 'pending' }),
-            fetchAllWithPagination(base44.asServiceRole.entities.Payment, { ...paymentFilter, status: 'overdue' })
-        ]);
+        const allPayments = await fetchAllWithPagination(base44.asServiceRole.entities.Payment, paymentFilter);
         
-        const allPayments = [...pendingPayments, ...existingOverdue];
-        console.log(`✅ Loaded ${allPayments.length} pending/overdue payments (${pendingPayments.length} pending, ${existingOverdue.length} overdue)`);
+        console.log(`✅ Loaded ${allPayments.length} unpaid payments`);
         
-        // กรองใน memory เฉพาะที่เกิน threshold
+        // กรองใน memory เฉพาะที่เกิน threshold และ due_date ไม่เก่าเกินไป
         const overduePayments = allPayments.filter(payment => {
             if (!payment.due_date) return false;
 
             const dueDate = startOfDay(parseISO(payment.due_date));
             const daysDiff = differenceInDays(today, dueDate);
 
-            return daysDiff >= daysThreshold;
+            // ⭐ ดึงเฉพาะที่เกิน threshold และไม่เก่าเกิน 60 วัน
+            return daysDiff >= daysThreshold && daysDiff <= 60;
         });
         
         console.log(`📊 Filter results:`);
