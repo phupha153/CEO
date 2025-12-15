@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
         const dueDateText = formatDate(payment.due_date);
 
         // คำนวณวันเกินกำหนด
-        const isOverdue = (payment.status === 'overdue' || payment.status === 'pending') && payment.due_date && 
+        const isOverdue = payment.status === 'pending' && payment.due_date && 
             new Date() > new Date(payment.due_date);
         const daysOverdue = isOverdue ? 
             Math.ceil((new Date() - new Date(payment.due_date)) / (1000 * 60 * 60 * 24)) : 0;
