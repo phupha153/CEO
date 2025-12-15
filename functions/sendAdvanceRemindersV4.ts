@@ -179,40 +179,26 @@ Deno.serve(async (req) => {
 
         console.log('\n📥 FETCHING DATA...');
 
-        // ⭐⭐⭐ Server-side Filtering: ดึงเฉพาะ Payment ที่ยังไม่ชำระ + จำกัดจำนวน
-        console.log('\n🔍 Fetching UNPAID Payments only (optimized)...');
-        
-        // คำนวณช่วงเวลาที่สนใจ (60 วันข้างหน้า)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const maxFutureDate = new Date(today);
-        maxFutureDate.setDate(today.getDate() + 60);
-        const maxFutureDateStr = maxFutureDate.toISOString().split('T')[0];
-        
-        console.log(`   📅 จะดึง Payment ที่ due_date ≤ ${maxFutureDateStr} เท่านั้น`);
-        
+        // ⭐⭐⭐ แก้: ดึงข้อมูล Payment โดยใช้ filter แทน list (เหมือน generateMonthlyBills)
+        console.log('\n🔍 Fetching Payments...');
         let allPayments = [];
         let paymentSkip = 0;
         let hasMorePayments = true;
         let paymentBatchCount = 0;
-        const MAX_PAYMENT_BATCHES = 50; // จำกัด 50 batch (15,000 รายการ) เพื่อป้องกัน timeout
 
-        while (hasMorePayments && paymentBatchCount < MAX_PAYMENT_BATCHES) {
+        while (hasMorePayments && paymentBatchCount < 100) {
             paymentBatchCount++;
             console.log(`   📦 Payment Batch ${paymentBatchCount}: skip=${paymentSkip}, limit=300`);
             
             let batch;
             try {
-                // ⭐ กรองเฉพาะ Payment ที่ status ไม่ใช่ 'paid'
-                const filterQuery = targetBranchId 
-                    ? { branch_id: targetBranchId, status: { $ne: 'paid' } }
-                    : { status: { $ne: 'paid' } };
-                
+                // ⭐ ใช้ filter แทน list เพราะ filter รองรับ skip parameter ถูกต้อง
+                const filterQuery = targetBranchId ? { branch_id: targetBranchId } : {};
                 batch = await base44.asServiceRole.entities.Payment.filter(
                     filterQuery, 
-                    '-due_date',  // เรียงตาม due_date จากใหม่ไปเก่า
-                    300,
-                    paymentSkip
+                    '-created_date', 
+                    300,          // limit
+                    paymentSkip   // skip
                 );
                 
                 const batchLength = Array.isArray(batch) ? batch.length : 0;
@@ -221,23 +207,10 @@ Deno.serve(async (req) => {
                 if (batchLength === 0) {
                     hasMorePayments = false;
                 } else {
-                    // ⭐ กรองเฉพาะ Payment ที่ due_date ไม่เกิน 60 วันข้างหน้า
-                    const relevantBatch = batch.filter(p => {
-                        const dueDate = p.data?.due_date || p.due_date;
-                        if (!dueDate) return false;
-                        
-                        // ข้ามบิลที่ due_date เก่ากว่า 60 วันข้างหน้า
-                        return dueDate <= maxFutureDateStr;
-                    });
-                    
-                    allPayments = allPayments.concat(relevantBatch);
+                    allPayments = allPayments.concat(batch);
                     paymentSkip += batchLength;
                     
-                    // ⭐ Early exit: ถ้าเจอบิลที่เก่าเกินไปทั้ง batch = หยุดเลย
-                    if (relevantBatch.length === 0 && batchLength > 0) {
-                        console.log(`   ⏹️ หยุด: batch นี้ไม่มีบิลที่เกี่ยวข้อง (due_date เก่าเกินไป)`);
-                        hasMorePayments = false;
-                    } else if (batchLength < 300) {
+                    if (batchLength < 300) {
                         hasMorePayments = false;
                     }
                 }
@@ -249,11 +222,7 @@ Deno.serve(async (req) => {
             if (hasMorePayments) await delay(200);
         }
         
-        if (paymentBatchCount >= MAX_PAYMENT_BATCHES) {
-            console.log(`   ⚠️ ถึงขีดจำกัด ${MAX_PAYMENT_BATCHES} batches - หยุดดึงข้อมูล`);
-        }
-        
-        console.log(`   ✅ Total Relevant Payments: ${allPayments.length} items (filtered)\n`);
+        console.log(`   ✅ Total Payments: ${allPayments.length} items\n`);
 
         // ดึงข้อมูลอื่นๆ
         const [allTenants, allRooms, branchesData] = await Promise.all([
