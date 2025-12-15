@@ -12,6 +12,8 @@ function generatePaymentHash(payment) {
         common_fee_amount: payment.common_fee_amount || 0,
         parking_fee_amount: payment.parking_fee_amount || 0,
         other_amount: payment.other_amount || 0,
+        // ✅ [แก้ไข] เพิ่ม late_fee_amount เพื่อให้ Hash เปลี่ยนเมื่อมีค่าปรับ
+        late_fee_amount: payment.late_fee_amount || 0, 
         total_amount: payment.total_amount || 0,
         due_date: payment.due_date || ''
     };
@@ -297,6 +299,7 @@ Deno.serve(async (req) => {
                         status: 'overdue'
                     });
 
+                    // ✅ [สำคัญ] อัปเดตตัวแปร payment ในเครื่องด้วย เพื่อให้ตอน Generate Hash มันใช้ค่าใหม่
                     payment.late_fee_amount = calculatedLateFee;
                     payment.total_amount = newTotalAmount;
                     payment.status = 'overdue';
@@ -356,7 +359,6 @@ Deno.serve(async (req) => {
                     message = `📅 วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
                     message += `${buildingName}\n`;
                     message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
-                    // ✅ แก้ไข: ใช้ payment.total_amount แทน variable ที่ไม่มีอยู่จริง
                     message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
 
                     const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', branchId, '0');
@@ -416,6 +418,7 @@ Deno.serve(async (req) => {
 
             // ⭐⭐⭐ สร้างและใส่ลิงก์ใบแจ้งหนี้ในทุกกรณี (ไม่ใช่แค่ advance)
             let invoiceImageUrl = payment.invoice_image_url || null;
+            // ⭐ คำนวณ Hash ใหม่ (ซึ่งตอนนี้รวม late_fee_amount แล้ว)
             const currentHash = generatePaymentHash(payment);
             const savedHash = payment.invoice_data_hash || '';
 
@@ -428,6 +431,7 @@ Deno.serve(async (req) => {
                 needsHashUpdate = true;
                 console.log(`📝 Payment ${payment.id}: Has image but no hash - will save hash without regenerating`);
             } else if (currentHash !== savedHash) {
+                // ⭐ ถ้าข้อมูลเปลี่ยน (รวมถึงค่าปรับ) Hash จะไม่ตรง -> สั่งสร้างรูปใหม่
                 needsRegenerate = true;
             }
 
