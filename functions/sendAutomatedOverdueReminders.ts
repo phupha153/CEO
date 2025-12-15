@@ -7,7 +7,6 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // HELPER FUNCTIONS
 // ==========================================
 
-// 1. สร้าง Hash เพื่อตรวจสอบการเปลี่ยนแปลงข้อมูล
 function generatePaymentHash(payment) {
     const dataToHash = {
         rent_amount: payment.rent_amount || 0,
@@ -28,7 +27,6 @@ function generatePaymentHash(payment) {
     return btoa(jsonStr).substring(0, 32);
 }
 
-// 2. สร้างรูปใบแจ้งหนี้ (Browserless)
 async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
     if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
@@ -69,7 +67,6 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     const issueDateText = formatDate(new Date().toISOString().split('T')[0]);
     const dueDateText = formatDate(payment.due_date);
     
-    // Check Overdue logic (UTC+7 handled via inputs)
     const isOverdue = payment.status === 'overdue';
     const daysOverdue = isOverdue ? Math.ceil((new Date() - new Date(payment.due_date)) / (1000 * 60 * 60 * 24)) : 0;
 
@@ -183,109 +180,106 @@ ${lineItems.map((item, idx) => `<tr><td>${idx + 1}</td><td>${escapeHtml(item.nam
 }
 
 // ==========================================
-// MAIN FUNCTION
+// MAIN FUNCTION (Recursive with Rate Limit Fix)
 // ==========================================
 
 Deno.serve(async (req) => {
     const startTime = Date.now();
     try {
         const base44 = createClientFromRequest(req);
-        console.log('🔴 Starting Automated Overdue Process (Optimized)...');
-
-        // 1. รับค่า config
+        
         let body = {};
         try { body = await req.json(); } catch {}
         
+        // ⭐ ระบุชื่อฟังก์ชันตัวเอง (ต้องตรงกับชื่อไฟล์จริง)
+        const MY_FUNCTION_NAME = 'sendAutomatedOverdueReminders'; 
+        
         const targetBranchId = body.branch_id || null;
         const testLineUserId = body.test_line_user_id || null;
-        const limit = Math.min(body.limit || 50, 50); // ⭐ จำกัดไม่เกิน 50 รายการต่อรอบ เพื่อป้องกันล่ม
+        const limit = Math.min(body.limit || 50, 50);
 
-        // 2. ตั้งค่าเวลาไทย (UTC+7)
+        console.log(`🔴 Start Batch (Limit: ${limit}) - Branch: ${targetBranchId || 'All'}`);
+
+        // Timezone Fix (UTC+7)
         const nowUTC = new Date();
         const thaiNow = new Date(nowUTC.getTime() + (7 * 60 * 60 * 1000));
         const today = startOfDay(thaiNow);
         const todayString = today.toISOString().split('T')[0];
 
-        console.log(`📅 Thai Date: ${todayString} | Limit: ${limit}`);
-
-        // 3. ดึง Config
+        // Fetch Configs
         const configs = await base44.asServiceRole.entities.Config.list();
         const getConfigValue = (key, def, branchId) => {
             const c = configs.find(x => x.key === key && (x.branch_id === branchId || !x.branch_id));
             return c?.value || def;
         };
 
-        // 4. ดึงข้อมูลแบบประหยัด (Fetch & Filter)
-        // ⭐ เทคนิค: ดึงเฉพาะ pending (limit 2000) และ overdue (limit 500) มากรองใน memory 
-        // แทนการดึงทั้งหมดซึ่งจะทำให้ระบบล่ม
-        
+        // Fetch Data (Batch)
         const filterBase = targetBranchId ? { branch_id: targetBranchId } : {};
-        
         const [pendingBatch, overdueBatch] = await Promise.all([
-            base44.asServiceRole.entities.Payment.filter({ ...filterBase, status: 'pending' }, '-created_date', 1000),
-            base44.asServiceRole.entities.Payment.filter({ ...filterBase, status: 'overdue' }, '-created_date', 500)
+            base44.asServiceRole.entities.Payment.filter({ ...filterBase, status: 'pending' }, '-created_date', 100),
+            base44.asServiceRole.entities.Payment.filter({ ...filterBase, status: 'overdue' }, '-created_date', 100)
         ]);
 
-        const allPayments = [...(pendingBatch || []), ...(overdueBatch || [])];
-        console.log(`📥 Fetched ${allPayments.length} candidates (Pending+Overdue)`);
-
-        // 5. กรองหาบิลที่ต้องจัดการ
-        const paymentsToProcess = [];
+        const candidates = [...(pendingBatch || []), ...(overdueBatch || [])];
         
-        for (const p of allPayments) {
-            if (paymentsToProcess.length >= limit) break; // ครบโควต้าแล้วหยุดทันที
+        // Filter Logic
+        const paymentsToProcess = [];
+        let hasMoreItemsInDb = false;
+        
+        for (const p of candidates) {
+            if (paymentsToProcess.length >= limit) {
+                hasMoreItemsInDb = true;
+                break; 
+            }
 
-            // เช็ค Config เปิดใช้งานไหม
             const reminderEnabled = getConfigValue('send_overdue_reminder', 'false', p.branch_id) === 'true';
             if (!reminderEnabled) continue;
 
-            // เช็ควันที่ครบกำหนด (เทียบเวลาไทย)
             if (!p.due_date) continue;
             const dueDate = startOfDay(parseISO(p.due_date));
             const daysOverdue = differenceInDays(today, dueDate);
 
-            if (daysOverdue <= 0) continue; // ยังไม่เกินกำหนด
+            if (daysOverdue <= 0) continue; 
 
-            // เช็คว่าส่งไปแล้ววันนี้หรือยัง
             if (p.overdue_reminder_sent_date) {
                 const lastSent = p.overdue_reminder_sent_date.split('T')[0];
-                if (lastSent === todayString) continue; // ส่งแล้ววันนี้ ข้าม
+                if (lastSent === todayString) continue; 
             }
-
             paymentsToProcess.push(p);
         }
 
-        console.log(`📋 To Process: ${paymentsToProcess.length} items`);
-        if (paymentsToProcess.length === 0) return Response.json({ success: true, message: 'No items to process' });
+        console.log(`📋 Processing Batch: ${paymentsToProcess.length} items`);
+        
+        if (paymentsToProcess.length === 0) {
+             return Response.json({ success: true, message: 'All caught up! No more items.' });
+        }
 
-        // 6. ดึงข้อมูลประกอบ (Tenant/Room)
+        // Fetch Related Data
         const tenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id))];
         const roomIds = [...new Set(paymentsToProcess.map(p => p.room_id))];
-        
         const [tenants, rooms] = await Promise.all([
             Promise.all(tenantIds.map(id => base44.asServiceRole.entities.Tenant.filter({id}))).then(r => r.flat()),
             Promise.all(roomIds.map(id => base44.asServiceRole.entities.Room.filter({id}))).then(r => r.flat())
         ]);
-        
         const tenantMap = new Map(tenants.map(t => [t.id, t]));
         const roomMap = new Map(rooms.map(r => [r.id, r]));
 
-        // 7. เริ่มประมวลผล (Step 1-3)
+        // Process Loop
         const recipients = [];
-        let successCount = 0;
-
+        
         for (const payment of paymentsToProcess) {
             try {
-                // STEP 1: คำนวณค่าปรับ
+                // Rate Limit Protection: Small delay inside loop
+                await delay(100); 
+
+                // STEP 1: Calculate Late Fee
                 const dueDate = startOfDay(parseISO(payment.due_date));
                 const daysOverdue = differenceInDays(today, dueDate);
                 let lateFee = 0;
                 
-                // Logic คำนวณค่าปรับ (Simplified)
                 const feePerDay = parseFloat(getConfigValue('late_payment_fee_per_day', '0', payment.branch_id));
                 if (feePerDay > 0) lateFee = daysOverdue * feePerDay;
 
-                // Update Payment if needed
                 if (payment.status !== 'overdue' || payment.late_fee_amount !== lateFee) {
                     const newTotal = (payment.total_amount - (payment.late_fee_amount||0)) + lateFee;
                     await base44.asServiceRole.entities.Payment.update(payment.id, {
@@ -293,20 +287,18 @@ Deno.serve(async (req) => {
                         late_fee_amount: lateFee,
                         total_amount: newTotal
                     });
-                    // Update object in memory
                     payment.status = 'overdue';
                     payment.late_fee_amount = lateFee;
                     payment.total_amount = newTotal;
                     console.log(`💰 Upd LateFee: ${payment.id} = ${lateFee}`);
                 }
 
-                // STEP 2: สร้างรูป (ถ้าจำเป็น)
+                // STEP 2: Generate Image
                 let imageUrl = payment.invoice_image_url;
                 const currentHash = generatePaymentHash(payment);
                 
                 if (!imageUrl || payment.invoice_data_hash !== currentHash) {
-                    console.log(`🖼️ Gen Image: ${payment.id}`);
-                    // ดึง Full Invoice Data
+                    // console.log(`🖼️ Gen Image: ${payment.id}`);
                     const invRes = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId: payment.id });
                     if (invRes.data?.invoice) {
                         imageUrl = await generateInvoiceScreenshot(base44, payment.id, invRes.data.invoice);
@@ -315,10 +307,13 @@ Deno.serve(async (req) => {
                             invoice_data_hash: currentHash
                         });
                         payment.invoice_image_url = imageUrl;
+                        
+                        // Rate Limit Protection: Delay after generating image
+                        await delay(1500); 
                     }
                 }
 
-                // STEP 3: สร้างข้อความ
+                // STEP 3: Create Message
                 const tenant = tenantMap.get(payment.tenant_id);
                 const room = roomMap.get(payment.room_id);
                 if (!tenant || (!tenant.line_user_id && !tenant.facebook_user_id)) continue;
@@ -349,8 +344,10 @@ Deno.serve(async (req) => {
             }
         }
 
-        // 8. ส่งข้อความ (Batch Send)
+        // 8. Send Messages & Update Status
+        let sentCount = 0;
         if (recipients.length > 0) {
+            
             // Test Mode
             if (testLineUserId) {
                 await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
@@ -365,9 +362,10 @@ Deno.serve(async (req) => {
             if (lineUsers.length > 0) {
                 const res = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
                     recipients: lineUsers,
-                    options: { batchSize: 10, delayBetweenBatches: 1000 }
+                    // ⭐ Fix 429: Increase delays between batches
+                    options: { batchSize: 10, delayBetweenBatches: 2000, delayBetweenMessages: 200 }
                 });
-                successCount += res.data?.success || 0;
+                sentCount += res.data?.success || 0;
             }
 
             // Real Send - Facebook
@@ -379,28 +377,54 @@ Deno.serve(async (req) => {
                         message: r.message,
                         branch_id: r.metadata.branchId
                     });
-                    successCount++;
+                    sentCount++;
+                    await delay(300); // Small delay between FB calls
                 } catch {}
             }
 
-            // 9. Update Last Sent Date
+            // ⭐ Fix 429: Update Last Sent Date (Chunked + Delayed)
             const sentIds = recipients.map(r => r.metadata.paymentId);
             const nowIso = new Date().toISOString();
-            // Update in small chunks
-            for (let i = 0; i < sentIds.length; i+=20) {
-                const batch = sentIds.slice(i, i+20);
+            
+            // Reduced batch size for updates to 10
+            for (let i = 0; i < sentIds.length; i += 10) {
+                const batch = sentIds.slice(i, i + 10);
                 await Promise.all(batch.map(id => 
                     base44.asServiceRole.entities.Payment.update(id, { overdue_reminder_sent_date: nowIso })
+                        .catch(e => console.error(`Failed update ${id}`, e))
                 ));
+                // Wait 2 seconds between update batches
+                await delay(2000); 
             }
         }
 
-        const duration = Date.now() - startTime;
+        // =========================================================
+        // RECURSIVE TRIGGER (With 429 Protection)
+        // =========================================================
+        
+        const shouldCallNextBatch = paymentsToProcess.length === limit || hasMoreItemsInDb;
+
+        if (shouldCallNextBatch && !testLineUserId) {
+            console.log(`🔄 Batch done. Waiting 5s before next batch...`);
+            
+            // ⭐ Fix 429: Wait 5 seconds before triggering next run
+            await delay(5000);
+
+            await base44.asServiceRole.functions.invoke(MY_FUNCTION_NAME, {
+                body: { 
+                    branch_id: targetBranchId,
+                    limit: limit
+                }
+            }).catch(err => console.error("❌ Failed to trigger next batch:", err));
+        } else {
+            console.log("✅ All items processed. Job done.");
+        }
+
         return Response.json({
             success: true,
             processed: paymentsToProcess.length,
-            sent: successCount,
-            duration_ms: duration
+            sent: sentCount,
+            triggered_next_batch: shouldCallNextBatch
         });
 
     } catch (error) {
