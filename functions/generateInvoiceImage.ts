@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
         const issueDate = formatDate(new Date().toISOString());
         const dueDate = formatDate(payment.due_date);
         
-        // ข้อมูลผู้รับเงิน (Header)
+        // ข้อมูลผู้รับเงิน (Header Info)
         const logoUrl = recipient.building_logo || 'https://via.placeholder.com/100x100?text=Logo';
         const buildingName = recipient.building_name || 'Double Residence';
         const lessorName = recipient.lessor_name || recipient.company_name || 'ธนานนท์ พรมพักตร์';
@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
         const totalAmount = payment.total_amount || 0;
         const totalText = numberToThaiText(totalAmount);
 
-        // 3. HTML Template (Clean Version - No Signatures)
+        // HTML Template (Two Columns Layout)
         const htmlContent = `
         <!DOCTYPE html>
         <html lang="th">
@@ -151,56 +151,58 @@ Deno.serve(async (req) => {
             <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
             <style>
                 * { box-sizing: border-box; }
-                body { font-family: 'Sarabun', sans-serif; padding: 30px; background: #fff; color: #333; }
+                body { font-family: 'Sarabun', sans-serif; padding: 40px; background: #fff; color: #333; }
                 .container { max-width: 800px; margin: 0 auto; background: white; }
                 
-                /* Header Layout */
-                .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
-                .logo-section { display: flex; gap: 15px; width: 70%; }
-                .logo { width: 45px; height: 45px; object-fit: contain; margin-top: 5px; }
-                .building-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 5px 0; color: #1e293b; }
-                .lessor-info { font-size: 12px; color: #64748b; line-height: 1.4; margin: 0; }
+                /* Header */
+                .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+                .logo-section { display: flex; gap: 15px; }
+                .logo { width: 50px; height: 50px; object-fit: contain; margin-top: 5px; }
+                .brand-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 5px 0; color: #1e293b; }
+                .brand-info p { font-size: 13px; color: #64748b; margin: 0; }
                 
-                .invoice-label { text-align: right; width: 30%; }
-                .invoice-label h2 { font-size: 18px; color: #2563eb; font-weight: bold; margin: 0; }
-                .invoice-label span { font-size: 12px; color: #2563eb; font-weight: 600; }
+                .invoice-label { text-align: right; }
+                .invoice-label h2 { font-size: 20px; color: #2563eb; font-weight: bold; margin: 0; }
+                .invoice-label span { font-size: 12px; color: #2563eb; font-weight: 600; letter-spacing: 1px; }
 
-                /* Meta Data (Invoice No, Date) */
-                .meta-box { background: #f8fafc; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; font-size: 12px; border: 1px solid #e2e8f0; }
-                .meta-item strong { color: #1e293b; margin-right: 5px; }
-                .meta-item span { color: #475569; }
-                .due-date { color: #dc2626 !important; font-weight: bold; }
+                /* Meta Data Bar */
+                .meta-bar { display: flex; justify-content: space-between; background: #f8fafc; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+                .meta-item { font-size: 12px; }
+                .meta-item strong { color: #475569; margin-right: 5px; }
+                .meta-item span { font-weight: 600; color: #1e293b; }
+                .due-date { color: #dc2626 !important; }
 
-                /* Customer Box */
-                .customer-box { background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 25px; border: 1px solid #e2e8f0; }
-                .cust-label { font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; }
-                .cust-name { font-size: 14px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
-                .cust-detail { font-size: 12px; color: #475569; line-height: 1.5; }
+                /* ⭐ Two Column Info Box (Receiver vs Payer) */
+                .info-grid { display: flex; gap: 20px; margin-bottom: 25px; }
+                .info-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #fff; }
+                .box-header { font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
+                .box-content .name { font-size: 14px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
+                .box-content p { font-size: 12px; color: #475569; margin: 0 0 2px 0; line-height: 1.4; }
 
                 /* Table */
-                table { width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 12px; }
-                th { text-align: left; padding: 10px; border-bottom: 2px solid #cbd5e1; color: #334155; font-weight: 600; }
-                td { padding: 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; color: #1e293b; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
+                th { text-align: left; padding: 10px; background-color: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #cbd5e1; }
+                td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; color: #1e293b; }
                 .text-right { text-align: right; }
                 .text-center { text-align: center; }
                 .col-total { font-weight: 600; }
 
-                /* Summary Section */
-                .summary-container { display: flex; justify-content: flex-end; margin-bottom: 20px; }
-                .summary-box { text-align: right; border-top: 2px solid #cbd5e1; padding-top: 10px; min-width: 250px; }
-                .summary-label { font-size: 13px; font-weight: bold; color: #1e293b; margin-right: 15px; }
-                .summary-amount { font-size: 20px; font-weight: bold; color: #2563eb; }
-                .thai-baht-text { text-align: right; font-size: 12px; color: #64748b; margin-top: 4px; font-style: italic; }
+                /* Total Section */
+                .total-section { display: flex; justify-content: flex-end; margin-bottom: 25px; }
+                .total-box { text-align: right; border-top: 2px solid #cbd5e1; padding-top: 10px; min-width: 250px; }
+                .total-label { font-size: 13px; font-weight: bold; color: #1e293b; margin-right: 15px; }
+                .total-amount { font-size: 22px; font-weight: bold; color: #2563eb; }
+                .thai-baht { font-size: 12px; color: #64748b; font-style: italic; margin-top: 5px; }
 
-                /* Bank Info Box */
-                .payment-box { background: #eff6ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 12px; display: flex; align-items: center; gap: 10px; }
-                .payment-icon { font-size: 16px; }
-                .payment-text span { margin-right: 12px; color: #334155; }
-                .payment-text strong { color: #1e293b; }
+                /* Blue Payment Box */
+                .payment-box { background: #eff6ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 15px; margin-bottom: 20px; font-size: 12px; display: flex; align-items: center; gap: 12px; }
+                .payment-icon { font-size: 18px; }
+                .payment-info span { margin-right: 15px; color: #334155; }
+                .payment-info strong { color: #1e293b; font-weight: 600; }
 
-                /* Footer Notes */
-                .notes { font-size: 11px; color: #94a3b8; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 15px; line-height: 1.6; }
-                .credit { text-align: center; margin-top: 15px; font-size: 10px; color: #cbd5e1; }
+                /* Footer */
+                .notes { font-size: 11px; color: #94a3b8; padding-top: 15px; border-top: 1px solid #e2e8f0; line-height: 1.6; }
+                .credit { text-align: center; margin-top: 20px; font-size: 10px; color: #cbd5e1; }
             </style>
         </head>
         <body>
@@ -208,10 +210,9 @@ Deno.serve(async (req) => {
                 <div class="header">
                     <div class="logo-section">
                         <img src="${escapeHtml(logoUrl)}" class="logo" />
-                        <div class="building-info">
+                        <div class="brand-info">
                             <h1>${escapeHtml(buildingName)}</h1>
-                            <p class="lessor-info"><strong>${escapeHtml(lessorName)}</strong></p>
-                            <p class="lessor-info">${escapeHtml(lessorAddr)}</p>
+                            <p>ระบบจัดการที่พักอาศัย</p>
                         </div>
                     </div>
                     <div class="invoice-label">
@@ -220,24 +221,31 @@ Deno.serve(async (req) => {
                     </div>
                 </div>
 
-                <div class="meta-box">
-                    <div class="meta-item">
-                        <strong>เลขที่:</strong> <span>${escapeHtml(invoiceNo)}</span>
-                    </div>
-                    <div class="meta-item">
-                        <strong>วันที่ออก:</strong> <span>${escapeHtml(issueDate)}</span>
-                    </div>
-                    <div class="meta-item">
-                        <strong>ครบกำหนด:</strong> <span class="due-date">${escapeHtml(dueDate)}</span>
-                    </div>
+                <div class="meta-bar">
+                    <div class="meta-item"><strong>เลขที่:</strong> <span>${escapeHtml(invoiceNo)}</span></div>
+                    <div class="meta-item"><strong>วันที่ออก:</strong> <span>${escapeHtml(issueDate)}</span></div>
+                    <div class="meta-item"><strong>ครบกำหนด:</strong> <span class="due-date">${escapeHtml(dueDate)}</span></div>
                 </div>
 
-                <div class="customer-box">
-                    <div class="cust-label">ผู้เช่า / Customer</div>
-                    <div class="cust-name">${escapeHtml(tenant.full_name || 'ไม่ระบุชื่อ')}</div>
-                    <div class="cust-detail">ห้อง: ${escapeHtml(room.room_number || '-')}</div>
-                    <div class="cust-detail">โทร: ${escapeHtml(tenant.phone || '-')}</div>
-                    <div class="cust-detail">ที่อยู่: ${escapeHtml(tenant.address || 'ไม่ระบุ')}</div>
+                <div class="info-grid">
+                    <div class="info-box">
+                        <div class="box-header">ผู้รับเงิน / RECEIVER</div>
+                        <div class="box-content">
+                            <div class="name">${escapeHtml(lessorName)}</div>
+                            <p>${escapeHtml(lessorAddr)}</p>
+                            ${recipient.tax_id ? `<p>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(recipient.tax_id)}</p>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="info-box">
+                        <div class="box-header">ผู้จ่ายเงิน / PAYER</div>
+                        <div class="box-content">
+                            <div class="name">${escapeHtml(tenant.full_name || 'ไม่ระบุชื่อ')}</div>
+                            <p>ห้อง: ${escapeHtml(room.room_number || '-')}</p>
+                            <p>โทร: ${escapeHtml(tenant.phone || '-')}</p>
+                            <p>ที่อยู่: ${escapeHtml(tenant.address || 'ไม่ระบุ')}</p>
+                        </div>
+                    </div>
                 </div>
 
                 <table>
@@ -263,17 +271,17 @@ Deno.serve(async (req) => {
                     </tbody>
                 </table>
 
-                <div class="summary-container">
-                    <div class="summary-box">
-                        <span class="summary-label">รวมทั้งสิ้น</span>
-                        <span class="summary-amount">${totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
-                        <div class="thai-baht-text">(${totalText})</div>
+                <div class="total-section">
+                    <div class="total-box">
+                        <span class="total-label">รวมทั้งสิ้น</span>
+                        <span class="total-amount">${totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
+                        <div class="thai-baht">(${totalText})</div>
                     </div>
                 </div>
 
                 <div class="payment-box">
                     <span class="payment-icon">💳</span>
-                    <div class="payment-text">
+                    <div class="payment-info">
                         <span>ช่องทางการชำระเงิน</span>
                         <span>ธนาคาร: <strong>${escapeHtml(bank.name || 'กสิกรไทย')}</strong></span>
                         <span>เลขบัญชี: <strong>${escapeHtml(bank.account_number || '-')}</strong></span>
@@ -296,22 +304,20 @@ Deno.serve(async (req) => {
         </html>
         `;
 
-        // 4. สร้างรูปภาพผ่าน Browserless
+        // 4. Browserless Screenshot
         const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
         if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
 
-        // ✅ แก้ไข: ย้าย viewport มาไว้ข้างนอก options ตามที่ API ต้องการ
         const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 html: htmlContent,
-                viewport: { width: 800, height: 1000 }, // ย้ายมาตรงนี้
+                viewport: { width: 800, height: 1000 },
                 options: { 
                     type: 'png', 
                     fullPage: true, 
                     omitBackground: true
-                    // เอา viewport ออกจากตรงนี้
                 }
             })
         });
@@ -321,10 +327,8 @@ Deno.serve(async (req) => {
         const imageBlob = await browserlessResponse.blob();
         const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
 
-        // 5. อัปโหลดรูปภาพ
+        // 5. Upload & Update
         const { file_url } = await base44.integrations.Core.UploadFile({ file: imageFile });
-        
-        // 6. อัปเดตข้อมูล Payment
         const newHash = generatePaymentHash(payment);
         await base44.asServiceRole.entities.Payment.update(paymentId, {
             invoice_image_url: file_url,
