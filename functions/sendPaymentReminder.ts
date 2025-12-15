@@ -356,7 +356,8 @@ Deno.serve(async (req) => {
                     message = `📅 วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
                     message += `${buildingName}\n`;
                     message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
-                    message += `💰 ยอดชำระ: ${amount} บาท\n\n`;
+                    // ✅✅✅ แก้ไขแล้ว: เปลี่ยนจาก amount เป็น payment.total_amount ✅✅✅
+                    message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
                     
                     const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', branchId, '0');
                     const feePerDay = parseFloat(lateFeePerDayConfig);
