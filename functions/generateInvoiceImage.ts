@@ -61,7 +61,7 @@ function generatePaymentHash(payment) {
         common_fee_amount: payment.common_fee_amount || 0,
         parking_fee_amount: payment.parking_fee_amount || 0,
         other_amount: payment.other_amount || 0,
-        // ✅ [สำคัญ] รวมค่าปรับใน Hash เพื่อให้รูปอัปเดตเมื่อมีค่าปรับ
+        // ✅ Include late fee in hash to detect changes
         late_fee_amount: payment.late_fee_amount || 0, 
         total_amount: payment.total_amount || 0,
         due_date: payment.due_date || ''
@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
 
         if (!paymentId) return Response.json({ success: false, error: 'No paymentId' }, { status: 400 });
 
-        // 1. ดึงข้อมูล Invoice
+        // 1. Fetch Invoice Data
         const invoiceResponse = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId });
         if (!invoiceResponse.data?.success) {
             throw new Error(invoiceResponse.data?.error || 'Failed to fetch invoice data');
@@ -106,11 +106,11 @@ Deno.serve(async (req) => {
         const room = data.room || {};
         const bank = data.bank || {};
 
-        // Debug: เช็คค่าปรับที่รับเข้ามา
+        // Debug: Check Late Fee value
         const rawLateFee = payment.late_fee_amount;
         console.log(`🔍 Received Late Fee: ${rawLateFee} (Type: ${typeof rawLateFee})`);
 
-        // 2. เตรียมข้อมูลสำหรับแสดงผล
+        // 2. Prepare Display Data
         const invoiceNo = `INV-${payment.id.slice(0, 8).toUpperCase()}`;
         const issueDate = formatDate(new Date().toISOString());
         const dueDate = formatDate(payment.due_date);
@@ -121,7 +121,7 @@ Deno.serve(async (req) => {
         const displayLessorAddress = recipient.company_address || recipient.lessor_address || '28/244 หมู่ 4 ถนนมหรรณพ 4 ซอย 6 ตำบล/แขวงลาดพร้าว อำเภอ/เขตลาดพร้าว จ.กรุงเทพมหานคร';
         const displayTaxId = recipient.company_tax_id || recipient.tax_id || '';
 
-        // 3. สร้างรายการสินค้า
+        // 3. Build Line Items
         const items = [];
         if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
         
@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
         if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
         if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
         
-        // ✅ [แก้ไข] ใช้ Number() ครอบเพื่อให้มั่นใจว่าเป็นตัวเลข และเช็ค > 0
+        // ✅ [CRITICAL FIX] Ensure late fee is added if > 0
         const lateFeeNum = Number(rawLateFee || 0);
         if (lateFeeNum > 0) {
             console.log(`✅ Adding Late Fee to items: ${lateFeeNum}`);
@@ -155,16 +155,15 @@ Deno.serve(async (req) => {
                 price: lateFeeNum 
             });
         } else {
-            console.log('⚠️ No Late Fee added (Amount is 0 or invalid)');
+            console.log('⚠️ No Late Fee added (Value is 0 or null)');
         }
 
-        // คำนวณยอดรวมใหม่จาก items เพื่อความชัวร์ (หรือจะใช้ payment.total_amount ก็ได้)
-        // แต่การคำนวณใหม่จะปลอดภัยกว่าถ้า Database ยังไม่อัปเดตยอดรวม
+        // Recalculate total to be safe
         const calculatedTotal = items.reduce((sum, item) => sum + Number(item.price), 0);
-        const totalAmount = payment.total_amount > calculatedTotal ? payment.total_amount : calculatedTotal; 
+        const totalAmount = calculatedTotal > 0 ? calculatedTotal : (payment.total_amount || 0);
         const totalText = numberToThaiText(totalAmount);
 
-        // HTML Template
+        // HTML Template (Corrected for Invoice)
         const htmlContent = `
         <!DOCTYPE html>
         <html lang="th">
@@ -179,10 +178,9 @@ Deno.serve(async (req) => {
                 .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
                 .logo-section { display: flex; gap: 15px; width: 75%; }
                 .logo { width: 50px; height: 50px; object-fit: contain; margin-top: 5px; }
-                
                 .brand-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 8px 0; color: #1e293b; }
-                .brand-info .company-details { font-size: 11px; color: #475569; line-height: 1.4; }
                 .brand-info .company-name { font-weight: 600; color: #1e293b; font-size: 12px; margin-bottom: 2px; }
+                .brand-info .company-details { font-size: 11px; color: #475569; line-height: 1.4; }
                 
                 .invoice-label { text-align: right; width: 25%; }
                 .invoice-label h2 { font-size: 20px; color: #2563eb; font-weight: bold; margin: 0; }
