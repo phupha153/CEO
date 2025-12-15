@@ -61,7 +61,7 @@ function generatePaymentHash(payment) {
         common_fee_amount: payment.common_fee_amount || 0,
         parking_fee_amount: payment.parking_fee_amount || 0,
         other_amount: payment.other_amount || 0,
-        // ✅ [FIX 1] Added late_fee_amount to hash calculation
+        // ✅ [สำคัญ] รวมค่าปรับใน Hash เพื่อให้รูปอัปเดตเมื่อมีค่าปรับ
         late_fee_amount: payment.late_fee_amount || 0, 
         total_amount: payment.total_amount || 0,
         due_date: payment.due_date || ''
@@ -85,21 +85,17 @@ function formatDate(dateString) {
 // --- Main Handler ---
 
 Deno.serve(async (req) => {
-    console.log('🚀 Starting generateInvoiceImage...');
     try {
+        console.log('🚀 Starting generateInvoiceImage...');
         const base44 = createClientFromRequest(req);
         const body = await req.json();
         const paymentId = body.paymentId;
 
-        console.log(`🆔 Payment ID: ${paymentId}`);
-
         if (!paymentId) return Response.json({ success: false, error: 'No paymentId' }, { status: 400 });
 
-        // 1. Fetch Invoice Data
-        console.log('📥 Fetching public invoice data...');
+        // 1. ดึงข้อมูล Invoice
         const invoiceResponse = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId });
         if (!invoiceResponse.data?.success) {
-            console.error('❌ Failed to fetch invoice data:', invoiceResponse.data?.error);
             throw new Error(invoiceResponse.data?.error || 'Failed to fetch invoice data');
         }
 
@@ -110,27 +106,22 @@ Deno.serve(async (req) => {
         const room = data.room || {};
         const bank = data.bank || {};
 
-        // --- DEBUG LOGS FOR PAYMENT DATA ---
-        console.log('📋 Payment Data Received:');
-        console.log(`   - Rent Amount: ${payment.rent_amount}`);
-        console.log(`   - Late Fee Amount (RAW): ${payment.late_fee_amount} (Type: ${typeof payment.late_fee_amount})`);
-        console.log(`   - Total Amount: ${payment.total_amount}`);
-        // -----------------------------------
+        // Debug: เช็คค่าปรับที่รับเข้ามา
+        const rawLateFee = payment.late_fee_amount;
+        console.log(`🔍 Received Late Fee: ${rawLateFee} (Type: ${typeof rawLateFee})`);
 
-        // 2. Prepare Display Data
+        // 2. เตรียมข้อมูลสำหรับแสดงผล
         const invoiceNo = `INV-${payment.id.slice(0, 8).toUpperCase()}`;
         const issueDate = formatDate(new Date().toISOString());
         const dueDate = formatDate(payment.due_date);
         
-        // Receiver Info
         const logoUrl = recipient.building_logo || 'https://via.placeholder.com/100x100?text=Logo';
         const buildingName = recipient.building_name || 'Double Residence';
         const displayLessorName = recipient.company_name || recipient.lessor_name || 'ธนานนท์ พรมพักตร์';
         const displayLessorAddress = recipient.company_address || recipient.lessor_address || '28/244 หมู่ 4 ถนนมหรรณพ 4 ซอย 6 ตำบล/แขวงลาดพร้าว อำเภอ/เขตลาดพร้าว จ.กรุงเทพมหานคร';
         const displayTaxId = recipient.company_tax_id || recipient.tax_id || '';
 
-        // Build Line Items
-        console.log('🏗️ Building Line Items...');
+        // 3. สร้างรายการสินค้า
         const items = [];
         if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
         
@@ -154,22 +145,23 @@ Deno.serve(async (req) => {
         if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
         if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
         
-        // ✅ [FIX 2] Added Late Fee item to the table with LOGGING
-        if (payment.late_fee_amount && Number(payment.late_fee_amount) > 0) {
-            console.log(`✅ Adding Late Fee Item: ${payment.late_fee_amount}`);
+        // ✅ [แก้ไข] ใช้ Number() ครอบเพื่อให้มั่นใจว่าเป็นตัวเลข และเช็ค > 0
+        const lateFeeNum = Number(rawLateFee || 0);
+        if (lateFeeNum > 0) {
+            console.log(`✅ Adding Late Fee to items: ${lateFeeNum}`);
             items.push({ 
                 name: 'ค่าปรับชำระล่าช้า', 
                 qty: 1, 
-                price: payment.late_fee_amount 
+                price: lateFeeNum 
             });
         } else {
-            console.log('⚠️ No Late Fee to add (amount is 0 or undefined)');
+            console.log('⚠️ No Late Fee added (Amount is 0 or invalid)');
         }
 
-        console.log(`✅ Total Items: ${items.length}`);
-        console.log('   Items:', JSON.stringify(items));
-
-        const totalAmount = payment.total_amount || 0;
+        // คำนวณยอดรวมใหม่จาก items เพื่อความชัวร์ (หรือจะใช้ payment.total_amount ก็ได้)
+        // แต่การคำนวณใหม่จะปลอดภัยกว่าถ้า Database ยังไม่อัปเดตยอดรวม
+        const calculatedTotal = items.reduce((sum, item) => sum + Number(item.price), 0);
+        const totalAmount = payment.total_amount > calculatedTotal ? payment.total_amount : calculatedTotal; 
         const totalText = numberToThaiText(totalAmount);
 
         // HTML Template
@@ -184,7 +176,6 @@ Deno.serve(async (req) => {
                 body { font-family: 'Sarabun', sans-serif; padding: 40px; background: #fff; color: #333; }
                 .container { max-width: 800px; margin: 0 auto; background: white; }
                 
-                /* Header */
                 .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
                 .logo-section { display: flex; gap: 15px; width: 75%; }
                 .logo { width: 50px; height: 50px; object-fit: contain; margin-top: 5px; }
@@ -197,21 +188,18 @@ Deno.serve(async (req) => {
                 .invoice-label h2 { font-size: 20px; color: #2563eb; font-weight: bold; margin: 0; }
                 .invoice-label span { font-size: 12px; color: #2563eb; font-weight: 600; letter-spacing: 1px; }
 
-                /* Meta Data Bar */
                 .meta-bar { display: flex; justify-content: space-between; background: #f8fafc; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
                 .meta-item { font-size: 12px; }
                 .meta-item strong { color: #64748b; margin-right: 5px; }
                 .meta-item span { font-weight: 600; color: #1e293b; }
                 .due-date { color: #dc2626 !important; }
 
-                /* Two Column Info Box */
                 .info-grid { display: flex; gap: 20px; margin-bottom: 25px; }
                 .info-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #fff; }
                 .box-header { font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
                 .box-content .name { font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
                 .box-content p { font-size: 12px; color: #475569; margin: 0 0 2px 0; line-height: 1.4; }
 
-                /* Table */
                 table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
                 th { text-align: left; padding: 10px; background-color: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #cbd5e1; }
                 td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; color: #1e293b; }
@@ -219,20 +207,17 @@ Deno.serve(async (req) => {
                 .text-center { text-align: center; }
                 .col-total { font-weight: 600; }
 
-                /* Total Section */
                 .total-section { display: flex; justify-content: flex-end; margin-bottom: 25px; }
                 .total-box { text-align: right; border-top: 2px solid #cbd5e1; padding-top: 10px; min-width: 250px; }
                 .total-label { font-size: 13px; font-weight: bold; color: #1e293b; margin-right: 15px; }
                 .total-amount { font-size: 22px; font-weight: bold; color: #2563eb; }
                 .thai-baht { font-size: 12px; color: #64748b; font-style: italic; margin-top: 5px; }
 
-                /* Blue Payment Box */
                 .payment-box { background: #eff6ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 15px; margin-bottom: 20px; font-size: 12px; display: flex; align-items: center; gap: 12px; }
                 .payment-icon { font-size: 18px; }
                 .payment-info span { margin-right: 15px; color: #334155; }
                 .payment-info strong { color: #1e293b; font-weight: 600; }
 
-                /* Footer */
                 .notes { font-size: 11px; color: #94a3b8; padding-top: 15px; border-top: 1px solid #e2e8f0; line-height: 1.6; }
                 .credit { text-align: center; margin-top: 20px; font-size: 10px; color: #cbd5e1; }
             </style>
@@ -339,15 +324,7 @@ Deno.serve(async (req) => {
         </html>
         `;
 
-        // Check if Late Fee is in HTML (Simple Check)
-        if (htmlContent.includes('ค่าปรับชำระล่าช้า')) {
-            console.log('✅ "ค่าปรับชำระล่าช้า" found in generated HTML.');
-        } else {
-            console.error('❌ "ค่าปรับชำระล่าช้า" NOT FOUND in generated HTML!');
-        }
-
         // 4. Browserless Screenshot
-        console.log('🖼️ Sending HTML to Browserless...');
         const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
         if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
 
@@ -365,34 +342,26 @@ Deno.serve(async (req) => {
             })
         });
 
-        if (!browserlessResponse.ok) {
-            const errorText = await browserlessResponse.text();
-            console.error(`❌ Browserless Error: ${errorText}`);
-            throw new Error(errorText);
-        }
+        if (!browserlessResponse.ok) throw new Error(await browserlessResponse.text());
 
         const imageBlob = await browserlessResponse.blob();
         const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
-        console.log(`✅ Image generated successfully. Size: ${imageBlob.size} bytes`);
 
         // 5. Upload & Update
-        console.log('📤 Uploading image...');
         const { file_url } = await base44.integrations.Core.UploadFile({ file: imageFile });
         
-        console.log('💾 Updating Payment record with new Hash...');
+        // ⭐ คำนวณ Hash ใหม่อีกครั้งให้ตรงกับสิ่งที่อยู่ในรูป
         const newHash = generatePaymentHash(payment);
-        console.log(`   New Hash: ${newHash}`);
         
         await base44.asServiceRole.entities.Payment.update(paymentId, {
             invoice_image_url: file_url,
             invoice_data_hash: newHash
         });
 
-        console.log('🎉 Success! Invoice regenerated.');
         return Response.json({ success: true, invoice_image_url: file_url });
 
     } catch (error) {
-        console.error('💥 Error in generateInvoiceImage:', error);
+        console.error('Error:', error);
         return Response.json({ success: false, error: error.message }, { status: 500 });
     }
 });
