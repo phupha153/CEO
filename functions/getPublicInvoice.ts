@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 // Public API สำหรับดึงข้อมูลใบแจ้งหนี้ (ไม่ต้อง login)
 Deno.serve(async (req) => {
     console.log('========================================');
-    console.log('📄 GET PUBLIC INVOICE');
+    console.log('📄 GET PUBLIC INVOICE (DEBUG MODE)');
     console.log(`📅 Timestamp: ${new Date().toISOString()}`);
     console.log('========================================');
 
@@ -23,8 +23,7 @@ Deno.serve(async (req) => {
             branchId = url.searchParams.get('branch');
         }
 
-        console.log(`📋 Payment ID: ${paymentId}`);
-        console.log(`🏢 Branch ID: ${branchId}`);
+        console.log(`📋 Payment ID Requested: ${paymentId}`);
 
         if (!paymentId) {
             return Response.json({ 
@@ -34,15 +33,24 @@ Deno.serve(async (req) => {
         }
 
         // ดึงข้อมูล Payment โดยตรงด้วย filter
+        console.log('📥 Querying Database for Payment...');
         const paymentResults = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
         const payment = Array.isArray(paymentResults) ? paymentResults[0] : paymentResults;
 
         if (!payment) {
+            console.error('❌ Payment not found in Database');
             return Response.json({ 
                 success: false, 
                 error: 'ไม่พบใบแจ้งหนี้' 
             }, { status: 404 });
         }
+
+        // ⭐ LOG: ดูข้อมูลดิบจาก Database ว่ามีค่าปรับหรือไม่
+        console.log('🔍 [DEBUG] Raw DB Data:');
+        console.log(`   - ID: ${payment.id}`);
+        console.log(`   - Status: ${payment.status}`);
+        console.log(`   - Total Amount: ${payment.total_amount}`);
+        console.log(`   - Late Fee Amount: ${payment.late_fee_amount} (Type: ${typeof payment.late_fee_amount})`);
 
         // ตรวจสอบ branch_id ถ้ามีการส่งมา
         if (branchId && payment.branch_id !== branchId) {
@@ -101,13 +109,13 @@ Deno.serve(async (req) => {
         
         // Debug extracted values
         console.log('📋 EXTRACTED CONFIG VALUES:');
-        console.log('  - company_name:', getConfigValue('company_name'));
-        console.log('  - company_tax_id:', getConfigValue('company_tax_id'));
-        console.log('  - company_registration_number:', getConfigValue('company_registration_number'));
-        console.log('  - company_address:', getConfigValue('company_address'));
-        console.log('  - lessor_name:', getConfigValue('lessor_name'));
-        console.log('  - lessor_address:', getConfigValue('lessor_address'));
-        console.log('  - bank_account_name:', configData.bank_account_name);
+        console.log('   - company_name:', getConfigValue('company_name'));
+        console.log('   - company_tax_id:', getConfigValue('company_tax_id'));
+        console.log('   - company_registration_number:', getConfigValue('company_registration_number'));
+        console.log('   - company_address:', getConfigValue('company_address'));
+        console.log('   - lessor_name:', getConfigValue('lessor_name'));
+        console.log('   - lessor_address:', getConfigValue('lessor_address'));
+        console.log('   - bank_account_name:', configData.bank_account_name);
 
         // ⭐ สร้าง invoice object สำหรับ generateInvoiceImage
         const invoiceObject = {
@@ -131,6 +139,7 @@ Deno.serve(async (req) => {
             common_fee_amount: payment.common_fee_amount,
             parking_fee_amount: payment.parking_fee_amount,
             other_amount: payment.other_amount,
+            // ✅ Map ค่าปรับตรงนี้ (เพิ่มเข้ามาเพื่อให้รูปบิลแสดงค่าปรับ)
             late_fee_amount: payment.late_fee_amount,
             total_amount: payment.total_amount,
             // ⭐ รวม room, tenant, bank, recipient ไว้ในตัว invoice
@@ -164,6 +173,10 @@ Deno.serve(async (req) => {
                 account_name: configData.bank_account_name || ''
             }
         };
+
+        // ⭐ LOG: ตรวจสอบ object ที่กำลังจะส่งกลับ
+        console.log('📤 [DEBUG] Sending Invoice Object:');
+        console.log(`   - Late Fee in Object: ${invoiceObject.late_fee_amount}`);
 
         return Response.json({
             success: true,
