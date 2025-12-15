@@ -108,11 +108,18 @@ Deno.serve(async (req) => {
         const issueDate = formatDate(new Date().toISOString());
         const dueDate = formatDate(payment.due_date);
         
-        // ข้อมูลผู้รับเงิน (Header Info)
+        // --- ส่วนจัดการข้อมูลผู้รับเงิน (บริษัท หรือ ส่วนตัว) ---
         const logoUrl = recipient.building_logo || 'https://via.placeholder.com/100x100?text=Logo';
         const buildingName = recipient.building_name || 'Double Residence';
-        const lessorName = recipient.lessor_name || recipient.company_name || 'ธนานนท์ พรมพักตร์';
-        const lessorAddr = recipient.lessor_address || recipient.company_address || '28/244 หมู่ 4 ถนนมหรรณพ 4 ซอย 6 ตำบล/แขวงลาดพร้าว อำเภอ/เขตลาดพร้าว จ.กรุงเทพมหานคร';
+        
+        // ลำดับการเลือก: ชื่อบริษัท -> ชื่อผู้ให้เช่า -> ค่า Default
+        const displayLessorName = recipient.company_name || recipient.lessor_name || 'ธนานนท์ พรมพักตร์';
+        
+        // ลำดับการเลือก: ที่อยู่บริษัท -> ที่อยู่ผู้ให้เช่า -> ค่า Default
+        const displayLessorAddress = recipient.company_address || recipient.lessor_address || '28/244 หมู่ 4 ถนนมหรรณพ 4 ซอย 6 ตำบล/แขวงลาดพร้าว อำเภอ/เขตลาดพร้าว จ.กรุงเทพมหานคร';
+        
+        // เลขผู้เสียภาษี (ถ้ามี)
+        const displayTaxId = recipient.company_tax_id || recipient.tax_id || '';
 
         // รายการสินค้า
         const items = [];
@@ -142,7 +149,7 @@ Deno.serve(async (req) => {
         const totalAmount = payment.total_amount || 0;
         const totalText = numberToThaiText(totalAmount);
 
-        // HTML Template (Two Columns Layout)
+        // HTML Template
         const htmlContent = `
         <!DOCTYPE html>
         <html lang="th">
@@ -155,28 +162,32 @@ Deno.serve(async (req) => {
                 .container { max-width: 800px; margin: 0 auto; background: white; }
                 
                 /* Header */
-                .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-                .logo-section { display: flex; gap: 15px; }
+                .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
+                .logo-section { display: flex; gap: 15px; width: 75%; }
                 .logo { width: 50px; height: 50px; object-fit: contain; margin-top: 5px; }
-                .brand-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 5px 0; color: #1e293b; }
-                .brand-info p { font-size: 13px; color: #64748b; margin: 0; }
                 
-                .invoice-label { text-align: right; }
+                .brand-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 8px 0; color: #1e293b; }
+                
+                /* ⭐ CSS สำหรับข้อมูลบริษัท/ส่วนตัว ใน Header */
+                .brand-info .company-details { font-size: 11px; color: #475569; line-height: 1.4; }
+                .brand-info .company-name { font-weight: 600; color: #1e293b; font-size: 12px; margin-bottom: 2px; }
+                
+                .invoice-label { text-align: right; width: 25%; }
                 .invoice-label h2 { font-size: 20px; color: #2563eb; font-weight: bold; margin: 0; }
                 .invoice-label span { font-size: 12px; color: #2563eb; font-weight: 600; letter-spacing: 1px; }
 
                 /* Meta Data Bar */
                 .meta-bar { display: flex; justify-content: space-between; background: #f8fafc; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
                 .meta-item { font-size: 12px; }
-                .meta-item strong { color: #475569; margin-right: 5px; }
+                .meta-item strong { color: #64748b; margin-right: 5px; }
                 .meta-item span { font-weight: 600; color: #1e293b; }
                 .due-date { color: #dc2626 !important; }
 
-                /* ⭐ Two Column Info Box (Receiver vs Payer) */
+                /* Two Column Info Box */
                 .info-grid { display: flex; gap: 20px; margin-bottom: 25px; }
                 .info-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #fff; }
                 .box-header { font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
-                .box-content .name { font-size: 14px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
+                .box-content .name { font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
                 .box-content p { font-size: 12px; color: #475569; margin: 0 0 2px 0; line-height: 1.4; }
 
                 /* Table */
@@ -212,7 +223,11 @@ Deno.serve(async (req) => {
                         <img src="${escapeHtml(logoUrl)}" class="logo" />
                         <div class="brand-info">
                             <h1>${escapeHtml(buildingName)}</h1>
-                            <p>ระบบจัดการที่พักอาศัย</p>
+                            <div class="company-details">
+                                <div class="company-name">${escapeHtml(displayLessorName)}</div>
+                                <div>${escapeHtml(displayLessorAddress)}</div>
+                                ${displayTaxId ? `<div>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(displayTaxId)}</div>` : ''}
+                            </div>
                         </div>
                     </div>
                     <div class="invoice-label">
@@ -231,9 +246,9 @@ Deno.serve(async (req) => {
                     <div class="info-box">
                         <div class="box-header">ผู้รับเงิน / RECEIVER</div>
                         <div class="box-content">
-                            <div class="name">${escapeHtml(lessorName)}</div>
-                            <p>${escapeHtml(lessorAddr)}</p>
-                            ${recipient.tax_id ? `<p>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(recipient.tax_id)}</p>` : ''}
+                            <div class="name">${escapeHtml(displayLessorName)}</div>
+                            <p>${escapeHtml(displayLessorAddress)}</p>
+                            ${displayTaxId ? `<p>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(displayTaxId)}</p>` : ''}
                         </div>
                     </div>
 
