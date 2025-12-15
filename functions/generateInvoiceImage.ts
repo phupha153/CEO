@@ -61,7 +61,8 @@ function generatePaymentHash(payment) {
         common_fee_amount: payment.common_fee_amount || 0,
         parking_fee_amount: payment.parking_fee_amount || 0,
         other_amount: payment.other_amount || 0,
-        // ⭐ สำคัญ: เพิ่ม late_fee_amount เพื่อให้ Hash เปลี่ยนเมื่อมีค่าปรับ
+        // ✅ [FIX 1] Added late_fee_amount to hash calculation
+        // This ensures the system detects the change and regenerates the image
         late_fee_amount: payment.late_fee_amount || 0, 
         total_amount: payment.total_amount || 0,
         due_date: payment.due_date || ''
@@ -92,7 +93,7 @@ Deno.serve(async (req) => {
 
         if (!paymentId) return Response.json({ success: false, error: 'No paymentId' }, { status: 400 });
 
-        // 1. ดึงข้อมูล Invoice
+        // 1. Fetch Invoice Data
         const invoiceResponse = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId });
         if (!invoiceResponse.data?.success) {
             throw new Error(invoiceResponse.data?.error || 'Failed to fetch invoice data');
@@ -105,25 +106,19 @@ Deno.serve(async (req) => {
         const room = data.room || {};
         const bank = data.bank || {};
 
-        // 2. เตรียมข้อมูลสำหรับแสดงผล
+        // 2. Prepare Display Data
         const invoiceNo = `INV-${payment.id.slice(0, 8).toUpperCase()}`;
         const issueDate = formatDate(new Date().toISOString());
         const dueDate = formatDate(payment.due_date);
         
-        // --- ส่วนจัดการข้อมูลผู้รับเงิน (บริษัท หรือ ส่วนตัว) ---
+        // Receiver Info
         const logoUrl = recipient.building_logo || 'https://via.placeholder.com/100x100?text=Logo';
         const buildingName = recipient.building_name || 'Double Residence';
-        
-        // ลำดับการเลือก: ชื่อบริษัท -> ชื่อผู้ให้เช่า -> ค่า Default
         const displayLessorName = recipient.company_name || recipient.lessor_name || 'ธนานนท์ พรมพักตร์';
-        
-        // ลำดับการเลือก: ที่อยู่บริษัท -> ที่อยู่ผู้ให้เช่า -> ค่า Default
         const displayLessorAddress = recipient.company_address || recipient.lessor_address || '28/244 หมู่ 4 ถนนมหรรณพ 4 ซอย 6 ตำบล/แขวงลาดพร้าว อำเภอ/เขตลาดพร้าว จ.กรุงเทพมหานคร';
-        
-        // เลขผู้เสียภาษี (ถ้ามี)
         const displayTaxId = recipient.company_tax_id || recipient.tax_id || '';
 
-        // รายการสินค้า
+        // Build Line Items
         const items = [];
         if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
         
@@ -147,7 +142,7 @@ Deno.serve(async (req) => {
         if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
         if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
         
-        // ⭐ เพิ่มรายการค่าปรับลงในตาราง (ถ้ามี)
+        // ✅ [FIX 2] Added Late Fee item to the table
         if (payment.late_fee_amount && payment.late_fee_amount > 0) {
             items.push({ 
                 name: 'ค่าปรับชำระล่าช้า', 
@@ -177,8 +172,6 @@ Deno.serve(async (req) => {
                 .logo { width: 50px; height: 50px; object-fit: contain; margin-top: 5px; }
                 
                 .brand-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 8px 0; color: #1e293b; }
-                
-                /* ⭐ CSS สำหรับข้อมูลบริษัท/ส่วนตัว ใน Header */
                 .brand-info .company-details { font-size: 11px; color: #475569; line-height: 1.4; }
                 .brand-info .company-name { font-weight: 600; color: #1e293b; font-size: 12px; margin-bottom: 2px; }
                 
@@ -261,7 +254,6 @@ Deno.serve(async (req) => {
                             ${displayTaxId ? `<p>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(displayTaxId)}</p>` : ''}
                         </div>
                     </div>
-
                     <div class="info-box">
                         <div class="box-header">ผู้จ่ายเงิน / PAYER</div>
                         <div class="box-content">
