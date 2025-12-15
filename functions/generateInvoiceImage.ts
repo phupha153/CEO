@@ -11,7 +11,7 @@ function numberToThaiText(number) {
     
     const numStr = number.toFixed(2);
     const [intStr, decStr] = numStr.split('.');
-    let integerPart = parseInt(intStr); // ใช้ let เพื่อให้แก้ไขค่าได้ถ้าจำเป็น
+    let integerPart = parseInt(intStr);
     const decimalPart = parseInt(decStr);
 
     function convert(n) {
@@ -111,7 +111,6 @@ Deno.serve(async (req) => {
         // ข้อมูลผู้รับเงิน (Header)
         const logoUrl = recipient.building_logo || 'https://via.placeholder.com/100x100?text=Logo';
         const buildingName = recipient.building_name || 'Double Residence';
-        // ใช้ชื่อผู้ปล่อยเช่า หรือชื่อบริษัท ถ้าไม่มีให้ใช้ค่า Default
         const lessorName = recipient.lessor_name || recipient.company_name || 'ธนานนท์ พรมพักตร์';
         const lessorAddr = recipient.lessor_address || recipient.company_address || '28/244 หมู่ 4 ถนนมหรรณพ 4 ซอย 6 ตำบล/แขวงลาดพร้าว อำเภอ/เขตลาดพร้าว จ.กรุงเทพมหานคร';
 
@@ -119,18 +118,15 @@ Deno.serve(async (req) => {
         const items = [];
         if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
         
-        // ไฟฟ้า (แสดงหน่วยถ้ามี)
         if (payment.electricity_amount > 0) {
             let desc = `ค่าไฟ`;
             if (payment.electricity_units) desc += ` (${payment.electricity_units} หน่วย)`;
-            // เช็คว่ามีเลขมิเตอร์ไหม
             if (payment.electricity_previous && payment.electricity_current) {
                 desc += ` [${payment.electricity_previous}-${payment.electricity_current}]`;
             }
             items.push({ name: desc, qty: 1, price: payment.electricity_amount });
         }
         
-        // ประปา
         if (payment.water_amount > 0) {
             let desc = `ค่าน้ำ`;
             if (payment.water_units) desc += ` (${payment.water_units} หน่วย)`;
@@ -145,9 +141,6 @@ Deno.serve(async (req) => {
 
         const totalAmount = payment.total_amount || 0;
         const totalText = numberToThaiText(totalAmount);
-
-        // เช็คเกินกำหนด
-        const isOverdue = payment.status === 'overdue' || (payment.status === 'pending' && new Date(payment.due_date) < new Date());
 
         // 3. HTML Template (Clean Version - No Signatures)
         const htmlContent = `
@@ -172,7 +165,7 @@ Deno.serve(async (req) => {
                 .invoice-label h2 { font-size: 18px; color: #2563eb; font-weight: bold; margin: 0; }
                 .invoice-label span { font-size: 12px; color: #2563eb; font-weight: 600; }
 
-                /* Meta Data (Invoice No, Date) - เรียงแบบรูปที่ 1 */
+                /* Meta Data (Invoice No, Date) */
                 .meta-box { background: #f8fafc; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; font-size: 12px; border: 1px solid #e2e8f0; }
                 .meta-item strong { color: #1e293b; margin-right: 5px; }
                 .meta-item span { color: #475569; }
@@ -307,16 +300,18 @@ Deno.serve(async (req) => {
         const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
         if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
 
+        // ✅ แก้ไข: ย้าย viewport มาไว้ข้างนอก options ตามที่ API ต้องการ
         const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 html: htmlContent,
+                viewport: { width: 800, height: 1000 }, // ย้ายมาตรงนี้
                 options: { 
                     type: 'png', 
                     fullPage: true, 
-                    omitBackground: true,
-                    viewport: { width: 800, height: 1000 } // Fix width to ensure consistent layout
+                    omitBackground: true
+                    // เอา viewport ออกจากตรงนี้
                 }
             })
         });
