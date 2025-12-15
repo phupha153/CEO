@@ -280,48 +280,43 @@ Deno.serve(async (req) => {
             return allData;
         }
 
-        // 3. ดึงข้อมูลแบบกรองเฉพาะที่จำเป็น - filter status ตั้งแต่ query
+// 3. ดึงข้อมูลแบบกรองเฉพาะที่จำเป็น
         console.log('🔍 Fetching filtered overdue payments...');
-        console.log('⭐ Using NEW VERSION with STEP 1+2+3 (late fee calc + invoice gen + messaging)');
+        
+        // ⭐ 1. สร้างตัวแปร "วันนี้" (today) ให้เป็นเวลาไทยแท้ๆ (UTC+7)
+        // ถ้าไม่ทำบรรทัดนี้ ช่วง ตี 1 - 7 โมงเช้า ระบบจะหาบิลไม่เจอ
+        const nowUTC = new Date();
+        const thaiNow = new Date(nowUTC.getTime() + (7 * 60 * 60 * 1000)); 
+        const today = startOfDay(thaiNow); // ได้เวลา 00:00:00 ของประเทศไทย
+        
+        console.log(`📅 วันที่เช็คยอด (เวลาไทย): ${today.toISOString().split('T')[0]}`);
 
-        const today = startOfDay(new Date());
-
-        // ⭐ ดึงเฉพาะ payment ที่ยังไม่ชำระ (pending/overdue) - ลด memory/network
-        const paymentFilter = {
-            status: 'pending'  // ดึงเฉพาะที่ยังไม่จ่าย
-        };
-
-        if (targetBranchId) {
-            paymentFilter.branch_id = targetBranchId;
-        }
-
+        // ดึงบิล Pending และ Overdue
+        const paymentFilter = { status: 'pending' };
+        if (targetBranchId) paymentFilter.branch_id = targetBranchId;
         let pendingPayments = await fetchAllWithPagination(base44.asServiceRole.entities.Payment, paymentFilter);
 
-        // เพิ่มเช็ค status='overdue' ด้วย (กรณีที่ระบบตั้งเป็น overdue แล้ว)
-        const overdueFilter = {
-            status: 'overdue'
-        };
-        if (targetBranchId) {
-            overdueFilter.branch_id = targetBranchId;
-        }
-
+        const overdueFilter = { status: 'overdue' };
+        if (targetBranchId) overdueFilter.branch_id = targetBranchId;
         const overdueByStatus = await fetchAllWithPagination(base44.asServiceRole.entities.Payment, overdueFilter);
+        
         const allUnpaidPayments = [...pendingPayments, ...overdueByStatus];
+        console.log(`📊 เจอบิลค้างชำระทั้งหมด (Pending+Overdue): ${allUnpaidPayments.length} รายการ`);
 
-        console.log(`📊 Fetched ${allUnpaidPayments.length} unpaid payments (pending+overdue)`);
-
-        // กรองใน memory หา payment ที่เกินกำหนดจริงๆ (due_date < today)
+        // ⭐ 2. กรองหาบิลที่เกินกำหนด (ใช้ Logic แบบที่คุณต้องการ: dueDate < today)
         let overduePayments = allUnpaidPayments.filter(p => {
             if (!p.due_date) return false;
 
+            // แปลง due_date เป็น object วันที่ (เวลา 00:00:00)
             const dueDate = startOfDay(parseISO(p.due_date));
-            const daysOverdue = differenceInDays(today, dueDate);
-
-            return daysOverdue > 0;
+            
+            // ✅ ใช้ Logic แบบที่คุณต้องการ: 
+            // "ถ้าวันครบกำหนด น้อยกว่า วันนี้ แปลว่า เลยกำหนดแล้ว"
+            // ใช้ .getTime() เพื่อเทียบค่าตัวเลขตรงๆ แม่นยำ 100%
+            return dueDate.getTime() < today.getTime();
         });
 
-        console.log(`📊 Found ${overduePayments.length} actually overdue payments`);
-
+        console.log(`📊 พบรายการที่ "เกินกำหนดจริง": ${overduePayments.length} รายการ`);
         // กรองเฉพาะสาขาที่เปิดการแจ้งเตือน และยังไม่ส่งในวันนี้
         const todayString = today.toISOString().split('T')[0];
         const paymentsFromEnabledBranches = overduePayments.filter(p => {
