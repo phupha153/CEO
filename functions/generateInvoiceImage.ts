@@ -62,7 +62,6 @@ function generatePaymentHash(payment) {
         parking_fee_amount: payment.parking_fee_amount || 0,
         other_amount: payment.other_amount || 0,
         // ✅ [FIX 1] Added late_fee_amount to hash calculation
-        // This ensures the system detects the change and regenerates the image
         late_fee_amount: payment.late_fee_amount || 0, 
         total_amount: payment.total_amount || 0,
         due_date: payment.due_date || ''
@@ -86,16 +85,21 @@ function formatDate(dateString) {
 // --- Main Handler ---
 
 Deno.serve(async (req) => {
+    console.log('🚀 Starting generateInvoiceImage...');
     try {
         const base44 = createClientFromRequest(req);
         const body = await req.json();
         const paymentId = body.paymentId;
 
+        console.log(`🆔 Payment ID: ${paymentId}`);
+
         if (!paymentId) return Response.json({ success: false, error: 'No paymentId' }, { status: 400 });
 
         // 1. Fetch Invoice Data
+        console.log('📥 Fetching public invoice data...');
         const invoiceResponse = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId });
         if (!invoiceResponse.data?.success) {
+            console.error('❌ Failed to fetch invoice data:', invoiceResponse.data?.error);
             throw new Error(invoiceResponse.data?.error || 'Failed to fetch invoice data');
         }
 
@@ -105,6 +109,13 @@ Deno.serve(async (req) => {
         const tenant = data.tenant || {};
         const room = data.room || {};
         const bank = data.bank || {};
+
+        // --- DEBUG LOGS FOR PAYMENT DATA ---
+        console.log('📋 Payment Data Received:');
+        console.log(`   - Rent Amount: ${payment.rent_amount}`);
+        console.log(`   - Late Fee Amount (RAW): ${payment.late_fee_amount} (Type: ${typeof payment.late_fee_amount})`);
+        console.log(`   - Total Amount: ${payment.total_amount}`);
+        // -----------------------------------
 
         // 2. Prepare Display Data
         const invoiceNo = `INV-${payment.id.slice(0, 8).toUpperCase()}`;
@@ -119,6 +130,7 @@ Deno.serve(async (req) => {
         const displayTaxId = recipient.company_tax_id || recipient.tax_id || '';
 
         // Build Line Items
+        console.log('🏗️ Building Line Items...');
         const items = [];
         if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
         
@@ -142,14 +154,20 @@ Deno.serve(async (req) => {
         if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
         if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
         
-        // ✅ [FIX 2] Added Late Fee item to the table
-        if (payment.late_fee_amount && payment.late_fee_amount > 0) {
+        // ✅ [FIX 2] Added Late Fee item to the table with LOGGING
+        if (payment.late_fee_amount && Number(payment.late_fee_amount) > 0) {
+            console.log(`✅ Adding Late Fee Item: ${payment.late_fee_amount}`);
             items.push({ 
                 name: 'ค่าปรับชำระล่าช้า', 
                 qty: 1, 
                 price: payment.late_fee_amount 
             });
+        } else {
+            console.log('⚠️ No Late Fee to add (amount is 0 or undefined)');
         }
+
+        console.log(`✅ Total Items: ${items.length}`);
+        console.log('   Items:', JSON.stringify(items));
 
         const totalAmount = payment.total_amount || 0;
         const totalText = numberToThaiText(totalAmount);
@@ -321,7 +339,15 @@ Deno.serve(async (req) => {
         </html>
         `;
 
+        // Check if Late Fee is in HTML (Simple Check)
+        if (htmlContent.includes('ค่าปรับชำระล่าช้า')) {
+            console.log('✅ "ค่าปรับชำระล่าช้า" found in generated HTML.');
+        } else {
+            console.error('❌ "ค่าปรับชำระล่าช้า" NOT FOUND in generated HTML!');
+        }
+
         // 4. Browserless Screenshot
+        console.log('🖼️ Sending HTML to Browserless...');
         const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
         if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
 
@@ -339,23 +365,34 @@ Deno.serve(async (req) => {
             })
         });
 
-        if (!browserlessResponse.ok) throw new Error(await browserlessResponse.text());
+        if (!browserlessResponse.ok) {
+            const errorText = await browserlessResponse.text();
+            console.error(`❌ Browserless Error: ${errorText}`);
+            throw new Error(errorText);
+        }
 
         const imageBlob = await browserlessResponse.blob();
         const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
+        console.log(`✅ Image generated successfully. Size: ${imageBlob.size} bytes`);
 
         // 5. Upload & Update
+        console.log('📤 Uploading image...');
         const { file_url } = await base44.integrations.Core.UploadFile({ file: imageFile });
+        
+        console.log('💾 Updating Payment record with new Hash...');
         const newHash = generatePaymentHash(payment);
+        console.log(`   New Hash: ${newHash}`);
+        
         await base44.asServiceRole.entities.Payment.update(paymentId, {
             invoice_image_url: file_url,
             invoice_data_hash: newHash
         });
 
+        console.log('🎉 Success! Invoice regenerated.');
         return Response.json({ success: true, invoice_image_url: file_url });
 
     } catch (error) {
-        console.error('Error:', error);
+        console.error('💥 Error in generateInvoiceImage:', error);
         return Response.json({ success: false, error: error.message }, { status: 500 });
     }
 });
