@@ -20,59 +20,59 @@ function generatePaymentHash(payment) {
 }
 
 function numberToThaiText(number) {
-  if (!number || number === 0) return 'ศูนย์บาทถ้วน';
-  
-  const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
-  const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
-  
-  const parts = number.toFixed(2).split('.');
-  const integerPart = parseInt(parts[0]);
-  const decimalPart = parseInt(parts[1]);
-  
-  function convertInteger(num) {
-    if (num === 0) return '';
-    
-    const numStr = num.toString();
-    const len = numStr.length;
-    let result = '';
-    
-    for (let i = 0; i < len; i++) {
-      const digit = parseInt(numStr[i]);
-      const position = len - i - 1;
-      
-      if (digit === 0) continue;
-      
-      if (position === 1 && digit === 1) {
-        result += 'สิบ';
-      } else if (position === 1 && digit === 2) {
-        result += 'ยี่สิบ';
-      } else if (position === 0 && digit === 1 && len > 1) {
-        result += 'เอ็ด';
-      } else {
-        result += numbers[digit] + positions[position];
-      }
+    if (!number || number === 0) return 'ศูนย์บาทถ้วน';
+
+    const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+    const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+
+    const parts = number.toFixed(2).split('.');
+    const integerPart = parseInt(parts[0]);
+    const decimalPart = parseInt(parts[1]);
+
+    function convertInteger(num) {
+        if (num === 0) return '';
+
+        const numStr = num.toString();
+        const len = numStr.length;
+        let result = '';
+
+        for (let i = 0; i < len; i++) {
+            const digit = parseInt(numStr[i]);
+            const position = len - i - 1;
+
+            if (digit === 0) continue;
+
+            if (position === 1 && digit === 1) {
+                result += 'สิบ';
+            } else if (position === 1 && digit === 2) {
+                result += 'ยี่สิบ';
+            } else if (position === 0 && digit === 1 && len > 1) {
+                result += 'เอ็ด';
+            } else {
+                result += numbers[digit] + positions[position];
+            }
+        }
+
+        return result;
     }
-    
-    return result;
-  }
-  
-  let text = convertInteger(integerPart) + 'บาท';
-  
-  if (decimalPart > 0) {
-    text += convertInteger(decimalPart) + 'สตางค์';
-  } else {
-    text += 'ถ้วน';
-  }
-  
-  return text;
+
+    let text = convertInteger(integerPart) + 'บาท';
+
+    if (decimalPart > 0) {
+        text += convertInteger(decimalPart) + 'สตางค์';
+    } else {
+        text += 'ถ้วน';
+    }
+
+    return text;
 }
 
 async function getLineToken(base44, branchId = null) {
     try {
         const configs = await base44.asServiceRole.entities.Config.list();
-        
+
         // ⭐ ใช้ token เฉพาะสาขาเท่านั้น (ไม่ fallback ไป global หรือ env)
-        
+
         // 1. ถ้ามี branchId ให้หา token เฉพาะสาขา
         if (branchId) {
             const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
@@ -80,19 +80,19 @@ async function getLineToken(base44, branchId = null) {
                 console.log(`✅ Using branch-specific token for branch: ${branchId.substring(0, 8)}...`);
                 return branchToken.value.trim();
             }
-            
+
             // ⭐ ไม่มี token ของสาขานี้ = return null เลย
             console.warn(`⚠️ No LINE token found for branch: ${branchId.substring(0, 8)}...`);
             return null;
         }
-        
+
         // 2. ถ้าไม่ได้ระบุ branchId ให้หา global token จาก Config
         const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
         if (globalToken?.value?.trim()) {
             console.log('✅ Using global token from Config database');
             return globalToken.value.trim();
         }
-        
+
         console.warn('⚠️ No LINE token found');
         return null;
     } catch (error) {
@@ -114,33 +114,33 @@ Deno.serve(async (req) => {
 
         // ⭐ ดึงข้อมูลตาม branch_id หรือ payment_id (ลด API calls)
         console.log('📊 Fetching data...');
-        
+
         let allPayments = [];
         let allTenants = [];
         let allRooms = [];
         let configs = [];
-        
+
         if (paymentId) {
             // ถ้าระบุ paymentId = ดึงเฉพาะ payment นั้น
             const [paymentResults, configResults] = await Promise.all([
                 base44.asServiceRole.entities.Payment.filter({ id: paymentId }),
                 base44.asServiceRole.entities.Config.list()
             ]);
-            
+
             const payment = Array.isArray(paymentResults) ? paymentResults[0] : paymentResults;
             allPayments = payment ? [payment] : [];
             configs = configResults;
-            
+
             if (payment) {
                 // ดึงเฉพาะ tenant และ room ที่เกี่ยวข้อง
                 const [tenantResults, roomResults] = await Promise.all([
                     payment.tenant_id ? base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id }) : Promise.resolve([]),
                     payment.room_id ? base44.asServiceRole.entities.Room.filter({ id: payment.room_id }) : Promise.resolve([])
                 ]);
-                
+
                 const tenant = Array.isArray(tenantResults) ? tenantResults[0] : tenantResults;
                 const room = Array.isArray(roomResults) ? roomResults[0] : roomResults;
-                
+
                 allTenants = tenant ? [tenant] : [];
                 allRooms = room ? [room] : [];
             }
@@ -151,20 +151,20 @@ Deno.serve(async (req) => {
                 base44.asServiceRole.entities.Tenant.filter({ branch_id }),
                 base44.asServiceRole.entities.Room.filter({ branch_id })
             ]);
-            
+
             configs = configResults;
             allTenants = Array.isArray(tenantResults) ? tenantResults : [];
             allRooms = Array.isArray(roomResults) ? roomResults : [];
-            
+
             // ⭐ ดึง pending และ overdue ที่ยังไม่ส่ง (bill_sent_date = null)
             const [pendingResults, overdueResults] = await Promise.all([
                 base44.asServiceRole.entities.Payment.filter({ branch_id, status: 'pending' }),
                 base44.asServiceRole.entities.Payment.filter({ branch_id, status: 'overdue' })
             ]);
-            
+
             const pending = Array.isArray(pendingResults) ? pendingResults : [];
             const overdue = Array.isArray(overdueResults) ? overdueResults : [];
-            
+
             // ⭐ กรองเฉพาะที่ยังไม่มี bill_sent_date
             allPayments = [...pending, ...overdue].filter(p => !p.bill_sent_date);
         } else {
@@ -174,13 +174,13 @@ Deno.serve(async (req) => {
                 message: 'กรุณาระบุ branch_id หรือ paymentId'
             }, { status: 400 });
         }
-        
+
         console.log(`✅ Loaded: ${allTenants.length} tenants, ${allRooms.length} rooms, ${allPayments.length} payments`);
 
         // สร้าง Map สำหรับ lookup เร็วขึ้น O(1) แทน O(n)
         const tenantMap = new Map(allTenants.map(t => [t.id, t]));
         const roomMap = new Map(allRooms.map(r => [r.id, r]));
-        
+
         // Helper function เพื่อดึง config ตาม branchId
         const getConfigValue = (key, branchId, defaultValue = '') => {
             if (branchId) {
@@ -218,7 +218,7 @@ Deno.serve(async (req) => {
 
             // ⭐ ส่งผ่าน LINE หรือ Facebook ตามที่ผู้เช่าเชื่อมต่อ
             const hasLineOrFacebook = tenant.line_user_id || tenant.facebook_user_id;
-            
+
             if (!hasLineOrFacebook) {
                 console.log(`⚠️ Skipping payment ${payment.id}: No LINE or Facebook connection`);
                 continue;
@@ -290,17 +290,17 @@ Deno.serve(async (req) => {
                 if (calculatedLateFee !== oldLateFee) {
                     const originalAmount = payment.total_amount - oldLateFee;
                     const newTotalAmount = originalAmount + calculatedLateFee;
-                    
+
                     await base44.asServiceRole.entities.Payment.update(payment.id, {
                         late_fee_amount: calculatedLateFee,
                         total_amount: newTotalAmount,
                         status: 'overdue'
                     });
-                    
+
                     payment.late_fee_amount = calculatedLateFee;
                     payment.total_amount = newTotalAmount;
                     payment.status = 'overdue';
-                    
+
                     console.log(`   ✅ Updated: late_fee=${calculatedLateFee}฿, total=${newTotalAmount}฿, status=overdue`);
                 }
             }
@@ -330,12 +330,12 @@ Deno.serve(async (req) => {
             } else {
                 // ⭐ สร้างข้อความตาม template parameter
                 const roomNum = room?.room_number || 'N/A';
-                
+
                 // ⭐⭐⭐ ใช้ค่าปรับที่คำนวณใหม่ (calculatedLateFee)
                 const lateFee = calculatedLateFee;
                 const originalAmount = payment.total_amount - (payment.late_fee_amount || 0);
                 const totalWithLateFee = originalAmount + lateFee;
-                
+
                 // ⭐ สร้างข้อความตาม template
                 if (template === 'overdue') {
                     // ข้อความเกินกำหนด
@@ -356,14 +356,15 @@ Deno.serve(async (req) => {
                     message = `📅 วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
                     message += `${buildingName}\n`;
                     message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
-                    message += `💰 ยอดชำระ: ${amount} บาท\n\n`;
-                    
+                    // ✅ แก้ไข: ใช้ payment.total_amount แทน variable ที่ไม่มีอยู่จริง
+                    message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
+
                     const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', branchId, '0');
                     const feePerDay = parseFloat(lateFeePerDayConfig);
                     if (!isNaN(feePerDay) && feePerDay > 0) {
                         message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${feePerDay} บาท/วัน\n\n`;
                     }
-                    
+
                     message += `💳 โอนเงินได้ที่:\n`;
                     message += `${bankName} ${bankAccountNumber}\n`;
                     message += `ชื่อ: ${bankAccountName}\n\n`;
@@ -375,7 +376,7 @@ Deno.serve(async (req) => {
                     message += `ห้อง ${roomNum}\n\n`;
                     message += `รายละเอียดค่าใช้จ่าย:\n`;
                     message += `━━━━━━━━━━━━━━━━━━━━\n`;
-                    
+
                     if (payment.rent_amount > 0) {
                         message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
                     }
@@ -397,18 +398,18 @@ Deno.serve(async (req) => {
                     if (payment.other_amount > 0) {
                         message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
                     }
-                    
+
                     message += `━━━━━━━━━━━━━━━━━━━━\n`;
                     message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
                     message += `(${numberToThaiText(payment.total_amount)})\n\n`;
                     message += `📅 ครบกำหนดชำระ: ${dueDateStr}\n`;
-                    
+
                     if (daysOverdue > 0) {
                         message += `⚠️ สถานะ: ${statusText}\n\n`;
                     } else {
                         message += `สถานะ: ${statusText}\n\n`;
                     }
-                    
+
                     message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber} (${bankAccountName})\n\n`;
                 }
             }
@@ -461,12 +462,12 @@ Deno.serve(async (req) => {
             } else {
                 console.log(`✅ Using existing invoice image for payment ${payment.id} (hash matched)`);
             }
-            
+
             // ⭐ เพิ่มลิงก์ใบแจ้งหนี้ในทุกกรณี
             if (invoiceImageUrl) {
                 message += `\n\n📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}`;
             }
-            
+
             // เพิ่มข้อความส่งสลิปเฉพาะกรณีที่ไม่ใช่ due_date และ overdue (เพราะมีข้อความนี้อยู่แล้ว)
             if (template !== 'due_date' && template !== 'overdue') {
                 message += `\n\n📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
@@ -500,7 +501,7 @@ Deno.serve(async (req) => {
         // ⭐ อัปเดต bill_sent_date แบบ bulk (ลด API calls)
         const paymentIdsToUpdate = recipients.map(r => r.metadata.paymentId);
         const now = new Date().toISOString();
-        
+
         // อัปเดตทีละ batch เพื่อไม่ให้ timeout
         const updateBatchSize = 50;
         for (let i = 0; i < paymentIdsToUpdate.length; i += updateBatchSize) {
@@ -542,7 +543,7 @@ Deno.serve(async (req) => {
                 successCount += result.success || 0;
                 failCount += result.failed || 0;
                 if (result.errors) errors.push(...result.errors);
-                
+
                 console.log(`✅ LINE: ${result.success}/${lineRecipients.length} sent`);
             } catch (lineError) {
                 console.error('❌ LINE batch send failed:', lineError);
@@ -561,7 +562,7 @@ Deno.serve(async (req) => {
                 successCount += result.success || 0;
                 failCount += result.failed || 0;
                 if (result.errors) errors.push(...result.errors);
-                
+
                 console.log(`✅ Facebook: ${result.success}/${facebookRecipients.length} sent`);
             } catch (fbError) {
                 console.error('❌ Facebook batch send failed:', fbError);
@@ -570,7 +571,7 @@ Deno.serve(async (req) => {
         }
 
         const result = { success: successCount, failed: failCount, total: recipients.length, errors };
-        
+
         return Response.json({ 
             success: true,
             message: `ส่งข้อความสำเร็จ ${result.success}/${result.total} รายการ`,
