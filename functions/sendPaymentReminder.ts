@@ -59,7 +59,7 @@ function numberToThaiText(number) {
 
 Deno.serve(async (req) => {
     try {
-        console.log('🚀 Starting sendPaymentReminder (No-Update Mode)...');
+        console.log('🚀 Starting sendPaymentReminder (Fixed Sending)...');
         const base44 = createClientFromRequest(req);
         const { paymentId, branch_id, template, customMessage } = await req.json();
 
@@ -138,6 +138,8 @@ Deno.serve(async (req) => {
             let calculatedLateFee = 0;
             if (daysOverdue > 0) {
                 const branchId = payment.branch_id;
+                
+                // Check configs
                 const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (!c.branch_id || c.branch_id === branchId));
                 
                 if (tiersEnabledConfig?.value === 'true') {
@@ -187,22 +189,38 @@ Deno.serve(async (req) => {
                 needsRegenerate = true;
             }
 
+            // ⭐ Force regeneration if we have a calculated fee but no image reflects it
+            if (calculatedLateFee > 0 && !needsRegenerate) {
+                 // Double check logic: if we have a fee, but maybe the hash didn't catch it previously
+                 // Let's force it for safety in this debug phase
+                 // needsRegenerate = true; 
+            }
+
             if (needsRegenerate) {
-                console.log(`🖼️ Generating invoice image... (with fee: ${calculatedLateFee})`);
+                console.log(`🖼️ Generating invoice image... sending fee: ${calculatedLateFee}`);
+                
                 try {
-                    const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
+                    // ⭐ Explicit payload construction to ensure lateFeeAmount is sent
+                    const payload = {
                         paymentId: payment.id,
                         forceRegenerate: true,
-                        lateFeeAmount: calculatedLateFee 
-                    });
+                        lateFeeAmount: Number(calculatedLateFee) // Ensure it's a number
+                    };
+                    
+                    console.log('📦 Sending Payload:', JSON.stringify(payload));
+
+                    const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', payload);
 
                     if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
                         invoiceImageUrl = invoiceResult.data.invoice_image_url;
+                        
                         await base44.asServiceRole.entities.Payment.update(payment.id, {
                             invoice_image_url: invoiceImageUrl,
                             invoice_data_hash: currentHash
                         });
                         console.log(`   ✅ Image generated & URL saved`);
+                    } else {
+                        console.error('   ❌ Generation failed response:', invoiceResult.data);
                     }
                 } catch (invoiceError) {
                     console.error(`   ❌ Error generating image:`, invoiceError.message);
@@ -211,13 +229,12 @@ Deno.serve(async (req) => {
                 await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_data_hash: currentHash });
             }
 
-            // 5. สร้างข้อความ (ใช้ displayTotalAmount)
+            // 5. สร้างข้อความ
             const bankName = getConfigValue('bank_name', payment.branch_id, 'กสิกร');
             const accNo = getConfigValue('bank_account_number', payment.branch_id, '');
             const accName = getConfigValue('bank_account_name', payment.branch_id, '');
             const roomNum = room?.room_number || 'N/A';
 
-            // ✅ FIX: Declare message variable here (outside the if block)
             let message = ''; 
 
             if (customMessage && customMessage.trim()) {
@@ -283,7 +300,7 @@ Deno.serve(async (req) => {
             ));
         }
 
-        // Send Messages
+        // Send Messages logic...
         let successCount = 0;
         let failCount = 0;
         const lineRecipients = recipients.filter(r => r.lineUserId);
