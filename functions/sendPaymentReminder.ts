@@ -32,34 +32,31 @@ function numberToThaiText(number) {
     const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
     const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
     const parts = number.toFixed(2).split('.');
-    const integerPart = parseInt(parts[0]);
-    const decimalPart = parseInt(parts[1]);
-
-    function convertInteger(num) {
-        if (num === 0) return '';
-        const numStr = num.toString();
-        const len = numStr.length;
-        let result = '';
+    
+    function convert(n) {
+        let res = '';
+        const s = n.toString();
+        const len = s.length;
         for (let i = 0; i < len; i++) {
-            const digit = parseInt(numStr[i]);
-            const position = len - i - 1;
+            const digit = parseInt(s[i]);
+            const pos = len - i - 1;
             if (digit === 0) continue;
-            if (position === 1 && digit === 1) result += 'สิบ';
-            else if (position === 1 && digit === 2) result += 'ยี่สิบ';
-            else if (position === 0 && digit === 1 && len > 1) result += 'เอ็ด';
-            else result += numbers[digit] + positions[position];
+            if (pos === 1 && digit === 1) res += 'สิบ';
+            else if (pos === 1 && digit === 2) res += 'ยี่สิบ';
+            else if (pos === 0 && digit === 1 && len > 1) res += 'เอ็ด';
+            else res += numbers[digit] + positions[pos];
         }
-        return result;
+        return res;
     }
-    let text = convertInteger(integerPart) + 'บาท';
-    if (decimalPart > 0) text += convertInteger(decimalPart) + 'สตางค์';
+    let text = convert(parseInt(parts[0])) + 'บาท';
+    if (parseInt(parts[1]) > 0) text += convert(parseInt(parts[1])) + 'สตางค์';
     else text += 'ถ้วน';
     return text;
 }
 
 Deno.serve(async (req) => {
     try {
-        console.log('🚀 Starting sendPaymentReminder (Fixed Sending)...');
+        console.log('🚀 Starting sendPaymentReminder (Verbose Log Mode)...');
         const base44 = createClientFromRequest(req);
         const { paymentId, branch_id, template, customMessage } = await req.json();
 
@@ -134,12 +131,10 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // 3. ⭐ คำนวณค่าปรับ (ในตัวแปรเท่านั้น ไม่บันทึก DB)
+            // 3. คำนวณค่าปรับ
             let calculatedLateFee = 0;
             if (daysOverdue > 0) {
                 const branchId = payment.branch_id;
-                
-                // Check configs
                 const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (!c.branch_id || c.branch_id === branchId));
                 
                 if (tiersEnabledConfig?.value === 'true') {
@@ -173,7 +168,7 @@ Deno.serve(async (req) => {
             const originalTotal = payment.total_amount - (payment.late_fee_amount || 0); 
             const displayTotalAmount = originalTotal + calculatedLateFee;
 
-            // 4. สร้างรูป (ส่งค่าปรับไป Override)
+            // 4. สร้างรูป (Logic เดิม)
             const currentHash = generatePaymentHash(payment, calculatedLateFee);
             const savedHash = payment.invoice_data_hash || '';
             let invoiceImageUrl = payment.invoice_image_url;
@@ -181,30 +176,48 @@ Deno.serve(async (req) => {
             let needsRegenerate = false;
             let needsHashUpdate = false;
 
+            // ⭐ LOGGING: ดูว่าทำไมมันถึงข้ามการสร้างรูป
+            console.log(`🔍 Checking Status for ${payment.id}:`);
+            console.log(`   - Has Image URL: ${!!invoiceImageUrl}`);
+            console.log(`   - Saved Hash: ${savedHash ? savedHash.substring(0,8) + '...' : 'None'}`);
+            console.log(`   - Current Hash: ${currentHash.substring(0,8)}...`);
+            console.log(`   - Hashes Match: ${savedHash === currentHash}`);
+
             if (!invoiceImageUrl) {
                 needsRegenerate = true;
+                console.log(`   👉 Decision: Generate (No Image)`);
             } else if (!savedHash) {
                 needsHashUpdate = true;
+                console.log(`   👉 Decision: Update Hash Only (Missing Saved Hash)`);
+                // ⭐ FIX: ถ้าไม่มี hash เราควรบังคับสร้างใหม่ดีกว่าเผื่อรูปเก่าผิด
+                if (calculatedLateFee > 0) {
+                    needsRegenerate = true;
+                    console.log(`   👉 Override: Generate (Missing Hash + Has Late Fee)`);
+                }
             } else if (currentHash !== savedHash) {
                 needsRegenerate = true;
+                console.log(`   👉 Decision: Generate (Hash Mismatch)`);
+            } else {
+                console.log(`   👉 Decision: SKIP (Everything matches)`);
             }
 
-            // ⭐ Force regeneration if we have a calculated fee but no image reflects it
-            if (calculatedLateFee > 0 && !needsRegenerate) {
-                 // Double check logic: if we have a fee, but maybe the hash didn't catch it previously
-                 // Let's force it for safety in this debug phase
-                 // needsRegenerate = true; 
+            // ⭐ FORCE REGENERATE: ถ้ามีค่าปรับแต่รูปยังไม่ถูกสร้าง (Double Check)
+            // ถ้าคำนวณได้ค่าปรับ แต่ใน DB (payment.late_fee_amount) ยังเป็น 0 หรือไม่ตรงกัน
+            // บังคับสร้างใหม่เลยเพื่อความชัวร์
+            if (calculatedLateFee > 0 && calculatedLateFee !== (payment.late_fee_amount || 0)) {
+                needsRegenerate = true;
+                console.log(`   ⚡ FORCE REGENERATE: Late fee changed (${payment.late_fee_amount || 0} -> ${calculatedLateFee})`);
             }
 
             if (needsRegenerate) {
                 console.log(`🖼️ Generating invoice image... sending fee: ${calculatedLateFee}`);
                 
                 try {
-                    // ⭐ Explicit payload construction to ensure lateFeeAmount is sent
+                    // ⭐ Explicit payload construction
                     const payload = {
                         paymentId: payment.id,
                         forceRegenerate: true,
-                        lateFeeAmount: Number(calculatedLateFee) // Ensure it's a number
+                        lateFeeAmount: Number(calculatedLateFee) 
                     };
                     
                     console.log('📦 Sending Payload:', JSON.stringify(payload));
@@ -218,7 +231,7 @@ Deno.serve(async (req) => {
                             invoice_image_url: invoiceImageUrl,
                             invoice_data_hash: currentHash
                         });
-                        console.log(`   ✅ Image generated & URL saved`);
+                        console.log(`   ✅ Image generated & URL saved: ${invoiceImageUrl}`);
                     } else {
                         console.error('   ❌ Generation failed response:', invoiceResult.data);
                     }
@@ -227,9 +240,10 @@ Deno.serve(async (req) => {
                 }
             } else if (needsHashUpdate) {
                 await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_data_hash: currentHash });
+                console.log(`   ✅ Hash updated (No image regen)`);
             }
 
-            // 5. สร้างข้อความ
+            // 5. สร้างข้อความ (เหมือนเดิม)
             const bankName = getConfigValue('bank_name', payment.branch_id, 'กสิกร');
             const accNo = getConfigValue('bank_account_number', payment.branch_id, '');
             const accName = getConfigValue('bank_account_name', payment.branch_id, '');
@@ -300,7 +314,7 @@ Deno.serve(async (req) => {
             ));
         }
 
-        // Send Messages logic...
+        // Send Messages
         let successCount = 0;
         let failCount = 0;
         const lineRecipients = recipients.filter(r => r.lineUserId);
