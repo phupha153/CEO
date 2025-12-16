@@ -20,9 +20,7 @@ function generatePaymentHash(payment, currentLateFee) {
         common_fee_amount: payment.common_fee_amount || 0,
         parking_fee_amount: payment.parking_fee_amount || 0,
         other_amount: payment.other_amount || 0,
-        // ใช้ค่าปรับที่คำนวณสดในการสร้าง Hash เพื่อให้รูปตรงกับความจริง
         late_fee_amount: currentLateFee || 0, 
-        // เราใช้ due_date เป็นตัวอ้างอิงหลัก
         due_date: payment.due_date || ''
     };
     const jsonStr = JSON.stringify(dataToHash);
@@ -140,8 +138,6 @@ Deno.serve(async (req) => {
             let calculatedLateFee = 0;
             if (daysOverdue > 0) {
                 const branchId = payment.branch_id;
-                
-                // Logic เช็ค Config ค่าปรับ
                 const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (!c.branch_id || c.branch_id === branchId));
                 
                 if (tiersEnabledConfig?.value === 'true') {
@@ -172,10 +168,6 @@ Deno.serve(async (req) => {
 
             console.log(`💰 Payment ${payment.id}: Overdue ${daysOverdue} days, Late Fee (Calculated) = ${calculatedLateFee}`);
 
-            // ❌ [ลบออก] ส่วนที่อัปเดตค่าปรับลง Database ถูกลบออกแล้วตรงนี้ ❌
-            
-            // คำนวณยอดรวมเพื่อแสดงผล (Display Only)
-            // ใช้ยอดเดิมจาก DB (ซึ่งยังไม่รวมค่าปรับ) + ค่าปรับที่เพิ่งคำนวณ
             const originalTotal = payment.total_amount - (payment.late_fee_amount || 0); 
             const displayTotalAmount = originalTotal + calculatedLateFee;
 
@@ -198,7 +190,6 @@ Deno.serve(async (req) => {
             if (needsRegenerate) {
                 console.log(`🖼️ Generating invoice image... (with fee: ${calculatedLateFee})`);
                 try {
-                    // ⭐ ส่ง lateFeeAmount ไปบังคับใช้ในรูป
                     const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
                         paymentId: payment.id,
                         forceRegenerate: true,
@@ -207,8 +198,6 @@ Deno.serve(async (req) => {
 
                     if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
                         invoiceImageUrl = invoiceResult.data.invoice_image_url;
-                        
-                        // ⭐ บันทึกแค่ URL รูปและ Hash ลง DB (ปลอดภัย ไม่กระทบยอดเงิน)
                         await base44.asServiceRole.entities.Payment.update(payment.id, {
                             invoice_image_url: invoiceImageUrl,
                             invoice_data_hash: currentHash
@@ -228,7 +217,13 @@ Deno.serve(async (req) => {
             const accName = getConfigValue('bank_account_name', payment.branch_id, '');
             const roomNum = room?.room_number || 'N/A';
 
-            if (!message) {
+            // ✅ FIX: Declare message variable here (outside the if block)
+            let message = ''; 
+
+            if (customMessage && customMessage.trim()) {
+                message = customMessage.trim();
+                message += `\n\n💳 โอนเงินได้ที่: ${bankName} ${accNo}\nชื่อบัญชี: ${accName}`;
+            } else {
                 if (template === 'overdue') {
                     message = `🔴 แจ้งเตือนเกินกำหนดชำระ\n\n`;
                     message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
@@ -236,7 +231,7 @@ Deno.serve(async (req) => {
                     if (calculatedLateFee > 0) {
                         message += `\n⚠️ ค่าปรับล่าช้า: +${calculatedLateFee.toLocaleString()} บาท`;
                     }
-                    message += `\n💰 รวมทั้งสิ้น: ${displayTotalAmount.toLocaleString()} บาท`; // ใช้ยอดที่คำนวณสด
+                    message += `\n💰 รวมทั้งสิ้น: ${displayTotalAmount.toLocaleString()} บาท`;
                     message += `\nเกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
                     message += `กรุณาชำระโดยด่วนค่ะ\n\n`;
                     message += `💳 โอนเงินได้ที่:\n${bankName} ${accNo}\nชื่อบัญชี: ${accName}\n\n`;
@@ -277,7 +272,7 @@ Deno.serve(async (req) => {
 
         console.log(`📤 Dispatching messages to ${recipients.length} recipients...`);
 
-        // Update bill_sent_date (อันนี้ควรอัปเดต เพื่อให้รู้ว่าส่งแล้ว)
+        // Update bill_sent_date
         const paymentIdsToUpdate = recipients.map(r => r.metadata.paymentId);
         const nowStr = new Date().toISOString();
         for (let i = 0; i < paymentIdsToUpdate.length; i += 50) {
@@ -288,7 +283,7 @@ Deno.serve(async (req) => {
             ));
         }
 
-        // Send Messages logic (เหมือนเดิม)
+        // Send Messages
         let successCount = 0;
         let failCount = 0;
         const lineRecipients = recipients.filter(r => r.lineUserId);
