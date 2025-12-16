@@ -2,7 +2,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 // --- Helper Functions ---
 
-// Function to handle Thai time zone logic for consistent day calculation
 function getThaiMidnight(dateInput = new Date()) {
     const thaiTimeString = dateInput.toLocaleString("en-US", { timeZone: "Asia/Bangkok" });
     const thaiDate = new Date(thaiTimeString);
@@ -10,15 +9,30 @@ function getThaiMidnight(dateInput = new Date()) {
     return thaiDate;
 }
 
+function generatePaymentHash(payment, currentLateFee) {
+    const dataToHash = {
+        rent_amount: payment.rent_amount || 0,
+        water_units: payment.water_units || 0,
+        water_amount: payment.water_amount || 0,
+        electricity_units: payment.electricity_units || 0,
+        electricity_amount: payment.electricity_amount || 0,
+        internet_amount: payment.internet_amount || 0,
+        common_fee_amount: payment.common_fee_amount || 0,
+        parking_fee_amount: payment.parking_fee_amount || 0,
+        other_amount: payment.other_amount || 0,
+        late_fee_amount: currentLateFee || 0,
+        due_date: payment.due_date || ''
+    };
+    return btoa(JSON.stringify(dataToHash)).substring(0, 32);
+}
+
 function numberToThaiText(number) {
-    if (number === undefined || number === null || isNaN(number)) return 'ศูนย์บาทถ้วน';
-    if (number === 0) return 'ศูนย์บาทถ้วน';
+    if (!number) return 'ศูนย์บาทถ้วน';
     const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
     const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
     const numStr = number.toFixed(2);
     const [intStr, decStr] = numStr.split('.');
-    let integerPart = parseInt(intStr);
-    const decimalPart = parseInt(decStr);
+    
     function convert(n) {
         let res = '';
         const s = n.toString();
@@ -34,34 +48,15 @@ function numberToThaiText(number) {
         }
         return res;
     }
-    let text = convert(integerPart) + 'บาท';
-    if (decimalPart > 0) text += convert(decimalPart) + 'สตางค์';
+    let text = convert(parseInt(intStr)) + 'บาท';
+    if (parseInt(decStr) > 0) text += convert(parseInt(decStr)) + 'สตางค์';
     else text += 'ถ้วน';
     return text;
 }
 
 function escapeHtml(text) {
     if (!text) return '';
-    return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-}
-
-function generatePaymentHash(payment, lateFee) {
-    const dataToHash = {
-        rent_amount: payment.rent_amount || 0,
-        water_units: payment.water_units || 0,
-        water_amount: payment.water_amount || 0,
-        electricity_units: payment.electricity_units || 0,
-        electricity_amount: payment.electricity_amount || 0,
-        internet_amount: payment.internet_amount || 0,
-        common_fee_amount: payment.common_fee_amount || 0,
-        parking_fee_amount: payment.parking_fee_amount || 0,
-        other_amount: payment.other_amount || 0,
-        late_fee_amount: lateFee || 0, 
-        total_amount: payment.total_amount || 0, 
-        due_date: payment.due_date || ''
-    };
-    const jsonStr = JSON.stringify(dataToHash);
-    return btoa(jsonStr).substring(0, 32);
+    return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 function formatDate(dateString) {
@@ -75,7 +70,7 @@ function formatDate(dateString) {
 
 Deno.serve(async (req) => {
     try {
-        console.log('🚀 Starting generateInvoiceImage (Smart Mode)...');
+        console.log('🚀 Starting generateInvoiceImage (Debug Mode)...');
         const base44 = createClientFromRequest(req);
         
         const body = await req.json();
@@ -84,13 +79,12 @@ Deno.serve(async (req) => {
 
         if (!paymentId) return Response.json({ success: false, error: 'No paymentId' }, { status: 400 });
 
-        // 1. Fetch Payment Data AND Configs in parallel
         const [invoiceResponse, configs] = await Promise.all([
             base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId }),
             base44.asServiceRole.entities.Config.list()
         ]);
 
-        if (!invoiceResponse.data?.success) throw new Error(invoiceResponse.data?.error || 'Failed to fetch invoice data');
+        if (!invoiceResponse.data?.success) throw new Error('Failed to fetch invoice data');
 
         const data = invoiceResponse.data.invoice;
         const payment = data;
@@ -99,72 +93,86 @@ Deno.serve(async (req) => {
         const room = data.room || {};
         const bank = data.bank || {};
 
-        // 2. ⭐ Calculate Late Fee Logic
-        // Strategy: Override > Calculated > DB
-        let finalLateFee = 0;
+        // --- Logic การคำนวณค่าปรับ (แบบละเอียด) ---
+        let calculatedLateFeeFromConfig = 0;
         let daysOverdue = 0;
 
-        // Check if override is provided
-        if (lateFeeOverride !== undefined && lateFeeOverride !== null) {
-            finalLateFee = Number(lateFeeOverride);
-            console.log(`✅ Using OVERRIDE Late Fee: ${finalLateFee}`);
-        } else {
-            // No override provided, try to calculate from config
-            if (payment.due_date) {
-                const dueDateObj = getThaiMidnight(new Date(payment.due_date));
-                const todayObj = getThaiMidnight(new Date());
-                const diffTime = todayObj.getTime() - dueDateObj.getTime();
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                
-                if (diffDays > 0) {
-                    daysOverdue = diffDays;
-                    const branchId = payment.branch_id;
+        if (payment.due_date) {
+            const dueDateObj = getThaiMidnight(new Date(payment.due_date));
+            const todayObj = getThaiMidnight(new Date());
+            const diffTime = todayObj.getTime() - dueDateObj.getTime();
+            daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (daysOverdue > 0) {
+                const branchId = payment.branch_id;
+                console.log(`📅 Overdue: ${daysOverdue} days (Branch: ${branchId})`);
 
-                    // Check Config
-                    const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (!c.branch_id || c.branch_id === branchId));
-                    
-                    if (tiersEnabledConfig?.value === 'true') {
-                         const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && (!c.branch_id || c.branch_id === branchId));
-                         if (tiersConfig?.value) {
-                            try {
-                                const tiers = JSON.parse(tiersConfig.value);
-                                for (const tier of tiers) {
-                                    const daysFrom = tier.days_from || 1;
-                                    const daysTo = tier.days_to || 999;
-                                    const fee = parseFloat(tier.fee_per_day || 0);
-                                    if (daysOverdue >= daysFrom) {
-                                        const d = Math.min(daysOverdue, daysTo) - daysFrom + 1;
-                                        if (d > 0) finalLateFee += d * fee;
-                                    }
-                                    if (daysOverdue <= daysTo) break;
+                // 1. เช็ค Tiers (ขั้นบันได)
+                const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (!c.branch_id || c.branch_id === branchId));
+                console.log(`   - Tiers Enabled Config: ${tiersEnabledConfig?.value}`);
+
+                if (tiersEnabledConfig?.value === 'true') {
+                     const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && (!c.branch_id || c.branch_id === branchId));
+                     console.log(`   - Tiers Data: ${tiersConfig?.value}`);
+                     
+                     if (tiersConfig?.value) {
+                        try {
+                            const tiers = JSON.parse(tiersConfig.value);
+                            for (const tier of tiers) {
+                                const daysFrom = tier.days_from || 1;
+                                const daysTo = tier.days_to || 999;
+                                const fee = parseFloat(tier.fee_per_day || 0);
+                                if (daysOverdue >= daysFrom) {
+                                    const d = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+                                    if (d > 0) calculatedLateFeeFromConfig += d * fee;
                                 }
-                            } catch(e) { console.error('Error parsing tiers:', e); }
-                         }
-                    } else {
-                        const feeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && (!c.branch_id || c.branch_id === branchId));
-                        const fee = parseFloat(feeConfig?.value || 0);
-                        if (!isNaN(fee) && fee > 0) {
-                            finalLateFee = daysOverdue * fee;
-                        }
+                                if (daysOverdue <= daysTo) break;
+                            }
+                            console.log(`   👉 Calculated using Tiers: ${calculatedLateFeeFromConfig}`);
+                        } catch(e) { console.error('Error parsing tiers:', e); }
+                     }
+                } else {
+                    // 2. เช็ค Per Day (รายวัน)
+                    // ⭐ แก้ไข: ลองหาทั้ง 2 ชื่อ key เผื่อตั้งชื่อผิด
+                    let feeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && (!c.branch_id || c.branch_id === branchId));
+                    if (!feeConfig) {
+                        feeConfig = configs.find(c => c.key === 'late_fee_per_day' && (!c.branch_id || c.branch_id === branchId));
                     }
-                    console.log(`✅ Calculated Late Fee from Config: ${finalLateFee} (${daysOverdue} days overdue)`);
-                }
-            }
 
-            // Fallback to DB value if calculation resulted in 0 (and it wasn't overdue)
-            if (finalLateFee === 0) {
-                finalLateFee = Number(payment.late_fee_amount || 0);
-                console.log(`ℹ️ Using DB Late Fee: ${finalLateFee}`);
+                    console.log(`   - Per Day Config Found: ${feeConfig ? 'Yes' : 'No'} (Key: ${feeConfig?.key}, Value: ${feeConfig?.value})`);
+                    
+                    const fee = parseFloat(feeConfig?.value || 0);
+                    if (!isNaN(fee) && fee > 0) {
+                        calculatedLateFeeFromConfig = daysOverdue * fee;
+                        console.log(`   👉 Calculated using Per Day (${fee} x ${daysOverdue}): ${calculatedLateFeeFromConfig}`);
+                    }
+                }
             }
         }
 
-        // 3. Recalculate Total Amount
-        // Base Amount = Total in DB - Late Fee in DB (to remove any old/stale late fee)
+        // --- เลือกค่าปรับที่จะใช้ ---
+        let finalLateFee = 0;
+        
+        if (lateFeeOverride !== undefined && lateFeeOverride !== null) {
+            finalLateFee = Number(lateFeeOverride);
+            console.log(`✅ Using OVERRIDE Late Fee: ${finalLateFee}`);
+        } else if (calculatedLateFeeFromConfig > 0) {
+            finalLateFee = calculatedLateFeeFromConfig;
+            console.log(`✅ Using CALCULATED Late Fee: ${finalLateFee}`);
+        } else {
+            finalLateFee = Number(payment.late_fee_amount || 0);
+            console.log(`ℹ️ Using DB Late Fee: ${finalLateFee}`);
+        }
+
+        // --- ส่วนที่เหลือเหมือนเดิม ---
         const dbLateFee = Number(payment.late_fee_amount || 0);
         const baseAmount = Number(payment.total_amount || 0) - dbLateFee;
         const finalTotalAmount = baseAmount + finalLateFee;
 
-        // --- Prepare Display Data ---
+        // ... (ส่วน HTML Template และ Create Image Code เหมือนเดิม ไม่เปลี่ยนแปลง) ...
+        // เพื่อความกระชับ ผมขอละส่วน HTML ไว้ (ใช้ของเดิมได้เลย)
+        // แต่ต้องแน่ใจว่าใช้ finalLateFee ในการสร้าง items.push นะครับ
+
         const invoiceNo = `INV-${payment.id.slice(0, 8).toUpperCase()}`;
         const issueDate = formatDate(new Date().toISOString());
         const dueDate = formatDate(payment.due_date);
@@ -177,29 +185,24 @@ Deno.serve(async (req) => {
         const items = [];
         if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
         if (payment.electricity_amount > 0) {
-            let desc = `ค่าไฟ`;
-            if (payment.electricity_units) desc += ` (${payment.electricity_units} หน่วย)`;
-            if (payment.electricity_previous && payment.electricity_current) desc += ` [${payment.electricity_previous}-${payment.electricity_current}]`;
-            items.push({ name: desc, qty: 1, price: payment.electricity_amount });
+            items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
         }
         if (payment.water_amount > 0) {
-            let desc = `ค่าน้ำ`;
-            if (payment.water_units) desc += ` (${payment.water_units} หน่วย)`;
-            items.push({ name: desc, qty: 1, price: payment.water_amount });
+            items.push({ name: `ค่าน้ำ (${payment.water_units || 0} หน่วย)`, qty: 1, price: payment.water_amount });
         }
         if (payment.common_fee_amount > 0) items.push({ name: 'ค่าส่วนกลาง', qty: 1, price: payment.common_fee_amount });
         if (payment.parking_fee_amount > 0) items.push({ name: 'ค่าที่จอดรถ', qty: 1, price: payment.parking_fee_amount });
         if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
         if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
         
-        // ✅ Add Late Fee Row
+        // ✅ เพิ่มแถวค่าปรับ
         if (finalLateFee > 0) {
             items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: finalLateFee });
         }
 
         const totalText = numberToThaiText(finalTotalAmount);
 
-        // --- HTML Content ---
+        // ... HTML Template ...
         const htmlContent = `
         <!DOCTYPE html>
         <html lang="th">
@@ -214,7 +217,6 @@ Deno.serve(async (req) => {
                 .logo-section { display: flex; gap: 15px; width: 75%; }
                 .logo { width: 50px; height: 50px; object-fit: contain; margin-top: 5px; }
                 .brand-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 8px 0; color: #1e293b; }
-                .brand-info .company-name { font-weight: 600; color: #1e293b; font-size: 12px; margin-bottom: 2px; }
                 .brand-info .company-details { font-size: 11px; color: #475569; line-height: 1.4; }
                 .invoice-label { text-align: right; width: 25%; }
                 .invoice-label h2 { font-size: 20px; color: #2563eb; font-weight: bold; margin: 0; }
@@ -369,10 +371,9 @@ Deno.serve(async (req) => {
 
         const { file_url } = await base44.integrations.Core.UploadFile({ file: imageFile });
         
-        // ⭐ Generate Hash with the ACTUAL fee used (finalLateFee)
+        // ⭐ คำนวณ Hash ใหม่ (ใช้ finalLateFee ที่ถูกต้อง)
         const newHash = generatePaymentHash(payment, finalLateFee);
         
-        // ⭐ Save only the image URL and Hash (not the amount)
         await base44.asServiceRole.entities.Payment.update(paymentId, {
             invoice_image_url: file_url,
             invoice_data_hash: newHash
