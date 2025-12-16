@@ -1,6 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 // --- Helper Functions ---
+
+// Function to handle Thai time zone logic for consistent day calculation
+function getThaiMidnight(dateInput = new Date()) {
+    const thaiTimeString = dateInput.toLocaleString("en-US", { timeZone: "Asia/Bangkok" });
+    const thaiDate = new Date(thaiTimeString);
+    thaiDate.setHours(0, 0, 0, 0);
+    return thaiDate;
+}
+
 function numberToThaiText(number) {
     if (number === undefined || number === null || isNaN(number)) return 'ศูนย์บาทถ้วน';
     if (number === 0) return 'ศูนย์บาทถ้วน';
@@ -48,7 +57,7 @@ function generatePaymentHash(payment, lateFee) {
         parking_fee_amount: payment.parking_fee_amount || 0,
         other_amount: payment.other_amount || 0,
         late_fee_amount: lateFee || 0, 
-        total_amount: payment.total_amount || 0, // ควรระวังจุดนี้ถ้ายอดรวมยังไม่อัปเดต
+        total_amount: payment.total_amount || 0, 
         due_date: payment.due_date || ''
     };
     const jsonStr = JSON.stringify(dataToHash);
@@ -66,16 +75,21 @@ function formatDate(dateString) {
 
 Deno.serve(async (req) => {
     try {
-        console.log('🚀 Starting generateInvoiceImage...');
+        console.log('🚀 Starting generateInvoiceImage (Smart Mode)...');
         const base44 = createClientFromRequest(req);
+        
         const body = await req.json();
         const paymentId = body.paymentId;
-        // ⭐ รับค่าปรับที่ส่งมาโดยตรง (Override)
         const lateFeeOverride = body.lateFeeAmount;
 
         if (!paymentId) return Response.json({ success: false, error: 'No paymentId' }, { status: 400 });
 
-        const invoiceResponse = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId });
+        // 1. Fetch Payment Data AND Configs in parallel
+        const [invoiceResponse, configs] = await Promise.all([
+            base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId }),
+            base44.asServiceRole.entities.Config.list()
+        ]);
+
         if (!invoiceResponse.data?.success) throw new Error(invoiceResponse.data?.error || 'Failed to fetch invoice data');
 
         const data = invoiceResponse.data.invoice;
@@ -85,18 +99,72 @@ Deno.serve(async (req) => {
         const room = data.room || {};
         const bank = data.bank || {};
 
-        // ⭐ ตัดสินใจว่าจะใช้ค่าไหน (ถ้ามี Override ให้ใช้เลย ไม่ต้องรอ Database)
-        const finalLateFee = lateFeeOverride !== undefined ? Number(lateFeeOverride) : Number(payment.late_fee_amount || 0);
-        console.log(`🔍 Late Fee Decision: DB=${payment.late_fee_amount}, Override=${lateFeeOverride} -> FINAL=${finalLateFee}`);
+        // 2. ⭐ Calculate Late Fee Logic
+        // Strategy: Override > Calculated > DB
+        let finalLateFee = 0;
+        let daysOverdue = 0;
 
-        // คำนวณยอดรวมใหม่ (เพราะถ้ารับ Override มา ยอด total ใน DB อาจจะยังไม่รวมค่าปรับใหม่)
-        // เริ่มต้นจากยอดเดิม ลบค่าปรับเดิม บวกค่าปรับใหม่
-        let finalTotalAmount = Number(payment.total_amount || 0);
-        if (lateFeeOverride !== undefined) {
-             const originalTotalNoLateFee = finalTotalAmount - Number(payment.late_fee_amount || 0);
-             finalTotalAmount = originalTotalNoLateFee + finalLateFee;
+        // Check if override is provided
+        if (lateFeeOverride !== undefined && lateFeeOverride !== null) {
+            finalLateFee = Number(lateFeeOverride);
+            console.log(`✅ Using OVERRIDE Late Fee: ${finalLateFee}`);
+        } else {
+            // No override provided, try to calculate from config
+            if (payment.due_date) {
+                const dueDateObj = getThaiMidnight(new Date(payment.due_date));
+                const todayObj = getThaiMidnight(new Date());
+                const diffTime = todayObj.getTime() - dueDateObj.getTime();
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays > 0) {
+                    daysOverdue = diffDays;
+                    const branchId = payment.branch_id;
+
+                    // Check Config
+                    const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (!c.branch_id || c.branch_id === branchId));
+                    
+                    if (tiersEnabledConfig?.value === 'true') {
+                         const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && (!c.branch_id || c.branch_id === branchId));
+                         if (tiersConfig?.value) {
+                            try {
+                                const tiers = JSON.parse(tiersConfig.value);
+                                for (const tier of tiers) {
+                                    const daysFrom = tier.days_from || 1;
+                                    const daysTo = tier.days_to || 999;
+                                    const fee = parseFloat(tier.fee_per_day || 0);
+                                    if (daysOverdue >= daysFrom) {
+                                        const d = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+                                        if (d > 0) finalLateFee += d * fee;
+                                    }
+                                    if (daysOverdue <= daysTo) break;
+                                }
+                            } catch(e) { console.error('Error parsing tiers:', e); }
+                         }
+                    } else {
+                        const feeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && (!c.branch_id || c.branch_id === branchId));
+                        const fee = parseFloat(feeConfig?.value || 0);
+                        if (!isNaN(fee) && fee > 0) {
+                            finalLateFee = daysOverdue * fee;
+                        }
+                    }
+                    console.log(`✅ Calculated Late Fee from Config: ${finalLateFee} (${daysOverdue} days overdue)`);
+                }
+            }
+
+            // Fallback to DB value if calculation resulted in 0 (and it wasn't overdue)
+            if (finalLateFee === 0) {
+                finalLateFee = Number(payment.late_fee_amount || 0);
+                console.log(`ℹ️ Using DB Late Fee: ${finalLateFee}`);
+            }
         }
 
+        // 3. Recalculate Total Amount
+        // Base Amount = Total in DB - Late Fee in DB (to remove any old/stale late fee)
+        const dbLateFee = Number(payment.late_fee_amount || 0);
+        const baseAmount = Number(payment.total_amount || 0) - dbLateFee;
+        const finalTotalAmount = baseAmount + finalLateFee;
+
+        // --- Prepare Display Data ---
         const invoiceNo = `INV-${payment.id.slice(0, 8).toUpperCase()}`;
         const issueDate = formatDate(new Date().toISOString());
         const dueDate = formatDate(payment.due_date);
@@ -124,14 +192,14 @@ Deno.serve(async (req) => {
         if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
         if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
         
-        // ✅ ใช้ finalLateFee
+        // ✅ Add Late Fee Row
         if (finalLateFee > 0) {
             items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: finalLateFee });
         }
 
         const totalText = numberToThaiText(finalTotalAmount);
 
-        // ... (HTML Template เหมือนเดิม - ตัดออกเพื่อความกระชับ แต่คุณต้องใส่กลับไปนะ) ...
+        // --- HTML Content ---
         const htmlContent = `
         <!DOCTYPE html>
         <html lang="th">
@@ -146,6 +214,7 @@ Deno.serve(async (req) => {
                 .logo-section { display: flex; gap: 15px; width: 75%; }
                 .logo { width: 50px; height: 50px; object-fit: contain; margin-top: 5px; }
                 .brand-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 8px 0; color: #1e293b; }
+                .brand-info .company-name { font-weight: 600; color: #1e293b; font-size: 12px; margin-bottom: 2px; }
                 .brand-info .company-details { font-size: 11px; color: #475569; line-height: 1.4; }
                 .invoice-label { text-align: right; width: 25%; }
                 .invoice-label h2 { font-size: 20px; color: #2563eb; font-weight: bold; margin: 0; }
@@ -300,9 +369,10 @@ Deno.serve(async (req) => {
 
         const { file_url } = await base44.integrations.Core.UploadFile({ file: imageFile });
         
-        // ⭐ Generate Hash โดยใช้ค่าที่ Override เพื่อให้ตรงกัน
+        // ⭐ Generate Hash with the ACTUAL fee used (finalLateFee)
         const newHash = generatePaymentHash(payment, finalLateFee);
         
+        // ⭐ Save only the image URL and Hash (not the amount)
         await base44.asServiceRole.entities.Payment.update(paymentId, {
             invoice_image_url: file_url,
             invoice_data_hash: newHash
