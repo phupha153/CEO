@@ -56,7 +56,7 @@ function numberToThaiText(number) {
 
 Deno.serve(async (req) => {
     try {
-        console.log('🚀 Starting sendPaymentReminder (Smart Hash Check)...');
+        console.log('🚀 Starting sendPaymentReminder (Verbose Log Mode)...');
         const base44 = createClientFromRequest(req);
         const { paymentId, branch_id, template, customMessage } = await req.json();
 
@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
                                 }
                                 if (daysOverdue <= daysTo) break;
                             }
-                        } catch(e) {}
+                        } catch(e) { console.error('Error parsing tiers:', e); }
                      }
                 } else {
                     const feeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && (!c.branch_id || c.branch_id === branchId));
@@ -163,10 +163,12 @@ Deno.serve(async (req) => {
                 }
             }
 
+            console.log(`💰 Payment ${payment.id}: Overdue ${daysOverdue} days, Late Fee (Calculated) = ${calculatedLateFee}`);
+
             const originalTotal = payment.total_amount - (payment.late_fee_amount || 0); 
             const displayTotalAmount = originalTotal + calculatedLateFee;
 
-            // 4. สร้างรูป (Logic ใหม่: เชื่อ Hash 100%)
+            // 4. สร้างรูป (Logic เดิม)
             const currentHash = generatePaymentHash(payment, calculatedLateFee);
             const savedHash = payment.invoice_data_hash || '';
             let invoiceImageUrl = payment.invoice_image_url;
@@ -174,41 +176,52 @@ Deno.serve(async (req) => {
             let needsRegenerate = false;
             let needsHashUpdate = false;
 
+            // ⭐ LOGGING: ดูว่าทำไมมันถึงข้ามการสร้างรูป
             console.log(`🔍 Checking Status for ${payment.id}:`);
-            console.log(`   - Current Calc Fee: ${calculatedLateFee}`);
-            console.log(`   - Saved Hash: ${savedHash ? savedHash.substring(0,8) : 'None'}`);
-            console.log(`   - Current Hash: ${currentHash.substring(0,8)}`);
+            console.log(`   - Has Image URL: ${!!invoiceImageUrl}`);
+            console.log(`   - Saved Hash: ${savedHash ? savedHash.substring(0,8) + '...' : 'None'}`);
+            console.log(`   - Current Hash: ${currentHash.substring(0,8)}...`);
+            console.log(`   - Hashes Match: ${savedHash === currentHash}`);
 
             if (!invoiceImageUrl) {
-                // Case 1: ไม่มีรูปเลย -> สร้างใหม่แน่นอน
                 needsRegenerate = true;
-                console.log(`   👉 Decision: Generate (No Image URL)`);
+                console.log(`   👉 Decision: Generate (No Image)`);
             } else if (!savedHash) {
-                // Case 2: มีรูปแต่ไม่มี Hash -> สร้างใหม่เพื่อความชัวร์แล้วเก็บ Hash
-                needsRegenerate = true; 
-                console.log(`   👉 Decision: Generate (Missing Saved Hash)`);
+                needsHashUpdate = true;
+                console.log(`   👉 Decision: Update Hash Only (Missing Saved Hash)`);
+                // ⭐ FIX: ถ้าไม่มี hash เราควรบังคับสร้างใหม่ดีกว่าเผื่อรูปเก่าผิด
+                if (calculatedLateFee > 0) {
+                    needsRegenerate = true;
+                    console.log(`   👉 Override: Generate (Missing Hash + Has Late Fee)`);
+                }
             } else if (currentHash !== savedHash) {
-                // Case 3: Hash ไม่ตรง (ข้อมูลเปลี่ยน หรือ ค่าปรับเปลี่ยน) -> สร้างใหม่
                 needsRegenerate = true;
-                console.log(`   👉 Decision: Generate (Hash Mismatch - Data Changed)`);
+                console.log(`   👉 Decision: Generate (Hash Mismatch)`);
             } else {
-                // Case 4: ทุกอย่างตรงกัน -> ไม่สร้างใหม่!
-                console.log(`   👉 Decision: SKIP (Image is up-to-date)`);
+                console.log(`   👉 Decision: SKIP (Everything matches)`);
             }
 
-            // ❌ [LOCKED] ลบ Logic Force Regenerate ที่เช็คกับ DB ออกไปแล้ว
-            // เพราะเราใช้ Hash เป็นตัวตัดสินความถูกต้องของข้อมูลแทน
+            // ⭐ FORCE REGENERATE: ถ้ามีค่าปรับแต่รูปยังไม่ถูกสร้าง (Double Check)
+            // ถ้าคำนวณได้ค่าปรับ แต่ใน DB (payment.late_fee_amount) ยังเป็น 0 หรือไม่ตรงกัน
+            // บังคับสร้างใหม่เลยเพื่อความชัวร์
+            if (calculatedLateFee > 0 && calculatedLateFee !== (payment.late_fee_amount || 0)) {
+                needsRegenerate = true;
+                console.log(`   ⚡ FORCE REGENERATE: Late fee changed (${payment.late_fee_amount || 0} -> ${calculatedLateFee})`);
+            }
 
             if (needsRegenerate) {
                 console.log(`🖼️ Generating invoice image... sending fee: ${calculatedLateFee}`);
                 
                 try {
+                    // ⭐ Explicit payload construction
                     const payload = {
                         paymentId: payment.id,
                         forceRegenerate: true,
                         lateFeeAmount: Number(calculatedLateFee) 
                     };
                     
+                    console.log('📦 Sending Payload:', JSON.stringify(payload));
+
                     const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', payload);
 
                     if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
@@ -218,17 +231,19 @@ Deno.serve(async (req) => {
                             invoice_image_url: invoiceImageUrl,
                             invoice_data_hash: currentHash
                         });
-                        console.log(`   ✅ Image generated & URL saved`);
+                        console.log(`   ✅ Image generated & URL saved: ${invoiceImageUrl}`);
+                    } else {
+                        console.error('   ❌ Generation failed response:', invoiceResult.data);
                     }
                 } catch (invoiceError) {
                     console.error(`   ❌ Error generating image:`, invoiceError.message);
                 }
             } else if (needsHashUpdate) {
-                // กรณีที่ Hash หายไปแต่ไม่อยากสร้างรูปใหม่ (เผื่อไว้)
                 await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_data_hash: currentHash });
+                console.log(`   ✅ Hash updated (No image regen)`);
             }
 
-            // 5. สร้างข้อความ
+            // 5. สร้างข้อความ (เหมือนเดิม)
             const bankName = getConfigValue('bank_name', payment.branch_id, 'กสิกร');
             const accNo = getConfigValue('bank_account_number', payment.branch_id, '');
             const accName = getConfigValue('bank_account_name', payment.branch_id, '');
