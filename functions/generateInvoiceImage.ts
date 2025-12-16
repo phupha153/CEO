@@ -1,46 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 // --- Helper Functions ---
-
 function getThaiMidnight(dateInput = new Date()) {
     const thaiTimeString = dateInput.toLocaleString("en-US", { timeZone: "Asia/Bangkok" });
     const thaiDate = new Date(thaiTimeString);
     thaiDate.setHours(0, 0, 0, 0);
     return thaiDate;
-}
-
-function numberToThaiText(number) {
-    if (number === undefined || number === null || isNaN(number)) return 'ศูนย์บาทถ้วน';
-    if (number === 0) return 'ศูนย์บาทถ้วน';
-    const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
-    const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
-    const numStr = number.toFixed(2);
-    const [intStr, decStr] = numStr.split('.');
-    
-    function convert(n) {
-        let res = '';
-        const s = n.toString();
-        const len = s.length;
-        for (let i = 0; i < len; i++) {
-            const digit = parseInt(s[i]);
-            const pos = len - i - 1;
-            if (digit === 0) continue;
-            if (pos === 1 && digit === 1) res += 'สิบ';
-            else if (pos === 1 && digit === 2) res += 'ยี่สิบ';
-            else if (pos === 0 && digit === 1 && len > 1 && s[len-2] !== '0') res += 'เอ็ด';
-            else res += numbers[digit] + positions[pos];
-        }
-        return res;
-    }
-    let text = convert(parseInt(intStr)) + 'บาท';
-    if (parseInt(decStr) > 0) text += convert(parseInt(decStr)) + 'สตางค์';
-    else text += 'ถ้วน';
-    return text;
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
 function generatePaymentHash(payment, lateFee) {
@@ -58,8 +23,34 @@ function generatePaymentHash(payment, lateFee) {
         total_amount: payment.total_amount || 0, 
         due_date: payment.due_date || ''
     };
-    const jsonStr = JSON.stringify(dataToHash);
-    return btoa(jsonStr).substring(0, 32);
+    return btoa(JSON.stringify(dataToHash)).substring(0, 32);
+}
+
+function numberToThaiText(number) {
+    if (!number) return 'ศูนย์บาทถ้วน';
+    const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+    const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+    const parts = number.toFixed(2).split('.');
+    
+    function convert(n) {
+        let res = '';
+        const s = n.toString();
+        const len = s.length;
+        for (let i = 0; i < len; i++) {
+            const digit = parseInt(s[i]);
+            const pos = len - i - 1;
+            if (digit === 0) continue;
+            if (pos === 1 && digit === 1) res += 'สิบ';
+            else if (pos === 1 && digit === 2) res += 'ยี่สิบ';
+            else if (pos === 0 && digit === 1 && len > 1) res += 'เอ็ด';
+            else res += numbers[digit] + positions[pos];
+        }
+        return res;
+    }
+    let text = convert(parseInt(parts[0])) + 'บาท';
+    if (parseInt(parts[1]) > 0) text += convert(parseInt(parts[1])) + 'สตางค์';
+    else text += 'ถ้วน';
+    return text;
 }
 
 function formatDate(dateString) {
@@ -73,24 +64,25 @@ function formatDate(dateString) {
 
 Deno.serve(async (req) => {
     try {
-        console.log('🚀 Starting generateInvoiceImage (Strict Mode)...');
+        console.log('🕵️ STARTING DETECTIVE MODE: generateInvoiceImage');
         const base44 = createClientFromRequest(req);
         
+        // 1. ตรวจสอบ Body ที่รับมา
         const body = await req.json();
+        console.log('📦 RECEIVED BODY:', JSON.stringify(body)); 
+        // 👆 ดูบรรทัดนี้ใน Log: มี lateFeeAmount ไหม? ถ้าไม่มี แสดงว่าตัวส่งผิด
+
         const paymentId = body.paymentId;
         const lateFeeOverride = body.lateFeeAmount;
 
-        console.log('📦 Body Received:', JSON.stringify(body));
-
         if (!paymentId) return Response.json({ success: false, error: 'No paymentId' }, { status: 400 });
 
-        // 1. ดึงข้อมูล Payment
         const [invoiceResponse, configs] = await Promise.all([
             base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId }),
             base44.asServiceRole.entities.Config.list()
         ]);
 
-        if (!invoiceResponse.data?.success) throw new Error('Failed to fetch invoice data');
+        if (!invoiceResponse.data?.success) throw new Error('Failed to fetch invoice');
 
         const data = invoiceResponse.data.invoice;
         const payment = data;
@@ -99,76 +91,84 @@ Deno.serve(async (req) => {
         const room = data.room || {};
         const bank = data.bank || {};
 
-        // 2. ⭐ ตัดสินใจเลือกค่าปรับ (Strict Logic)
+        // 2. ตรวจสอบ Branch ID
+        const branchId = payment.branch_id || (room ? room.branch_id : null) || (recipient ? recipient.branch_id : null);
+        console.log(`🏢 DETECTED BRANCH ID: "${branchId}"`); 
+        // 👆 ดูบรรทัดนี้: ถ้าเป็น null หรือ undefined คือสาเหตุที่มันไปดึง Config ผิดตัว
+
+        // --- เริ่มการสืบสวนค่าปรับ ---
         let finalLateFee = 0;
-        
-        // Priority 1: ถ้ามีค่าส่งมา (Override) ใช้เลย! ห้ามเถียง!
+        let calculationMethod = 'Unknown';
+
+        // CASE A: มี Override ส่งมา
         if (lateFeeOverride !== undefined && lateFeeOverride !== null) {
             finalLateFee = Number(lateFeeOverride);
-            console.log(`✅ [STRICT] Using OVERRIDE Late Fee: ${finalLateFee} (Ignored Config/DB)`);
-        } else {
-            // Priority 2: ถ้าไม่มีส่งมา ค่อยคำนวณเอง (Auto-Calc)
-            console.log('⚠️ No override provided, starting auto-calculation...');
-            let calculatedLateFeeFromConfig = 0;
-            let daysOverdue = 0;
-
+            calculationMethod = 'OVERRIDE (Received from sender)';
+            console.log(`✅ CASE A: Used Override Value = ${finalLateFee}`);
+        } 
+        // CASE B: ต้องคำนวณเอง (จุดที่น่าจะเจอ 100)
+        else {
+            console.log('⚠️ CASE B: No Override provided. Starting Auto-Calculation...');
+            
             if (payment.due_date) {
                 const dueDateObj = getThaiMidnight(new Date(payment.due_date));
                 const todayObj = getThaiMidnight(new Date());
                 const diffTime = todayObj.getTime() - dueDateObj.getTime();
-                daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                 
-                if (daysOverdue > 0) {
-                    const branchId = payment.branch_id;
-                    console.log(`   - Overdue: ${daysOverdue} days, Branch: ${branchId}`);
+                console.log(`📅 Days Overdue: ${daysOverdue}`);
 
-                    const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (!c.branch_id || c.branch_id === branchId));
-                    if (tiersEnabledConfig?.value === 'true') {
-                         const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && (!c.branch_id || c.branch_id === branchId));
-                         if (tiersConfig?.value) {
-                            try {
-                                const tiers = JSON.parse(tiersConfig.value);
-                                for (const tier of tiers) {
-                                    const daysFrom = tier.days_from || 1;
-                                    const daysTo = tier.days_to || 999;
-                                    const fee = parseFloat(tier.fee_per_day || 0);
-                                    if (daysOverdue >= daysFrom) {
-                                        const d = Math.min(daysOverdue, daysTo) - daysFrom + 1;
-                                        if (d > 0) calculatedLateFeeFromConfig += d * fee;
-                                    }
-                                    if (daysOverdue <= daysTo) break;
-                                }
-                            } catch(e) {}
-                         }
+                if (daysOverdue > 0) {
+                    // สืบหา Config ที่ระบบเลือกใช้
+                    
+                    // 1. ลองหา Tiers
+                    const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && (!c.branch_id || c.branch_id === branchId));
+                    const tiersEnabled = configs.find(c => c.key === 'late_fee_tiers_enabled' && (!c.branch_id || c.branch_id === branchId));
+                    
+                    console.log(`   - Tiers Enabled: ${tiersEnabled?.value} (ConfigID: ${tiersEnabled?.id})`);
+
+                    if (tiersEnabled?.value === 'true' && tiersConfig) {
+                        // ... Logic Tiers ...
                     } else {
-                        // Check multiple keys
-                        let feeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && (!c.branch_id || c.branch_id === branchId));
-                        if (!feeConfig) feeConfig = configs.find(c => c.key === 'late_fee_per_day' && (!c.branch_id || c.branch_id === branchId));
-                        
-                        const fee = parseFloat(feeConfig?.value || 0);
-                        if (!isNaN(fee) && fee > 0) {
-                            calculatedLateFeeFromConfig = daysOverdue * fee;
+                        // 2. ลองหา Per Day (น่าจะเป็นจุดที่เจอ 100)
+                        let feeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === branchId); // หาตรงสาขา
+                        if (!feeConfig) {
+                            console.log('   ❌ No Branch Config found for "late_payment_fee_per_day"');
+                            // หา Global
+                            feeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
+                            if (feeConfig) console.log(`   ⚠️ Found GLOBAL Config instead!`);
+                        }
+
+                        // ถ้ายังไม่เจอ ลองหาชื่อ key เก่า
+                        if (!feeConfig) {
+                             feeConfig = configs.find(c => c.key === 'late_fee_per_day' && !c.branch_id);
+                             if (feeConfig) console.log(`   ⚠️ Found GLOBAL Config (Old Key: late_fee_per_day)!`);
+                        }
+
+                        if (feeConfig) {
+                            const fee = parseFloat(feeConfig.value);
+                            console.log(`   🚨 CULPRIT FOUND (ตัวการ): Config ID: ${feeConfig.id}`);
+                            console.log(`   🚨 Value: ${feeConfig.value} (This creates the ${fee * daysOverdue})`);
+                            console.log(`   🚨 Belongs to Branch: ${feeConfig.branch_id || 'GLOBAL (No Branch)'}`);
+                            
+                            finalLateFee = daysOverdue * fee;
+                            calculationMethod = `Auto-Calc (Config ID: ${feeConfig.id})`;
+                        } else {
+                            console.log('   ❌ No Config found anywhere.');
                         }
                     }
                 }
             }
-
-            if (calculatedLateFeeFromConfig > 0) {
-                finalLateFee = calculatedLateFeeFromConfig;
-                console.log(`✅ [AUTO] Calculated Late Fee: ${finalLateFee}`);
-            } else {
-                // Priority 3: Fallback to DB
-                finalLateFee = Number(payment.late_fee_amount || 0);
-                console.log(`ℹ️ [FALLBACK] Using DB Late Fee: ${finalLateFee}`);
-            }
         }
 
-        // 3. Recalculate Total
+        console.log(`🏁 FINAL DECISION: Late Fee = ${finalLateFee} (Method: ${calculationMethod})`);
+
+        // --- ส่วนสร้างรูปตามปกติ ---
         const dbLateFee = Number(payment.late_fee_amount || 0);
         const baseAmount = Number(payment.total_amount || 0) - dbLateFee;
         const finalTotalAmount = baseAmount + finalLateFee;
 
-        // --- Prepare Display Data ---
+        // ... Template ...
         const invoiceNo = `INV-${payment.id.slice(0, 8).toUpperCase()}`;
         const issueDate = formatDate(new Date().toISOString());
         const dueDate = formatDate(payment.due_date);
@@ -180,26 +180,24 @@ Deno.serve(async (req) => {
 
         const items = [];
         if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
-        if (payment.electricity_amount > 0) {
-            items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
-        }
-        if (payment.water_amount > 0) {
-            items.push({ name: `ค่าน้ำ (${payment.water_units || 0} หน่วย)`, qty: 1, price: payment.water_amount });
-        }
+        if (payment.electricity_amount > 0) items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
+        if (payment.water_amount > 0) items.push({ name: `ค่าน้ำ (${payment.water_units || 0} หน่วย)`, qty: 1, price: payment.water_amount });
         if (payment.common_fee_amount > 0) items.push({ name: 'ค่าส่วนกลาง', qty: 1, price: payment.common_fee_amount });
         if (payment.parking_fee_amount > 0) items.push({ name: 'ค่าที่จอดรถ', qty: 1, price: payment.parking_fee_amount });
         if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
         if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
         
-        // ✅ Add Late Fee Row (Using Strict Final Value)
         if (finalLateFee > 0) {
-            console.log(`➕ Adding Late Fee row: ${finalLateFee}`);
             items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: finalLateFee });
         }
 
         const totalText = numberToThaiText(finalTotalAmount);
 
-        // --- HTML Content ---
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
         const htmlContent = `
         <!DOCTYPE html>
         <html lang="th">
@@ -369,10 +367,9 @@ Deno.serve(async (req) => {
 
         const { file_url } = await base44.integrations.Core.UploadFile({ file: imageFile });
         
-        // ⭐ Generate Hash with the ACTUAL fee used (finalLateFee)
+        // Use Strict Final Fee for hash
         const newHash = generatePaymentHash(payment, finalLateFee);
         
-        // ⭐ Save only the image URL and Hash (not the amount)
         await base44.asServiceRole.entities.Payment.update(paymentId, {
             invoice_image_url: file_url,
             invoice_data_hash: newHash
