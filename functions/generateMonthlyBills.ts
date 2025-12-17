@@ -146,30 +146,34 @@ Deno.serve(async (req) => {
         let allRooms = [], bookings = [], meterReadings = [], tenants = [];
         let existingPaymentsMap = new Map();
 
-        async function fetchWithPagination(entity, filter, sortBy, batchSize = 300) {
+// ⭐ แก้ไขจุดที่ 1: อัปเกรดฟังก์ชันให้หยุดได้ (Smart Pagination)
+        async function fetchWithPagination(entity, filter, sortBy, batchSize = 100, stopCheckFn = null) {
             let allData = [];
             let skip = 0;
             let iteration = 0;
-            const MAX_ITERATIONS = 50;
+            const MAX_ITERATIONS = 300; 
 
             while (iteration < MAX_ITERATIONS) {
                 iteration++;
-
                 const batch = await entity.filter(filter, sortBy, batchSize, skip);
                 const batchLength = Array.isArray(batch) ? batch.length : 0;
 
-                // ⭐ หยุดเฉพาะเมื่อได้ 0 รายการเท่านั้น
-                if (batchLength === 0) {
-                    break;
+                if (batchLength === 0) break;
+
+                // Logic การหยุด: เช็คตัวสุดท้ายของตะกร้า
+                if (stopCheckFn && batchLength > 0) {
+                    const lastItem = batch[batchLength - 1];
+                    if (stopCheckFn(lastItem)) {
+                        allData = allData.concat(batch);
+                        console.log(`   🛑 Cutoff condition met. Stopping fetch.`);
+                        break;
+                    }
                 }
 
                 allData = allData.concat(batch);
                 skip += batchLength;
-
-                await delay(200);
+                await delay(200); 
             }
-
-            console.log(`   ✅ FINAL: ${allData.length} items`);
             return allData;
         }
 
