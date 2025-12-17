@@ -488,38 +488,50 @@ Deno.serve(async (req) => {
                 let roomDueMonth = currentMonth;
                 const roomGenDay = parseInt(getConfigValue('bill_generation_day', '27', roomBranchId));
 
-                if (roomGenDay > roomPayDay) {
-                    roomDueMonth = currentMonth + 1;
-                    if (roomDueMonth > 11) { roomDueMonth = 0; roomDueYear = currentYear + 1; }
-                }
+                // -----------------------------------------------------------
+            // ⭐ LOGIC ใหม่: แก้ปัญหาบิลทับกัน 100%
+            // -----------------------------------------------------------
 
-                const targetDueYearMonth = `${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`;
-                const mapKey = `${room.id}|${targetDueYearMonth}`;
+            // 1. คำนวณวันเป้าหมาย
+            if (roomGenDay > roomPayDay) {
+                roomDueMonth = currentMonth + 1;
+                if (roomDueMonth > 11) { roomDueMonth = 0; roomDueYear = currentYear + 1; }
+            }
+            const targetDateObj = new Date(roomDueYear, roomDueMonth, roomPayDay);
+            const targetDateStr = format(targetDateObj, 'yyyy-MM-dd');
 
-                if (!forceSkipDuplicateCheck) {
-                    let existingBill = existingPaymentsMap.get(mapKey) || null;
+            // 2. สร้างช่วงเวลาดักจับ (±7 วัน ก็พอถ้าวันตรงกัน)
+            const windowStart = addDays(targetDateObj, -7).toISOString().split('T')[0];
+            const windowEnd = addDays(targetDateObj, 7).toISOString().split('T')[0];
 
-                    if (!existingBill) {
-                        for (const p of normalizedPayments) {
-                            if (p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
-                                existingBill = p;
-                                break;
-                            }
-                        }
+            if (!forceSkipDuplicateCheck) {
+                const existingBill = normalizedPayments.find(p => {
+                    // ⚠️ จุดแก้สำคัญ 1: ใช้ != (เครื่องหมายตกใจตัวเดียว) 
+                    // เพื่อให้ 108 (ตัวเลข) เท่ากับ "108" (ข้อความ) ได้
+                    if (p.room_id != room.id) return false; 
+                    
+                    if (!p.due_date) return false;
+                    if (p.status === 'cancelled') return false;
+
+                    // ⚠️ จุดแก้สำคัญ 2: เช็คด้วยกรอบเวลา ตัดปัญหา format ตัวอักษรไม่ตรง
+                    // ถ้าบิลเก่ามีวันครบกำหนดอยู่ในช่วงนี้ ถือว่า "มีแล้ว"
+                    return p.due_date >= windowStart && p.due_date <= windowEnd;
+                });
+
+                if (existingBill) {
+                    skippedDueToExistingBill++;
+                    // แจ้งเตือนซ้ำ (ถ้ามี)
+                    if (resendNotifications) {
+                         const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
+                         if (tenant?.line_user_id) {
+                             billsToSend.push({ payment: existingBill, tenant, room });
+                         }
                     }
-
-                    if (existingBill) {
-                        skippedDueToExistingBill++;
-
-                        if (resendNotifications) {
-                            const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
-                            if (tenant?.line_user_id) {
-                                billsToSend.push({ payment: existingBill, tenant, room });
-                            }
-                        }
-                        continue;
-                    }
+                    console.log(`⏭️ Skip Room ${room.room_number}: Found existing bill (${existingBill.due_date})`);
+                    continue; // 🛑 เจอแล้ว ข้ามทันที
                 }
+            }
+            // -----------------------------------------------------------
 
                 const roomMeters = meterReadings.filter(m => m.room_id === room.id);
                 roomMeters.sort((a, b) => new Date(b.created_date || b.reading_date) - new Date(a.created_date || a.reading_date));
