@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import { format, addDays } from 'npm:date-fns@3.0.0';
+import { format } from 'npm:date-fns@3.0.0';
 
 function numberToThaiText(number) {
     if (number === undefined || number === null || isNaN(number) || number === 0) return 'ศูนย์บาทถ้วน';
@@ -146,66 +146,31 @@ Deno.serve(async (req) => {
         let allRooms = [], bookings = [], meterReadings = [], tenants = [];
         let existingPaymentsMap = new Map();
 
-       // ⭐ แก้ไขจุดที่ 1: อัปเกรดฟังก์ชันให้หยุดได้ (Smart Pagination)
-
-        async function fetchWithPagination(entity, filter, sortBy, batchSize = 100, stopCheckFn = null) {
-
+        async function fetchWithPagination(entity, filter, sortBy, batchSize = 300) {
             let allData = [];
-
             let skip = 0;
-
             let iteration = 0;
-
-            const MAX_ITERATIONS = 300; // รองรับสูงสุด 30,000 รายการ
-
-
+            const MAX_ITERATIONS = 50;
 
             while (iteration < MAX_ITERATIONS) {
-
                 iteration++;
 
                 const batch = await entity.filter(filter, sortBy, batchSize, skip);
-
                 const batchLength = Array.isArray(batch) ? batch.length : 0;
 
-
-
-                if (batchLength === 0) break;
-
-
-
-                // Logic การหยุด: เช็คตัวสุดท้ายของตะกร้า
-
-                if (stopCheckFn && batchLength > 0) {
-
-                    const lastItem = batch[batchLength - 1];
-
-                    // ถ้าฟังก์ชันบอกว่า "หยุดเถอะ" -> ก็หยุดเลย
-
-                    if (stopCheckFn(lastItem)) {
-
-                        allData = allData.concat(batch);
-
-                        console.log(`   🛑 Cutoff condition met. Stopping fetch.`);
-
-                        break;
-
-                    }
-
+                // ⭐ หยุดเฉพาะเมื่อได้ 0 รายการเท่านั้น
+                if (batchLength === 0) {
+                    break;
                 }
 
-
-
                 allData = allData.concat(batch);
-
                 skip += batchLength;
 
-                await delay(200); // พัก 0.2 วิ กัน Server ด่า
-
+                await delay(200);
             }
 
+            console.log(`   ✅ FINAL: ${allData.length} items`);
             return allData;
-
         }
 
         // STEP 1: Fetch rooms and bookings - ใช้ limit สูงสุด
@@ -335,16 +300,12 @@ Deno.serve(async (req) => {
             const branchId = branchIdsToProcess[idx];
             console.log(`   📥 Branch ${idx + 1}/${branchIdsToProcess.length}...`);
 
-           // ⭐ แก้ไขจุดที่ 2: ดึงมิเตอร์แค่ 90 วันพอ
-            const meterCutoffDate = new Date(); meterCutoffDate.setDate(meterCutoffDate.getDate() - 90);
-            const meterCutoffStr = meterCutoffDate.toISOString();
-
             await retryOperation(async () => {
                 const [m, t] = await Promise.all([
-                    // ใส่เงื่อนไขหยุด: ถ้าเก่ากว่า 90 วัน ให้หยุดดึง
-                    fetchWithPagination(base44.asServiceRole.entities.MeterReading, { branch_id: branchId }, '-reading_date', 150, (i) => (i.reading_date || i.created_date) < meterCutoffStr),
-                    fetchWithPagination(base44.asServiceRole.entities.Tenant, { branch_id: branchId }, '-created_date', 150)
+                    fetchWithPagination(base44.asServiceRole.entities.MeterReading, { branch_id: branchId }, '-reading_date'),
+                    fetchWithPagination(base44.asServiceRole.entities.Tenant, { branch_id: branchId }, '-created_date')
                 ]);
+
                 meterReadings = meterReadings.concat(m || []);
                 tenants = tenants.concat(t || []);
             });
@@ -360,54 +321,52 @@ Deno.serve(async (req) => {
         console.log(`📦 Fetched: ${meterReadings.length} meter readings, ${tenants.length} tenants`);
         await delay(500); // ⭐ พักก่อน Step 4
 
-        // ⭐ แก้ไขจุดที่ 3: ระบบเช็คบิลแบบ Hybrid + กรองขยะ (ปลอดภัยที่สุด)
-        console.log(`📦 Step 4: Verify Existing Bills (Scalable + Safe)...`);
-
-        // ก. เส้นตาย: ย้อนหลัง 120 วัน (4 เดือน)
-        const payCutoffDate = new Date(); 
-        payCutoffDate.setDate(payCutoffDate.getDate() - 120);
-        const payCutoffStr = payCutoffDate.toISOString().split('T')[0];
-
-        // ข. กรองขยะ: อนาคตเกิน 6 เดือน = มั่ว
-        const garbageFutureDate = new Date();
-        garbageFutureDate.setMonth(garbageFutureDate.getMonth() + 6);
-        const garbageFutureStr = garbageFutureDate.toISOString().split('T')[0];
+        // STEP 4: ดึง Payment ทั้งหมด (ไม่ใช้ fetchWithPagination)
+        console.log(`📦 Step 4: Fetching ALL payments...`);
 
         let recentPayments = [];
-        let criticalError = false; // ตัวกันระเบิด
 
         for (const branchId of branchIdsToProcess) {
-            console.log(`   🔎 Checking branch ${branchId}...`);
-            try {
-                await retryOperation(async () => {
-                    // ใช้ฟังก์ชันใหม่ ดึงทีละ 100
-                    const batch = await fetchWithPagination(
-                        base44.asServiceRole.entities.Payment, 
-                        { branch_id: branchId }, 
-                        '-due_date', 
-                        100, 
-                        (item) => {
-                            // --- ANTI-GARBAGE LOGIC ---
-                            // 1. ถ้าปีอนาคตเวอร์ๆ (เช่น 2099) -> return false (ข้ามไป หาต่อ!)
-                            if (item.due_date > garbageFutureStr) return false;
+            console.log(`   📥 Fetching payments for branch: ${branchId}`);
 
-                            // 2. ถ้าเจอของจริงที่เก่าเกิน 120 วัน -> return true (หยุดได้)
-                            return item.due_date < payCutoffStr;
-                        }
+            let branchPayments = [];
+            let paymentSkip = 0;
+            let fetchingPayments = true;
+            let batchNum = 0;
+
+            while (fetchingPayments && batchNum < 100) {
+                batchNum++;
+
+                await retryOperation(async () => {
+                    const batch = await base44.asServiceRole.entities.Payment.filter(
+                        { branch_id: branchId },
+                        '-created_date',
+                        300,
+                        paymentSkip
                     );
-                    recentPayments = recentPayments.concat(batch || []);
+
+                    const batchLength = Array.isArray(batch) ? batch.length : 0;
+
+                    if (batchLength > 0) {
+                        branchPayments = branchPayments.concat(batch);
+                        paymentSkip += batchLength;
+                    }
+
+                    // ⭐ หยุดเฉพาะเมื่อได้ 0 รายการ
+                    if (batchLength === 0) {
+                        fetchingPayments = false;
+                    }
                 });
-            } catch (err) {
-                console.error(`🚨 FATAL: Failed to fetch bills for branch ${branchId}.`);
-                criticalError = true;
+
+                if (fetchingPayments) await delay(200);
             }
+
+            console.log(`   ✅ สาขา ${branchId}: ${branchPayments.length} payments`);
+            recentPayments = recentPayments.concat(branchPayments);
             await delay(300);
         }
 
-        // 🛑 Safety Switch: ถ้าดึงข้อมูลไม่ได้ ให้หยุดทำงานทันที ห้ามสร้างบิลมั่ว
-        if (criticalError) {
-            throw new Error("Critical Error: Unable to verify existing bills. Aborting.");
-        }
+        console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments.length}`);
 
         const normalizedPayments = [];
 
@@ -488,50 +447,38 @@ Deno.serve(async (req) => {
                 let roomDueMonth = currentMonth;
                 const roomGenDay = parseInt(getConfigValue('bill_generation_day', '27', roomBranchId));
 
-                // -----------------------------------------------------------
-            // ⭐ LOGIC ใหม่: แก้ปัญหาบิลทับกัน 100%
-            // -----------------------------------------------------------
-
-            // 1. คำนวณวันเป้าหมาย
-            if (roomGenDay > roomPayDay) {
-                roomDueMonth = currentMonth + 1;
-                if (roomDueMonth > 11) { roomDueMonth = 0; roomDueYear = currentYear + 1; }
-            }
-            const targetDateObj = new Date(roomDueYear, roomDueMonth, roomPayDay);
-            const targetDateStr = format(targetDateObj, 'yyyy-MM-dd');
-
-            // 2. สร้างช่วงเวลาดักจับ (±7 วัน ก็พอถ้าวันตรงกัน)
-            const windowStart = addDays(targetDateObj, -7).toISOString().split('T')[0];
-            const windowEnd = addDays(targetDateObj, 7).toISOString().split('T')[0];
-
-            if (!forceSkipDuplicateCheck) {
-                const existingBill = normalizedPayments.find(p => {
-                    // ⚠️ จุดแก้สำคัญ 1: ใช้ != (เครื่องหมายตกใจตัวเดียว) 
-                    // เพื่อให้ 108 (ตัวเลข) เท่ากับ "108" (ข้อความ) ได้
-                    if (p.room_id != room.id) return false; 
-                    
-                    if (!p.due_date) return false;
-                    if (p.status === 'cancelled') return false;
-
-                    // ⚠️ จุดแก้สำคัญ 2: เช็คด้วยกรอบเวลา ตัดปัญหา format ตัวอักษรไม่ตรง
-                    // ถ้าบิลเก่ามีวันครบกำหนดอยู่ในช่วงนี้ ถือว่า "มีแล้ว"
-                    return p.due_date >= windowStart && p.due_date <= windowEnd;
-                });
-
-                if (existingBill) {
-                    skippedDueToExistingBill++;
-                    // แจ้งเตือนซ้ำ (ถ้ามี)
-                    if (resendNotifications) {
-                         const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
-                         if (tenant?.line_user_id) {
-                             billsToSend.push({ payment: existingBill, tenant, room });
-                         }
-                    }
-                    console.log(`⏭️ Skip Room ${room.room_number}: Found existing bill (${existingBill.due_date})`);
-                    continue; // 🛑 เจอแล้ว ข้ามทันที
+                if (roomGenDay > roomPayDay) {
+                    roomDueMonth = currentMonth + 1;
+                    if (roomDueMonth > 11) { roomDueMonth = 0; roomDueYear = currentYear + 1; }
                 }
-            }
-            // -----------------------------------------------------------
+
+                const targetDueYearMonth = `${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`;
+                const mapKey = `${room.id}|${targetDueYearMonth}`;
+
+                if (!forceSkipDuplicateCheck) {
+                    let existingBill = existingPaymentsMap.get(mapKey) || null;
+
+                    if (!existingBill) {
+                        for (const p of normalizedPayments) {
+                            if (p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
+                                existingBill = p;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (existingBill) {
+                        skippedDueToExistingBill++;
+
+                        if (resendNotifications) {
+                            const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
+                            if (tenant?.line_user_id) {
+                                billsToSend.push({ payment: existingBill, tenant, room });
+                            }
+                        }
+                        continue;
+                    }
+                }
 
                 const roomMeters = meterReadings.filter(m => m.room_id === room.id);
                 roomMeters.sort((a, b) => new Date(b.created_date || b.reading_date) - new Date(a.created_date || a.reading_date));
