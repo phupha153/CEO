@@ -335,12 +335,16 @@ Deno.serve(async (req) => {
             const branchId = branchIdsToProcess[idx];
             console.log(`   📥 Branch ${idx + 1}/${branchIdsToProcess.length}...`);
 
+           // ⭐ แก้ไขจุดที่ 2: ดึงมิเตอร์แค่ 90 วันพอ
+            const meterCutoffDate = new Date(); meterCutoffDate.setDate(meterCutoffDate.getDate() - 90);
+            const meterCutoffStr = meterCutoffDate.toISOString();
+
             await retryOperation(async () => {
                 const [m, t] = await Promise.all([
-                    fetchWithPagination(base44.asServiceRole.entities.MeterReading, { branch_id: branchId }, '-reading_date'),
-                    fetchWithPagination(base44.asServiceRole.entities.Tenant, { branch_id: branchId }, '-created_date')
+                    // ใส่เงื่อนไขหยุด: ถ้าเก่ากว่า 90 วัน ให้หยุดดึง
+                    fetchWithPagination(base44.asServiceRole.entities.MeterReading, { branch_id: branchId }, '-reading_date', 150, (i) => (i.reading_date || i.created_date) < meterCutoffStr),
+                    fetchWithPagination(base44.asServiceRole.entities.Tenant, { branch_id: branchId }, '-created_date', 150)
                 ]);
-
                 meterReadings = meterReadings.concat(m || []);
                 tenants = tenants.concat(t || []);
             });
