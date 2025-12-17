@@ -360,52 +360,54 @@ Deno.serve(async (req) => {
         console.log(`📦 Fetched: ${meterReadings.length} meter readings, ${tenants.length} tenants`);
         await delay(500); // ⭐ พักก่อน Step 4
 
-        // STEP 4: ดึง Payment ทั้งหมด (ไม่ใช้ fetchWithPagination)
-        console.log(`📦 Step 4: Fetching ALL payments...`);
+        // ⭐ แก้ไขจุดที่ 3: ระบบเช็คบิลแบบ Hybrid + กรองขยะ (ปลอดภัยที่สุด)
+        console.log(`📦 Step 4: Verify Existing Bills (Scalable + Safe)...`);
+
+        // ก. เส้นตาย: ย้อนหลัง 120 วัน (4 เดือน)
+        const payCutoffDate = new Date(); 
+        payCutoffDate.setDate(payCutoffDate.getDate() - 120);
+        const payCutoffStr = payCutoffDate.toISOString().split('T')[0];
+
+        // ข. กรองขยะ: อนาคตเกิน 6 เดือน = มั่ว
+        const garbageFutureDate = new Date();
+        garbageFutureDate.setMonth(garbageFutureDate.getMonth() + 6);
+        const garbageFutureStr = garbageFutureDate.toISOString().split('T')[0];
 
         let recentPayments = [];
+        let criticalError = false; // ตัวกันระเบิด
 
         for (const branchId of branchIdsToProcess) {
-            console.log(`   📥 Fetching payments for branch: ${branchId}`);
-
-            let branchPayments = [];
-            let paymentSkip = 0;
-            let fetchingPayments = true;
-            let batchNum = 0;
-
-            while (fetchingPayments && batchNum < 100) {
-                batchNum++;
-
+            console.log(`   🔎 Checking branch ${branchId}...`);
+            try {
                 await retryOperation(async () => {
-                    const batch = await base44.asServiceRole.entities.Payment.filter(
-                        { branch_id: branchId },
-                        '-created_date',
-                        300,
-                        paymentSkip
+                    // ใช้ฟังก์ชันใหม่ ดึงทีละ 100
+                    const batch = await fetchWithPagination(
+                        base44.asServiceRole.entities.Payment, 
+                        { branch_id: branchId }, 
+                        '-due_date', 
+                        100, 
+                        (item) => {
+                            // --- ANTI-GARBAGE LOGIC ---
+                            // 1. ถ้าปีอนาคตเวอร์ๆ (เช่น 2099) -> return false (ข้ามไป หาต่อ!)
+                            if (item.due_date > garbageFutureStr) return false;
+
+                            // 2. ถ้าเจอของจริงที่เก่าเกิน 120 วัน -> return true (หยุดได้)
+                            return item.due_date < payCutoffStr;
+                        }
                     );
-
-                    const batchLength = Array.isArray(batch) ? batch.length : 0;
-
-                    if (batchLength > 0) {
-                        branchPayments = branchPayments.concat(batch);
-                        paymentSkip += batchLength;
-                    }
-
-                    // ⭐ หยุดเฉพาะเมื่อได้ 0 รายการ
-                    if (batchLength === 0) {
-                        fetchingPayments = false;
-                    }
+                    recentPayments = recentPayments.concat(batch || []);
                 });
-
-                if (fetchingPayments) await delay(200);
+            } catch (err) {
+                console.error(`🚨 FATAL: Failed to fetch bills for branch ${branchId}.`);
+                criticalError = true;
             }
-
-            console.log(`   ✅ สาขา ${branchId}: ${branchPayments.length} payments`);
-            recentPayments = recentPayments.concat(branchPayments);
             await delay(300);
         }
 
-        console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments.length}`);
+        // 🛑 Safety Switch: ถ้าดึงข้อมูลไม่ได้ ให้หยุดทำงานทันที ห้ามสร้างบิลมั่ว
+        if (criticalError) {
+            throw new Error("Critical Error: Unable to verify existing bills. Aborting.");
+        }
 
         const normalizedPayments = [];
 
