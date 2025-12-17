@@ -296,23 +296,35 @@ Deno.serve(async (req) => {
         // STEP 3: ดึงข้อมูลเพิ่มเติม (ทีละสาขา)
         console.log(`📦 Step 3: Fetching data for ${branchIdsToProcess.length} branches...`);
 
+  // ⭐ แก้ไขจุดที่ 2 (STEP 3): ดึง Meter แค่ 90 วันย้อนหลัง
+        console.log(`📦 Step 3: Fetching Meters (Last 90 days ONLY)...`);
+        
+        // กำหนดวันตัดรอบ 90 วัน
+        const meterCutoffDate = new Date(); 
+        meterCutoffDate.setDate(meterCutoffDate.getDate() - 90);
+        const meterCutoffStr = meterCutoffDate.toISOString();
+
         for (let idx = 0; idx < branchIdsToProcess.length; idx++) {
             const branchId = branchIdsToProcess[idx];
             console.log(`   📥 Branch ${idx + 1}/${branchIdsToProcess.length}...`);
 
             await retryOperation(async () => {
                 const [m, t] = await Promise.all([
-                    fetchWithPagination(base44.asServiceRole.entities.MeterReading, { branch_id: branchId }, '-reading_date'),
-                    fetchWithPagination(base44.asServiceRole.entities.Tenant, { branch_id: branchId }, '-created_date')
+                    // ✅ ใช้ fetchWithPagination แบบใหม่ + เงื่อนไขหยุดเมื่อเก่ากว่า 90 วัน
+                    fetchWithPagination(
+                        base44.asServiceRole.entities.MeterReading, 
+                        { branch_id: branchId }, 
+                        '-reading_date', 
+                        150, 
+                        (item) => (item.reading_date || item.created_date) < meterCutoffStr
+                    ),
+                    // ส่วน Tenant ดึงตามปกติ (ไม่ต้องมีเงื่อนไขหยุด เพราะต้องใช้หาคนปัจจุบัน)
+                    fetchWithPagination(base44.asServiceRole.entities.Tenant, { branch_id: branchId }, '-created_date', 150)
                 ]);
-
                 meterReadings = meterReadings.concat(m || []);
                 tenants = tenants.concat(t || []);
             });
-
-            if (idx < branchIdsToProcess.length - 1) {
-                await delay(300);
-            }
+            await delay(300);
         }
 
         meterReadings = meterReadings.map(normalizeEntity).filter(Boolean);
