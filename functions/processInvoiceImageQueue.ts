@@ -63,6 +63,15 @@ function numberToThaiText(number) {
     else text += 'ถ้วน';
     return text;
 }
+// ⭐ ฟังก์ชันจัดรูปแบบวันที่ (ตัวที่ Error หาไม่เจอ)
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    try {
+        const date = new Date(dateString);
+        const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        return `${date.getDate()} ${thaiMonths[date.getMonth()]} ${date.getFullYear() + 543}`;
+    } catch { return '-'; }
+}
 
 // ⭐ ฟังก์ชันสร้างรูป invoice แบบ inline
 async function generateInvoiceScreenshot(base44, paymentId, invoice) {
