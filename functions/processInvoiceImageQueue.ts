@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
  * ฟังก์ชันสำหรับสร้างรูปใบแจ้งหนี้และส่ง LINE แบบ Queue
- * Version: 3.1 - Debugging Mode (ค้นหาสาเหตุ Upload Fail)
+ * Version: 4.0 - Hybrid (Beautiful Invoice + New Message Format)
  */
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -66,9 +66,9 @@ function formatDate(dateString) {
     } catch { return '-'; }
 }
 
-// ⭐ ฟังก์ชันสร้างรูป invoice แบบ inline (เพิ่ม Debug Log)
+// ⭐ ฟังก์ชันสร้างรูป invoice แบบ inline (Design ใหม่ Sarabun)
 async function generateInvoiceScreenshot(base44, paymentId, invoice) {
-    console.log(`📸 [Step 1] Start generating for ID: ${paymentId}`); // LOG
+    console.log(`📸 [Step 1] Start generating for ID: ${paymentId}`);
     const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
     if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
 
@@ -293,9 +293,11 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     return file_url;
 }
 
+// --- Main Queue Worker ---
+
 Deno.serve(async (req) => {
     console.log('========================================');
-    console.log('🖼️ PROCESS INVOICE IMAGE QUEUE (Debug Mode)');
+    console.log('🖼️ PROCESS INVOICE IMAGE QUEUE (New Message Format)');
     console.log(`📅 Timestamp: ${new Date().toISOString()}`);
     console.log('========================================');
 
@@ -425,7 +427,7 @@ Deno.serve(async (req) => {
                 const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId: payment.id });
                 if (!invoiceDataResult.data?.success || !invoiceDataResult.data?.invoice) throw new Error(invoiceDataResult.data?.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
 
-                // เรียกใช้ Function ที่มี Debug Log
+                // เรียกใช้ Function สร้างรูปเวอร์ชันใหม่
                 const imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoiceDataResult.data.invoice);
 
                 if (imageUrl) {
@@ -469,7 +471,7 @@ Deno.serve(async (req) => {
         await Promise.all(workers);
 
         if (!skipLineSend) {
-            console.log(`\n📤 Sending notifications...`);
+            console.log(`\n📤 Sending notifications (New Format)...`);
             for (const result of allImageResults) {
                 if (!result.success && !result.skipped) continue;
                 const { payment, room, tenant, imageUrl } = result;
@@ -487,9 +489,36 @@ Deno.serve(async (req) => {
                 const bankOwner = getConfigValue('bank_account_name', branchId, '-');
                 const buildingName = getConfigValue('building_name', branchId, 'W RESIDENTS');
                 
-                let msg = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\nสวัสดีคุณ ${tenant.full_name}\nห้อง ${room?.room_number || 'N/A'}\n💰 ยอดรวม: ${payment.total_amount.toLocaleString()} บาท\n📅 ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH')}\n💳 ${bankName} ${bankAcc} (${bankOwner})\n`;
-                if (imageUrl) msg += `📄 ใบแจ้งหนี้: ${imageUrl}\n`;
-                msg += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ`;
+                // --- 📝 FORMAT ข้อความใหม่ที่สวยงาม ---
+                let msg = `📢 แจ้งเตือนค่าเช่า\n`;
+                msg += `🏢 ${buildingName}\n`;
+                msg += `👤 คุณ ${tenant.full_name} (ห้อง ${room?.room_number || '-'}) \n\n`;
+
+                msg += `🧾 รายละเอียด:\n`;
+                if (payment.rent_amount > 0) msg += `• ค่าเช่า: ${payment.rent_amount.toLocaleString()} บ.\n`;
+                if (payment.electricity_amount > 0) msg += `• ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บ.\n`;
+                if (payment.water_amount > 0) msg += `• ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บ.\n`;
+                if (payment.internet_amount > 0) msg += `• เน็ต: ${payment.internet_amount.toLocaleString()} บ.\n`;
+                if (payment.common_fee_amount > 0) msg += `• ส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บ.\n`;
+                if (payment.parking_fee_amount > 0) msg += `• จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บ.\n`;
+                if (payment.other_amount > 0) msg += `• อื่นๆ: ${payment.other_amount.toLocaleString()} บ.\n`;
+                if (payment.late_fee_amount > 0) msg += `• ค่าปรับ: ${payment.late_fee_amount.toLocaleString()} บ.\n`;
+
+                msg += `------------------------------\n`;
+                msg += `💰 ยอดรวมสุทธิ: ${payment.total_amount.toLocaleString()} บาท\n`;
+                msg += `(${numberToThaiText(payment.total_amount)})\n`;
+                msg += `------------------------------\n\n`;
+
+                msg += `📅 ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH')}\n\n`;
+
+                msg += `💳 ชำระเงินได้ที่:\n`;
+                msg += `🏦 ${bankName}\n`;
+                msg += `🔢 ${bankAcc}\n`;
+                msg += `👤 ${bankOwner}\n\n`;
+
+                if (imageUrl) msg += `📄 ดูบิล: ${imageUrl}\n\n`;
+                msg += `📸 โอนแล้วรบกวนส่งสลิปนะคะ ขอบคุณค่ะ 🙏`;
+                // -------------------------------------------
 
                 let messageSent = false;
                 
