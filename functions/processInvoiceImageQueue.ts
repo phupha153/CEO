@@ -491,8 +491,8 @@ Deno.serve(async (req) => {
                 
                 // --- 📝 FORMAT ข้อความใหม่ที่สวยงาม ---
                 let msg = `📢 แจ้งเตือนค่าเช่า\n`;
-                msg += `🏢 ${buildingName}\n`;
-                msg += `👤 คุณ ${tenant.full_name} (ห้อง ${room?.room_number || '-'}) \n\n`;
+                msg += ` ${buildingName}\n`;
+                msg += ` คุณ ${tenant.full_name} (ห้อง ${room?.room_number || '-'}) \n\n`;
 
                 msg += `🧾 รายละเอียด:\n`;
                 if (payment.rent_amount > 0) msg += `• ค่าเช่า: ${payment.rent_amount.toLocaleString()} บ.\n`;
@@ -509,11 +509,10 @@ Deno.serve(async (req) => {
                 msg += `(${numberToThaiText(payment.total_amount)})\n`;
                 msg += `------------------------------\n\n`;
 
-                msg += `📅 ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH')}\n\n`;
+                msg += ` ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH')}\n\n`;
 
-                msg += `💳 ชำระเงินได้ที่:\n`;
-                msg += `🏦 ${bankName}\n`;
-                msg += `🔢 ${bankAcc}\n`;
+                msg += `  ชำระเงินได้ที่:\n`;
+                msg += `🏦 ${bankName} ${bankAcc}\n`
                 msg += `👤 ${bankOwner}\n\n`;
 
                 if (imageUrl) msg += `📄 ดูบิล: ${imageUrl}\n\n`;
