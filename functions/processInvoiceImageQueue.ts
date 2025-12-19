@@ -69,38 +69,211 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
     if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
 
-    const payment = invoice;
-    const room = invoice.room || { room_number: 'N/A', floor: 0 };
-    const tenant = invoice.tenant || { full_name: 'ไม่ระบุ', phone: '' };
-    const bank = invoice.bank || {};
+const payment = invoice;
     const recipient = invoice.recipient || {};
+    const tenant = invoice.tenant || {};
+    const room = invoice.room || {};
+    const bank = invoice.bank || {};
 
-    const buildingName = recipient.building_name || 'W RESIDENTS';
-    const buildingLogo = recipient.building_logo || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
-    const buildingAddress = recipient.building_address || '';
-    const buildingPhone = recipient.building_phone || '';
-    const companyName = recipient.company_name || '';
-    const taxId = recipient.tax_id || '';
+    // 1. เตรียมข้อมูลพื้นฐาน (Design ใหม่)
+    const invoiceNo = `INV-${payment.id.slice(0, 8).toUpperCase()}`;
+    const issueDate = formatDate(new Date().toISOString());
+    const dueDate = formatDate(payment.due_date);
     
-    const bankName = bank.name || 'กสิกรไทย';
-    const bankAccountNumber = bank.account_number || '';
-    const bankAccountName = bank.account_name || '';
+    // Config รูปภาพและชื่อตึก
+    const logoUrl = recipient.building_logo || 'https://via.placeholder.com/100x100?text=Logo';
+    const buildingName = recipient.building_name || 'Double Residence';
+    
+    // Config ผู้รับเงิน (ใช้ company หรือ lessor)
+    const displayLessorName = recipient.company_name || recipient.lessor_name || 'ไม่ระบุชื่อผู้รับเงิน';
+    const displayLessorAddress = recipient.company_address || recipient.lessor_address || '';
+    const displayTaxId = recipient.company_tax_id || recipient.tax_id || '';
 
-    const escapeHtml = (text) => text ? text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
-    const formatDate = (dateString) => {
-        if (!dateString) return 'ไม่ระบุ';
-        try {
-            const date = new Date(dateString);
-            const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-            return `${date.getDate()} ${thaiMonths[date.getMonth()]} ${date.getFullYear() + 543}`;
-        } catch { return 'ไม่ระบุ'; }
-    };
+    // 2. สร้างรายการสินค้า (Items Array)
+    const items = [];
+    if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
+    if (payment.electricity_amount > 0) items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
+    if (payment.water_amount > 0) items.push({ name: `ค่าน้ำ (${payment.water_units || 0} หน่วย)`, qty: 1, price: payment.water_amount });
+    if (payment.common_fee_amount > 0) items.push({ name: 'ค่าส่วนกลาง', qty: 1, price: payment.common_fee_amount });
+    if (payment.parking_fee_amount > 0) items.push({ name: 'ค่าที่จอดรถ', qty: 1, price: payment.parking_fee_amount });
+    if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
+    if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
+    
+    // จัดการ Late Fee
+    const lateFee = Number(payment.late_fee_amount || 0);
+    if (lateFee > 0) {
+        items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: lateFee });
+    }
 
-    const invoiceNumber = `INV-${paymentId.slice(0, 8).toUpperCase()}`;
-    const issueDateText = formatDate(new Date().toISOString().split('T')[0]);
-    const dueDateText = formatDate(payment.due_date);
-    const isOverdue = payment.status === 'pending' && payment.due_date && new Date() > new Date(payment.due_date);
-    const daysOverdue = isOverdue ? Math.ceil((new Date() - new Date(payment.due_date)) / (1000 * 60 * 60 * 24)) : 0;
+    // คำนวณยอดรวมใหม่จาก Items เพื่อความแม่นยำ
+    const finalTotalAmount = items.reduce((sum, item) => sum + item.price, 0);
+    const totalText = numberToThaiText(finalTotalAmount);
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // HTML Template ใหม่ (Sarabun)
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="th">
+    <head>
+        <meta charset="UTF-8">
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+        <style>
+            * { box-sizing: border-box; }
+            body { font-family: 'Sarabun', sans-serif; padding: 40px; background: #fff; color: #333; }
+            .container { max-width: 800px; margin: 0 auto; background: white; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
+            .logo-section { display: flex; gap: 15px; width: 75%; }
+            .logo { width: 50px; height: 50px; object-fit: contain; margin-top: 5px; }
+            .brand-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 8px 0; color: #1e293b; }
+            .brand-info .company-name { font-weight: 600; color: #1e293b; font-size: 12px; margin-bottom: 2px; }
+            .brand-info .company-details { font-size: 11px; color: #475569; line-height: 1.4; }
+            .invoice-label { text-align: right; width: 25%; }
+            .invoice-label h2 { font-size: 20px; color: #2563eb; font-weight: bold; margin: 0; }
+            .invoice-label span { font-size: 12px; color: #2563eb; font-weight: 600; letter-spacing: 1px; }
+            .meta-bar { display: flex; justify-content: space-between; background: #f8fafc; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+            .meta-item { font-size: 12px; }
+            .meta-item strong { color: #64748b; margin-right: 5px; }
+            .meta-item span { font-weight: 600; color: #1e293b; }
+            .due-date { color: #dc2626 !important; }
+            .info-grid { display: flex; gap: 20px; margin-bottom: 25px; }
+            .info-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #fff; }
+            .box-header { font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
+            .box-content .name { font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
+            .box-content p { font-size: 12px; color: #475569; margin: 0 0 2px 0; line-height: 1.4; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
+            th { text-align: left; padding: 10px; background-color: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #cbd5e1; }
+            td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; color: #1e293b; }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+            .col-total { font-weight: 600; }
+            .total-section { display: flex; justify-content: flex-end; margin-bottom: 25px; }
+            .total-box { text-align: right; border-top: 2px solid #cbd5e1; padding-top: 10px; min-width: 250px; }
+            .total-label { font-size: 13px; font-weight: bold; color: #1e293b; margin-right: 15px; }
+            .total-amount { font-size: 22px; font-weight: bold; color: #2563eb; }
+            .thai-baht { font-size: 12px; color: #64748b; font-style: italic; margin-top: 5px; }
+            .payment-box { background: #eff6ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 15px; margin-bottom: 20px; font-size: 12px; display: flex; align-items: center; gap: 12px; }
+            .payment-icon { font-size: 18px; }
+            .payment-info span { margin-right: 15px; color: #334155; }
+            .payment-info strong { color: #1e293b; font-weight: 600; }
+            .notes { font-size: 11px; color: #94a3b8; padding-top: 15px; border-top: 1px solid #e2e8f0; line-height: 1.6; }
+            .credit { text-align: center; margin-top: 20px; font-size: 10px; color: #cbd5e1; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="logo-section">
+                    <img src="${escapeHtml(logoUrl)}" class="logo" />
+                    <div class="brand-info">
+                        <h1>${escapeHtml(buildingName)}</h1>
+                        <div class="company-details">
+                            <div class="company-name">${escapeHtml(displayLessorName)}</div>
+                            <div>${escapeHtml(displayLessorAddress)}</div>
+                            ${displayTaxId ? `<div>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(displayTaxId)}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="invoice-label">
+                    <h2>ใบแจ้งหนี้</h2>
+                    <span>INVOICE</span>
+                </div>
+            </div>
+
+            <div class="meta-bar">
+                <div class="meta-item"><strong>เลขที่:</strong> <span>${escapeHtml(invoiceNo)}</span></div>
+                <div class="meta-item"><strong>วันที่ออก:</strong> <span>${escapeHtml(issueDate)}</span></div>
+                <div class="meta-item"><strong>ครบกำหนด:</strong> <span class="due-date">${escapeHtml(dueDate)}</span></div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-box">
+                    <div class="box-header">ผู้รับเงิน / RECEIVER</div>
+                    <div class="box-content">
+                        <div class="name">${escapeHtml(displayLessorName)}</div>
+                        <p>${escapeHtml(displayLessorAddress)}</p>
+                        ${displayTaxId ? `<p>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(displayTaxId)}</p>` : ''}
+                    </div>
+                </div>
+                <div class="info-box">
+                    <div class="box-header">ผู้จ่ายเงิน / PAYER</div>
+                    <div class="box-content">
+                        <div class="name">${escapeHtml(tenant.full_name || 'ไม่ระบุชื่อ')}</div>
+                        <p>ห้อง: ${escapeHtml(room.room_number || '-')}</p>
+                        <p>โทร: ${escapeHtml(tenant.phone || '-')}</p>
+                        <p>ที่อยู่: ${escapeHtml(tenant.address || 'ไม่ระบุ')}</p>
+                    </div>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th width="10%">ลำดับ</th>
+                        <th width="45%">รายการ</th>
+                        <th width="15%" class="text-center">จำนวน</th>
+                        <th width="15%" class="text-right">ราคา/หน่วย</th>
+                        <th width="15%" class="text-right">จำนวนเงิน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${items.map((item, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${escapeHtml(item.name)}</td>
+                        <td class="text-center">${item.qty}</td>
+                        <td class="text-right">${(item.price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                        <td class="text-right col-total">${(item.price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+
+            <div class="total-section">
+                <div class="total-box">
+                    <span class="total-label">รวมทั้งสิ้น</span>
+                    <span class="total-amount">${finalTotalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
+                    <div class="thai-baht">(${totalText})</div>
+                </div>
+            </div>
+
+            <div class="payment-box">
+                <span class="payment-icon">💳</span>
+                <div class="payment-info">
+                    <span>ช่องทางการชำระเงิน</span>
+                    <span>ธนาคาร: <strong>${escapeHtml(bank.name || 'กสิกรไทย')}</strong></span>
+                    <span>เลขบัญชี: <strong>${escapeHtml(bank.account_number || '-')}</strong></span>
+                    <span>ชื่อ: <strong>${escapeHtml(bank.account_name || '-')}</strong></span>
+                </div>
+            </div>
+
+            <div class="notes">
+                <strong>หมายเหตุ:</strong><br>
+                1. กรุณาชำระเงินภายในวันที่กำหนด<br>
+                2. กรุณาแนบหลักฐานการโอนเงินทุกครั้ง<br>
+                3. หากมีข้อสงสัยกรุณาติดต่อเจ้าของหอพัก
+            </div>
+
+            <div class="credit">
+                เอกสารนี้สร้างโดยระบบอัตโนมัติ | ${escapeHtml(buildingName)}
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+
+    const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            html: htmlContent, 
+            viewport: { width: 800, height: 1000 },
+            options: { type: 'png', fullPage: true, omitBackground: true } 
+        })
+    });
 
     const lineItems = [];
     if (payment.rent_amount > 0) lineItems.push({ name: 'ค่าเช่า', total: payment.rent_amount });
@@ -112,98 +285,7 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     if (payment.other_amount > 0) lineItems.push({ name: 'ค่าใช้จ่ายอื่นๆ', total: payment.other_amount });
     if (payment.late_fee_amount > 0) lineItems.push({ name: '⚠️ ค่าปรับชำระล่าช้า', total: payment.late_fee_amount });
 
-    const htmlContent = `<!DOCTYPE html>
-<html lang="th"><head><meta charset="UTF-8"><style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Sarabun', 'Tahoma', sans-serif; padding: 12px; background: #f1f5f9; }
-.container { max-width: 600px; margin: 0 auto; padding: 16px; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-.header { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; }
-.header-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; margin-bottom: 12px; }
-.logo-section { display: flex; align-items: center; gap: 8px; }
-.logo { width: 40px; height: 40px; object-fit: contain; }
-.company-name { font-size: 18px; font-weight: bold; color: #1e293b; }
-.invoice-title h2 { font-size: 16px; font-weight: bold; color: #2563eb; }
-.issuer-info { font-size: 11px; color: #64748b; line-height: 1.5; }
-.invoice-meta { margin-top: 12px; font-size: 11px; line-height: 1.6; }
-.invoice-meta .due-date { color: #dc2626; font-weight: bold; }
-.overdue-warning { background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-.overdue-warning .text-bold { font-size: 13px; font-weight: bold; color: #991b1b; }
-.customer-section { margin-bottom: 12px; }
-.customer-section h3 { font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 6px; }
-.customer-box { background: #f8fafc; border-radius: 8px; padding: 12px; }
-.customer-box .name { font-weight: bold; font-size: 13px; color: #1e293b; }
-.customer-box .detail { font-size: 11px; color: #64748b; margin-top: 2px; }
-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11px; }
-table th { padding: 8px 4px; text-align: left; font-weight: 600; color: #334155; border-bottom: 2px solid #cbd5e1; }
-table td { padding: 8px 4px; border-bottom: 1px solid #e2e8f0; }
-.text-right { text-align: right; }
-.font-semibold { font-weight: 600; color: #1e293b; }
-.total-section { display: flex; justify-content: flex-end; margin-bottom: 12px; }
-.total-box { border-top: 2px solid #cbd5e1; padding-top: 8px; }
-.total-amount { font-weight: bold; font-size: 18px; color: ${isOverdue ? '#dc2626' : '#2563eb'}; }
-.payment-info { background: #eff6ff; border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; border: 1px solid #bfdbfe; font-size: 10px; }
-.footer { text-align: center; padding-top: 12px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #64748b; }
-</style></head><body>
-<div class="container">
-<div class="header">
-<div class="header-top">
-<div class="logo-section">
-<img src="${escapeHtml(buildingLogo)}" alt="Logo" class="logo" />
-<div><div class="company-name">${escapeHtml(buildingName)}</div></div>
-</div>
-<div class="invoice-title"><h2>ใบแจ้งหนี้</h2></div>
-</div>
-<div class="issuer-info">
-${companyName ? `<p>${escapeHtml(companyName)}</p>` : ''}
-<p>${escapeHtml(buildingAddress)}</p>
-${buildingPhone ? `<p>โทร: ${escapeHtml(buildingPhone)}</p>` : ''}
-${taxId ? `<p>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(taxId)}</p>` : ''}
-</div>
-<div class="invoice-meta">
-<p><b>เลขที่:</b> ${escapeHtml(invoiceNumber)}</p>
-<p><b>วันที่ออก:</b> ${escapeHtml(issueDateText)}</p>
-<p><b class="due-date">ครบกำหนด:</b> <span class="due-date">${escapeHtml(dueDateText)}</span></p>
-</div>
-</div>
-${isOverdue ? `<div class="overdue-warning"><p class="text-bold">⚠️ เกินกำหนดชำระแล้ว ${daysOverdue} วัน</p></div>` : ''}
-<div class="customer-section">
-<h3>ผู้เช่า</h3>
-<div class="customer-box">
-<p class="name">${escapeHtml(tenant.full_name)}</p>
-<p class="detail">ห้อง ${escapeHtml(room.room_number)}</p>
-<p class="detail">โทร: ${escapeHtml(tenant.phone || 'ไม่ระบุ')}</p>
-</div>
-</div>
-<table>
-<thead><tr><th>ลำดับ</th><th>รายการ</th><th class="text-right">จำนวนเงิน</th></tr></thead>
-<tbody>
-${lineItems.map((item, idx) => `<tr><td>${idx + 1}</td><td>${escapeHtml(item.name)}</td><td class="text-right font-semibold">${(item.total || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td></tr>`).join('')}
-</tbody>
-</table>
-<div class="total-section">
-<div class="total-box">
-<span><b>รวมทั้งสิ้น</b></span>
-<span class="total-amount" style="margin-left:24px">${(payment.total_amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
-</div>
-</div>
-<div class="payment-info">
-<p>💳 โอนเงินได้ที่: ${escapeHtml(bankName)} ${escapeHtml(bankAccountNumber)} (${escapeHtml(bankAccountName)})</p>
-</div>
-<div class="footer"><p>ขอบคุณที่ใช้บริการ ${escapeHtml(buildingName)}</p></div>
-</div>
-</body></html>`;
-
-    const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html: htmlContent, options: { type: 'png', fullPage: true } })
-    });
-
-    if (!browserlessResponse.ok) throw new Error(`Browserless error: ${await browserlessResponse.text()}`);
-    const imageBlob = await browserlessResponse.blob();
-    const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
-    const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file: imageFile });
-    return file_url;
+    
 }
 
 Deno.serve(async (req) => {
