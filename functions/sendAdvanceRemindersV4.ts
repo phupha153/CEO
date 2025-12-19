@@ -302,7 +302,7 @@ Deno.serve(async (req) => {
         
         console.log(`\n✅ DONE! Sent: ${totalSent} | Time: ${result.time_taken}`);
 
-        
+        return Response.json(result);
 
     } catch (error) {
         console.error('\n❌ ERROR:', error.message);
