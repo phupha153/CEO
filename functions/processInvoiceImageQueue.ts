@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
  * ฟังก์ชันสำหรับสร้างรูปใบแจ้งหนี้และส่ง LINE แบบ Queue
- * Version: 3.0 - Optimized Scan & Fill Strategy (Final Verified)
+ * Version: 3.1 - Debugging Mode (ค้นหาสาเหตุ Upload Fail)
  */
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -34,36 +34,29 @@ function numberToThaiText(number) {
     const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
     const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
     const parts = number.toFixed(2).split('.');
-    const integerPart = parseInt(parts[0]);
-    const decimalPart = parseInt(parts[1]);
-
-    function convertInteger(num) {
-        if (num === 0) return '';
-        const numStr = num.toString();
-        const len = numStr.length;
-        let result = '';
+    
+    function convert(n) {
+        let res = '';
+        const s = n.toString();
+        const len = s.length;
         for (let i = 0; i < len; i++) {
-            const digit = parseInt(numStr[i]);
-            const position = len - i - 1;
+            const digit = parseInt(s[i]);
+            const pos = len - i - 1;
             if (digit === 0) continue;
-            if (position === 1) {
-                if (digit === 1) result += 'สิบ';
-                else if (digit === 2) result += 'ยี่สิบ';
-                else result += numbers[digit] + positions[position];
-            } else if (position === 0 && digit === 1 && len > 1 && parseInt(numStr[len-2]) !== 0) {
-                result += 'เอ็ด';
-            } else {
-                result += numbers[digit] + positions[position];
-            }
+            if (pos === 1 && digit === 1) res += 'สิบ';
+            else if (pos === 1 && digit === 2) res += 'ยี่สิบ';
+            else if (pos === 0 && digit === 1 && len > 1) res += 'เอ็ด';
+            else res += numbers[digit] + positions[pos];
         }
-        return result;
+        return res;
     }
-    let text = convertInteger(integerPart) + 'บาท';
-    if (decimalPart > 0) text += convertInteger(decimalPart) + 'สตางค์';
+    let text = convert(parseInt(parts[0])) + 'บาท';
+    if (parseInt(parts[1]) > 0) text += convert(parseInt(parts[1])) + 'สตางค์';
     else text += 'ถ้วน';
     return text;
 }
-// ⭐ ฟังก์ชันจัดรูปแบบวันที่ (ตัวที่ Error หาไม่เจอ)
+
+// ⭐ ฟังก์ชันจัดรูปแบบวันที่
 function formatDate(dateString) {
     if (!dateString) return '-';
     try {
@@ -73,32 +66,27 @@ function formatDate(dateString) {
     } catch { return '-'; }
 }
 
-// ⭐ ฟังก์ชันสร้างรูป invoice แบบ inline
+// ⭐ ฟังก์ชันสร้างรูป invoice แบบ inline (เพิ่ม Debug Log)
 async function generateInvoiceScreenshot(base44, paymentId, invoice) {
+    console.log(`📸 [Step 1] Start generating for ID: ${paymentId}`); // LOG
     const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
     if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
 
-const payment = invoice;
+    const payment = invoice;
     const recipient = invoice.recipient || {};
     const tenant = invoice.tenant || {};
     const room = invoice.room || {};
     const bank = invoice.bank || {};
 
-    // 1. เตรียมข้อมูลพื้นฐาน (Design ใหม่)
     const invoiceNo = `INV-${payment.id.slice(0, 8).toUpperCase()}`;
     const issueDate = formatDate(new Date().toISOString());
     const dueDate = formatDate(payment.due_date);
-    
-    // Config รูปภาพและชื่อตึก
     const logoUrl = recipient.building_logo || 'https://via.placeholder.com/100x100?text=Logo';
     const buildingName = recipient.building_name || 'Double Residence';
-    
-    // Config ผู้รับเงิน (ใช้ company หรือ lessor)
     const displayLessorName = recipient.company_name || recipient.lessor_name || 'ไม่ระบุชื่อผู้รับเงิน';
     const displayLessorAddress = recipient.company_address || recipient.lessor_address || '';
     const displayTaxId = recipient.company_tax_id || recipient.tax_id || '';
 
-    // 2. สร้างรายการสินค้า (Items Array)
     const items = [];
     if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
     if (payment.electricity_amount > 0) items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
@@ -108,13 +96,11 @@ const payment = invoice;
     if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
     if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
     
-    // จัดการ Late Fee
     const lateFee = Number(payment.late_fee_amount || 0);
     if (lateFee > 0) {
         items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: lateFee });
     }
 
-    // คำนวณยอดรวมใหม่จาก Items เพื่อความแม่นยำ
     const finalTotalAmount = items.reduce((sum, item) => sum + item.price, 0);
     const totalText = numberToThaiText(finalTotalAmount);
 
@@ -123,7 +109,6 @@ const payment = invoice;
         return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    // HTML Template ใหม่ (Sarabun)
     const htmlContent = `
     <!DOCTYPE html>
     <html lang="th">
@@ -274,6 +259,7 @@ const payment = invoice;
     </html>
     `;
 
+    console.log('📸 [Step 2] Sending to Browserless...');
     const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -284,22 +270,32 @@ const payment = invoice;
         })
     });
 
-    const lineItems = [];
-    if (payment.rent_amount > 0) lineItems.push({ name: 'ค่าเช่า', total: payment.rent_amount });
-    if (payment.electricity_amount > 0) lineItems.push({ name: `ค่าไฟฟ้า ${payment.electricity_units || 0} หน่วย`, total: payment.electricity_amount });
-    if (payment.water_amount > 0) lineItems.push({ name: `ค่าน้ำประปา ${payment.water_units || 0} หน่วย`, total: payment.water_amount });
-    if (payment.internet_amount > 0) lineItems.push({ name: 'ค่าอินเทอร์เน็ต', total: payment.internet_amount });
-    if (payment.common_fee_amount > 0) lineItems.push({ name: 'ค่าส่วนกลาง', total: payment.common_fee_amount });
-    if (payment.parking_fee_amount > 0) lineItems.push({ name: 'ค่าที่จอดรถ', total: payment.parking_fee_amount });
-    if (payment.other_amount > 0) lineItems.push({ name: 'ค่าใช้จ่ายอื่นๆ', total: payment.other_amount });
-    if (payment.late_fee_amount > 0) lineItems.push({ name: '⚠️ ค่าปรับชำระล่าช้า', total: payment.late_fee_amount });
-
+    if (!browserlessResponse.ok) throw new Error(`Browserless error: ${await browserlessResponse.text()}`);
+    const imageBlob = await browserlessResponse.blob();
     
+    // ⭐ LOG SIZE: ดูว่าได้รูปจริงไหม
+    console.log(`📸 [Step 3] Blob received. Size: ${imageBlob.size} bytes`); 
+    
+    const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
+    
+    console.log('☁️ [Step 4] Uploading to Base44 Storage...');
+    
+    // ⭐ LOG RESULT: ดูว่า Upload แล้วได้อะไรกลับมา
+    const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: imageFile });
+    console.log('☁️ [Step 5] Upload Result:', JSON.stringify(uploadResult));
+
+    // ⭐ SAFE ACCESS: พยายามดึง URL ทุกรูปแบบ
+    const file_url = uploadResult?.file_url || uploadResult?.url || uploadResult?.path || uploadResult?.data?.fullPath;
+    
+    if (!file_url) console.error('❌ [Step 6] file_url is missing in Upload Result!');
+    else console.log(`✅ [Step 6] Success! URL: ${file_url}`);
+
+    return file_url;
 }
 
 Deno.serve(async (req) => {
     console.log('========================================');
-    console.log('🖼️ PROCESS INVOICE IMAGE QUEUE (Smart Scan Mode)');
+    console.log('🖼️ PROCESS INVOICE IMAGE QUEUE (Debug Mode)');
     console.log(`📅 Timestamp: ${new Date().toISOString()}`);
     console.log('========================================');
 
@@ -320,17 +316,14 @@ Deno.serve(async (req) => {
             if (text && text.trim()) {
                 const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
-                batchSize = body.batch_size || 30; // Default 30 ถ้าไม่ส่งมา
+                batchSize = body.batch_size || 30;
                 concurrentLimit = body.concurrent_limit || 1;
                 skipLineSend = body.skip_line_send === true;
             }
         } catch (e) { console.log('⚠️ No valid JSON body'); }
 
         console.log(`📋 Target Branch: ${targetBranchId || 'ALL'}`);
-        console.log(`📦 Batch Size (Target): ${batchSize}`);
-        console.log(`🔄 Concurrent Limit: ${concurrentLimit}`);
 
-        // 1. Fetch Configs
         const configs = await base44.asServiceRole.entities.Config.list() || [];
         const getConfigValue = (key, branchId, defaultValue = '') => {
             if (branchId) {
@@ -341,28 +334,18 @@ Deno.serve(async (req) => {
             return globalConfig?.value || defaultValue;
         };
 
-        // -----------------------------------------------------------
-        // 2. Fetch Payments (Logic: Scan & Fill + Last Updated Sort)
-        // -----------------------------------------------------------
         const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
-        
-        let paymentsToProcess = []; // ตะกร้าใส่บิลที่จะเอาไปทำ
-        let dbSkip = 0;             // ตัวนับตำแหน่งใน Database
-        const dbFetchSize = 1000;   // ดึงทีละ 1,000 เพื่อประหยัด RAM
-        const maxScanLimit = 15000; // ⭐ ลิมิตการสแกนสูงสุด
+        let paymentsToProcess = [];
+        let dbSkip = 0;
+        const dbFetchSize = 1000;
+        const maxScanLimit = 15000;
         let hasMore = true;
 
-        console.log(`📥 Start Scanning for jobs (Max Scan: ${maxScanLimit})...`);
+        console.log(`📥 Start Scanning for jobs...`);
         
-        // วนลูปสแกนจนกว่าจะได้งานครบ (batchSize) หรือ สแกนจนทะลุลิมิต
         while (hasMore && paymentsToProcess.length < batchSize && dbSkip < maxScanLimit) {
-            
-            // ⭐ เรียงตาม -updated_date เพื่อให้บิลที่มีการแก้ไขมาตรวจสอบก่อนเสมอ
             const batch = await base44.asServiceRole.entities.Payment.filter(
-                paymentFilter, 
-                '-updated_date', 
-                dbFetchSize, 
-                dbSkip
+                paymentFilter, '-updated_date', dbFetchSize, dbSkip
             );
 
             if (!batch || batch.length === 0) {
@@ -370,11 +353,8 @@ Deno.serve(async (req) => {
                 break;
             }
 
-            // กรองใน RAM
             for (const p of batch) {
                 if (paymentsToProcess.length >= batchSize) break;
-
-                // ข้ามคนที่จ่ายแล้วหรือยกเลิก
                 if (p.status === 'paid' || p.status === 'cancelled') continue;
 
                 const needsImage = !p.invoice_image_url || 
@@ -382,18 +362,11 @@ Deno.serve(async (req) => {
                                    p.invoice_image_status === 'generating' ||
                                    !p.invoice_image_status;
                 
-                // เช็ค Hash แก้ไขข้อมูล
                 let needsRegenerate = false;
                 if (p.invoice_image_url && p.invoice_data_hash) {
-                    const currentHash = generatePaymentHash(p);
-                    if (currentHash !== p.invoice_data_hash) {
-                        needsRegenerate = true;
-                    }
+                    if (generatePaymentHash(p) !== p.invoice_data_hash) needsRegenerate = true;
                 }
-                
-                if (p.status === 'overdue' && p.late_fee_amount > 0 && !p.invoice_data_hash) {
-                    needsRegenerate = true;
-                }
+                if (p.status === 'overdue' && p.late_fee_amount > 0 && !p.invoice_data_hash) needsRegenerate = true;
 
                 const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', p.branch_id, 'false') === 'true';
                 const needsSend = autoSendEnabled && !p.bill_sent_date;
@@ -402,18 +375,15 @@ Deno.serve(async (req) => {
                     paymentsToProcess.push(p);
                 }
             }
-
             dbSkip += batch.length;
-            if (dbSkip > 0 && dbSkip % 2000 === 0) console.log(`🔎 Scanned ${dbSkip} items... Found ${paymentsToProcess.length} jobs.`);
         }
 
-        console.log(`📊 Scan Complete. Scanned total: ${dbSkip}. Found jobs: ${paymentsToProcess.length}`);
+        console.log(`📊 Found jobs: ${paymentsToProcess.length}`);
 
         if (paymentsToProcess.length === 0) {
             return Response.json({ success: true, message: 'ไม่มีบิลที่ต้องสร้างรูปหรือส่ง LINE', processed: 0 });
         }
 
-        // 3. Prepare Data
         const uniqueTenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id).filter(id => id))];
         const uniqueRoomIds = [...new Set(paymentsToProcess.map(p => p.room_id).filter(id => id))];
         
@@ -424,14 +394,11 @@ Deno.serve(async (req) => {
 
         const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
         const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
-        
-        // 4. Worker Queue
+
         let imageGenerated = 0, imageFailed = 0, lineSent = 0, lineFailed = 0;
         let allImageResults = [];
-        
-        console.log(`🔄 Starting continuous queue with ${concurrentLimit} concurrent workers`);
-
         let processedCount = 0;
+
         const processPayment = async (payment) => {
             const room = roomMap.get(payment.room_id);
             const tenant = tenantMap.get(payment.tenant_id);
@@ -458,6 +425,7 @@ Deno.serve(async (req) => {
                 const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId: payment.id });
                 if (!invoiceDataResult.data?.success || !invoiceDataResult.data?.invoice) throw new Error(invoiceDataResult.data?.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
 
+                // เรียกใช้ Function ที่มี Debug Log
                 const imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoiceDataResult.data.invoice);
 
                 if (imageUrl) {
@@ -500,7 +468,6 @@ Deno.serve(async (req) => {
         for (let i = 0; i < Math.min(concurrentLimit, paymentsToProcess.length); i++) workers.push(startNextJob());
         await Promise.all(workers);
 
-        // 5. Sending Notifications
         if (!skipLineSend) {
             console.log(`\n📤 Sending notifications...`);
             for (const result of allImageResults) {
@@ -561,7 +528,6 @@ Deno.serve(async (req) => {
             }
         }
 
-        // 6. Logging
         const totalElapsed = Date.now() - startTime;
         const summary = `สร้างรูป ${imageGenerated} ใบ, ส่ง LINE ${lineSent} ราย [${Math.round(totalElapsed/1000)}s]`;
         console.log(`\n✅ ${summary}`);
