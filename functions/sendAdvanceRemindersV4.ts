@@ -179,8 +179,8 @@ Deno.serve(async (req) => {
             }
 
             // 4. ดึง Tenant/Room เฉพาะสาขานี้ (ไม่กิน RAM)
-            const tenants = await base44.asServiceRole.entities.Tenant.filter({ branch_id: branchId }, '-id', 300, 0);
-            const rooms = await base44.asServiceRole.entities.Room.filter({ branch_id: branchId }, '-id', 300, 0);
+            const tenants = await base44.asServiceRole.entities.Tenant.filter({ branch_id: branchId }, '-id', 5000, 0);
+            const rooms = await base44.asServiceRole.entities.Room.filter({ branch_id: branchId }, '-id', 5000, 0);
             
             const tenantMap = new Map(tenants.map(t => [t.id, t]));
             const roomMap = new Map(rooms.map(r => [r.id, r]));
