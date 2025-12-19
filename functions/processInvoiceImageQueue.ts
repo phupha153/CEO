@@ -512,7 +512,7 @@ Deno.serve(async (req) => {
                 msg += ` ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH')}\n\n`;
 
                 msg += `  ชำระเงินได้ที่:\n`;
-                msg += `🏦 ${bankName} ${bankAcc}\n`
+                msg += `🏦 ${bankName} ${bankAcc}\n`  // <--- ขาด ; ท้ายบรรทัด
                 msg += `👤 ${bankOwner}\n\n`;
 
                 if (imageUrl) msg += `📄 ดูบิล: ${imageUrl}\n\n`;
