@@ -76,6 +76,8 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 Deno.serve(async (req) => {
     const VERSION = '🔥 V4-FIXED 🔥';
+    const START_TIME = Date.now();
+    const SAFETY_LIMIT_MS = 90 * 1000;
     
     console.log('\n\n');
     console.log('████████████████████████████████████████████████████');
