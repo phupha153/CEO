@@ -358,6 +358,11 @@ Deno.serve(async (req) => {
             for (const p of batch) {
                 if (paymentsToProcess.length >= batchSize) break;
                 if (p.status === 'paid' || p.status === 'cancelled') continue;
+                // 1. ตั้งกฎ: ถ้า updated_date เกิน 30 นาที ให้ถือว่าค้าง
+                const ZOMBIE_THRESHOLD_MS = 30 * 60 * 1000; // 30 นาที
+                const lastUpdate = p.updated_date ? new Date(p.updated_date).getTime() : 0;
+                const isStuckGenerating = p.invoice_image_status === 'generating' && 
+                                          (Date.now() - lastUpdate > ZOMBIE_THRESHOLD_MS);
 
                 const needsImage = !p.invoice_image_url || 
                                    p.invoice_image_status === 'pending' || 
