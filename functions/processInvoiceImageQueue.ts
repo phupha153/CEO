@@ -481,16 +481,21 @@ Deno.serve(async (req) => {
                 if (!result.success && !result.skipped) continue;
                 const { payment, room, tenant, imageUrl } = result;
                 
-                // --- 🟢 เพิ่ม LOG ตรงนี้ครับ 🟢 ---
+              // --- 🟢 แก้ไข LOG ตรงนี้ครับ 🟢 ---
                 const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', payment.branch_id, 'false') === 'true';
                 
                 console.log(`🔍 [Debug] ห้อง ${room?.room_number}: ` +
                             `AutoSend=${autoSendEnabled}, ` +
-                            `SentDate=${payment.bill_sent_date ? 'มีแล้ว' : 'ว่าง'}, ` +
-                            `LineID=${tenant?.line_user_id ? '✅มี' : '❌ไม่มี'}`);
+                            `Line=${tenant?.line_user_id ? '✅' : '❌'}, ` +
+                            `FB=${tenant?.facebook_user_id ? '✅' : '❌'} ` +  // เช็คว่ามีค่าไหม
+                            `[ID: ${tenant?.facebook_user_id || 'ว่าง'}]`); // ปริ้นค่าออกมาดูเลย
                 // ------------------------------------
-                const hasLineId = !!tenant?.line_user_id;
-                const hasFacebookId = !!tenant?.facebook_user_id;
+
+                if (!autoSendEnabled || payment.bill_sent_date) continue;
+
+                // เช็คเงื่อนไขส่ง
+                const hasLineId = !!tenant?.line_user_id;
+                const hasFacebookId = !!tenant?.facebook_user_id; // <-- ตรงนี้สำคัญ ต้องมีค่า
                 if (!hasLineId && !hasFacebookId) continue;
 
                 const branchId = payment.branch_id;
