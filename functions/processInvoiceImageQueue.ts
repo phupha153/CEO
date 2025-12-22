@@ -323,7 +323,10 @@ Deno.serve(async (req) => {
             return globalConfig?.value || defaultValue;
         };
 
-        const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
+     const paymentFilter = {
+    ...(targetBranchId ? { branch_id: targetBranchId } : {}),
+    status: 'pending' 
+};
         let paymentsToProcess = [];
         let dbSkip = 0;
         const dbFetchSize = 1000;
