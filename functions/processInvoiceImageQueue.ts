@@ -402,9 +402,10 @@ Deno.serve(async (req) => {
         const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
         const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
 
-        let imageGenerated = 0, imageFailed = 0, lineSent = 0, lineFailed = 0;
-        let allImageResults = [];
-        let processedCount = 0;
+        // เพิ่ม fbSent = 0 เข้าไปครับ
+        let imageGenerated = 0, imageFailed = 0, lineSent = 0, lineFailed = 0, fbSent = 0;
+        let allImageResults = [];
+        let processedCount = 0;
 
         const processPayment = async (payment) => {
             const room = roomMap.get(payment.room_id);
