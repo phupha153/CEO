@@ -318,7 +318,7 @@ Deno.serve(async (req) => {
             if (text && text.trim()) {
                 const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
-                batchSize = body.batch_size || 30;
+                batchSize = body.batch_size || 5;
                 concurrentLimit = body.concurrent_limit || 1;
                 skipLineSend = body.skip_line_send === true;
             }
