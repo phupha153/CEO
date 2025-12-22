@@ -1,6 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-// ⭐⭐⭐ VERSION: V4-FINAL - Filter ครั้งเดียวทุกอย่าง ⭐⭐⭐
+// =========================================================
+// 🛠️ HELPER FUNCTIONS (เครื่องมือช่วยงาน)
+// =========================================================
 
 function generatePaymentHash(payment) {
     const dataToHash = {
@@ -16,8 +18,7 @@ function generatePaymentHash(payment) {
         total_amount: payment.total_amount || 0,
         due_date: payment.due_date || ''
     };
-    const jsonStr = JSON.stringify(dataToHash);
-    return btoa(jsonStr).substring(0, 32);
+    return btoa(JSON.stringify(dataToHash)).substring(0, 32);
 }
 
 function numberToThaiText(number) {
@@ -57,260 +58,251 @@ function numberToThaiText(number) {
                 result += numbers[digit] + positions[position];
             }
         }
-        
         return result;
     }
     
     let text = convertInteger(integerPart) + 'บาท';
-    
     if (decimalPart > 0) {
         text += convertInteger(decimalPart) + 'สตางค์';
     } else {
         text += 'ถ้วน';
     }
-    
     return text;
 }
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// ฟังก์ชันส่ง Facebook แบบขนาน (เร็วกว่าเดิม 5 เท่า)
+async function sendFacebookBatch(base44, recipients, branchId) {
+    const BATCH_SIZE = 5; 
+    
+    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+        const chunk = recipients.slice(i, i + BATCH_SIZE);
+        const promises = chunk.map(r => 
+            base44.asServiceRole.functions.invoke('sendFacebookMessage', {
+                to: r.facebookUserId,
+                message: r.message,
+                imageUrl: r.imageUrl,
+                branch_id: branchId
+            }).catch(e => console.error(`⚠️ FB Error (${r.facebookUserId}):`, e.message))
+        );
+        await Promise.all(promises); // รอ 5 คนเสร็จพร้อมกัน
+    }
+}
+
+// =========================================================
+// 🚀 MAIN SERVER LOGIC
+// =========================================================
+
 Deno.serve(async (req) => {
-    const VERSION = '🔥 V4-FIXED 🔥';
+    const VERSION = '💎 V5-ENTERPRISE FULL 💎';
     const START_TIME = Date.now();
-    const SAFETY_LIMIT_MS = 90 * 1000;
+    const SAFETY_LIMIT_MS = 85 * 1000; // ตัดจบที่ 85 วินาที
     
     console.log('\n\n');
     console.log('████████████████████████████████████████████████████');
-    console.log('█  🚀 ADVANCE REMINDER ' + VERSION);
+    console.log('█  ' + VERSION);
     console.log('████████████████████████████████████████████████████');
     console.log('⏰ START:', new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }));
-    console.log('════════════════════════════════════════════════════\n');
     
     try {
         const base44 = createClientFromRequest(req);
-
-        // Parse request
-        let targetBranchId = null;
-        let testLineUserId = null;
-        let limit = 30;
-        try {
-            const text = await req.text();
-            if (text) {
-                const body = JSON.parse(text);
-                targetBranchId = body.branch_id || null;
-                testLineUserId = body.test_line_user_id || null;
-                limit = body.limit || 30;
-            }
-        } catch (parseError) {}
-
-        console.log('📋 Target Branch:', targetBranchId || 'ALL');
-        console.log('📋 Test Mode:', testLineUserId ? 'YES' : 'NO');
-        console.log('📋 Limit:', limit);
-
-        // Load configs
-        const configs = await base44.asServiceRole.entities.Config.list();
         
-        const getConfigValue = (key, defaultValue, branchId = null) => {
-            if (branchId) {
-                const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
-                if (branchConfig) return branchConfig.value;
-            }
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
-            return globalConfig?.value || defaultValue;
+        // 1. Parse Request
+        let reqBody = {};
+        try { reqBody = await req.json(); } catch(e) {}
+        const { branch_id: specificBranchId, test_line_user_id: testLineUserId } = reqBody;
+
+        // 2. Load Configs (โหลดครั้งเดียวใช้คุ้ม)
+        const allConfigs = await base44.asServiceRole.entities.Config.list();
+        
+        // ฟังก์ชันดึง Config แบบไม่ต้องยิง DB บ่อยๆ
+        const getConfig = (key, branchId, defaultVal) => {
+            const specific = allConfigs.find(c => c.key === key && c.branch_id === branchId);
+            if (specific) return specific.value;
+            const global = allConfigs.find(c => c.key === key && !c.branch_id);
+            return global ? global.value : defaultVal;
         };
 
-        const branchReminderConfigs = configs.filter(c => c.key === 'send_advance_reminder');
-        const enabledBranches = branchReminderConfigs.filter(c => c.value === 'true').map(c => c.branch_id);
-
-        console.log('\n📊 ENABLED BRANCHES:', enabledBranches.length, '/', branchReminderConfigs.length);
-
-        if (enabledBranches.length === 0) {
-            return Response.json({
-                success: true,
-                message: 'ไม่มีสาขาเปิดการแจ้งเตือนล่วงหน้า',
-                sent: 0
-            });
+        // 3. กำหนดสาขาเป้าหมาย
+        let targetBranches = [];
+        if (specificBranchId) {
+            targetBranches = [specificBranchId];
+        } else {
+            targetBranches = allConfigs
+                .filter(c => c.key === 'send_advance_reminder' && c.value === 'true')
+                .map(c => c.branch_id);
         }
-
-        // Calculate today
-        const now = new Date();
-        const thailandTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
-        const todayDateString = thailandTime.toISOString().split('T')[0];
-        console.log('📅 TODAY:', todayDateString);
-
-   // ------------------------------------------------------------------
-        // ⭐ เริ่มส่วนที่แก้ไขใหม่ (V5 Logic: Loop ทีละสาขา)
-        // ------------------------------------------------------------------
         
-        // ประกาศตัวแปรเก็บผลลัพธ์
+        // กรองรหัสสาขาซ้ำออก (Unique)
+        targetBranches = [...new Set(targetBranches)];
+
+        console.log(`📊 BRANCHES TO PROCESS: ${targetBranches.length}`);
+        
         let totalSent = 0;
-        let processLog = [];
-        
-        // วนลูปทำทีละสาขา (ใช้ enabledBranches จากโค้ดส่วนบนของคุณ)
-        for (const branchId of enabledBranches) {
+        let logs = [];
+
+        // -------------------------------------------------
+        // 🔄 OUTER LOOP: วนทีละสาขา
+        // -------------------------------------------------
+        for (const branchId of targetBranches) {
             
-            // 1. เช็คเวลา: ถ้าเกิน 1.30 นาที ให้หยุดทันที
+            // 🛑 Safety Cut: ถ้าเวลาใกล้หมด ให้หยุด
             if (Date.now() - START_TIME > SAFETY_LIMIT_MS) {
-                console.warn(`\n⚠️ เวลาหมด (1.30 นาที)! หยุดทำงานที่สาขา ID: ${branchId}`);
-                break; 
+                const msg = `⚠️ TIME LIMIT EXCEEDED! Stopped at branch ${branchId}`;
+                console.warn(msg);
+                logs.push(msg);
+                break;
             }
 
-            console.log(`\n🔹 กำลังประมวลผลสาขา ID: ${branchId}`);
-
-            // 2. คำนวณวันแจ้งเตือน
-            const advanceDays = parseInt(getConfigValue('bill_advance_notice_days', '3', branchId));
+            // คำนวณวัน
+            const advanceDays = parseInt(getConfig('bill_advance_notice_days', branchId, '3'));
             const targetDate = new Date();
             targetDate.setDate(targetDate.getDate() + advanceDays);
             const targetDateStr = targetDate.toISOString().split('T')[0];
+
+            console.log(`\n🔹 Processing Branch: ${branchId} | Due Date: ${targetDateStr}`);
+
+            // เตรียม Config ของสาขานี้
+            const branchConfigs = {
+                bankName: getConfig('bank_name', branchId, 'กสิกร'),
+                accNum: getConfig('bank_account_number', branchId, '0722835522'),
+                accName: getConfig('bank_account_name', branchId, 'ธนานนท์ พรมพักตร์'),
+                building: getConfig('building_name', branchId, 'W RESIDENTS')
+            };
+
+            // ⚡ PAGINATION LOOP: วนลูปย่อยเพื่อแก้ปัญหา Limit 100
+            let hasMore = true;
+            let offset = 0;
+            const BRANCH_BATCH_LIMIT = 500; // ทำสูงสุด 500 ใบต่อสาขาต่อรอบ (กันค้าง)
             
-            console.log(`   📅 หาวันครบกำหนด: ${targetDateStr}`);
+            while (hasMore && offset < BRANCH_BATCH_LIMIT) {
+                
+                // ดึง Payments ทีละ 50 ใบ
+                const payments = await base44.asServiceRole.entities.Payment.filter({
+                    branch_id: branchId,
+                    status: { $ne: 'paid' },
+                    due_date: targetDateStr
+                }, '-id', 50, offset);
 
-            // 3. ดึงข้อมูลแบบเจาะจง (Targeted Query)
-            // สาขานี้ + ยังไม่จ่าย + วันที่ตรงเป๊ะ
-            const payments = await base44.asServiceRole.entities.Payment.filter({
-                branch_id: branchId,
-                status: { $ne: 'paid' },
-                due_date: targetDateStr
-            }, '-id', 100, 0); // Limit 100 ใบต่อสาขา
+                if (payments.length === 0) {
+                    hasMore = false;
+                    break;
+                }
 
-            if (payments.length === 0) {
-                console.log('   ✨ ไม่มีบิลที่ต้องส่ง');
-                continue;
-            }
+                // โหลด Tenant/Room มาแคชไว้ (เฉพาะของ 50 ใบนี้จะดีมาก แต่ API จำกัด เลยโหลด buffer ไว้)
+                const tenants = await base44.asServiceRole.entities.Tenant.filter({ branch_id: branchId }, '-id', 1000, 0); 
+                const rooms = await base44.asServiceRole.entities.Room.filter({ branch_id: branchId }, '-id', 1000, 0);
+                
+                const tenantMap = new Map(tenants.map(t => [t.id, t]));
+                const roomMap = new Map(rooms.map(r => [r.id, r]));
 
-            // 4. ดึง Tenant/Room เฉพาะสาขานี้ (ไม่กิน RAM)
-            const tenants = await base44.asServiceRole.entities.Tenant.filter({ branch_id: branchId }, '-id', 5000, 0);
-            const rooms = await base44.asServiceRole.entities.Room.filter({ branch_id: branchId }, '-id', 5000, 0);
-            
-            const tenantMap = new Map(tenants.map(t => [t.id, t]));
-            const roomMap = new Map(rooms.map(r => [r.id, r]));
+                const recipients = [];
 
-            const recipients = [];
-            
-            // เตรียม Config ธนาคาร
-            const branchBankName = getConfigValue('bank_name', 'กสิกร', branchId);
-            const branchBankAccountNumber = getConfigValue('bank_account_number', '0722835522', branchId);
-            const branchBankAccountName = getConfigValue('bank_account_name', 'ธนานนท์ พรมพักตร์', branchId);
-            const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', branchId);
-
-            // 5. สร้างข้อความ
-            for (const payment of payments) {
-                // กรองเบื้องต้น
-                if (payment.advance_reminder_sent_date || payment.bill_sent_date) continue;
-                if (!payment.invoice_image_url) continue;
-
-                // เช็ค Hash
-                if (payment.invoice_data_hash) {
-                    const currentHash = generatePaymentHash(payment);
-                    if (currentHash !== payment.invoice_data_hash) {
-                        console.error('   ❌ Hash ไม่ตรง ข้าม...');
-                        continue;
+                // วนลูปสร้างข้อความ
+                for (const payment of payments) {
+                    // Filter Logic
+                    if (payment.advance_reminder_sent_date || payment.bill_sent_date) continue;
+                    if (!payment.invoice_image_url) continue;
+                    
+                    // Hash Check
+                    if (payment.invoice_data_hash) {
+                         const currentHash = generatePaymentHash(payment);
+                         if (currentHash !== payment.invoice_data_hash) continue;
                     }
+
+                    const tenant = tenantMap.get(payment.tenant_id);
+                    const room = roomMap.get(payment.room_id);
+
+                    if (!tenant || (!tenant.line_user_id && !tenant.facebook_user_id)) continue;
+
+                    // 📝 MESSAGE CONSTRUCTION (แบบเต็ม)
+                    let message = `📢 ${branchConfigs.building} - แจ้งเตือนค่าเช่า\n\n`;
+                    message += `สวัสดีคุณ ${tenant.full_name}\nห้อง ${room?.room_number || 'N/A'}\n\n`;
+                    message += `รายละเอียดค่าใช้จ่าย:\n━━━━━━━━━━━━━━━━━━━━\n`;
+                    if (payment.rent_amount > 0) message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+                    if (payment.electricity_amount > 0) message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
+                    if (payment.water_amount > 0) message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
+                    if (payment.internet_amount > 0) message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
+                    if (payment.common_fee_amount > 0) message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
+                    message += `━━━━━━━━━━━━━━━━━━━━\n`;
+                    message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
+                    message += `(${numberToThaiText(payment.total_amount)})\n\n`;
+                    message += `📅 ครบกำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
+                    message += `สถานะ: รอชำระ\n\n💳 โอนเงินได้ที่: ${branchConfigs.bankName} ${branchConfigs.accNum} (${branchConfigs.accName})\n\n`;
+                    if (payment.invoice_image_url) message += `📄 ดูใบแจ้งหนี้: ${payment.invoice_image_url}\n\n`;
+                    message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
+
+                    recipients.push({
+                        lineUserId: tenant.line_user_id,
+                        facebookUserId: tenant.facebook_user_id,
+                        imageUrl: payment.invoice_image_url,
+                        message: message,
+                        metadata: { paymentId: payment.id }
+                    });
                 }
 
-                const tenant = tenantMap.get(payment.tenant_id);
-                const room = roomMap.get(payment.room_id);
+                // เริ่มกระบวนการส่ง (Sending Phase)
+                if (recipients.length > 0) {
+                    console.log(`   📤 Sending batch of ${recipients.length} messages...`);
 
-                if (!tenant || (!tenant.line_user_id && !tenant.facebook_user_id)) continue;
-
-                // สร้าง Message
-                let message = `📢 ${branchBuildingName} - แจ้งเตือนค่าเช่า\n\n`;
-                message += `สวัสดีคุณ ${tenant.full_name}\nห้อง ${room?.room_number || 'N/A'}\n\n`;
-                message += `รายละเอียดค่าใช้จ่าย:\n━━━━━━━━━━━━━━━━━━━━\n`;
-                if (payment.rent_amount > 0) message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
-                if (payment.electricity_amount > 0) message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-                if (payment.water_amount > 0) message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
-                if (payment.internet_amount > 0) message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
-                if (payment.common_fee_amount > 0) message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
-                message += `━━━━━━━━━━━━━━━━━━━━\n`;
-                message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
-                message += `(${numberToThaiText(payment.total_amount)})\n\n`;
-                message += `📅 ครบกำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
-                message += `สถานะ: รอชำระ\n\n💳 โอนเงินได้ที่: ${branchBankName} ${branchBankAccountNumber} (${branchBankAccountName})\n\n`;
-                if (payment.invoice_image_url) message += `📄 ดูใบแจ้งหนี้: ${payment.invoice_image_url}\n\n`;
-                message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
-
-                recipients.push({
-                    lineUserId: tenant.line_user_id,
-                    facebookUserId: tenant.facebook_user_id,
-                    imageUrl: payment.invoice_image_url,
-                    message: message,
-                    metadata: { paymentId: payment.id, branchId: branchId }
-                });
-            }
-
-            // 6. ส่งข้อความ (Batch Send)
-            if (recipients.length > 0) {
-                console.log(`   📤 กำลังส่ง ${recipients.length} ข้อความ...`);
-                
-                // LINE
-                const lineRecipients = recipients.filter(r => r.lineUserId);
-                if (lineRecipients.length > 0) {
-                    if (testLineUserId) {
-                        // Test Mode
-                        await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                            recipients: [{ lineUserId: testLineUserId, message: lineRecipients[0].message, imageUrl: lineRecipients[0].imageUrl }]
-                        });
-                        console.log('   🧪 Test Sent (LINE)');
-                    } else {
-                        // Real Mode
-                        await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                            recipients: lineRecipients,
-                            options: { batchSize: 10, delayBetweenMessages: 100 }
-                        });
+                    // 1. Send LINE
+                    const lineUsers = recipients.filter(r => r.lineUserId);
+                    if (lineUsers.length > 0) {
+                         if (testLineUserId) {
+                             // Test Mode
+                             await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                                recipients: [{ lineUserId: testLineUserId, message: lineUsers[0].message, imageUrl: lineUsers[0].imageUrl }]
+                            });
+                            console.log('   🧪 Test LINE Sent');
+                         } else {
+                             // Production Mode
+                             await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                                recipients: lineUsers,
+                                options: { batchSize: 10, delayBetweenMessages: 50 }
+                            });
+                         }
                     }
-                }
-                
-                // Facebook
-                const fbRecipients = recipients.filter(r => r.facebookUserId);
-                for (const r of fbRecipients) {
-                    try {
-                        await base44.asServiceRole.functions.invoke('sendFacebookMessage', {
-                            to: r.facebookUserId,
-                            message: r.message,
-                            imageUrl: r.imageUrl,
-                            branch_id: branchId
-                        });
-                    } catch(e) {}
+
+                    // 2. Send Facebook (Parallel Batch - NEW!)
+                    const fbUsers = recipients.filter(r => r.facebookUserId);
+                    if (fbUsers.length > 0) {
+                        await sendFacebookBatch(base44, fbUsers, branchId);
+                    }
+
+                    // 3. Update Status
+                    const nowIso = new Date().toISOString();
+                    await Promise.all(recipients.map(r => 
+                        base44.asServiceRole.entities.Payment.update(r.metadata.paymentId, { 
+                            advance_reminder_sent_date: nowIso,
+                            bill_sent_date: nowIso
+                        }).catch(e => console.error(`Update fail ID ${r.metadata.paymentId}:`, e.message))
+                    ));
+
+                    totalSent += recipients.length;
                 }
 
-                // Update Status (สำคัญ)
-                const nowIso = new Date().toISOString();
-                await Promise.all(recipients.map(r => 
-                    base44.asServiceRole.entities.Payment.update(r.metadata.paymentId, { 
-                        advance_reminder_sent_date: nowIso,
-                        bill_sent_date: nowIso
-                    }).catch(e => console.error(e))
-                ));
-                
-                totalSent += recipients.length;
-                processLog.push(`Branch ${branchId}: ${recipients.length} sent`);
+                offset += 50; // ขยับไปหน้าถัดไป
+                await delay(100); // พักหายใจนิดนึงระหว่าง Batch ย่อย
             }
-
-            // พัก 0.2 วินาทีก่อนไปสาขาถัดไป
-            await delay(200);
+            
+            logs.push(`Branch ${branchId}: Done (Sent ${totalSent} total)`);
+            await delay(100); // พักหายใจระหว่าง Branch
         }
 
-        // สร้าง Result object ใหม่ (แทนตัวเก่าที่ลบไป)
-        const result = {
+        const duration = (Date.now() - START_TIME) / 1000;
+        console.log(`\n✅ COMPLETELY DONE! Sent: ${totalSent} | Duration: ${duration}s`);
+
+        return Response.json({
             success: true,
-            message: `ประมวลผลเสร็จสิ้น (Limit 1.30m)`,
+            version: VERSION,
             sent: totalSent,
-            log: processLog,
-            time_taken: `${(Date.now() - START_TIME)/1000}s`
-        };
-        
-        console.log(`\n✅ DONE! Sent: ${totalSent} | Time: ${result.time_taken}`);
+            logs: logs,
+            duration: `${duration}s`
+        });
 
-        return Response.json(result);
-
-    } catch (error) {
-        console.error('\n❌ ERROR:', error.message);
-        console.error('Stack:', error.stack);
-        return Response.json({ 
-            success: false,
-            error: error.message,
-            stack: error.stack
-        }, { status: 500 });
+    } catch (err) {
+        console.error('❌ FATAL ERROR:', err);
+        return Response.json({ error: err.message, stack: err.stack }, { status: 500 });
     }
 });
