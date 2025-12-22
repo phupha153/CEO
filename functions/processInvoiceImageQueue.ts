@@ -457,15 +457,17 @@ const getConfig = (key, branchId) => {
         return item;
     }
 
- const worker = async (payment) => {
-        // เช็คเวลา ถ้าใกล้หมดเวลาให้หยุด
+// ============================================================
+    // 👷 WORKER ฉบับสมบูรณ์ (Message สวย + ฉลาด + ไม่พัง)
+    // ============================================================
+    const worker = async (payment) => {
+        // 1. เช็คเวลา (ถ้าใกล้หมดเวลาให้หยุดทำงานก่อนโดนตัด)
         if (Date.now() - startTime > CONFIG.MAX_EXECUTION_TIME_MS) return;
 
         try {
-            // ⭐ 1. พัก 2 วินาที (แก้ปัญหา Rate Limit 429)
-            await delay(2000);
+            await delay(2000); // พัก 2 วินาที (ป้องกัน Rate Limit)
 
-            // ดึงข้อมูล
+            // 2. ดึงข้อมูล
             const t = await getEntity('tenants', payment.tenant_id);
             const r = await getEntity('rooms', payment.room_id);
             const branchName = getConfig('building_name', payment.branch_id) || `Branch-${payment.branch_id}`;
@@ -473,60 +475,102 @@ const getConfig = (key, branchId) => {
             console.log(`--------------------------------------------------`);
             console.log(`⚙️ เริ่มงาน: [${branchName}] ห้อง ${r.room_number || '?'} (${payment.id})`);
 
-            // อัปเดตสถานะ
+            // อัปเดตสถานะเป็นกำลังทำ
             await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'generating' });
             
-           const recipient = {
-                // แก้จาก p.branch_id เป็น payment.branch_id ทั้งหมดครับ
-                building_name: getConfig('building_name', payment.branch_id) || branchName,
-                
+            // 3. เตรียมข้อมูลผู้รับเงินและธนาคาร
+            const recipient = {
+                building_name: branchName,
                 building_logo: getConfig('building_logo', payment.branch_id) || 'https://via.placeholder.com/150',
-                
                 company_address: getConfig('building_address', payment.branch_id) || 'Bangkok, Thailand',
-                
-                lessor_name: getConfig('lessor_name', payment.branch_id) || getConfig('company_name', payment.branch_id) || 'นิติบุคคล',
-                
+                lessor_name: getConfig('lessor_name', payment.branch_id) || 'นิติบุคคล',
                 tax_id: getConfig('company_tax_id', payment.branch_id) || '',
-
-                // แก้ตรงนี้ด้วย
-                building_phone: getConfig('contact_phone', payment.branch_id) || getConfig('company_phone', payment.branch_id) || ''
+                building_phone: getConfig('contact_phone', payment.branch_id) || ''
             };
             const bank = {
-                name: getConfig('bank_name', payment.branch_id),
-                account_number: getConfig('bank_account_number', payment.branch_id),
-                account_name: getConfig('bank_account_name', payment.branch_id)
+                name: getConfig('bank_name', payment.branch_id) || 'ธนาคาร',
+                account_number: getConfig('bank_account_number', payment.branch_id) || '-',
+                account_name: getConfig('bank_account_name', payment.branch_id) || '-'
             };
 
-            // สร้างรูป
+            // 4. สร้างรูปใบแจ้งหนี้
             const invoiceNo = `INV-${payment.id.slice(0,6).toUpperCase()}`;
             const html = generateInvoiceHTML(payment, t, r, recipient, bank, invoiceNo);
             const imageUrl = await generateAndUploadImage(base44, payment.id, html);
-            console.log(`📸 สร้างรูปเสร็จ: ${imageUrl ? 'OK' : 'Failed'}`);
+            console.log(`📸 รูปเสร็จแล้ว`);
 
-            // ⭐ 2. ระบบนักสืบ (เช็คละเอียดว่าทำไมไม่ส่งไลน์)
+            // 5. 📝 สร้างข้อความ (Message Builder)
+            let message = `📢 แจ้งเตือนค่าเช่า\n${recipient.building_name}\n`;
+            message += `สวัสดีคุณ ${t.full_name}\nห้อง ${r.room_number || 'N/A'}\n\n`;
+            
+            message += `🧾 รายละเอียด:\n`;
+            if (payment.rent_amount > 0) message += `• ค่าเช่า: ${payment.rent_amount.toLocaleString()} บ.\n`;
+            if (payment.electricity_amount > 0) message += `• ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บ.\n`;
+            if (payment.water_amount > 0) message += `• ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บ.\n`;
+            if (payment.common_fee_amount > 0) message += `• ส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บ.\n`;
+            if (payment.parking_fee_amount > 0) message += `• จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บ.\n`;
+            if (payment.internet_amount > 0) message += `• เน็ต: ${payment.internet_amount.toLocaleString()} บ.\n`;
+            if (payment.other_amount > 0) message += `• อื่นๆ: ${payment.other_amount.toLocaleString()} บ.\n`;
+            if (payment.late_fee_amount > 0) message += `• ค่าปรับ: ${payment.late_fee_amount.toLocaleString()} บ.\n`;
+            
+            message += `--------------------\n`;
+            message += `💰 ยอดรวม: ${payment.total_amount.toLocaleString()} บาท\n`;
+            message += `(${numberToThaiText(payment.total_amount)})\n\n`;
+            
+            const dueDateStr = new Date(payment.due_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+            message += `📅 ครบกำหนด: ${dueDateStr}\n`;
+            message += `💳 โอนเงิน: ${bank.name} ${bank.account_number}\n(${bank.account_name})\n\n`;
+            
+            if (imageUrl) message += `📄 ดูบิล: ${imageUrl}\n\n`;
+            message += `📸 โอนแล้วรบกวนส่งสลิปนะคะ ขอบคุณค่ะ 🙏`;
+
+            // 6. 📤 ระบบส่งข้อความ (Smart Send)
             const autoSend = getConfig('auto_send_bills_after_generation', payment.branch_id);
             const lineToken = getConfig('line_channel_access_token', payment.branch_id);
+            const fbToken = getConfig('facebook_page_access_token', payment.branch_id);
             
             let sent = false;
-            let logReason = "";
+            let logMsg = "";
 
-            if (autoSend !== 'true') {
-                logReason = `❌ ไม่ส่ง: Config ปิดอยู่ (ค่าปัจจุบันคือ "${autoSend}" ต้องแก้เป็น "true")`;
-            } else if (payment.bill_sent_date) {
-                logReason = `⚠️ ไม่ส่ง: เคยส่งไปแล้วเมื่อ ${payment.bill_sent_date}`;
-            } else if (!t.line_user_id) {
-                logReason = `⚠️ ไม่ส่ง: ผู้เช่าไม่มี LINE ID`;
-            } else if (!lineToken) {
-                logReason = `❌ ไม่ส่ง: ไม่มี Token ใน Config`;
-            } else {
-                // ถ้าผ่านทุกด่าน ถึงจะส่ง
-                console.log(`📤 กำลังส่ง LINE หาคุณ ${t.full_name}...`);
-                sent = await sendNotification(payment, t, r, recipient, bank, imageUrl, configs);
-                logReason = sent ? "✅ ส่ง LINE สำเร็จ" : "❌ ส่งไม่ผ่าน (API Error)";
+            if (autoSend !== 'true') logMsg = `ข้าม: Config ปิดอยู่`;
+            else if (payment.bill_sent_date) logMsg = `ข้าม: เคยส่งแล้ว`;
+            else if (!t.line_user_id && !t.facebook_user_id) logMsg = `ข้าม: ไม่มีข้อมูลติดต่อ (LINE/FB)`;
+            else {
+                console.log(`📤 กำลังส่งข้อความ...`);
+                let channels = [];
+
+                // ส่ง LINE
+                if (t.line_user_id && lineToken) {
+                    try {
+                        await fetch('https://api.line.me/v2/bot/message/push', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${lineToken}`},
+                            body: JSON.stringify({to: t.line_user_id, messages: [{type: 'text', text: message}]})
+                        });
+                        sent = true;
+                        channels.push("LINE");
+                    } catch(e) { console.error(`❌ LINE Error: ${e.message}`); }
+                }
+
+                // ส่ง Facebook
+                if (t.facebook_user_id && fbToken) {
+                    try {
+                        await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({ recipient: { id: t.facebook_user_id }, message: { text: message }, messaging_type: 'MESSAGE_TAG', tag: 'CONFIRMED_EVENT_UPDATE' })
+                        });
+                        sent = true;
+                        channels.push("FB");
+                    } catch(e) { console.error(`❌ FB Error: ${e.message}`); }
+                }
+
+                if (sent) logMsg = `✅ ส่งสำเร็จทาง: [${channels.join(', ')}]`;
+                else logMsg = `❌ ส่งไม่ผ่านสักทาง`;
             }
-            console.log(`📝 ผลการส่งไลน์: ${logReason}`);
+            console.log(logMsg);
 
-            // บันทึกผล
+            // 7. บันทึกผลลงฐานข้อมูล
             await base44.asServiceRole.entities.Payment.update(payment.id, {
                 invoice_image_url: imageUrl,
                 invoice_image_status: 'completed',
@@ -540,7 +584,6 @@ const getConfig = (key, branchId) => {
 
         } catch (e) {
             console.error(`❌ พังที่ห้อง ${payment.room_id}: ${e.message}`);
-            // ถ้าโดนบล็อก ให้พักยาว 5 วิ
             if (e.message.includes('429')) {
                 console.log('⚠️ เจอ Rate Limit! พัก 5 วินาที...');
                 await delay(5000);
