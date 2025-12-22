@@ -476,11 +476,15 @@ const getConfig = (key, branchId) => {
             // อัปเดตสถานะ
             await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'generating' });
             
-            const recipient = {
-                building_name: branchName,
-                building_logo: 'https://via.placeholder.com/150',
-                company_address: 'Bangkok, Thailand',
-                lessor_name: 'นิติบุคคล'
+           const recipient = {
+                building_name: getConfig('building_name', p.branch_id) || branchName,
+                building_logo: getConfig('building_logo', p.branch_id) || 'https://via.placeholder.com/150',
+                company_address: getConfig('building_address', p.branch_id) || 'Bangkok, Thailand',
+                lessor_name: getConfig('lessor_name', p.branch_id) || getConfig('company_name', p.branch_id) || 'นิติบุคคล',
+                tax_id: getConfig('company_tax_id', p.branch_id) || '',
+
+                // 👇👇 เพิ่มบรรทัดนี้ครับ 👇👇
+                building_phone: getConfig('contact_phone', p.branch_id) || getConfig('company_phone', p.branch_id) || ''
             };
             const bank = {
                 name: getConfig('bank_name', payment.branch_id),
