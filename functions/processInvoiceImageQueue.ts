@@ -482,6 +482,11 @@ Deno.serve(async (req) => {
                 const { payment, room, tenant, imageUrl } = result;
                 
                 const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', payment.branch_id, 'false') === 'true';
+              onsole.log(`🔍 [Debug] ห้อง ${room?.room_number}: ` +
+                            `AutoSend=${autoSendEnabled}, ` +
+                            `SentDate=${payment.bill_sent_date ? 'มีแล้ว' : 'ว่าง'}, ` +
+                            `LineID=${tenant?.line_user_id ? '✅มี' : '❌ไม่มี'}`);
+                // ------------------------------------
                 if (!autoSendEnabled || payment.bill_sent_date) continue;
                 
                 const hasLineId = !!tenant?.line_user_id;
