@@ -330,7 +330,7 @@ Deno.serve(async (req) => {
         let paymentsToProcess = [];
         let dbSkip = 0;
         const dbFetchSize = 1000;
-        const maxScanLimit = 15000;
+        const maxScanLimit = 100000;
         let hasMore = true;
 
         console.log(`📥 Start Scanning jobs...`);
