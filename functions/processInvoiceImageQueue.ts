@@ -1,553 +1,587 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
- * 💎 V5.0 ENTERPRISE SCALABLE EDITION (Fixed Design + White Background)
- * - แก้ไขเรื่องรูปพื้นหลังดำเรียบร้อย (บังคับพื้นขาวใน CSS + Browserless)
- * - ใช้ดีไซน์ใหม่ (Sarabun Font, Minimal Layout)
- * - ระบบส่งแจ้งเตือน LINE/FB เหมือนเดิม
- */
-
-// ==========================================
-// ⚙️ CONFIGURATION
-// ==========================================
-const CONFIG = {
-    DEFAULT_BATCH_SIZE: 5,
-    CONCURRENT_WORKERS: 2,
-    MAX_EXECUTION_TIME_MS: 85000,
-    RETRY_ATTEMPTS: 3,
-    BROWSERLESS_TIMEOUT: 30000,
-    ZOMBIE_THRESHOLD_MS: 30 * 60 * 1000
-};
+ * ฟังก์ชันสำหรับสร้างรูปใบแจ้งหนี้และส่ง LINE แบบ Queue
+ * Version: 4.0 - Hybrid (Beautiful Invoice + New Message Format)
+ */
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// ==========================================
-// 🛡️ UTILITIES
-// ==========================================
-
-async function callWithRetry(fn, context = '') {
-    let lastError;
-    for (let i = 0; i < CONFIG.RETRY_ATTEMPTS; i++) {
-        try {
-            return await fn();
-        } catch (error) {
-            lastError = error;
-            if (i < CONFIG.RETRY_ATTEMPTS - 1) {
-                const waitTime = 1000 * Math.pow(2, i);
-                console.warn(`⚠️ [${context}] Retry ${i + 1} in ${waitTime}ms...`);
-                await delay(waitTime);
-            }
-        }
-    }
-    throw lastError;
-}
-
+// ⭐ ฟังก์ชันสร้าง hash จากข้อมูลบิล
 function generatePaymentHash(payment) {
-    const dataToHash = {
-        rent: payment.rent_amount || 0,
-        water: { u: payment.water_units || 0, a: payment.water_amount || 0 },
-        elec: { u: payment.electricity_units || 0, a: payment.electricity_amount || 0 },
-        fees: {
-            net: payment.internet_amount || 0,
-            common: payment.common_fee_amount || 0,
-            park: payment.parking_fee_amount || 0,
-            other: payment.other_amount || 0,
-            late: payment.late_fee_amount || 0
-        },
-        total: payment.total_amount || 0,
-        due: payment.due_date || '',
-        status: payment.status || 'pending'
-    };
-    return btoa(JSON.stringify(dataToHash)).substring(0, 32);
+    const dataToHash = {
+        rent_amount: payment.rent_amount || 0,
+        water_units: payment.water_units || 0,
+        water_amount: payment.water_amount || 0,
+        electricity_units: payment.electricity_units || 0,
+        electricity_amount: payment.electricity_amount || 0,
+        internet_amount: payment.internet_amount || 0,
+        common_fee_amount: payment.common_fee_amount || 0,
+        parking_fee_amount: payment.parking_fee_amount || 0,
+        other_amount: payment.other_amount || 0,
+        late_fee_amount: payment.late_fee_amount || 0,
+        total_amount: payment.total_amount || 0,
+        due_date: payment.due_date || '',
+        status: payment.status || 'pending'
+    };
+    const jsonStr = JSON.stringify(dataToHash);
+    return btoa(jsonStr).substring(0, 32);
 }
 
+// ⭐ ฟังก์ชันแปลงตัวเลขเป็นคำอ่านภาษาไทย
 function numberToThaiText(number) {
-    if (!number || isNaN(number) || number === 0) return 'ศูนย์บาทถ้วน';
-    const numStr = number.toFixed(2);
-    const [baht, satang] = numStr.split('.');
-    const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
-    const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
-    
-    const convert = (s) => {
-        let res = '';
-        const len = s.length;
-        for (let i = 0; i < len; i++) {
-            const digit = parseInt(s[i]);
-            const pos = len - i - 1;
-            if (digit === 0) continue;
-            if (pos === 1 && digit === 1) res += 'สิบ';
-            else if (pos === 1 && digit === 2) res += 'ยี่สิบ';
-            else if (pos === 0 && digit === 1 && len > 1) res += 'เอ็ด';
-            else res += numbers[digit] + positions[pos];
-        }
-        return res;
-    };
-    
-    let text = convert(baht) + 'บาท';
-    if (parseInt(satang) > 0) text += convert(satang) + 'สตางค์';
-    else text += 'ถ้วน';
-    return text;
+    if (number === undefined || number === null || isNaN(number) || number === 0) return 'ศูนย์บาทถ้วน';
+    const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+    const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+    const parts = number.toFixed(2).split('.');
+    
+    function convert(n) {
+        let res = '';
+        const s = n.toString();
+        const len = s.length;
+        for (let i = 0; i < len; i++) {
+            const digit = parseInt(s[i]);
+            const pos = len - i - 1;
+            if (digit === 0) continue;
+            if (pos === 1 && digit === 1) res += 'สิบ';
+            else if (pos === 1 && digit === 2) res += 'ยี่สิบ';
+            else if (pos === 0 && digit === 1 && len > 1) res += 'เอ็ด';
+            else res += numbers[digit] + positions[pos];
+        }
+        return res;
+    }
+    let text = convert(parseInt(parts[0])) + 'บาท';
+    if (parseInt(parts[1]) > 0) text += convert(parseInt(parts[1])) + 'สตางค์';
+    else text += 'ถ้วน';
+    return text;
 }
 
+// ⭐ ฟังก์ชันจัดรูปแบบวันที่
 function formatDate(dateString) {
-    if (!dateString) return '-';
-    try {
-        const date = new Date(dateString);
-        const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
-        return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear() + 543}`;
-    } catch { return '-'; }
+    if (!dateString) return '-';
+    try {
+        const date = new Date(dateString);
+        const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+        return `${date.getDate()} ${thaiMonths[date.getMonth()]} ${date.getFullYear() + 543}`;
+    } catch { return '-'; }
 }
 
-function escapeHtml(text) {
-    if (!text) return '';
-    return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// ⭐ ฟังก์ชันสร้างรูป invoice แบบ inline (Design ใหม่ Sarabun)
+async function generateInvoiceScreenshot(base44, paymentId, invoice) {
+    console.log(`📸 [Step 1] Start generating for ID: ${paymentId}`);
+    const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
+    if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
+
+    const payment = invoice;
+    const recipient = invoice.recipient || {};
+    const tenant = invoice.tenant || {};
+    const room = invoice.room || {};
+    const bank = invoice.bank || {};
+
+    const invoiceNo = `INV-${payment.id.slice(0, 8).toUpperCase()}`;
+    const issueDate = formatDate(new Date().toISOString());
+    const dueDate = formatDate(payment.due_date);
+    const logoUrl = recipient.building_logo || 'https://via.placeholder.com/100x100?text=Logo';
+    const buildingName = recipient.building_name || 'Double Residence';
+    const displayLessorName = recipient.company_name || recipient.lessor_name || 'ไม่ระบุชื่อผู้รับเงิน';
+    const displayLessorAddress = recipient.company_address || recipient.lessor_address || '';
+    const displayTaxId = recipient.company_tax_id || recipient.tax_id || '';
+
+    const items = [];
+    if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
+    if (payment.electricity_amount > 0) items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
+    if (payment.water_amount > 0) items.push({ name: `ค่าน้ำ (${payment.water_units || 0} หน่วย)`, qty: 1, price: payment.water_amount });
+    if (payment.common_fee_amount > 0) items.push({ name: 'ค่าส่วนกลาง', qty: 1, price: payment.common_fee_amount });
+    if (payment.parking_fee_amount > 0) items.push({ name: 'ค่าที่จอดรถ', qty: 1, price: payment.parking_fee_amount });
+    if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
+    if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
+    
+    const lateFee = Number(payment.late_fee_amount || 0);
+    if (lateFee > 0) {
+        items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: lateFee });
+    }
+
+    const finalTotalAmount = items.reduce((sum, item) => sum + item.price, 0);
+    const totalText = numberToThaiText(finalTotalAmount);
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="th">
+    <head>
+        <meta charset="UTF-8">
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+        <style>
+            * { box-sizing: border-box; }
+            body { font-family: 'Sarabun', sans-serif; padding: 40px; background: #fff; color: #333; }
+            .container { max-width: 800px; margin: 0 auto; background: white; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
+            .logo-section { display: flex; gap: 15px; width: 75%; }
+            .logo { width: 50px; height: 50px; object-fit: contain; margin-top: 5px; }
+            .brand-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 8px 0; color: #1e293b; }
+            .brand-info .company-name { font-weight: 600; color: #1e293b; font-size: 12px; margin-bottom: 2px; }
+            .brand-info .company-details { font-size: 11px; color: #475569; line-height: 1.4; }
+            .invoice-label { text-align: right; width: 25%; }
+            .invoice-label h2 { font-size: 20px; color: #2563eb; font-weight: bold; margin: 0; }
+            .invoice-label span { font-size: 12px; color: #2563eb; font-weight: 600; letter-spacing: 1px; }
+            .meta-bar { display: flex; justify-content: space-between; background: #f8fafc; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+            .meta-item { font-size: 12px; }
+            .meta-item strong { color: #64748b; margin-right: 5px; }
+            .meta-item span { font-weight: 600; color: #1e293b; }
+            .due-date { color: #dc2626 !important; }
+            .info-grid { display: flex; gap: 20px; margin-bottom: 25px; }
+            .info-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #fff; }
+            .box-header { font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
+            .box-content .name { font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
+            .box-content p { font-size: 12px; color: #475569; margin: 0 0 2px 0; line-height: 1.4; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
+            th { text-align: left; padding: 10px; background-color: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #cbd5e1; }
+            td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; color: #1e293b; }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+            .col-total { font-weight: 600; }
+            .total-section { display: flex; justify-content: flex-end; margin-bottom: 25px; }
+            .total-box { text-align: right; border-top: 2px solid #cbd5e1; padding-top: 10px; min-width: 250px; }
+            .total-label { font-size: 13px; font-weight: bold; color: #1e293b; margin-right: 15px; }
+            .total-amount { font-size: 22px; font-weight: bold; color: #2563eb; }
+            .thai-baht { font-size: 12px; color: #64748b; font-style: italic; margin-top: 5px; }
+            .payment-box { background: #eff6ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 15px; margin-bottom: 20px; font-size: 12px; display: flex; align-items: center; gap: 12px; }
+            .payment-icon { font-size: 18px; }
+            .payment-info span { margin-right: 15px; color: #334155; }
+            .payment-info strong { color: #1e293b; font-weight: 600; }
+            .notes { font-size: 11px; color: #94a3b8; padding-top: 15px; border-top: 1px solid #e2e8f0; line-height: 1.6; }
+            .credit { text-align: center; margin-top: 20px; font-size: 10px; color: #cbd5e1; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="logo-section">
+                    <img src="${escapeHtml(logoUrl)}" class="logo" />
+                    <div class="brand-info">
+                        <h1>${escapeHtml(buildingName)}</h1>
+                        <div class="company-details">
+                            <div class="company-name">${escapeHtml(displayLessorName)}</div>
+                            <div>${escapeHtml(displayLessorAddress)}</div>
+                            ${displayTaxId ? `<div>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(displayTaxId)}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="invoice-label">
+                    <h2>ใบแจ้งหนี้</h2>
+                    <span>INVOICE</span>
+                </div>
+            </div>
+
+            <div class="meta-bar">
+                <div class="meta-item"><strong>เลขที่:</strong> <span>${escapeHtml(invoiceNo)}</span></div>
+                <div class="meta-item"><strong>วันที่ออก:</strong> <span>${escapeHtml(issueDate)}</span></div>
+                <div class="meta-item"><strong>ครบกำหนด:</strong> <span class="due-date">${escapeHtml(dueDate)}</span></div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-box">
+                    <div class="box-header">ผู้รับเงิน / RECEIVER</div>
+                    <div class="box-content">
+                        <div class="name">${escapeHtml(displayLessorName)}</div>
+                        <p>${escapeHtml(displayLessorAddress)}</p>
+                        ${displayTaxId ? `<p>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(displayTaxId)}</p>` : ''}
+                    </div>
+                </div>
+                <div class="info-box">
+                    <div class="box-header">ผู้จ่ายเงิน / PAYER</div>
+                    <div class="box-content">
+                        <div class="name">${escapeHtml(tenant.full_name || 'ไม่ระบุชื่อ')}</div>
+                        <p>ห้อง: ${escapeHtml(room.room_number || '-')}</p>
+                        <p>โทร: ${escapeHtml(tenant.phone || '-')}</p>
+                        <p>ที่อยู่: ${escapeHtml(tenant.address || 'ไม่ระบุ')}</p>
+                    </div>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th width="10%">ลำดับ</th>
+                        <th width="45%">รายการ</th>
+                        <th width="15%" class="text-center">จำนวน</th>
+                        <th width="15%" class="text-right">ราคา/หน่วย</th>
+                        <th width="15%" class="text-right">จำนวนเงิน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${items.map((item, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${escapeHtml(item.name)}</td>
+                        <td class="text-center">${item.qty}</td>
+                        <td class="text-right">${(item.price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                        <td class="text-right col-total">${(item.price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+
+            <div class="total-section">
+                <div class="total-box">
+                    <span class="total-label">รวมทั้งสิ้น</span>
+                    <span class="total-amount">${finalTotalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
+                    <div class="thai-baht">(${totalText})</div>
+                </div>
+            </div>
+
+            <div class="payment-box">
+                <span class="payment-icon">💳</span>
+                <div class="payment-info">
+                    <span>ช่องทางการชำระเงิน</span>
+                    <span>ธนาคาร: <strong>${escapeHtml(bank.name || 'กสิกรไทย')}</strong></span>
+                    <span>เลขบัญชี: <strong>${escapeHtml(bank.account_number || '-')}</strong></span>
+                    <span>ชื่อ: <strong>${escapeHtml(bank.account_name || '-')}</strong></span>
+                </div>
+            </div>
+
+            <div class="notes">
+                <strong>หมายเหตุ:</strong><br>
+                1. กรุณาชำระเงินภายในวันที่กำหนด<br>
+                2. กรุณาแนบหลักฐานการโอนเงินทุกครั้ง<br>
+                3. หากมีข้อสงสัยกรุณาติดต่อเจ้าของหอพัก
+            </div>
+
+            <div class="credit">
+                เอกสารนี้สร้างโดยระบบอัตโนมัติ | ${escapeHtml(buildingName)}
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+
+    console.log('📸 [Step 2] Sending to Browserless...');
+    const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            html: htmlContent, 
+            viewport: { width: 800, height: 1000 },
+            options: { type: 'png', fullPage: true, omitBackground: true } 
+        })
+    });
+
+    if (!browserlessResponse.ok) throw new Error(`Browserless error: ${await browserlessResponse.text()}`);
+    const imageBlob = await browserlessResponse.blob();
+    
+    // ⭐ LOG SIZE: ดูว่าได้รูปจริงไหม
+    console.log(`📸 [Step 3] Blob received. Size: ${imageBlob.size} bytes`); 
+    
+    const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
+    
+    console.log('☁️ [Step 4] Uploading to Base44 Storage...');
+    
+    // ⭐ LOG RESULT: ดูว่า Upload แล้วได้อะไรกลับมา
+    const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: imageFile });
+    console.log('☁️ [Step 5] Upload Result:', JSON.stringify(uploadResult));
+
+    // ⭐ SAFE ACCESS: พยายามดึง URL ทุกรูปแบบ
+    const file_url = uploadResult?.file_url || uploadResult?.url || uploadResult?.path || uploadResult?.data?.fullPath;
+    
+    if (!file_url) console.error('❌ [Step 6] file_url is missing in Upload Result!');
+    else console.log(`✅ [Step 6] Success! URL: ${file_url}`);
+
+    return file_url;
 }
 
-// ==========================================
-// 📄 TEMPLATE SERVICE (แก้ดีไซน์ + พื้นหลังขาว)
-// ==========================================
-function generateInvoiceHTML(payment, tenant, room, recipient, bank, invoiceNo) {
-    const issueDate = formatDate(new Date().toISOString());
-    const dueDate = formatDate(payment.due_date);
-    
-    const items = [];
-    if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
-    if (payment.electricity_amount > 0) items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
-    if (payment.water_amount > 0) items.push({ name: `ค่าน้ำ (${payment.water_units || 0} หน่วย)`, qty: 1, price: payment.water_amount });
-    if (payment.common_fee_amount > 0) items.push({ name: 'ค่าส่วนกลาง', qty: 1, price: payment.common_fee_amount });
-    if (payment.parking_fee_amount > 0) items.push({ name: 'ค่าที่จอดรถ', qty: 1, price: payment.parking_fee_amount });
-    if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
-    if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
-    
-    const lateFee = Number(payment.late_fee_amount || 0);
-    if (lateFee > 0) {
-        items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: lateFee });
-    }
+// --- Main Queue Worker ---
 
-    const total = items.reduce((sum, item) => sum + item.price, 0);
-
-    return `
-    <!DOCTYPE html>
-    <html lang="th">
-    <head>
-        <meta charset="UTF-8">
-        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-        <style>
-            * { box-sizing: border-box; }
-            body { 
-                font-family: 'Sarabun', sans-serif; 
-                margin: 0; 
-                padding: 0; 
-                background-color: #ffffff; /* ✅ สำคัญ: บังคับพื้นขาว */
-                color: #000;
-                -webkit-font-smoothing: antialiased;
-            }
-            .container { 
-                width: 800px; 
-                margin: 0 auto; 
-                background-color: #ffffff; 
-                padding: 50px;
-                position: relative;
-            }
-            
-            /* Logo & Header */
-            .logo-section { text-align: center; margin-bottom: 30px; }
-            .logo-img { height: 120px; object-fit: contain; }
-
-            .brand-name {
-                font-family: 'Playfair Display', serif;
-                font-size: 24px;
-                font-weight: bold;
-                margin-bottom: 5px;
-            }
-            .brand-details { font-size: 12px; color: #333; margin-bottom: 40px; line-height: 1.4; }
-
-            /* Title */
-            .invoice-title { font-size: 18px; font-weight: bold; }
-            .invoice-subtitle { font-size: 10px; letter-spacing: 1px; color: #666; margin-bottom: 25px; text-transform: uppercase; }
-
-            /* Meta Data */
-            .meta-row { display: flex; margin-bottom: 5px; font-size: 12px; }
-            .meta-label { font-weight: bold; width: 120px; }
-
-            /* Info Blocks */
-            .info-block { margin-bottom: 25px; font-size: 12px; }
-            .block-label { font-size: 11px; color: #555; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; }
-            
-            /* Table */
-            table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; font-size: 11px; }
-            th { text-align: left; padding: 8px 0; border-bottom: 1px solid #ddd; font-weight: bold; }
-            td { padding: 8px 0; vertical-align: top; }
-            .text-right { text-align: right; }
-            .text-center { text-align: center; }
-
-            /* Total */
-            .total-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px; padding-top: 10px; border-top: 1px solid #000; }
-            .thai-baht { font-size: 11px; color: #333; }
-            .grand-total { font-size: 16px; font-weight: bold; color: #000; }
-
-            /* Footer */
-            .footer { margin-top: 50px; font-size: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
-            .footer-notes { margin-top: 20px; font-size: 9px; color: #555; line-height: 1.4; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="logo-section">
-                <img src="${escapeHtml(recipient.building_logo)}" class="logo-img" />
-            </div>
-
-            <div class="brand-name">${escapeHtml(recipient.building_name)}</div>
-            <div class="brand-details">
-                ${escapeHtml(recipient.company_address)}
-                ${recipient.tax_id ? `<br>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(recipient.tax_id)}` : ''}
-            </div>
-
-            <div class="invoice-title">ใบแจ้งหนี้</div>
-            <div class="invoice-subtitle">INVOICE</div>
-
-            <div class="meta-row"><div class="meta-label">เลขที่:</div><div>${escapeHtml(invoiceNo)}</div></div>
-            <div class="meta-row"><div class="meta-label">วันที่ออก:</div><div>${escapeHtml(issueDate)}</div></div>
-            <div class="meta-row"><div class="meta-label">ครบกำหนด:</div><div>${escapeHtml(dueDate)}</div></div>
-
-            <br>
-
-            <div class="info-block">
-                <div class="block-label">ผู้รับเงิน / RECEIVER</div>
-                <div>${escapeHtml(recipient.lessor_name)}</div>
-                <div>${escapeHtml(recipient.lessor_address)}</div>
-            </div>
-
-            <div class="info-block">
-                <div class="block-label">ผู้จ่ายเงิน / PAYER</div>
-                <div>${escapeHtml(tenant.full_name)}</div>
-                <div>ห้อง: ${escapeHtml(room.room_number)}</div>
-                <div>โทร: ${escapeHtml(tenant.phone || '-')}</div>
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th width="10%">ลำดับ</th>
-                        <th width="45%">รายการ</th>
-                        <th width="15%" class="text-center">จำนวน</th>
-                        <th width="15%" class="text-right">ราคา/หน่วย</th>
-                        <th width="15%" class="text-right">จำนวนเงิน</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${items.map((item, index) => `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${escapeHtml(item.name)}</td>
-                        <td class="text-center">${item.qty}</td>
-                        <td class="text-right">${item.price.toLocaleString()}</td>
-                        <td class="text-right">${item.price.toLocaleString()}</td>
-                    </tr>`).join('')}
-                </tbody>
-            </table>
-
-            <div class="total-row">
-                <div class="thai-baht">รวมทั้งสิ้น (${numberToThaiText(total)})</div>
-                <div class="grand-total">${total.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</div>
-            </div>
-
-            <div class="footer">
-                <div>
-                    <strong>ช่องทางการชำระเงิน</strong><br>
-                    ธนาคาร: ${escapeHtml(bank.name)}<br>
-                    เลขบัญชี: ${escapeHtml(bank.account_number)}<br>
-                    ชื่อ: ${escapeHtml(bank.account_name)}
-                </div>
-                <div style="text-align:right; color:#aaa;">System Generated | ${escapeHtml(recipient.building_name)}</div>
-            </div>
-
-            <div class="footer-notes">
-                <strong>หมายเหตุ:</strong><br>
-                1. กรุณาชำระเงินภายในวันที่กำหนด<br>
-                2. กรุณาแนบหลักฐานการโอนเงินทุกครั้ง
-            </div>
-        </div>
-    </body>
-    </html>`;
-}
-
-// ==========================================
-// 🏭 IMAGE SERVICE (สร้างและอัปโหลดรูป)
-// ==========================================
-async function generateAndUploadImage(base44, paymentId, html) {
-    const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
-    if (!BROWSERLESS_API_KEY) throw new Error("API Key missing");
-
-    // 1. เรียก Browserless
-    const imageBlob = await callWithRetry(async () => {
-        const res = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                html: html, 
-                viewport: { width: 800, height: 1000 },
-                // ⭐ แก้ไขสำคัญ: omitBackground: false (เพื่อให้ได้พื้นหลังขาว ไม่ทะลุ)
-                options: { type: 'png', fullPage: true, omitBackground: false } 
-            })
-        });
-        if (!res.ok) throw new Error(`Browserless Error: ${res.status}`);
-        return await res.blob();
-    }, 'Browserless');
-
-    // 2. อัปโหลดไป Base44
-    const fileUrl = await callWithRetry(async () => {
-        const file = new File([imageBlob], `inv-${paymentId}.png`, { type: 'image/png' });
-        const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file });
-        const url = uploadRes?.file_url || uploadRes?.url || uploadRes?.data?.fullPath;
-        if (!url) throw new Error('Upload failed: No URL returned');
-        return url;
-    }, 'Upload');
-
-    return fileUrl;
-}
-
-// ==========================================
-// 🚀 MAIN WORKER
-// ==========================================
 Deno.serve(async (req) => {
-    const startTime = Date.now();
-    console.log(`🚀 WORKER STARTED: ${new Date().toISOString()}`);
-    
-    let base44;
-    try {
-        base44 = createClientFromRequest(req);
-    } catch (e) { return new Response('Client Init Failed', { status: 500 }); }
+    console.log('========================================');
+    console.log('🖼️ PROCESS INVOICE IMAGE QUEUE (New Message Format)');
+    console.log(`📅 Timestamp: ${new Date().toISOString()}`);
+    console.log('========================================');
 
-    // 1. Parse Request Body
-    let reqBody = {};
-    try { reqBody = await req.json(); } catch (e) {}
-    
-    const batchSize = reqBody.batch_size || CONFIG.DEFAULT_BATCH_SIZE;
-    const targetBranchId = reqBody.branch_id || null;
+    const startTime = Date.now();
+    let base44 = null;
+    let targetBranchId = null;
+    let batchSize = 10000;
+    let concurrentLimit = 1;
+    let maxRunTime = 88000;
+    let skipLineSend = false;
 
-    // 2. Load Configs
-    const configs = await base44.asServiceRole.entities.Config.list() || [];
-    const getConfig = (key, branchId) => {
-        const c = configs.find(x => x.key === key && x.branch_id === branchId) || configs.find(x => x.key === key && !x.branch_id);
-        return c?.value || '';
-    };
-    
-    // 3. Scan Payments
-    const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
-    let paymentsToProcess = [];
-    let dbSkip = 0;
-    
-    console.log(`🔍 Scanning payments...`);
-    
-    while (paymentsToProcess.length < batchSize) {
-        if (Date.now() - startTime > 10000) break;
+    try {
+        const clonedReq = req.clone();
+        base44 = createClientFromRequest(req);
 
-        const batch = await base44.asServiceRole.entities.Payment.filter(
-            paymentFilter, '-updated_date', 100, dbSkip 
-        );
-        
-        if (!batch || batch.length === 0) break;
+        try {
+            const text = await clonedReq.text();
+            if (text && text.trim()) {
+                const body = JSON.parse(text);
+                targetBranchId = body.branch_id || null;
+                batchSize = body.batch_size || 30;
+                concurrentLimit = body.concurrent_limit || 1;
+                skipLineSend = body.skip_line_send === true;
+            }
+        } catch (e) { console.log('⚠️ No valid JSON body'); }
 
-     for (const p of batch) { // <--- ปีกกาเปิดของ for loop
-            // ✅ วางบรรทัดแรกสุดข้างในปีกกา เพื่อให้เห็น "ทุกใบ" ก่อนถูก Filter ทิ้ง
-            console.log(`🔍 สแกนเจอ ID: ${p.id} | สถานะจ่ายเงิน: ${p.status} | สถานะรูป: ${p.invoice_image_status}`);
+        console.log(`📋 Target Branch: ${targetBranchId || 'ALL'}`);
 
-            // จากนั้นค่อยเข้าเงื่อนไขข้ามบิล
-            if (p.status === 'paid' || p.status === 'cancelled') continue;
+        const configs = await base44.asServiceRole.entities.Config.list() || [];
+        const getConfigValue = (key, branchId, defaultValue = '') => {
+            if (branchId) {
+                const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+                if (branchConfig?.value) return branchConfig.value;
+            }
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+            return globalConfig?.value || defaultValue;
+        };
 
-            // =========================================================
-            // ✅ Logic การกรองงาน
-            // =========================================================
-            const isUrlInvalid = !p.invoice_image_url || String(p.invoice_image_url).trim().length < 10;
-            const isStatusHang = ['pending', 'generating', 'failed'].includes(p.invoice_image_status) || !p.invoice_image_status;
-            
-            const lastUpdate = p.updated_date ? new Date(p.updated_date).getTime() : 0;
-            const isZombie = p.invoice_image_status === 'generating' && (Date.now() - lastUpdate > CONFIG.ZOMBIE_THRESHOLD_MS);
+        const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
+        let paymentsToProcess = [];
+        let dbSkip = 0;
+        const dbFetchSize = 1000;
+        const maxScanLimit = 15000;
+        let hasMore = true;
 
-            const currentHash = generatePaymentHash(p);
-            const isDataChanged = p.invoice_data_hash !== currentHash;
+        console.log(`📥 Start Scanning for jobs...`);
+        
+        while (hasMore && paymentsToProcess.length < batchSize && dbSkip < maxScanLimit) {
+            const batch = await base44.asServiceRole.entities.Payment.filter(
+                paymentFilter, '-updated_date', dbFetchSize, dbSkip
+            );
 
-            if (isUrlInvalid || isStatusHang || isDataChanged || isZombie) {
-                if (!paymentsToProcess.find(x => x.id === p.id)) {
-                    paymentsToProcess.push(p);
-                }
-            }
-        } // <--- ปีกกาปิดของ for loop
-        dbSkip += batch.length;
-        if (dbSkip > 2000) break;
-    }
+            if (!batch || batch.length === 0) {
+                hasMore = false; 
+                break;
+            }
 
-    console.log(`📊 Job Queue: ${paymentsToProcess.length} items`);
-    if (paymentsToProcess.length === 0) return Response.json({ status: 'idle', message: 'No jobs found' });
+            for (const p of batch) {
+                if (paymentsToProcess.length >= batchSize) break;
+                if (p.status === 'paid' || p.status === 'cancelled') continue;
+                // 1. ตั้งกฎ: ถ้า updated_date เกิน 30 นาที ให้ถือว่าค้าง
+                const ZOMBIE_THRESHOLD_MS = 30 * 60 * 1000; // 30 นาที
+                const lastUpdate = p.updated_date ? new Date(p.updated_date).getTime() : 0;
+                const isStuckGenerating = p.invoice_image_status === 'generating' && 
+                                          (Date.now() - lastUpdate > ZOMBIE_THRESHOLD_MS);
 
-    // 4. Process Loop
-    let processed = 0, success = 0, failed = 0;
-    
-    const cache = { tenants: {}, rooms: {} };
-    async function getEntity(type, id) {
-        if (!id) return {};
-        if (cache[type][id]) return cache[type][id];
-        const res = await base44.asServiceRole.entities[type === 'tenants' ? 'Tenant' : 'Room'].filter({ id });
-        const item = res[0] || {};
-        cache[type][id] = item;
-        return item;
-    }
+                const needsImage = !p.invoice_image_url || 
+                                   p.invoice_image_status === 'pending' || 
+                                   p.invoice_image_status === 'generating' ||
+                                   !p.invoice_image_status;
+                
+                let needsRegenerate = false;
+                if (p.invoice_image_url && p.invoice_data_hash) {
+                    if (generatePaymentHash(p) !== p.invoice_data_hash) needsRegenerate = true;
+                }
+                if (p.status === 'overdue' && p.late_fee_amount > 0 && !p.invoice_data_hash) needsRegenerate = true;
 
-    const worker = async (payment) => {
-        if (Date.now() - startTime > CONFIG.MAX_EXECUTION_TIME_MS) return;
+                const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', p.branch_id, 'false') === 'true';
+                const needsSend = autoSendEnabled && !p.bill_sent_date;
 
-        try {
-            await delay(200); 
+                if (needsImage || needsRegenerate || needsSend) {
+                    paymentsToProcess.push(p);
+                }
+            }
+            dbSkip += batch.length;
+        }
 
-            const t = await getEntity('tenants', payment.tenant_id);
-            const r = await getEntity('rooms', payment.room_id);
-            const branchName = getConfig('building_name', payment.branch_id) || `Branch-${payment.branch_id}`;
+        console.log(`📊 Found jobs: ${paymentsToProcess.length}`);
 
-            console.log(`⚙️ เริ่มงาน: [${branchName}] ห้อง ${r.room_number || '?'} (${payment.id})`);
+        if (paymentsToProcess.length === 0) {
+            return Response.json({ success: true, message: 'ไม่มีบิลที่ต้องสร้างรูปหรือส่ง LINE', processed: 0 });
+        }
 
-            await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'generating' });
-            
-            const recipient = {
-                building_name: getConfig('building_name', payment.branch_id) || branchName,
-                building_logo: getConfig('building_logo', payment.branch_id) || 'https://via.placeholder.com/150',
-                company_address: getConfig('company_address', payment.branch_id) || getConfig('building_address', payment.branch_id) || 'Bangkok, Thailand',
-                lessor_name: getConfig('lessor_name', payment.branch_id) || 'นิติบุคคล',
-                lessor_address: getConfig('lessor_address', payment.branch_id) || '',
-                tax_id: getConfig('company_tax_id', payment.branch_id) || getConfig('tax_id', payment.branch_id) || '',
-                building_phone: getConfig('contact_phone', payment.branch_id) || ''
-            };
-            const bank = {
-                name: getConfig('bank_name', payment.branch_id) || 'ธนาคาร',
-                account_number: getConfig('bank_account_number', payment.branch_id) || '-',
-                account_name: getConfig('bank_account_name', payment.branch_id) || '-'
-            };
+        const uniqueTenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id).filter(id => id))];
+        const uniqueRoomIds = [...new Set(paymentsToProcess.map(p => p.room_id).filter(id => id))];
+        
+        const [tenantsBatch, roomsBatch] = await Promise.all([
+            uniqueTenantIds.length > 0 ? Promise.all(uniqueTenantIds.map(id => base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null))).then(results => results.flat().filter(Boolean)) : [],
+            uniqueRoomIds.length > 0 ? Promise.all(uniqueRoomIds.map(id => base44.asServiceRole.entities.Room.filter({ id }).catch(() => null))).then(results => results.flat().filter(Boolean)) : []
+        ]);
 
-            // สร้างรูป
-            const invoiceNo = `INV-${payment.id.slice(0,6).toUpperCase()}`;
-            const html = generateInvoiceHTML(payment, t, r, recipient, bank, invoiceNo); 
-            const imageUrl = await generateAndUploadImage(base44, payment.id, html);
-            
-            console.log(`📸 รูปเสร็จแล้ว: ${imageUrl}`);
+        const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
+        const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
 
-            // สร้างข้อความ
-            let message = `📢 แจ้งเตือนค่าเช่า\n${recipient.building_name}\n`;
-            message += `สวัสดีคุณ ${t.full_name}\nห้อง ${r.room_number || 'N/A'}\n\n`;
-            message += `🧾 รายละเอียด:\n`;
-            if (payment.rent_amount > 0) message += `• ค่าเช่า: ${payment.rent_amount.toLocaleString()} บ.\n`;
-            if (payment.electricity_amount > 0) message += `• ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บ.\n`;
-            if (payment.water_amount > 0) message += `• ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บ.\n`;
-            if (payment.common_fee_amount > 0) message += `• ส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บ.\n`;
-            if (payment.parking_fee_amount > 0) message += `• จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บ.\n`;
-            if (payment.internet_amount > 0) message += `• เน็ต: ${payment.internet_amount.toLocaleString()} บ.\n`;
-            if (payment.other_amount > 0) message += `• อื่นๆ: ${payment.other_amount.toLocaleString()} บ.\n`;
-            if (payment.late_fee_amount > 0) message += `• ค่าปรับ: ${payment.late_fee_amount.toLocaleString()} บ.\n`;
-            message += `--------------------\n`;
-            message += `💰 ยอดรวม: ${payment.total_amount.toLocaleString()} บาท\n`;
-            message += `(${numberToThaiText(payment.total_amount)})\n\n`;
-            message += `📅 ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}\n`;
-            message += `💳 โอนเงิน: ${bank.name} ${bank.account_number}\n(${bank.account_name})\n\n`;
-            if (imageUrl) message += `📄 ดูบิล: ${imageUrl}\n\n`;
-            message += `📸 โอนแล้วรบกวนส่งสลิปนะคะ ขอบคุณค่ะ 🙏`;
+        let imageGenerated = 0, imageFailed = 0, lineSent = 0, lineFailed = 0;
+        let allImageResults = [];
+        let processedCount = 0;
 
-            const autoSend = getConfig('auto_send_bills_after_generation', payment.branch_id);
-            const lineToken = getConfig('line_channel_access_token', payment.branch_id);
-            const fbToken = getConfig('facebook_page_access_token', payment.branch_id);
-            
-            let sent = false;
-            let logMsg = "";
+        const processPayment = async (payment) => {
+            const room = roomMap.get(payment.room_id);
+            const tenant = tenantMap.get(payment.tenant_id);
+            
+            if (Date.now() - startTime > maxRunTime) return null;
 
-            if (autoSend !== 'true') logMsg = `ข้าม: Config ปิดอยู่`;
-            else if (payment.bill_sent_date) logMsg = `ข้าม: เคยส่งแล้ว`;
-            else {
-                console.log(`📤 เริ่มส่งข้อความ...`);
-                
-                // LINE Check
-                if (t.line_user_id) {
-                    if (lineToken) {
-                        try {
-                            const res = await fetch('https://api.line.me/v2/bot/message/push', {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${lineToken}`},
-                                body: JSON.stringify({to: t.line_user_id, messages: [{type: 'text', text: message}]})
-                            });
-                            if (res.ok) sent = true;
-                        } catch(e) {}
-                    }
-                }
+            let needsRegenerate = false;
+            if (payment.invoice_image_url && payment.invoice_data_hash) {
+                if (generatePaymentHash(payment) !== payment.invoice_data_hash) needsRegenerate = true;
+            }
+            if (payment.status === 'overdue' && payment.late_fee_amount > 0 && !payment.invoice_data_hash) needsRegenerate = true;
+            
+            if (payment.invoice_image_url && payment.invoice_image_status === 'completed' && !needsRegenerate) {
+                return { payment, room, tenant, imageUrl: payment.invoice_image_url, success: true, skipped: true };
+            }
 
-                // FB Check
-                if (t.facebook_user_id) {
-                    if (fbToken) {
-                        try {
-                            const res = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({ recipient: { id: t.facebook_user_id }, message: { text: message }, messaging_type: 'MESSAGE_TAG', tag: 'CONFIRMED_EVENT_UPDATE' })
-                            });
-                            if (res.ok) sent = true;
-                        } catch(e) {}
-                    }
-                }
+            try {
+                processedCount++;
+                const branchName = getConfigValue('building_name', payment.branch_id, 'W RESIDENTS');
+                
+                await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'generating' });
+                console.log(`🖼️ [${processedCount}/${paymentsToProcess.length}] [${branchName}] ห้อง ${room?.room_number || 'N/A'}`);
+                
+                const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId: payment.id });
+                if (!invoiceDataResult.data?.success || !invoiceDataResult.data?.invoice) throw new Error(invoiceDataResult.data?.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
 
-                if (sent) logMsg = `✅ ส่งสำเร็จ`;
-                else logMsg = `❌ ส่งไม่ผ่าน`;
-            }
-            console.log(logMsg);
+                // เรียกใช้ Function สร้างรูปเวอร์ชันใหม่
+                const imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoiceDataResult.data.invoice);
 
-            await base44.asServiceRole.entities.Payment.update(payment.id, {
-                invoice_image_url: imageUrl,
-                invoice_image_status: 'completed',
-                invoice_data_hash: generatePaymentHash(payment),
-                bill_sent_date: sent ? new Date().toISOString() : (payment.bill_sent_date || null),
-                updated_date: new Date().toISOString()
-            });
+                if (imageUrl) {
+                    const newHash = generatePaymentHash(payment);
+                    await base44.asServiceRole.entities.Payment.update(payment.id, {
+                        invoice_image_url: imageUrl,
+                        invoice_image_status: 'completed',
+                        invoice_data_hash: newHash
+                    });
+                    await delay(333);
+                    return { payment: { ...payment, invoice_image_url: imageUrl }, room, tenant, imageUrl, success: true };
+                } else {
+                    throw new Error('Failed to generate invoice image');
+                }
+            } catch (error) {
+                console.error(`❌ ห้อง ${room?.room_number || 'N/A'}: ${error.message}`);
+                await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'failed' });
+                return { payment, room, tenant, success: false, error: error.message };
+            }
+        };
 
-            success++;
-            console.log(`🏁 จบงานห้อง ${r.room_number}`);
+        const activePromises = new Set();
+        let queueIndex = 0;
+        const startNextJob = async () => {
+            if (queueIndex >= paymentsToProcess.length) return null;
+            const payment = paymentsToProcess[queueIndex];
+            queueIndex++;
+            const promise = processPayment(payment).then(result => {
+                activePromises.delete(promise);
+                if (result) allImageResults.push(result);
+                if (result?.success && !result?.skipped) imageGenerated++;
+                else if (result && !result.success) imageFailed++;
+                return startNextJob();
+            }).catch(() => startNextJob());
+            activePromises.add(promise);
+            return promise;
+        };
 
-        } catch (e) {
-            console.error(`❌ พังที่ห้อง ${payment.room_id}: ${e.message}`);
-            if (e.message.includes('429')) await delay(5000);
-            
-            await base44.asServiceRole.entities.Payment.update(payment.id, { 
-                invoice_image_status: 'failed',
-                updated_date: new Date().toISOString()
-            });
-            failed++;
-        } finally {
-            processed++;
-        }
-    };
+        const workers = [];
+        for (let i = 0; i < Math.min(concurrentLimit, paymentsToProcess.length); i++) workers.push(startNextJob());
+        await Promise.all(workers);
 
-    // Execute batch
-    const chunk = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
-    const batches = chunk(paymentsToProcess, CONFIG.CONCURRENT_WORKERS);
+        if (!skipLineSend) {
+            console.log(`\n📤 Sending notifications (New Format)...`);
+            for (const result of allImageResults) {
+                if (!result.success && !result.skipped) continue;
+                const { payment, room, tenant, imageUrl } = result;
+                
+                const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', payment.branch_id, 'false') === 'true';
+                if (!autoSendEnabled || payment.bill_sent_date) continue;
+                
+                const hasLineId = !!tenant?.line_user_id;
+                const hasFacebookId = !!tenant?.facebook_user_id;
+                if (!hasLineId && !hasFacebookId) continue;
 
-    for (const batch of batches) {
-        if (Date.now() - startTime > CONFIG.MAX_EXECUTION_TIME_MS) break;
-        await Promise.all(batch.map(p => worker(p)));
-    }
+                const branchId = payment.branch_id;
+                const bankName = getConfigValue('bank_name', branchId, 'กสิกร');
+                const bankAcc = getConfigValue('bank_account_number', branchId, '-');
+                const bankOwner = getConfigValue('bank_account_name', branchId, '-');
+                const buildingName = getConfigValue('building_name', branchId, 'W RESIDENTS');
+                
+                // --- 📝 FORMAT ข้อความใหม่ที่สวยงาม ---
+                let msg = `📢 แจ้งเตือนค่าเช่า\n`;
+                msg += ` ${buildingName}\n`;
+                msg += ` คุณ ${tenant.full_name} (ห้อง ${room?.room_number || '-'}) \n\n`;
 
-    const resultSummary = {
-        status: 'completed',
-        processed,
-        success,
-        failed,
-        time_ms: Date.now() - startTime
-    };
+                msg += `🧾 รายละเอียด:\n`;
+                if (payment.rent_amount > 0) msg += `• ค่าเช่า: ${payment.rent_amount.toLocaleString()} บ.\n`;
+                if (payment.electricity_amount > 0) msg += `• ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บ.\n`;
+                if (payment.water_amount > 0) msg += `• ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บ.\n`;
+                if (payment.internet_amount > 0) msg += `• เน็ต: ${payment.internet_amount.toLocaleString()} บ.\n`;
+                if (payment.common_fee_amount > 0) msg += `• ส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บ.\n`;
+                if (payment.parking_fee_amount > 0) msg += `• จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บ.\n`;
+                if (payment.other_amount > 0) msg += `• อื่นๆ: ${payment.other_amount.toLocaleString()} บ.\n`;
+                if (payment.late_fee_amount > 0) msg += `• ค่าปรับ: ${payment.late_fee_amount.toLocaleString()} บ.\n`;
 
-    console.log('🏁 SUMMARY:', JSON.stringify(resultSummary));
-    
-    try {
-        await base44.asServiceRole.entities.FunctionLog.create({
-            function_name: 'invoice_generator_v5',
-            status: failed > 0 ? 'warning' : 'success',
-            message: `Processed ${processed} bills`,
-            details: resultSummary,
-            run_timestamp: new Date().toISOString()
-        });
-    } catch(e) {}
+                msg += `------------------------------\n`;
+                msg += `💰 ยอดรวมสุทธิ: ${payment.total_amount.toLocaleString()} บาท\n`;
+                msg += `(${numberToThaiText(payment.total_amount)})\n`;
+                msg += `------------------------------\n\n`;
 
-    return Response.json(resultSummary);
+                msg += ` ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH')}\n\n`;
+
+                msg += `  ชำระเงินได้ที่:\n`;
+                msg += `🏦 ${bankName} ${bankAcc}\n`  // <--- ขาด ; ท้ายบรรทัด
+                msg += `👤 ${bankOwner}\n\n`;
+
+                if (imageUrl) msg += `📄 ดูบิล: ${imageUrl}\n\n`;
+                msg += `📸 โอนแล้วรบกวนส่งสลิปนะคะ ขอบคุณค่ะ 🙏`;
+                // -------------------------------------------
+
+                let messageSent = false;
+                
+                if (hasLineId) {
+                    try {
+                        const lineToken = getConfigValue('line_channel_access_token', branchId, '');
+                        if (lineToken) {
+                            const res = await fetch('https://api.line.me/v2/bot/message/push', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${lineToken}` },
+                                body: JSON.stringify({ to: tenant.line_user_id, messages: [{ type: 'text', text: msg }] })
+                            });
+                            if (res.ok) { lineSent++; messageSent = true; console.log(`✅ [LINE] ห้อง ${room?.room_number}`); }
+                            else { lineFailed++; console.error(`❌ [LINE] Failed`); }
+                            await delay(200);
+                        }
+                    } catch (e) { lineFailed++; }
+                }
+
+                if (hasFacebookId) {
+                    try {
+                        const fbToken = getConfigValue('facebook_page_access_token', branchId, '');
+                        if (fbToken) {
+                            const res = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ recipient: { id: tenant.facebook_user_id }, message: { text: msg }, messaging_type: 'MESSAGE_TAG', tag: 'CONFIRMED_EVENT_UPDATE' })
+                            });
+                            if (res.ok) { messageSent = true; console.log(`✅ [FB] ห้อง ${room?.room_number}`); }
+                            await delay(200);
+                        }
+                    } catch (e) { console.error('FB Error'); }
+                }
+
+                if (messageSent) await base44.asServiceRole.entities.Payment.update(payment.id, { bill_sent_date: new Date().toISOString() });
+            }
+        }
+
+        const totalElapsed = Date.now() - startTime;
+        const summary = `สร้างรูป ${imageGenerated} ใบ, ส่ง LINE ${lineSent} ราย [${Math.round(totalElapsed/1000)}s]`;
+        console.log(`\n✅ ${summary}`);
+        
+        try {
+            await delay(1000);
+            await base44.asServiceRole.entities.FunctionLog.create({
+                function_name: 'processInvoiceImageQueue',
+                run_timestamp: new Date().toISOString(),
+                status: 'success',
+                message: summary,
+                execution_time_ms: totalElapsed,
+                details: { processed: paymentsToProcess.length, imageGenerated, lineSent, dbScanned: dbSkip }
+            });
+        } catch (e) {}
+
+        return Response.json({ success: true, message: summary, hasMore: dbSkip >= maxScanLimit ? false : hasMore });
+
+    } catch (error) {
+        console.error('❌ Error:', error);
+        if (base44) await base44.asServiceRole.entities.FunctionLog.create({ function_name: 'processInvoiceImageQueue', status: 'error', message: error.message }).catch(() => {});
+        return Response.json({ success: false, error: error.message }, { status: 500 });
+    }
 });
