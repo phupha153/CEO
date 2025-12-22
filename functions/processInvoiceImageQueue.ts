@@ -453,59 +453,66 @@ Deno.serve(async (req) => {
         return item;
     }
 
-    const worker = async (payment) => {
+   const worker = async (payment) => {
         // เช็คเวลา
         if (Date.now() - startTime > CONFIG.MAX_EXECUTION_TIME_MS) return;
 
         try {
+            // ⭐ 1. ดึงข้อมูลมารอไว้ก่อน เพื่อเอาไปแสดง Log
+            const t = await getEntity('tenants', payment.tenant_id);
+            const r = await getEntity('rooms', payment.room_id);
+            // ดึงชื่อสาขา
+            const branchName = getConfig('building_name', payment.branch_id) || `Branch-${payment.branch_id}`;
+
+            // ⭐ 2. แสดง Log บอกว่ากำลังทำของใคร
+            console.log(`⚙️ กำลังทำ: [${branchName}] ห้อง ${r.room_number || '?'} | คุณ ${t.full_name || 'ไม่ระบุ'}`);
+
             await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'generating' });
             
-            const tenant = await getEntity('tenants', payment.tenant_id);
-            const room = await getEntity('rooms', payment.room_id);
-            
-            // เตรียมข้อมูลเพื่อ Generate HTML
-            // (Mock ข้อมูลผู้รับเงิน/ธนาคาร จาก Config หรือ Logic ภายใน)
-            // ในที่นี้สมมติว่าเอามาจาก Config หรือ Payment Relation (ปรับแก้ได้)
+            // เตรียมข้อมูล HTML
             const recipient = {
-                building_name: configs.find(c => c.key === 'building_name')?.value || 'My Building',
-                lessor_name: 'นิติบุคคล',
-                building_logo: 'https://via.placeholder.com/150'
+                building_name: branchName,
+                building_logo: 'https://via.placeholder.com/150', // ใส่ URL โลโก้จริงตรงนี้
+                company_address: 'Bangkok, Thailand'
             };
             const bank = {
-                name: configs.find(c => c.key === 'bank_name')?.value,
-                account_number: configs.find(c => c.key === 'bank_account_number')?.value,
-                account_name: configs.find(c => c.key === 'bank_account_name')?.value
+                name: getConfig('bank_name', payment.branch_id),
+                account_number: getConfig('bank_account_number', payment.branch_id),
+                account_name: getConfig('bank_account_name', payment.branch_id)
             };
 
-            // Generate HTML & Image
+            // สร้างรูป
             const invoiceNo = `INV-${payment.id.slice(0,6).toUpperCase()}`;
-            const html = generateInvoiceHTML(payment, tenant, room, recipient, bank, invoiceNo);
+            const html = generateInvoiceHTML(payment, t, r, recipient, bank, invoiceNo);
             const imageUrl = await generateAndUploadImage(base44, payment.id, html);
 
-            // Send Notification
+            // ส่งไลน์
+            const autoSend = getConfig('auto_send_bills_after_generation', payment.branch_id) === 'true';
             let sent = false;
-            if (!skipNotify) {
-                sent = await sendNotification(payment, tenant, room, recipient, bank, imageUrl, configs);
+            if (autoSend && !payment.bill_sent_date) {
+                const token = getConfig('line_channel_access_token', payment.branch_id);
+                sent = await sendNotification(payment, t, r, recipient, bank, imageUrl, configs);
             }
 
-            // Update DB
+            // บันทึกผลสำเร็จ
             await base44.asServiceRole.entities.Payment.update(payment.id, {
                 invoice_image_url: imageUrl,
                 invoice_image_status: 'completed',
                 invoice_data_hash: generatePaymentHash(payment),
                 bill_sent_date: sent ? new Date().toISOString() : null,
-                updated_date: new Date().toISOString() // ดันให้เป็นปัจจุบัน
+                updated_date: new Date().toISOString()
             });
 
             success++;
-            console.log(`✅ [${payment.id}] Success`);
+            // ⭐ 3. Log บอกว่าเสร็จแล้ว
+            console.log(`✅ สำเร็จ: [${branchName}] ห้อง ${r.room_number}`);
 
         } catch (error) {
             failed++;
-            console.error(`❌ [${payment.id}] Failed: ${error.message}`);
+            console.error(`❌ ล้มเหลว: ID ${payment.id} | Error: ${error.message}`);
             await base44.asServiceRole.entities.Payment.update(payment.id, { 
                 invoice_image_status: 'failed',
-                updated_date: new Date().toISOString() // ดันให้เป็นปัจจุบันเพื่อให้คราวหน้าเจออีก
+                updated_date: new Date().toISOString()
             });
         } finally {
             processed++;
