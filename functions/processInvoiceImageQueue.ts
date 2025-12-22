@@ -423,10 +423,7 @@ Deno.serve(async (req) => {
             if (payment.parking_fee_amount > 0) msg += `• จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บ.\n`;
             if (payment.other_amount > 0) msg += `• อื่นๆ: ${payment.other_amount.toLocaleString()} บ.\n`;
             if (payment.late_fee_amount > 0) msg += `• ค่าปรับ: ${payment.late_fee_amount.toLocaleString()} บ.\n`;
-
-            msg += `------------------------------\n`;
             msg += `💰 ยอดรวมสุทธิ: ${payment.total_amount.toLocaleString()} บาท\n`;
-            msg += `(${numberToThaiText(payment.total_amount)})\n`;
             msg += `------------------------------\n\n`;
             msg += ` ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH')}\n\n`;
             msg += `  ชำระเงินได้ที่:\n`;
