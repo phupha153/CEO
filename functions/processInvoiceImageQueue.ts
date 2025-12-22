@@ -14,7 +14,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 // ⚙️ CONFIGURATION & CONSTANTS
 // ==========================================
 const CONFIG = {
-    DEFAULT_BATCH_SIZE: 50,      // จำนวนบิลที่จะทำใน 1 รอบ
+    DEFAULT_BATCH_SIZE: 5,      // จำนวนบิลที่จะทำใน 1 รอบ
     CONCURRENT_WORKERS: 2,       // ทำพร้อมกันกี่งาน (แนะนำ 1-3 เพื่อกัน Rate Limit)
     MAX_EXECUTION_TIME_MS: 85000,// เวลาสูงสุดที่ให้ทำงาน (85 วินาที) ก่อนตัดจบ
     RETRY_ATTEMPTS: 3,           // จำนวนครั้งที่จะลองใหม่ถ้า Error
