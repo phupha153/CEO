@@ -453,28 +453,30 @@ Deno.serve(async (req) => {
         return item;
     }
 
-  const worker = async (payment) => {
-        // เช็คเวลา
+ const worker = async (payment) => {
+        // เช็คเวลา ถ้าใกล้หมดเวลาให้หยุด
         if (Date.now() - startTime > CONFIG.MAX_EXECUTION_TIME_MS) return;
 
         try {
-            await delay(2000); // พัก 2 วิ กันเหนื่อย
+            // ⭐ 1. พัก 2 วินาที (แก้ปัญหา Rate Limit 429)
+            await delay(2000);
 
-            // 1. ดึงข้อมูล
+            // ดึงข้อมูล
             const t = await getEntity('tenants', payment.tenant_id);
             const r = await getEntity('rooms', payment.room_id);
             const branchName = getConfig('building_name', payment.branch_id) || `Branch-${payment.branch_id}`;
 
             console.log(`--------------------------------------------------`);
-            console.log(`⚙️ กำลังทำ: [${branchName}] ห้อง ${r.room_number}`);
+            console.log(`⚙️ เริ่มงาน: [${branchName}] ห้อง ${r.room_number || '?'} (${payment.id})`);
 
-            // 2. สร้างรูป
+            // อัปเดตสถานะ
             await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'generating' });
             
             const recipient = {
                 building_name: branchName,
                 building_logo: 'https://via.placeholder.com/150',
-                company_address: 'Bangkok, Thailand'
+                company_address: 'Bangkok, Thailand',
+                lessor_name: 'นิติบุคคล'
             };
             const bank = {
                 name: getConfig('bank_name', payment.branch_id),
@@ -482,59 +484,60 @@ Deno.serve(async (req) => {
                 account_name: getConfig('bank_account_name', payment.branch_id)
             };
 
+            // สร้างรูป
             const invoiceNo = `INV-${payment.id.slice(0,6).toUpperCase()}`;
             const html = generateInvoiceHTML(payment, t, r, recipient, bank, invoiceNo);
             const imageUrl = await generateAndUploadImage(base44, payment.id, html);
-            console.log(`📸 สร้างรูปเสร็จแล้ว`);
+            console.log(`📸 สร้างรูปเสร็จ: ${imageUrl ? 'OK' : 'Failed'}`);
 
-            // 3. 🕵️‍♂️ เช็คเงื่อนไขการส่งไลน์ (Detective Mode)
-            const configAutoSend = getConfig('auto_send_bills_after_generation', payment.branch_id);
+            // ⭐ 2. ระบบนักสืบ (เช็คละเอียดว่าทำไมไม่ส่งไลน์)
+            const autoSend = getConfig('auto_send_bills_after_generation', payment.branch_id);
             const lineToken = getConfig('line_channel_access_token', payment.branch_id);
             
             let sent = false;
-            let skipReason = "";
+            let logReason = "";
 
-            if (configAutoSend !== 'true') {
-                skipReason = `Config ปิดอยู่ (ค่าปัจจุบันคือ: "${configAutoSend}") -> ต้องแก้เป็น "true"`;
+            if (autoSend !== 'true') {
+                logReason = `❌ ไม่ส่ง: Config ปิดอยู่ (ค่าปัจจุบันคือ "${autoSend}" ต้องแก้เป็น "true")`;
             } else if (payment.bill_sent_date) {
-                skipReason = `เคยส่งไปแล้วเมื่อ ${payment.bill_sent_date} (ต้องลบวันที่ออกก่อน)`;
+                logReason = `⚠️ ไม่ส่ง: เคยส่งไปแล้วเมื่อ ${payment.bill_sent_date}`;
             } else if (!t.line_user_id) {
-                skipReason = `ผู้เช่าไม่มี LINE ID`;
+                logReason = `⚠️ ไม่ส่ง: ผู้เช่าไม่มี LINE ID`;
             } else if (!lineToken) {
-                skipReason = `ไม่มี LINE Token ใน Config`;
+                logReason = `❌ ไม่ส่ง: ไม่มี Token ใน Config`;
             } else {
                 // ถ้าผ่านทุกด่าน ถึงจะส่ง
-                console.log(`📤 กำลังส่ง LINE...`);
+                console.log(`📤 กำลังส่ง LINE หาคุณ ${t.full_name}...`);
                 sent = await sendNotification(payment, t, r, recipient, bank, imageUrl, configs);
-                if(sent) console.log(`✅ ส่ง LINE สำเร็จ!`);
-                else console.error(`❌ ส่ง LINE ไม่ผ่าน (ตรวจสอบ Token หรือ Server)`);
+                logReason = sent ? "✅ ส่ง LINE สำเร็จ" : "❌ ส่งไม่ผ่าน (API Error)";
             }
+            console.log(`📝 ผลการส่งไลน์: ${logReason}`);
 
-            if (skipReason) {
-                console.log(`⚠️ ข้ามการส่ง LINE เพราะ: ${skipReason}`);
-            }
-
-            // 4. บันทึกผล
+            // บันทึกผล
             await base44.asServiceRole.entities.Payment.update(payment.id, {
                 invoice_image_url: imageUrl,
                 invoice_image_status: 'completed',
                 invoice_data_hash: generatePaymentHash(payment),
-                bill_sent_date: sent ? new Date().toISOString() : (payment.bill_sent_date || null), // คงค่าเดิมไว้ถ้าไม่ได้ส่งใหม่
+                bill_sent_date: sent ? new Date().toISOString() : (payment.bill_sent_date || null),
                 updated_date: new Date().toISOString()
             });
 
             success++;
-            console.log(`🏁 จบงานห้อง ${r.room_number}`);
+            console.log(`🏁 เสร็จสิ้น ห้อง ${r.room_number}`);
 
-        } catch (error) {
-            failed++;
-            console.error(`❌ พังที่ห้อง ${payment.room_id}: ${error.message}`);
-            if (error.message.includes('429')) await delay(5000);
+        } catch (e) {
+            console.error(`❌ พังที่ห้อง ${payment.room_id}: ${e.message}`);
+            // ถ้าโดนบล็อก ให้พักยาว 5 วิ
+            if (e.message.includes('429')) {
+                console.log('⚠️ เจอ Rate Limit! พัก 5 วินาที...');
+                await delay(5000);
+            }
             
             await base44.asServiceRole.entities.Payment.update(payment.id, { 
                 invoice_image_status: 'failed',
                 updated_date: new Date().toISOString()
             });
+            failed++;
         } finally {
             processed++;
         }
