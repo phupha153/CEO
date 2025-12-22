@@ -1,14 +1,37 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
- * ฟังก์ชันสำหรับสร้างรูปใบแจ้งหนี้และส่ง LINE แบบ Queue (Full Version 4.3)
- * - แก้ปัญหา Error 500/429 จาก Browserless
- * - รวม HTML Template เต็มรูปแบบ
+ * 💎 V4.4 FULL CODE (Safe Mode + Anti-Rate Limit + Anti-500)
+ * แก้ปัญหา:
+ * 1. Error 429 (Too Many Requests) -> ใช้ fetchEntitySafely ดึงข้อมูลทีละนิด
+ * 2. Error 500 (Browserless Crash) -> ใช้ Retry Loop 5 รอบ
+ * 3. HTML Template -> รวมมาให้ครบทุกบรรทัด ไม่มีการย่อ
  */
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// ⭐ ฟังก์ชันสร้าง hash จากข้อมูลบิล
+// ==========================================
+// 🛠️ HELPER FUNCTIONS
+// ==========================================
+
+// 1. ฟังก์ชันดึงข้อมูลแบบปลอดภัย (แก้ 429)
+async function fetchEntitySafely(base44, entityName, ids) {
+    const results = [];
+    // ดึงทีละ 1 รายการ เพื่อป้องกันการยิงรัวจนโดนบล็อก
+    for (const id of ids) {
+        try {
+            const res = await base44.asServiceRole.entities[entityName].filter({ id });
+            if (res && res.length > 0) results.push(res[0]);
+            // พัก 100ms ระหว่างดึงแต่ละคน
+            await delay(100); 
+        } catch (e) {
+            console.error(`Skip ${entityName} ${id}: ${e.message}`);
+        }
+    }
+    return results;
+}
+
+// 2. ฟังก์ชันสร้าง Hash ตรวจสอบการเปลี่ยนแปลง
 function generatePaymentHash(payment) {
     const dataToHash = {
         rent_amount: payment.rent_amount || 0,
@@ -25,11 +48,10 @@ function generatePaymentHash(payment) {
         due_date: payment.due_date || '',
         status: payment.status || 'pending'
     };
-    const jsonStr = JSON.stringify(dataToHash);
-    return btoa(jsonStr).substring(0, 32);
+    return btoa(JSON.stringify(dataToHash)).substring(0, 32);
 }
 
-// ⭐ ฟังก์ชันแปลงตัวเลขเป็นคำอ่านภาษาไทย
+// 3. ฟังก์ชันแปลงตัวเลขเป็นคำอ่านไทย
 function numberToThaiText(number) {
     if (number === undefined || number === null || isNaN(number) || number === 0) return 'ศูนย์บาทถ้วน';
     const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
@@ -57,7 +79,7 @@ function numberToThaiText(number) {
     return text;
 }
 
-// ⭐ ฟังก์ชันจัดรูปแบบวันที่
+// 4. ฟังก์ชันจัดรูปแบบวันที่
 function formatDate(dateString) {
     if (!dateString) return '-';
     try {
@@ -67,7 +89,9 @@ function formatDate(dateString) {
     } catch { return '-'; }
 }
 
-// ⭐ ฟังก์ชันสร้างรูป invoice (พร้อม HTML เต็มรูปแบบ + Retry Logic)
+// ==========================================
+// 📸 GENERATE INVOICE FUNCTION (CORE)
+// ==========================================
 async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
     if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
@@ -95,11 +119,7 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     if (payment.parking_fee_amount > 0) items.push({ name: 'ค่าที่จอดรถ', qty: 1, price: payment.parking_fee_amount });
     if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
     if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
-    
-    const lateFee = Number(payment.late_fee_amount || 0);
-    if (lateFee > 0) {
-        items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: lateFee });
-    }
+    if (Number(payment.late_fee_amount) > 0) items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: Number(payment.late_fee_amount) });
 
     const finalTotalAmount = items.reduce((sum, item) => sum + item.price, 0);
     const totalText = numberToThaiText(finalTotalAmount);
@@ -109,7 +129,7 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
         return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    // --- HTML TEMPLATE เต็มรูปแบบ ---
+    // --- HTML TEMPLATE (ไม่ย่อ) ---
     const htmlContent = `
     <!DOCTYPE html>
     <html lang="th">
@@ -260,9 +280,9 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     </html>
     `;
 
-    // ⭐⭐⭐ RETRY LOGIC for 429 & 500 Errors ⭐⭐⭐
+    // ⭐⭐⭐ RETRY LOGIC (Anti-500 & Anti-429) ⭐⭐⭐
     let attempts = 0;
-    const maxAttempts = 5; // เพิ่มจำนวนครั้งที่ลองใหม่เป็น 5 ครั้ง
+    const maxAttempts = 5;
     let imageBlob = null;
     let lastError = null;
 
@@ -276,35 +296,33 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
                     html: htmlContent, 
                     viewport: { width: 800, height: 1000 },
                     options: { type: 'png', fullPage: true, omitBackground: true },
-                    gotoOptions: { waitUntil: 'networkidle0', timeout: 30000 } 
+                    gotoOptions: { waitUntil: 'networkidle0', timeout: 30000 }
                 })
             });
 
-            // ถ้าเจอ Error 429 (Too Many) หรือ 5xx (Server Error) ให้รอ
+            // ถ้าเจอ 429 หรือ 500 ให้รอแล้วลองใหม่
             if (browserlessResponse.status === 429 || browserlessResponse.status >= 500) {
-                const waitTime = 5000 * attempts; // รอ 5วิ, 10วิ, 15วิ... (เพิ่มขึ้นเรื่อยๆ)
+                const waitTime = 5000 * attempts; // 5s, 10s, 15s...
                 console.warn(`⚠️ Browserless Error ${browserlessResponse.status}. Attempt ${attempts}/${maxAttempts}. Waiting ${waitTime/1000}s...`);
-                await delay(waitTime); 
-                continue; // ลองใหม่
+                await delay(waitTime);
+                continue;
             }
 
             if (!browserlessResponse.ok) throw new Error(`Browserless error: ${await browserlessResponse.text()}`);
             
             imageBlob = await browserlessResponse.blob();
-            break; // สำเร็จ หลุด loop
+            break; // Success
         } catch (e) {
             lastError = e;
             console.error(`Attempt ${attempts} failed: ${e.message}`);
             if (attempts >= maxAttempts) throw lastError;
-            await delay(3000); // รอ 3 วิกรณี error อื่นๆ
+            await delay(3000);
         }
     }
 
     if (!imageBlob) throw new Error("Failed to generate image after retries.");
 
     const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
-    
-    // console.log('☁️ [Step 4] Uploading to Base44 Storage...');
     const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: imageFile });
     const file_url = uploadResult?.file_url || uploadResult?.url || uploadResult?.path || uploadResult?.data?.fullPath;
     
@@ -312,11 +330,13 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     return file_url;
 }
 
-// --- Main Queue Worker ---
+// ==========================================
+// 🚀 MAIN QUEUE WORKER
+// ==========================================
 
 Deno.serve(async (req) => {
     console.log('========================================');
-    console.log('🖼️ PROCESS INVOICE QUEUE (Safe Mode + Anti-500)');
+    console.log('🖼️ PROCESS INVOICE QUEUE (Safe Mode V4.4)');
     console.log(`📅 ${new Date().toISOString()}`);
     console.log('========================================');
 
@@ -324,9 +344,9 @@ Deno.serve(async (req) => {
     let base44 = null;
     let targetBranchId = null;
     let batchSize = 10000;
-    let concurrentLimit = 1; // ⚠️ บังคับเหลือ 1 เพื่อความปลอดภัย
-    let maxRunTime = 88000;
+    let concurrentLimit = 1; 
     let skipLineSend = false;
+    let maxRunTime = 88000;
 
     try {
         const clonedReq = req.clone();
@@ -341,7 +361,7 @@ Deno.serve(async (req) => {
                 concurrentLimit = body.concurrent_limit || 1; 
                 skipLineSend = body.skip_line_send === true;
             }
-        } catch (e) { console.log('⚠️ No valid JSON body'); }
+        } catch (e) { }
 
         const configs = await base44.asServiceRole.entities.Config.list() || [];
         const getConfigValue = (key, branchId, defaultValue = '') => {
@@ -410,12 +430,14 @@ Deno.serve(async (req) => {
             return Response.json({ success: true, message: 'ไม่มีบิลที่ต้องทำ', processed: 0 });
         }
 
+        // ⭐⭐⭐ SAFE FETCH (แก้ 429) ⭐⭐⭐
         const uniqueTenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id).filter(id => id))];
         const uniqueRoomIds = [...new Set(paymentsToProcess.map(p => p.room_id).filter(id => id))];
         
+        // ใช้ฟังก์ชัน Safe Fetch แทน Promise.all
         const [tenantsBatch, roomsBatch] = await Promise.all([
-            uniqueTenantIds.length > 0 ? Promise.all(uniqueTenantIds.map(id => base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null))).then(results => results.flat().filter(Boolean)) : [],
-            uniqueRoomIds.length > 0 ? Promise.all(uniqueRoomIds.map(id => base44.asServiceRole.entities.Room.filter({ id }).catch(() => null))).then(results => results.flat().filter(Boolean)) : []
+            uniqueTenantIds.length > 0 ? fetchEntitySafely(base44, 'Tenant', uniqueTenantIds) : [],
+            uniqueRoomIds.length > 0 ? fetchEntitySafely(base44, 'Room', uniqueRoomIds) : []
         ]);
 
         const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
@@ -424,7 +446,7 @@ Deno.serve(async (req) => {
         let imageGenerated = 0, imageFailed = 0, lineSent = 0;
         let processedCount = 0;
 
-        // ฟังก์ชันส่งไลน์แยกออกมา
+        // --- Helper: ส่ง LINE Notification ---
         const sendNotification = async (payment, room, tenant, imageUrl) => {
             if (skipLineSend) return;
             const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', payment.branch_id, 'false') === 'true';
@@ -533,7 +555,7 @@ Deno.serve(async (req) => {
                 const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId: payment.id });
                 if (!invoiceDataResult.data?.success || !invoiceDataResult.data?.invoice) throw new Error('Invoice data error');
 
-                // ⭐ พักก่อนยิง 2 วินาที ลดภาระ Browserless
+                // ⭐ Anti-500: พัก 2 วินาที ก่อนยิง Browserless
                 await delay(2000); 
 
                 const imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoiceDataResult.data.invoice);
