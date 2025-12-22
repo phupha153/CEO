@@ -114,168 +114,283 @@ function escapeHtml(text) {
 // ==========================================
 // 📄 TEMPLATE SERVICE (ส่วนสร้าง HTML)
 // ==========================================
+// ==========================================
+// 📄 TEMPLATE SERVICE (แบบเหมือนรูปต้นฉบับ 100%)
+// ==========================================
 function generateInvoiceHTML(payment, tenant, room, recipient, bank, invoiceNo) {
-    const issueDate = formatDate(new Date().toISOString());
-    const dueDate = formatDate(payment.due_date);
-    
-    const items = [];
-    if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
-    if (payment.electricity_amount > 0) items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
-    if (payment.water_amount > 0) items.push({ name: `ค่าน้ำ (${payment.water_units || 0} หน่วย)`, qty: 1, price: payment.water_amount });
-    if (payment.common_fee_amount > 0) items.push({ name: 'ค่าส่วนกลาง', qty: 1, price: payment.common_fee_amount });
-    if (payment.parking_fee_amount > 0) items.push({ name: 'ค่าที่จอดรถ', qty: 1, price: payment.parking_fee_amount });
-    if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
-    if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
-    if (Number(payment.late_fee_amount) > 0) items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: Number(payment.late_fee_amount) });
+    const issueDate = formatDate(new Date().toISOString());
+    const dueDate = formatDate(payment.due_date);
+    
+    // สร้างรายการสินค้า
+    const items = [];
+    if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
+    if (payment.electricity_amount > 0) items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
+    if (payment.water_amount > 0) items.push({ name: `ค่าน้ำ (${payment.water_units || 0} หน่วย)`, qty: 1, price: payment.water_amount });
+    if (payment.common_fee_amount > 0) items.push({ name: 'ค่าส่วนกลาง', qty: 1, price: payment.common_fee_amount });
+    if (payment.parking_fee_amount > 0) items.push({ name: 'ค่าที่จอดรถ', qty: 1, price: payment.parking_fee_amount });
+    if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
+    if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
+    if (Number(payment.late_fee_amount) > 0) items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: Number(payment.late_fee_amount) });
 
-    const total = items.reduce((sum, item) => sum + item.price, 0);
+    const total = items.reduce((sum, item) => sum + item.price, 0);
 
-    return `
-    <!DOCTYPE html>
-    <html lang="th">
-    <head>
-        <meta charset="UTF-8">
-        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-        <style>
-            * { box-sizing: border-box; }
-            body { font-family: 'Sarabun', sans-serif; padding: 40px; background: #fff; color: #333; }
-            .container { max-width: 800px; margin: 0 auto; background: white; }
-            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
-            .logo-section { display: flex; gap: 15px; width: 75%; }
-            .logo { width: 50px; height: 50px; object-fit: contain; margin-top: 5px; }
-            .brand-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 8px 0; color: #1e293b; }
-            .brand-info .company-name { font-weight: 600; color: #1e293b; font-size: 12px; margin-bottom: 2px; }
-            .brand-info .company-details { font-size: 11px; color: #475569; line-height: 1.4; }
-            .invoice-label { text-align: right; width: 25%; }
-            .invoice-label h2 { font-size: 20px; color: #2563eb; font-weight: bold; margin: 0; }
-            .invoice-label span { font-size: 12px; color: #2563eb; font-weight: 600; letter-spacing: 1px; }
-            .meta-bar { display: flex; justify-content: space-between; background: #f8fafc; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
-            .meta-item { font-size: 12px; }
-            .meta-item strong { color: #64748b; margin-right: 5px; }
-            .meta-item span { font-weight: 600; color: #1e293b; }
-            .due-date { color: #dc2626 !important; }
-            .info-grid { display: flex; gap: 20px; margin-bottom: 25px; }
-            .info-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #fff; }
-            .box-header { font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
-            .box-content .name { font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
-            .box-content p { font-size: 12px; color: #475569; margin: 0 0 2px 0; line-height: 1.4; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
-            th { text-align: left; padding: 10px; background-color: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #cbd5e1; }
-            td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; color: #1e293b; }
-            .text-right { text-align: right; }
-            .text-center { text-align: center; }
-            .col-total { font-weight: 600; }
-            .total-section { display: flex; justify-content: flex-end; margin-bottom: 25px; }
-            .total-box { text-align: right; border-top: 2px solid #cbd5e1; padding-top: 10px; min-width: 250px; }
-            .total-label { font-size: 13px; font-weight: bold; color: #1e293b; margin-right: 15px; }
-            .total-amount { font-size: 22px; font-weight: bold; color: #2563eb; }
-            .thai-baht { font-size: 12px; color: #64748b; font-style: italic; margin-top: 5px; }
-            .payment-box { background: #eff6ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 15px; margin-bottom: 20px; font-size: 12px; display: flex; align-items: center; gap: 12px; }
-            .payment-icon { font-size: 18px; }
-            .payment-info span { margin-right: 15px; color: #334155; }
-            .payment-info strong { color: #1e293b; font-weight: 600; }
-            .notes { font-size: 11px; color: #94a3b8; padding-top: 15px; border-top: 1px solid #e2e8f0; line-height: 1.6; }
-            .credit { text-align: center; margin-top: 20px; font-size: 10px; color: #cbd5e1; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <div class="logo-section">
-                    <img src="${escapeHtml(recipient.building_logo || 'https://via.placeholder.com/100x100?text=Logo')}" class="logo" />
-                    <div class="brand-info">
-                        <h1>${escapeHtml(recipient.building_name || 'Apartment')}</h1>
-                        <div class="company-details">
-                            <div class="company-name">${escapeHtml(recipient.company_name || recipient.lessor_name || '')}</div>
-                            <div>${escapeHtml(recipient.company_address || recipient.lessor_address || '')}</div>
-                            ${recipient.tax_id ? `<div>Tax ID: ${escapeHtml(recipient.tax_id)}</div>` : ''}
-                        </div>
-                    </div>
-                </div>
-                <div class="invoice-label">
-                    <h2>ใบแจ้งหนี้</h2>
-                    <span>INVOICE</span>
-                </div>
-            </div>
+    return `
+    <!DOCTYPE html>
+    <html lang="th">
+    <head>
+        <meta charset="UTF-8">
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+        <style>
+            * { box-sizing: border-box; }
+            body { 
+                font-family: 'Sarabun', sans-serif; 
+                margin: 0; 
+                padding: 0; 
+                background-color: #ffffff; /* ✅ บังคับพื้นหลังขาว */
+                color: #000;
+                -webkit-font-smoothing: antialiased;
+            }
+            .container { 
+                width: 800px; /* ขนาดกระดาษ A4 โดยประมาณ */
+                margin: 0 auto; 
+                background-color: #ffffff; 
+                padding: 50px;
+                position: relative;
+            }
+            
+            /* --- 1. Logo Section (รูปบนสุด) --- */
+            .logo-section {
+                text-align: center;
+                margin-bottom: 40px;
+            }
+            .logo-img {
+                max-height: 150px;
+                max-width: 200px;
+                object-fit: contain;
+            }
 
-            <div class="meta-bar">
-                <div class="meta-item"><strong>เลขที่:</strong> <span>${escapeHtml(invoiceNo)}</span></div>
-                <div class="meta-item"><strong>วันที่ออก:</strong> <span>${escapeHtml(issueDate)}</span></div>
-                <div class="meta-item"><strong>ครบกำหนด:</strong> <span class="due-date">${escapeHtml(dueDate)}</span></div>
-            </div>
+            /* --- 2. Header Name (ชื่อหอพัก Font หรู) --- */
+            .brand-name {
+                font-family: 'Playfair Display', serif; /* Font แบบในรูป */
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 10px;
+                color: #000;
+            }
+            .brand-address {
+                font-size: 12px;
+                color: #333;
+                margin-bottom: 40px;
+                line-height: 1.4;
+            }
 
-            <div class="info-grid">
-                <div class="info-box">
-                    <div class="box-header">ผู้รับเงิน / RECEIVER</div>
-                    <div class="box-content">
-                        <div class="name">${escapeHtml(recipient.lessor_name || '')}</div>
-                        <p>${escapeHtml(recipient.lessor_address || '')}</p>
-                    </div>
-                </div>
-                <div class="info-box">
-                    <div class="box-header">ผู้จ่ายเงิน / PAYER</div>
-                    <div class="box-content">
-                        <div class="name">${escapeHtml(tenant.full_name || 'ไม่ระบุชื่อ')}</div>
-                        <p>ห้อง: ${escapeHtml(room.room_number || '-')}</p>
-                        <p>โทร: ${escapeHtml(tenant.phone || '-')}</p>
-                    </div>
-                </div>
-            </div>
+            /* --- 3. Invoice Title --- */
+            .invoice-title {
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 2px;
+            }
+            .invoice-subtitle {
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                color: #666;
+                margin-bottom: 25px;
+            }
 
-            <table>
-                <thead>
-                    <tr>
-                        <th width="10%">ลำดับ</th>
-                        <th width="45%">รายการ</th>
-                        <th width="15%" class="text-center">จำนวน</th>
-                        <th width="15%" class="text-right">ราคา/หน่วย</th>
-                        <th width="15%" class="text-right">จำนวนเงิน</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${items.map((item, index) => `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${escapeHtml(item.name)}</td>
-                        <td class="text-center">${item.qty}</td>
-                        <td class="text-right">${item.price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                        <td class="text-right col-total">${item.price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                    </tr>
-                    `).join('')}
-                </tbody>
-            </table>
+            /* --- 4. Meta Data (เลขที่, วันที่) --- */
+            .meta-group {
+                margin-bottom: 30px;
+                font-size: 12px;
+            }
+            .meta-row {
+                display: flex;
+                margin-bottom: 5px;
+            }
+            .meta-label {
+                font-weight: bold;
+                width: 120px;
+            }
 
-            <div class="total-section">
-                <div class="total-box">
-                    <span class="total-label">รวมทั้งสิ้น</span>
-                    <span class="total-amount">${total.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
-                    <div class="thai-baht">(${numberToThaiText(total)})</div>
-                </div>
-            </div>
+            /* --- 5. Receiver / Payer Blocks --- */
+            .info-block {
+                margin-bottom: 30px;
+                font-size: 12px;
+            }
+            .block-label {
+                font-size: 11px;
+                color: #555;
+                text-transform: uppercase;
+                margin-bottom: 5px;
+                font-weight: 600;
+            }
+            .block-content {
+                line-height: 1.6;
+            }
 
-            <div class="payment-box">
-                <span class="payment-icon">💳</span>
-                <div class="payment-info">
-                    <span>ช่องทางการชำระเงิน</span>
-                    <span>ธนาคาร: <strong>${escapeHtml(bank.name || 'กสิกรไทย')}</strong></span>
-                    <span>เลขบัญชี: <strong>${escapeHtml(bank.account_number || '-')}</strong></span>
-                    <span>ชื่อ: <strong>${escapeHtml(bank.account_name || '-')}</strong></span>
-                </div>
-            </div>
+            /* --- 6. Table --- */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+                margin-bottom: 20px;
+                font-size: 11px;
+            }
+            th {
+                text-align: left;
+                padding: 8px 0;
+                border-bottom: 1px solid #ddd;
+                font-weight: bold;
+                color: #000;
+            }
+            td {
+                padding: 8px 0;
+                vertical-align: top;
+                color: #333;
+            }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
 
-            <div class="notes">
-                <strong>หมายเหตุ:</strong><br>
-                1. กรุณาชำระเงินภายในวันที่กำหนด<br>
-                2. กรุณาแนบหลักฐานการโอนเงินทุกครั้ง
-            </div>
+            /* --- 7. Total --- */
+            .total-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                margin-top: 10px;
+                padding-top: 10px;
+                border-top: 1px solid #000;
+            }
+            .thai-baht {
+                font-size: 11px;
+                color: #333;
+            }
+            .grand-total {
+                font-size: 14px;
+                font-weight: bold;
+            }
 
-            <div class="credit">
-                System Generated | ${escapeHtml(recipient.building_name)}
-            </div>
-        </div>
-    </body>
-    </html>
-    `;
+            /* --- 8. Footer Info --- */
+            .footer {
+                margin-top: 50px;
+                font-size: 10px;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                color: #333;
+            }
+            .bank-details div { margin-bottom: 3px; }
+            
+            .footer-notes {
+                margin-top: 20px;
+                font-size: 9px;
+                color: #555;
+                line-height: 1.4;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            
+            <div class="logo-section">
+                <img src="${escapeHtml(recipient.building_logo)}" class="logo-img" />
+            </div>
+
+            <div class="brand-name">${escapeHtml(recipient.building_name)}</div>
+            <div class="brand-address">
+                ${escapeHtml(recipient.company_address)}
+                ${recipient.tax_id ? `<br>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(recipient.tax_id)}` : ''}
+            </div>
+
+            <div class="invoice-title">ใบแจ้งหนี้</div>
+            <div class="invoice-subtitle">INVOICE</div>
+
+            <div class="meta-group">
+                <div class="meta-row">
+                    <div class="meta-label">เลขที่:</div>
+                    <div>${escapeHtml(invoiceNo)}</div>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-label">วันที่ออก:</div>
+                    <div>${escapeHtml(issueDate)}</div>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-label">ครบกำหนด:</div>
+                    <div>${escapeHtml(dueDate)}</div>
+                </div>
+            </div>
+
+            <div class="info-block">
+                <div class="block-label">ผู้รับเงิน / RECEIVER</div>
+                <div class="block-content">
+                    ${escapeHtml(recipient.lessor_name)}
+                </div>
+            </div>
+
+            <div class="info-block">
+                <div class="block-label">ผู้จ่ายเงิน / PAYER</div>
+                <div class="block-content">
+                    ${escapeHtml(tenant.full_name)}<br>
+                    ห้อง: ${escapeHtml(room.room_number)}<br>
+                    โทร: ${escapeHtml(tenant.phone || '-')}
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th width="10%">ลำดับ</th>
+                        <th width="45%">รายการ</th>
+                        <th width="15%" class="text-center">จำนวน</th>
+                        <th width="15%" class="text-right">ราคา/หน่วย</th>
+                        <th width="15%" class="text-right">จำนวนเงิน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${items.map((item, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${escapeHtml(item.name)}</td>
+                        <td class="text-center">${item.qty}</td>
+                        <td class="text-right">${item.price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                        <td class="text-right">${item.price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+
+            <div class="total-row">
+                <div class="thai-baht">
+                    รวมทั้งสิ้น<br>
+                    (${numberToThaiText(total)})
+                </div>
+                <div class="grand-total">
+                    ${total.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿
+                </div>
+            </div>
+
+            <div class="footer">
+                <div class="bank-details">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/KBank_Logo.png" style="height:15px; vertical-align:middle; margin-right:5px;"> 
+                    <strong>ช่องทางการชำระเงิน</strong><br>
+                    ธนาคาร: ${escapeHtml(bank.name)}<br>
+                    เลขบัญชี: ${escapeHtml(bank.account_number)}<br>
+                    ชื่อ: ${escapeHtml(bank.account_name)}
+                </div>
+                <div style="text-align:right;">
+                    System Generated | ${escapeHtml(recipient.building_name)}
+                </div>
+            </div>
+
+            <div class="footer-notes">
+                <strong>หมายเหตุ:</strong><br>
+                1. กรุณาชำระเงินภายในวันที่กำหนด<br>
+                2. กรุณาแนบหลักฐานการโอนเงินทุกครั้ง
+            </div>
+
+        </div>
+    </body>
+    </html>
+    `;
 }
 
 // ==========================================
