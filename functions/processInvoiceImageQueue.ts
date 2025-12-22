@@ -553,19 +553,37 @@ Deno.serve(async (req) => {
                 }
 
                 if (hasFacebookId) {
-                    try {
-                        const fbToken = getConfigValue('facebook_page_access_token', branchId, '');
-                        if (fbToken) {
-                            const res = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ recipient: { id: tenant.facebook_user_id }, message: { text: msg }, messaging_type: 'MESSAGE_TAG', tag: 'CONFIRMED_EVENT_UPDATE' })
-                            });
-                            if (res.ok) { messageSent = true; console.log(`✅ [FB] ห้อง ${room?.room_number}`); }
-                            await delay(200);
-                        }
-                    } catch (e) { console.error('FB Error'); }
-                }
+                    try {
+                        const fbToken = getConfigValue('facebook_page_access_token', branchId, '');
+                        
+                        // 🟢 เพิ่ม 1: เช็คว่ามี Token ไหม ถ้าไม่มีให้แจ้งเตือน
+                        if (!fbToken) {
+                            console.log(`⚠️ [FB] ห้อง ${room?.room_number}: ไม่พบ Token (facebook_page_access_token)`);
+                        } else {
+                            const res = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    recipient: { id: tenant.facebook_user_id }, 
+                                    message: { text: msg }, // 👈 ใช้ msg ตัวเดิมของคุณ ไม่มีการแก้ไข
+                                    messaging_type: 'MESSAGE_TAG', 
+                                    tag: 'CONFIRMED_EVENT_UPDATE' 
+                                })
+                            });
+                            
+                            if (res.ok) { 
+                                fbSent++; // 🟢 เพิ่ม 2: นับยอด
+                                messageSent = true; 
+                                console.log(`✅ [FB] ห้อง ${room?.room_number}`); 
+                            } else {
+                                // 🟢 เพิ่ม 3: อ่าน Error จาก Facebook มาโชว์
+                                const errText = await res.text();
+                                console.error(`❌ [FB] Failed ห้อง ${room?.room_number}: ${errText}`);
+                            }
+                            await delay(200);
+                        }
+                    } catch (e) { console.error(`❌ [FB] Error: ${e.message}`); }
+                }
 
                 if (messageSent) await base44.asServiceRole.entities.Payment.update(payment.id, { bill_sent_date: new Date().toISOString() });
             }
