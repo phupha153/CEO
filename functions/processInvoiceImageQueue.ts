@@ -453,64 +453,92 @@ Deno.serve(async (req) => {
         return item;
     }
 
-    const worker = async (payment) => {
-        // เช็คเวลา
-        if (Date.now() - startTime > CONFIG.MAX_EXECUTION_TIME_MS) return;
+  const worker = async (payment) => {
+        // เช็คเวลา
+        if (Date.now() - startTime > CONFIG.MAX_EXECUTION_TIME_MS) return;
 
-        try {
-            await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'generating' });
-            
-            const tenant = await getEntity('tenants', payment.tenant_id);
-            const room = await getEntity('rooms', payment.room_id);
-            
-            // เตรียมข้อมูลเพื่อ Generate HTML
-            // (Mock ข้อมูลผู้รับเงิน/ธนาคาร จาก Config หรือ Logic ภายใน)
-            // ในที่นี้สมมติว่าเอามาจาก Config หรือ Payment Relation (ปรับแก้ได้)
-            const recipient = {
-                building_name: configs.find(c => c.key === 'building_name')?.value || 'My Building',
-                lessor_name: 'นิติบุคคล',
-                building_logo: 'https://via.placeholder.com/150'
-            };
-            const bank = {
-                name: configs.find(c => c.key === 'bank_name')?.value,
-                account_number: configs.find(c => c.key === 'bank_account_number')?.value,
-                account_name: configs.find(c => c.key === 'bank_account_name')?.value
-            };
+        try {
+            await delay(2000); // พัก 2 วิ กันเหนื่อย
 
-            // Generate HTML & Image
-            const invoiceNo = `INV-${payment.id.slice(0,6).toUpperCase()}`;
-            const html = generateInvoiceHTML(payment, tenant, room, recipient, bank, invoiceNo);
-            const imageUrl = await generateAndUploadImage(base44, payment.id, html);
+            // 1. ดึงข้อมูล
+            const t = await getEntity('tenants', payment.tenant_id);
+            const r = await getEntity('rooms', payment.room_id);
+            const branchName = getConfig('building_name', payment.branch_id) || `Branch-${payment.branch_id}`;
 
-            // Send Notification
-            let sent = false;
-            if (!skipNotify) {
-                sent = await sendNotification(payment, tenant, room, recipient, bank, imageUrl, configs);
-            }
+            console.log(`--------------------------------------------------`);
+            console.log(`⚙️ กำลังทำ: [${branchName}] ห้อง ${r.room_number}`);
 
-            // Update DB
-            await base44.asServiceRole.entities.Payment.update(payment.id, {
-                invoice_image_url: imageUrl,
-                invoice_image_status: 'completed',
-                invoice_data_hash: generatePaymentHash(payment),
-                bill_sent_date: sent ? new Date().toISOString() : null,
-                updated_date: new Date().toISOString() // ดันให้เป็นปัจจุบัน
-            });
+            // 2. สร้างรูป
+            await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'generating' });
+            
+            const recipient = {
+                building_name: branchName,
+                building_logo: 'https://via.placeholder.com/150',
+                company_address: 'Bangkok, Thailand'
+            };
+            const bank = {
+                name: getConfig('bank_name', payment.branch_id),
+                account_number: getConfig('bank_account_number', payment.branch_id),
+                account_name: getConfig('bank_account_name', payment.branch_id)
+            };
 
-            success++;
-            console.log(`✅ [${payment.id}] Success`);
+            const invoiceNo = `INV-${payment.id.slice(0,6).toUpperCase()}`;
+            const html = generateInvoiceHTML(payment, t, r, recipient, bank, invoiceNo);
+            const imageUrl = await generateAndUploadImage(base44, payment.id, html);
+            console.log(`📸 สร้างรูปเสร็จแล้ว`);
 
-        } catch (error) {
-            failed++;
-            console.error(`❌ [${payment.id}] Failed: ${error.message}`);
-            await base44.asServiceRole.entities.Payment.update(payment.id, { 
-                invoice_image_status: 'failed',
-                updated_date: new Date().toISOString() // ดันให้เป็นปัจจุบันเพื่อให้คราวหน้าเจออีก
-            });
-        } finally {
-            processed++;
-        }
-    };
+            // 3. 🕵️‍♂️ เช็คเงื่อนไขการส่งไลน์ (Detective Mode)
+            const configAutoSend = getConfig('auto_send_bills_after_generation', payment.branch_id);
+            const lineToken = getConfig('line_channel_access_token', payment.branch_id);
+            
+            let sent = false;
+            let skipReason = "";
+
+            if (configAutoSend !== 'true') {
+                skipReason = `Config ปิดอยู่ (ค่าปัจจุบันคือ: "${configAutoSend}") -> ต้องแก้เป็น "true"`;
+            } else if (payment.bill_sent_date) {
+                skipReason = `เคยส่งไปแล้วเมื่อ ${payment.bill_sent_date} (ต้องลบวันที่ออกก่อน)`;
+            } else if (!t.line_user_id) {
+                skipReason = `ผู้เช่าไม่มี LINE ID`;
+            } else if (!lineToken) {
+                skipReason = `ไม่มี LINE Token ใน Config`;
+            } else {
+                // ถ้าผ่านทุกด่าน ถึงจะส่ง
+                console.log(`📤 กำลังส่ง LINE...`);
+                sent = await sendNotification(payment, t, r, recipient, bank, imageUrl, configs);
+                if(sent) console.log(`✅ ส่ง LINE สำเร็จ!`);
+                else console.error(`❌ ส่ง LINE ไม่ผ่าน (ตรวจสอบ Token หรือ Server)`);
+            }
+
+            if (skipReason) {
+                console.log(`⚠️ ข้ามการส่ง LINE เพราะ: ${skipReason}`);
+            }
+
+            // 4. บันทึกผล
+            await base44.asServiceRole.entities.Payment.update(payment.id, {
+                invoice_image_url: imageUrl,
+                invoice_image_status: 'completed',
+                invoice_data_hash: generatePaymentHash(payment),
+                bill_sent_date: sent ? new Date().toISOString() : (payment.bill_sent_date || null), // คงค่าเดิมไว้ถ้าไม่ได้ส่งใหม่
+                updated_date: new Date().toISOString()
+            });
+
+            success++;
+            console.log(`🏁 จบงานห้อง ${r.room_number}`);
+
+        } catch (error) {
+            failed++;
+            console.error(`❌ พังที่ห้อง ${payment.room_id}: ${error.message}`);
+            if (error.message.includes('429')) await delay(5000);
+            
+            await base44.asServiceRole.entities.Payment.update(payment.id, { 
+                invoice_image_status: 'failed',
+                updated_date: new Date().toISOString()
+            });
+        } finally {
+            processed++;
+        }
+    };
 
     // Execute batch with concurrency limit
     const chunk = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
