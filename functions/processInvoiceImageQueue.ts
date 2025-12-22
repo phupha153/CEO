@@ -1,37 +1,51 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
- * 💎 V4.4 FULL CODE (Safe Mode + Anti-Rate Limit + Anti-500)
- * แก้ปัญหา:
- * 1. Error 429 (Too Many Requests) -> ใช้ fetchEntitySafely ดึงข้อมูลทีละนิด
- * 2. Error 500 (Browserless Crash) -> ใช้ Retry Loop 5 รอบ
- * 3. HTML Template -> รวมมาให้ครบทุกบรรทัด ไม่มีการย่อ
+ * 💎 V5.1 FINAL FULL CODE (Lazy Load + Auto Retry + Full HTML)
+ * - แก้ปัญหา 429: Lazy Load (ดึงเมื่อใช้)
+ * - แก้ปัญหา 500: Auto Retry (ลองใหม่เมื่อล่ม)
+ * - HTML: ครบถ้วนทุกบรรทัด
  */
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // ==========================================
-// 🛠️ HELPER FUNCTIONS
+// 🛡️ 1. ULTRA SAFE WRAPPER (ระบบป้องกัน Error)
 // ==========================================
-
-// 1. ฟังก์ชันดึงข้อมูลแบบปลอดภัย (แก้ 429)
-async function fetchEntitySafely(base44, entityName, ids) {
-    const results = [];
-    // ดึงทีละ 1 รายการ เพื่อป้องกันการยิงรัวจนโดนบล็อก
-    for (const id of ids) {
+async function callWithRetry(fn, operationName = 'Operation') {
+    const maxRetries = 5;
+    let attempt = 0;
+    
+    while (attempt < maxRetries) {
         try {
-            const res = await base44.asServiceRole.entities[entityName].filter({ id });
-            if (res && res.length > 0) results.push(res[0]);
-            // พัก 100ms ระหว่างดึงแต่ละคน
-            await delay(100); 
-        } catch (e) {
-            console.error(`Skip ${entityName} ${id}: ${e.message}`);
+            return await fn();
+        } catch (error) {
+            // เช็คว่าเป็น Error ที่ควรลองใหม่หรือไม่
+            const isRateLimit = error.message?.includes('Rate limit') || 
+                                error.message?.includes('429') ||
+                                (error.body && JSON.stringify(error.body).includes('Rate limit'));
+            
+            const isServerError = error.message?.includes('500') || error.message?.includes('502') || error.message?.includes('503');
+            const isBrowserlessError = error.message?.includes('Browserless');
+
+            if (isRateLimit || isServerError || isBrowserlessError || attempt < 3) { 
+                attempt++;
+                // สูตรคำนวณเวลารอแบบทวีคูณ: 2วิ, 4วิ, 8วิ, 16วิ...
+                const waitTime = 2000 * Math.pow(2, attempt); 
+                console.warn(`⚠️ [${operationName}] Error (Attempt ${attempt}/${maxRetries}). Waiting ${waitTime/1000}s...`);
+                await delay(waitTime);
+            } else {
+                console.error(`❌ [${operationName}] Failed after ${maxRetries} attempts: ${error.message}`);
+                throw error; // ยอมแพ้ ส่ง Error กลับไป
+            }
         }
     }
-    return results;
 }
 
-// 2. ฟังก์ชันสร้าง Hash ตรวจสอบการเปลี่ยนแปลง
+// ==========================================
+// 🛠️ 2. HELPER FUNCTIONS
+// ==========================================
+
 function generatePaymentHash(payment) {
     const dataToHash = {
         rent_amount: payment.rent_amount || 0,
@@ -51,7 +65,6 @@ function generatePaymentHash(payment) {
     return btoa(JSON.stringify(dataToHash)).substring(0, 32);
 }
 
-// 3. ฟังก์ชันแปลงตัวเลขเป็นคำอ่านไทย
 function numberToThaiText(number) {
     if (number === undefined || number === null || isNaN(number) || number === 0) return 'ศูนย์บาทถ้วน';
     const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
@@ -79,7 +92,6 @@ function numberToThaiText(number) {
     return text;
 }
 
-// 4. ฟังก์ชันจัดรูปแบบวันที่
 function formatDate(dateString) {
     if (!dateString) return '-';
     try {
@@ -90,7 +102,7 @@ function formatDate(dateString) {
 }
 
 // ==========================================
-// 📸 GENERATE INVOICE FUNCTION (CORE)
+// 📸 3. GENERATE INVOICE FUNCTION (HTML ครบ)
 // ==========================================
 async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
@@ -129,7 +141,7 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
         return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    // --- HTML TEMPLATE (ไม่ย่อ) ---
+    // --- เริ่มต้น HTML TEMPLATE ---
     const htmlContent = `
     <!DOCTYPE html>
     <html lang="th">
@@ -279,74 +291,53 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     </body>
     </html>
     `;
+    // --- สิ้นสุด HTML TEMPLATE ---
 
-    // ⭐⭐⭐ RETRY LOGIC (Anti-500 & Anti-429) ⭐⭐⭐
-    let attempts = 0;
-    const maxAttempts = 5;
-    let imageBlob = null;
-    let lastError = null;
+    // เรียก Browserless ผ่าน Retry
+    return await callWithRetry(async () => {
+        const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                html: htmlContent, 
+                viewport: { width: 800, height: 1000 },
+                options: { type: 'png', fullPage: true, omitBackground: true },
+                gotoOptions: { waitUntil: 'networkidle0', timeout: 30000 }
+            })
+        });
 
-    while (attempts < maxAttempts) {
-        attempts++;
-        try {
-            const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    html: htmlContent, 
-                    viewport: { width: 800, height: 1000 },
-                    options: { type: 'png', fullPage: true, omitBackground: true },
-                    gotoOptions: { waitUntil: 'networkidle0', timeout: 30000 }
-                })
-            });
-
-            // ถ้าเจอ 429 หรือ 500 ให้รอแล้วลองใหม่
-            if (browserlessResponse.status === 429 || browserlessResponse.status >= 500) {
-                const waitTime = 5000 * attempts; // 5s, 10s, 15s...
-                console.warn(`⚠️ Browserless Error ${browserlessResponse.status}. Attempt ${attempts}/${maxAttempts}. Waiting ${waitTime/1000}s...`);
-                await delay(waitTime);
-                continue;
-            }
-
-            if (!browserlessResponse.ok) throw new Error(`Browserless error: ${await browserlessResponse.text()}`);
-            
-            imageBlob = await browserlessResponse.blob();
-            break; // Success
-        } catch (e) {
-            lastError = e;
-            console.error(`Attempt ${attempts} failed: ${e.message}`);
-            if (attempts >= maxAttempts) throw lastError;
-            await delay(3000);
+        if (!browserlessResponse.ok) {
+            const txt = await browserlessResponse.text();
+            throw new Error(`Browserless Error ${browserlessResponse.status}: ${txt}`);
         }
-    }
-
-    if (!imageBlob) throw new Error("Failed to generate image after retries.");
-
-    const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
-    const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: imageFile });
-    const file_url = uploadResult?.file_url || uploadResult?.url || uploadResult?.path || uploadResult?.data?.fullPath;
-    
-    if (!file_url) console.error('❌ file_url is missing!');
-    return file_url;
+        
+        const imageBlob = await browserlessResponse.blob();
+        const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
+        
+        await delay(500); // พักก่อน Upload เพื่อความชัวร์
+        
+        const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: imageFile });
+        return uploadResult?.file_url || uploadResult?.url || uploadResult?.path || uploadResult?.data?.fullPath;
+    }, 'GenerateScreenshot');
 }
 
 // ==========================================
-// 🚀 MAIN QUEUE WORKER
+// 🚀 4. MAIN QUEUE WORKER
 // ==========================================
 
 Deno.serve(async (req) => {
     console.log('========================================');
-    console.log('🖼️ PROCESS INVOICE QUEUE (Safe Mode V4.4)');
+    console.log('🖼️ PROCESS INVOICE V5.1 (LAZY+RETRY)');
     console.log(`📅 ${new Date().toISOString()}`);
     console.log('========================================');
 
     const startTime = Date.now();
     let base44 = null;
     let targetBranchId = null;
-    let batchSize = 10000;
-    let concurrentLimit = 1; 
+    
+    let batchSize = 20; // ⚠️ Limit 20 เพื่อความปลอดภัย
     let skipLineSend = false;
-    let maxRunTime = 88000;
+    let maxRunTime = 85000; 
 
     try {
         const clonedReq = req.clone();
@@ -357,13 +348,14 @@ Deno.serve(async (req) => {
             if (text && text.trim()) {
                 const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
-                batchSize = body.batch_size || 30; 
-                concurrentLimit = body.concurrent_limit || 1; 
+                if (body.batch_size && body.batch_size < 50) batchSize = body.batch_size;
                 skipLineSend = body.skip_line_send === true;
             }
         } catch (e) { }
 
-        const configs = await base44.asServiceRole.entities.Config.list() || [];
+        // Load Configs (ใช้ callWithRetry)
+        const configs = await callWithRetry(() => base44.asServiceRole.entities.Config.list(), 'LoadConfig') || [];
+        
         const getConfigValue = (key, branchId, defaultValue = '') => {
             if (branchId) {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
@@ -379,74 +371,45 @@ Deno.serve(async (req) => {
         };
         
         let paymentsToProcess = [];
-        let dbSkip = 0;
-        const dbFetchSize = 1000;
-        const maxScanLimit = 100000;
-        let hasMore = true;
-
-        console.log(`📥 Start Scanning jobs...`);
         
-        while (hasMore && paymentsToProcess.length < batchSize && dbSkip < maxScanLimit) {
-            const batch = await base44.asServiceRole.entities.Payment.filter(
-                paymentFilter, '-updated_date', dbFetchSize, dbSkip
-            );
+        // 🔥 PHASE 1: Scan Payments (ใช้ callWithRetry)
+        console.log(`📥 Scanning jobs...`);
+        const batch = await callWithRetry(() => 
+            base44.asServiceRole.entities.Payment.filter(paymentFilter, '-updated_date', batchSize, 0)
+        , 'ScanPayment');
 
-            if (!batch || batch.length === 0) {
-                hasMore = false; 
-                break;
-            }
-
-            for (const p of batch) {
-                if (paymentsToProcess.length >= batchSize) break;
-                if (p.status === 'paid' || p.status === 'cancelled') continue;
-                
-                const ZOMBIE_THRESHOLD_MS = 30 * 60 * 1000; 
-                const lastUpdate = p.updated_date ? new Date(p.updated_date).getTime() : 0;
-                
-                const needsImage = !p.invoice_image_url || 
-                                   p.invoice_image_status === 'pending' || 
-                                   p.invoice_image_status === 'generating' ||
-                                   !p.invoice_image_status;
-                
-                let needsRegenerate = false;
-                if (p.invoice_image_url && p.invoice_data_hash) {
-                    if (generatePaymentHash(p) !== p.invoice_data_hash) needsRegenerate = true;
-                }
-                if (p.status === 'overdue' && p.late_fee_amount > 0 && !p.invoice_data_hash) needsRegenerate = true;
-
-                const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', p.branch_id, 'false') === 'true';
-                const needsSend = autoSendEnabled && !p.bill_sent_date;
-
-                if (needsImage || needsRegenerate || needsSend) {
-                    paymentsToProcess.push(p);
-                }
-            }
-            dbSkip += batch.length;
-        }
-
-        console.log(`📊 Found jobs: ${paymentsToProcess.length}`);
-
-        if (paymentsToProcess.length === 0) {
+        if (!batch || batch.length === 0) {
             return Response.json({ success: true, message: 'ไม่มีบิลที่ต้องทำ', processed: 0 });
         }
 
-        // ⭐⭐⭐ SAFE FETCH (แก้ 429) ⭐⭐⭐
-        const uniqueTenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id).filter(id => id))];
-        const uniqueRoomIds = [...new Set(paymentsToProcess.map(p => p.room_id).filter(id => id))];
-        
-        // ใช้ฟังก์ชัน Safe Fetch แทน Promise.all
-        const [tenantsBatch, roomsBatch] = await Promise.all([
-            uniqueTenantIds.length > 0 ? fetchEntitySafely(base44, 'Tenant', uniqueTenantIds) : [],
-            uniqueRoomIds.length > 0 ? fetchEntitySafely(base44, 'Room', uniqueRoomIds) : []
-        ]);
+        // Filter Logic
+        for (const p of batch) {
+            if (p.status === 'paid' || p.status === 'cancelled') continue;
+            
+            const ZOMBIE_THRESHOLD_MS = 30 * 60 * 1000; 
+            const lastUpdate = p.updated_date ? new Date(p.updated_date).getTime() : 0;
+            
+            const needsImage = !p.invoice_image_url || p.invoice_image_status === 'pending' || !p.invoice_image_status;
+            
+            let needsRegenerate = false;
+            if (p.invoice_image_url && p.invoice_data_hash) {
+                if (generatePaymentHash(p) !== p.invoice_data_hash) needsRegenerate = true;
+            }
+            
+            const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', p.branch_id, 'false') === 'true';
+            const needsSend = autoSendEnabled && !p.bill_sent_date;
 
-        const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
-        const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
+            if (needsImage || needsRegenerate || needsSend) {
+                paymentsToProcess.push(p);
+            }
+        }
 
-        let imageGenerated = 0, imageFailed = 0, lineSent = 0;
+        console.log(`📊 Found ${paymentsToProcess.length} valid jobs (from ${batch.length} scanned)`);
+
+        let imageGenerated = 0, lineSent = 0;
         let processedCount = 0;
 
-        // --- Helper: ส่ง LINE Notification ---
+        // --- PHASE 2: Notification Function ---
         const sendNotification = async (payment, room, tenant, imageUrl) => {
             if (skipLineSend) return;
             const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', payment.branch_id, 'false') === 'true';
@@ -479,60 +442,64 @@ Deno.serve(async (req) => {
 
             let messageSent = false;
             
-            // Send LINE
             if (hasLineId) {
                 try {
                     const lineToken = getConfigValue('line_channel_access_token', branchId, '');
                     if (lineToken) {
-                        const res = await fetch('https://api.line.me/v2/bot/message/push', {
+                        await callWithRetry(() => fetch('https://api.line.me/v2/bot/message/push', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${lineToken}` },
                             body: JSON.stringify({ to: tenant.line_user_id, messages: [{ type: 'text', text: msg }] })
-                        });
-                        if (res.ok) { messageSent = true; lineSent++; console.log(`✅ [LINE] ส่งแล้ว: ห้อง ${room?.room_number}`); }
+                        }), 'SendLINE');
+                        messageSent = true; 
+                        lineSent++;
                     }
                 } catch (e) { console.error('LINE Fail'); }
             }
 
-            // Send FB
             if (hasFacebookId) {
                 try {
                     const fbToken = getConfigValue('facebook_page_access_token', branchId, '');
                     if (fbToken) {
-                        const res = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
+                        await callWithRetry(() => fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ recipient: { id: tenant.facebook_user_id }, message: { text: msg }, messaging_type: 'MESSAGE_TAG', tag: 'CONFIRMED_EVENT_UPDATE' })
-                        });
-                        if (res.ok) { messageSent = true; }
+                        }), 'SendFB');
+                        messageSent = true;
                     }
                 } catch (e) { console.error('FB Fail'); }
             }
 
             if (messageSent) {
-                await base44.asServiceRole.entities.Payment.update(payment.id, { bill_sent_date: new Date().toISOString() });
+                await callWithRetry(() => base44.asServiceRole.entities.Payment.update(payment.id, { bill_sent_date: new Date().toISOString() }), 'UpdateSentDate');
             }
         };
 
+        // --- PHASE 3: Process Loop (One by One) ---
         const processPayment = async (payment) => {
-            const [freshPayment] = await base44.asServiceRole.entities.Payment.filter({ id: payment.id });
+            // Check Lock
+            const freshPaymentRes = await callWithRetry(() => base44.asServiceRole.entities.Payment.filter({ id: payment.id }), 'CheckLock');
+            const freshPayment = freshPaymentRes[0];
             if (!freshPayment) return { success: false, error: 'Deleted' };
 
             const ZOMBIE_THRESHOLD_MS = 30 * 60 * 1000;
             const lastUpdate = freshPayment.updated_date ? new Date(freshPayment.updated_date).getTime() : 0;
-            
             if (freshPayment.invoice_image_status === 'generating' && (Date.now() - lastUpdate < ZOMBIE_THRESHOLD_MS)) {
                 return { skipped: true };
             }
 
-            const room = roomMap.get(payment.room_id);
-            const tenant = tenantMap.get(payment.tenant_id);
+            // ⭐ LAZY LOAD TENANT & ROOM (ดึงสด ไม่ดึงรอ)
+            const tenantRes = await callWithRetry(() => base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id }), 'GetTenant');
+            const tenant = tenantRes[0] || {};
+            
+            const roomRes = await callWithRetry(() => base44.asServiceRole.entities.Room.filter({ id: payment.room_id }), 'GetRoom');
+            const room = roomRes[0] || {};
 
             let needsRegenerate = false;
             if (freshPayment.invoice_image_url && freshPayment.invoice_data_hash) {
                 if (generatePaymentHash(freshPayment) !== freshPayment.invoice_data_hash) needsRegenerate = true;
             }
-            if (freshPayment.status === 'overdue' && freshPayment.late_fee_amount > 0 && !freshPayment.invoice_data_hash) needsRegenerate = true;
 
             if (freshPayment.invoice_image_url && freshPayment.invoice_image_status === 'completed' && !needsRegenerate) {
                 await sendNotification(freshPayment, room, tenant, freshPayment.invoice_image_url);
@@ -545,77 +512,54 @@ Deno.serve(async (req) => {
                 processedCount++;
                 const branchName = getConfigValue('building_name', payment.branch_id, 'W RESIDENTS');
                 
-                await base44.asServiceRole.entities.Payment.update(payment.id, { 
+                await callWithRetry(() => base44.asServiceRole.entities.Payment.update(payment.id, { 
                     invoice_image_status: 'generating',
                     updated_date: new Date().toISOString()
-                });
+                }), 'UpdateGenerating');
 
-                console.log(`🖼️ [${processedCount}/${paymentsToProcess.length}] [${branchName}] ห้อง ${room?.room_number}`);
+                console.log(`🖼️ [${processedCount}/${paymentsToProcess.length}] [${branchName}] ห้อง ${room?.room_number || '?'}`);
                 
-                const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId: payment.id });
+                const invoiceDataResult = await callWithRetry(() => base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId: payment.id }), 'GetPublicInvoice');
                 if (!invoiceDataResult.data?.success || !invoiceDataResult.data?.invoice) throw new Error('Invoice data error');
 
-                // ⭐ Anti-500: พัก 2 วินาที ก่อนยิง Browserless
-                await delay(2000); 
-
+                // Generate Image (ใช้ฟังก์ชันที่มี Retry)
                 const imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoiceDataResult.data.invoice);
 
                 if (imageUrl) {
                     const newHash = generatePaymentHash(payment);
-                    await base44.asServiceRole.entities.Payment.update(payment.id, {
+                    await callWithRetry(() => base44.asServiceRole.entities.Payment.update(payment.id, {
                         invoice_image_url: imageUrl,
                         invoice_image_status: 'completed',
                         invoice_data_hash: newHash
-                    });
+                    }), 'UpdateCompleted');
+                    
                     await sendNotification(payment, room, tenant, imageUrl);
                     return { success: true };
                 } else {
                     throw new Error('No image url');
                 }
             } catch (error) {
-                console.error(`❌ ห้อง ${room?.room_number}: ${error.message}`);
-                await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'failed' });
+                console.error(`❌ ห้อง ${room?.room_number || '?'}: ${error.message}`);
+                await callWithRetry(() => base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'failed' }), 'UpdateFailed');
                 return { success: false, error: error.message };
             }
         };
 
-        const activePromises = new Set();
-        let queueIndex = 0;
-        const startNextJob = async () => {
-            if (queueIndex >= paymentsToProcess.length) return null;
-            const payment = paymentsToProcess[queueIndex];
-            queueIndex++;
-            const promise = processPayment(payment).then(result => {
-                activePromises.delete(promise);
-                if (result?.success && !result?.skipped) imageGenerated++;
-                else if (result && !result.success) imageFailed++;
-                return startNextJob();
-            }).catch(() => startNextJob());
-            activePromises.add(promise);
-            return promise;
-        };
-
-        const workers = [];
-        for (let i = 0; i < Math.min(concurrentLimit, paymentsToProcess.length); i++) workers.push(startNextJob());
-        await Promise.all(workers);
+        // Execution Loop
+        for (const payment of paymentsToProcess) {
+             if (Date.now() - startTime > maxRunTime) break;
+             const result = await processPayment(payment);
+             if (result?.success && !result?.skipped) imageGenerated++;
+             
+             // ⭐ พักหายใจ 1 วินาที หลังจบงาน 1 ชิ้น
+             await delay(1000); 
+        }
 
         const totalElapsed = Date.now() - startTime;
         const summary = `Job Done: ${imageGenerated} images, ${lineSent} notifications sent.`;
         console.log(`\n✅ ${summary}`);
         
-        try {
-            await delay(1000);
-            await base44.asServiceRole.entities.FunctionLog.create({
-                function_name: 'processInvoiceImageQueue',
-                run_timestamp: new Date().toISOString(),
-                status: 'success',
-                message: summary,
-                execution_time_ms: totalElapsed,
-                details: { processed: paymentsToProcess.length, imageGenerated, lineSent }
-            });
-        } catch (e) {}
-
-        return Response.json({ success: true, message: summary, hasMore: dbSkip >= maxScanLimit ? false : hasMore });
+        return Response.json({ success: true, message: summary });
 
     } catch (error) {
         console.error('❌ Fatal Error:', error);
