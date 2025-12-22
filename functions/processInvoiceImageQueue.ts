@@ -1,8 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
- * ฟังก์ชันสำหรับสร้างรูปใบแจ้งหนี้และส่ง LINE แบบ Queue (Safe Mode)
- * Version: 4.1 - Real-time Notification (แก้ปัญหา Timeout แล้วลูกค้าไม่ได้ไลน์)
+ * ฟังก์ชันสำหรับสร้างรูปใบแจ้งหนี้และส่ง LINE แบบ Queue (Safe Mode + Anti-429)
+ * Version: 4.2 - Fix 429 Too Many Requests (Auto Retry)
  */
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -66,9 +66,8 @@ function formatDate(dateString) {
     } catch { return '-'; }
 }
 
-// ⭐ ฟังก์ชันสร้างรูป invoice แบบ inline (Design ใหม่ Sarabun)
+// ⭐ ฟังก์ชันสร้างรูป invoice (แก้ 429 Retry Logic)
 async function generateInvoiceScreenshot(base44, paymentId, invoice) {
-    // ... (ส่วน HTML เหมือนเดิม ไม่เปลี่ยนแปลง) ...
     const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
     if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
 
@@ -259,19 +258,46 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     </html>
     `;
 
-    // console.log('📸 [Step 2] Sending to Browserless...');
-    const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            html: htmlContent, 
-            viewport: { width: 800, height: 1000 },
-            options: { type: 'png', fullPage: true, omitBackground: true } 
-        })
-    });
+    // ⭐⭐⭐ RETRY LOGIC for 429 Error ⭐⭐⭐
+    let attempts = 0;
+    const maxAttempts = 3;
+    let imageBlob = null;
+    let lastError = null;
 
-    if (!browserlessResponse.ok) throw new Error(`Browserless error: ${await browserlessResponse.text()}`);
-    const imageBlob = await browserlessResponse.blob();
+    while (attempts < maxAttempts) {
+        attempts++;
+        try {
+            const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    html: htmlContent, 
+                    viewport: { width: 800, height: 1000 },
+                    options: { type: 'png', fullPage: true, omitBackground: true } 
+                })
+            });
+
+            // ถ้าเจอ 429 ให้รอและลองใหม่
+            if (browserlessResponse.status === 429) {
+                console.warn(`⚠️ Browserless 429 (Too Many Requests). Attempt ${attempts}/${maxAttempts}. Waiting...`);
+                await delay(3000 * attempts); // รอ 3, 6, 9 วินาที ตามลำดับ
+                continue;
+            }
+
+            if (!browserlessResponse.ok) throw new Error(`Browserless error: ${await browserlessResponse.text()}`);
+            
+            imageBlob = await browserlessResponse.blob();
+            break; // สำเร็จ หลุด loop
+        } catch (e) {
+            lastError = e;
+            console.error(`Attempt ${attempts} failed: ${e.message}`);
+            if (attempts >= maxAttempts) throw lastError;
+            await delay(1000);
+        }
+    }
+
+    if (!imageBlob) throw new Error("Failed to generate image after retries.");
+
     const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
     
     // console.log('☁️ [Step 4] Uploading to Base44 Storage...');
@@ -286,7 +312,7 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
 
 Deno.serve(async (req) => {
     console.log('========================================');
-    console.log('🖼️ PROCESS INVOICE QUEUE (Safe Mode)');
+    console.log('🖼️ PROCESS INVOICE QUEUE (Safe Mode + Anti-429)');
     console.log(`📅 ${new Date().toISOString()}`);
     console.log('========================================');
 
@@ -294,7 +320,7 @@ Deno.serve(async (req) => {
     let base44 = null;
     let targetBranchId = null;
     let batchSize = 10000;
-    let concurrentLimit = 1;
+    let concurrentLimit = 1; // ⚠️ บังคับเหลือ 1 เพื่อความปลอดภัย
     let maxRunTime = 88000;
     let skipLineSend = false;
 
@@ -307,8 +333,8 @@ Deno.serve(async (req) => {
             if (text && text.trim()) {
                 const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
-                batchSize = body.batch_size || 30; // แนะนำ 20-30 พอ
-                concurrentLimit = body.concurrent_limit || 1;
+                batchSize = body.batch_size || 30; 
+                concurrentLimit = body.concurrent_limit || 1; // รับค่ามาได้ แต่แนะนำให้ส่งเป็น 1
                 skipLineSend = body.skip_line_send === true;
             }
         } catch (e) { console.log('⚠️ No valid JSON body'); }
@@ -323,10 +349,11 @@ Deno.serve(async (req) => {
             return globalConfig?.value || defaultValue;
         };
 
-     const paymentFilter = {
-    ...(targetBranchId ? { branch_id: targetBranchId } : {}),
-    status: 'pending' 
-};
+        const paymentFilter = {
+            ...(targetBranchId ? { branch_id: targetBranchId } : {}),
+            status: 'pending' 
+        };
+        
         let paymentsToProcess = [];
         let dbSkip = 0;
         const dbFetchSize = 1000;
@@ -426,7 +453,7 @@ Deno.serve(async (req) => {
             msg += `💰 ยอดรวมสุทธิ: ${payment.total_amount.toLocaleString()} บาท\n`;
             msg += `------------------------------\n\n`;
             msg += ` ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH')}\n\n`;
-            msg += `  ชำระเงินได้ที่:\n`;
+            msg += `  ชำระเงินได้ที่:\n`;
             msg += `🏦 ${bankName} ${bankAcc}\n`;
             msg += `👤 ${bankOwner}\n\n`;
             if (imageUrl) msg += `📄 ดูบิล: ${imageUrl}\n\n`;
@@ -515,6 +542,9 @@ Deno.serve(async (req) => {
                 const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId: payment.id });
                 if (!invoiceDataResult.data?.success || !invoiceDataResult.data?.invoice) throw new Error('Invoice data error');
 
+                // รอสักนิดก่อนยิง เพื่อลดโอกาส 429
+                await delay(500);
+
                 const imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoiceDataResult.data.invoice);
 
                 if (imageUrl) {
@@ -528,7 +558,6 @@ Deno.serve(async (req) => {
                     // ⭐⭐⭐ จุดสำคัญ: ส่ง LINE ทันทีตรงนี้! ไม่ต้องรอจบ Batch ⭐⭐⭐
                     await sendNotification(payment, room, tenant, imageUrl);
 
-                    await delay(333);
                     return { success: true };
                 } else {
                     throw new Error('No image url');
@@ -559,8 +588,6 @@ Deno.serve(async (req) => {
         const workers = [];
         for (let i = 0; i < Math.min(concurrentLimit, paymentsToProcess.length); i++) workers.push(startNextJob());
         await Promise.all(workers);
-
-        // (ลบ Loop ส่ง LINE ด้านล่างออกแล้ว เพราะย้ายไปทำข้างบน)
 
         const totalElapsed = Date.now() - startTime;
         const summary = `Job Done: ${imageGenerated} images, ${lineSent} notifications sent.`;
