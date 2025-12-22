@@ -407,111 +407,69 @@ Deno.serve(async (req) => {
         let processedCount = 0;
 
         const processPayment = async (payment) => {
-            const room = roomMap.get(payment.room_id);
-            const tenant = tenantMap.get(payment.tenant_id);
-            
-            if (Date.now() - startTime > maxRunTime) return null;
+            const room = roomMap.get(payment.room_id);
+            const tenant = tenantMap.get(payment.tenant_id);
+            
+            if (Date.now() - startTime > maxRunTime) return null;
 
-            try {
-                processedCount++;
-                const branchId = payment.branch_id;
-                const branchName = getConfigValue('building_name', branchId, 'W RESIDENTS');
-                
-                // --- 🖼️ ส่วนที่ 1: ตรวจสอบและสร้างรูปภาพ ---
-                let imageUrl = payment.invoice_image_url;
-                let isNewImageGenerated = false;
+            let needsRegenerate = false;
+            if (payment.invoice_image_url && payment.invoice_data_hash) {
+                if (generatePaymentHash(payment) !== payment.invoice_data_hash) needsRegenerate = true;
+            }
+            if (payment.status === 'overdue' && payment.late_fee_amount > 0 && !payment.invoice_data_hash) needsRegenerate = true;
+            
+            if (payment.invoice_image_url && payment.invoice_image_status === 'completed' && !needsRegenerate) {
+                return { payment, room, tenant, imageUrl: payment.invoice_image_url, success: true, skipped: true };
+            }
 
-                let needsRegenerate = !payment.invoice_image_url || payment.invoice_image_status !== 'completed';
-                if (payment.invoice_image_url && payment.invoice_data_hash) {
-                    if (generatePaymentHash(payment) !== payment.invoice_data_hash) needsRegenerate = true;
-                }
+            try {
+                processedCount++;
+                const branchName = getConfigValue('building_name', payment.branch_id, 'W RESIDENTS');
+                
+                await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'generating' });
+                console.log(`🖼️ [${processedCount}/${paymentsToProcess.length}] [${branchName}] ห้อง ${room?.room_number || 'N/A'}`);
+                
+                const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId: payment.id });
+                if (!invoiceDataResult.data?.success || !invoiceDataResult.data?.invoice) throw new Error(invoiceDataResult.data?.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
 
-                if (needsRegenerate) {
-                    await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'generating' });
-                    console.log(`🖼️ [${processedCount}] กำลังสร้างรูป: ห้อง ${room?.room_number || 'N/A'}`);
-                    
-                    const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId: payment.id });
-                    if (!invoiceDataResult.data?.success) throw new Error('ไม่พบข้อมูลใบแจ้งหนี้');
+                // เรียกใช้ Function สร้างรูปเวอร์ชันใหม่
+                const imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoiceDataResult.data.invoice);
 
-                    imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoiceDataResult.data.invoice);
-                    
-                    if (imageUrl) {
-                        const newHash = generatePaymentHash(payment);
-                        await base44.asServiceRole.entities.Payment.update(payment.id, {
-                            invoice_image_url: imageUrl,
-                            invoice_image_status: 'completed',
-                            invoice_data_hash: newHash
-                        });
-                        isNewImageGenerated = true;
-                        imageGenerated++;
-                    }
-                }
+                if (imageUrl) {
+                    const newHash = generatePaymentHash(payment);
+                    await base44.asServiceRole.entities.Payment.update(payment.id, {
+                        invoice_image_url: imageUrl,
+                        invoice_image_status: 'completed',
+                        invoice_data_hash: newHash
+                    });
+                    await delay(333);
+                    return { payment: { ...payment, invoice_image_url: imageUrl }, room, tenant, imageUrl, success: true };
+                } else {
+                    throw new Error('Failed to generate invoice image');
+                }
+            } catch (error) {
+                console.error(`❌ ห้อง ${room?.room_number || 'N/A'}: ${error.message}`);
+                await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'failed' });
+                return { payment, room, tenant, success: false, error: error.message };
+            }
+        };
 
-                // --- 📤 ส่วนที่ 2: ✅ ส่งข้อความทันที (LINE & FB) ---
-                const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', branchId, 'false') === 'true';
-                
-                // เงื่อนไขการส่ง: (ตั้งค่าให้ส่งออโต้) AND (ยังไม่เคยส่งแจ้งเตือนเลย OR เพิ่งสร้างรูปใหม่เพราะข้อมูลเปลี่ยน)
-                if (!skipLineSend && autoSendEnabled && (!payment.bill_sent_date || isNewImageGenerated)) {
-                    console.log(`📤 กำลังส่งแจ้งเตือนทันที: ห้อง ${room?.room_number}`);
-                    
-                    const bankName = getConfigValue('bank_name', branchId, 'กสิกร');
-                    const bankAcc = getConfigValue('bank_account_number', branchId, '-');
-                    const bankOwner = getConfigValue('bank_account_name', branchId, '-');
-
-                    // เตรียมข้อความ
-                    let msg = `📢 แจ้งเตือนค่าเช่า\n ${branchName}\n คุณ ${tenant?.full_name} (ห้อง ${room?.room_number || '-'}) \n\n`;
-                    msg += `💰 ยอดรวมสุทธิ: ${payment.total_amount.toLocaleString()} บาท\n`;
-                    msg += `(${numberToThaiText(payment.total_amount)})\n`;
-                    msg += ` ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH')}\n\n`;
-                    msg += `🏦 ${bankName} ${bankAcc}\n👤 ${bankOwner}\n\n`;
-                    if (imageUrl) msg += `📄 ดูบิล: ${imageUrl}\n\n`;
-                    msg += `📸 โอนแล้วรบกวนส่งสลิปนะคะ ขอบคุณค่ะ 🙏`;
-
-                    let messageSent = false;
-
-                    // 1. ส่ง LINE
-                    if (tenant?.line_user_id) {
-                        const lineToken = getConfigValue('line_channel_access_token', branchId, '');
-                        const res = await fetch('https://api.line.me/v2/bot/message/push', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${lineToken}` },
-                            body: JSON.stringify({ to: tenant.line_user_id, messages: [{ type: 'text', text: msg }] })
-                        });
-                        if (res.ok) { messageSent = true; lineSent++; }
-                    }
-
-                    // 2. ส่ง Facebook
-                    if (tenant?.facebook_user_id) {
-                        const fbToken = getConfigValue('facebook_page_access_token', branchId, '');
-                        if (fbToken) {
-                            const res = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                    recipient: { id: tenant.facebook_user_id }, 
-                                    message: { text: msg }, 
-                                    messaging_type: 'MESSAGE_TAG', 
-                                    tag: 'CONFIRMED_EVENT_UPDATE' 
-                                })
-                            });
-                            if (res.ok) messageSent = true;
-                        }
-                    }
-
-                    if (messageSent) {
-                        await base44.asServiceRole.entities.Payment.update(payment.id, { bill_sent_date: new Date().toISOString() });
-                    }
-                }
-
-                return { success: true };
-
-            } catch (error) {
-                console.error(`❌ ห้อง ${room?.room_number || 'N/A'}: ${error.message}`);
-                await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'failed' });
-                imageFailed++;
-                return { success: false };
-            }
-        };
+        const activePromises = new Set();
+        let queueIndex = 0;
+        const startNextJob = async () => {
+            if (queueIndex >= paymentsToProcess.length) return null;
+            const payment = paymentsToProcess[queueIndex];
+            queueIndex++;
+            const promise = processPayment(payment).then(result => {
+                activePromises.delete(promise);
+                if (result) allImageResults.push(result);
+                if (result?.success && !result?.skipped) imageGenerated++;
+                else if (result && !result.success) imageFailed++;
+                return startNextJob();
+            }).catch(() => startNextJob());
+            activePromises.add(promise);
+            return promise;
+        };
 
         const workers = [];
         for (let i = 0; i < Math.min(concurrentLimit, paymentsToProcess.length); i++) workers.push(startNextJob());
