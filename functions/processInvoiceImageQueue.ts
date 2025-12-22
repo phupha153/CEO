@@ -1,8 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
- * ฟังก์ชันสำหรับสร้างรูปใบแจ้งหนี้และส่ง LINE แบบ Queue (Safe Mode + Anti-429)
- * Version: 4.2 - Fix 429 Too Many Requests (Auto Retry)
+ * ฟังก์ชันสำหรับสร้างรูปใบแจ้งหนี้และส่ง LINE แบบ Queue (Full Version 4.3)
+ * - แก้ปัญหา Error 500/429 จาก Browserless
+ * - รวม HTML Template เต็มรูปแบบ
  */
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -66,7 +67,7 @@ function formatDate(dateString) {
     } catch { return '-'; }
 }
 
-// ⭐ ฟังก์ชันสร้างรูป invoice (แก้ 429 Retry Logic)
+// ⭐ ฟังก์ชันสร้างรูป invoice (พร้อม HTML เต็มรูปแบบ + Retry Logic)
 async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
     if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
@@ -108,6 +109,7 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
         return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
+    // --- HTML TEMPLATE เต็มรูปแบบ ---
     const htmlContent = `
     <!DOCTYPE html>
     <html lang="th">
@@ -258,9 +260,9 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     </html>
     `;
 
-    // ⭐⭐⭐ RETRY LOGIC for 429 Error ⭐⭐⭐
+    // ⭐⭐⭐ RETRY LOGIC for 429 & 500 Errors ⭐⭐⭐
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 5; // เพิ่มจำนวนครั้งที่ลองใหม่เป็น 5 ครั้ง
     let imageBlob = null;
     let lastError = null;
 
@@ -273,15 +275,17 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
                 body: JSON.stringify({ 
                     html: htmlContent, 
                     viewport: { width: 800, height: 1000 },
-                    options: { type: 'png', fullPage: true, omitBackground: true } 
+                    options: { type: 'png', fullPage: true, omitBackground: true },
+                    gotoOptions: { waitUntil: 'networkidle0', timeout: 30000 } 
                 })
             });
 
-            // ถ้าเจอ 429 ให้รอและลองใหม่
-            if (browserlessResponse.status === 429) {
-                console.warn(`⚠️ Browserless 429 (Too Many Requests). Attempt ${attempts}/${maxAttempts}. Waiting...`);
-                await delay(3000 * attempts); // รอ 3, 6, 9 วินาที ตามลำดับ
-                continue;
+            // ถ้าเจอ Error 429 (Too Many) หรือ 5xx (Server Error) ให้รอ
+            if (browserlessResponse.status === 429 || browserlessResponse.status >= 500) {
+                const waitTime = 5000 * attempts; // รอ 5วิ, 10วิ, 15วิ... (เพิ่มขึ้นเรื่อยๆ)
+                console.warn(`⚠️ Browserless Error ${browserlessResponse.status}. Attempt ${attempts}/${maxAttempts}. Waiting ${waitTime/1000}s...`);
+                await delay(waitTime); 
+                continue; // ลองใหม่
             }
 
             if (!browserlessResponse.ok) throw new Error(`Browserless error: ${await browserlessResponse.text()}`);
@@ -292,7 +296,7 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
             lastError = e;
             console.error(`Attempt ${attempts} failed: ${e.message}`);
             if (attempts >= maxAttempts) throw lastError;
-            await delay(1000);
+            await delay(3000); // รอ 3 วิกรณี error อื่นๆ
         }
     }
 
@@ -312,7 +316,7 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
 
 Deno.serve(async (req) => {
     console.log('========================================');
-    console.log('🖼️ PROCESS INVOICE QUEUE (Safe Mode + Anti-429)');
+    console.log('🖼️ PROCESS INVOICE QUEUE (Safe Mode + Anti-500)');
     console.log(`📅 ${new Date().toISOString()}`);
     console.log('========================================');
 
@@ -334,7 +338,7 @@ Deno.serve(async (req) => {
                 const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
                 batchSize = body.batch_size || 30; 
-                concurrentLimit = body.concurrent_limit || 1; // รับค่ามาได้ แต่แนะนำให้ส่งเป็น 1
+                concurrentLimit = body.concurrent_limit || 1; 
                 skipLineSend = body.skip_line_send === true;
             }
         } catch (e) { console.log('⚠️ No valid JSON body'); }
@@ -420,10 +424,9 @@ Deno.serve(async (req) => {
         let imageGenerated = 0, imageFailed = 0, lineSent = 0;
         let processedCount = 0;
 
-        // ⭐ Helper: ส่ง Notification (แยกออกมาให้ดูง่าย)
+        // ฟังก์ชันส่งไลน์แยกออกมา
         const sendNotification = async (payment, room, tenant, imageUrl) => {
             if (skipLineSend) return;
-            
             const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', payment.branch_id, 'false') === 'true';
             if (!autoSendEnabled || payment.bill_sent_date) return;
 
@@ -437,25 +440,18 @@ Deno.serve(async (req) => {
             const bankOwner = getConfigValue('bank_account_name', branchId, '-');
             const buildingName = getConfigValue('building_name', branchId, 'W RESIDENTS');
 
-            let msg = `📢 แจ้งเตือนค่าเช่า\n`;
-            msg += ` ${buildingName}\n`;
-            msg += ` คุณ ${tenant.full_name} (ห้อง ${room?.room_number || '-'}) \n\n`;
-
-            msg += `🧾 รายละเอียด:\n`;
+            let msg = `📢 แจ้งเตือนค่าเช่า\n ${buildingName}\n คุณ ${tenant.full_name} (ห้อง ${room?.room_number || '-'}) \n\n🧾 รายละเอียด:\n`;
             if (payment.rent_amount > 0) msg += `• ค่าเช่า: ${payment.rent_amount.toLocaleString()} บ.\n`;
             if (payment.electricity_amount > 0) msg += `• ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บ.\n`;
             if (payment.water_amount > 0) msg += `• ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บ.\n`;
-            if (payment.internet_amount > 0) msg += `• เน็ต: ${payment.internet_amount.toLocaleString()} บ.\n`;
             if (payment.common_fee_amount > 0) msg += `• ส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บ.\n`;
             if (payment.parking_fee_amount > 0) msg += `• จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บ.\n`;
+            if (payment.internet_amount > 0) msg += `• เน็ต: ${payment.internet_amount.toLocaleString()} บ.\n`;
             if (payment.other_amount > 0) msg += `• อื่นๆ: ${payment.other_amount.toLocaleString()} บ.\n`;
             if (payment.late_fee_amount > 0) msg += `• ค่าปรับ: ${payment.late_fee_amount.toLocaleString()} บ.\n`;
-            msg += `💰 ยอดรวมสุทธิ: ${payment.total_amount.toLocaleString()} บาท\n`;
-            msg += `------------------------------\n\n`;
+            msg += `💰 ยอดรวมสุทธิ: ${payment.total_amount.toLocaleString()} บาท\n------------------------------\n`;
             msg += ` ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH')}\n\n`;
-            msg += `  ชำระเงินได้ที่:\n`;
-            msg += `🏦 ${bankName} ${bankAcc}\n`;
-            msg += `👤 ${bankOwner}\n\n`;
+            msg += `🏦 ${bankName} ${bankAcc}\n👤 ${bankOwner}\n\n`;
             if (imageUrl) msg += `📄 ดูบิล: ${imageUrl}\n\n`;
             msg += `📸 โอนแล้วรบกวนส่งสลิปนะคะ ขอบคุณค่ะ 🙏`;
 
@@ -497,7 +493,6 @@ Deno.serve(async (req) => {
         };
 
         const processPayment = async (payment) => {
-            // ⭐ 1. Locking Logic
             const [freshPayment] = await base44.asServiceRole.entities.Payment.filter({ id: payment.id });
             if (!freshPayment) return { success: false, error: 'Deleted' };
 
@@ -505,14 +500,12 @@ Deno.serve(async (req) => {
             const lastUpdate = freshPayment.updated_date ? new Date(freshPayment.updated_date).getTime() : 0;
             
             if (freshPayment.invoice_image_status === 'generating' && (Date.now() - lastUpdate < ZOMBIE_THRESHOLD_MS)) {
-                console.log(`⏩ Skipped ${payment.id} (Busy)`);
                 return { skipped: true };
             }
 
             const room = roomMap.get(payment.room_id);
             const tenant = tenantMap.get(payment.tenant_id);
 
-            // ถ้ามีรูปแล้ว และไม่ต้องแก้
             let needsRegenerate = false;
             if (freshPayment.invoice_image_url && freshPayment.invoice_data_hash) {
                 if (generatePaymentHash(freshPayment) !== freshPayment.invoice_data_hash) needsRegenerate = true;
@@ -520,12 +513,10 @@ Deno.serve(async (req) => {
             if (freshPayment.status === 'overdue' && freshPayment.late_fee_amount > 0 && !freshPayment.invoice_data_hash) needsRegenerate = true;
 
             if (freshPayment.invoice_image_url && freshPayment.invoice_image_status === 'completed' && !needsRegenerate) {
-                // ถ้าทุกอย่างครบ เช็คว่าส่งไลน์หรือยัง
                 await sendNotification(freshPayment, room, tenant, freshPayment.invoice_image_url);
                 return { success: true, skipped: true };
             }
 
-            // --- Start Generating ---
             if (Date.now() - startTime > maxRunTime) return null;
 
             try {
@@ -542,8 +533,8 @@ Deno.serve(async (req) => {
                 const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId: payment.id });
                 if (!invoiceDataResult.data?.success || !invoiceDataResult.data?.invoice) throw new Error('Invoice data error');
 
-                // รอสักนิดก่อนยิง เพื่อลดโอกาส 429
-                await delay(500);
+                // ⭐ พักก่อนยิง 2 วินาที ลดภาระ Browserless
+                await delay(2000); 
 
                 const imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoiceDataResult.data.invoice);
 
@@ -554,10 +545,7 @@ Deno.serve(async (req) => {
                         invoice_image_status: 'completed',
                         invoice_data_hash: newHash
                     });
-
-                    // ⭐⭐⭐ จุดสำคัญ: ส่ง LINE ทันทีตรงนี้! ไม่ต้องรอจบ Batch ⭐⭐⭐
                     await sendNotification(payment, room, tenant, imageUrl);
-
                     return { success: true };
                 } else {
                     throw new Error('No image url');
