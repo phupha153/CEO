@@ -111,17 +111,28 @@ function escapeHtml(text) {
     return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// ==========================================
-// 📄 TEMPLATE SERVICE (ส่วนสร้าง HTML)
-// ==========================================
-// ==========================================
-// 📄 TEMPLATE SERVICE (แบบเหมือนรูปต้นฉบับ 100%)
-// ==========================================
-function generateInvoiceHTML(payment, tenant, room, recipient, bank, invoiceNo) {
+// ============================================================
+// 📸 FUNCTION: สร้างรูปใบแจ้งหนี้ (ดีไซน์ใหม่ พื้นหลังขาว)
+// ============================================================
+async function generateInvoiceScreenshot(base44, paymentId, invoice) {
+    console.log(`📸 [Step 1] Start generating for ID: ${paymentId}`);
+    
+    const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
+    if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
+
+    // 1. แตกข้อมูลจาก Invoice Object
+    const payment = invoice;
+    const recipient = invoice.recipient || {};
+    const tenant = invoice.tenant || {};
+    const room = invoice.room || {};
+    const bank = invoice.bank || {};
+
+    // 2. เตรียมตัวแปรสำหรับ HTML
+    const invoiceNo = `INV-${payment.id.slice(0, 8).toUpperCase()}`;
     const issueDate = formatDate(new Date().toISOString());
     const dueDate = formatDate(payment.due_date);
     
-    // สร้างรายการสินค้า
+    // เตรียมรายการสินค้า
     const items = [];
     if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
     if (payment.electricity_amount > 0) items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
@@ -130,11 +141,21 @@ function generateInvoiceHTML(payment, tenant, room, recipient, bank, invoiceNo) 
     if (payment.parking_fee_amount > 0) items.push({ name: 'ค่าที่จอดรถ', qty: 1, price: payment.parking_fee_amount });
     if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
     if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
-    if (Number(payment.late_fee_amount) > 0) items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: Number(payment.late_fee_amount) });
+    
+    // เช็คค่าปรับจาก Object โดยตรง (ถ้ามี)
+    const lateFee = Number(payment.late_fee_amount || 0);
+    if (lateFee > 0) {
+        items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: lateFee });
+    }
 
     const total = items.reduce((sum, item) => sum + item.price, 0);
+    const totalText = numberToThaiText(total);
 
-    return `
+    // Helper เล็กๆ สำหรับ HTML
+    const esc = (text) => text ? text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') : '';
+
+    // 3. สร้าง HTML Content (ดีไซน์ใหม่)
+    const htmlContent = `
     <!DOCTYPE html>
     <html lang="th">
     <head>
@@ -151,188 +172,85 @@ function generateInvoiceHTML(payment, tenant, room, recipient, bank, invoiceNo) 
                 -webkit-font-smoothing: antialiased;
             }
             .container { 
-                width: 800px; /* ขนาดกระดาษ A4 โดยประมาณ */
+                width: 800px; 
                 margin: 0 auto; 
                 background-color: #ffffff; 
                 padding: 50px;
-                position: relative;
             }
             
-            /* --- 1. Logo Section (รูปบนสุด) --- */
-            .logo-section {
-                text-align: center;
-                margin-bottom: 40px;
-            }
-            .logo-img {
-                max-height: 150px;
-                max-width: 200px;
-                object-fit: contain;
-            }
+            /* Logo & Header */
+            .logo-section { text-align: center; margin-bottom: 30px; }
+            .logo-img { height: 120px; object-fit: contain; }
 
-            /* --- 2. Header Name (ชื่อหอพัก Font หรู) --- */
             .brand-name {
-                font-family: 'Playfair Display', serif; /* Font แบบในรูป */
+                font-family: 'Playfair Display', serif;
                 font-size: 24px;
                 font-weight: bold;
-                margin-bottom: 10px;
-                color: #000;
-            }
-            .brand-address {
-                font-size: 12px;
-                color: #333;
-                margin-bottom: 40px;
-                line-height: 1.4;
-            }
-
-            /* --- 3. Invoice Title --- */
-            .invoice-title {
-                font-size: 18px;
-                font-weight: bold;
-                margin-bottom: 2px;
-            }
-            .invoice-subtitle {
-                font-size: 10px;
-                text-transform: uppercase;
-                letter-spacing: 1px;
-                color: #666;
-                margin-bottom: 25px;
-            }
-
-            /* --- 4. Meta Data (เลขที่, วันที่) --- */
-            .meta-group {
-                margin-bottom: 30px;
-                font-size: 12px;
-            }
-            .meta-row {
-                display: flex;
                 margin-bottom: 5px;
             }
-            .meta-label {
-                font-weight: bold;
-                width: 120px;
-            }
+            .brand-details { font-size: 12px; color: #333; margin-bottom: 40px; line-height: 1.4; }
 
-            /* --- 5. Receiver / Payer Blocks --- */
-            .info-block {
-                margin-bottom: 30px;
-                font-size: 12px;
-            }
-            .block-label {
-                font-size: 11px;
-                color: #555;
-                text-transform: uppercase;
-                margin-bottom: 5px;
-                font-weight: 600;
-            }
-            .block-content {
-                line-height: 1.6;
-            }
+            /* Title */
+            .invoice-title { font-size: 18px; font-weight: bold; }
+            .invoice-subtitle { font-size: 10px; letter-spacing: 1px; color: #666; margin-bottom: 25px; }
 
-            /* --- 6. Table --- */
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 10px;
-                margin-bottom: 20px;
-                font-size: 11px;
-            }
-            th {
-                text-align: left;
-                padding: 8px 0;
-                border-bottom: 1px solid #ddd;
-                font-weight: bold;
-                color: #000;
-            }
-            td {
-                padding: 8px 0;
-                vertical-align: top;
-                color: #333;
-            }
+            /* Meta Data */
+            .meta-row { display: flex; margin-bottom: 5px; font-size: 12px; }
+            .meta-label { font-weight: bold; width: 120px; }
+
+            /* Info Blocks */
+            .info-block { margin-bottom: 25px; font-size: 12px; }
+            .block-label { font-size: 11px; color: #555; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; }
+            
+            /* Table */
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; font-size: 11px; }
+            th { text-align: left; padding: 8px 0; border-bottom: 1px solid #ddd; font-weight: bold; }
+            td { padding: 8px 0; vertical-align: top; }
             .text-right { text-align: right; }
             .text-center { text-align: center; }
 
-            /* --- 7. Total --- */
-            .total-row {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-end;
-                margin-top: 10px;
-                padding-top: 10px;
-                border-top: 1px solid #000;
-            }
-            .thai-baht {
-                font-size: 11px;
-                color: #333;
-            }
-            .grand-total {
-                font-size: 14px;
-                font-weight: bold;
-            }
+            /* Total */
+            .total-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px; padding-top: 10px; border-top: 1px solid #000; }
+            .thai-baht { font-size: 11px; color: #333; }
+            .grand-total { font-size: 16px; font-weight: bold; color: #000; }
 
-            /* --- 8. Footer Info --- */
-            .footer {
-                margin-top: 50px;
-                font-size: 10px;
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-end;
-                color: #333;
-            }
-            .bank-details div { margin-bottom: 3px; }
-            
-            .footer-notes {
-                margin-top: 20px;
-                font-size: 9px;
-                color: #555;
-                line-height: 1.4;
-            }
+            /* Footer */
+            .footer { margin-top: 50px; font-size: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
+            .footer-notes { margin-top: 20px; font-size: 9px; color: #555; line-height: 1.4; }
         </style>
     </head>
     <body>
         <div class="container">
-            
             <div class="logo-section">
-                <img src="${escapeHtml(recipient.building_logo)}" class="logo-img" />
+                <img src="${esc(recipient.building_logo)}" class="logo-img" />
             </div>
 
-            <div class="brand-name">${escapeHtml(recipient.building_name)}</div>
-            <div class="brand-address">
-                ${escapeHtml(recipient.company_address)}
-                ${recipient.tax_id ? `<br>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(recipient.tax_id)}` : ''}
+            <div class="brand-name">${esc(recipient.building_name)}</div>
+            <div class="brand-details">
+                ${esc(recipient.company_address)}
+                ${recipient.tax_id ? `<br>เลขประจำตัวผู้เสียภาษี: ${esc(recipient.tax_id)}` : ''}
             </div>
 
             <div class="invoice-title">ใบแจ้งหนี้</div>
             <div class="invoice-subtitle">INVOICE</div>
 
-            <div class="meta-group">
-                <div class="meta-row">
-                    <div class="meta-label">เลขที่:</div>
-                    <div>${escapeHtml(invoiceNo)}</div>
-                </div>
-                <div class="meta-row">
-                    <div class="meta-label">วันที่ออก:</div>
-                    <div>${escapeHtml(issueDate)}</div>
-                </div>
-                <div class="meta-row">
-                    <div class="meta-label">ครบกำหนด:</div>
-                    <div>${escapeHtml(dueDate)}</div>
-                </div>
-            </div>
+            <div class="meta-row"><div class="meta-label">เลขที่:</div><div>${esc(invoiceNo)}</div></div>
+            <div class="meta-row"><div class="meta-label">วันที่ออก:</div><div>${esc(issueDate)}</div></div>
+            <div class="meta-row"><div class="meta-label">ครบกำหนด:</div><div>${esc(dueDate)}</div></div>
+
+            <br>
 
             <div class="info-block">
                 <div class="block-label">ผู้รับเงิน / RECEIVER</div>
-                <div class="block-content">
-                    ${escapeHtml(recipient.lessor_name)}
-                </div>
+                <div>${esc(recipient.lessor_name)}</div>
+                <div>${esc(recipient.lessor_address)}</div>
             </div>
 
             <div class="info-block">
                 <div class="block-label">ผู้จ่ายเงิน / PAYER</div>
-                <div class="block-content">
-                    ${escapeHtml(tenant.full_name)}<br>
-                    ห้อง: ${escapeHtml(room.room_number)}<br>
-                    โทร: ${escapeHtml(tenant.phone || '-')}
-                </div>
+                <div>${esc(tenant.full_name)}</div>
+                <div>ห้อง: ${esc(room.room_number)}</div>
+                <div>โทร: ${esc(tenant.phone || '-')}</div>
             </div>
 
             <table>
@@ -349,36 +267,27 @@ function generateInvoiceHTML(payment, tenant, room, recipient, bank, invoiceNo) 
                     ${items.map((item, index) => `
                     <tr>
                         <td>${index + 1}</td>
-                        <td>${escapeHtml(item.name)}</td>
+                        <td>${esc(item.name)}</td>
                         <td class="text-center">${item.qty}</td>
-                        <td class="text-right">${item.price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                        <td class="text-right">${item.price.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                    </tr>
-                    `).join('')}
+                        <td class="text-right">${item.price.toLocaleString()}</td>
+                        <td class="text-right">${item.price.toLocaleString()}</td>
+                    </tr>`).join('')}
                 </tbody>
             </table>
 
             <div class="total-row">
-                <div class="thai-baht">
-                    รวมทั้งสิ้น<br>
-                    (${numberToThaiText(total)})
-                </div>
-                <div class="grand-total">
-                    ${total.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿
-                </div>
+                <div class="thai-baht">รวมทั้งสิ้น (${totalText})</div>
+                <div class="grand-total">${total.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</div>
             </div>
 
             <div class="footer">
-                <div class="bank-details">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/KBank_Logo.png" style="height:15px; vertical-align:middle; margin-right:5px;"> 
+                <div>
                     <strong>ช่องทางการชำระเงิน</strong><br>
-                    ธนาคาร: ${escapeHtml(bank.name)}<br>
-                    เลขบัญชี: ${escapeHtml(bank.account_number)}<br>
-                    ชื่อ: ${escapeHtml(bank.account_name)}
+                    ธนาคาร: ${esc(bank.name)}<br>
+                    เลขบัญชี: ${esc(bank.account_number)}<br>
+                    ชื่อ: ${esc(bank.account_name)}
                 </div>
-                <div style="text-align:right;">
-                    System Generated | ${escapeHtml(recipient.building_name)}
-                </div>
+                <div style="text-align:right; color:#aaa;">System Generated | ${esc(recipient.building_name)}</div>
             </div>
 
             <div class="footer-notes">
@@ -386,13 +295,39 @@ function generateInvoiceHTML(payment, tenant, room, recipient, bank, invoiceNo) 
                 1. กรุณาชำระเงินภายในวันที่กำหนด<br>
                 2. กรุณาแนบหลักฐานการโอนเงินทุกครั้ง
             </div>
-
         </div>
     </body>
-    </html>
-    `;
-}
+    </html>`;
 
+    // 4. ส่งไป Browserless (ปิด Background Transparent)
+    console.log('📸 [Step 2] Sending to Browserless...');
+    const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            html: htmlContent, 
+            viewport: { width: 800, height: 1000 },
+            // ⭐ สำคัญ: ปิด omitBackground เพื่อให้ได้พื้นขาวตาม CSS
+            options: { type: 'png', fullPage: true, omitBackground: false } 
+        })
+    });
+
+    if (!browserlessResponse.ok) throw new Error(`Browserless error: ${await browserlessResponse.text()}`);
+    const imageBlob = await browserlessResponse.blob();
+    
+    // 5. อัปโหลด
+    console.log(`📸 [Step 3] Blob received. Size: ${imageBlob.size} bytes`); 
+    const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
+    
+    console.log('☁️ [Step 4] Uploading to Base44 Storage...');
+    const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: imageFile });
+    
+    const file_url = uploadResult?.file_url || uploadResult?.url || uploadResult?.data?.fullPath;
+    if (!file_url) console.error('❌ [Step 6] file_url is missing!');
+    else console.log(`✅ [Step 6] Success! URL: ${file_url}`);
+
+    return file_url;
+}
 // ==========================================
 // 🏭 IMAGE SERVICE (สร้างและอัปโหลดรูป)
 // ==========================================
