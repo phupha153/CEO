@@ -1,51 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
- * 💎 V5.1 FINAL FULL CODE (Lazy Load + Auto Retry + Full HTML)
- * - แก้ปัญหา 429: Lazy Load (ดึงเมื่อใช้)
- * - แก้ปัญหา 500: Auto Retry (ลองใหม่เมื่อล่ม)
- * - HTML: ครบถ้วนทุกบรรทัด
+ * 💎 V4.1 FINAL FIX: Aggressive Scan (แก้ปัญหาหาบิลไม่เจอ)
+ * - ดักจับ URL ที่เป็นช่องว่าง (Empty String / Space)
+ * - ดึงบิลที่สถานะ failed มาทำใหม่
+ * - แสดง Debug ID บิลล่าสุดที่ระบบมองเห็น
  */
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// ==========================================
-// 🛡️ 1. ULTRA SAFE WRAPPER (ระบบป้องกัน Error)
-// ==========================================
-async function callWithRetry(fn, operationName = 'Operation') {
-    const maxRetries = 5;
-    let attempt = 0;
-    
-    while (attempt < maxRetries) {
-        try {
-            return await fn();
-        } catch (error) {
-            // เช็คว่าเป็น Error ที่ควรลองใหม่หรือไม่
-            const isRateLimit = error.message?.includes('Rate limit') || 
-                                error.message?.includes('429') ||
-                                (error.body && JSON.stringify(error.body).includes('Rate limit'));
-            
-            const isServerError = error.message?.includes('500') || error.message?.includes('502') || error.message?.includes('503');
-            const isBrowserlessError = error.message?.includes('Browserless');
-
-            if (isRateLimit || isServerError || isBrowserlessError || attempt < 3) { 
-                attempt++;
-                // สูตรคำนวณเวลารอแบบทวีคูณ: 2วิ, 4วิ, 8วิ, 16วิ...
-                const waitTime = 2000 * Math.pow(2, attempt); 
-                console.warn(`⚠️ [${operationName}] Error (Attempt ${attempt}/${maxRetries}). Waiting ${waitTime/1000}s...`);
-                await delay(waitTime);
-            } else {
-                console.error(`❌ [${operationName}] Failed after ${maxRetries} attempts: ${error.message}`);
-                throw error; // ยอมแพ้ ส่ง Error กลับไป
-            }
-        }
-    }
-}
-
-// ==========================================
-// 🛠️ 2. HELPER FUNCTIONS
-// ==========================================
-
+// ⭐ ฟังก์ชันสร้าง hash จากข้อมูลบิล
 function generatePaymentHash(payment) {
     const dataToHash = {
         rent_amount: payment.rent_amount || 0,
@@ -62,9 +26,11 @@ function generatePaymentHash(payment) {
         due_date: payment.due_date || '',
         status: payment.status || 'pending'
     };
-    return btoa(JSON.stringify(dataToHash)).substring(0, 32);
+    const jsonStr = JSON.stringify(dataToHash);
+    return btoa(jsonStr).substring(0, 32);
 }
 
+// ⭐ ฟังก์ชันแปลงตัวเลขเป็นคำอ่านภาษาไทย
 function numberToThaiText(number) {
     if (number === undefined || number === null || isNaN(number) || number === 0) return 'ศูนย์บาทถ้วน';
     const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
@@ -92,6 +58,7 @@ function numberToThaiText(number) {
     return text;
 }
 
+// ⭐ ฟังก์ชันจัดรูปแบบวันที่
 function formatDate(dateString) {
     if (!dateString) return '-';
     try {
@@ -101,10 +68,9 @@ function formatDate(dateString) {
     } catch { return '-'; }
 }
 
-// ==========================================
-// 📸 3. GENERATE INVOICE FUNCTION (HTML ครบ)
-// ==========================================
+// ⭐ ฟังก์ชันสร้างรูป invoice แบบ inline (Design ใหม่ Sarabun)
 async function generateInvoiceScreenshot(base44, paymentId, invoice) {
+    console.log(`📸 [Step 1] Start generating for ID: ${paymentId}`);
     const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
     if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
 
@@ -131,7 +97,11 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     if (payment.parking_fee_amount > 0) items.push({ name: 'ค่าที่จอดรถ', qty: 1, price: payment.parking_fee_amount });
     if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
     if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
-    if (Number(payment.late_fee_amount) > 0) items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: Number(payment.late_fee_amount) });
+    
+    const lateFee = Number(payment.late_fee_amount || 0);
+    if (lateFee > 0) {
+        items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: lateFee });
+    }
 
     const finalTotalAmount = items.reduce((sum, item) => sum + item.price, 0);
     const totalText = numberToThaiText(finalTotalAmount);
@@ -141,7 +111,6 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
         return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    // --- เริ่มต้น HTML TEMPLATE ---
     const htmlContent = `
     <!DOCTYPE html>
     <html lang="th">
@@ -291,53 +260,56 @@ async function generateInvoiceScreenshot(base44, paymentId, invoice) {
     </body>
     </html>
     `;
-    // --- สิ้นสุด HTML TEMPLATE ---
 
-    // เรียก Browserless ผ่าน Retry
-    return await callWithRetry(async () => {
-        const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                html: htmlContent, 
-                viewport: { width: 800, height: 1000 },
-                options: { type: 'png', fullPage: true, omitBackground: true },
-                gotoOptions: { waitUntil: 'networkidle0', timeout: 30000 }
-            })
-        });
+    console.log('📸 [Step 2] Sending to Browserless...');
+    const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            html: htmlContent, 
+            viewport: { width: 800, height: 1000 },
+            options: { type: 'png', fullPage: true, omitBackground: true } 
+        })
+    });
 
-        if (!browserlessResponse.ok) {
-            const txt = await browserlessResponse.text();
-            throw new Error(`Browserless Error ${browserlessResponse.status}: ${txt}`);
-        }
-        
-        const imageBlob = await browserlessResponse.blob();
-        const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
-        
-        await delay(500); // พักก่อน Upload เพื่อความชัวร์
-        
-        const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: imageFile });
-        return uploadResult?.file_url || uploadResult?.url || uploadResult?.path || uploadResult?.data?.fullPath;
-    }, 'GenerateScreenshot');
+    if (!browserlessResponse.ok) throw new Error(`Browserless error: ${await browserlessResponse.text()}`);
+    const imageBlob = await browserlessResponse.blob();
+    
+    // ⭐ LOG SIZE: ดูว่าได้รูปจริงไหม
+    console.log(`📸 [Step 3] Blob received. Size: ${imageBlob.size} bytes`); 
+    
+    const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
+    
+    console.log('☁️ [Step 4] Uploading to Base44 Storage...');
+    
+    // ⭐ LOG RESULT: ดูว่า Upload แล้วได้อะไรกลับมา
+    const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: imageFile });
+    console.log('☁️ [Step 5] Upload Result:', JSON.stringify(uploadResult));
+
+    // ⭐ SAFE ACCESS: พยายามดึง URL ทุกรูปแบบ
+    const file_url = uploadResult?.file_url || uploadResult?.url || uploadResult?.path || uploadResult?.data?.fullPath;
+    
+    if (!file_url) console.error('❌ [Step 6] file_url is missing in Upload Result!');
+    else console.log(`✅ [Step 6] Success! URL: ${file_url}`);
+
+    return file_url;
 }
 
-// ==========================================
-// 🚀 4. MAIN QUEUE WORKER
-// ==========================================
+// --- Main Queue Worker ---
 
 Deno.serve(async (req) => {
     console.log('========================================');
-    console.log('🖼️ PROCESS INVOICE V5.1 (LAZY+RETRY)');
-    console.log(`📅 ${new Date().toISOString()}`);
+    console.log('🖼️ PROCESS INVOICE V4.1 (AGGRESSIVE SCAN)');
+    console.log(`📅 Timestamp: ${new Date().toISOString()}`);
     console.log('========================================');
 
     const startTime = Date.now();
     let base44 = null;
     let targetBranchId = null;
-    
-    let batchSize = 20; // ⚠️ Limit 20 เพื่อความปลอดภัย
+    let batchSize = 100; // ⭐ เพิ่มค่า Default เป็น 100 เพื่อให้กวาดเจอแน่นอน
+    let concurrentLimit = 1;
+    let maxRunTime = 88000;
     let skipLineSend = false;
-    let maxRunTime = 85000; 
 
     try {
         const clonedReq = req.clone();
@@ -348,14 +320,15 @@ Deno.serve(async (req) => {
             if (text && text.trim()) {
                 const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
-                if (body.batch_size && body.batch_size < 50) batchSize = body.batch_size;
+                batchSize = body.batch_size || 100;
+                concurrentLimit = body.concurrent_limit || 1;
                 skipLineSend = body.skip_line_send === true;
             }
-        } catch (e) { }
+        } catch (e) { console.log('⚠️ No valid JSON body'); }
 
-        // Load Configs (ใช้ callWithRetry)
-        const configs = await callWithRetry(() => base44.asServiceRole.entities.Config.list(), 'LoadConfig') || [];
-        
+        console.log(`📋 Target Branch: ${targetBranchId || 'ALL'}`);
+
+        const configs = await base44.asServiceRole.entities.Config.list() || [];
         const getConfigValue = (key, branchId, defaultValue = '') => {
             if (branchId) {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
@@ -365,204 +338,265 @@ Deno.serve(async (req) => {
             return globalConfig?.value || defaultValue;
         };
 
-        const paymentFilter = {
-            ...(targetBranchId ? { branch_id: targetBranchId } : {}),
-            status: 'pending' 
-        };
-        
+        const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
         let paymentsToProcess = [];
+        let dbSkip = 0;
+        const dbFetchSize = 1000;
+        const maxScanLimit = 15000;
+        let hasMore = true;
+
+        console.log(`📥 Start Scanning for jobs...`);
         
-        // 🔥 PHASE 1: Scan Payments (ใช้ callWithRetry)
-        console.log(`📥 Scanning jobs...`);
-        const batch = await callWithRetry(() => 
-            base44.asServiceRole.entities.Payment.filter(paymentFilter, '-updated_date', batchSize, 0)
-        , 'ScanPayment');
+        while (hasMore && paymentsToProcess.length < batchSize && dbSkip < maxScanLimit) {
+            const batch = await base44.asServiceRole.entities.Payment.filter(
+                paymentFilter, '-updated_date', dbFetchSize, dbSkip
+            );
 
-        if (!batch || batch.length === 0) {
-            return Response.json({ success: true, message: 'ไม่มีบิลที่ต้องทำ', processed: 0 });
-        }
-
-        // Filter Logic
-        for (const p of batch) {
-            if (p.status === 'paid' || p.status === 'cancelled') continue;
-            
-            const ZOMBIE_THRESHOLD_MS = 30 * 60 * 1000; 
-            const lastUpdate = p.updated_date ? new Date(p.updated_date).getTime() : 0;
-            
-            const needsImage = !p.invoice_image_url || p.invoice_image_status === 'pending' || !p.invoice_image_status;
-            
-            let needsRegenerate = false;
-            if (p.invoice_image_url && p.invoice_data_hash) {
-                if (generatePaymentHash(p) !== p.invoice_data_hash) needsRegenerate = true;
+            if (!batch || batch.length === 0) {
+                hasMore = false; 
+                break;
             }
             
-            const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', p.branch_id, 'false') === 'true';
-            const needsSend = autoSendEnabled && !p.bill_sent_date;
-
-            if (needsImage || needsRegenerate || needsSend) {
-                paymentsToProcess.push(p);
+            // ⭐ DEBUG: ดูว่าระบบมองเห็นบิลตัวแรกเป็นบิลล่าสุดที่เราเพิ่งแก้ไหม
+            if (dbSkip === 0) {
+                console.log(`🔍 [Debug] Top Payment found: ID=${batch[0]?.id}, Status=${batch[0]?.status}, Update=${batch[0]?.updated_date}`);
             }
+
+            for (const p of batch) {
+                if (paymentsToProcess.length >= batchSize) break;
+                if (p.status === 'paid' || p.status === 'cancelled') continue;
+                
+                // 1. Zombie Logic
+                const ZOMBIE_THRESHOLD_MS = 30 * 60 * 1000; // 30 นาที
+                const lastUpdate = p.updated_date ? new Date(p.updated_date).getTime() : 0;
+                
+                // 2. ⭐ AGGRESSIVE NEEDS IMAGE CHECK (แก้ตรงนี้)
+                // เช็ค: เป็นค่าว่างจริงๆ, หรือมี space, หรือเป็น null
+                const isUrlEmpty = !p.invoice_image_url || String(p.invoice_image_url).trim() === '';
+                
+                // เช็ค: สถานะเป็น pending, generating หรือ failed (เผื่อรอบก่อนพัง)
+                const isStatusReGen = ['pending', 'generating', 'failed'].includes(p.invoice_image_status);
+                
+                const needsImage = isUrlEmpty || isStatusReGen || !p.invoice_image_status;
+                
+                // 3. Hash Check
+                let needsRegenerate = false;
+                if (!isUrlEmpty && p.invoice_data_hash) {
+                    if (generatePaymentHash(p) !== p.invoice_data_hash) needsRegenerate = true;
+                }
+                
+                // 4. Send Check
+                const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', p.branch_id, 'false') === 'true';
+                const needsSend = autoSendEnabled && !p.bill_sent_date;
+
+                if (needsImage || needsRegenerate || needsSend) {
+                    paymentsToProcess.push(p);
+                }
+            }
+            dbSkip += batch.length;
         }
 
-        console.log(`📊 Found ${paymentsToProcess.length} valid jobs (from ${batch.length} scanned)`);
+        console.log(`📊 Found jobs: ${paymentsToProcess.length}`);
 
-        let imageGenerated = 0, lineSent = 0;
+        if (paymentsToProcess.length === 0) {
+            return Response.json({ success: true, message: 'ไม่พบบิลที่ต้องทำ (ตรวจสอบ Log ด้านบนว่า Top Payment เป็นตัวที่ต้องการไหม)', processed: 0 });
+        }
+
+        const uniqueTenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id).filter(id => id))];
+        const uniqueRoomIds = [...new Set(paymentsToProcess.map(p => p.room_id).filter(id => id))];
+        
+        const [tenantsBatch, roomsBatch] = await Promise.all([
+            uniqueTenantIds.length > 0 ? Promise.all(uniqueTenantIds.map(id => base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null))).then(results => results.flat().filter(Boolean)) : [],
+            uniqueRoomIds.length > 0 ? Promise.all(uniqueRoomIds.map(id => base44.asServiceRole.entities.Room.filter({ id }).catch(() => null))).then(results => results.flat().filter(Boolean)) : []
+        ]);
+
+        const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
+        const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
+
+        let imageGenerated = 0, imageFailed = 0, lineSent = 0, lineFailed = 0;
+        let allImageResults = [];
         let processedCount = 0;
 
-        // --- PHASE 2: Notification Function ---
-        const sendNotification = async (payment, room, tenant, imageUrl) => {
-            if (skipLineSend) return;
-            const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', payment.branch_id, 'false') === 'true';
-            if (!autoSendEnabled || payment.bill_sent_date) return;
-
-            const hasLineId = !!tenant?.line_user_id;
-            const hasFacebookId = !!tenant?.facebook_user_id;
-            if (!hasLineId && !hasFacebookId) return;
-
-            const branchId = payment.branch_id;
-            const bankName = getConfigValue('bank_name', branchId, 'กสิกร');
-            const bankAcc = getConfigValue('bank_account_number', branchId, '-');
-            const bankOwner = getConfigValue('bank_account_name', branchId, '-');
-            const buildingName = getConfigValue('building_name', branchId, 'W RESIDENTS');
-
-            let msg = `📢 แจ้งเตือนค่าเช่า\n ${buildingName}\n คุณ ${tenant.full_name} (ห้อง ${room?.room_number || '-'}) \n\n🧾 รายละเอียด:\n`;
-            if (payment.rent_amount > 0) msg += `• ค่าเช่า: ${payment.rent_amount.toLocaleString()} บ.\n`;
-            if (payment.electricity_amount > 0) msg += `• ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บ.\n`;
-            if (payment.water_amount > 0) msg += `• ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บ.\n`;
-            if (payment.common_fee_amount > 0) msg += `• ส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บ.\n`;
-            if (payment.parking_fee_amount > 0) msg += `• จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บ.\n`;
-            if (payment.internet_amount > 0) msg += `• เน็ต: ${payment.internet_amount.toLocaleString()} บ.\n`;
-            if (payment.other_amount > 0) msg += `• อื่นๆ: ${payment.other_amount.toLocaleString()} บ.\n`;
-            if (payment.late_fee_amount > 0) msg += `• ค่าปรับ: ${payment.late_fee_amount.toLocaleString()} บ.\n`;
-            msg += `💰 ยอดรวมสุทธิ: ${payment.total_amount.toLocaleString()} บาท\n------------------------------\n`;
-            msg += ` ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH')}\n\n`;
-            msg += `🏦 ${bankName} ${bankAcc}\n👤 ${bankOwner}\n\n`;
-            if (imageUrl) msg += `📄 ดูบิล: ${imageUrl}\n\n`;
-            msg += `📸 โอนแล้วรบกวนส่งสลิปนะคะ ขอบคุณค่ะ 🙏`;
-
-            let messageSent = false;
-            
-            if (hasLineId) {
-                try {
-                    const lineToken = getConfigValue('line_channel_access_token', branchId, '');
-                    if (lineToken) {
-                        await callWithRetry(() => fetch('https://api.line.me/v2/bot/message/push', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${lineToken}` },
-                            body: JSON.stringify({ to: tenant.line_user_id, messages: [{ type: 'text', text: msg }] })
-                        }), 'SendLINE');
-                        messageSent = true; 
-                        lineSent++;
-                    }
-                } catch (e) { console.error('LINE Fail'); }
-            }
-
-            if (hasFacebookId) {
-                try {
-                    const fbToken = getConfigValue('facebook_page_access_token', branchId, '');
-                    if (fbToken) {
-                        await callWithRetry(() => fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ recipient: { id: tenant.facebook_user_id }, message: { text: msg }, messaging_type: 'MESSAGE_TAG', tag: 'CONFIRMED_EVENT_UPDATE' })
-                        }), 'SendFB');
-                        messageSent = true;
-                    }
-                } catch (e) { console.error('FB Fail'); }
-            }
-
-            if (messageSent) {
-                await callWithRetry(() => base44.asServiceRole.entities.Payment.update(payment.id, { bill_sent_date: new Date().toISOString() }), 'UpdateSentDate');
-            }
-        };
-
-        // --- PHASE 3: Process Loop (One by One) ---
         const processPayment = async (payment) => {
-            // Check Lock
-            const freshPaymentRes = await callWithRetry(() => base44.asServiceRole.entities.Payment.filter({ id: payment.id }), 'CheckLock');
-            const freshPayment = freshPaymentRes[0];
-            if (!freshPayment) return { success: false, error: 'Deleted' };
-
-            const ZOMBIE_THRESHOLD_MS = 30 * 60 * 1000;
-            const lastUpdate = freshPayment.updated_date ? new Date(freshPayment.updated_date).getTime() : 0;
-            if (freshPayment.invoice_image_status === 'generating' && (Date.now() - lastUpdate < ZOMBIE_THRESHOLD_MS)) {
-                return { skipped: true };
-            }
-
-            // ⭐ LAZY LOAD TENANT & ROOM (ดึงสด ไม่ดึงรอ)
-            const tenantRes = await callWithRetry(() => base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id }), 'GetTenant');
-            const tenant = tenantRes[0] || {};
+            const room = roomMap.get(payment.room_id);
+            const tenant = tenantMap.get(payment.tenant_id);
             
-            const roomRes = await callWithRetry(() => base44.asServiceRole.entities.Room.filter({ id: payment.room_id }), 'GetRoom');
-            const room = roomRes[0] || {};
+            if (Date.now() - startTime > maxRunTime) return null;
 
             let needsRegenerate = false;
-            if (freshPayment.invoice_image_url && freshPayment.invoice_data_hash) {
-                if (generatePaymentHash(freshPayment) !== freshPayment.invoice_data_hash) needsRegenerate = true;
+            // เช็คช่องว่างด้วย trim()
+            const isUrlEmpty = !payment.invoice_image_url || String(payment.invoice_image_url).trim() === '';
+            
+            if (!isUrlEmpty && payment.invoice_data_hash) {
+                if (generatePaymentHash(payment) !== payment.invoice_data_hash) needsRegenerate = true;
             }
-
-            if (freshPayment.invoice_image_url && freshPayment.invoice_image_status === 'completed' && !needsRegenerate) {
-                await sendNotification(freshPayment, room, tenant, freshPayment.invoice_image_url);
-                return { success: true, skipped: true };
+            if (payment.status === 'overdue' && payment.late_fee_amount > 0 && !payment.invoice_data_hash) needsRegenerate = true;
+            
+            // ถ้าสมบูรณ์แล้ว ข้ามไปส่งเลย
+            if (!isUrlEmpty && payment.invoice_image_status === 'completed' && !needsRegenerate) {
+                return { payment, room, tenant, imageUrl: payment.invoice_image_url, success: true, skipped: true };
             }
-
-            if (Date.now() - startTime > maxRunTime) return null;
 
             try {
                 processedCount++;
                 const branchName = getConfigValue('building_name', payment.branch_id, 'W RESIDENTS');
                 
-                await callWithRetry(() => base44.asServiceRole.entities.Payment.update(payment.id, { 
-                    invoice_image_status: 'generating',
-                    updated_date: new Date().toISOString()
-                }), 'UpdateGenerating');
-
-                console.log(`🖼️ [${processedCount}/${paymentsToProcess.length}] [${branchName}] ห้อง ${room?.room_number || '?'}`);
+                await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'generating' });
+                console.log(`🖼️ [${processedCount}/${paymentsToProcess.length}] [${branchName}] ห้อง ${room?.room_number || 'N/A'}`);
                 
-                const invoiceDataResult = await callWithRetry(() => base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId: payment.id }), 'GetPublicInvoice');
-                if (!invoiceDataResult.data?.success || !invoiceDataResult.data?.invoice) throw new Error('Invoice data error');
+                const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId: payment.id });
+                if (!invoiceDataResult.data?.success || !invoiceDataResult.data?.invoice) throw new Error(invoiceDataResult.data?.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
 
-                // Generate Image (ใช้ฟังก์ชันที่มี Retry)
+                // เรียกใช้ Function สร้างรูปเวอร์ชันใหม่
                 const imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoiceDataResult.data.invoice);
 
                 if (imageUrl) {
                     const newHash = generatePaymentHash(payment);
-                    await callWithRetry(() => base44.asServiceRole.entities.Payment.update(payment.id, {
+                    await base44.asServiceRole.entities.Payment.update(payment.id, {
                         invoice_image_url: imageUrl,
                         invoice_image_status: 'completed',
                         invoice_data_hash: newHash
-                    }), 'UpdateCompleted');
-                    
-                    await sendNotification(payment, room, tenant, imageUrl);
-                    return { success: true };
+                    });
+                    await delay(333);
+                    return { payment: { ...payment, invoice_image_url: imageUrl }, room, tenant, imageUrl, success: true };
                 } else {
-                    throw new Error('No image url');
+                    throw new Error('Failed to generate invoice image');
                 }
             } catch (error) {
-                console.error(`❌ ห้อง ${room?.room_number || '?'}: ${error.message}`);
-                await callWithRetry(() => base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'failed' }), 'UpdateFailed');
-                return { success: false, error: error.message };
+                console.error(`❌ ห้อง ${room?.room_number || 'N/A'}: ${error.message}`);
+                await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'failed' });
+                return { payment, room, tenant, success: false, error: error.message };
             }
         };
 
-        // Execution Loop
-        for (const payment of paymentsToProcess) {
-             if (Date.now() - startTime > maxRunTime) break;
-             const result = await processPayment(payment);
-             if (result?.success && !result?.skipped) imageGenerated++;
-             
-             // ⭐ พักหายใจ 1 วินาที หลังจบงาน 1 ชิ้น
-             await delay(1000); 
+        const activePromises = new Set();
+        let queueIndex = 0;
+        const startNextJob = async () => {
+            if (queueIndex >= paymentsToProcess.length) return null;
+            const payment = paymentsToProcess[queueIndex];
+            queueIndex++;
+            const promise = processPayment(payment).then(result => {
+                activePromises.delete(promise);
+                if (result) allImageResults.push(result);
+                if (result?.success && !result?.skipped) imageGenerated++;
+                else if (result && !result.success) imageFailed++;
+                return startNextJob();
+            }).catch(() => startNextJob());
+            activePromises.add(promise);
+            return promise;
+        };
+
+        const workers = [];
+        for (let i = 0; i < Math.min(concurrentLimit, paymentsToProcess.length); i++) workers.push(startNextJob());
+        await Promise.all(workers);
+
+        if (!skipLineSend) {
+            console.log(`\n📤 Sending notifications (New Format)...`);
+            for (const result of allImageResults) {
+                if (!result.success && !result.skipped) continue;
+                const { payment, room, tenant, imageUrl } = result;
+                
+                const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', payment.branch_id, 'false') === 'true';
+                if (!autoSendEnabled || payment.bill_sent_date) continue;
+                
+                const hasLineId = !!tenant?.line_user_id;
+                const hasFacebookId = !!tenant?.facebook_user_id;
+                if (!hasLineId && !hasFacebookId) continue;
+
+                const branchId = payment.branch_id;
+                const bankName = getConfigValue('bank_name', branchId, 'กสิกร');
+                const bankAcc = getConfigValue('bank_account_number', branchId, '-');
+                const bankOwner = getConfigValue('bank_account_name', branchId, '-');
+                const buildingName = getConfigValue('building_name', branchId, 'W RESIDENTS');
+                
+                // --- 📝 FORMAT ข้อความใหม่ที่สวยงาม ---
+                let msg = `📢 แจ้งเตือนค่าเช่า\n`;
+                msg += ` ${buildingName}\n`;
+                msg += ` คุณ ${tenant.full_name} (ห้อง ${room?.room_number || '-'}) \n\n`;
+
+                msg += `🧾 รายละเอียด:\n`;
+                if (payment.rent_amount > 0) msg += `• ค่าเช่า: ${payment.rent_amount.toLocaleString()} บ.\n`;
+                if (payment.electricity_amount > 0) msg += `• ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บ.\n`;
+                if (payment.water_amount > 0) msg += `• ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บ.\n`;
+                if (payment.internet_amount > 0) msg += `• เน็ต: ${payment.internet_amount.toLocaleString()} บ.\n`;
+                if (payment.common_fee_amount > 0) msg += `• ส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บ.\n`;
+                if (payment.parking_fee_amount > 0) msg += `• จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บ.\n`;
+                if (payment.other_amount > 0) msg += `• อื่นๆ: ${payment.other_amount.toLocaleString()} บ.\n`;
+                if (payment.late_fee_amount > 0) msg += `• ค่าปรับ: ${payment.late_fee_amount.toLocaleString()} บ.\n`;
+
+                msg += `------------------------------\n`;
+                msg += `💰 ยอดรวมสุทธิ: ${payment.total_amount.toLocaleString()} บาท\n`;
+                msg += `(${numberToThaiText(payment.total_amount)})\n`;
+                msg += `------------------------------\n\n`;
+
+                msg += ` ครบกำหนด: ${new Date(payment.due_date).toLocaleDateString('th-TH')}\n\n`;
+
+                msg += `  ชำระเงินได้ที่:\n`;
+                msg += `🏦 ${bankName} ${bankAcc}\n`;
+                msg += `👤 ${bankOwner}\n\n`;
+
+                if (imageUrl) msg += `📄 ดูบิล: ${imageUrl}\n\n`;
+                msg += `📸 โอนแล้วรบกวนส่งสลิปนะคะ ขอบคุณค่ะ 🙏`;
+                // -------------------------------------------
+
+                let messageSent = false;
+                
+                if (hasLineId) {
+                    try {
+                        const lineToken = getConfigValue('line_channel_access_token', branchId, '');
+                        if (lineToken) {
+                            const res = await fetch('https://api.line.me/v2/bot/message/push', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${lineToken}` },
+                                body: JSON.stringify({ to: tenant.line_user_id, messages: [{ type: 'text', text: msg }] })
+                            });
+                            if (res.ok) { lineSent++; messageSent = true; console.log(`✅ [LINE] ห้อง ${room?.room_number}`); }
+                            else { lineFailed++; console.error(`❌ [LINE] Failed`); }
+                            await delay(200);
+                        }
+                    } catch (e) { lineFailed++; }
+                }
+
+                if (hasFacebookId) {
+                    try {
+                        const fbToken = getConfigValue('facebook_page_access_token', branchId, '');
+                        if (fbToken) {
+                            const res = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ recipient: { id: tenant.facebook_user_id }, message: { text: msg }, messaging_type: 'MESSAGE_TAG', tag: 'CONFIRMED_EVENT_UPDATE' })
+                            });
+                            if (res.ok) { messageSent = true; console.log(`✅ [FB] ห้อง ${room?.room_number}`); }
+                            await delay(200);
+                        }
+                    } catch (e) { console.error('FB Error'); }
+                }
+
+                if (messageSent) await base44.asServiceRole.entities.Payment.update(payment.id, { bill_sent_date: new Date().toISOString() });
+            }
         }
 
         const totalElapsed = Date.now() - startTime;
-        const summary = `Job Done: ${imageGenerated} images, ${lineSent} notifications sent.`;
+        const summary = `สร้างรูป ${imageGenerated} ใบ, ส่ง LINE ${lineSent} ราย [${Math.round(totalElapsed/1000)}s]`;
         console.log(`\n✅ ${summary}`);
         
-        return Response.json({ success: true, message: summary });
+        try {
+            await delay(1000);
+            await base44.asServiceRole.entities.FunctionLog.create({
+                function_name: 'processInvoiceImageQueue',
+                run_timestamp: new Date().toISOString(),
+                status: 'success',
+                message: summary,
+                execution_time_ms: totalElapsed,
+                details: { processed: paymentsToProcess.length, imageGenerated, lineSent, dbScanned: dbSkip }
+            });
+        } catch (e) {}
+
+        return Response.json({ success: true, message: summary, hasMore: dbSkip >= maxScanLimit ? false : hasMore });
 
     } catch (error) {
-        console.error('❌ Fatal Error:', error);
+        console.error('❌ Error:', error);
+        if (base44) await base44.asServiceRole.entities.FunctionLog.create({ function_name: 'processInvoiceImageQueue', status: 'error', message: error.message }).catch(() => {});
         return Response.json({ success: false, error: error.message }, { status: 500 });
     }
 });
