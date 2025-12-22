@@ -396,6 +396,10 @@ Deno.serve(async (req) => {
 
     // 2. Load Configs & Data
     const configs = await base44.asServiceRole.entities.Config.list() || [];
+const getConfig = (key, branchId) => {
+        const c = configs.find(x => x.key === key && x.branch_id === branchId) || configs.find(x => x.key === key && !x.branch_id);
+        return c?.value || '';
+    };
     
     // 3. Scan Payments (Aggressive Filter)
     const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
