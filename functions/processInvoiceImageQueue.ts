@@ -477,14 +477,19 @@ const getConfig = (key, branchId) => {
             await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'generating' });
             
            const recipient = {
-                building_name: getConfig('building_name', p.branch_id) || branchName,
-                building_logo: getConfig('building_logo', p.branch_id) || 'https://via.placeholder.com/150',
-                company_address: getConfig('building_address', p.branch_id) || 'Bangkok, Thailand',
-                lessor_name: getConfig('lessor_name', p.branch_id) || getConfig('company_name', p.branch_id) || 'นิติบุคคล',
-                tax_id: getConfig('company_tax_id', p.branch_id) || '',
+                // แก้จาก p.branch_id เป็น payment.branch_id ทั้งหมดครับ
+                building_name: getConfig('building_name', payment.branch_id) || branchName,
+                
+                building_logo: getConfig('building_logo', payment.branch_id) || 'https://via.placeholder.com/150',
+                
+                company_address: getConfig('building_address', payment.branch_id) || 'Bangkok, Thailand',
+                
+                lessor_name: getConfig('lessor_name', payment.branch_id) || getConfig('company_name', payment.branch_id) || 'นิติบุคคล',
+                
+                tax_id: getConfig('company_tax_id', payment.branch_id) || '',
 
-                // 👇👇 เพิ่มบรรทัดนี้ครับ 👇👇
-                building_phone: getConfig('contact_phone', p.branch_id) || getConfig('company_phone', p.branch_id) || ''
+                // แก้ตรงนี้ด้วย
+                building_phone: getConfig('contact_phone', payment.branch_id) || getConfig('company_phone', payment.branch_id) || ''
             };
             const bank = {
                 name: getConfig('bank_name', payment.branch_id),
