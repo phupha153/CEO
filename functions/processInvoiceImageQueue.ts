@@ -458,7 +458,7 @@ const getConfig = (key, branchId) => {
     }
 
 // ============================================================
-  const worker = async (payment) => {
+ const worker = async (payment) => {
         if (Date.now() - startTime > CONFIG.MAX_EXECUTION_TIME_MS) return;
 
         try {
@@ -516,7 +516,7 @@ const getConfig = (key, branchId) => {
             if (imageUrl) message += `📄 ดูบิล: ${imageUrl}\n\n`;
             message += `📸 โอนแล้วรบกวนส่งสลิปนะคะ ขอบคุณค่ะ 🙏`;
 
-            // 📤 ส่งข้อความ (Debug Mode)
+            // 📤 ส่งข้อความ (Deep Debug Mode)
             const autoSend = getConfig('auto_send_bills_after_generation', payment.branch_id);
             const lineToken = getConfig('line_channel_access_token', payment.branch_id);
             const fbToken = getConfig('facebook_page_access_token', payment.branch_id);
@@ -528,12 +528,12 @@ const getConfig = (key, branchId) => {
             else if (payment.bill_sent_date) logMsg = `ข้าม: เคยส่งแล้ว`;
             else if (!t.line_user_id && !t.facebook_user_id) logMsg = `ข้าม: ไม่มีข้อมูลติดต่อ`;
             else {
-                console.log(`📤 พยายามส่งข้อความ...`);
+                console.log(`📤 เริ่มส่งข้อความ...`);
                 let channels = [];
 
-                // LINE Check
+                // 🟢 LINE Check (แก้ใหม่: เช็ค response.ok)
                 if (t.line_user_id) {
-                    if (!lineToken) console.error(`⚠️ มี LINE ID แต่ไม่มี Token ใน Config`);
+                    if (!lineToken) console.error(`⚠️ มี LINE ID แต่ไม่มี Token`);
                     else {
                         try {
                             const res = await fetch('https://api.line.me/v2/bot/message/push', {
@@ -541,15 +541,24 @@ const getConfig = (key, branchId) => {
                                 headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${lineToken}`},
                                 body: JSON.stringify({to: t.line_user_id, messages: [{type: 'text', text: message}]})
                             });
-                            if (res.ok) { sent = true; channels.push("LINE"); }
-                            else console.error(`❌ LINE API Error: ${res.status} ${await res.text()}`);
-                        } catch(e) { console.error(`❌ LINE Network Error: ${e.message}`); }
+                            
+                            // ⭐ สำคัญ: อ่านผลลัพธ์จาก LINE
+                            const resText = await res.text();
+                            
+                            if (res.ok) { 
+                                sent = true; 
+                                channels.push("LINE"); 
+                            } else {
+                                // ถ้าส่งไม่ผ่าน ให้ปริ้นท์ Error ออกมาเลย
+                                console.error(`❌ LINE Error: Status ${res.status} | Body: ${resText}`);
+                            }
+                        } catch(e) { console.error(`❌ LINE Net Error: ${e.message}`); }
                     }
                 }
 
-                // FB Check
+                // 🔵 FB Check (แก้ใหม่: เช็ค response.ok)
                 if (t.facebook_user_id) {
-                    if (!fbToken) console.error(`⚠️ มี FB ID แต่ไม่มี Token ใน Config`);
+                    if (!fbToken) console.error(`⚠️ มี FB ID แต่ไม่มี Token`);
                     else {
                         try {
                             const res = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
@@ -557,14 +566,22 @@ const getConfig = (key, branchId) => {
                                 headers: {'Content-Type': 'application/json'},
                                 body: JSON.stringify({ recipient: { id: t.facebook_user_id }, message: { text: message }, messaging_type: 'MESSAGE_TAG', tag: 'CONFIRMED_EVENT_UPDATE' })
                             });
-                            if (res.ok) { sent = true; channels.push("FB"); }
-                            else console.error(`❌ FB API Error: ${res.status} ${await res.text()}`);
-                        } catch(e) { console.error(`❌ FB Network Error: ${e.message}`); }
+
+                            // ⭐ สำคัญ: อ่านผลลัพธ์จาก FB
+                            const resText = await res.text();
+
+                            if (res.ok) { 
+                                sent = true; 
+                                channels.push("FB"); 
+                            } else {
+                                console.error(`❌ FB Error: Status ${res.status} | Body: ${resText}`);
+                            }
+                        } catch(e) { console.error(`❌ FB Net Error: ${e.message}`); }
                     }
                 }
 
                 if (sent) logMsg = `✅ ส่งสำเร็จทาง: [${channels.join(', ')}]`;
-                else logMsg = `❌ ส่งไม่ผ่าน (ตรวจสอบ Token หรือ Log ด้านบน)`;
+                else logMsg = `❌ ส่งไม่ผ่านสักทาง (ดู Error ใน Log)`;
             }
             console.log(logMsg);
 
