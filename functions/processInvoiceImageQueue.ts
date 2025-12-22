@@ -1,29 +1,28 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
- * 💎 V5.0 ENTERPRISE SCALABLE EDITION (Complete)
- * ระบบสร้างใบแจ้งหนี้อัตโนมัติพร้อมระบบป้องกันความผิดพลาดระดับสูง
- * - Design: Sarabun + White Background
- * - Logic: Batch Processing + Retry + Zombie Detection
- * - Notification: New Format (Bank info on same line)
+ * 💎 V5.0 ENTERPRISE SCALABLE EDITION (Fixed Design + White Background)
+ * - แก้ไขเรื่องรูปพื้นหลังดำเรียบร้อย (บังคับพื้นขาวใน CSS + Browserless)
+ * - ใช้ดีไซน์ใหม่ (Sarabun Font, Minimal Layout)
+ * - ระบบส่งแจ้งเตือน LINE/FB เหมือนเดิม
  */
 
 // ==========================================
-// ⚙️ CONFIGURATION & CONSTANTS
+// ⚙️ CONFIGURATION
 // ==========================================
 const CONFIG = {
-    DEFAULT_BATCH_SIZE: 5,       // จำนวนบิลที่จะทำใน 1 รอบ (ถ้าไม่ระบุ)
-    CONCURRENT_WORKERS: 2,       // ทำพร้อมกันกี่งาน (แนะนำ 2-3)
-    MAX_EXECUTION_TIME_MS: 85000,// เวลาสูงสุดที่ให้ทำงาน (85 วินาที) ก่อนตัดจบ
-    RETRY_ATTEMPTS: 3,           // จำนวนครั้งที่จะลองใหม่ถ้า Error
-    BROWSERLESS_TIMEOUT: 30000,  // รอรูปนานสุด 30 วินาที
-    ZOMBIE_THRESHOLD_MS: 30 * 60 * 1000 // 30 นาที ถือว่าเป็นบิลค้างเก่า (Zombie)
+    DEFAULT_BATCH_SIZE: 5,
+    CONCURRENT_WORKERS: 2,
+    MAX_EXECUTION_TIME_MS: 85000,
+    RETRY_ATTEMPTS: 3,
+    BROWSERLESS_TIMEOUT: 30000,
+    ZOMBIE_THRESHOLD_MS: 30 * 60 * 1000
 };
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // ==========================================
-// 🛡️ UTILITIES (เครื่องมือช่วย)
+// 🛡️ UTILITIES
 // ==========================================
 
 async function callWithRetry(fn, context = '') {
@@ -33,11 +32,9 @@ async function callWithRetry(fn, context = '') {
             return await fn();
         } catch (error) {
             lastError = error;
-            // เช็คว่าเป็น Error แบบชั่วคราวหรือไม่
-            const isRateLimit = error.message?.includes('429') || error.message?.includes('Too Many Requests');
             if (i < CONFIG.RETRY_ATTEMPTS - 1) {
-                const waitTime = 1000 * Math.pow(2, i); // รอ 1s, 2s, 4s...
-                console.warn(`⚠️ [${context}] Retry ${i + 1}/${CONFIG.RETRY_ATTEMPTS} in ${waitTime}ms... (${error.message})`);
+                const waitTime = 1000 * Math.pow(2, i);
+                console.warn(`⚠️ [${context}] Retry ${i + 1} in ${waitTime}ms...`);
                 await delay(waitTime);
             }
         }
@@ -68,7 +65,6 @@ function numberToThaiText(number) {
     if (!number || isNaN(number) || number === 0) return 'ศูนย์บาทถ้วน';
     const numStr = number.toFixed(2);
     const [baht, satang] = numStr.split('.');
-    
     const numbers = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
     const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
     
@@ -107,11 +103,13 @@ function escapeHtml(text) {
     return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-// ============================================================
-// 🎨 HTML GENERATOR (ดีไซน์ใหม่ Sarabun + พื้นหลังขาว)
-// ============================================================
+// ==========================================
+// 📄 TEMPLATE SERVICE (แก้ดีไซน์ + พื้นหลังขาว)
+// ==========================================
 function generateInvoiceHTML(payment, tenant, room, recipient, bank, invoiceNo) {
-    // 1. Prepare Items
+    const issueDate = formatDate(new Date().toISOString());
+    const dueDate = formatDate(payment.due_date);
+    
     const items = [];
     if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
     if (payment.electricity_amount > 0) items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
@@ -127,11 +125,7 @@ function generateInvoiceHTML(payment, tenant, room, recipient, bank, invoiceNo) 
     }
 
     const total = items.reduce((sum, item) => sum + item.price, 0);
-    const totalText = numberToThaiText(total);
-    const issueDate = formatDate(new Date().toISOString());
-    const dueDate = formatDate(payment.due_date);
 
-    // 2. HTML Template
     return `
     <!DOCTYPE html>
     <html lang="th">
@@ -140,70 +134,139 @@ function generateInvoiceHTML(payment, tenant, room, recipient, bank, invoiceNo) 
         <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
         <style>
             * { box-sizing: border-box; }
-            body { font-family: 'Sarabun', sans-serif; margin: 0; padding: 0; background-color: #ffffff; color: #000; }
-            .container { width: 800px; margin: 0 auto; background-color: #ffffff; padding: 50px; }
+            body { 
+                font-family: 'Sarabun', sans-serif; 
+                margin: 0; 
+                padding: 0; 
+                background-color: #ffffff; /* ✅ สำคัญ: บังคับพื้นขาว */
+                color: #000;
+                -webkit-font-smoothing: antialiased;
+            }
+            .container { 
+                width: 800px; 
+                margin: 0 auto; 
+                background-color: #ffffff; 
+                padding: 50px;
+                position: relative;
+            }
+            
+            /* Logo & Header */
             .logo-section { text-align: center; margin-bottom: 30px; }
             .logo-img { height: 120px; object-fit: contain; }
-            .brand-name { font-family: 'Playfair Display', serif; font-size: 24px; font-weight: bold; margin-bottom: 5px; }
+
+            .brand-name {
+                font-family: 'Playfair Display', serif;
+                font-size: 24px;
+                font-weight: bold;
+                margin-bottom: 5px;
+            }
             .brand-details { font-size: 12px; color: #333; margin-bottom: 40px; line-height: 1.4; }
+
+            /* Title */
             .invoice-title { font-size: 18px; font-weight: bold; }
-            .invoice-subtitle { font-size: 10px; letter-spacing: 1px; color: #666; margin-bottom: 25px; }
+            .invoice-subtitle { font-size: 10px; letter-spacing: 1px; color: #666; margin-bottom: 25px; text-transform: uppercase; }
+
+            /* Meta Data */
             .meta-row { display: flex; margin-bottom: 5px; font-size: 12px; }
             .meta-label { font-weight: bold; width: 120px; }
+
+            /* Info Blocks */
             .info-block { margin-bottom: 25px; font-size: 12px; }
             .block-label { font-size: 11px; color: #555; font-weight: 600; margin-bottom: 5px; text-transform: uppercase; }
+            
+            /* Table */
             table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; font-size: 11px; }
             th { text-align: left; padding: 8px 0; border-bottom: 1px solid #ddd; font-weight: bold; }
             td { padding: 8px 0; vertical-align: top; }
             .text-right { text-align: right; }
             .text-center { text-align: center; }
+
+            /* Total */
             .total-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px; padding-top: 10px; border-top: 1px solid #000; }
             .thai-baht { font-size: 11px; color: #333; }
             .grand-total { font-size: 16px; font-weight: bold; color: #000; }
+
+            /* Footer */
             .footer { margin-top: 50px; font-size: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
             .footer-notes { margin-top: 20px; font-size: 9px; color: #555; line-height: 1.4; }
         </style>
     </head>
     <body>
         <div class="container">
-            <div class="logo-section"><img src="${escapeHtml(recipient.building_logo)}" class="logo-img" /></div>
+            <div class="logo-section">
+                <img src="${escapeHtml(recipient.building_logo)}" class="logo-img" />
+            </div>
+
             <div class="brand-name">${escapeHtml(recipient.building_name)}</div>
             <div class="brand-details">
                 ${escapeHtml(recipient.company_address)}
                 ${recipient.tax_id ? `<br>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(recipient.tax_id)}` : ''}
             </div>
+
             <div class="invoice-title">ใบแจ้งหนี้</div>
             <div class="invoice-subtitle">INVOICE</div>
+
             <div class="meta-row"><div class="meta-label">เลขที่:</div><div>${escapeHtml(invoiceNo)}</div></div>
             <div class="meta-row"><div class="meta-label">วันที่ออก:</div><div>${escapeHtml(issueDate)}</div></div>
             <div class="meta-row"><div class="meta-label">ครบกำหนด:</div><div>${escapeHtml(dueDate)}</div></div>
+
             <br>
+
             <div class="info-block">
                 <div class="block-label">ผู้รับเงิน / RECEIVER</div>
                 <div>${escapeHtml(recipient.lessor_name)}</div>
                 <div>${escapeHtml(recipient.lessor_address)}</div>
             </div>
+
             <div class="info-block">
                 <div class="block-label">ผู้จ่ายเงิน / PAYER</div>
                 <div>${escapeHtml(tenant.full_name)}</div>
                 <div>ห้อง: ${escapeHtml(room.room_number)}</div>
                 <div>โทร: ${escapeHtml(tenant.phone || '-')}</div>
             </div>
+
             <table>
-                <thead><tr><th>ลำดับ</th><th>รายการ</th><th class="text-center">จำนวน</th><th class="text-right">ราคา/หน่วย</th><th class="text-right">จำนวนเงิน</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th width="10%">ลำดับ</th>
+                        <th width="45%">รายการ</th>
+                        <th width="15%" class="text-center">จำนวน</th>
+                        <th width="15%" class="text-right">ราคา/หน่วย</th>
+                        <th width="15%" class="text-right">จำนวนเงิน</th>
+                    </tr>
+                </thead>
                 <tbody>
-                    ${items.map((item, index) => `<tr><td>${index + 1}</td><td>${escapeHtml(item.name)}</td><td class="text-center">${item.qty}</td><td class="text-right">${item.price.toLocaleString()}</td><td class="text-right">${item.price.toLocaleString()}</td></tr>`).join('')}
+                    ${items.map((item, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${escapeHtml(item.name)}</td>
+                        <td class="text-center">${item.qty}</td>
+                        <td class="text-right">${item.price.toLocaleString()}</td>
+                        <td class="text-right">${item.price.toLocaleString()}</td>
+                    </tr>`).join('')}
                 </tbody>
             </table>
+
             <div class="total-row">
-                <div class="thai-baht">รวมทั้งสิ้น (${totalText})</div>
+                <div class="thai-baht">รวมทั้งสิ้น (${numberToThaiText(total)})</div>
                 <div class="grand-total">${total.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</div>
             </div>
+
             <div class="footer">
-                <div><strong>ช่องทางการชำระเงิน</strong><br>ธนาคาร: ${escapeHtml(bank.name)}<br>เลขบัญชี: ${escapeHtml(bank.account_number)}<br>ชื่อ: ${escapeHtml(bank.account_name)}</div>
+                <div>
+                    <strong>ช่องทางการชำระเงิน</strong><br>
+                    ธนาคาร: ${escapeHtml(bank.name)}<br>
+                    เลขบัญชี: ${escapeHtml(bank.account_number)}<br>
+                    ชื่อ: ${escapeHtml(bank.account_name)}
+                </div>
                 <div style="text-align:right; color:#aaa;">System Generated | ${escapeHtml(recipient.building_name)}</div>
             </div>
-            <div class="footer-notes"><strong>หมายเหตุ:</strong><br>1. กรุณาชำระเงินภายในวันที่กำหนด<br>2. กรุณาแนบหลักฐานการโอนเงินทุกครั้ง</div>
+
+            <div class="footer-notes">
+                <strong>หมายเหตุ:</strong><br>
+                1. กรุณาชำระเงินภายในวันที่กำหนด<br>
+                2. กรุณาแนบหลักฐานการโอนเงินทุกครั้ง
+            </div>
         </div>
     </body>
     </html>`;
@@ -216,7 +279,7 @@ async function generateAndUploadImage(base44, paymentId, html) {
     const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
     if (!BROWSERLESS_API_KEY) throw new Error("API Key missing");
 
-    // 1. เรียก Browserless (พร้อม Retry)
+    // 1. เรียก Browserless
     const imageBlob = await callWithRetry(async () => {
         const res = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
             method: 'POST',
@@ -224,16 +287,15 @@ async function generateAndUploadImage(base44, paymentId, html) {
             body: JSON.stringify({ 
                 html: html, 
                 viewport: { width: 800, height: 1000 },
-                // ⭐ บังคับพื้นหลังขาว (แก้ omitBackground เป็น false)
-                options: { type: 'png', fullPage: true, omitBackground: false },
-                gotoOptions: { waitUntil: 'networkidle0', timeout: CONFIG.BROWSERLESS_TIMEOUT }
+                // ⭐ แก้ไขสำคัญ: omitBackground: false (เพื่อให้ได้พื้นหลังขาว ไม่ทะลุ)
+                options: { type: 'png', fullPage: true, omitBackground: false } 
             })
         });
         if (!res.ok) throw new Error(`Browserless Error: ${res.status}`);
         return await res.blob();
     }, 'Browserless');
 
-    // 2. อัปโหลดไป Base44 (พร้อม Retry)
+    // 2. อัปโหลดไป Base44
     const fileUrl = await callWithRetry(async () => {
         const file = new File([imageBlob], `inv-${paymentId}.png`, { type: 'image/png' });
         const uploadRes = await base44.asServiceRole.integrations.Core.UploadFile({ file });
@@ -246,7 +308,7 @@ async function generateAndUploadImage(base44, paymentId, html) {
 }
 
 // ==========================================
-// 🚀 MAIN WORKER (ตัวควบคุมหลัก)
+// 🚀 MAIN WORKER
 // ==========================================
 Deno.serve(async (req) => {
     const startTime = Date.now();
@@ -264,23 +326,22 @@ Deno.serve(async (req) => {
     const batchSize = reqBody.batch_size || CONFIG.DEFAULT_BATCH_SIZE;
     const targetBranchId = reqBody.branch_id || null;
 
-    // 2. Load Configs & Data
+    // 2. Load Configs
     const configs = await base44.asServiceRole.entities.Config.list() || [];
     const getConfig = (key, branchId) => {
         const c = configs.find(x => x.key === key && x.branch_id === branchId) || configs.find(x => x.key === key && !x.branch_id);
         return c?.value || '';
     };
     
-    // 3. Scan Payments (Aggressive Filter + Zombie Check)
+    // 3. Scan Payments
     const paymentFilter = targetBranchId ? { branch_id: targetBranchId } : {};
     let paymentsToProcess = [];
     let dbSkip = 0;
     
     console.log(`🔍 Scanning payments...`);
     
-    // Loop ดึงข้อมูลจนกว่าจะได้ Job ครบตาม batchSize
     while (paymentsToProcess.length < batchSize) {
-        if (Date.now() - startTime > 10000) break; // อย่า Scan นานเกิน 10 วิ
+        if (Date.now() - startTime > 10000) break;
 
         const batch = await base44.asServiceRole.entities.Payment.filter(
             paymentFilter, '-updated_date', 100, dbSkip 
@@ -294,7 +355,6 @@ Deno.serve(async (req) => {
             const isUrlInvalid = !p.invoice_image_url || String(p.invoice_image_url).trim().length < 10;
             const isStatusHang = ['generating', 'failed'].includes(p.invoice_image_status);
             
-            // Zombie Check: ถ้า generating ค้างนานเกิน 30 นาที ให้ถือว่าตายแล้วทำใหม่
             const lastUpdate = p.updated_date ? new Date(p.updated_date).getTime() : 0;
             const isZombie = p.invoice_image_status === 'generating' && (Date.now() - lastUpdate > CONFIG.ZOMBIE_THRESHOLD_MS);
 
@@ -308,7 +368,7 @@ Deno.serve(async (req) => {
             }
         }
         dbSkip += batch.length;
-        if (dbSkip > 2000) break; // Hard limit scan
+        if (dbSkip > 2000) break;
     }
 
     console.log(`📊 Job Queue: ${paymentsToProcess.length} items`);
@@ -333,7 +393,6 @@ Deno.serve(async (req) => {
         try {
             await delay(200); 
 
-            // ดึงข้อมูล
             const t = await getEntity('tenants', payment.tenant_id);
             const r = await getEntity('rooms', payment.room_id);
             const branchName = getConfig('building_name', payment.branch_id) || `Branch-${payment.branch_id}`;
@@ -342,7 +401,6 @@ Deno.serve(async (req) => {
 
             await base44.asServiceRole.entities.Payment.update(payment.id, { invoice_image_status: 'generating' });
             
-            // เตรียมข้อมูลสำหรับ HTML Generator
             const recipient = {
                 building_name: getConfig('building_name', payment.branch_id) || branchName,
                 building_logo: getConfig('building_logo', payment.branch_id) || 'https://via.placeholder.com/150',
@@ -358,14 +416,14 @@ Deno.serve(async (req) => {
                 account_name: getConfig('bank_account_name', payment.branch_id) || '-'
             };
 
-            // สร้าง HTML -> รูป -> Upload
+            // สร้างรูป
             const invoiceNo = `INV-${payment.id.slice(0,6).toUpperCase()}`;
             const html = generateInvoiceHTML(payment, t, r, recipient, bank, invoiceNo); 
             const imageUrl = await generateAndUploadImage(base44, payment.id, html);
             
             console.log(`📸 รูปเสร็จแล้ว: ${imageUrl}`);
 
-            // สร้างข้อความ LINE/FB
+            // สร้างข้อความ
             let message = `📢 แจ้งเตือนค่าเช่า\n${recipient.building_name}\n`;
             message += `สวัสดีคุณ ${t.full_name}\nห้อง ${r.room_number || 'N/A'}\n\n`;
             message += `🧾 รายละเอียด:\n`;
@@ -396,8 +454,7 @@ Deno.serve(async (req) => {
             else if (payment.bill_sent_date) logMsg = `ข้าม: เคยส่งแล้ว`;
             else {
                 console.log(`📤 เริ่มส่งข้อความ...`);
-                let channels = [];
-
+                
                 // LINE Check
                 if (t.line_user_id) {
                     if (lineToken) {
@@ -407,7 +464,7 @@ Deno.serve(async (req) => {
                                 headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${lineToken}`},
                                 body: JSON.stringify({to: t.line_user_id, messages: [{type: 'text', text: message}]})
                             });
-                            if (res.ok) { sent = true; channels.push("LINE"); }
+                            if (res.ok) sent = true;
                         } catch(e) {}
                     }
                 }
@@ -421,13 +478,13 @@ Deno.serve(async (req) => {
                                 headers: {'Content-Type': 'application/json'},
                                 body: JSON.stringify({ recipient: { id: t.facebook_user_id }, message: { text: message }, messaging_type: 'MESSAGE_TAG', tag: 'CONFIRMED_EVENT_UPDATE' })
                             });
-                            if (res.ok) { sent = true; channels.push("FB"); }
+                            if (res.ok) sent = true;
                         } catch(e) {}
                     }
                 }
 
-                if (sent) logMsg = `✅ ส่งสำเร็จทาง: [${channels.join(', ')}]`;
-                else logMsg = `❌ ส่งไม่ผ่านสักทาง`;
+                if (sent) logMsg = `✅ ส่งสำเร็จ`;
+                else logMsg = `❌ ส่งไม่ผ่าน`;
             }
             console.log(logMsg);
 
@@ -456,7 +513,7 @@ Deno.serve(async (req) => {
         }
     };
 
-    // Execute batch with concurrency limit
+    // Execute batch
     const chunk = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (v, i) => arr.slice(i * size, i * size + size));
     const batches = chunk(paymentsToProcess, CONFIG.CONCURRENT_WORKERS);
 
