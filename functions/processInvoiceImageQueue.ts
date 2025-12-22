@@ -352,16 +352,27 @@ Deno.serve(async (req) => {
         for (const p of batch) {
             if (p.status === 'paid' || p.status === 'cancelled') continue;
 
+          // =========================================================
+            // ✅ Logic ที่ถูกต้อง (วางทับส่วนเงื่อนไขใน Loop ได้เลย)
+            // =========================================================
+
+            // 1. เช็คว่า URL รูปภาพใช้การไม่ได้ หรือว่างเปล่า
             const isUrlInvalid = !p.invoice_image_url || String(p.invoice_image_url).trim().length < 10;
-            const isStatusHang = ['generating', 'failed'].includes(p.invoice_image_status);
             
+            // 2. เช็คสถานะ: รอคิว, กำลังทำ, ล้มเหลว หรือ ไม่มีสถานะเลย
+            const isStatusHang = ['pending', 'generating', 'failed'].includes(p.invoice_image_status) || !p.invoice_image_status;
+            
+            // 3. Zombie Check: ถ้าสถานะ 'generating' ค้างนานเกิน 30 นาที (ถือว่า worker ตาย)
             const lastUpdate = p.updated_date ? new Date(p.updated_date).getTime() : 0;
             const isZombie = p.invoice_image_status === 'generating' && (Date.now() - lastUpdate > CONFIG.ZOMBIE_THRESHOLD_MS);
 
+            // 4. Hash Check: เช็คว่าข้อมูลตัวเลขในบิลมีการแก้ไขหรือไม่
             const currentHash = generatePaymentHash(p);
             const isDataChanged = p.invoice_data_hash !== currentHash;
 
+            // --- รวมเงื่อนไขทั้งหมด ---
             if (isUrlInvalid || isStatusHang || isDataChanged || isZombie) {
+                // ป้องกันการใส่ซ้ำ
                 if (!paymentsToProcess.find(x => x.id === p.id)) {
                     paymentsToProcess.push(p);
                 }
