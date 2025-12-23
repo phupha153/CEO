@@ -68,229 +68,229 @@ function formatDate(dateString) {
 
 // ⭐ ฟังก์ชันสร้างรูป invoice แบบ inline (Design ใหม่ Sarabun)
 async function generateInvoiceScreenshot(base44, paymentId, invoice) {
-    console.log(`📸 [Step 1] Start generating for ID: ${paymentId}`);
-    const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
-    if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
+    console.log(`📸 [Step 1] Start generating for ID: ${paymentId}`);
+    const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
+    if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
 
-    const payment = invoice;
-    const recipient = invoice.recipient || {};
-    const tenant = invoice.tenant || {};
-    const room = invoice.room || {};
-    const bank = invoice.bank || {};
+    const payment = invoice;
+    const recipient = invoice.recipient || {};
+    const tenant = invoice.tenant || {};
+    const room = invoice.room || {};
+    const bank = invoice.bank || {};
 
-    const invoiceNo = `INV-${payment.id.slice(0, 8).toUpperCase()}`;
-    const issueDate = formatDate(new Date().toISOString());
-    const dueDate = formatDate(payment.due_date);
-    const logoUrl = recipient.building_logo || 'https://via.placeholder.com/100x100?text=Logo';
-    const buildingName = recipient.building_name || 'Double Residence';
-    const displayLessorName = recipient.company_name || recipient.lessor_name || 'ไม่ระบุชื่อผู้รับเงิน';
-    const displayLessorAddress = recipient.company_address || recipient.lessor_address || '';
-    const displayTaxId = recipient.company_tax_id || recipient.tax_id || '';
+    const invoiceNo = `INV-${payment.id.slice(0, 8).toUpperCase()}`;
+    const issueDate = formatDate(new Date().toISOString());
+    const dueDate = formatDate(payment.due_date);
+    const logoUrl = recipient.building_logo || 'https://via.placeholder.com/100x100?text=Logo';
+    const buildingName = recipient.building_name || 'Double Residence';
+    const displayLessorName = recipient.company_name || recipient.lessor_name || 'ไม่ระบุชื่อผู้รับเงิน';
+    const displayLessorAddress = recipient.company_address || recipient.lessor_address || '';
+    const displayTaxId = recipient.company_tax_id || recipient.tax_id || '';
 
-    const items = [];
-    if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
-    if (payment.electricity_amount > 0) items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
-    if (payment.water_amount > 0) items.push({ name: `ค่าน้ำ (${payment.water_units || 0} หน่วย)`, qty: 1, price: payment.water_amount });
-    if (payment.common_fee_amount > 0) items.push({ name: 'ค่าส่วนกลาง', qty: 1, price: payment.common_fee_amount });
-    if (payment.parking_fee_amount > 0) items.push({ name: 'ค่าที่จอดรถ', qty: 1, price: payment.parking_fee_amount });
-    if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
-    if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
-    
-    const lateFee = Number(payment.late_fee_amount || 0);
-    if (lateFee > 0) {
-        items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: lateFee });
-    }
+    const items = [];
+    if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
+    if (payment.electricity_amount > 0) items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
+    if (payment.water_amount > 0) items.push({ name: `ค่าน้ำ (${payment.water_units || 0} หน่วย)`, qty: 1, price: payment.water_amount });
+    if (payment.common_fee_amount > 0) items.push({ name: 'ค่าส่วนกลาง', qty: 1, price: payment.common_fee_amount });
+    if (payment.parking_fee_amount > 0) items.push({ name: 'ค่าที่จอดรถ', qty: 1, price: payment.parking_fee_amount });
+    if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });
+    if (payment.other_amount > 0) items.push({ name: 'ค่าใช้จ่ายอื่นๆ', qty: 1, price: payment.other_amount });
+    
+    const lateFee = Number(payment.late_fee_amount || 0);
+    if (lateFee > 0) {
+        items.push({ name: 'ค่าปรับชำระล่าช้า', qty: 1, price: lateFee });
+    }
 
-    const finalTotalAmount = items.reduce((sum, item) => sum + item.price, 0);
-    const totalText = numberToThaiText(finalTotalAmount);
+    const finalTotalAmount = items.reduce((sum, item) => sum + item.price, 0);
+    const totalText = numberToThaiText(finalTotalAmount);
 
-    function escapeHtml(text) {
-        if (!text) return '';
-        return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
 
-    const htmlContent = `
-    <!DOCTYPE html>
-    <html lang="th">
-    <head>
-        <meta charset="UTF-8">
-        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-        <style>
-            * { box-sizing: border-box; }
-            body { font-family: 'Sarabun', sans-serif; padding: 40px; background: #fff; color: #333; }
-            .container { max-width: 800px; margin: 0 auto; background: white; }
-            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
-            .logo-section { display: flex; gap: 15px; width: 75%; }
-            .logo { width: 50px; height: 50px; object-fit: contain; margin-top: 5px; }
-            .brand-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 8px 0; color: #1e293b; }
-            .brand-info .company-name { font-weight: 600; color: #1e293b; font-size: 12px; margin-bottom: 2px; }
-            .brand-info .company-details { font-size: 11px; color: #475569; line-height: 1.4; }
-            .invoice-label { text-align: right; width: 25%; }
-            .invoice-label h2 { font-size: 20px; color: #2563eb; font-weight: bold; margin: 0; }
-            .invoice-label span { font-size: 12px; color: #2563eb; font-weight: 600; letter-spacing: 1px; }
-            .meta-bar { display: flex; justify-content: space-between; background: #f8fafc; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
-            .meta-item { font-size: 12px; }
-            .meta-item strong { color: #64748b; margin-right: 5px; }
-            .meta-item span { font-weight: 600; color: #1e293b; }
-            .due-date { color: #dc2626 !important; }
-            .info-grid { display: flex; gap: 20px; margin-bottom: 25px; }
-            .info-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #fff; }
-            .box-header { font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
-            .box-content .name { font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
-            .box-content p { font-size: 12px; color: #475569; margin: 0 0 2px 0; line-height: 1.4; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
-            th { text-align: left; padding: 10px; background-color: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #cbd5e1; }
-            td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; color: #1e293b; }
-            .text-right { text-align: right; }
-            .text-center { text-align: center; }
-            .col-total { font-weight: 600; }
-            .total-section { display: flex; justify-content: flex-end; margin-bottom: 25px; }
-            .total-box { text-align: right; border-top: 2px solid #cbd5e1; padding-top: 10px; min-width: 250px; }
-            .total-label { font-size: 13px; font-weight: bold; color: #1e293b; margin-right: 15px; }
-            .total-amount { font-size: 22px; font-weight: bold; color: #2563eb; }
-            .thai-baht { font-size: 12px; color: #64748b; font-style: italic; margin-top: 5px; }
-            .payment-box { background: #eff6ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 15px; margin-bottom: 20px; font-size: 12px; display: flex; align-items: center; gap: 12px; }
-            .payment-icon { font-size: 18px; }
-            .payment-info span { margin-right: 15px; color: #334155; }
-            .payment-info strong { color: #1e293b; font-weight: 600; }
-            .notes { font-size: 11px; color: #94a3b8; padding-top: 15px; border-top: 1px solid #e2e8f0; line-height: 1.6; }
-            .credit { text-align: center; margin-top: 20px; font-size: 10px; color: #cbd5e1; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <div class="logo-section">
-                    <img src="${escapeHtml(logoUrl)}" class="logo" />
-                    <div class="brand-info">
-                        <h1>${escapeHtml(buildingName)}</h1>
-                        <div class="company-details">
-                            <div class="company-name">${escapeHtml(displayLessorName)}</div>
-                            <div>${escapeHtml(displayLessorAddress)}</div>
-                            ${displayTaxId ? `<div>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(displayTaxId)}</div>` : ''}
-                        </div>
-                    </div>
-                </div>
-                <div class="invoice-label">
-                    <h2>ใบแจ้งหนี้</h2>
-                    <span>INVOICE</span>
-                </div>
-            </div>
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="th">
+    <head>
+        <meta charset="UTF-8">
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+        <style>
+            * { box-sizing: border-box; }
+            body { font-family: 'Sarabun', sans-serif; padding: 40px; background: #fff; color: #333; }
+            .container { max-width: 800px; margin: 0 auto; background: white; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 25px; }
+            .logo-section { display: flex; gap: 15px; width: 75%; }
+            .logo { width: 50px; height: 50px; object-fit: contain; margin-top: 5px; }
+            .brand-info h1 { font-size: 18px; font-weight: bold; margin: 0 0 8px 0; color: #1e293b; }
+            .brand-info .company-name { font-weight: 600; color: #1e293b; font-size: 12px; margin-bottom: 2px; }
+            .brand-info .company-details { font-size: 11px; color: #475569; line-height: 1.4; }
+            .invoice-label { text-align: right; width: 25%; }
+            .invoice-label h2 { font-size: 20px; color: #2563eb; font-weight: bold; margin: 0; }
+            .invoice-label span { font-size: 12px; color: #2563eb; font-weight: 600; letter-spacing: 1px; }
+            .meta-bar { display: flex; justify-content: space-between; background: #f8fafc; padding: 10px 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+            .meta-item { font-size: 12px; }
+            .meta-item strong { color: #64748b; margin-right: 5px; }
+            .meta-item span { font-weight: 600; color: #1e293b; }
+            .due-date { color: #dc2626 !important; }
+            .info-grid { display: flex; gap: 20px; margin-bottom: 25px; }
+            .info-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; background: #fff; }
+            .box-header { font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }
+            .box-content .name { font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }
+            .box-content p { font-size: 12px; color: #475569; margin: 0 0 2px 0; line-height: 1.4; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
+            th { text-align: left; padding: 10px; background-color: #f8fafc; color: #475569; font-weight: 600; border-bottom: 2px solid #cbd5e1; }
+            td { padding: 12px 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; color: #1e293b; }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+            .col-total { font-weight: 600; }
+            .total-section { display: flex; justify-content: flex-end; margin-bottom: 25px; }
+            .total-box { text-align: right; border-top: 2px solid #cbd5e1; padding-top: 10px; min-width: 250px; }
+            .total-label { font-size: 13px; font-weight: bold; color: #1e293b; margin-right: 15px; }
+            .total-amount { font-size: 22px; font-weight: bold; color: #2563eb; }
+            .thai-baht { font-size: 12px; color: #64748b; font-style: italic; margin-top: 5px; }
+            .payment-box { background: #eff6ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 15px; margin-bottom: 20px; font-size: 12px; display: flex; align-items: center; gap: 12px; }
+            .payment-icon { font-size: 18px; }
+            .payment-info span { margin-right: 15px; color: #334155; }
+            .payment-info strong { color: #1e293b; font-weight: 600; }
+            .notes { font-size: 11px; color: #94a3b8; padding-top: 15px; border-top: 1px solid #e2e8f0; line-height: 1.6; }
+            .credit { text-align: center; margin-top: 20px; font-size: 10px; color: #cbd5e1; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="logo-section">
+                    <img src="${escapeHtml(logoUrl)}" class="logo" />
+                    <div class="brand-info">
+                        <h1>${escapeHtml(buildingName)}</h1>
+                        <div class="company-details">
+                            <div class="company-name">${escapeHtml(displayLessorName)}</div>
+                            <div>${escapeHtml(displayLessorAddress)}</div>
+                            ${displayTaxId ? `<div>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(displayTaxId)}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+                <div class="invoice-label">
+                    <h2>ใบแจ้งหนี้</h2>
+                    <span>INVOICE</span>
+                </div>
+            </div>
 
-            <div class="meta-bar">
-                <div class="meta-item"><strong>เลขที่:</strong> <span>${escapeHtml(invoiceNo)}</span></div>
-                <div class="meta-item"><strong>วันที่ออก:</strong> <span>${escapeHtml(issueDate)}</span></div>
-                <div class="meta-item"><strong>ครบกำหนด:</strong> <span class="due-date">${escapeHtml(dueDate)}</span></div>
-            </div>
+            <div class="meta-bar">
+                <div class="meta-item"><strong>เลขที่:</strong> <span>${escapeHtml(invoiceNo)}</span></div>
+                <div class="meta-item"><strong>วันที่ออก:</strong> <span>${escapeHtml(issueDate)}</span></div>
+                <div class="meta-item"><strong>ครบกำหนด:</strong> <span class="due-date">${escapeHtml(dueDate)}</span></div>
+            </div>
 
-            <div class="info-grid">
-                <div class="info-box">
-                    <div class="box-header">ผู้รับเงิน / RECEIVER</div>
-                    <div class="box-content">
-                        <div class="name">${escapeHtml(displayLessorName)}</div>
-                        <p>${escapeHtml(displayLessorAddress)}</p>
-                        ${displayTaxId ? `<p>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(displayTaxId)}</p>` : ''}
-                    </div>
-                </div>
-                <div class="info-box">
-                    <div class="box-header">ผู้จ่ายเงิน / PAYER</div>
-                    <div class="box-content">
-                        <div class="name">${escapeHtml(tenant.full_name || 'ไม่ระบุชื่อ')}</div>
-                        <p>ห้อง: ${escapeHtml(room.room_number || '-')}</p>
-                        <p>โทร: ${escapeHtml(tenant.phone || '-')}</p>
-                        <p>ที่อยู่: ${escapeHtml(tenant.address || 'ไม่ระบุ')}</p>
-                    </div>
-                </div>
-            </div>
+            <div class="info-grid">
+                <div class="info-box">
+                    <div class="box-header">ผู้รับเงิน / RECEIVER</div>
+                    <div class="box-content">
+                        <div class="name">${escapeHtml(displayLessorName)}</div>
+                        <p>${escapeHtml(displayLessorAddress)}</p>
+                        ${displayTaxId ? `<p>เลขประจำตัวผู้เสียภาษี: ${escapeHtml(displayTaxId)}</p>` : ''}
+                    </div>
+                </div>
+                <div class="info-box">
+                    <div class="box-header">ผู้จ่ายเงิน / PAYER</div>
+                    <div class="box-content">
+                        <div class="name">${escapeHtml(tenant.full_name || 'ไม่ระบุชื่อ')}</div>
+                        <p>ห้อง: ${escapeHtml(room.room_number || '-')}</p>
+                        <p>โทร: ${escapeHtml(tenant.phone || '-')}</p>
+                        <p>ที่อยู่: ${escapeHtml(tenant.address || 'ไม่ระบุ')}</p>
+                    </div>
+                </div>
+            </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th width="10%">ลำดับ</th>
-                        <th width="45%">รายการ</th>
-                        <th width="15%" class="text-center">จำนวน</th>
-                        <th width="15%" class="text-right">ราคา/หน่วย</th>
-                        <th width="15%" class="text-right">จำนวนเงิน</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${items.map((item, index) => `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${escapeHtml(item.name)}</td>
-                        <td class="text-center">${item.qty}</td>
-                        <td class="text-right">${(item.price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                        <td class="text-right col-total">${(item.price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
-                    </tr>
-                    `).join('')}
-                </tbody>
-            </table>
+            <table>
+                <thead>
+                    <tr>
+                        <th width="10%">ลำดับ</th>
+                        <th width="45%">รายการ</th>
+                        <th width="15%" class="text-center">จำนวน</th>
+                        <th width="15%" class="text-right">ราคา/หน่วย</th>
+                        <th width="15%" class="text-right">จำนวนเงิน</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${items.map((item, index) => `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${escapeHtml(item.name)}</td>
+                        <td class="text-center">${item.qty}</td>
+                        <td class="text-right">${(item.price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                        <td class="text-right col-total">${(item.price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                    `).join('')}
+                </tbody>
+            </table>
 
-            <div class="total-section">
-                <div class="total-box">
-                    <span class="total-label">รวมทั้งสิ้น</span>
-                    <span class="total-amount">${finalTotalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
-                    <div class="thai-baht">(${totalText})</div>
-                </div>
-            </div>
+            <div class="total-section">
+                <div class="total-box">
+                    <span class="total-label">รวมทั้งสิ้น</span>
+                    <span class="total-amount">${finalTotalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} ฿</span>
+                    <div class="thai-baht">(${totalText})</div>
+                </div>
+            </div>
 
-            <div class="payment-box">
-                <span class="payment-icon">💳</span>
-                <div class="payment-info">
-                    <span>ช่องทางการชำระเงิน</span>
-                    <span>ธนาคาร: <strong>${escapeHtml(bank.name || 'กสิกรไทย')}</strong></span>
-                    <span>เลขบัญชี: <strong>${escapeHtml(bank.account_number || '-')}</strong></span>
-                    <span>ชื่อ: <strong>${escapeHtml(bank.account_name || '-')}</strong></span>
-                </div>
-            </div>
+            <div class="payment-box">
+                <span class="payment-icon">💳</span>
+                <div class="payment-info">
+                    <span>ช่องทางการชำระเงิน</span>
+                    <span>ธนาคาร: <strong>${escapeHtml(bank.name || 'กสิกรไทย')}</strong></span>
+                    <span>เลขบัญชี: <strong>${escapeHtml(bank.account_number || '-')}</strong></span>
+                    <span>ชื่อ: <strong>${escapeHtml(bank.account_name || '-')}</strong></span>
+                </div>
+            </div>
 
-            <div class="notes">
-                <strong>หมายเหตุ:</strong><br>
-                1. กรุณาชำระเงินภายในวันที่กำหนด<br>
-                2. กรุณาแนบหลักฐานการโอนเงินทุกครั้ง<br>
-                3. หากมีข้อสงสัยกรุณาติดต่อเจ้าของหอพัก
-            </div>
+            <div class="notes">
+                <strong>หมายเหตุ:</strong><br>
+                1. กรุณาชำระเงินภายในวันที่กำหนด<br>
+                2. กรุณาแนบหลักฐานการโอนเงินทุกครั้ง<br>
+                3. หากมีข้อสงสัยกรุณาติดต่อเจ้าของหอพัก
+            </div>
 
-            <div class="credit">
-                เอกสารนี้สร้างโดยระบบอัตโนมัติ | ${escapeHtml(buildingName)}
-            </div>
-        </div>
-    </body>
-    </html>
-    `;
+            <div class="credit">
+                เอกสารนี้สร้างโดยระบบอัตโนมัติ | ${escapeHtml(buildingName)}
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
 
-    console.log('📸 [Step 2] Sending to Browserless...');
-    const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            html: htmlContent, 
-            viewport: { width: 800, height: 1000 },
-            options: { type: 'png', fullPage: true, omitBackground: true } 
-        })
-    });
+    console.log('📸 [Step 2] Sending to Browserless...');
+    const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            html: htmlContent, 
+            viewport: { width: 800, height: 1000 },
+            options: { type: 'png', fullPage: true, omitBackground: true } 
+        })
+    });
 
-    if (!browserlessResponse.ok) throw new Error(`Browserless error: ${await browserlessResponse.text()}`);
-    const imageBlob = await browserlessResponse.blob();
-    
-    // ⭐ LOG SIZE: ดูว่าได้รูปจริงไหม
-    console.log(`📸 [Step 3] Blob received. Size: ${imageBlob.size} bytes`); 
-    
-    const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
-    
-    console.log('☁️ [Step 4] Uploading to Base44 Storage...');
-    
-    // ⭐ LOG RESULT: ดูว่า Upload แล้วได้อะไรกลับมา
-    const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: imageFile });
-    console.log('☁️ [Step 5] Upload Result:', JSON.stringify(uploadResult));
+    if (!browserlessResponse.ok) throw new Error(`Browserless error: ${await browserlessResponse.text()}`);
+    const imageBlob = await browserlessResponse.blob();
+    
+    // ⭐ LOG SIZE: ดูว่าได้รูปจริงไหม
+    console.log(`📸 [Step 3] Blob received. Size: ${imageBlob.size} bytes`); 
+    
+    const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
+    
+    console.log('☁️ [Step 4] Uploading to Base44 Storage...');
+    
+    // ⭐ LOG RESULT: ดูว่า Upload แล้วได้อะไรกลับมา
+    const uploadResult = await base44.asServiceRole.integrations.Core.UploadFile({ file: imageFile });
+    console.log('☁️ [Step 5] Upload Result:', JSON.stringify(uploadResult));
 
-    // ⭐ SAFE ACCESS: พยายามดึง URL ทุกรูปแบบ
-    const file_url = uploadResult?.file_url || uploadResult?.url || uploadResult?.path || uploadResult?.data?.fullPath;
-    
-    if (!file_url) console.error('❌ [Step 6] file_url is missing in Upload Result!');
-    else console.log(`✅ [Step 6] Success! URL: ${file_url}`);
+    // ⭐ SAFE ACCESS: พยายามดึง URL ทุกรูปแบบ
+    const file_url = uploadResult?.file_url || uploadResult?.url || uploadResult?.path || uploadResult?.data?.fullPath;
+    
+    if (!file_url) console.error('❌ [Step 6] file_url is missing in Upload Result!');
+    else console.log(`✅ [Step 6] Success! URL: ${file_url}`);
 
-    return file_url;
+    return file_url;
 }
 
 // --- Main Queue Worker ---
@@ -318,7 +318,7 @@ Deno.serve(async (req) => {
             if (text && text.trim()) {
                 const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
-                batchSize = body.batch_size || 30;
+                batchSize = body.batch_size || 5;
                 concurrentLimit = body.concurrent_limit || 1;
                 skipLineSend = body.skip_line_send === true;
             }
@@ -359,7 +359,7 @@ Deno.serve(async (req) => {
                 if (paymentsToProcess.length >= batchSize) break;
                 if (p.status === 'paid' || p.status === 'cancelled') continue;
                 // 1. ตั้งกฎ: ถ้า updated_date เกิน 30 นาที ให้ถือว่าค้าง
-                const ZOMBIE_THRESHOLD_MS = 30 * 60 * 1000; // 30 นาที
+                const ZOMBIE_THRESHOLD_MS = 5 * 60 * 1000; // 30 นาที
                 const lastUpdate = p.updated_date ? new Date(p.updated_date).getTime() : 0;
                 const isStuckGenerating = p.invoice_image_status === 'generating' && 
                                           (Date.now() - lastUpdate > ZOMBIE_THRESHOLD_MS);
@@ -402,7 +402,8 @@ Deno.serve(async (req) => {
         const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
         const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
 
-        let imageGenerated = 0, imageFailed = 0, lineSent = 0, lineFailed = 0;
+        // เพิ่ม fbSent = 0 เข้าไปครับ
+        let imageGenerated = 0, imageFailed = 0, lineSent = 0, lineFailed = 0, fbSent = 0;
         let allImageResults = [];
         let processedCount = 0;
 
@@ -481,11 +482,21 @@ Deno.serve(async (req) => {
                 if (!result.success && !result.skipped) continue;
                 const { payment, room, tenant, imageUrl } = result;
                 
+              // --- 🟢 แก้ไข LOG ตรงนี้ครับ 🟢 ---
                 const autoSendEnabled = getConfigValue('auto_send_bills_after_generation', payment.branch_id, 'false') === 'true';
-                if (!autoSendEnabled || payment.bill_sent_date) continue;
                 
+                console.log(`🔍 [Debug] ห้อง ${room?.room_number}: ` +
+                            `AutoSend=${autoSendEnabled}, ` +
+                            `Line=${tenant?.line_user_id ? '✅' : '❌'}, ` +
+                            `FB=${tenant?.facebook_user_id ? '✅' : '❌'} ` +  // เช็คว่ามีค่าไหม
+                            `[ID: ${tenant?.facebook_user_id || 'ว่าง'}]`); // ปริ้นค่าออกมาดูเลย
+                // ------------------------------------
+
+                if (!autoSendEnabled || payment.bill_sent_date) continue;
+
+                // เช็คเงื่อนไขส่ง
                 const hasLineId = !!tenant?.line_user_id;
-                const hasFacebookId = !!tenant?.facebook_user_id;
+                const hasFacebookId = !!tenant?.facebook_user_id; // <-- ตรงนี้สำคัญ ต้องมีค่า
                 if (!hasLineId && !hasFacebookId) continue;
 
                 const branchId = payment.branch_id;
@@ -545,16 +556,34 @@ Deno.serve(async (req) => {
                 if (hasFacebookId) {
                     try {
                         const fbToken = getConfigValue('facebook_page_access_token', branchId, '');
-                        if (fbToken) {
+                        
+                        // 🟢 เพิ่ม 1: เช็คว่ามี Token ไหม ถ้าไม่มีให้แจ้งเตือน
+                        if (!fbToken) {
+                            console.log(`⚠️ [FB] ห้อง ${room?.room_number}: ไม่พบ Token (facebook_page_access_token)`);
+                        } else {
                             const res = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${fbToken}`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ recipient: { id: tenant.facebook_user_id }, message: { text: msg }, messaging_type: 'MESSAGE_TAG', tag: 'CONFIRMED_EVENT_UPDATE' })
+                                body: JSON.stringify({ 
+                                    recipient: { id: tenant.facebook_user_id }, 
+                                    message: { text: msg }, // 👈 ใช้ msg ตัวเดิมของคุณ ไม่มีการแก้ไข
+                                    messaging_type: 'MESSAGE_TAG', 
+                                    tag: 'CONFIRMED_EVENT_UPDATE' 
+                                })
                             });
-                            if (res.ok) { messageSent = true; console.log(`✅ [FB] ห้อง ${room?.room_number}`); }
+                            
+                            if (res.ok) { 
+                                fbSent++; // 🟢 เพิ่ม 2: นับยอด
+                                messageSent = true; 
+                                console.log(`✅ [FB] ห้อง ${room?.room_number}`); 
+                            } else {
+                                // 🟢 เพิ่ม 3: อ่าน Error จาก Facebook มาโชว์
+                                const errText = await res.text();
+                                console.error(`❌ [FB] Failed ห้อง ${room?.room_number}: ${errText}`);
+                            }
                             await delay(200);
                         }
-                    } catch (e) { console.error('FB Error'); }
+                    } catch (e) { console.error(`❌ [FB] Error: ${e.message}`); }
                 }
 
                 if (messageSent) await base44.asServiceRole.entities.Payment.update(payment.id, { bill_sent_date: new Date().toISOString() });
