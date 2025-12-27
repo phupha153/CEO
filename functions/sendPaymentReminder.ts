@@ -352,14 +352,17 @@ Deno.serve(async (req) => {
                     message += `💳 โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
                     message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
                 } else if (template === 'due_date') {
-                    // ข้อความครบกำหนด - สั้นกระชับ
-                    message = `📅 วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
-                    message += `${buildingName}\n`;
-                    message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
-                    message += `💰 ยอดชำระ: ${amount} บาท\n\n`;
-                    
-                    const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', branchId, '0');
-                    const feePerDay = parseFloat(lateFeePerDayConfig);
+                    } else if (template === 'due_date') {
+    // ข้อความครบกำหนด - สั้นกระชับ
+    message = `📅 วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
+    message += `${buildingName}\n`;
+    message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
+    
+    // ✅ แก้เป็นแบบนี้ครับ
+    message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
+    
+    const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', branchId, '0');
+    // ... (โค้ดส่วนอื่นเหมือนเดิม)
                     if (!isNaN(feePerDay) && feePerDay > 0) {
                         message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${feePerDay} บาท/วัน\n\n`;
                     }
