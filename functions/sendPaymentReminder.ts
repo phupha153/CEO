@@ -516,6 +516,8 @@ Deno.serve(async (req) => {
                         retryAttempts: 2
                     }
                 });
+                console.log('🔍 DEEP DEBUG RAW:', JSON.stringify(batchResult, null, 2));
+                console.log('🔍 DEEP DEBUG DATA:', JSON.stringify(batchResult.data, null, 2));
 
                 const result = batchResult.data;
                 successCount += result.success || 0;
