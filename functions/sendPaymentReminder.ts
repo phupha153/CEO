@@ -321,8 +321,9 @@ Deno.serve(async (req) => {
             const bankName = getConfigValue('bank_name', branchId, 'กสิกร');
             const buildingName = getConfigValue('building_name', branchId, 'W RESIDENTS');
 
-            // ถ้ามี customMessage ให้ใช้ข้อความที่ระบุจาก dialog
-            let message;
+            // --- ⭐ เริ่มต้นแก้ไข Logic การสร้างข้อความตรงนี้ ---
+            let message = ''; // กำหนดค่าเริ่มต้นเป็น string ว่าง
+
             if (customMessage && customMessage.trim()) {
                 message = customMessage.trim();
                 // เพิ่มข้อมูลบัญชีธนาคารต่อท้าย
@@ -331,14 +332,17 @@ Deno.serve(async (req) => {
                 // ⭐ สร้างข้อความตาม template parameter
                 const roomNum = room?.room_number || 'N/A';
                 
-                // ⭐⭐⭐ ใช้ค่าปรับที่คำนวณใหม่ (calculatedLateFee)
+                // คำนวณยอดเงินและค่าปรับให้พร้อมใช้
                 const lateFee = calculatedLateFee;
                 const originalAmount = payment.total_amount - (payment.late_fee_amount || 0);
                 const totalWithLateFee = originalAmount + lateFee;
                 
-                // ⭐ สร้างข้อความตาม template
+                // ดึง config ค่าปรับรายวันมารอไว้ก่อน
+                const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', branchId, '0');
+                const feePerDay = parseFloat(lateFeePerDayConfig);
+
                 if (template === 'overdue') {
-                    // ข้อความเกินกำหนด
+                    // --- CASE 1: เกินกำหนด (Overdue) ---
                     message = `🔴 แจ้งเตือนเกินกำหนดชำระ\n\n`;
                     message += `${buildingName}\n`;
                     message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
@@ -351,18 +355,14 @@ Deno.serve(async (req) => {
                     message += `กรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
                     message += `💳 โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
                     message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
+
                 } else if (template === 'due_date') {
-                    } else if (template === 'due_date') {
-    // ข้อความครบกำหนด - สั้นกระชับ
-    message = `📅 วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
-    message += `${buildingName}\n`;
-    message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
-    
-    // ✅ แก้เป็นแบบนี้ครับ
-    message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
-    
-    const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', branchId, '0');
-    // ... (โค้ดส่วนอื่นเหมือนเดิม)
+                    // --- CASE 2: ครบกำหนด (Due Date) --- 
+                    message = `📅 วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
+                    message += `${buildingName}\n`;
+                    message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
+                    message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
+                    
                     if (!isNaN(feePerDay) && feePerDay > 0) {
                         message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${feePerDay} บาท/วัน\n\n`;
                     }
@@ -371,16 +371,15 @@ Deno.serve(async (req) => {
                     message += `${bankName} ${bankAccountNumber}\n`;
                     message += `ชื่อ: ${bankAccountName}\n\n`;
                     message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
-              // ...
+
                 } else {
-                    // ข้อความปกติ (advance, due_date หรือไม่ระบุ)
+                    // --- CASE 3: แจ้งบิลปกติ (General/Advance) ---
                     message = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
                     message += `สวัสดีคุณ ${tenant.full_name}\n`;
                     message += `ห้อง ${roomNum}\n\n`;
                     message += `รายละเอียดค่าใช้จ่าย:\n`;
                     message += `━━━━━━━━━━━━━━━━━━━━\n`;
                     
-                    // ⭐ แก้ตรงนี้: เปลี่ยน > เป็น >= เพื่อให้โชว์แม้ราคาเป็น 0
                     if (payment.rent_amount >= 0) {
                         message += `🏠 ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
                     }
@@ -390,9 +389,6 @@ Deno.serve(async (req) => {
                     if (payment.water_amount >= 0) {
                         message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
                     }
-                    
-                    // ส่วนรายการเสริม (เน็ต/ส่วนกลาง/อื่นๆ) ถ้าเป็น 0 อาจจะไม่ต้องโชว์ก็ได้ (ใช้ > 0 เหมือนเดิม) 
-                    // หรือถ้าอยากให้โชว์ว่าฟรี ก็แก้เป็น >= 0 เช่นกันครับ
                     if (payment.internet_amount > 0) {
                         message += `🌐 ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
                     }
@@ -408,7 +404,6 @@ Deno.serve(async (req) => {
                     
                     message += `━━━━━━━━━━━━━━━━━━━━\n`;
                     message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
-                    // ... (ส่วนท้ายเหมือนเดิม)
                     message += `(${numberToThaiText(payment.total_amount)})\n\n`;
                     message += `📅 ครบกำหนดชำระ: ${dueDateStr}\n`;
                     
@@ -421,6 +416,7 @@ Deno.serve(async (req) => {
                     message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber} (${bankAccountName})\n\n`;
                 }
             }
+            // --- ⭐ สิ้นสุดการแก้ไข Logic ข้อความ ---
 
             // ⭐⭐⭐ สร้างและใส่ลิงก์ใบแจ้งหนี้ในทุกกรณี (ไม่ใช่แค่ advance)
             let invoiceImageUrl = payment.invoice_image_url || null;
