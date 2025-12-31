@@ -62,15 +62,20 @@ export default function PaymentsPage() {
   const itemsPerPage = 50;
   const [sortBy, setSortBy] = useState('due_date'); // 'due_date', 'room', 'created_date', 'amount'
   
-  // Room View State
+  // Room View State - ดึง bill_generation_day จาก config สาขา
+  const getBillGenerationDay = () => {
+    const branchConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
+    const globalConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    return branchConfig ? parseInt(branchConfig.value) : (globalConfig ? parseInt(globalConfig.value) : 27);
+  };
+
   const [roomViewMonth, setRoomViewMonth] = useState(() => {
     const now = getCurrentDate();
     const currentDay = now.getDate();
+    const billDay = getBillGenerationDay();
     
-    // ⭐ ถ้าวันนี้ >= 27 (วันสร้างบิล) = แสดงเดือนถัดไป (งวดใหม่)
-    // เพราะบิลงวดเดิม due_date อยู่ในช่วง 27/เดือนก่อน → 27/เดือนนี้
-    // บิลงวดใหม่ due_date จะอยู่ในช่วง 27/เดือนนี้ → 27/เดือนหน้า
-    if (currentDay >= 27) {
+    // ⭐ ถ้าวันนี้ >= วันสร้างบิลของสาขา = แสดงเดือนถัดไป (งวดใหม่)
+    if (currentDay >= billDay) {
       const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
       return format(nextMonth, 'yyyy-MM');
     }
@@ -377,8 +382,10 @@ export default function PaymentsPage() {
 
   const getMainDateRange = () => {
     const now = getCurrentDate();
-    const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
-    const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
+    // ⭐ ดึง bill_generation_day ของสาขาก่อน ถ้าไม่มีใช้ global
+    const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
+    const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
     
     switch(dateRangeType) {
       case 'all':
@@ -3483,9 +3490,10 @@ Return JSON.`;
                       const sortedFloors = Object.keys(roomsByFloor).sort((a, b) => Number(a) - Number(b));
 
                       // Get payments for selected month
-                      // ⭐ คำนวณช่วงงวดบิลจริงๆ โดยใช้ bill_generation_day
-                      const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
-                      const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
+                      // ⭐ คำนวณช่วงงวดบิลจริงๆ โดยใช้ bill_generation_day ของสาขา
+                      const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
+                      const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+                      const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
                       
                       const [selectedYear, selectedMonth] = roomViewMonth.split('-').map(Number);
                       
