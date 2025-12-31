@@ -30,15 +30,29 @@ Deno.serve(async (req) => {
     // 🔒 SECURITY: Multi-tenancy check
     const userRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
     const accessibleBranches = user.accessible_branches;
-    
+
     // Developer โดยไม่มี accessible_branches set = เข้าได้ทุกสาขา
     const hasAccessibleBranchesSet = accessibleBranches !== null && accessibleBranches !== undefined;
     const hasAccess = (userRole === 'developer' && !hasAccessibleBranchesSet) || 
                       (accessibleBranches && accessibleBranches.includes(branch_id));
-    
+
     if (!hasAccess) {
       console.warn(`⚠️ Access denied: ${user.email} → branch ${branch_id}`);
       return Response.json({ error: 'Access denied to this branch' }, { status: 403 });
+    }
+
+    // 🔒 SECURITY: Permission check (backend-enforced)
+    const userPermissions = user.permissions || [];
+    const canView = userRole === 'developer' || 
+                   userRole === 'owner' || 
+                   userPermissions.includes('payments_view');
+
+    if (!canView) {
+      console.warn(`⚠️ Permission denied: ${user.email} → payments_view`);
+      return Response.json({ 
+        error: 'Insufficient permissions', 
+        required: 'payments_view' 
+      }, { status: 403 });
     }
 
     // ✅ Step 1: Fetch configs (Cached in-memory)
