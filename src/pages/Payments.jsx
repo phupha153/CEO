@@ -3134,14 +3134,32 @@ Return JSON.`;
                                    }} 
                                    disabled={sendingReminder === payment.id} 
                                    className="flex-shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                                   title={effectiveStatus === 'overdue' ? 'แจ้งเตือนเกินกำหนด' : 'แจ้งเตือนครบกำหนด'}
+                                   title={(() => {
+                                     if (effectiveStatus === 'overdue') return 'แจ้งเตือนเกินกำหนด';
+                                     try {
+                                       const dueDate = parseISO(payment.due_date);
+                                       const daysUntilDue = differenceInDays(dueDate, getCurrentDate());
+                                       return daysUntilDue <= 1 ? 'แจ้งเตือนครบกำหนด' : 'ส่งบิล';
+                                     } catch {
+                                       return 'ส่งบิล';
+                                     }
+                                   })()}
                                  >
                                    {sendingReminder === payment.id ? (
                                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                                    ) : (
                                      <>
                                        <Send className="w-4 h-4 mr-1" />
-                                       {effectiveStatus === 'overdue' ? 'แจ้งเตือนเกินกำหนด' : 'แจ้งเตือนครบกำหนด'}
+                                       {(() => {
+                                         if (effectiveStatus === 'overdue') return 'แจ้งเกินกำหนด';
+                                         try {
+                                           const dueDate = parseISO(payment.due_date);
+                                           const daysUntilDue = differenceInDays(dueDate, getCurrentDate());
+                                           return daysUntilDue <= 1 ? 'แจ้งครบกำหนด' : 'ส่งบิล';
+                                         } catch {
+                                           return 'ส่งบิล';
+                                         }
+                                       })()}
                                      </>
                                    )}
                                  </Button>
@@ -3823,7 +3841,16 @@ Return JSON.`;
                                                  ) : (
                                                    <Send className="w-3 h-3 mr-1" />
                                                  )}
-                                                 {effectiveStatus === 'overdue' ? 'แจ้งเกินกำหนด' : 'แจ้งครบกำหนด'}
+                                                 {(() => {
+                                                   if (effectiveStatus === 'overdue') return 'แจ้งเกินกำหนด';
+                                                   try {
+                                                     const dueDate = parseISO(roomPayment.due_date);
+                                                     const daysUntilDue = differenceInDays(dueDate, getCurrentDate());
+                                                     return daysUntilDue <= 1 ? 'แจ้งครบกำหนด' : 'ส่งบิล';
+                                                   } catch {
+                                                     return 'ส่งบิล';
+                                                   }
+                                                 })()}
                                                </Button>
                                              )}
                                              {effectiveStatus === 'paid' && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendReceipt && (
