@@ -30,16 +30,11 @@ import Materials from './pages/Materials';
 import MeterReadings from './pages/MeterReadings';
 import NotificationSettings from './pages/NotificationSettings';
 import OwnerAI from './pages/OwnerAI';
-import PackageExpiredPage from './pages/PackageExpiredPage';
-import PackagePaymentPage from './pages/PackagePaymentPage';
-import PackageSelectionPage from './pages/PackageSelectionPage';
-import PackageSettings from './pages/PackageSettings';
 import Payments from './pages/Payments';
 import PrintReceipts from './pages/PrintReceipts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import PublicInvoice from './pages/PublicInvoice';
 import Receipt from './pages/Receipt';
-import RenewalPage from './pages/RenewalPage';
 import Rooms from './pages/Rooms';
 import Settings from './pages/Settings';
 import SupportTickets from './pages/SupportTickets';
@@ -90,16 +85,11 @@ export const PAGES = {
     "MeterReadings": MeterReadings,
     "NotificationSettings": NotificationSettings,
     "OwnerAI": OwnerAI,
-    "PackageExpiredPage": PackageExpiredPage,
-    "PackagePaymentPage": PackagePaymentPage,
-    "PackageSelectionPage": PackageSelectionPage,
-    "PackageSettings": PackageSettings,
     "Payments": Payments,
     "PrintReceipts": PrintReceipts,
     "PrivacyPolicy": PrivacyPolicy,
     "PublicInvoice": PublicInvoice,
     "Receipt": Receipt,
-    "RenewalPage": RenewalPage,
     "Rooms": Rooms,
     "Settings": Settings,
     "SupportTickets": SupportTickets,

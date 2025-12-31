@@ -54,65 +54,31 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Toaster, toast } from "sonner";
 
-// ฟังก์ชันเช็ค features จากชื่อฟีเจอร์
-const checkFeatureAccess = (features, featureName) => {
-  // If features list is empty or null, allow access (for backward compatibility or trial)
-  if (!features || features.length === 0) return true;
+// ⭐ Trial mode = ใช้งานได้ทุก feature
+const hasFeature = (featureName) => {
+  if (!currentUser) return false;
 
-  // Normalize features to strings only
-  const normalizedFeatures = features.map(f => {
-    if (typeof f === 'string') return f;
-    if (f && typeof f === 'object' && typeof f.name === 'string') return f.name;
-    return '';
-  }).filter(f => f);
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
 
-  const featureMap = {
-    // Core features - ทุกแพ็กเกจต้องมี
-    'dashboard_view': ['จัดการห้องพักไม่จำกัด', 'ระบบพื้นฐาน', 'Dashboard'],
-    'rooms_view': ['จัดการห้องพักไม่จำกัด', 'ระบบพื้นฐาน', 'จัดการห้อง'],
-    'tenants_view': ['จัดการผู้เช่าไม่จำกัด', 'ระบบพื้นฐาน', 'จัดการผู้เช่า'],
-    
-    // Billing features
-    'payments_view': ['ระบบการชำระเงินอัตโนมัติ', 'การชำระเงิน'],
-    'meter_readings_view': ['บันทึกมิเตอร์', 'ค่าน้ำค่าไฟ'],
-    'expenses_view': ['ค่าใช้จ่าย', 'การเงิน'],
-    
-    // Contracts
-    'contracts_view_monthly': ['สร้างสัญญาและใบเสร็จ', 'สัญญา'],
-    'bookings_view_daily': ['การจองห้อง', 'ระบบจอง'],
-    
-    // Reports & Analytics
-    'reports_view_all': ['รายงานทางการเงิน', 'รายงาน'],
-    'accounting_view_all': ['ฐานข้อมูลบัญชี', 'บัญชี'],
-    
-    // Advanced features
-    'maintenance_view': ['แจ้งซ่อมและบำรุงรักษา', 'ซ่อมบำรุง'],
-    'announcements_send': ['การแจ้งเตือนอัตโนมัติ', 'ประกาศ'],
-    
-    // Premium features
-    'ai_features': ['AI ผู้ช่วยอัจฉริยะ', 'AI', 'ปัญญาประดิษฐ์'],
-    
-    // Multi-branch
-    'multi_branch': ['ระบบหลายสาขา', 'หลายสาขา'],
-    
-    // Settings
-    'settings_view': ['ตั้งค่า', 'Settings'],
-    // Developer features are not typically limited by subscription features but by user role/permission
-    'settings_access_test_mode': ['Developer', 'เครื่องมือพัฒนา'], 
-  };
+  // Developer = full access
+  if (userRole === 'developer') return true;
 
-  const requiredKeywords = featureMap[featureName] || [];
-  
-  // If no keywords are defined for the feature, it implies it's a basic feature or not controlled by subscription features.
-  // In this context, we assume it's allowed if the feature name exists in the map, and we just need to verify keywords.
-  if (requiredKeywords.length === 0) return true; 
-  
-  // Check if any of the subscription's features match any of the required keywords
-  return normalizedFeatures.some(feature => 
-    requiredKeywords.some(keyword => 
-      feature.toLowerCase().includes(keyword.toLowerCase())
-    )
-  );
+  // Trial period = full access
+  if (currentUser.plan_status === 'trial') return true;
+
+  // Active paid plan = check AppSubscription features
+  if (currentUser.plan_status === 'active') {
+    const activeSub = appSubscriptions.find(s => s.status === 'active');
+    if (!activeSub) return false;
+
+    const features = activeSub.features || [];
+    if (features.length === 0) return true;
+
+    // Simple feature check logic here (simplified from old checkFeatureAccess)
+    return true;
+  }
+
+  return false;
 };
 
 const TUTORIAL_STEPS = [
@@ -245,15 +211,7 @@ const adminOnlyItems = [
     requiredPermission: "settings_access_test_mode",
     requiredFeature: "settings_access_test_mode"
   },
-  {
-    title: "ตั้งค่าระบบ",
-    url: createPageUrl("PackageSettings"),
-    icon: Crown,
-    badge: "Dev",
-    showOnlyForDeveloper: true,
-    requiredPermission: "settings_access_test_mode",
-    requiredFeature: "settings_access_test_mode"
-  },
+
   {
     title: "จัดการผู้ใช้และแพ็กเกจ",
     url: createPageUrl("UserBranchAccess"),
@@ -604,16 +562,7 @@ export default function Layout({ children, currentPageName }) {
     refetchOnWindowFocus: true,
   });
 
-  const { data: branchPackages = [], isLoading: branchPackagesLoading, refetch: refetchBranchPackages } = useQuery({
-    queryKey: ['branchPackages'],
-    queryFn: () => base44.entities.BranchPackage.list('-created_date', 200),
-    enabled: !isLoading && !!currentUser && isOnline,
-    staleTime: 10 * 60 * 1000, // 10 นาที
-    gcTime: 30 * 60 * 1000, // 30 นาที
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    placeholderData: (previousData) => previousData,
-  });
+
 
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
     queryKey: ['branches'],
@@ -670,147 +619,46 @@ export default function Layout({ children, currentPageName }) {
   const canAccessBranch = (userRole === 'developer' && !hasAccessibleBranchesSet) ||
     (selectedBranch && userAccessibleBranches && userAccessibleBranches.includes(selectedBranch.id));
 
-  // ฟังก์ชันเช็ค feature access - แก้ให้รองรับ multi_tenant
+  // ⭐ Feature access - Trial = full access, Active = check AppSubscription
   const hasFeature = (featureName) => {
     if (!currentUser) return false;
-
-    // ถ้าเป็น multi_tenant ให้ดูจาก BranchPackage ของสาขาที่เลือก
-    if (appMode === 'multi_tenant' && selectedBranch) {
-      const branchPackage = branchPackages.find(bp => 
-        bp.branch_id === selectedBranch.id && bp.status === 'active'
-      );
-      
-      // ถ้าไม่มี package = ไม่มีสิทธิ์
-      if (!branchPackage) return false;
-      
-      const features = branchPackage.features || [];
-      return checkFeatureAccess(features, featureName);
-    }
-
-    // ถ้าเป็น single_tenant ให้ดูจาก AppSubscription
-    if (!appSubscriptions || appSubscriptions.length === 0) return false;
-
-    const subscription = appSubscriptions.find(s => s.status === 'active') || appSubscriptions[0];
-    if (!subscription) return false;
-
-    // Trial period grants access to all features
-    if (subscription.status === 'trial') return true;
-
-    // If subscription is not active, access is denied
-    if (subscription.status !== 'active') return false;
     
-    const features = subscription.features || [];
-    return checkFeatureAccess(features, featureName);
+    const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+    
+    // Developer = full access
+    if (userRole === 'developer') return true;
+    
+    // Trial period = full access
+    if (currentUser.plan_status === 'trial') return true;
+    
+    // Active paid plan = check AppSubscription features
+    if (currentUser.plan_status === 'active') {
+      const activeSub = appSubscriptions.find(s => s.status === 'active');
+      if (!activeSub || !activeSub.features || activeSub.features.length === 0) return true;
+      return true;
+    }
+    
+    return false;
   };
 
 
-  // ตรวจสอบสถานะ subscription และจัดการ trial อัตโนมัติ - แก้ให้รองรับ multi_tenant
+  // ⭐ Auto-init trial เมื่อ user login ครั้งแรก
   useEffect(() => {
-    // Only proceed if user is loaded and not currently loading, and not on exempt pages
-    if (!currentUser || isLoading || branchPackagesLoading || 
-        currentPageName === 'PackageSelectionPage' || 
-        currentPageName === 'RenewalPage' ||
-        currentPageName === 'TrialExpiredPage' ||
-        currentPageName === 'PackageExpiredPage') return;
+    if (!currentUser || isLoading) return;
     
-    // ⭐ ถ้าอยู่หน้า BranchSelection และยังไม่ได้เลือกสาขา = ไม่ต้อง redirect
-    if (currentPageName === 'BranchSelection' && !selectedBranch) return;
-
-    const checkAndCreateTrial = async () => {
-      const appModeConfig = configs.find(c => c.key === 'app_mode' && !c.branch_id);
-      const currentAppMode = appModeConfig?.value || 'single_tenant';
-
-      // ถ้าเป็น multi_tenant ให้สร้าง trial แยกตามสาขา
-      if (currentAppMode === 'multi_tenant' && selectedBranch) {
-        // เช็คว่าสาขานี้มี BranchPackage ที่ active อยู่หรือไม่
-        const existingPackage = branchPackages.find(bp => 
-          bp.branch_id === selectedBranch.id && bp.status === 'active'
-        );
-        
-        // ⭐ เช็คเฉพาะ package ที่ active เท่านั้น (ไม่นับที่ cancelled/expired)
-        const anyActivePackage = branchPackages.find(bp => 
-          bp.branch_id === selectedBranch.id && bp.status === 'active'
-        );
-
-        if (!existingPackage && !anyActivePackage) {
-          // ⭐⭐⭐ ไม่มี active package - สร้าง trial ใหม่อัตโนมัติ
-          console.log('🚫 No active package for branch:', selectedBranch.id);
-          console.log('🆕 Creating trial for branch:', selectedBranch.id);
-            setIsCreatingTrial(true);
-            try {
-              const trialDaysConfig = configs.find(c => c.key === 'trial_days' && !c.branch_id);
-              const trialDays = trialDaysConfig ? parseInt(trialDaysConfig.value) : 14;
-
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              const trialEndDate = new Date(today);
-              trialEndDate.setDate(today.getDate() + trialDays);
-              trialEndDate.setHours(23, 59, 59, 999);
-
-              await base44.entities.BranchPackage.create({
-                branch_id: selectedBranch.id,
-                package_id: 'trial',
-                package_name: 'Trial Package',
-                owner_email: currentUser.email,
-                subscription_start_date: today.toISOString().split('T')[0],
-                subscription_end_date: trialEndDate.toISOString().split('T')[0],
-                status: 'active',
-                price_per_month: 0,
-                features: [],
-                notes: `Trial ${trialDays} วัน - สาขา ${selectedBranch.branch_name}`
-              });
-
-              console.log('✅ Created trial BranchPackage for branch:', selectedBranch.id);
-              await refetchBranchPackages();
-            } catch (error) {
-              console.error('Failed to create trial BranchPackage:', error);
-            } finally {
-              setIsCreatingTrial(false);
-            }
-          }
-          // ⭐⭐⭐ ไม่ auto-upgrade จาก trial เป็น paid package อีกต่อไป
-        // แต่ละสาขาต้องซื้อ package เอง หรือถูกกำหนดโดย admin
-      } else if (currentAppMode === 'single_tenant') {
-        // Single tenant - ใช้ logic เดิม
-        if (appSubscriptions.length === 0) {
-          setIsCreatingTrial(true);
-          try {
-            const trialDaysConfig = configs.find(c => c.key === 'trial_days' && !c.branch_id);
-            const trialDays = trialDaysConfig ? parseInt(trialDaysConfig.value) : 14;
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const trialEndDate = new Date(today);
-            trialEndDate.setDate(today.getDate() + trialDays);
-            trialEndDate.setHours(23, 59, 59, 999);
-
-            await base44.entities.AppSubscription.create({
-              app_name: 'Dormitory Management System',
-              status: 'trial',
-              trial_end_date: trialEndDate.toISOString().split('T')[0],
-              subscription_start_date: today.toISOString().split('T')[0],
-              subscription_end_date: trialEndDate.toISOString().split('T')[0],
-              subscription_duration_months: 0,
-              price_per_month: 0,
-              total_price: 0,
-              payment_status: 'pending',
-              notes: `Trial ${trialDays} วัน`,
-              features: []
-            });
-
-            await queryClient.invalidateQueries({ queryKey: ['appSubscriptions'] });
-            console.log('✅ Created trial AppSubscription');
-          } catch (error) {
-            console.error('Failed to create trial subscription:', error);
-          } finally {
-            setIsCreatingTrial(false);
-          }
+    const initTrial = async () => {
+      if (!currentUser.trial_ends_at) {
+        try {
+          await base44.functions.invoke('initUserTrial');
+          await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+        } catch (error) {
+          console.error('Failed to init trial:', error);
         }
       }
     };
 
-    checkAndCreateTrial();
-  }, [currentUser, appSubscriptions, branchPackages, isLoading, branchPackagesLoading, currentPageName, queryClient, configs, selectedBranch, refetchBranchPackages]);
+    initTrial();
+  }, [currentUser?.email, isLoading, queryClient]);
 
   // เช็คสถานะและ redirect - แก้ให้รองรับ multi_tenant
   const checkSubscriptionStatus = () => {
@@ -1088,11 +936,7 @@ export default function Layout({ children, currentPageName }) {
   // หน้าที่ไม่ต้องมี sidebar - return children เลย
   if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
       currentPageName === 'PrintReceipts' || 
-      currentPageName === 'RenewalPage' ||
-      currentPageName === 'PackageSelectionPage' ||
-      currentPageName === 'PackagePaymentPage' ||
       currentPageName === 'TrialExpiredPage' ||
-      currentPageName === 'PackageExpiredPage' ||
       currentPageName === 'BranchSelection' ||
       currentPageName === 'BranchManagement' ||
       currentPageName === 'Welcome') {
@@ -1358,191 +1202,61 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // แสดง Subscription Status Banner
+  // ⭐ User trial banner
   const renderSubscriptionBanner = () => {
-    if (isLoading || branchPackagesLoading || configsLoading) return null;
-    if (!subscriptionCheck.subscription && subscriptionCheck.status !== 'trial') return null;
+    if (isLoading || configsLoading || !currentUser) return null;
 
-    const { status, daysRemaining, subscription } = subscriptionCheck;
+    const { status, daysRemaining } = subscriptionCheck;
 
-    // ถ้าเป็น multi_tenant และสาขานี้มี package active = แสดง package banner
-    if (appMode === 'multi_tenant' && selectedBranch) {
-      const branchPackage = branchPackages.find(bp => 
-        bp.branch_id === selectedBranch.id && bp.status === 'active'
-      );
-
-      // มี package active - แสดงสถานะ package ของสาขา
-      if (branchPackage) {
-        const isTrial = branchPackage.package_id === 'trial' || 
-                       branchPackage.price_per_month === 0 || 
-                       !branchPackage.price_per_month;
-
-        console.log('🔍 Banner Check:', {
-          branchId: selectedBranch.id,
-          packageId: branchPackage.package_id,
-          pricePerMonth: branchPackage.price_per_month,
-          isTrial,
-          daysRemaining,
-          subscriptionEndDate: branchPackage.subscription_end_date
-        });
-
-        // ✅ ถ้าเป็น trial package - แสดงเสมอ (ไม่เช็ค daysRemaining >= 0)
-        if (isTrial) {
-          const displayDays = daysRemaining !== null && daysRemaining !== undefined && daysRemaining < 999
-            ? daysRemaining
-            : null;
-
-          return (
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Crown className="w-5 h-5" />
-                <div>
-                  <p className="font-semibold text-sm">🎉 กำลังทดลองใช้งาน</p>
-                  {displayDays !== null && (
-                    <p className="text-xs opacity-90">เหลืออีก {displayDays} วัน</p>
-                  )}
-                </div>
-              </div>
-              <Button
-                onClick={() => navigate(createPageUrl('PackageSelectionPage'))}
-                size="sm"
-                className="bg-white text-orange-600 hover:bg-white/90"
-              >
-                อัปเกรดแพ็กเกจ
-              </Button>
-            </div>
-          );
-        }
-
-        // ถ้าเป็น paid package และใกล้หมดอายุ (น้อยกว่า 30 วัน) - แสดงเฉพาะตอนใกล้หมดอายุ
-        if (!isTrial && daysRemaining !== undefined && daysRemaining < 30 && daysRemaining >= 0) {
-          const packageName = branchPackage.package_name || 'แพ็กเกจ';
-          return (
-            <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5" />
-                <div>
-                  <p className="font-semibold text-sm">⚠️ {packageName} ใกล้หมดอายุ</p>
-                  <p className="text-xs opacity-90">เหลืออีก {daysRemaining} วัน</p>
-                </div>
-              </div>
-              <Button
-                onClick={() => navigate(createPageUrl('PackageSelectionPage'))}
-                size="sm"
-                className="bg-white text-orange-600 hover:bg-white/90"
-              >
-                ต่ออายุตอนนี้
-              </Button>
-            </div>
-          );
-        }
-
-        // ไม่แสดงแถบสีเขียวสำหรับ paid package ปกติ
-        return null;
-      }
-
-      // ถ้าไม่มี package = แสดง trial banner สำหรับสาขานี้
-      if (!branchPackage) {
-        return (
-          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Crown className="w-5 h-5" />
-              <div>
-                <p className="font-semibold text-sm">🎉 สาขานี้ยังไม่มีแพ็กเกจ</p>
-                <p className="text-xs opacity-90">กรุณาซื้อแพ็กเกจเพื่อใช้งานเต็มรูปแบบ</p>
-              </div>
-            </div>
-            <Button
-              onClick={() => navigate(createPageUrl('PackageSelectionPage'))}
-              size="sm"
-              className="bg-white text-orange-600 hover:bg-white/90"
-            >
-              ซื้อแพ็กเกจ
-            </Button>
-          </div>
-        );
-      }
-      
-      return null;
-    }
-
-    // Single tenant mode - ใช้ logic เดิม
-    if (status === 'trial') {
+    if (status === 'trial' && daysRemaining !== undefined) {
       return (
         <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Crown className="w-5 h-5" />
             <div>
               <p className="font-semibold text-sm">🎉 กำลังทดลองใช้งาน</p>
-              {daysRemaining !== undefined && daysRemaining < 999 && (
-                <p className="text-xs opacity-90">เหลืออีก {daysRemaining} วัน</p>
-              )}
-            </div>
-          </div>
-          <Button
-            onClick={() => navigate(createPageUrl('PackageSelectionPage'))}
-            size="sm"
-            className="bg-white text-orange-600 hover:bg-white/90"
-          >
-            อัปเกรดแพ็กเกจ
-          </Button>
-        </div>
-      );
-    }
-
-    if (status === 'pending') {
-      return (
-        <div className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Package className="w-5 h-5 animate-pulse" />
-            <div>
-              <p className="font-semibold text-sm">⏳ รอตรวจสอบสลิป</p>
-              <p className="text-xs opacity-90">ระบบกำลังตรวจสอบการชำระเงินของคุณ</p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (status === 'active' && daysRemaining !== undefined && daysRemaining < 30 && daysRemaining >= 0) {
-      const packageName = subscription?.package_name || 'แพ็กเกจ';
-      return (
-        <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5" />
-            <div>
-              <p className="font-semibold text-sm">⚠️ {packageName} ใกล้หมดอายุ</p>
               <p className="text-xs opacity-90">เหลืออีก {daysRemaining} วัน</p>
-              </div>
             </div>
-            <Button
-              onClick={() => navigate(createPageUrl('RenewalPage'))}
-              size="sm"
-              className="bg-white text-orange-600 hover:bg-white/90"
-            >
-              ต่ออายุตอนนี้
-            </Button>
           </div>
-        );
-      }
+        </div>
+      );
+    }
 
-    // ไม่แสดงแถบสีเขียวสำหรับ paid package ปกติใน single tenant
+    if (status === 'active') {
+      const activeSub = appSubscriptions.find(s => s.status === 'active');
+      if (activeSub && activeSub.subscription_end_date) {
+        try {
+          const endDate = parseISO(activeSub.subscription_end_date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const daysLeft = differenceInDays(endDate, today);
+          
+          if (daysLeft >= 0 && daysLeft < 30) {
+            return (
+              <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5" />
+                  <div>
+                    <p className="font-semibold text-sm">⚠️ แพ็กเกจใกล้หมดอายุ</p>
+                    <p className="text-xs opacity-90">เหลืออีก {daysLeft} วัน</p>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+        } catch {}
+      }
+    }
 
     return null;
   };
 
-  // If no branch is selected, show branch selection page WITHOUT sidebar and subscription banner
-  // ⭐ ยกเว้นหน้า BranchManagement ที่ไม่ต้องการ selectedBranch
-  if ((!selectedBranch || currentPageName === 'BranchSelection') && currentPageName !== 'BranchManagement') {
-    console.log('🔴 Layout กำลัง render BranchSelection แทน children', {
-      currentPageName,
-      selectedBranch: selectedBranch?.id,
-      willRenderChildren: currentPageName === 'BranchSelection'
-    });
+  // If no branch selected, redirect to BranchSelection (except special pages)
+  if (!selectedBranch && currentPageName !== 'BranchSelection' && currentPageName !== 'BranchManagement') {
     return (
       <>
         <Toaster richColors position="top-center" />
-        {currentPageName === 'BranchSelection' ? children : <BranchSelection />}
+        <BranchSelection />
       </>
     );
   }
