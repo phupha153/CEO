@@ -524,12 +524,13 @@ export default function Dashboard() {
         });
 
     return payments
-      .filter(p => p.status === 'paid' && (p.receipt_sent_date || p.updated_date || p.created_date))
+      .filter(p => p.status === 'paid' && (p.receipt_sent_date || p.created_date))
       .sort((a, b) => {
         try {
-          // ลำดับความสำคัญ: receipt_sent_date (เวลาส่งใบเสร็จ = เวลาชำระจริง) > updated_date > created_date
-          const dateStrA = a.receipt_sent_date || a.updated_date || a.created_date;
-          const dateStrB = b.receipt_sent_date || b.updated_date || b.created_date;
+          // ใช้ receipt_sent_date (เวลาส่งใบเสร็จ = เวลาชำระจริง) หรือ created_date
+          // ไม่ใช้ updated_date เพราะเป็น auto-timestamp ที่ไม่ตรงกับเวลาชำระ
+          const dateStrA = a.receipt_sent_date || a.created_date;
+          const dateStrB = b.receipt_sent_date || b.created_date;
           const dateA = parseISO(dateStrA);
           const dateB = parseISO(dateStrB);
           if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0;
@@ -1007,12 +1008,12 @@ export default function Dashboard() {
                                             <p className="text-xs text-slate-500">
                                               {(() => {
                                                 try {
-                                                  // ลำดับความสำคัญ: receipt_sent_date (เวลาส่งใบเสร็จ = เวลาชำระจริง) > updated_date > created_date
+                                                  // ใช้ receipt_sent_date (เวลาส่งใบเสร็จ = เวลาชำระจริง) หรือ created_date
+                                                  // ไม่ใช้ updated_date เพราะเป็น auto-timestamp ที่ไม่ตรงกับเวลาชำระ
                                                   const receiptSentDateStr = payment.receipt_sent_date;
-                                                  const updatedDateStr = payment.updated_date;
                                                   const createdDateStr = payment.created_date;
                                                   
-                                                  const dateStr = receiptSentDateStr || updatedDateStr || createdDateStr;
+                                                  const dateStr = receiptSentDateStr || createdDateStr;
                                                   
                                                   if (!dateStr) return 'N/A';
                                                   
@@ -1322,8 +1323,7 @@ export default function Dashboard() {
                         <span className="font-semibold text-amber-700">ที่ใช้แสดง:</span>
                         <span className="ml-2 font-mono text-slate-700">
                           {payment.receipt_sent_date ? '✅ receipt_sent_date (เวลาชำระจริง)' : 
-                           payment.updated_date ? '✅ updated_date (สำรอง)' : 
-                           '✅ created_date (สำรอง)'}
+                           '✅ created_date (เวลาสร้างบิล)'}
                         </span>
                       </div>
                     </div>
