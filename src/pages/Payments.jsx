@@ -933,6 +933,49 @@ export default function PaymentsPage() {
 
   const testPaymentsCount = payments.filter(p => p.notes?.includes('[TEST-')).length;
 
+  // ⭐ คำนวณจำนวนห้องที่ยังไม่มีบิลเดือนนี้
+  const roomsNeedingBills = useMemo(() => {
+    if (!rooms.length || !bookings.length || !configs.length) return 0;
+
+    const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
+    const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
+
+    const branchPayDayConfig = configs.find(c => c.key === 'pay_day' && c.branch_id === selectedBranchId);
+    const globalPayDayConfig = configs.find(c => c.key === 'pay_day' && !c.branch_id);
+    const payDay = branchPayDayConfig ? parseInt(branchPayDayConfig.value) : (globalPayDayConfig ? parseInt(globalPayDayConfig.value) : 5);
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    let dueMonth = currentMonth;
+    let dueYear = currentYear;
+    if (billGenerationDay > payDay) {
+      dueMonth += 1;
+      if (dueMonth > 11) { dueMonth = 0; dueYear += 1; }
+    }
+
+    const targetDueYearMonth = `${dueYear}-${String(dueMonth + 1).padStart(2, '0')}`;
+
+    const monthlyRooms = rooms.filter(r => r.room_type === 'monthly');
+    const roomsWithBooking = monthlyRooms.filter(room => 
+      bookings.some(b => b.room_id === room.id)
+    );
+
+    let count = 0;
+    for (const room of roomsWithBooking) {
+      const existingBill = payments.find(p => 
+        p.room_id === room.id && 
+        p.due_date && 
+        p.due_date.substring(0, 7) === targetDueYearMonth
+      );
+      if (!existingBill) count++;
+    }
+
+    return count;
+  }, [rooms, bookings, payments, configs, selectedBranchId]);
+
   const dateRangeLabel = () => {
     switch(dateRangeType) {
       case 'all': return 'ทั้งหมด';
@@ -2504,7 +2547,12 @@ Return JSON.`;
 
             <div className="flex items-center gap-2">
               {canAdd && (
-                <GenerateMonthlyBillsButton branchId={selectedBranchId} onSuccess={() => queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] })} compact />
+                <GenerateMonthlyBillsButton 
+                  branchId={selectedBranchId} 
+                  roomsNeedingBills={roomsNeedingBills}
+                  onSuccess={() => queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] })} 
+                  compact 
+                />
               )}
               {canSendReminder && (
                 <Button

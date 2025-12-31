@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-export default function GenerateMonthlyBillsButton({ branchId, onSuccess, compact = false }) {
+export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills = 0, onSuccess, compact = false }) {
   const [generating, setGenerating] = useState(false);
   const [processingQueue, setProcessingQueue] = useState(false);
 
@@ -82,16 +82,16 @@ export default function GenerateMonthlyBillsButton({ branchId, onSuccess, compac
     return (
       <Button
         onClick={handleGenerateBills}
-        disabled={isLoading}
+        disabled={isLoading || roomsNeedingBills === 0}
         size="sm"
-        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+        className={`bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all ${roomsNeedingBills === 0 ? 'opacity-50' : ''}`}
       >
         {isLoading ? (
           <Loader2 className="w-4 h-4 mr-1 animate-spin" />
         ) : (
           <Calendar className="w-4 h-4 mr-1" />
         )}
-        {processingQueue ? 'กำลังส่ง...' : generating ? 'กำลังสร้าง...' : 'สร้างบิลเดือนนี้'}
+        สร้างบิลเดือนนี้{roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}
       </Button>
     );
   }
@@ -99,8 +99,8 @@ export default function GenerateMonthlyBillsButton({ branchId, onSuccess, compac
   return (
     <Button
       onClick={handleGenerateBills}
-      disabled={isLoading}
-      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+      disabled={isLoading || roomsNeedingBills === 0}
+      className={`bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all ${roomsNeedingBills === 0 ? 'opacity-50' : ''}`}
     >
       {isLoading ? (
         <>
@@ -110,7 +110,7 @@ export default function GenerateMonthlyBillsButton({ branchId, onSuccess, compac
       ) : (
         <>
           <Calendar className="w-4 h-4 mr-2" />
-          สร้างบิลประจำเดือนนี้
+          สร้างบิลประจำเดือนนี้{roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}
         </>
       )}
     </Button>
