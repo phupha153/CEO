@@ -73,7 +73,7 @@ export default function PaymentsPage() {
     const globalConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
     const billDay = branchConfig ? parseInt(branchConfig.value) : (globalConfig ? parseInt(globalConfig.value) : 27);
     
-    const now = getCurrentDate();
+    const now = new Date();
     const currentDay = now.getDate();
     
     // ถ้าวันนี้ >= วันสร้างบิลของสาขา = แสดงเดือนถัดไป (งวดใหม่)
@@ -83,7 +83,7 @@ export default function PaymentsPage() {
     } else {
       setRoomViewMonth(format(now, 'yyyy-MM'));
     }
-  }, [configs, selectedBranchId, currentDateMemo]);
+  }, [configs, selectedBranchId]);
 
   const [aiSearching, setAiSearching] = useState(false);
   const [aiResult, setAiResult] = useState(null);
