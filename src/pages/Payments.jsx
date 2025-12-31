@@ -67,7 +67,7 @@ export default function PaymentsPage() {
 
   // ⭐ Auto-update room view month when configs or branch changes
   useEffect(() => {
-    if (!configs || configs.length === 0) return;
+    if (!configs || configs.length === 0 || !selectedBranchId) return;
     
     const branchConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
     const globalConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
