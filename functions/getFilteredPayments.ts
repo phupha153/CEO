@@ -147,6 +147,11 @@ Deno.serve(async (req) => {
       tenant_facebook_user_id: tenantsMap.get(payment.tenant_id)?.facebook_user_id,
     }));
 
+    console.log('🔍 Step 5 - Enriched:', {
+      enriched_count: enrichedPayments.length,
+      first_enriched: enrichedPayments[0]
+    });
+
     // ✅ Step 6: Apply additional filters (status, search)
     let filtered = enrichedPayments;
 
@@ -202,6 +207,12 @@ Deno.serve(async (req) => {
     const total = filtered.length;
     const paginatedData = filtered.slice(skip, skip + limit);
     
+    console.log('🔍 Step 8 - Before counts:', {
+      enriched_count: enrichedPayments.length,
+      filtered_count: filtered.length,
+      paginated_count: paginatedData.length
+    });
+    
     // 🔢 Calculate counts from ENRICHED data (before status filter, for all tabs)
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -234,7 +245,9 @@ Deno.serve(async (req) => {
       partial_paid: enrichedPayments.filter(p => p.status === 'partial_paid').length,
     };
 
-    return Response.json({
+    console.log('🔍 Step 8 - Counts:', counts);
+
+    const result = {
       success: true,
       data: paginatedData,
       counts, // ✅ Total counts (ignoring status filter)
@@ -243,7 +256,15 @@ Deno.serve(async (req) => {
       limit,
       totalPages: Math.ceil(total / limit),
       hasMore: skip + limit < total
+    };
+
+    console.log('🔍 Final Response:', {
+      data_count: result.data.length,
+      counts: result.counts,
+      total: result.total
     });
+
+    return Response.json(result);
 
   } catch (error) {
     console.error('❌ getFilteredPayments ERROR:', {
