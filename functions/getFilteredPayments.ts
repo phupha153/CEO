@@ -24,8 +24,29 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'branch_id is required' }, { status: 400 });
     }
 
-    // ✅ Step 1: Fetch configs for date range calculation
-    const configs = await base44.entities.Config.list();
+    // 🔒 SECURITY: Multi-tenancy check
+    const userRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+    const accessibleBranches = user.accessible_branches;
+    
+    // Developer โดยไม่มี accessible_branches set = เข้าได้ทุกสาขา
+    const hasAccessibleBranchesSet = accessibleBranches !== null && accessibleBranches !== undefined;
+    const hasAccess = (userRole === 'developer' && !hasAccessibleBranchesSet) || 
+                      (accessibleBranches && accessibleBranches.includes(branch_id));
+    
+    if (!hasAccess) {
+      console.warn(`⚠️ Access denied: ${user.email} → branch ${branch_id}`);
+      return Response.json({ error: 'Access denied to this branch' }, { status: 403 });
+    }
+
+    // ✅ Step 1: Fetch configs (Cached in-memory)
+    const CONFIGS_CACHE = globalThis.__configs_cache || (globalThis.__configs_cache = {});
+    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+    
+    if (!CONFIGS_CACHE.data || Date.now() - CONFIGS_CACHE.timestamp > CACHE_TTL) {
+      CONFIGS_CACHE.data = await base44.asServiceRole.entities.Config.list();
+      CONFIGS_CACHE.timestamp = Date.now();
+    }
+    const configs = CONFIGS_CACHE.data;
     const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === branch_id);
     const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
     const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
@@ -177,13 +198,46 @@ Deno.serve(async (req) => {
       }
     });
 
-    // ✅ Step 8: Paginate
+    // ✅ Step 8: Paginate + Calculate counts (Server-side)
     const total = filtered.length;
     const paginatedData = filtered.slice(skip, skip + limit);
+    
+    // 🔢 Calculate status counts (same dataset, no extra query)
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    const counts = {
+      all: total,
+      paid: filtered.filter(p => p.status === 'paid').length,
+      pending: filtered.filter(p => {
+        if (p.status === 'paid') return false;
+        if (!p.due_date) return true;
+        try {
+          const dueDate = new Date(p.due_date);
+          dueDate.setHours(0, 0, 0, 0);
+          return now <= dueDate;
+        } catch {
+          return true;
+        }
+      }).length,
+      overdue: filtered.filter(p => {
+        if (p.status === 'paid') return false;
+        if (!p.due_date) return false;
+        try {
+          const dueDate = new Date(p.due_date);
+          dueDate.setHours(0, 0, 0, 0);
+          return now > dueDate;
+        } catch {
+          return false;
+        }
+      }).length,
+      partial_paid: filtered.filter(p => p.status === 'partial_paid').length,
+    };
 
     return Response.json({
       success: true,
       data: paginatedData,
+      counts,
       total,
       page,
       limit,
@@ -192,9 +246,16 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('getFilteredPayments error:', error);
-    return Response.json({ 
+    console.error('❌ getFilteredPayments ERROR:', {
+      user: user?.email,
+      branch_id: req.url,
       error: error.message,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n')
+    });
+    
+    return Response.json({ 
+      error: 'Internal server error',
+      details: error.message,
       success: false 
     }, { status: 500 });
   }

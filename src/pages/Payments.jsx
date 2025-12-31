@@ -240,6 +240,7 @@ export default function PaymentsPage() {
 
   const payments = paymentsResponse?.data || [];
   const totalFilteredCount = paymentsResponse?.total || 0;
+  const statusCounts = paymentsResponse?.counts || { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 };
 
   // ✅ Fetch minimal data - needed for forms only
   const { data: bookings = [], isFetching: bookingsFetching } = useQuery({
@@ -810,48 +811,7 @@ export default function PaymentsPage() {
     setCurrentPage(1);
   }, [dateRangeType, customRange, statusFilter, searchQuery, aiResult]);
 
-  // ✅ Removed - now using Maps above (O(1) instead of O(n))
-
-  // ✅ Fetch counts separately (cache heavily)
-  const { data: statusCounts = { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 } } = useQuery({
-    queryKey: ['payment-counts', selectedBranchId, dateRangeType, customRange],
-    queryFn: async () => {
-      if (!selectedBranchId) return { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 };
-      
-      // โหลดเฉพาะข้อมูลที่ต้องใช้นับ (ไม่ใช่ทั้งหมด)
-      const filterQuery = { branch_id: selectedBranchId };
-      if (dateRange && dateRangeType !== 'all') {
-        filterQuery.due_date = {
-          $gte: dateRange.from.toISOString(),
-          $lte: dateRange.to.toISOString()
-        };
-      }
-      
-      const allInRange = await base44.entities.Payment.filter(filterQuery, '-created_date', 10000);
-      const now = getCurrentDate();
-      
-      return {
-        all: allInRange.length,
-        paid: allInRange.filter(p => p.status === 'paid').length,
-        pending: allInRange.filter(p => {
-          if (p.status === 'paid') return false;
-          if (!p.due_date) return true;
-          const dueDate = parseISO(p.due_date);
-          return now <= dueDate;
-        }).length,
-        overdue: allInRange.filter(p => {
-          if (p.status === 'paid') return false;
-          if (!p.due_date) return false;
-          const dueDate = parseISO(p.due_date);
-          return now > dueDate;
-        }).length,
-        partial_paid: allInRange.filter(p => p.status === 'partial_paid').length,
-      };
-    },
-    enabled: canView && !!selectedBranchId,
-    staleTime: 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-  });
+  // ✅ Removed separate counts query - now from backend
 
   const totalAmounts = useMemo(() => {
     const calculateSum = (paymentsToSum) => {
