@@ -601,8 +601,7 @@ Deno.serve(async (req) => {
                     notes += `\n⚡ ใช้ไฟ ${originalElecUnits.toFixed(1)} หน่วย → คิดขั้นต่ำ ${electricityMinimumCharge.toLocaleString()} บาท`;
                 }
 
-                const dueDate = new Date(roomDueYear, roomDueMonth, roomPayDay);
-
+                // ⭐ ใช้ dueDate ที่ประกาศไว้แล้วด้านบน (ไม่ต้องประกาศใหม่)
                 const paymentData = {
                     branch_id: roomBranchId,
                     booking_id: activeBooking.id,
