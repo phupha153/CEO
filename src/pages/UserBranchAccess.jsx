@@ -19,20 +19,12 @@ export default function UserBranchAccess() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showBranchDialog, setShowBranchDialog] = useState(false);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
-  const [showPackageDialog, setShowPackageDialog] = useState(false);
+
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedBranchForPackage, setSelectedBranchForPackage] = useState('');
   const [userBranchAccess, setUserBranchAccess] = useState({});
   const [userPermissions, setUserPermissions] = useState({});
-  const [packageFormData, setPackageFormData] = useState({
-    package_id: '',
-    subscription_start_date: '',
-    subscription_end_date: '',
-    duration_months: '1',
-  });
-  const [isEditingPackage, setIsEditingPackage] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [packageToCancel, setPackageToCancel] = useState(null);
+
 
   const queryClient = useQueryClient();
 
@@ -73,10 +65,7 @@ export default function UserBranchAccess() {
     refetchOnWindowFocus: true,
   });
 
-  const { data: branchPackages = [], refetch: refetchBranchPackages } = useQuery({
-    queryKey: ['branchPackages'],
-    queryFn: () => base44.entities.BranchPackage.list('-created_date', 500),
-  });
+
 
   const { data: crmPackages } = useQuery({
     queryKey: ['crmPackages'],
@@ -224,93 +213,7 @@ export default function UserBranchAccess() {
     onError: () => toast.error('เกิดข้อผิดพลาด'),
   });
 
-  const updatePackageMutation = useMutation({
-    mutationFn: async ({ ownerEmail, packageData, isEditing }) => {
-      console.log('Mutation started:', { ownerEmail, packageData, isEditing });
-      
-      const userBranches = selectedUser?.accessible_branches || [];
-      const targetBranches = userBranches.length > 0 ? userBranches : branches.map(b => b.id);
-      
-      console.log('Target branches:', targetBranches);
 
-      if (targetBranches.length === 0) {
-        throw new Error('ไม่พบสาขาที่ต้องอัปเดต');
-      }
-
-      const results = [];
-      for (const branchId of targetBranches) {
-        const existingPackage = branchPackages.find(
-          bp => bp.branch_id === branchId && bp.owner_email === ownerEmail && bp.status === 'active'
-        );
-        
-        console.log('Processing branch:', branchId, 'existingPackage:', existingPackage?.id);
-
-        if (isEditing && existingPackage) {
-          // อัปเดตแพ็กเกจที่มีอยู่
-          console.log('Updating package:', existingPackage.id);
-          const result = await base44.entities.BranchPackage.update(existingPackage.id, packageData);
-          results.push(result);
-        } else {
-          // ลบ package เก่าทั้งหมดในสาขานี้ก่อน แล้วสร้างใหม่
-          const existingPackages = branchPackages.filter(
-            bp => bp.branch_id === branchId && bp.owner_email === ownerEmail
-          );
-          for (const oldPkg of existingPackages) {
-            console.log('Deleting old package:', oldPkg.id);
-            await base44.entities.BranchPackage.delete(oldPkg.id);
-          }
-
-          // สร้าง package ใหม่
-          console.log('Creating new package for branch:', branchId);
-          const result = await base44.entities.BranchPackage.create({
-            branch_id: branchId,
-            owner_email: ownerEmail,
-            ...packageData,
-          });
-          results.push(result);
-        }
-      }
-      
-      console.log('Mutation completed, results:', results.length);
-      return results;
-    },
-    onSuccess: (data, variables) => {
-      console.log('Mutation success:', data);
-      queryClient.invalidateQueries({ queryKey: ['branchPackages'] });
-      toast.success(variables.isEditing ? 'แก้ไขแพ็กเกจสำเร็จ' : 'บันทึกแพ็กเกจสำเร็จ');
-      setShowPackageDialog(false);
-      setIsEditingPackage(false);
-      refetchBranchPackages();
-    },
-    onError: (error) => {
-      console.error('Mutation error:', error);
-      toast.error('เกิดข้อผิดพลาด: ' + error.message);
-    },
-  });
-
-  const cancelPackageMutation = useMutation({
-    mutationFn: async (ownerEmail) => {
-      // ยกเลิกแพ็กเกจทั้งหมดของ user นี้ในทุกสาขา
-      const userPackages = branchPackages.filter(bp => 
-        bp.owner_email === ownerEmail && bp.status === 'active'
-      );
-
-      const results = [];
-      for (const pkg of userPackages) {
-        const result = await base44.entities.BranchPackage.update(pkg.id, { status: 'cancelled' });
-        results.push(result);
-      }
-      return results;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['branchPackages']);
-      toast.success('ยกเลิกแพ็กเกจทุกสาขาสำเร็จ');
-      setShowCancelDialog(false);
-      setPackageToCancel(null);
-      refetchBranchPackages();
-    },
-    onError: () => toast.error('เกิดข้อผิดพลาด'),
-  });
 
   const handleOpenBranchDialog = (user) => {
     setSelectedUser(user);
@@ -324,109 +227,13 @@ export default function UserBranchAccess() {
     setShowPermissionsDialog(true);
   };
 
-  const handleOpenPackageDialog = (user, prefillData = null) => {
-    setSelectedUser(user);
-    
-    if (prefillData) {
-      setPackageFormData(prefillData);
-    } else {
-      const existingPackages = branchPackages.filter(bp => bp.owner_email === user.email && bp.status === 'active');
-      const existingPackage = existingPackages[0];
 
-      if (existingPackage) {
-        setPackageFormData({
-          package_id: existingPackage.package_id || '',
-          subscription_start_date: existingPackage.subscription_start_date || '',
-          subscription_end_date: existingPackage.subscription_end_date || '',
-          duration_months: '1',
-        });
-      } else {
-        const today = new Date().toISOString().split('T')[0];
-        const trialEnd = new Date();
-        trialEnd.setDate(trialEnd.getDate() + 14);
-        
-        setPackageFormData({
-          package_id: 'trial',
-          subscription_start_date: today,
-          subscription_end_date: trialEnd.toISOString().split('T')[0],
-          duration_months: '1',
-        });
-      }
-    }
-    
-    setShowPackageDialog(true);
-  };
-
-  const handleSavePackage = async () => {
-    if (!selectedUser || !packageFormData.package_id) {
-      toast.error('กรุณาเลือกแพ็กเกจ');
-      return;
-    }
-
-    if (!packageFormData.subscription_start_date || !packageFormData.subscription_end_date) {
-      toast.error('กรุณาระบุวันเริ่มต้นและสิ้นสุด');
-      return;
-    }
-
-    const selectedCrmPackage = (crmPackages?.packages || []).find(p => p.id === packageFormData.package_id);
-    if (!selectedCrmPackage) {
-      toast.error('ไม่พบแพ็กเกจที่เลือก');
-      return;
-    }
-
-    const months = parseInt(packageFormData.duration_months);
-    const pricing = selectedCrmPackage.pricing || {};
-    let pricePerMonth = pricing.monthly || selectedCrmPackage.price_monthly || 0;
-
-    if (months === 3) {
-      pricePerMonth = pricing.three_months_per_month || pricePerMonth;
-    } else if (months === 6) {
-      pricePerMonth = pricing.six_months_per_month || pricePerMonth;
-    } else if (months === 12) {
-      pricePerMonth = pricing.yearly_per_month || pricePerMonth;
-    }
-
-    // Extract feature names as strings only
-    const features = (selectedCrmPackage.features || []).map(f => {
-      if (typeof f === 'string') return f;
-      if (f && typeof f === 'object' && typeof f.name === 'string') return f.name;
-      return null;
-    }).filter(f => f !== null);
-
-    const packageData = {
-      package_id: selectedCrmPackage.id,
-      package_name: selectedCrmPackage.package_name,
-      subscription_start_date: packageFormData.subscription_start_date,
-      subscription_end_date: packageFormData.subscription_end_date,
-      status: 'active',
-      price_per_month: pricePerMonth,
-      features: features,
-    };
-
-    console.log('Saving package:', { ownerEmail: selectedUser.email, packageData, isEditing: isEditingPackage });
-
-    updatePackageMutation.mutate({
-      ownerEmail: selectedUser.email,
-      packageData,
-      isEditing: isEditingPackage,
-    });
-  };
-
-  const getBranchPackageInfo = (branchId, userEmail) => {
-    return branchPackages.find(
-      bp => bp.branch_id === branchId && bp.owner_email === userEmail && bp.status === 'active'
-    );
-  };
 
   const getUserPaymentHistory = (userEmail) => {
     return allPayments.filter(p => p.tenant_id && p.notes && p.notes.toLowerCase().includes(userEmail.toLowerCase()));
   };
 
-  const getUserPackageHistory = (userEmail) => {
-    return branchPackages.filter(bp => bp.owner_email === userEmail).sort((a, b) => 
-      new Date(b.created_date) - new Date(a.created_date)
-    );
-  };
+
 
   const toggleBranchAccess = (userId, branchId) => {
     setUserBranchAccess(prev => {
@@ -657,80 +464,56 @@ export default function UserBranchAccess() {
                           )}
                         </div>
 
-                        {/* Package Info - Enhanced */}
+                        {/* User Plan Status */}
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-3">
                             <div className="flex items-center gap-2">
                               <Package className="w-5 h-5 text-green-600" />
-                              <h4 className="font-semibold text-slate-700">แพ็กเกจปัจจุบัน</h4>
+                              <h4 className="font-semibold text-slate-700">สถานะการใช้งาน</h4>
                             </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleOpenPackageDialog(user)}
-                              className="text-xs"
-                            >
-                              <Edit2 className="w-3 h-3 mr-1" />
-                              จัดการ
-                            </Button>
                           </div>
 
                           {(() => {
-                            const userPackages = branchPackages.filter(bp => bp.owner_email === user.email && bp.status === 'active');
-                            const activePackage = userPackages[0];
+                            const planStatus = user.plan_status || 'trial';
+                            const trialEndsAt = user.trial_ends_at;
                             
-                            if (activePackage) {
-                              const rawPkgName = activePackage.package_name;
-                              const pkgName = typeof rawPkgName === 'string' ? rawPkgName : (rawPkgName?.name || '');
-                              const isBasic = pkgName.toLowerCase().includes('basic') || pkgName.toLowerCase().includes('nano');
-                              const isPro = pkgName.toLowerCase().includes('pro') || pkgName.toLowerCase().includes('micro');
-                              const isElite = !isBasic && !isPro;
-                              const isTrial = activePackage.package_id === 'trial';
-                              
-                              const pkgIcon = isTrial ? Package : isBasic ? SettingsIcon : isPro ? Sparkles : Crown;
-                              
-                              return (
-                                <div className={`rounded-xl border-2 overflow-hidden ${
-                                  isTrial ? 'bg-amber-50 border-amber-300' : 
-                                  isBasic ? 'bg-slate-100 border-slate-300' :
-                                  isPro ? 'bg-gradient-to-br from-blue-100 to-purple-100 border-blue-300' :
-                                  'bg-gradient-to-br from-amber-100 to-yellow-100 border-amber-400'
-                                }`}>
-                                  <div className={`p-3 ${
-                                    isTrial ? 'bg-amber-200/50' :
-                                    isBasic ? 'bg-slate-200/50' :
-                                    isPro ? 'bg-gradient-to-r from-blue-200 to-purple-200' :
-                                    'bg-gradient-to-r from-amber-300 to-yellow-300'
-                                  }`}>
-                                    <div className="flex items-center gap-2">
-                                      {React.createElement(pkgIcon, { 
-                                        className: `w-5 h-5 ${
-                                          isTrial ? 'text-amber-700' :
-                                          isBasic ? 'text-slate-600' :
-                                          isPro ? 'text-blue-700' :
-                                          'text-amber-800'
-                                        }` 
-                                      })}
-                                      <span className={`text-sm font-bold ${
-                                        isTrial ? 'text-amber-800' :
-                                        isBasic ? 'text-slate-800' :
-                                        isPro ? 'text-blue-800' :
-                                        'text-amber-900'
-                                      }`}>
-                                        {isTrial ? '🎉 ทดลองใช้' : pkgName}
-                                      </span>
+                            if (planStatus === 'trial' && trialEndsAt) {
+                              try {
+                                const endDate = parseISO(trialEndsAt);
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                                
+                                return (
+                                  <div className="rounded-xl border-2 overflow-hidden bg-amber-50 border-amber-300">
+                                    <div className="p-3 bg-amber-200/50">
+                                      <div className="flex items-center gap-2">
+                                        <Package className="w-5 h-5 text-amber-700" />
+                                        <span className="text-sm font-bold text-amber-800">🎉 ทดลองใช้</span>
+                                      </div>
+                                    </div>
+                                    <div className="p-3 bg-white/50">
+                                      <div className="flex items-center gap-1 text-xs text-slate-700">
+                                        <Calendar className="w-3 h-3" />
+                                        <span>หมดอายุ {format(endDate, 'dd/MM/yyyy')} ({daysLeft > 0 ? `เหลือ ${daysLeft} วัน` : 'หมดอายุแล้ว'})</span>
+                                      </div>
                                     </div>
                                   </div>
-                                  <div className="p-3 bg-white/50">
-                                    {activePackage.subscription_end_date && (
-                                      <div className="flex items-center gap-1 text-xs text-slate-700 mb-2">
-                                        <Calendar className="w-3 h-3" />
-                                        <span>หมดอายุ {format(parseISO(activePackage.subscription_end_date), 'dd/MM/yyyy')}</span>
-                                      </div>
-                                    )}
-                                    <div className="flex items-center gap-1 text-xs text-slate-600">
-                                      <Globe className="w-3 h-3" />
-                                      <span>{userPackages.length} สาขา</span>
+                                );
+                              } catch {
+                                return (
+                                  <div className="p-4 rounded-lg bg-amber-50 border-2 border-amber-300">
+                                    <p className="text-xs text-amber-800 text-center">ทดลองใช้งาน</p>
+                                  </div>
+                                );
+                              }
+                            } else if (planStatus === 'active') {
+                              return (
+                                <div className="rounded-xl border-2 overflow-hidden bg-green-50 border-green-300">
+                                  <div className="p-3 bg-green-200/50">
+                                    <div className="flex items-center gap-2">
+                                      <Crown className="w-5 h-5 text-green-700" />
+                                      <span className="text-sm font-bold text-green-800">✅ Active</span>
                                     </div>
                                   </div>
                                 </div>
@@ -738,7 +521,7 @@ export default function UserBranchAccess() {
                             } else {
                               return (
                                 <div className="p-4 rounded-lg bg-slate-50 border-2 border-dashed border-slate-300">
-                                  <p className="text-xs text-slate-600 text-center">ยังไม่มีแพ็กเกจ</p>
+                                  <p className="text-xs text-slate-600 text-center">ยังไม่มีแผน</p>
                                 </div>
                               );
                             }
@@ -1306,65 +1089,7 @@ export default function UserBranchAccess() {
 
 
 
-          {/* Cancel Package Dialog */}
-          <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                  ยืนยันการยกเลิก
-                </DialogTitle>
-              </DialogHeader>
-              {packageToCancel && (
-                <div className="space-y-4">
-                  <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-                    <p className="text-sm text-red-800 mb-2">
-                      คุณกำลังจะยกเลิกแพ็กเกจของผู้ใช้นี้ในทุกสาขา:
-                    </p>
-                    <p className="font-bold text-red-900">
-                      {typeof packageToCancel.package_name === 'string' ? packageToCancel.package_name : (packageToCancel.package_name?.name || '')}
-                    </p>
-                    <p className="text-xs text-red-700 mt-1">
-                      ผู้ใช้: {packageToCancel.owner_email}
-                    </p>
-                    <p className="text-xs text-red-700 mt-1">
-                      จำนวนสาขาที่จะถูกยกเลิก: {branchPackages.filter(bp => bp.owner_email === packageToCancel.owner_email && bp.status === 'active').length} สาขา
-                    </p>
-                  </div>
 
-                  <p className="text-sm text-slate-600">
-                    การยกเลิกจะมีผลทันทีกับทุกสาขา และผู้ใช้จะไม่สามารถเข้าถึงฟีเจอร์ของแพ็กเกจนี้ได้อีก
-                  </p>
-
-                  <div className="flex justify-end gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={() => {
-                      setShowCancelDialog(false);
-                      setPackageToCancel(null);
-                    }}>
-                      ยกเลิก
-                    </Button>
-                    <Button
-                      onClick={() => cancelPackageMutation.mutate(packageToCancel.owner_email)}
-                      disabled={cancelPackageMutation.isPending}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      {cancelPackageMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          กำลังยกเลิก...
-                        </>
-                      ) : (
-                        <>
-                          <X className="w-4 h-4 mr-2" />
-                          ยืนยันยกเลิก
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </DialogContent>
-          </Dialog>
 
           {/* Permissions Dialog */}
           <Dialog open={showPermissionsDialog} onOpenChange={setShowPermissionsDialog}>

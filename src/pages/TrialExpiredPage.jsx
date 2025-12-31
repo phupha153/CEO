@@ -56,8 +56,8 @@ export default function TrialExpiredPage() {
               transition={{ delay: 0.4 }}
               className="text-slate-600 mb-8 leading-relaxed"
             >
-              "<span className="font-semibold text-slate-800">{selectedBranchName}</span>"<br />
-              กรุณาเลือกแพ็กเกจเพื่อใช้งานต่ออย่างต่อเนื่อง
+ระยะทดลองใช้งาน 30 วันของคุณหมดอายุแล้ว<br />
+              กรุณาติดต่อเพื่ออัปเกรดเป็นแพ็กเกจเต็มรูปแบบ
             </motion.p>
 
             {/* Buttons */}
@@ -68,12 +68,21 @@ export default function TrialExpiredPage() {
               className="space-y-3"
             >
               <Button
-                onClick={() => navigate(createPageUrl('PackageSelectionPage'))}
+                onClick={() => window.location.href = 'mailto:support@wresidents.com?subject=ต้องการอัปเกรดแพ็กเกจ'}
                 className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white py-6 text-lg font-semibold rounded-2xl shadow-xl"
               >
                 <Package className="w-5 h-5 mr-2" />
-                เลือกแพ็กเกจ
+                ติดต่อเพื่ออัปเกรด
                 <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+              
+              <Button
+                onClick={() => navigate(createPageUrl('Welcome'))}
+                variant="outline"
+                className="w-full py-6 text-lg font-semibold rounded-2xl"
+              >
+                <RefreshCw className="w-5 h-5 mr-2" />
+                กลับหน้าหลัก
               </Button>
 
 
