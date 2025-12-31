@@ -9,6 +9,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // 🔒 Security: Only allow users to manage their own accessible branches
+    // No additional permission check needed - users can only update their own accessible_branches
+    // through base44.auth.updateMe() which is scoped to the authenticated user
+    
     const { accessible_branches } = await req.json();
 
     // อัปเดต accessible_branches ของ user
