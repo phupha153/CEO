@@ -84,7 +84,7 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
         onClick={handleGenerateBills}
         disabled={isLoading || roomsNeedingBills === 0}
         size="sm"
-        className={`bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all ${roomsNeedingBills === 0 ? 'opacity-50' : ''}`}
+        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
       >
         {isLoading ? (
           <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -100,7 +100,7 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
     <Button
       onClick={handleGenerateBills}
       disabled={isLoading || roomsNeedingBills === 0}
-      className={`bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all ${roomsNeedingBills === 0 ? 'opacity-50' : ''}`}
+      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
     >
       {isLoading ? (
         <>
