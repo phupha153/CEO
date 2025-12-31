@@ -1012,9 +1012,15 @@ export default function Dashboard() {
                                                   const updatedDateStr = payment.updated_date;
                                                   const createdDateStr = payment.created_date;
                                                   
-                                                  const dateStr = receiptSentDateStr || updatedDateStr || createdDateStr;
+                                                  let dateStr = receiptSentDateStr || updatedDateStr || createdDateStr;
                                                   
                                                   if (!dateStr) return 'N/A';
+                                                  
+                                                  // ⭐ แก้ไข: ถ้า updated_date ไม่มี Z (UTC marker) ให้เพิ่มเข้าไป
+                                                  // เพราะ updated_date จาก Base44 เป็น UTC แต่ไม่มี Z ต่อท้าย
+                                                  if (dateStr === updatedDateStr && !dateStr.endsWith('Z')) {
+                                                    dateStr = dateStr + 'Z';
+                                                  }
                                                   
                                                   const date = parseISO(dateStr);
                                                   if (isNaN(date.getTime())) return 'ข้อมูลไม่ถูกต้อง';

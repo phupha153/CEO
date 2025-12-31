@@ -14,7 +14,6 @@ import Contracts from './pages/Contracts';
 import CronJobDashboard from './pages/CronJobDashboard';
 import CronJobSettings from './pages/CronJobSettings';
 import CustomTestDataGenerator from './pages/CustomTestDataGenerator';
-import Dashboard from './pages/Dashboard';
 import DataArchive from './pages/DataArchive';
 import DataLists from './pages/DataLists';
 import DeveloperGuide from './pages/DeveloperGuide';
@@ -54,6 +53,7 @@ import UserBranchAccess from './pages/UserBranchAccess';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
+import Dashboard from './pages/Dashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -74,7 +74,6 @@ export const PAGES = {
     "CronJobDashboard": CronJobDashboard,
     "CronJobSettings": CronJobSettings,
     "CustomTestDataGenerator": CustomTestDataGenerator,
-    "Dashboard": Dashboard,
     "DataArchive": DataArchive,
     "DataLists": DataLists,
     "DeveloperGuide": DeveloperGuide,
@@ -114,6 +113,7 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
+    "Dashboard": Dashboard,
 }
 
 export const pagesConfig = {
