@@ -62,26 +62,28 @@ export default function PaymentsPage() {
   const itemsPerPage = 50;
   const [sortBy, setSortBy] = useState('due_date'); // 'due_date', 'room', 'created_date', 'amount'
   
-  // Room View State - ดึง bill_generation_day จาก config สาขา
-  const getBillGenerationDay = () => {
+  // Room View State
+  const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM'));
+
+  // ⭐ Auto-update room view month when configs or branch changes
+  useEffect(() => {
+    if (!configs || configs.length === 0) return;
+    
     const branchConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
     const globalConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
-    return branchConfig ? parseInt(branchConfig.value) : (globalConfig ? parseInt(globalConfig.value) : 27);
-  };
-
-  const [roomViewMonth, setRoomViewMonth] = useState(() => {
+    const billDay = branchConfig ? parseInt(branchConfig.value) : (globalConfig ? parseInt(globalConfig.value) : 27);
+    
     const now = getCurrentDate();
     const currentDay = now.getDate();
-    const billDay = getBillGenerationDay();
     
-    // ⭐ ถ้าวันนี้ >= วันสร้างบิลของสาขา = แสดงเดือนถัดไป (งวดใหม่)
+    // ถ้าวันนี้ >= วันสร้างบิลของสาขา = แสดงเดือนถัดไป (งวดใหม่)
     if (currentDay >= billDay) {
       const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      return format(nextMonth, 'yyyy-MM');
+      setRoomViewMonth(format(nextMonth, 'yyyy-MM'));
+    } else {
+      setRoomViewMonth(format(now, 'yyyy-MM'));
     }
-    
-    return format(now, 'yyyy-MM');
-  });
+  }, [configs, selectedBranchId, currentDateMemo]);
 
   const [aiSearching, setAiSearching] = useState(false);
   const [aiResult, setAiResult] = useState(null);
