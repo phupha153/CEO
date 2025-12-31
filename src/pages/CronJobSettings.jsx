@@ -417,6 +417,14 @@ export default function CronJobSettings() {
               const roomMap = new Map(filteredRooms.map(r => [r.id, r]));
               const tenantMap = new Map(filteredTenants.map(t => [t.id, t]));
 
+              // ⭐ นับสลิปที่รอตรวจสอบซ้ำ
+              const pendingSlipsRecheck = filteredPayments.filter(p => 
+                p.status === 'pending' && 
+                p.payment_slip_url && 
+                p.notes && 
+                (p.notes.includes('รอตรวจสอบซ้ำ') || p.notes.includes('รอตรวจสอบ'))
+              );
+
               return (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                   <div className="bg-white p-4 rounded-xl border-2 border-gray-200">
@@ -425,6 +433,21 @@ export default function CronJobSettings() {
                         {filteredPayments.length.toLocaleString()}
                       </p>
                       <p className="text-xs text-slate-600 mt-1">บิลทั้งหมด</p>
+                    </div>
+                  </div>
+
+                  {/* ⭐ สลิปรอตรวจสอบซ้ำ */}
+                  <div className="bg-white p-4 rounded-xl border-2 border-purple-200 cursor-pointer hover:shadow-md transition-shadow" title={pendingSlipsRecheck.map(p => {
+                    const room = roomMap.get(p.room_id);
+                    const tenant = tenantMap.get(p.tenant_id);
+                    return `ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`;
+                  }).join(', ')}>
+                    <div className="text-center">
+                      <p className="text-3xl font-bold text-purple-600">
+                        {pendingSlipsRecheck.length.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-slate-600 mt-1">สลิปรอตรวจซ้ำ</p>
+                      <p className="text-xs text-slate-400 mt-0.5">(Cron ทุก 15-30 นาที)</p>
                     </div>
                   </div>
 
