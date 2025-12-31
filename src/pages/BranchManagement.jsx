@@ -51,15 +51,8 @@ export default function BranchManagement() {
   const userAccessibleBranches = currentUser?.accessible_branches;
 
   const { data: allBranches = [], isLoading } = useQuery({
-    queryKey: ['branches', 'secure'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Branch',
-        filters: {},
-        limit: 500
-      });
-      return response.data.data;
-    },
+    queryKey: ['branches'],
+    queryFn: () => base44.entities.Branch.list(),
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
