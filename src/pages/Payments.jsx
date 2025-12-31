@@ -268,38 +268,40 @@ export default function PaymentsPage() {
 
   // ✅ Fetch minimal data - needed for forms only
   const { data: bookings = [], isFetching: bookingsFetching } = useQuery({
-    queryKey: ['bookings', selectedBranchId],
+    queryKey: ['bookings', selectedBranchId, 'secure'],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      return await base44.entities.Booking.filter(
-        { branch_id: selectedBranchId, status: 'active' },
-        '-created_date',
-        500
-      );
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Booking',
+        filters: { branch_id: selectedBranchId, status: 'active' },
+        limit: 500
+      });
+      return response.data.data;
     },
     enabled: canView && !!selectedBranchId,
-    ...retryConfig,
-    staleTime: 10 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: rooms = [], isFetching: roomsFetching } = useQuery({
-    queryKey: ['rooms', selectedBranchId],
+    queryKey: ['rooms', selectedBranchId, 'secure'],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const rooms = await base44.entities.Room.filter(
-        { branch_id: selectedBranchId },
-        '-room_number',
-        500
-      );
-      return rooms;
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Room',
+        filters: { branch_id: selectedBranchId },
+        sort: '-room_number',
+        limit: 500
+      });
+      return response.data.data;
     },
     enabled: canView && !!selectedBranchId,
-    ...retryConfig,
-    staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 8 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    retry: 2,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // ✅ O(1) Lookup Maps
@@ -307,21 +309,21 @@ export default function PaymentsPage() {
   const getRoomInfo = useCallback((roomId) => roomsMap.get(roomId), [roomsMap]);
 
   const { data: tenants = [], isFetching: tenantsFetching } = useQuery({
-    queryKey: ['tenants', selectedBranchId],
+    queryKey: ['tenants', selectedBranchId, 'secure'],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const tenants = await base44.entities.Tenant.filter(
-        { branch_id: selectedBranchId },
-        '-created_date',
-        500
-      );
-      return tenants;
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Tenant',
+        filters: { branch_id: selectedBranchId },
+        limit: 500
+      });
+      return response.data.data;
     },
     enabled: canView && !!selectedBranchId,
-    ...retryConfig,
-    staleTime: 2 * 60 * 60 * 1000,
-    gcTime: 4 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // ✅ O(1) Lookup Maps
