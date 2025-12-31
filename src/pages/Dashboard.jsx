@@ -522,12 +522,12 @@ export default function Dashboard() {
         });
 
     return payments
-      .filter(p => p.status === 'paid' && (p.payment_date || p.created_date))
+      .filter(p => p.status === 'paid' && (p.updated_date || p.bill_sent_date || p.created_date))
       .sort((a, b) => {
         try {
-          // ใช้ payment_date ถ้ามี ไม่งั้นใช้ created_date
-          const dateStrA = a.payment_date || a.created_date;
-          const dateStrB = b.payment_date || b.created_date;
+          // ลำดับความสำคัญ: updated_date > bill_sent_date > created_date
+          const dateStrA = a.updated_date || a.bill_sent_date || a.created_date;
+          const dateStrB = b.updated_date || b.bill_sent_date || b.created_date;
           const dateA = parseISO(dateStrA);
           const dateB = parseISO(dateStrB);
           if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0;
@@ -1005,32 +1005,19 @@ export default function Dashboard() {
                                             <p className="text-xs text-slate-500">
                                               {(() => {
                                                 try {
-                                                  // ลำดับความสำคัญ: payment_date (ถ้ามีเวลา) > updated_date > created_date
-                                                  const paymentDateStr = payment.payment_date;
+                                                  // ลำดับความสำคัญ: updated_date > bill_sent_date > created_date
                                                   const updatedDateStr = payment.updated_date;
+                                                  const billSentDateStr = payment.bill_sent_date;
                                                   const createdDateStr = payment.created_date;
                                                   
-                                                  let dateStr;
-                                                  
-                                                  // ถ้า payment_date มีเวลา (timestamp เต็ม) ใช้เลย
-                                                  if (paymentDateStr && (paymentDateStr.includes('T') || paymentDateStr.includes(':'))) {
-                                                    dateStr = paymentDateStr;
-                                                  } 
-                                                  // ถ้า status = 'paid' และมี updated_date ใช้ updated_date (เวลาที่ update status)
-                                                  else if (payment.status === 'paid' && updatedDateStr) {
-                                                    dateStr = updatedDateStr;
-                                                  }
-                                                  // fallback ไป created_date
-                                                  else {
-                                                    dateStr = createdDateStr;
-                                                  }
+                                                  const dateStr = updatedDateStr || billSentDateStr || createdDateStr;
                                                   
                                                   if (!dateStr) return 'N/A';
                                                   
                                                   const date = parseISO(dateStr);
                                                   if (isNaN(date.getTime())) return 'ข้อมูลไม่ถูกต้อง';
                                                   
-                                                  // ⭐ แสดงเป็นเวลาไทยเสมอ (UTC+7) ไม่ว่า browser จะอยู่ที่ไหน
+                                                  // ⭐ แสดงเป็นเวลาไทยเสมอ (UTC+7)
                                                   return date.toLocaleString('th-TH', {
                                                     timeZone: 'Asia/Bangkok',
                                                     day: 'numeric',
