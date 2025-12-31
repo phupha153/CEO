@@ -558,8 +558,8 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['appSubscriptions'],
     queryFn: () => base44.entities.AppSubscription.list('-created_date', 1),
     enabled: !isLoading && !!currentUser,
-    staleTime: 30 * 1000,
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
 
