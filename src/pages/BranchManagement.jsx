@@ -69,11 +69,7 @@ export default function BranchManagement() {
     queryFn: () => base44.entities.Config.list(),
   });
 
-  const { data: branchPackages = [] } = useQuery({
-    queryKey: ['branchPackages'],
-    queryFn: () => base44.entities.BranchPackage.list('-created_date', 200),
-    enabled: !!currentUser,
-  });
+
 
   // ⭐ ดึงจำนวนห้องจริงจาก Room entity - ใช้ Backend
   const { data: allRooms = [] } = useQuery({
@@ -123,38 +119,14 @@ export default function BranchManagement() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
-  const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
+  // ⭐ เช็คจำนวนสาขาจาก owner_id
+  const userOwnedBranches = allBranches.filter(b => b.owner_id === currentUser?.email);
+  const isTrialMode = currentUser?.plan_status === 'trial';
   
-  // ⭐ หา active paid package
-  const activePaidPackage = userPackages.find(pkg => pkg.package_id !== 'trial' && pkg.price_per_month > 0);
+  const activeSub = appSubscriptions.find(s => s.status === 'active');
+  const maxAllowedBranches = isTrialMode ? 1 : (activeSub?.max_branches || 999);
   
-  // ⭐ ดึง max_branches จาก CRM (เหมือนหน้า Settings)
-  const crmPackageInfo = React.useMemo(() => {
-    if (!activePaidPackage || !crmPackages?.packages) return null;
-    return crmPackages.packages.find(p => p.id === activePaidPackage.package_id);
-  }, [activePaidPackage, crmPackages]);
-  
-  const maxAllowedBranches = isTrialMode ? 1 : (crmPackageInfo?.max_branches || 1);
-  
-  // ⭐ นับจำนวนสาขาจริงๆ ที่ user เป็นเจ้าของ (unique branch_id จาก BranchPackage)
-  const userOwnedBranchIds = new Set(userPackages.map(pkg => pkg.branch_id));
-  const userOwnedBranchesCount = userOwnedBranchIds.size;
-  
-  const canAddMoreBranches = userRole === 'developer' || userOwnedBranchesCount < maxAllowedBranches;
-
-  console.log('🔍 Branch Limit Debug:', {
-    userEmail: currentUser?.email,
-    userPackages: userPackages.map(p => ({ branch_id: p.branch_id, package_id: p.package_id, price: p.price_per_month })),
-    userOwnedBranchIds: Array.from(userOwnedBranchIds),
-    userOwnedBranchesCount,
-    maxAllowedBranches,
-    canAddMoreBranches,
-    isTrialMode,
-    crmPackageInfo,
-    activePaidPackage,
-    comparison: `${userOwnedBranchesCount} < ${maxAllowedBranches} = ${userOwnedBranchesCount < maxAllowedBranches}`
-  });
+  const canAddMoreBranches = userRole === 'developer' || userOwnedBranches.length < maxAllowedBranches;
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -248,92 +220,12 @@ export default function BranchManagement() {
         console.error('Failed to update user branch access:', error);
       }
       
-      // ⭐⭐⭐ สร้าง BranchPackage อัตโนมัติเมื่อสร้างสาขาใหม่
-      const appMode = configs.find(c => c.key === 'app_mode' && !c.branch_id)?.value || 'single_tenant';
-      
-      // หา package ที่ user คนนี้มีอยู่แล้ว (ไม่ว่าจะ single หรือ multi tenant)
-      const userExistingPackage = branchPackages.find(bp => 
-        bp.owner_email === currentUser.email && 
-        bp.status === 'active' && 
-        bp.package_id !== 'trial' && 
-        bp.price_per_month > 0
-      );
-      
-      // ถ้า user มี paid package อยู่แล้ว → ใช้ package เดียวกัน
-      if (userExistingPackage) {
-        try {
-          await base44.entities.BranchPackage.create({
-            branch_id: newBranch.id,
-            package_id: userExistingPackage.package_id,
-            package_name: userExistingPackage.package_name,
-            owner_email: currentUser.email,
-            subscription_start_date: userExistingPackage.subscription_start_date,
-            subscription_end_date: userExistingPackage.subscription_end_date,
-            status: 'active',
-            price_per_month: userExistingPackage.price_per_month,
-            features: userExistingPackage.features || [],
-            notes: `Auto-created from ${currentUser.email}'s existing package`
-          });
-          
-          queryClient.invalidateQueries(['branchPackages']);
-          console.log('✅ Created BranchPackage from user existing package');
-        } catch (error) {
-          console.error('Failed to create branch package:', error);
-        }
-      } 
-      // ถ้าเป็น single_tenant mode → ใช้ AppSubscription
-      else if (appMode === 'single_tenant') {
-        const activeSub = appSubscriptions.find(s => s.status === 'active' || s.status === 'trial');
-        
-        if (activeSub) {
-          try {
-            await base44.entities.BranchPackage.create({
-              branch_id: newBranch.id,
-              package_id: activeSub.package_id || 'default',
-              package_name: activeSub.package_name || activeSub.app_name,
-              owner_email: currentUser.email,
-              subscription_start_date: activeSub.subscription_start_date,
-              subscription_end_date: activeSub.subscription_end_date,
-              status: 'active',
-              price_per_month: activeSub.price_per_month || 0,
-              features: activeSub.features || []
-            });
-            
-            queryClient.invalidateQueries(['branchPackages']);
-          } catch (error) {
-            console.error('Failed to create branch package:', error);
-          }
-        }
-      } 
-      // ถ้าไม่มี package เลย → สร้าง trial
-      else {
-        try {
-          const trialDaysConfig = configs.find(c => c.key === 'trial_days' && !c.branch_id);
-          const trialDays = trialDaysConfig ? parseInt(trialDaysConfig.value) : 14;
-
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const trialEndDate = new Date(today);
-          trialEndDate.setDate(today.getDate() + trialDays);
-          trialEndDate.setHours(23, 59, 59, 999);
-
-          await base44.entities.BranchPackage.create({
-            branch_id: newBranch.id,
-            package_id: 'trial',
-            package_name: 'Trial Package',
-            owner_email: currentUser.email,
-            subscription_start_date: today.toISOString().split('T')[0],
-            subscription_end_date: trialEndDate.toISOString().split('T')[0],
-            status: 'active',
-            price_per_month: 0,
-            features: [],
-            notes: `Trial ${trialDays} วัน - สาขา ${newBranch.branch_name}`
-          });
-          
-          queryClient.invalidateQueries(['branchPackages']);
-        } catch (error) {
-          console.error('Failed to create trial package:', error);
-        }
+      // ⭐ Init user trial ถ้ายังไม่มี
+      try {
+        await base44.functions.invoke('initUserTrial');
+        queryClient.invalidateQueries(['currentUser']);
+      } catch (error) {
+        console.error('Failed to init trial:', error);
       }
       
       setShowDialog(false);
@@ -478,9 +370,8 @@ export default function BranchManagement() {
         return;
       }
       
-      // ⭐ เช็คว่าครบจำนวนสาขาตามแพ็กเกจหรือยัง
       if (!canAddMoreBranches && userRole !== 'developer') {
-        toast.error(`สร้างได้สูงสุด ${maxAllowedBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด`);
+        toast.error(`Trial ใช้งานได้ 1 สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด`);
         return;
       }
     }
@@ -488,7 +379,8 @@ export default function BranchManagement() {
     setIsSubmitting(true); // ⭐ ล็อคปุ่ม
     
     const data = {
-      ...formData
+      ...formData,
+      owner_id: currentUser.email
     };
 
     if (editingBranch) {
@@ -609,7 +501,7 @@ export default function BranchManagement() {
           <Button
             onClick={() => {
               if (!canAddMoreBranches) {
-                toast.error(`ตอนนี้ใช้งานไป ${userOwnedBranchesCount}/${maxAllowedBranches} สาขาแล้ว - อัปเกรดเพื่อเพิ่มสาขา`);
+                toast.error(`Trial ใช้งานได้ 1 สาขา (คุณมี ${userOwnedBranches.length} สาขาแล้ว)`);
                 return;
               }
               setEditingBranch(null);
@@ -630,7 +522,7 @@ export default function BranchManagement() {
             className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:from-slate-400 disabled:to-slate-500"
           >
             <Plus className="w-5 h-5 mr-2" />
-            เพิ่มสาขาใหม่ {!canAddMoreBranches && `(${userOwnedBranchesCount}/${maxAllowedBranches})`}
+            เพิ่มสาขาใหม่ {!canAddMoreBranches && `(${userOwnedBranches.length}/${maxAllowedBranches})`}
           </Button>
         }
       />

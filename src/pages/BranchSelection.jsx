@@ -73,12 +73,7 @@ export default function BranchSelection() {
     refetchOnWindowFocus: true,
   });
 
-  const { data: branchPackages = [] } = useQuery({
-    queryKey: ['branchPackages'],
-    queryFn: () => base44.entities.BranchPackage.list('-created_date', 200),
-    enabled: !!currentUser,
-    staleTime: 30 * 1000,
-  });
+
 
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
@@ -146,46 +141,15 @@ export default function BranchSelection() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // เช็คว่าผู้ใช้อยู่ในโหมดทดลองหรือไม่
-  const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
+  // ⭐ เช็คจำนวนสาขาที่ user เป็นเจ้าของ (owner_id = email)
+  const userOwnedBranches = branches.filter(b => b.owner_id === currentUser?.email);
+  const isTrialMode = currentUser?.plan_status === 'trial';
   
-  const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => {
-    const isTrial = pkg.package_id === 'trial' || pkg.price_per_month === 0 || !pkg.price_per_month;
-    if (!isTrial) return false;
-    
-    if (pkg.subscription_end_date) {
-      const endDate = new Date(pkg.subscription_end_date);
-      endDate.setHours(23, 59, 59, 999);
-      return new Date() <= endDate;
-    }
-    return true;
-  });
+  // Trial = 1 สาขา, Active = ดูจาก AppSubscription
+  const activeSub = appSubscriptions.find(s => s.status === 'active');
+  const maxAllowedBranches = isTrialMode ? 1 : (activeSub?.max_branches || 999);
   
-  // หา active paid package
-  const activePaidPackage = userPackages.find(pkg => pkg.package_id !== 'trial' && pkg.price_per_month > 0);
-  
-  // ดึง max_branches จาก CRM (เหมือนหน้า Settings)
-  const crmPackageInfo = React.useMemo(() => {
-    if (!activePaidPackage || !crmPackages?.packages) return null;
-    return crmPackages.packages.find(p => p.id === activePaidPackage.package_id);
-  }, [activePaidPackage, crmPackages]);
-  
-  const maxAllowedBranches = isTrialMode ? 1 : (crmPackageInfo?.max_branches || 1);
-  
-  // นับจำนวนสาขาจริงที่ user เป็นเจ้าของ (unique branch_id)
-  const userOwnedBranchIds = new Set(userPackages.map(pkg => pkg.branch_id));
-  const userOwnedBranchesCount = userOwnedBranchIds.size;
-  
-  const canAddMoreBranches = userRole === 'developer' || userOwnedBranchesCount < maxAllowedBranches;
-
-  console.log('Branch Limit Check:', {
-    userEmail: currentUser?.email,
-    userOwnedBranchesCount,
-    maxAllowedBranches,
-    canAddMoreBranches,
-    isTrialMode,
-    crmMaxBranches: crmPackageInfo?.max_branches
-  });
+  const canAddMoreBranches = userRole === 'developer' || userOwnedBranches.length < maxAllowedBranches;
 
   // ✅ เช็คว่าไม่มีสาขาเลย หรือไม่มีสิทธิ์ในสาขาใดเลย
   const hasNoBranches = branches.length === 0;
@@ -273,30 +237,11 @@ export default function BranchSelection() {
       }
 
       try {
-        const trialDaysConfig = configs.find(c => c.key === 'trial_days' && !c.branch_id);
-        const trialDays = trialDaysConfig ? parseInt(trialDaysConfig.value) : 14;
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const trialEndDate = new Date(today);
-        trialEndDate.setDate(today.getDate() + trialDays);
-        trialEndDate.setHours(23, 59, 59, 999);
-
-        await base44.entities.BranchPackage.create({
-          branch_id: newBranch.id,
-          package_id: 'trial',
-          package_name: 'Trial Package',
-          owner_email: currentUser.email,
-          subscription_start_date: today.toISOString().split('T')[0],
-          subscription_end_date: trialEndDate.toISOString().split('T')[0],
-          status: 'active',
-          price_per_month: 0,
-          features: [],
-          notes: `Trial ${trialDays} วัน - สาขา ${newBranch.branch_name}`
-        });
-        queryClient.invalidateQueries(['branchPackages']);
+        // ⭐ Init user trial (ถ้าเป็นสาขาแรก)
+        await base44.functions.invoke('initUserTrial');
+        queryClient.invalidateQueries(['currentUser']);
       } catch (error) {
-        console.error('Failed to create trial package:', error);
+        console.error('Failed to init trial:', error);
       }
 
       setShowDialog(false);
@@ -351,14 +296,13 @@ export default function BranchSelection() {
       return;
     }
 
-    // ⭐ เช็คว่าครบจำนวนสาขาตามแพ็กเกจหรือยัง (เหมือนหน้า BranchManagement)
     if (!canAddMoreBranches && userRole !== 'developer') {
-      toast.error(`สร้างได้สูงสุด ${maxAllowedBranches} สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด`);
+      toast.error(`Trial ใช้งานได้ 1 สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด`);
       return;
     }
 
     setIsSubmitting(true);
-    createMutation.mutate(formData);
+    createMutation.mutate({ ...formData, owner_id: currentUser.email });
   };
 
   const handleSelectBranch = (branch) => {
@@ -510,7 +454,7 @@ export default function BranchSelection() {
                         <p className="text-sm text-slate-600 mb-2">
                           {canAddMoreBranches 
                             ? 'เริ่มต้นใช้งานด้วยการเพิ่มสาขาแรกของคุณ' 
-                            : `ตอนนี้ใช้งานไป ${userOwnedBranchesCount}/${maxAllowedBranches} สาขาแล้ว`}
+                            : `Trial ใช้งานได้ 1 สาขา (คุณมี ${userOwnedBranches.length} สาขาแล้ว)`}
                         </p>
                         <p className={`text-xs font-medium ${canAddMoreBranches ? 'text-orange-600' : 'text-slate-500'}`}>
                           {canAddMoreBranches ? 'คลิกเพื่อเริ่มต้น' : 'อัปเกรดแพ็กเกจเพื่อเพิ่มสาขา'}
