@@ -147,38 +147,6 @@ Deno.serve(async (req) => {
       tenant_facebook_user_id: tenantsMap.get(payment.tenant_id)?.facebook_user_id,
     }));
 
-    // 🔢 Calculate counts BEFORE filtering (to show total stats)
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    
-    const counts = {
-      all: enrichedPayments.length,
-      paid: enrichedPayments.filter(p => p.status === 'paid').length,
-      pending: enrichedPayments.filter(p => {
-        if (p.status === 'paid') return false;
-        if (!p.due_date) return true;
-        try {
-          const dueDate = new Date(p.due_date);
-          dueDate.setHours(0, 0, 0, 0);
-          return now <= dueDate;
-        } catch {
-          return true;
-        }
-      }).length,
-      overdue: enrichedPayments.filter(p => {
-        if (p.status === 'paid') return false;
-        if (!p.due_date) return false;
-        try {
-          const dueDate = new Date(p.due_date);
-          dueDate.setHours(0, 0, 0, 0);
-          return now > dueDate;
-        } catch {
-          return false;
-        }
-      }).length,
-      partial_paid: enrichedPayments.filter(p => p.status === 'partial_paid').length,
-    };
-
     // ✅ Step 6: Apply additional filters (status, search)
     let filtered = enrichedPayments;
 
@@ -230,15 +198,47 @@ Deno.serve(async (req) => {
       }
     });
 
-    // ✅ Step 8: Paginate
+    // ✅ Step 8: Paginate + Calculate counts AFTER filtering
     const total = filtered.length;
     const paginatedData = filtered.slice(skip, skip + limit);
+    
+    // 🔢 Calculate counts from ENRICHED data (before status filter, for all tabs)
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    const counts = {
+      all: enrichedPayments.length,
+      paid: enrichedPayments.filter(p => p.status === 'paid').length,
+      pending: enrichedPayments.filter(p => {
+        if (p.status === 'paid') return false;
+        if (!p.due_date) return true;
+        try {
+          const dueDate = new Date(p.due_date);
+          dueDate.setHours(0, 0, 0, 0);
+          return now <= dueDate;
+        } catch {
+          return true;
+        }
+      }).length,
+      overdue: enrichedPayments.filter(p => {
+        if (p.status === 'paid') return false;
+        if (!p.due_date) return false;
+        try {
+          const dueDate = new Date(p.due_date);
+          dueDate.setHours(0, 0, 0, 0);
+          return now > dueDate;
+        } catch {
+          return false;
+        }
+      }).length,
+      partial_paid: enrichedPayments.filter(p => p.status === 'partial_paid').length,
+    };
 
     return Response.json({
       success: true,
       data: paginatedData,
-      counts, // ✅ Calculated before filtering
-      total,
+      counts, // ✅ Total counts (ignoring status filter)
+      total,  // ✅ Count after status filter
       page,
       limit,
       totalPages: Math.ceil(total / limit),
