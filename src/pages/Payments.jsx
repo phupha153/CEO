@@ -2457,17 +2457,38 @@ Return JSON.`;
             );
           })()}
 
+          {/* Debug Toggle - Developer Only */}
+          {userRole === 'developer' && !showDebugPanel && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowDebugPanel(true)}
+              className="bg-purple-100 hover:bg-purple-200 border-purple-300"
+            >
+              🐛 Show Debug
+            </Button>
+          )}
+
           {/* Debug Info - Developer Only */}
-          {userRole === 'developer' && (
+          {userRole === 'developer' && showDebugPanel && (
             <Card className="bg-purple-50 border-purple-200">
               <CardContent className="p-4">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-bold text-purple-900">🐛 Debug Info</p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setShowDebugPanel(false)}
+                        className="h-7"
+                      >
+                        ✕
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
                         console.log('🐛 DEBUG DUMP:', {
                           payments_length: payments.length,
                           filteredPayments_length: filteredPayments.length,
@@ -2487,6 +2508,7 @@ Return JSON.`;
                     >
                       Console Log
                     </Button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
