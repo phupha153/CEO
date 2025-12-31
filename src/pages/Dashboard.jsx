@@ -524,12 +524,12 @@ export default function Dashboard() {
         });
 
     return payments
-      .filter(p => p.status === 'paid' && (p.updated_date || p.bill_sent_date || p.created_date))
+      .filter(p => p.status === 'paid' && (p.updated_date || p.receipt_sent_date || p.created_date))
       .sort((a, b) => {
         try {
-          // ลำดับความสำคัญ: updated_date > bill_sent_date > created_date
-          const dateStrA = a.updated_date || a.bill_sent_date || a.created_date;
-          const dateStrB = b.updated_date || b.bill_sent_date || b.created_date;
+          // ลำดับความสำคัญ: updated_date > receipt_sent_date > created_date (ไม่ใช้ bill_sent_date)
+          const dateStrA = a.updated_date || a.receipt_sent_date || a.created_date;
+          const dateStrB = b.updated_date || b.receipt_sent_date || b.created_date;
           const dateA = parseISO(dateStrA);
           const dateB = parseISO(dateStrB);
           if (isNaN(dateA.getTime()) || isNaN(dateB.getTime())) return 0;
@@ -1007,21 +1007,17 @@ export default function Dashboard() {
                                             <p className="text-xs text-slate-500">
                                               {(() => {
                                                 try {
-                                                  // ลำดับความสำคัญ: updated_date > bill_sent_date > created_date
+                                                  // ลำดับความสำคัญ: updated_date > receipt_sent_date > created_date (ไม่ใช้ bill_sent_date)
                                                   const updatedDateStr = payment.updated_date;
-                                                  const billSentDateStr = payment.bill_sent_date;
+                                                  const receiptSentDateStr = payment.receipt_sent_date;
                                                   const createdDateStr = payment.created_date;
                                                   
-                                                  const dateStr = updatedDateStr || billSentDateStr || createdDateStr;
+                                                  const dateStr = updatedDateStr || receiptSentDateStr || createdDateStr;
                                                   
                                                   if (!dateStr) return 'N/A';
                                                   
                                                   const date = parseISO(dateStr);
                                                   if (isNaN(date.getTime())) return 'ข้อมูลไม่ถูกต้อง';
-                                                  
-                                                  // ⭐ Debug: แสดงค่าจริงของแต่ละฟิลด์
-                                                  const debugInfo = `U:${updatedDateStr || 'x'} | B:${billSentDateStr || 'x'} | C:${createdDateStr || 'x'}`;
-                                                  console.log(`🔍 Payment ${payment.id}:`, debugInfo);
                                                   
                                                   // ⭐ แสดงเป็นเวลาไทยเสมอ (UTC+7)
                                                   return date.toLocaleString('th-TH', {
@@ -1299,13 +1295,13 @@ export default function Dashboard() {
                       </div>
 
                       <div className="bg-white rounded p-2 border">
-                        <span className="font-semibold text-purple-600">bill_sent_date:</span>
+                        <span className="font-semibold text-purple-600">receipt_sent_date:</span>
                         <span className="ml-2 font-mono text-slate-700">
-                          {payment.bill_sent_date || <span className="text-red-500">ไม่มี</span>}
+                          {payment.receipt_sent_date || <span className="text-red-500">ไม่มี</span>}
                         </span>
-                        {payment.bill_sent_date && (
+                        {payment.receipt_sent_date && (
                           <span className="ml-2 text-slate-500">
-                            → {parseISO(payment.bill_sent_date).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour12: false })}
+                            → {parseISO(payment.receipt_sent_date).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour12: false })}
                           </span>
                         )}
                       </div>
@@ -1325,9 +1321,9 @@ export default function Dashboard() {
                       <div className="bg-amber-50 rounded p-2 border border-amber-200">
                         <span className="font-semibold text-amber-700">ที่ใช้แสดง:</span>
                         <span className="ml-2 font-mono text-slate-700">
-                          {payment.updated_date ? '✅ updated_date' : 
-                           payment.bill_sent_date ? '✅ bill_sent_date' : 
-                           '✅ created_date'}
+                          {payment.updated_date ? '✅ updated_date (เวลาชำระ)' : 
+                           payment.receipt_sent_date ? '✅ receipt_sent_date (เวลาส่งใบเสร็จ)' : 
+                           '✅ created_date (สำรอง)'}
                         </span>
                       </div>
                     </div>
