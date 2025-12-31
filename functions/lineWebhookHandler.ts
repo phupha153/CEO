@@ -1142,7 +1142,30 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const isSlipValid = slip2goResponse.ok && slip2goData.data && verificationSuccess;
         
         if (!isSlipValid) {
-            // ⭐ error อื่นๆ ที่ไม่ชัดเจน → ไม่ตอบ ไม่บันทึก (ป้องกันรูปขยะ)
+            // ⭐ แยกประเภท error:
+            // - 200404 (Slip not found) = สลิปจริงแต่ธนาคารยัง sync ไม่ทัน → บันทึกเพื่อตรวจซ้ำ
+            // - error อื่นๆ = รูปขยะ → ไม่บันทึก
+            
+            const isSlipNotFound = errorCode === '200404' || errorMessage === 'Slip not found';
+            
+            if (isSlipNotFound) {
+                console.log(`⏳ Slip not found in bank (code: ${errorCode}) - SAVING for recheck`);
+                
+                const now = new Date().toISOString();
+                await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                    payment_slip_url: slipImageUrl,
+                    notes: `${pendingPayment.notes || ''}\n\n⏳ รอตรวจสอบซ้ำ: ธนาคารยังไม่มีข้อมูล - ${now}`
+                });
+                
+                await sendMessage(base44, lineUserId, 
+                    `📸 ได้รับสลิปแล้ว!\n\n⏳ ธนาคารกำลังประมวลผล\nระบบจะตรวจสอบซ้ำอัตโนมัติทุก 15-30 นาที\n\nหากชำระครบจะได้รับใบเสร็จอัตโนมัติค่ะ`,
+                    branchId,
+                    replyToken
+                );
+                return;
+            }
+            
+            // error อื่นๆ ที่ไม่ชัดเจน → ไม่ตอบ ไม่บันทึก (ป้องกันรูปขยะ)
             console.log(`ℹ️ Unknown error (code: ${errorCode}, msg: ${errorMessage}) - NOT responding, NOT saving`);
             return;
         }
