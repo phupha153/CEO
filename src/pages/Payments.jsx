@@ -827,13 +827,14 @@ export default function PaymentsPage() {
       }, 0);
     };
   
+    // ⭐ ใช้ payments (จาก server) แทน filteredPayments เพื่อให้นับยอดรวมทั้งหมดตรงกับ counts
     return {
-      all: calculateSum(filteredPayments),
-      paid: calculateSum(filteredPayments.filter(p => getEffectiveStatus(p) === 'paid')),
-      pending: calculateSum(filteredPayments.filter(p => getEffectiveStatus(p) === 'pending')),
-      overdue: calculateSum(filteredPayments.filter(p => getEffectiveStatus(p) === 'overdue')),
+      all: calculateSum(payments),
+      paid: calculateSum(payments.filter(p => getEffectiveStatus(p) === 'paid')),
+      pending: calculateSum(payments.filter(p => getEffectiveStatus(p) === 'pending')),
+      overdue: calculateSum(payments.filter(p => getEffectiveStatus(p) === 'overdue')),
     };
-  }, [filteredPayments, getEffectiveStatus, calculateLateFee]);
+  }, [payments, getEffectiveStatus, calculateLateFee]);
 
   // ✅ Use enriched data from server (no lookup needed)
   const pendingOverduePayments = useMemo(() => 
