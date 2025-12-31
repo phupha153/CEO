@@ -49,13 +49,35 @@ export default function UserBranchAccess() {
   }, [currentUser]);
 
   const { data: allUsers = [], isLoading: usersLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
+    queryKey: ['users', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'User',
+        filters: {},
+        limit: 500
+      });
+      return response.data.data;
+    },
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: allBranches = [] } = useQuery({
-    queryKey: ['branches'],
-    queryFn: () => base44.entities.Branch.list(),
+    queryKey: ['branches', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Branch',
+        filters: {},
+        limit: 500
+      });
+      return response.data.data;
+    },
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: branchPackages = [], refetch: refetchBranchPackages } = useQuery({
@@ -72,8 +94,20 @@ export default function UserBranchAccess() {
   });
 
   const { data: allPayments = [] } = useQuery({
-    queryKey: ['payments'],
-    queryFn: () => base44.entities.Payment.list('-payment_date', 500),
+    queryKey: ['payments', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Payment',
+        filters: {},
+        sort: '-payment_date',
+        limit: 500
+      });
+      return response.data.data;
+    },
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // Developer เห็นทุกสาขา, คนอื่นเห็นเฉพาะสาขาที่ตัวเองมีสิทธิ์

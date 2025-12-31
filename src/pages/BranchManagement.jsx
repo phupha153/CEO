@@ -51,16 +51,19 @@ export default function BranchManagement() {
   const userAccessibleBranches = currentUser?.accessible_branches;
 
   const { data: allBranches = [], isLoading } = useQuery({
-    queryKey: ['branches'],
-    queryFn: () => base44.entities.Branch.list(),
-    staleTime: 60 * 60 * 1000, // 1 ชั่วโมง
-    gcTime: 2 * 60 * 60 * 1000,
-    retry: (failureCount, error) => {
-      if (error?.response?.status === 429) return false;
-      return failureCount < 1;
+    queryKey: ['branches', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Branch',
+        filters: {},
+        limit: 500
+      });
+      return response.data.data;
     },
-    retryDelay: 3000,
-    refetchOnWindowFocus: false,
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: appSubscriptions = [] } = useQuery({
@@ -79,11 +82,21 @@ export default function BranchManagement() {
     enabled: !!currentUser,
   });
 
-  // ⭐ ดึงจำนวนห้องจริงจาก Room entity
+  // ⭐ ดึงจำนวนห้องจริงจาก Room entity - ใช้ Backend
   const { data: allRooms = [] } = useQuery({
-    queryKey: ['rooms', 'all'],
-    queryFn: () => base44.entities.Room.list('-created_date', 5000),
-    staleTime: 5 * 60 * 1000,
+    queryKey: ['rooms', 'all', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Room',
+        filters: {},
+        limit: 5000
+      });
+      return response.data.data;
+    },
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // นับจำนวนห้องต่อสาขา
