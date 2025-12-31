@@ -27,25 +27,17 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'branch_id is required' }, { status: 400 });
     }
 
-    // 🔒 SECURITY: Multi-tenancy + Permission check
+    // 🔒 SECURITY: Multi-tenancy check
     const userRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
-    const userPermissions = user.permissions || [];
     const accessibleBranches = user.accessible_branches;
-
-    // 1. เช็คสิทธิ์ดูข้อมูลการชำระเงิน
-    const canView = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_view');
-    if (!canView) {
-      console.warn(`⚠️ Permission denied: ${user.email} → payments_view`);
-      return Response.json({ error: 'No permission to view payments' }, { status: 403 });
-    }
-
-    // 2. เช็คสิทธิ์เข้าถึงสาขา
+    
+    // Developer โดยไม่มี accessible_branches set = เข้าได้ทุกสาขา
     const hasAccessibleBranchesSet = accessibleBranches !== null && accessibleBranches !== undefined;
     const hasAccess = (userRole === 'developer' && !hasAccessibleBranchesSet) || 
                       (accessibleBranches && accessibleBranches.includes(branch_id));
-
+    
     if (!hasAccess) {
-      console.warn(`⚠️ Branch access denied: ${user.email} → branch ${branch_id}`);
+      console.warn(`⚠️ Access denied: ${user.email} → branch ${branch_id}`);
       return Response.json({ error: 'Access denied to this branch' }, { status: 403 });
     }
 
