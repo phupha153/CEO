@@ -61,6 +61,8 @@ export default function PaymentsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
   const [sortBy, setSortBy] = useState('due_date'); // 'due_date', 'room', 'created_date', 'amount'
+  const [debugLogs, setDebugLogs] = useState([]);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
   
   // Room View State
   const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM'));
