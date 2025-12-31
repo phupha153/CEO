@@ -64,7 +64,18 @@ export default function PaymentsPage() {
   
   // Room View State
   const [roomViewMonth, setRoomViewMonth] = useState(() => {
-    return format(new Date(), 'yyyy-MM');
+    const now = getCurrentDate();
+    const currentDay = now.getDate();
+    
+    // ⭐ ถ้าวันนี้ >= 27 (วันสร้างบิล) = แสดงเดือนถัดไป (งวดใหม่)
+    // เพราะบิลงวดเดิม due_date อยู่ในช่วง 27/เดือนก่อน → 27/เดือนนี้
+    // บิลงวดใหม่ due_date จะอยู่ในช่วง 27/เดือนนี้ → 27/เดือนหน้า
+    if (currentDay >= 27) {
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      return format(nextMonth, 'yyyy-MM');
+    }
+    
+    return format(now, 'yyyy-MM');
   });
 
   const [aiSearching, setAiSearching] = useState(false);
@@ -3472,8 +3483,23 @@ Return JSON.`;
                       const sortedFloors = Object.keys(roomsByFloor).sort((a, b) => Number(a) - Number(b));
 
                       // Get payments for selected month
-                      const monthStart = parseISO(`${roomViewMonth}-01`);
-                      const monthEnd = endOfMonth(monthStart);
+                      // ⭐ คำนวณช่วงงวดบิลจริงๆ โดยใช้ bill_generation_day
+                      const billGenerationDayConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+                      const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
+                      
+                      const [selectedYear, selectedMonth] = roomViewMonth.split('-').map(Number);
+                      
+                      // งวดบิลเริ่มจากวันที่ bill_generation_day ของเดือนก่อนหน้า
+                      // และสิ้นสุดที่วันที่ bill_generation_day ของเดือนที่เลือก
+                      const monthStart = new Date(selectedYear, selectedMonth - 2, billGenerationDay);
+                      const monthEnd = new Date(selectedYear, selectedMonth - 1, billGenerationDay - 1, 23, 59, 59);
+                      
+                      console.log('🔍 Room View Month Range:', {
+                        selectedMonth: roomViewMonth,
+                        billGenerationDay,
+                        monthStart: format(monthStart, 'yyyy-MM-dd'),
+                        monthEnd: format(monthEnd, 'yyyy-MM-dd')
+                      });
 
                       return sortedFloors.map(floor => (
                         <div key={floor} className="mb-6">
