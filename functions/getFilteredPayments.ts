@@ -17,8 +17,11 @@ Deno.serve(async (req) => {
       search_query = '',
       page = 1,
       limit = 50,
-      sort_by = 'due_date'
+      sort_by = 'due_date',
+      debug = false
     } = await req.json();
+
+    const logs = [];
 
     if (!branch_id) {
       return Response.json({ error: 'branch_id is required' }, { status: 400 });
@@ -125,12 +128,14 @@ Deno.serve(async (req) => {
       0
     );
 
-    console.log('🔍 Step 3 - Fetched payments:', {
+    const step3Data = {
       count: payments.length,
       filterQuery: JSON.stringify(filterQuery),
       dateRange,
       first_payment_due_date: payments[0]?.due_date
-    });
+    };
+    console.log('🔍 Step 3 - Fetched payments:', step3Data);
+    if (debug) logs.push({ step: 'Step 3: Fetched Payments', data: step3Data });
 
     // ✅ Step 4: Fetch ALL rooms & tenants for this branch (Cache-friendly)
     // ⚠️ Base44 SDK ไม่รองรับ $in operator - ต้องโหลดทั้งสาขา
@@ -143,10 +148,12 @@ Deno.serve(async (req) => {
     const roomsMap = new Map(rooms.map(r => [r.id, r]));
     const tenantsMap = new Map(tenants.map(t => [t.id, t]));
 
-    console.log('🔍 Step 4 - Rooms & Tenants:', {
+    const step4Data = {
       rooms_count: rooms.length,
       tenants_count: tenants.length
-    });
+    };
+    console.log('🔍 Step 4 - Rooms & Tenants:', step4Data);
+    if (debug) logs.push({ step: 'Step 4: Rooms & Tenants', data: step4Data });
 
     // ✅ Step 5: Enrich payment data (Server-side JOIN simulation)
     const enrichedPayments = payments.map(payment => ({
@@ -159,10 +166,12 @@ Deno.serve(async (req) => {
       tenant_facebook_user_id: tenantsMap.get(payment.tenant_id)?.facebook_user_id,
     }));
 
-    console.log('🔍 Step 5 - Enriched:', {
+    const step5Data = {
       enriched_count: enrichedPayments.length,
       first_enriched: enrichedPayments[0]
-    });
+    };
+    console.log('🔍 Step 5 - Enriched:', step5Data);
+    if (debug) logs.push({ step: 'Step 5: Enriched', data: step5Data });
 
     // ✅ Step 6: Apply additional filters (status, search)
     let filtered = enrichedPayments;
@@ -219,11 +228,13 @@ Deno.serve(async (req) => {
     const total = filtered.length;
     const paginatedData = filtered.slice(skip, skip + limit);
     
-    console.log('🔍 Step 8 - Before counts:', {
+    const step8aData = {
       enriched_count: enrichedPayments.length,
       filtered_count: filtered.length,
       paginated_count: paginatedData.length
-    });
+    };
+    console.log('🔍 Step 8 - Before counts:', step8aData);
+    if (debug) logs.push({ step: 'Step 8a: Before Counts', data: step8aData });
     
     // 🔢 Calculate counts from ENRICHED data (before status filter, for all tabs)
     const now = new Date();
@@ -258,6 +269,7 @@ Deno.serve(async (req) => {
     };
 
     console.log('🔍 Step 8 - Counts:', counts);
+    if (debug) logs.push({ step: 'Step 8b: Counts Calculated', data: counts });
 
     const result = {
       success: true,
@@ -267,14 +279,17 @@ Deno.serve(async (req) => {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
-      hasMore: skip + limit < total
+      hasMore: skip + limit < total,
+      logs: debug ? logs : undefined
     };
 
-    console.log('🔍 Final Response:', {
+    const finalData = {
       data_count: result.data.length,
       counts: result.counts,
       total: result.total
-    });
+    };
+    console.log('🔍 Final Response:', finalData);
+    if (debug) logs.push({ step: 'Final Response', data: finalData });
 
     return Response.json(result);
 

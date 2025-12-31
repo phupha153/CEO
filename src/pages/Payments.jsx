@@ -214,7 +214,7 @@ export default function PaymentsPage() {
   const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
     queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy],
     queryFn: async () => {
-      if (!selectedBranchId) return { data: [], total: 0, page: 1, totalPages: 0, counts: { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 } };
+      if (!selectedBranchId) return { data: [], total: 0, page: 1, totalPages: 0, counts: { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 }, logs: [] };
       
       const response = await base44.functions.invoke('getFilteredPayments', {
         branch_id: selectedBranchId,
@@ -224,8 +224,14 @@ export default function PaymentsPage() {
         search_query: searchQuery,
         page: currentPage,
         limit: itemsPerPage,
-        sort_by: sortBy
+        sort_by: sortBy,
+        debug: true // Request debug logs
       });
+      
+      // Capture logs from response
+      if (response.data?.logs) {
+        setDebugLogs(response.data.logs);
+      }
       
       console.log('🔍 Payments Response:', {
         data_length: response.data?.data?.length,
@@ -233,7 +239,8 @@ export default function PaymentsPage() {
         counts: response.data?.counts,
         page: response.data?.page,
         statusFilter,
-        dateRangeType
+        dateRangeType,
+        logs: response.data?.logs
       });
       return response.data;
     },
@@ -2454,60 +2461,78 @@ Return JSON.`;
           {userRole === 'developer' && (
             <Card className="bg-purple-50 border-purple-200">
               <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-purple-900 mb-2">🐛 Debug Info</p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                      <div>
-                        <p className="text-purple-600">payments.length:</p>
-                        <p className="font-bold text-purple-900">{payments.length}</p>
-                      </div>
-                      <div>
-                        <p className="text-purple-600">filteredPayments.length:</p>
-                        <p className="font-bold text-purple-900">{filteredPayments.length}</p>
-                      </div>
-                      <div>
-                        <p className="text-purple-600">statusCounts.all:</p>
-                        <p className="font-bold text-purple-900">{statusCounts.all}</p>
-                      </div>
-                      <div>
-                        <p className="text-purple-600">totalFilteredCount:</p>
-                        <p className="font-bold text-purple-900">{totalFilteredCount}</p>
-                      </div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-purple-900">🐛 Debug Info</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        console.log('🐛 DEBUG DUMP:', {
+                          payments_length: payments.length,
+                          filteredPayments_length: filteredPayments.length,
+                          statusCounts,
+                          totalFilteredCount,
+                          statusFilter,
+                          dateRangeType,
+                          searchQuery,
+                          aiResult,
+                          totalAmounts,
+                          first_5_payments: payments.slice(0, 5),
+                          paymentsResponse,
+                          debugLogs
+                        });
+                        toast.success('ดูข้อมูลใน Console แล้ว');
+                      }}
+                    >
+                      Console Log
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <p className="text-purple-600">payments.length:</p>
+                      <p className="font-bold text-purple-900">{payments.length}</p>
                     </div>
-                    <div className="mt-3 text-xs">
-                      <p className="text-purple-600 mb-1">Current Filters:</p>
-                      <div className="bg-white rounded p-2 font-mono text-[10px]">
-                        <p>status: {statusFilter}</p>
-                        <p>dateRange: {dateRangeType}</p>
-                        <p>search: "{searchQuery}"</p>
-                        <p>aiResult: {aiResult ? 'YES' : 'NO'}</p>
-                        {aiResult && <p>aiResult.payments: {aiResult.payments?.length || 0}</p>}
-                      </div>
+                    <div>
+                      <p className="text-purple-600">filteredPayments.length:</p>
+                      <p className="font-bold text-purple-900">{filteredPayments.length}</p>
+                    </div>
+                    <div>
+                      <p className="text-purple-600">statusCounts.all:</p>
+                      <p className="font-bold text-purple-900 text-lg">{statusCounts.all}</p>
+                    </div>
+                    <div>
+                      <p className="text-purple-600">totalFilteredCount:</p>
+                      <p className="font-bold text-purple-900">{totalFilteredCount}</p>
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      console.log('🐛 DEBUG DUMP:', {
-                        payments_length: payments.length,
-                        filteredPayments_length: filteredPayments.length,
-                        statusCounts,
-                        totalFilteredCount,
-                        statusFilter,
-                        dateRangeType,
-                        searchQuery,
-                        aiResult,
-                        totalAmounts,
-                        first_5_payments: payments.slice(0, 5),
-                        paymentsResponse
-                      });
-                      toast.success('ดูข้อมูลใน Console แล้ว');
-                    }}
-                  >
-                    Console Log
-                  </Button>
+
+                  <div className="text-xs">
+                    <p className="text-purple-600 mb-1">Current Filters:</p>
+                    <div className="bg-white rounded p-2 font-mono text-[10px]">
+                      <p>status: {statusFilter}</p>
+                      <p>dateRange: {dateRangeType}</p>
+                      <p>search: "{searchQuery}"</p>
+                      <p>aiResult: {aiResult ? 'YES' : 'NO'}</p>
+                      {aiResult && <p>aiResult.payments: {aiResult.payments?.length || 0}</p>}
+                    </div>
+                  </div>
+
+                  {/* Backend Debug Logs */}
+                  {debugLogs.length > 0 && (
+                    <div className="text-xs">
+                      <p className="text-purple-600 font-bold mb-2">📋 Backend Logs:</p>
+                      <div className="bg-slate-900 text-green-400 rounded p-3 font-mono text-[10px] max-h-64 overflow-y-auto space-y-1">
+                        {debugLogs.map((log, idx) => (
+                          <div key={idx} className="border-b border-slate-700 pb-1">
+                            <p className="text-yellow-300">[{log.step}]</p>
+                            <pre className="whitespace-pre-wrap">{JSON.stringify(log.data, null, 2)}</pre>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
