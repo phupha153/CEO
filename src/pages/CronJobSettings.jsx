@@ -460,6 +460,15 @@ export default function CronJobSettings() {
                     </div>
                   </div>
 
+                  <div className="bg-white p-4 rounded-xl border-2 border-cyan-200">
+                    <div className="text-center">
+                      <p className="text-3xl font-bold text-cyan-600">
+                        {filteredTenants.length.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-slate-600 mt-1">ผู้เช่าทั้งหมด</p>
+                    </div>
+                  </div>
+
                   <div className="bg-white p-4 rounded-xl border-2 border-teal-200">
                     <div className="text-center">
                       <p className="text-3xl font-bold text-teal-600">
