@@ -161,7 +161,7 @@ export default function PaymentsPage() {
 
   // Reset filters and clear cache when branch changes
   useEffect(() => {
-    setDateRangeType('all');
+    setDateRangeType('this_month'); // ⭐ เริ่มต้นที่เดือนนี้เสมอ
     setStatusFilter('all');
     setCurrentPage(1);
     setSearchQuery('');
