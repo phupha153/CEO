@@ -458,19 +458,17 @@ Deno.serve(async (req) => {
 
                 const roomBranchId = room.branch_id;
                 const roomPayDay = parseInt(getConfigValue('pay_day', '5', roomBranchId));
-                const roomGenDay = parseInt(getConfigValue('bill_generation_day', '27', roomBranchId));
 
                 let roomDueYear = currentYear;
                 let roomDueMonth = currentMonth;
+                const roomGenDay = parseInt(getConfigValue('bill_generation_day', '27', roomBranchId));
 
-                // ⭐ คำนวณเดือน due_date ที่ถูกต้อง
                 if (roomGenDay > roomPayDay) {
                     roomDueMonth = currentMonth + 1;
                     if (roomDueMonth > 11) { roomDueMonth = 0; roomDueYear = currentYear + 1; }
                 }
 
-                const dueDate = new Date(roomDueYear, roomDueMonth, roomPayDay);
-                const targetDueYearMonth = format(dueDate, 'yyyy-MM');
+                const targetDueYearMonth = `${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`;
                 const mapKey = `${room.id}|${targetDueYearMonth}`;
 
                 if (!forceSkipDuplicateCheck) {
@@ -602,6 +600,8 @@ Deno.serve(async (req) => {
                 if (electricityMinimumApplied) {
                     notes += `\n⚡ ใช้ไฟ ${originalElecUnits.toFixed(1)} หน่วย → คิดขั้นต่ำ ${electricityMinimumCharge.toLocaleString()} บาท`;
                 }
+
+                const dueDate = new Date(roomDueYear, roomDueMonth, roomPayDay);
 
                 const paymentData = {
                     branch_id: roomBranchId,
