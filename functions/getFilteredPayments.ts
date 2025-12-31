@@ -125,6 +125,13 @@ Deno.serve(async (req) => {
       0
     );
 
+    console.log('🔍 Step 3 - Fetched payments:', {
+      count: payments.length,
+      filterQuery: JSON.stringify(filterQuery),
+      dateRange,
+      first_payment_due_date: payments[0]?.due_date
+    });
+
     // ✅ Step 4: Fetch ALL rooms & tenants for this branch (Cache-friendly)
     // ⚠️ Base44 SDK ไม่รองรับ $in operator - ต้องโหลดทั้งสาขา
     const [rooms, tenants] = await Promise.all([
@@ -135,6 +142,11 @@ Deno.serve(async (req) => {
     // ✅ Create Maps for O(1) lookup
     const roomsMap = new Map(rooms.map(r => [r.id, r]));
     const tenantsMap = new Map(tenants.map(t => [t.id, t]));
+
+    console.log('🔍 Step 4 - Rooms & Tenants:', {
+      rooms_count: rooms.length,
+      tenants_count: tenants.length
+    });
 
     // ✅ Step 5: Enrich payment data (Server-side JOIN simulation)
     const enrichedPayments = payments.map(payment => ({
