@@ -145,9 +145,8 @@ export default function BranchSelection() {
   const userOwnedBranches = branches.filter(b => b.owner_id === currentUser?.email);
   const isTrialMode = currentUser?.plan_status === 'trial';
   
-  // Trial = 1 สาขา, Active = ดูจาก AppSubscription
-  const activeSub = appSubscriptions.find(s => s.status === 'active');
-  const maxAllowedBranches = isTrialMode ? 1 : (activeSub?.max_branches || 999);
+  // Trial = 1 สาขา, Active = unlimited
+  const maxAllowedBranches = isTrialMode ? 1 : 999;
   
   const canAddMoreBranches = userRole === 'developer' || userOwnedBranches.length < maxAllowedBranches;
 
