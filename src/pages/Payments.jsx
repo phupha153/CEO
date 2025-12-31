@@ -210,58 +210,36 @@ export default function PaymentsPage() {
     retryDelay: 0,
   };
 
-  const { data: payments = [], isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
-    queryKey: ['payments', selectedBranchId],
+  // ✅ Server-side filtering via Backend Function (SaaS Standard)
+  const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
+    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy],
     queryFn: async () => {
-      if (!selectedBranchId) return [];
+      if (!selectedBranchId) return { data: [], total: 0, page: 1, totalPages: 0 };
       
-      // ดึงข้อมูลแบบ pagination
-      let allData = [];
-      let skip = 0;
-      const limit = 5000;
-      let hasMore = true;
-
-      while (hasMore) {
-        const batch = await base44.entities.Payment.filter(
-          { branch_id: selectedBranchId },
-          '-created_date',
-          limit,
-          skip
-        );
-        allData = [...allData, ...batch];
-        skip += limit;
-        
-        if (batch.length < limit) {
-          hasMore = false;
-        }
-        
-        // สูงสุด 1,000,000 records
-        if (skip >= 1000000) {
-          hasMore = false;
-        }
-      }
+      const response = await base44.functions.invoke('getFilteredPayments', {
+        branch_id: selectedBranchId,
+        status_filter: statusFilter,
+        date_range_type: dateRangeType,
+        custom_range: dateRangeType === 'custom' ? customRange : null,
+        search_query: searchQuery,
+        page: currentPage,
+        limit: itemsPerPage,
+        sort_by: sortBy
+      });
       
-      console.log('🔍 Payments Page - Fetched at:', new Date().toLocaleTimeString('th-TH'));
-      console.log('Selected Branch ID:', selectedBranchId);
-      console.log('Total Payments Fetched:', allData.length);
-      console.log('Sample payments (first 3):', allData.slice(0, 3).map(p => ({
-        id: p.id.substring(0, 8),
-        status: p.status,
-        total_amount: p.total_amount,
-        updated_date: p.updated_date
-      })));
-      
-      return allData;
+      console.log('🔍 Payments (Server-Filtered) - Total:', response.data?.total, 'Page:', response.data?.page);
+      return response.data;
     },
     enabled: canView && !!selectedBranchId,
     ...retryConfig,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    refetchOnReconnect: false,
-    refetchInterval: false,
+    keepPreviousData: true,
   });
+
+  const payments = paymentsResponse?.data || [];
+  const totalFilteredCount = paymentsResponse?.total || 0;
 
   const { data: bookings = [], isFetching: bookingsFetching } = useQuery({
     queryKey: ['bookings', selectedBranchId],
@@ -288,7 +266,6 @@ export default function PaymentsPage() {
     queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // Query เฉพาะ branch
       const rooms = await base44.entities.Room.filter(
         { branch_id: selectedBranchId },
         '-room_number',
@@ -301,15 +278,16 @@ export default function PaymentsPage() {
     staleTime: 4 * 60 * 60 * 1000,
     gcTime: 8 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    refetchOnReconnect: false,
   });
+
+  // ✅ O(1) Lookup Maps
+  const roomsMap = useMemo(() => new Map(rooms.map(r => [r.id, r])), [rooms]);
+  const getRoomInfo = useCallback((roomId) => roomsMap.get(roomId), [roomsMap]);
 
   const { data: tenants = [], isFetching: tenantsFetching } = useQuery({
     queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // Query เฉพาะ branch และจำกัด 500 รายการล่าสุด
       const tenants = await base44.entities.Tenant.filter(
         { branch_id: selectedBranchId },
         '-created_date',
@@ -322,9 +300,11 @@ export default function PaymentsPage() {
     staleTime: 2 * 60 * 60 * 1000,
     gcTime: 4 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    refetchOnReconnect: false,
   });
+
+  // ✅ O(1) Lookup Maps
+  const tenantsMap = useMemo(() => new Map(tenants.map(t => [t.id, t])), [tenants]);
+  const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
 
   const { data: meterReadings = [] } = useQuery({
     queryKey: ['meterReadings'],
@@ -812,91 +792,69 @@ export default function PaymentsPage() {
     return payment.status || 'pending';
   }, [currentDateMemo]);
 
+  // ✅ Server-side filtering ทำแล้ว - ไม่ต้อง filter ซ้อนอีก
   const filteredPayments = useMemo(() => {
-    if (isDataFetching || !selectedBranchId) {
-      return [];
-    }
-
-    let result = payments;
-  
-    // ⭐ กรองตามงวดบิล (due_date) ไม่ว่าสถานะจะเป็นอะไร
-    if (dateRange && dateRangeType !== 'all') {
-      result = result.filter(payment => {
-        if (!payment.due_date) return false;
-        try {
-          const dueDate = parseISO(payment.due_date);
-          if (isNaN(dueDate.getTime())) return false;
-          return isWithinInterval(dueDate, { start: dateRange.from, end: dateRange.to });
-        } catch {
-          return false;
-        }
-      });
-    }
-  
-    if (statusFilter !== 'all') {
-      result = result.filter(payment => getEffectiveStatus(payment) === statusFilter);
-    }
-  
-    if (searchQuery.trim() && (!aiResult || aiResult.payments?.length === 0)) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(payment => {
-        const room = rooms.find(r => r.id === payment.room_id);
-        const tenant = tenants.find(t => t.id === payment.tenant_id);
-        return room?.room_number?.toLowerCase().includes(query) ||
-               tenant?.full_name?.toLowerCase().includes(query) ||
-               tenant?.phone?.toLowerCase().includes(query) ||
-               payment.notes?.toLowerCase().includes(query);
-      });
-    }
-
+    if (!payments || payments.length === 0) return [];
+    
+    // ถ้ามี AI result ให้กรองเพิ่ม
     if (aiResult && aiResult.payments && aiResult.payments.length > 0) {
       const aiPaymentIds = new Set(aiResult.payments.map(p => p.payment_id));
-      result = result.filter(payment => aiPaymentIds.has(payment.id));
+      return payments.filter(payment => aiPaymentIds.has(payment.id));
     }
-  
-    // Sort results
-    result = [...result].sort((a, b) => {
-      switch (sortBy) {
-        case 'room': {
-          const roomA = rooms.find(r => r.id === a.room_id);
-          const roomB = rooms.find(r => r.id === b.room_id);
-          return (roomA?.room_number || '').localeCompare(roomB?.room_number || '', 'th', { numeric: true });
-        }
-        case 'created_date':
-          return new Date(b.created_date || 0) - new Date(a.created_date || 0);
-        case 'amount':
-          return (b.total_amount || 0) - (a.total_amount || 0);
-        case 'due_date':
-        default:
-          return new Date(b.due_date || 0) - new Date(a.due_date || 0);
-      }
-    });
+    
+    return payments;
+  }, [payments, aiResult]);
 
-    return result;
-  }, [payments, dateRange, statusFilter, searchQuery, rooms, tenants, getEffectiveStatus, selectedBranchId, isDataFetching, aiResult, sortBy]);
-
-  const totalPages = Math.ceil(filteredPayments.length / itemsPerPage);
-  const paginatedPayments = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredPayments.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredPayments, currentPage, itemsPerPage]);
+  // ✅ Pagination ทำที่ server แล้ว
+  const totalPages = paymentsResponse?.totalPages || 1;
+  const paginatedPayments = filteredPayments;
 
   useEffect(() => {
     setCurrentPage(1);
   }, [dateRangeType, customRange, statusFilter, searchQuery, aiResult]);
 
-  const getRoomInfo = (roomId) => rooms.find(r => r.id === roomId);
-  const getTenantInfo = (tenantId) => tenants.find(t => t.id === tenantId);
+  // ✅ Removed - now using Maps above (O(1) instead of O(n))
 
-  const statusCounts = useMemo(() => {
-    return {
-      all: filteredPayments.length,
-      paid: filteredPayments.filter(p => getEffectiveStatus(p) === 'paid').length,
-      pending: filteredPayments.filter(p => getEffectiveStatus(p) === 'pending').length,
-      overdue: filteredPayments.filter(p => getEffectiveStatus(p) === 'overdue').length,
-      partial_paid: filteredPayments.filter(p => p.status === 'partial_paid').length,
-    };
-  }, [filteredPayments, getEffectiveStatus]);
+  // ✅ Fetch counts separately (cache heavily)
+  const { data: statusCounts = { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 } } = useQuery({
+    queryKey: ['payment-counts', selectedBranchId, dateRangeType, customRange],
+    queryFn: async () => {
+      if (!selectedBranchId) return { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 };
+      
+      // โหลดเฉพาะข้อมูลที่ต้องใช้นับ (ไม่ใช่ทั้งหมด)
+      const filterQuery = { branch_id: selectedBranchId };
+      if (dateRange && dateRangeType !== 'all') {
+        filterQuery.due_date = {
+          $gte: dateRange.from.toISOString(),
+          $lte: dateRange.to.toISOString()
+        };
+      }
+      
+      const allInRange = await base44.entities.Payment.filter(filterQuery, '-created_date', 10000);
+      const now = getCurrentDate();
+      
+      return {
+        all: allInRange.length,
+        paid: allInRange.filter(p => p.status === 'paid').length,
+        pending: allInRange.filter(p => {
+          if (p.status === 'paid') return false;
+          if (!p.due_date) return true;
+          const dueDate = parseISO(p.due_date);
+          return now <= dueDate;
+        }).length,
+        overdue: allInRange.filter(p => {
+          if (p.status === 'paid') return false;
+          if (!p.due_date) return false;
+          const dueDate = parseISO(p.due_date);
+          return now > dueDate;
+        }).length,
+        partial_paid: allInRange.filter(p => p.status === 'partial_paid').length,
+      };
+    },
+    enabled: canView && !!selectedBranchId,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
   const totalAmounts = useMemo(() => {
     const calculateSum = (paymentsToSum) => {
@@ -1451,16 +1409,12 @@ export default function PaymentsPage() {
     }
 
     // ส่งทุกห้อง - ใช้ confirm เหมือนเดิม
-    const paymentsToSend = pendingOverduePayments.filter(p => {
-      const tenant = getTenantInfo(p.tenant_id);
-      return tenant && (tenant.line_user_id || tenant.facebook_user_id) && !p.bill_sent_date;
-    });
+    const paymentsToSend = pendingOverduePayments.filter(p => 
+      (p.tenant_line_user_id || p.tenant_facebook_user_id) && !p.bill_sent_date
+    );
     
     const roomsList = paymentsToSend
-      .map(p => {
-        const room = getRoomInfo(p.room_id);
-        return room?.room_number || 'N/A';
-      })
+      .map(p => p.room_number || 'N/A')
       .sort((a, b) => a.localeCompare(b, 'th', { numeric: true }))
       .join(', ');
     
@@ -4031,7 +3985,7 @@ Return JSON.`;
               <CardContent className="p-4">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                   <p className="text-sm text-slate-600">
-                    แสดง {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredPayments.length)} จาก {filteredPayments.length} รายการ
+                    แสดง {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalFilteredCount)} จาก {totalFilteredCount} รายการ
                   </p>
                   <div className="flex items-center gap-1">
                     <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>
