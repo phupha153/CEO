@@ -3138,8 +3138,11 @@ Return JSON.`;
                                      if (effectiveStatus === 'overdue') return 'แจ้งเตือนเกินกำหนด';
                                      try {
                                        const dueDate = parseISO(payment.due_date);
-                                       const daysUntilDue = differenceInDays(dueDate, getCurrentDate());
-                                       return daysUntilDue <= 1 ? 'แจ้งเตือนครบกำหนด' : 'ส่งบิล';
+                                       const today = getCurrentDate();
+                                       today.setHours(0, 0, 0, 0);
+                                       dueDate.setHours(0, 0, 0, 0);
+                                       const daysUntilDue = differenceInDays(dueDate, today);
+                                       return daysUntilDue === 0 ? 'แจ้งเตือนครบกำหนด' : 'ส่งบิล';
                                      } catch {
                                        return 'ส่งบิล';
                                      }
@@ -3154,8 +3157,11 @@ Return JSON.`;
                                          if (effectiveStatus === 'overdue') return 'แจ้งเกินกำหนด';
                                          try {
                                            const dueDate = parseISO(payment.due_date);
-                                           const daysUntilDue = differenceInDays(dueDate, getCurrentDate());
-                                           return daysUntilDue <= 1 ? 'แจ้งครบกำหนด' : 'ส่งบิล';
+                                           const today = getCurrentDate();
+                                           today.setHours(0, 0, 0, 0);
+                                           dueDate.setHours(0, 0, 0, 0);
+                                           const daysUntilDue = differenceInDays(dueDate, today);
+                                           return daysUntilDue === 0 ? 'แจ้งครบกำหนด' : 'ส่งบิล';
                                          } catch {
                                            return 'ส่งบิล';
                                          }
@@ -3845,8 +3851,11 @@ Return JSON.`;
                                                    if (effectiveStatus === 'overdue') return 'แจ้งเกินกำหนด';
                                                    try {
                                                      const dueDate = parseISO(roomPayment.due_date);
-                                                     const daysUntilDue = differenceInDays(dueDate, getCurrentDate());
-                                                     return daysUntilDue <= 1 ? 'แจ้งครบกำหนด' : 'ส่งบิล';
+                                                     const today = getCurrentDate();
+                                                     today.setHours(0, 0, 0, 0);
+                                                     dueDate.setHours(0, 0, 0, 0);
+                                                     const daysUntilDue = differenceInDays(dueDate, today);
+                                                     return daysUntilDue === 0 ? 'แจ้งครบกำหนด' : 'ส่งบิล';
                                                    } catch {
                                                      return 'ส่งบิล';
                                                    }
