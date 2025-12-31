@@ -1017,6 +1017,10 @@ export default function Dashboard() {
                                                   const date = parseISO(dateStr);
                                                   if (isNaN(date.getTime())) return 'ข้อมูลไม่ถูกต้อง';
                                                   
+                                                  // ⭐ Debug: แสดงค่าจริงของแต่ละฟิลด์
+                                                  const debugInfo = `U:${updatedDateStr || 'x'} | B:${billSentDateStr || 'x'} | C:${createdDateStr || 'x'}`;
+                                                  console.log(`🔍 Payment ${payment.id}:`, debugInfo);
+                                                  
                                                   // ⭐ แสดงเป็นเวลาไทยเสมอ (UTC+7)
                                                   return date.toLocaleString('th-TH', {
                                                     timeZone: 'Asia/Bangkok',
