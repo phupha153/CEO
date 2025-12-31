@@ -82,12 +82,20 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allRooms = [], isLoading: roomsLoading } = useQuery({
-    queryKey: ['allRooms', 'v3'],
-    queryFn: () => base44.entities.Room.list('-room_number', 10000),
-    ...retryConfig,
-    staleTime: 8 * 60 * 60 * 1000,
-    gcTime: 16 * 60 * 60 * 1000,
-    placeholderData: (previousData) => previousData,
+    queryKey: ['allRooms', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Room',
+        filters: {},
+        sort: '-room_number',
+        limit: 10000
+      });
+      return response.data.data;
+    },
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // กรองห้องตามสาขาที่เข้าถึงได้
@@ -97,12 +105,19 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allBookings = [] } = useQuery({
-    queryKey: ['allBookings', 'v3'],
-    queryFn: () => base44.entities.Booking.list('-created_date', 10000),
-    ...retryConfig,
-    staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 8 * 60 * 60 * 1000,
-    placeholderData: (previousData) => previousData,
+    queryKey: ['allBookings', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Booking',
+        filters: {},
+        limit: 10000
+      });
+      return response.data.data;
+    },
+    retry: 2,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // กรองการจองตามสาขาที่เข้าถึงได้
@@ -112,44 +127,19 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ['allPayments', 'v4'],
+    queryKey: ['allPayments', 'secure'],
     queryFn: async () => {
-      // ดึงข้อมูลแบบ pagination เพื่อหลีกเลี่ยง 5000 limit
-      let allData = [];
-      let skip = 0;
-      const limit = 5000;
-      let hasMore = true;
-
-      while (hasMore) {
-        const batch = await base44.entities.Payment.list('-created_date', limit, skip);
-        
-        if (!batch || batch.length === 0) {
-          hasMore = false;
-          break;
-        }
-        
-        allData = [...allData, ...batch];
-        skip += batch.length;
-        
-
-        
-        // ถ้าดึงมาน้อยกว่า limit แสดงว่าหมดแล้ว
-        if (batch.length < limit) {
-          hasMore = false;
-        }
-        
-        // ป้องกัน infinite loop - สูงสุด 1,000,000 records
-        if (allData.length >= 1000000) {
-          hasMore = false;
-        }
-      }
-      
-
-      return allData;
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Payment',
+        filters: {},
+        limit: 10000
+      });
+      return response.data.data;
     },
-    ...retryConfig,
-    staleTime: 2 * 60 * 60 * 1000,
-    gcTime: 4 * 60 * 60 * 1000,
+    retry: 2,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // กรอง payments ตามสาขาที่เข้าถึงได้
@@ -159,12 +149,19 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allTenants = [] } = useQuery({
-    queryKey: ['allTenants', 'v3'],
-    queryFn: () => base44.entities.Tenant.list('-created_date', 10000),
-    ...retryConfig,
-    staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 8 * 60 * 60 * 1000,
-    placeholderData: (previousData) => previousData,
+    queryKey: ['allTenants', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Tenant',
+        filters: {},
+        limit: 10000
+      });
+      return response.data.data;
+    },
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // กรองผู้เช่าตามสาขาที่เข้าถึงได้
@@ -174,12 +171,19 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allMaintenance = [] } = useQuery({
-    queryKey: ['allMaintenance', 'v3'],
-    queryFn: () => base44.entities.MaintenanceRequest.list('-created_date', 1000),
-    ...retryConfig,
-    staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 8 * 60 * 60 * 1000,
-    placeholderData: (previousData) => previousData,
+    queryKey: ['allMaintenance', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'MaintenanceRequest',
+        filters: {},
+        limit: 1000
+      });
+      return response.data.data;
+    },
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // กรองแจ้งซ่อมตามสาขาที่เข้าถึงได้
@@ -189,12 +193,20 @@ export default function AllBranchesDashboard() {
   );
 
   const { data: allExpenses = [] } = useQuery({
-    queryKey: ['allExpenses', 'v3'],
-    queryFn: () => base44.entities.Expense.list('-date', 10000),
-    ...retryConfig,
-    staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 8 * 60 * 60 * 1000,
-    placeholderData: (previousData) => previousData,
+    queryKey: ['allExpenses', 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Expense',
+        filters: {},
+        sort: '-date',
+        limit: 10000
+      });
+      return response.data.data;
+    },
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   // กรองค่าใช้จ่ายตามสาขาที่เข้าถึงได้
