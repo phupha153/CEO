@@ -65,26 +65,6 @@ export default function PaymentsPage() {
   // Room View State
   const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM'));
 
-  // ⭐ Auto-update room view month when configs or branch changes
-  useEffect(() => {
-    if (!configs || configs.length === 0 || !selectedBranchId) return;
-    
-    const branchConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
-    const globalConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
-    const billDay = branchConfig ? parseInt(branchConfig.value) : (globalConfig ? parseInt(globalConfig.value) : 27);
-    
-    const now = new Date();
-    const currentDay = now.getDate();
-    
-    // ถ้าวันนี้ >= วันสร้างบิลของสาขา = แสดงเดือนถัดไป (งวดใหม่)
-    if (currentDay >= billDay) {
-      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      setRoomViewMonth(format(nextMonth, 'yyyy-MM'));
-    } else {
-      setRoomViewMonth(format(now, 'yyyy-MM'));
-    }
-  }, [configs, selectedBranchId]);
-
   const [aiSearching, setAiSearching] = useState(false);
   const [aiResult, setAiResult] = useState(null);
   const [aiAbortController, setAiAbortController] = useState(null);
@@ -363,6 +343,25 @@ export default function PaymentsPage() {
     gcTime: 8 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  // ⭐ Auto-update room view month when configs load
+  useEffect(() => {
+    if (!configs || configs.length === 0 || !selectedBranchId) return;
+    
+    const branchConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
+    const globalConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billDay = branchConfig ? parseInt(branchConfig.value) : (globalConfig ? parseInt(globalConfig.value) : 27);
+    
+    const now = new Date();
+    const currentDay = now.getDate();
+    
+    if (currentDay >= billDay) {
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      setRoomViewMonth(format(nextMonth, 'yyyy-MM'));
+    } else {
+      setRoomViewMonth(format(now, 'yyyy-MM'));
+    }
+  }, [configs, selectedBranchId]);
 
   const isDataFetching = paymentsFetching || bookingsFetching || roomsFetching || tenantsFetching;
 
