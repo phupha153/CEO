@@ -4,9 +4,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, DoorOpen, Users, Wallet, TrendingUp, ArrowUpRight, ArrowDownRight, AlertTriangle, RefreshCw, Loader2, CreditCard, Database, Trash2 } from "lucide-react";
+import { CalendarIcon, DoorOpen, Users, Wallet, TrendingUp, ArrowUpRight, ArrowDownRight, AlertTriangle, RefreshCw, Loader2, CreditCard, Database, Trash2, Bug } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, isWithinInterval, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -35,6 +36,7 @@ export default function Dashboard() {
   const [showMaintenance, setShowMaintenance] = useState(false);
   const [viewMode, setViewMode] = useState('all');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
+  const [showDebugDialog, setShowDebugDialog] = useState(false);
 
   const selectedBranchId = localStorage.getItem('selected_branch_id');
   const selectedBranchName = localStorage.getItem('selected_branch_name');
@@ -1228,6 +1230,15 @@ export default function Dashboard() {
                         </>
                       )}
                     </Button>
+
+                    <Button
+                      onClick={() => setShowDebugDialog(true)}
+                      size="sm"
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                    >
+                      <Bug className="w-4 h-4 mr-2" />
+                      Debug เวลา
+                    </Button>
                     {(deleteTestDataMutation.isPending || generateTestDataMutation.isPending) && (
                       <p className="text-xs text-slate-600 animate-pulse">
                         🔄 กำลังดำเนินการ กรุณารอสักครู่...
@@ -1249,6 +1260,90 @@ export default function Dashboard() {
           }}
         />
       )}
+
+      {/* Debug Dialog */}
+      <Dialog open={showDebugDialog} onOpenChange={setShowDebugDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bug className="w-5 h-5 text-purple-600" />
+              Debug: Timestamps ของ Payments ล่าสุด
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            {recentPayments.length > 0 ? (
+              recentPayments.map((payment) => {
+                const room = rooms.find(r => r.id === payment.room_id);
+                return (
+                  <div key={payment.id} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-bold text-slate-800">ห้อง {room?.room_number || 'N/A'}</p>
+                        <p className="text-xs text-slate-500">Payment ID: {payment.id}</p>
+                      </div>
+                      <span className="text-sm font-bold text-green-600">{payment.total_amount?.toLocaleString()} ฿</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2 text-xs">
+                      <div className="bg-white rounded p-2 border">
+                        <span className="font-semibold text-blue-600">updated_date:</span>
+                        <span className="ml-2 font-mono text-slate-700">
+                          {payment.updated_date || <span className="text-red-500">ไม่มี</span>}
+                        </span>
+                        {payment.updated_date && (
+                          <span className="ml-2 text-slate-500">
+                            → {parseISO(payment.updated_date).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour12: false })}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="bg-white rounded p-2 border">
+                        <span className="font-semibold text-purple-600">bill_sent_date:</span>
+                        <span className="ml-2 font-mono text-slate-700">
+                          {payment.bill_sent_date || <span className="text-red-500">ไม่มี</span>}
+                        </span>
+                        {payment.bill_sent_date && (
+                          <span className="ml-2 text-slate-500">
+                            → {parseISO(payment.bill_sent_date).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour12: false })}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="bg-white rounded p-2 border">
+                        <span className="font-semibold text-green-600">created_date:</span>
+                        <span className="ml-2 font-mono text-slate-700">
+                          {payment.created_date || <span className="text-red-500">ไม่มี</span>}
+                        </span>
+                        {payment.created_date && (
+                          <span className="ml-2 text-slate-500">
+                            → {parseISO(payment.created_date).toLocaleString('th-TH', { timeZone: 'Asia/Bangkok', hour12: false })}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="bg-amber-50 rounded p-2 border border-amber-200">
+                        <span className="font-semibold text-amber-700">ที่ใช้แสดง:</span>
+                        <span className="ml-2 font-mono text-slate-700">
+                          {payment.updated_date ? '✅ updated_date' : 
+                           payment.bill_sent_date ? '✅ bill_sent_date' : 
+                           '✅ created_date'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-center text-slate-500 py-8">ไม่มีข้อมูลการชำระเงิน</p>
+            )}
+          </div>
+
+          <Button onClick={() => setShowDebugDialog(false)} className="w-full">
+            ปิด
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
