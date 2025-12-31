@@ -99,6 +99,12 @@ Deno.serve(async (req) => {
         const clonedReq = req.clone();
         base44 = createClientFromRequest(req);
 
+        // 🔒 Security: Authentication Check
+        const user = await base44.auth.me();
+        if (!user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         try {
             const text = await clonedReq.text();
             if (text && text.trim()) {
@@ -110,6 +116,19 @@ Deno.serve(async (req) => {
             }
         } catch (e) {
             console.log('⚠️ No valid JSON body or already consumed');
+        }
+
+        // 🔒 Security: Branch Access Check
+        if (targetBranchId) {
+            const userAccessibleBranches = user.accessible_branches;
+            const isDeveloper = user.custom_role === 'developer';
+            const isOwner = user.custom_role === 'owner';
+            
+            if (!isDeveloper && !isOwner) {
+                if (userAccessibleBranches && !userAccessibleBranches.includes(targetBranchId)) {
+                    return Response.json({ error: 'Branch access denied' }, { status: 403 });
+                }
+            }
         }
 
         console.log('📋 Target:', targetBranchId || 'ALL');

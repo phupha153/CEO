@@ -232,9 +232,28 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
+        // 🔒 Security: Authentication Check
+        const user = await base44.auth.me();
+        if (!user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        
         let reqBody = {};
         try { reqBody = await req.json(); } catch(e) {}
         const { branch_id: specificBranchId, test_line_user_id: testLineUserId } = reqBody;
+
+        // 🔒 Security: Branch Access Check
+        if (specificBranchId) {
+            const userAccessibleBranches = user.accessible_branches;
+            const isDeveloper = user.custom_role === 'developer';
+            const isOwner = user.custom_role === 'owner';
+            
+            if (!isDeveloper && !isOwner) {
+                if (userAccessibleBranches && !userAccessibleBranches.includes(specificBranchId)) {
+                    return Response.json({ error: 'Branch access denied' }, { status: 403 });
+                }
+            }
+        }
 
         const allConfigs = await base44.asServiceRole.entities.Config.list();
         const getConfig = (key, branchId, defaultVal) => {

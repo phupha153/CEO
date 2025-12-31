@@ -167,6 +167,23 @@ Deno.serve(async (req) => {
 
         console.log('✅ Payment found:', payment.id, 'Status:', payment.status);
 
+        // 🔒 Security: Branch Access Check
+        if (payment.branch_id) {
+            const userAccessibleBranches = user.accessible_branches;
+            const isDeveloper = user.custom_role === 'developer';
+            const isOwner = user.custom_role === 'owner';
+            
+            if (!isDeveloper && !isOwner) {
+                if (userAccessibleBranches && !userAccessibleBranches.includes(payment.branch_id)) {
+                    return Response.json({ 
+                        success: false,
+                        error: 'ไม่มีสิทธิ์เข้าถึงสาขานี้',
+                        message: 'Branch access denied'
+                    }, { status: 403 });
+                }
+            }
+        }
+
         const lineToken = await getLineToken(base44, payment.branch_id);
         if (!lineToken) {
             console.error('❌ LINE token not available');

@@ -534,21 +534,40 @@ Deno.serve(async (req) => {
     let skipLineSend = false;
 
     try {
-        const clonedReq = req.clone();
-        base44 = createClientFromRequest(req);
+        const clonedReq = req.clone();
+        base44 = createClientFromRequest(req);
 
-        try {
-            const text = await clonedReq.text();
-            if (text && text.trim()) {
-                const body = JSON.parse(text);
-                targetBranchId = body.branch_id || null;
-                batchSize = body.batch_size || 5;
-                concurrentLimit = body.concurrent_limit || 1;
-                skipLineSend = body.skip_line_send === true;
-            }
-        } catch (e) { console.log('⚠️ No valid JSON body'); }
+        // 🔒 Security: Authentication Check
+        const user = await base44.auth.me();
+        if (!user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
-        console.log(`📋 Target Branch: ${targetBranchId || 'ALL'}`);
+        try {
+            const text = await clonedReq.text();
+            if (text && text.trim()) {
+                const body = JSON.parse(text);
+                targetBranchId = body.branch_id || null;
+                batchSize = body.batch_size || 5;
+                concurrentLimit = body.concurrent_limit || 1;
+                skipLineSend = body.skip_line_send === true;
+            }
+        } catch (e) { console.log('⚠️ No valid JSON body'); }
+
+        // 🔒 Security: Branch Access Check
+        if (targetBranchId) {
+            const userAccessibleBranches = user.accessible_branches;
+            const isDeveloper = user.custom_role === 'developer';
+            const isOwner = user.custom_role === 'owner';
+
+            if (!isDeveloper && !isOwner) {
+                if (userAccessibleBranches && !userAccessibleBranches.includes(targetBranchId)) {
+                    return Response.json({ error: 'Branch access denied' }, { status: 403 });
+                }
+            }
+        }
+
+        console.log(`📋 Target Branch: ${targetBranchId || 'ALL'}`);
 
         const configs = await base44.asServiceRole.entities.Config.list() || [];
         const getConfigValue = (key, branchId, defaultValue = '') => {
