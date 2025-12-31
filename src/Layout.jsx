@@ -54,32 +54,7 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Toaster, toast } from "sonner";
 
-// ⭐ Trial mode = ใช้งานได้ทุก feature
-const hasFeature = (featureName) => {
-  if (!currentUser) return false;
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
-
-  // Developer = full access
-  if (userRole === 'developer') return true;
-
-  // Trial period = full access
-  if (currentUser.plan_status === 'trial') return true;
-
-  // Active paid plan = check AppSubscription features
-  if (currentUser.plan_status === 'active') {
-    const activeSub = appSubscriptions.find(s => s.status === 'active');
-    if (!activeSub) return false;
-
-    const features = activeSub.features || [];
-    if (features.length === 0) return true;
-
-    // Simple feature check logic here (simplified from old checkFeatureAccess)
-    return true;
-  }
-
-  return false;
-};
 
 const TUTORIAL_STEPS = [
   { id: 1 },
@@ -619,7 +594,7 @@ export default function Layout({ children, currentPageName }) {
   const canAccessBranch = (userRole === 'developer' && !hasAccessibleBranchesSet) ||
     (selectedBranch && userAccessibleBranches && userAccessibleBranches.includes(selectedBranch.id));
 
-  // ⭐ Feature access - Trial = full access, Active = check AppSubscription
+  // ⭐ Feature access - Trial = full access, Active = full access
   const hasFeature = (featureName) => {
     if (!currentUser) return false;
     
@@ -628,15 +603,8 @@ export default function Layout({ children, currentPageName }) {
     // Developer = full access
     if (userRole === 'developer') return true;
     
-    // Trial period = full access
-    if (currentUser.plan_status === 'trial') return true;
-    
-    // Active paid plan = check AppSubscription features
-    if (currentUser.plan_status === 'active') {
-      const activeSub = appSubscriptions.find(s => s.status === 'active');
-      if (!activeSub || !activeSub.features || activeSub.features.length === 0) return true;
-      return true;
-    }
+    // Trial or Active = full access
+    if (currentUser.plan_status === 'trial' || currentUser.plan_status === 'active') return true;
     
     return false;
   };
@@ -660,134 +628,10 @@ export default function Layout({ children, currentPageName }) {
     initTrial();
   }, [currentUser?.email, isLoading, queryClient]);
 
-  // เช็คสถานะและ redirect - แก้ให้รองรับ multi_tenant
-  const checkSubscriptionStatus = () => {
-    // ⭐ Developer ไม่ต้อง redirect ไปหน้า package pages
-    if (userRole === 'developer') return { shouldRedirect: false, status: 'developer' };
-    
-    // ⭐ ไม่ redirect เมื่ออยู่ในหน้าเหล่านี้ หรือเมื่อยังไม่ได้เลือกสาขา
-    if (currentPageName === 'PackageSelectionPage' || 
-        currentPageName === 'RenewalPage' || 
-        currentPageName === 'TrialExpiredPage' || 
-        currentPageName === 'PackageExpiredPage' ||
-        currentPageName === 'BranchSelection' ||
-        currentPageName === 'BranchManagement' ||
-        currentPageName === 'Settings' ||
-        currentPageName === 'UserBranchAccess' ||
-        currentPageName === 'AllBranchesDashboard') {
-      return { shouldRedirect: false };
-    }
-    
-    // ⭐ ถ้ายังไม่ได้เลือกสาขา = ไม่ต้อง redirect
-    if (!selectedBranch) {
-      return { shouldRedirect: false, status: 'no_branch_selected' };
-    }
-    
-    // ถ้าเป็น multi_tenant ให้ดูจาก BranchPackage
-    if (appMode === 'multi_tenant' && selectedBranch) {
-      // หา active package ที่ไม่ใช่ trial (ดูจาก package_id และ price) - ต้องมี paid package อย่างน้อย 1 บาท
-      const activePaidPackage = branchPackages.find(bp => 
-        bp.branch_id === selectedBranch.id && 
-        bp.status === 'active' && 
-        bp.package_id !== 'trial' && 
-        bp.price_per_month > 0
-      );
-
-      // ถ้ามี paid package active → ใช้อันนั้น (ลำดับความสำคัญสูงสุด)
-      if (activePaidPackage) {
-        try {
-          const endDate = parseISO(activePaidPackage.subscription_end_date);
-          const daysRemaining = differenceInDays(startOfDay(endDate), startOfDay(new Date()));
-
-          if (daysRemaining < 0) {
-            return { shouldRedirect: true, redirectTo: 'PackageExpiredPage', status: 'expired', subscription: activePaidPackage };
-          }
-
-          return { shouldRedirect: false, status: 'active', daysRemaining, subscription: activePaidPackage };
-        } catch {
-          return { shouldRedirect: false, status: 'active', subscription: activePaidPackage };
-        }
-      }
-
-      // ถ้าไม่มี paid package → หา trial package (ที่ active และยังไม่ถูก cancel)
-      const trialPackage = branchPackages.find(bp => 
-        bp.branch_id === selectedBranch.id && 
-        bp.status === 'active' &&
-        (bp.package_id === 'trial' || bp.price_per_month === 0 || !bp.price_per_month)
-      );
-
-      if (trialPackage) {
-        try {
-          const endDate = parseISO(trialPackage.subscription_end_date);
-          const daysRemaining = differenceInDays(startOfDay(endDate), startOfDay(new Date()));
-
-          if (daysRemaining < 0) {
-            return { shouldRedirect: true, redirectTo: 'TrialExpiredPage', status: 'trial_expired', subscription: trialPackage };
-          }
-
-          return { shouldRedirect: false, status: 'trial', daysRemaining, subscription: trialPackage };
-        } catch {
-          return { shouldRedirect: false, status: 'trial', subscription: trialPackage };
-        }
-      }
-
-      // ถ้าไม่มี package เลย = กำลังสร้าง trial อัตโนมัติ
-      return { shouldRedirect: false, status: 'creating_trial', daysRemaining: 999, subscription: null };
-    }
-
-    // ถ้าเป็น single_tenant ให้ใช้ logic เดิม
-    const activeSub = appSubscriptions.find(s => s.status === 'active') || appSubscriptions[0];
-    if (!activeSub) return { shouldRedirect: false };
-
-    // If expired, redirect to PackageExpiredPage
-    if (activeSub.status === 'expired') {
-      return { shouldRedirect: true, redirectTo: 'PackageExpiredPage', status: 'expired', subscription: activeSub };
-    }
-
-    // If trial, check expiry
-    if (activeSub.status === 'trial' && activeSub.trial_end_date) {
-      try {
-        const trialEndDate = parseISO(activeSub.trial_end_date);
-        const daysRemaining = differenceInDays(startOfDay(trialEndDate), startOfDay(new Date()));
-
-        if (daysRemaining < 0) {
-          return { shouldRedirect: true, redirectTo: 'TrialExpiredPage', status: 'trial_expired', subscription: activeSub };
-        }
-
-        return { shouldRedirect: false, status: 'trial', daysRemaining, subscription: activeSub };
-      } catch {
-        return { shouldRedirect: false };
-      }
-    }
-
-    // If active, check expiry
-    if (activeSub.status === 'active' && activeSub.subscription_end_date) {
-      try {
-        const endDate = parseISO(activeSub.subscription_end_date);
-        const daysRemaining = differenceInDays(startOfDay(endDate), startOfDay(new Date()));
-
-        if (daysRemaining < 0) {
-          return { shouldRedirect: true, redirectTo: 'PackageExpiredPage', status: 'expired', subscription: activeSub };
-        }
-
-        return { shouldRedirect: false, status: 'active', daysRemaining, subscription: activeSub };
-      } catch {
-        return { shouldRedirect: false };
-      }
-    }
-    
-    if (activeSub.status === 'pending') {
-        return { shouldRedirect: false, status: 'pending', subscription: activeSub };
-    }
-
-    // Default case, no redirect
-    return { shouldRedirect: false, status: activeSub.status, subscription: activeSub };
-  };
-
-  const subscriptionCheck = checkSubscriptionStatus();
+  // ⭐ User-centric subscription check (ใช้ที่ effect แล้ว - ไม่ต้องใช้ตัวแปร subscriptionCheck อีก)
 
   useEffect(() => {
-    // ⭐ Redirect unauthenticated users to Welcome page (except on specific pages)
+    // ⭐ Redirect unauthenticated users to Welcome
     if (!isLoading && !currentUser && !error && 
         currentPageName !== 'Welcome' &&
         currentPageName !== 'Invoice' &&
@@ -798,14 +642,36 @@ export default function Layout({ children, currentPageName }) {
       return;
     }
 
-    // Redirect if subscription check indicates it and user/data is loaded
-    // ⭐ Developer ไม่ต้อง redirect - ข้าม subscription check
-    const currentUserRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
-    if (subscriptionCheck.shouldRedirect && !isLoading && currentUser && currentUserRole !== 'developer') {
-      const targetPage = subscriptionCheck.redirectTo || 'RenewalPage';
-      navigate(createPageUrl(targetPage), { replace: true });
+    // ⭐ Check trial expiry and redirect
+    if (!isLoading && currentUser) {
+      const currentUserRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+      
+      // Skip trial check for developer and special pages
+      if (currentUserRole === 'developer') return;
+      if (currentPageName === 'BranchSelection' ||
+          currentPageName === 'BranchManagement' ||
+          currentPageName === 'Settings' ||
+          currentPageName === 'UserBranchAccess' ||
+          currentPageName === 'AllBranchesDashboard' ||
+          currentPageName === 'TrialExpiredPage') return;
+      
+      const planStatus = currentUser.plan_status || 'trial';
+      const trialEndsAt = currentUser.trial_ends_at;
+      
+      if (trialEndsAt && planStatus !== 'active') {
+        try {
+          const trialEndDate = parseISO(trialEndsAt);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const daysRemaining = differenceInDays(trialEndDate, today);
+          
+          if (daysRemaining < 0) {
+            navigate(createPageUrl('TrialExpiredPage'), { replace: true });
+          }
+        } catch {}
+      }
     }
-  }, [subscriptionCheck.shouldRedirect, subscriptionCheck.redirectTo, isLoading, currentUser, navigate, currentPageName, error]);
+  }, [isLoading, currentUser, navigate, currentPageName, error]);
 
   useEffect(() => {
     console.log('🔍 Layout Branch Check:', {
@@ -827,9 +693,6 @@ export default function Layout({ children, currentPageName }) {
         currentPageName === 'Settings' ||
         currentPageName === 'ActivityLog' ||
         currentPageName === 'DataLists' ||
-        currentPageName === 'PackageSettings' ||
-        currentPageName === 'PackageSelectionPage' ||
-        currentPageName === 'RenewalPage' ||
         currentPageName === 'UpdateMyBranches' ||
         currentPageName === 'UserBranchAccess') {
       console.log('✅ หน้านี้ไม่ต้องเลือกสาขา - อนุญาต');
@@ -1163,7 +1026,7 @@ export default function Layout({ children, currentPageName }) {
 
   // Render loading screen - แต่ถ้า CRM check ใช้เวลานาน ให้ข้ามไปได้
   const isWaitingForCRM = crmAccessLoading && !crmAccess && !crmAccessError;
-  const shouldShowLoading = (isLoading || branchesLoading || branchPackagesLoading || configsLoading) && !isWaitingForCRM;
+  const shouldShowLoading = (isLoading || branchesLoading || configsLoading) && !isWaitingForCRM;
 
   if (shouldShowLoading) {
     return (
@@ -1206,23 +1069,33 @@ export default function Layout({ children, currentPageName }) {
   const renderSubscriptionBanner = () => {
     if (isLoading || configsLoading || !currentUser) return null;
 
-    const { status, daysRemaining } = subscriptionCheck;
+    const planStatus = currentUser.plan_status || 'trial';
+    const trialEndsAt = currentUser.trial_ends_at;
 
-    if (status === 'trial' && daysRemaining !== undefined) {
-      return (
-        <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Crown className="w-5 h-5" />
-            <div>
-              <p className="font-semibold text-sm">🎉 กำลังทดลองใช้งาน</p>
-              <p className="text-xs opacity-90">เหลืออีก {daysRemaining} วัน</p>
+    if (planStatus === 'trial' && trialEndsAt) {
+      try {
+        const trialEndDate = parseISO(trialEndsAt);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const daysRemaining = differenceInDays(trialEndDate, today);
+        
+        if (daysRemaining >= 0) {
+          return (
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Crown className="w-5 h-5" />
+                <div>
+                  <p className="font-semibold text-sm">🎉 กำลังทดลองใช้งาน</p>
+                  <p className="text-xs opacity-90">เหลืออีก {daysRemaining} วัน</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      );
+          );
+        }
+      } catch {}
     }
 
-    if (status === 'active') {
+    if (planStatus === 'active') {
       const activeSub = appSubscriptions.find(s => s.status === 'active');
       if (activeSub && activeSub.subscription_end_date) {
         try {
