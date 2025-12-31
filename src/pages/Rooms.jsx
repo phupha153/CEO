@@ -165,21 +165,23 @@ export default function RoomsPage() {
   };
 
   const { data: rooms = [], isLoading: roomsLoading, isFetching: roomsFetching } = useQuery({
-    queryKey: ['rooms', selectedBranchId, 'v2'],
+    queryKey: ['rooms', selectedBranchId, 'secure'],
     queryFn: async () => {
-      console.log('🔄 Fetching rooms for branch:', selectedBranchId);
-      const filtered = await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 10000);
-      console.log('✅ Rooms loaded directly from database:', filtered.length, 'rooms');
-      return filtered;
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Room',
+        filters: { branch_id: selectedBranchId },
+        sort: '-room_number',
+        limit: 10000
+      });
+      return response.data.data;
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
     retryDelay: 1000,
-    staleTime: 1 * 60 * 1000, // 1 minute
+    staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnMount: 'always',
-    refetchOnReconnect: true,
   });
 
   const { data: allRooms = [] } = useQuery({
@@ -196,34 +198,55 @@ export default function RoomsPage() {
   });
 
   const { data: bookings = [] } = useQuery({
-    queryKey: ['bookings', selectedBranchId],
-    queryFn: () => base44.entities.Booking.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
+    queryKey: ['bookings', selectedBranchId, 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Booking',
+        filters: { branch_id: selectedBranchId },
+        limit: 5000
+      });
+      return response.data.data;
+    },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnMount: 'always',
   });
 
   const { data: tenants = [] } = useQuery({
-    queryKey: ['tenants', selectedBranchId],
-    queryFn: () => base44.entities.Tenant.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
+    queryKey: ['tenants', selectedBranchId, 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Tenant',
+        filters: { branch_id: selectedBranchId },
+        limit: 5000
+      });
+      return response.data.data;
+    },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnMount: 'always',
   });
 
   const { data: payments = [] } = useQuery({
-    queryKey: ['payments', selectedBranchId],
-    queryFn: () => base44.entities.Payment.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
+    queryKey: ['payments', selectedBranchId, 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Payment',
+        filters: { branch_id: selectedBranchId },
+        limit: 5000
+      });
+      return response.data.data;
+    },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnMount: 'always',
   });

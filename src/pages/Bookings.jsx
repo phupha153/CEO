@@ -122,8 +122,15 @@ export default function BookingsPage() {
   const canCheckOut = userRole === 'developer' || userPermissions.includes('bookings_checkout');
 
   const { data: bookings = [], isLoading: bookingsLoading, isFetching: bookingsFetching } = useQuery({
-    queryKey: ['bookings', selectedBranchId],
-    queryFn: () => base44.entities.Booking.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
+    queryKey: ['bookings', selectedBranchId, 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Booking',
+        filters: { branch_id: selectedBranchId },
+        limit: 5000
+      });
+      return response.data.data;
+    },
     enabled: canView && !!selectedBranchId,
     retry: 2,
     staleTime: 1 * 60 * 1000,
@@ -133,8 +140,16 @@ export default function BookingsPage() {
   });
 
   const { data: rooms = [] } = useQuery({
-    queryKey: ['rooms', selectedBranchId],
-    queryFn: () => base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 5000),
+    queryKey: ['rooms', selectedBranchId, 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Room',
+        filters: { branch_id: selectedBranchId },
+        sort: '-room_number',
+        limit: 5000
+      });
+      return response.data.data;
+    },
     enabled: canView && !!selectedBranchId,
     retry: 2,
     staleTime: 1 * 60 * 1000,

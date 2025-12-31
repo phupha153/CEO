@@ -237,19 +237,23 @@ export default function Dashboard() {
   const dateRange = getMainDateRange();
 
   const { data: rooms = [], isFetching: roomsFetching, error: roomsError } = useQuery({
-    queryKey: ['rooms', selectedBranchId, 'v2'],
+    queryKey: ['rooms', selectedBranchId, 'secure'],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      return await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 10000);
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Room',
+        filters: { branch_id: selectedBranchId },
+        sort: '-room_number',
+        limit: 10000
+      });
+      return response.data.data;
     },
     enabled: !!selectedBranchId,
-    ...retryConfig,
-    staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 8 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    retry: 2,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
     refetchOnMount: true,
-    refetchOnReconnect: false,
-    placeholderData: undefined,
   });
 
   const { data: bookings = [] } = useQuery({
@@ -268,24 +272,22 @@ export default function Dashboard() {
   });
 
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ['payments', selectedBranchId],
+    queryKey: ['payments', selectedBranchId, 'secure'],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // ดึงแค่ 1000 รายการล่าสุด - เพียงพอสำหรับ Dashboard
-      return await base44.entities.Payment.filter(
-        { branch_id: selectedBranchId }, 
-        '-created_date', 
-        1000
-      );
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Payment',
+        filters: { branch_id: selectedBranchId },
+        limit: 1000
+      });
+      return response.data.data;
     },
     enabled: !!selectedBranchId,
-    ...retryConfig,
-    staleTime: 30 * 60 * 1000,
-    gcTime: 2 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    retry: 2,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
     refetchOnMount: true,
-    refetchOnReconnect: false,
-    placeholderData: undefined,
   });
 
   const { data: maintenanceRequests = [] } = useQuery({

@@ -118,46 +118,43 @@ export default function MeterReadings() {
 
   // ✅ เพิ่ม limit เป็น 1000
   const { data: rooms = [], isLoading: roomsLoading } = useQuery({
-    queryKey: ['rooms', selectedBranchId],
+    queryKey: ['rooms', selectedBranchId, 'secure'],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // ✅ ใช้ filter แทน list เพื่อดึงเฉพาะห้องในสาขาที่เลือก
-      const branchRooms = await base44.entities.Room.filter(
-        { branch_id: selectedBranchId },
-        'room_number',
-        1000
-      );
-      return branchRooms;
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Room',
+        filters: { branch_id: selectedBranchId },
+        sort: 'room_number',
+        limit: 1000
+      });
+      return response.data.data;
     },
     enabled: canView && !!selectedBranchId,
-    ...retryConfig,
-    staleTime: 2 * 60 * 60 * 1000,
-    gcTime: 4 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: true, // ✅ โหลดใหม่ทุกครั้งที่เข้าหน้า
-    refetchOnReconnect: false,
-    placeholderData: (previousData) => previousData,
+    retry: 2,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // ✅ Fetch ONLY ACTIVE bookings to ensure we find the current tenant even if contract started long ago
   const { data: bookings = [] } = useQuery({
-    queryKey: ['bookings', selectedBranchId],
+    queryKey: ['bookings', selectedBranchId, 'secure'],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // Fetch active bookings specifically
-      return await base44.entities.Booking.filter({ 
-        branch_id: selectedBranchId,
-        status: 'active'
-      }, '-created_date', 1000);
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Booking',
+        filters: { branch_id: selectedBranchId, status: 'active' },
+        limit: 1000
+      });
+      return response.data.data;
     },
     enabled: canView && !!selectedBranchId,
-    ...retryConfig,
-    staleTime: 60 * 60 * 1000,
-    gcTime: 2 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: true, // Ensure we have latest status
-    refetchOnReconnect: false,
-    placeholderData: (previousData) => previousData,
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   // ✅ เพิ่ม limit เป็น 500
