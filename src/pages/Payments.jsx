@@ -344,23 +344,12 @@ export default function PaymentsPage() {
     refetchOnWindowFocus: false,
   });
 
-  // ⭐ Auto-update room view month when configs load
+  // ⭐ Auto-update room view month when configs load - ใช้เดือนปัจจุบันเสมอ
   useEffect(() => {
     if (!configs || configs.length === 0 || !selectedBranchId) return;
     
-    const branchConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
-    const globalConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
-    const billDay = branchConfig ? parseInt(branchConfig.value) : (globalConfig ? parseInt(globalConfig.value) : 27);
-    
     const now = new Date();
-    const currentDay = now.getDate();
-    
-    if (currentDay >= billDay) {
-      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      setRoomViewMonth(format(nextMonth, 'yyyy-MM'));
-    } else {
-      setRoomViewMonth(format(now, 'yyyy-MM'));
-    }
+    setRoomViewMonth(format(now, 'yyyy-MM'));
   }, [configs, selectedBranchId]);
 
   const isDataFetching = paymentsFetching || bookingsFetching || roomsFetching || tenantsFetching;

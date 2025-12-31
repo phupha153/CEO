@@ -17,10 +17,10 @@ export default function GenerateMonthlyBillsButton({ branchId, onSuccess, compac
     try {
       toast.info('กำลังสร้างบิลประจำเดือน...', { duration: 3000 });
       
+      // ⭐ ไม่ใช้ force_skip_duplicate_check เพื่อให้เช็คบิลซ้ำ
       const response = await base44.functions.invoke('generateMonthlyBills', {
         branch_id: branchId,
-        force: true,
-        force_skip_duplicate_check: true
+        force: true
       });
 
       if (response.data?.success) {
