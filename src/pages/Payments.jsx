@@ -241,25 +241,22 @@ export default function PaymentsPage() {
   const payments = paymentsResponse?.data || [];
   const totalFilteredCount = paymentsResponse?.total || 0;
 
+  // ✅ Fetch minimal data - needed for forms only
   const { data: bookings = [], isFetching: bookingsFetching } = useQuery({
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // Query เฉพาะ branch และจำกัด 300 รายการล่าสุด
-      const bookings = await base44.entities.Booking.filter(
-        { branch_id: selectedBranchId },
+      return await base44.entities.Booking.filter(
+        { branch_id: selectedBranchId, status: 'active' },
         '-created_date',
-        300
+        500
       );
-      return bookings;
     },
     enabled: canView && !!selectedBranchId,
     ...retryConfig,
-    staleTime: 2 * 60 * 60 * 1000,
-    gcTime: 4 * 60 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    refetchOnReconnect: false,
   });
 
   const { data: rooms = [], isFetching: roomsFetching } = useQuery({
@@ -878,20 +875,45 @@ export default function PaymentsPage() {
     };
   }, [filteredPayments, getEffectiveStatus, calculateLateFee]);
 
-  const pendingOverduePayments = filteredPayments.filter(p => {
-    const status = getEffectiveStatus(p);
-    return status === 'pending' || status === 'overdue';
+  // ✅ Use enriched data from server (no lookup needed)
+  const pendingOverduePayments = useMemo(() => 
+    filteredPayments.filter(p => {
+      const status = getEffectiveStatus(p);
+      return status === 'pending' || status === 'overdue';
+    }),
+    [filteredPayments, getEffectiveStatus]
+  );
+
+  const tenantsWithLine = useMemo(() => 
+    pendingOverduePayments.filter(p => 
+      (p.tenant_line_user_id || p.tenant_facebook_user_id) && !p.bill_sent_date
+    ).length,
+    [pendingOverduePayments]
+  );
+
+  // ✅ Count from server-returned data
+  const testPaymentsCount = useMemo(() => 
+    payments.filter(p => p.notes?.includes('[TEST-')).length,
+    [payments]
+  );
+
+  // ✅ Query for counting bills (separate from main payments)
+  const { data: allPaymentsForCounting = [] } = useQuery({
+    queryKey: ['payments-count', selectedBranchId],
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      // โหลดแค่ fields ที่ต้องการนับ (ลดขนาด)
+      return await base44.entities.Payment.filter(
+        { branch_id: selectedBranchId },
+        '-created_date',
+        5000
+      );
+    },
+    enabled: canView && !!selectedBranchId,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
-  const tenantsWithLine = pendingOverduePayments.filter(p => {
-    const tenant = getTenantInfo(p.tenant_id);
-    // ⭐ ข้ามห้องที่ส่งบิลไปแล้ว (มี bill_sent_date)
-    return tenant && (tenant.line_user_id || tenant.facebook_user_id) && !p.bill_sent_date;
-  }).length;
-
-  const testPaymentsCount = payments.filter(p => p.notes?.includes('[TEST-')).length;
-
-  // ⭐ คำนวณจำนวนห้องที่ยังไม่มีบิลเดือนนี้
   const roomsNeedingBills = useMemo(() => {
     if (!rooms.length || !bookings.length || !configs.length) return 0;
 
@@ -918,12 +940,12 @@ export default function PaymentsPage() {
 
     const monthlyRooms = rooms.filter(r => r.room_type === 'monthly');
     const roomsWithBooking = monthlyRooms.filter(room => 
-      bookings.some(b => b.room_id === room.id)
+      bookings.some(b => b.room_id === room.id && b.status === 'active')
     );
 
     let count = 0;
     for (const room of roomsWithBooking) {
-      const existingBill = payments.find(p => 
+      const existingBill = allPaymentsForCounting.find(p => 
         p.room_id === room.id && 
         p.due_date && 
         p.due_date.substring(0, 7) === targetDueYearMonth
@@ -932,7 +954,7 @@ export default function PaymentsPage() {
     }
 
     return count;
-  }, [rooms, bookings, payments, configs, selectedBranchId]);
+  }, [rooms, bookings, allPaymentsForCounting, configs, selectedBranchId]);
 
   const dateRangeLabel = () => {
     switch(dateRangeType) {
@@ -1611,23 +1633,20 @@ export default function PaymentsPage() {
     setAiResult(null);
 
     try {
-      const paymentsData = payments.map(p => {
-        const room = getRoomInfo(p.room_id);
-        const tenant = getTenantInfo(p.tenant_id);
-        const effectiveStatus = getEffectiveStatus(p);
-        return {
-          id: p.id,
-          room_number: room?.room_number,
-          tenant_name: tenant?.full_name,
-          tenant_phone: tenant?.phone,
-          due_date: p.due_date,
-          payment_date: p.payment_date,
-          total_amount: p.total_amount,
-          status: effectiveStatus,
-          notes: p.notes
-        };
-      });
+      // ✅ Use enriched data (already has room_number, tenant_name)
+      const paymentsData = payments.map(p => ({
+        id: p.id,
+        room_number: p.room_number,
+        tenant_name: p.tenant_name,
+        tenant_phone: p.tenant_phone,
+        due_date: p.due_date,
+        payment_date: p.payment_date,
+        total_amount: p.total_amount,
+        status: getEffectiveStatus(p),
+        notes: p.notes
+      }));
 
+      // ✅ Use Maps for O(1) lookup
       const roomsData = rooms.map(r => ({
         id: r.id,
         room_number: r.room_number,
@@ -1636,9 +1655,9 @@ export default function PaymentsPage() {
         price: r.price
       }));
 
-      const bookingsData = bookings.filter(b => b.status === 'active').map(b => {
-        const tenant = tenants.find(t => t.id === b.tenant_id);
-        const room = rooms.find(r => r.id === b.room_id);
+      const bookingsData = bookings.map(b => {
+        const tenant = tenantsMap.get(b.tenant_id);
+        const room = roomsMap.get(b.room_id);
         return {
           id: b.id,
           room_id: b.room_id,
@@ -2282,8 +2301,7 @@ Return JSON.`;
                         const payment = payments.find(p => p.id === item.payment_id);
                         if (!payment) return null;
 
-                        const room = getRoomInfo(payment.room_id);
-                        const tenant = getTenantInfo(payment.tenant_id);
+                        // ✅ Use enriched data from server
                         const effectiveStatus = getEffectiveStatus(payment);
                         // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
                         const lateFee = (payment.late_fee_amount && payment.late_fee_amount > 0) ? 0 : calculateLateFee(payment);
@@ -2300,14 +2318,14 @@ Return JSON.`;
                                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                                   <DoorOpen className="w-4 h-4 text-purple-600" />
                                   <span className="font-semibold text-slate-800">
-                                    ห้อง {room?.room_number || 'N/A'}
+                                    ห้อง {payment.room_number || 'N/A'}
                                   </span>
                                   {effectiveStatus === 'paid' && <Badge className="bg-green-100 text-green-700 text-xs">ชำระแล้ว</Badge>}
                                   {effectiveStatus === 'pending' && <Badge className="bg-yellow-100 text-yellow-700 text-xs">รอชำระ</Badge>}
                                   {effectiveStatus === 'overdue' && <Badge className="bg-red-100 text-red-700 text-xs">เกินกำหนด</Badge>}
                                   {effectiveStatus === 'partial_paid' && <Badge className="bg-orange-100 text-orange-700 text-xs">ชำระบางส่วน ({((payment.paid_amount || 0) / (payment.total_amount || 1) * 100).toFixed(0)}%)</Badge>}
                                 </div>
-                                <p className="text-sm text-slate-600 mb-2">{item.reason || `ผู้เช่า: ${tenant?.full_name || 'N/A'}`}</p>
+                                <p className="text-sm text-slate-600 mb-2">{item.reason || `ผู้เช่า: ${payment.tenant_name || 'N/A'}`}</p>
                                 <div className="text-xs text-slate-500 space-y-0.5">
                                   <p className="font-semibold text-blue-700">ยอดเงิน: ฿{totalWithLateFee.toLocaleString()}</p>
                                   {payment.due_date && (
@@ -2320,22 +2338,7 @@ Return JSON.`;
                                 
                                 {/* ปุ่มดูรายละเอียด */}
                                 <div className="flex gap-2 mt-2">
-                                  {effectiveStatus !== 'paid' && canViewInvoice && (
-                                    <Link to={`${createPageUrl('Invoice')}?paymentId=${payment.id}`} onClick={(e) => e.stopPropagation()}>
-                                      <Button size="sm" variant="outline" className="text-xs border-blue-600 text-blue-600 hover:bg-blue-50">
-                                        <FileText className="w-3 h-3 mr-1" />
-                                        ใบแจ้งหนี้
-                                      </Button>
-                                    </Link>
-                                  )}
-                                  {effectiveStatus === 'paid' && canViewReceipt && (
-                                    <Link to={`${createPageUrl('Receipt')}?paymentId=${payment.id}`} onClick={(e) => e.stopPropagation()}>
-                                      <Button size="sm" className="text-xs bg-green-600 hover:bg-green-700">
-                                        <Receipt className="w-3 h-3 mr-1" />
-                                        ใบเสร็จ
-                                      </Button>
-                                    </Link>
-                                  )}
+                                  {/* Action buttons removed from AI results - click card to see details */}
                                 </div>
                               </div>
                             </div>
@@ -2743,9 +2746,15 @@ Return JSON.`;
                 <div className="grid grid-cols-1 gap-4">
                   <AnimatePresence>
                     {paginatedPayments.map((payment) => {
-                      const room = getRoomInfo(payment.room_id);
-                      const tenant = getTenantInfo(payment.tenant_id);
+                      // ✅ Use enriched data from server
                       const effectiveStatus = getEffectiveStatus(payment);
+                      const room = payment.room_number ? { room_number: payment.room_number } : getRoomInfo(payment.room_id);
+                      const tenant = payment.tenant_name ? { 
+                        full_name: payment.tenant_name, 
+                        phone: payment.tenant_phone,
+                        line_user_id: payment.tenant_line_user_id,
+                        facebook_user_id: payment.tenant_facebook_user_id
+                      } : getTenantInfo(payment.tenant_id);
                       // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
                       const lateFee = (payment.late_fee_amount && payment.late_fee_amount > 0) ? 0 : calculateLateFee(payment);
                       const totalWithLateFee = (payment.total_amount || 0) + lateFee;
@@ -3280,9 +3289,13 @@ Return JSON.`;
                         </thead>
                         <tbody>
                           {paginatedPayments.map((payment) => {
-                            const room = getRoomInfo(payment.room_id);
-                            const tenant = getTenantInfo(payment.tenant_id);
+                            // ✅ Use enriched data
                             const effectiveStatus = getEffectiveStatus(payment);
+                            const tenant = payment.tenant_name ? { 
+                              full_name: payment.tenant_name,
+                              line_user_id: payment.tenant_line_user_id,
+                              facebook_user_id: payment.tenant_facebook_user_id
+                            } : getTenantInfo(payment.tenant_id);
                             // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
                             const lateFee = (payment.late_fee_amount && payment.late_fee_amount > 0) ? 0 : calculateLateFee(payment);
                             const totalWithLateFee = (payment.total_amount || 0) + lateFee;
@@ -3334,8 +3347,8 @@ Return JSON.`;
                                     </div>
                                   </td>
                                 )}
-                                <td className="px-4 py-3 text-sm font-medium text-slate-800">{room?.room_number || 'N/A'}</td>
-                                <td className="px-4 py-3 text-sm text-slate-600">{tenant?.full_name || 'N/A'}</td>
+                                <td className="px-4 py-3 text-sm font-medium text-slate-800">{payment.room_number || 'N/A'}</td>
+                                <td className="px-4 py-3 text-sm text-slate-600">{payment.tenant_name || 'N/A'}</td>
                                 <td className="px-4 py-3 text-sm text-slate-600">
                                   {(() => {
                                     if (!payment.due_date) return 'N/A';
@@ -4449,8 +4462,13 @@ Return JSON.`;
             <DialogTitle>รายละเอียดการชำระเงิน</DialogTitle>
           </DialogHeader>
           {selectedPayment && (() => {
-            const room = getRoomInfo(selectedPayment.room_id);
-            const tenant = getTenantInfo(selectedPayment.tenant_id);
+            // ✅ Use enriched data or fallback
+            const room = selectedPayment.room_number ? { room_number: selectedPayment.room_number } : getRoomInfo(selectedPayment.room_id);
+            const tenant = selectedPayment.tenant_name ? { 
+              full_name: selectedPayment.tenant_name,
+              line_user_id: selectedPayment.tenant_line_user_id,
+              facebook_user_id: selectedPayment.tenant_facebook_user_id
+            } : getTenantInfo(selectedPayment.tenant_id);
             const effectiveStatus = getEffectiveStatus(selectedPayment);
             // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
             const lateFee = (selectedPayment.late_fee_amount && selectedPayment.late_fee_amount > 0) ? 0 : calculateLateFee(selectedPayment);
@@ -4667,8 +4685,12 @@ Return JSON.`;
 
       {/* Confirmation Dialog */}
       {confirmReminderDialog.payment && (() => {
-        const room = getRoomInfo(confirmReminderDialog.payment.room_id);
-        const tenant = getTenantInfo(confirmReminderDialog.payment.tenant_id);
+        const room = confirmReminderDialog.payment.room_number ? 
+          { room_number: confirmReminderDialog.payment.room_number } : 
+          getRoomInfo(confirmReminderDialog.payment.room_id);
+        const tenant = confirmReminderDialog.payment.tenant_name ? 
+          { full_name: confirmReminderDialog.payment.tenant_name } : 
+          getTenantInfo(confirmReminderDialog.payment.tenant_id);
         const effectiveStatus = getEffectiveStatus(confirmReminderDialog.payment);
         
         return (
@@ -4734,8 +4756,12 @@ Return JSON.`;
           open={reminderDialog.open}
           onOpenChange={(open) => setReminderDialog({ open, payment: null, template: null })}
           payment={reminderDialog.payment}
-          room={getRoomInfo(reminderDialog.payment.room_id)}
-          tenant={getTenantInfo(reminderDialog.payment.tenant_id)}
+          room={reminderDialog.payment.room_number ? 
+            { room_number: reminderDialog.payment.room_number } : 
+            getRoomInfo(reminderDialog.payment.room_id)}
+          tenant={reminderDialog.payment.tenant_name ? 
+            { full_name: reminderDialog.payment.tenant_name } : 
+            getTenantInfo(reminderDialog.payment.tenant_id)}
           effectiveStatus={getEffectiveStatus(reminderDialog.payment)}
           lateFee={calculateLateFee(reminderDialog.payment)}
           tiersEnabled={(() => {

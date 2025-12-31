@@ -90,24 +90,25 @@ Deno.serve(async (req) => {
       };
     }
 
-    // ✅ Step 3: Fetch payments with filters (Limit to prevent memory overflow)
-    const maxRecords = 10000; // Hard limit for safety
+    // ✅ Step 3: Fetch payments (Smart limit based on filters)
     const skip = (page - 1) * limit;
+    
+    // ⭐ ถ้ามี date range = โหลดเฉพาะช่วงนั้น (ประหยัดหน่วยความจำ)
+    // ถ้าไม่มี = จำกัดแค่ 1,000 records ล่าสุด
+    const fetchLimit = dateRange ? 20000 : 1000;
     
     let payments = await base44.asServiceRole.entities.Payment.filter(
       filterQuery,
       `-${sort_by}`,
-      Math.min(limit * 10, maxRecords), // Pre-fetch more for filtering
+      fetchLimit,
       0
     );
 
-    // ✅ Step 4: Fetch related data (rooms, tenants) - Limited
-    const roomIds = [...new Set(payments.map(p => p.room_id).filter(Boolean))];
-    const tenantIds = [...new Set(payments.map(p => p.tenant_id).filter(Boolean))];
-
+    // ✅ Step 4: Fetch ALL rooms & tenants for this branch (Cache-friendly)
+    // ⚠️ Base44 SDK ไม่รองรับ $in operator - ต้องโหลดทั้งสาขา
     const [rooms, tenants] = await Promise.all([
-      base44.asServiceRole.entities.Room.filter({ id: { $in: roomIds.slice(0, 500) } }),
-      base44.asServiceRole.entities.Tenant.filter({ id: { $in: tenantIds.slice(0, 500) } })
+      base44.asServiceRole.entities.Room.filter({ branch_id }, '-room_number', 1000),
+      base44.asServiceRole.entities.Tenant.filter({ branch_id }, '-created_date', 1000)
     ]);
 
     // ✅ Create Maps for O(1) lookup
