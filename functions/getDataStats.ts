@@ -9,15 +9,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 🔒 Security: Only developer or owner can view stats
-    const userRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
-    const isDeveloper = userRole === 'developer';
-    const isOwner = userRole === 'owner';
-    
-    if (!isDeveloper && !isOwner) {
-      return Response.json({ error: 'Forbidden - Only developer or owner can view stats' }, { status: 403 });
-    }
-
     console.log('🔍 Counting data stats for user:', user.email);
 
     // นับแยกแต่ละ entity แบบ pagination

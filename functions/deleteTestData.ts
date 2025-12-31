@@ -56,22 +56,6 @@ Deno.serve(async (req) => {
             console.log('⚠️ No valid JSON body');
         }
 
-        // 🔒 Security: Branch Access Check
-        if (targetBranchId) {
-            const userAccessibleBranches = user.accessible_branches;
-            const isDeveloper = user.custom_role === 'developer';
-            const isOwner = user.custom_role === 'owner';
-            
-            if (!isDeveloper && !isOwner) {
-                if (userAccessibleBranches && !userAccessibleBranches.includes(targetBranchId)) {
-                    return Response.json({ 
-                        success: false,
-                        error: 'Branch access denied' 
-                    }, { status: 403 });
-                }
-            }
-        }
-
         console.log(`🗑️ Starting test data deletion at ${new Date().toISOString()}`);
         console.log(`📋 Target branch: ${targetBranchId || 'ALL'}`);
 

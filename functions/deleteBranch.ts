@@ -28,23 +28,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Branch ID is required' }, { status: 400 });
     }
 
-    // 🔒 Security: Only developer or owner with branch access can delete
-    const userRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
-    const isDeveloper = userRole === 'developer';
-    const isOwner = userRole === 'owner';
-    
-    if (!isDeveloper && !isOwner) {
-      return Response.json({ error: 'Forbidden - Only developer or owner can delete branches' }, { status: 403 });
-    }
-
-    // 🔒 Security: Branch Access Check
-    const userAccessibleBranches = user.accessible_branches;
-    if (!isDeveloper && !isOwner) {
-      if (userAccessibleBranches && !userAccessibleBranches.includes(branchId)) {
-        return Response.json({ error: 'Branch access denied' }, { status: 403 });
-      }
-    }
-
     const serviceRole = base44.asServiceRole;
 
     // ⭐ ลบข้อมูลจนหมดจริงๆ โดยใช้ loop ดึงข้อมูลใหม่จนกว่าจะไม่เหลือ
