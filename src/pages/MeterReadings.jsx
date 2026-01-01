@@ -241,31 +241,28 @@ export default function MeterReadings() {
   const allowMeterEditingConfig = configs.find(c => c.key === 'allow_meter_history_editing' && (c.branch_id === selectedBranchId || !c.branch_id));
   const canEditHistory = canEditHistoryPermission && (allowMeterEditingConfig?.value === 'true');
 
-  // ✅ ตั้งค่าเดือนอัตโนมัติตาม bill_generation_day
+  // ✅ ตั้งค่าเดือนอัตโนมัติตามบันทึกล่าสุดในฐานข้อมูล
   useEffect(() => {
-    if (selectedMonth !== 'auto' || !selectedBranchId || configs.length === 0) return;
+    if (selectedMonth !== 'auto' || meterReadings.length === 0) return;
 
-    const billDayConfig = configs.find(c => 
-      c.key === 'bill_generation_day' && 
-      (c.branch_id === selectedBranchId || !c.branch_id)
-    );
-    const billDay = billDayConfig ? parseInt(billDayConfig.value) : 5; // default วันที่ 5
-
-    const now = new Date();
-    const currentDay = now.getDate();
-
-    let targetMonth;
-    if (currentDay < billDay) {
-      // ยังไม่ถึงวันสร้างบิล → เลือกเดือนที่แล้ว
-      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      targetMonth = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+    // หาบันทึกล่าสุด
+    const latestReading = meterReadings[0]; // เรียงตาม -reading_date แล้ว
+    if (latestReading?.reading_date) {
+      try {
+        const latestDate = parseISO(latestReading.reading_date);
+        const targetMonth = `${latestDate.getFullYear()}-${String(latestDate.getMonth() + 1).padStart(2, '0')}`;
+        setSelectedMonth(targetMonth);
+      } catch {
+        // fallback เป็นเดือนปัจจุบัน
+        const now = new Date();
+        setSelectedMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+      }
     } else {
-      // ถึงหรือเกินวันสร้างบิลแล้ว → เลือกเดือนปัจจุบัน
-      targetMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      // ถ้าไม่มีบันทึกเลย ใช้เดือนปัจจุบัน
+      const now = new Date();
+      setSelectedMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
     }
-
-    setSelectedMonth(targetMonth);
-  }, [configs, selectedBranchId, selectedMonth]);
+  }, [meterReadings, selectedMonth]);
 
   // ✅ ดาวน์โหลด Template Excel
   const handleDownloadTemplate = () => {
