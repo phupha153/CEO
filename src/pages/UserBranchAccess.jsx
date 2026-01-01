@@ -24,6 +24,7 @@ export default function UserBranchAccess() {
   const [selectedBranchForPackage, setSelectedBranchForPackage] = useState('');
   const [userBranchAccess, setUserBranchAccess] = useState({});
   const [userPermissions, setUserPermissions] = useState({});
+  const [userRoles, setUserRoles] = useState({}); // เก็บ custom_role ที่เลือก
 
 
   const queryClient = useQueryClient();
@@ -114,8 +115,8 @@ export default function UserBranchAccess() {
     const badges = {
       developer: { label: '👨‍💻 Developer', color: 'from-purple-500 to-pink-500' },
       owner: { label: '👑 เจ้าของหอพัก', color: 'from-blue-500 to-indigo-500' },
-      manager: { label: '👔 ผู้จัดการ', color: 'from-green-500 to-emerald-500' },
-      employee: { label: '👤 พนักงาน', color: 'from-slate-400 to-slate-500' }
+      manager: { label: '👔 ผู้จัดการ/พนักงาน', color: 'from-green-500 to-emerald-500' },
+      employee: { label: '👤 ผู้จัดการ/พนักงาน', color: 'from-green-500 to-emerald-500' }
     };
     return badges[role] || badges.employee;
   };
@@ -141,16 +142,7 @@ export default function UserBranchAccess() {
   };
 
   const updateUserBranchesMutation = useMutation({
-    mutationFn: async ({ userId, userEmail, accessible_branches }) => {
-      // เช็คว่าเป็นเจ้าของสาขาไหนบ้าง (owner_id หรือ created_by ตรงกับ email)
-      const ownedBranches = allBranches.filter(b => 
-        b.owner_id === userEmail || b.created_by === userEmail
-      );
-      
-      // ถ้าเป็นเจ้าของอย่างน้อย 1 สาขา → custom_role = 'owner'
-      // ถ้าไม่ใช่ → custom_role = 'employee' (พนักงาน/ผู้จัดการ)
-      const custom_role = ownedBranches.length > 0 ? 'owner' : 'employee';
-      
+    mutationFn: async ({ userId, accessible_branches, custom_role }) => {
       return base44.entities.User.update(userId, { 
         accessible_branches,
         custom_role
@@ -224,6 +216,8 @@ export default function UserBranchAccess() {
   const handleOpenBranchDialog = (user) => {
     setSelectedUser(user);
     setUserBranchAccess({ [user.id]: user.accessible_branches || [] });
+    const currentRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+    setUserRoles({ [user.id]: currentRole });
     setShowBranchDialog(true);
   };
 
@@ -639,10 +633,32 @@ export default function UserBranchAccess() {
               </DialogHeader>
               {selectedUser && (
                 <div className="space-y-4">
-                  <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                    <p className="text-sm text-blue-800">
-                      <strong>สาขาที่เลือก:</strong> {(userBranchAccess[selectedUser.id] || []).length} สาขา
-                    </p>
+                  <div className="space-y-3">
+                    <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                      <p className="text-sm text-blue-800">
+                        <strong>สาขาที่เลือก:</strong> {(userBranchAccess[selectedUser.id] || []).length} สาขา
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <Label className="text-sm font-semibold mb-2 block">สถานะ/บทบาท</Label>
+                      <Select
+                        value={userRoles[selectedUser.id] || 'employee'}
+                        onValueChange={(value) => setUserRoles({ ...userRoles, [selectedUser.id]: value })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="เลือกบทบาท" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="owner">👑 เจ้าของหอพัก</SelectItem>
+                          <SelectItem value="manager">👔 ผู้จัดการ</SelectItem>
+                          <SelectItem value="employee">👤 พนักงาน</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-slate-500 mt-1">
+                        💡 เจ้าของ = มีสิทธิ์ทุกอย่าง, พนักงาน/ผู้จัดการ = มีสิทธิ์ตามที่กำหนด
+                      </p>
+                    </div>
                   </div>
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {branches.map(branch => {
@@ -688,8 +704,8 @@ export default function UserBranchAccess() {
                       onClick={() => {
                         updateUserBranchesMutation.mutate({
                           userId: selectedUser.id,
-                          userEmail: selectedUser.email,
-                          accessible_branches: userBranchAccess[selectedUser.id] || []
+                          accessible_branches: userBranchAccess[selectedUser.id] || [],
+                          custom_role: userRoles[selectedUser.id] || 'employee'
                         });
                       }}
                       className="bg-gradient-to-r from-blue-600 to-indigo-600"
