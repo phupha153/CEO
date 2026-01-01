@@ -97,18 +97,37 @@ export default function MeterReadings() {
     retryDelay: 0,
   };
 
-  // ✅ Optimize queries with 'enabled' flag
-  // ✅ เพิ่ม limit เป็น 500
-  const { data: meterReadings = [], isLoading: readingsLoading } = useQuery({ // Renamed 'readings' to 'meterReadings'
-    queryKey: ['meterReadings', selectedBranchId], // Added selectedBranchId to queryKey
+  // ✅ Backend filtering + Pagination (SaaS Standard)
+  const { data: meterReadings = [], isLoading: readingsLoading } = useQuery({
+    queryKey: ['meterReadings', selectedBranchId],
     queryFn: async () => {
-      if (!selectedBranchId) return []; // Ensure branch is selected
-      const allReadings = await base44.entities.MeterReading.list('-reading_date', 500); // ✅ จำกัด 500 รายการ
-      return allReadings.filter(reading => reading.branch_id === selectedBranchId);
+      if (!selectedBranchId) return [];
+      
+      let allData = [];
+      let skip = 0;
+      const limit = 5000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch = await base44.entities.MeterReading.filter(
+          { branch_id: selectedBranchId },
+          '-reading_date',
+          limit,
+          skip
+        );
+        allData = [...allData, ...batch];
+        skip += limit;
+        
+        if (batch.length < limit) hasMore = false;
+        if (skip >= 100000) hasMore = false; // Circuit breaker
+      }
+      
+      console.log(`📊 MeterReadings - Loaded ${allData.length} readings for branch ${selectedBranchId}`);
+      return allData;
     },
-    enabled: canView && !!selectedBranchId, // Enabled when canView and branch is selected
+    enabled: canView && !!selectedBranchId,
     ...retryConfig,
-    staleTime: 30 * 60 * 1000, // ✅ 30 นาที
+    staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -116,9 +135,9 @@ export default function MeterReadings() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ เพิ่ม limit เป็น 1000
+  // ✅ Shared query key for cache sharing
   const { data: rooms = [], isLoading: roomsLoading } = useQuery({
-    queryKey: ['rooms', selectedBranchId, 'secure'],
+    queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
       const response = await base44.functions.invoke('getSecureData', {
@@ -134,12 +153,12 @@ export default function MeterReadings() {
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    placeholderData: (previousData) => previousData,
   });
 
-  // ✅ Fetch ONLY ACTIVE bookings to ensure we find the current tenant even if contract started long ago
+  // ✅ Shared query key for cache sharing
   const { data: bookings = [] } = useQuery({
-    queryKey: ['bookings', selectedBranchId, 'secure'],
+    queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
       const response = await base44.functions.invoke('getSecureData', {
@@ -154,18 +173,38 @@ export default function MeterReadings() {
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
-    refetchOnMount: true,
+    placeholderData: (previousData) => previousData,
   });
 
-  // ✅ เพิ่ม limit เป็น 500
+  // ✅ Backend filtering + Pagination (SaaS Standard)
   const { data: tenants = [] } = useQuery({
-    queryKey: ['tenants', selectedBranchId], // Added selectedBranchId to queryKey
+    queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
-      if (!selectedBranchId) return []; // Ensure branch is selected
-      const allTenants = await base44.entities.Tenant.list('-created_date', 500);
-      return allTenants.filter(tenant => tenant.branch_id === selectedBranchId);
+      if (!selectedBranchId) return [];
+      
+      let allData = [];
+      let skip = 0;
+      const limit = 5000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch = await base44.entities.Tenant.filter(
+          { branch_id: selectedBranchId },
+          '-created_date',
+          limit,
+          skip
+        );
+        allData = [...allData, ...batch];
+        skip += limit;
+        
+        if (batch.length < limit) hasMore = false;
+        if (skip >= 100000) hasMore = false;
+      }
+      
+      console.log(`📊 MeterReadings - Loaded ${allData.length} tenants for branch ${selectedBranchId}`);
+      return allData;
     },
-    enabled: canView && !!selectedBranchId, // Enabled when canView and branch is selected
+    enabled: canView && !!selectedBranchId,
     ...retryConfig,
     staleTime: 60 * 60 * 1000,
     gcTime: 2 * 60 * 60 * 1000,
@@ -698,16 +737,33 @@ export default function MeterReadings() {
     });
   };
 
-  const getRoomInfo = (roomId) => rooms.find(r => r.id === roomId);
+  // ✅ O(1) Lookup Maps (แก้ N+1 Problem)
+  const roomsMap = useMemo(() => new Map(rooms.map(r => [r.id, r])), [rooms]);
+  const tenantsMap = useMemo(() => new Map(tenants.map(t => [t.id, t])), [tenants]);
+  const bookingsMap = useMemo(() => {
+    const map = new Map();
+    bookings.forEach(b => {
+      if (b.status === 'active' && !map.has(b.room_id)) {
+        map.set(b.room_id, b);
+      }
+    });
+    return map;
+  }, [bookings]);
   
-  const getActiveBooking = (roomId) => bookings.find(b => b.room_id === roomId && b.status === 'active');
+  const meterReadingsMap = useMemo(() => {
+    const map = new Map();
+    meterReadings.forEach(r => {
+      if (!map.has(r.room_id)) {
+        map.set(r.room_id, r);
+      }
+    });
+    return map;
+  }, [meterReadings]);
 
-  const getTenantInfo = (tenantId) => tenants.find(t => t.id === tenantId);
-
-  const getLatestReading = (roomId) => {
-    // Finds the latest reading for a room, assuming meterReadings are already sorted by date desc
-    return meterReadings.find(r => r.room_id === roomId); // Changed 'readings' to 'meterReadings'
-  };
+  const getRoomInfo = useCallback((roomId) => roomsMap.get(roomId), [roomsMap]);
+  const getActiveBooking = useCallback((roomId) => bookingsMap.get(roomId), [bookingsMap]);
+  const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
+  const getLatestReading = useCallback((roomId) => meterReadingsMap.get(roomId), [meterReadingsMap]);
 
       const { totalElectricityThisMonth, totalWaterLatest } = useMemo(() => {
     const now = new Date();
