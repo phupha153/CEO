@@ -237,35 +237,19 @@ export default function UserBranchAccess() {
   });
 
   const savePackageMutation = useMutation({
-    mutationFn: async ({ userId, branchId, packageData }) => {
-      const userEmail = allUsers.find(u => u.id === userId)?.email;
-      if (!userEmail) throw new Error('User email not found');
-
-      // ลบ package เก่าของสาขานี้ก่อน (ถ้ามี)
-      const existingPackages = branchPackages.filter(bp => 
-        bp.branch_id === branchId && bp.owner_email === userEmail
-      );
-      
-      for (const pkg of existingPackages) {
-        await base44.entities.BranchPackage.delete(pkg.id);
-      }
-
-      // สร้าง package ใหม่
-      return await base44.entities.BranchPackage.create({
-        branch_id: branchId,
-        owner_email: userEmail,
+    mutationFn: async ({ userId, packageData }) => {
+      const updateData = {
+        plan_status: packageData.isTrialMode ? 'trial' : 'active',
+        trial_ends_at: packageData.isTrialMode ? packageData.endDate : null,
+        subscription_end_date: !packageData.isTrialMode ? packageData.endDate : null,
         package_id: packageData.isTrialMode ? 'trial' : packageData.packageId,
-        package_name: packageData.isTrialMode ? 'Trial' : (crmPackages?.packages?.find(p => p.id === packageData.packageId)?.package_name || 'Unknown'),
-        subscription_start_date: packageData.startDate,
-        subscription_end_date: packageData.endDate,
-        price_per_month: packageData.isTrialMode ? 0 : packageData.pricePerMonth,
-        status: 'active'
-      });
+      };
+      
+      return await base44.entities.User.update(userId, updateData);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['branchPackages']);
       queryClient.invalidateQueries(['users']);
-      toast.success('บันทึกแพ็กเกจสำเร็จ');
+      toast.success('✅ บันทึกแพ็กเกจสำเร็จ - ใช้ได้กับทุกสาขา');
       setShowPackageDialog(false);
     },
     onError: (error) => {
