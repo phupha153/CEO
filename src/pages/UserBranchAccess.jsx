@@ -934,6 +934,184 @@ export default function UserBranchAccess() {
               )}
             </DialogContent>
           </Dialog>
+
+          {/* Package Dialog */}
+          <Dialog open={showPackageDialog} onOpenChange={setShowPackageDialog}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Package className="w-5 h-5 text-green-600" />
+                  ตั้งค่าแพ็กเกจ: {selectedUser?.full_name}
+                </DialogTitle>
+              </DialogHeader>
+              {selectedUser && (
+                <div className="space-y-6">
+                  {/* Trial/Paid Toggle */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-semibold">โหมด</Label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setPackageForm({ ...packageForm, isTrialMode: true, pricePerMonth: 0 })}
+                        className={`flex-1 p-4 rounded-xl border-2 transition-all ${
+                          packageForm.isTrialMode
+                            ? 'bg-amber-50 border-amber-400'
+                            : 'bg-white border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-center gap-2 mb-1">
+                          <Sparkles className={`w-5 h-5 ${packageForm.isTrialMode ? 'text-amber-600' : 'text-slate-400'}`} />
+                          <span className={`font-bold ${packageForm.isTrialMode ? 'text-amber-700' : 'text-slate-600'}`}>
+                            Trial
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500">ทดลองใช้ฟรี</p>
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={() => setPackageForm({ ...packageForm, isTrialMode: false })}
+                        className={`flex-1 p-4 rounded-xl border-2 transition-all ${
+                          !packageForm.isTrialMode
+                            ? 'bg-green-50 border-green-400'
+                            : 'bg-white border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-center gap-2 mb-1">
+                          <Crown className={`w-5 h-5 ${!packageForm.isTrialMode ? 'text-green-600' : 'text-slate-400'}`} />
+                          <span className={`font-bold ${!packageForm.isTrialMode ? 'text-green-700' : 'text-slate-600'}`}>
+                            Paid
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500">แพ็กเกจชำระเงิน</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Branch Selection */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">เลือกสาขา *</Label>
+                    <Select value={selectedBranchForPackage} onValueChange={setSelectedBranchForPackage}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="-- เลือกสาขา --" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {branches.map(branch => (
+                          <SelectItem key={branch.id} value={branch.id}>
+                            {branch.branch_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Package Selection (Paid mode only) */}
+                  {!packageForm.isTrialMode && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold">เลือกแพ็กเกจ *</Label>
+                      <Select 
+                        value={packageForm.packageId} 
+                        onValueChange={(value) => {
+                          const pkg = crmPackages?.packages?.find(p => p.id === value);
+                          setPackageForm({ 
+                            ...packageForm, 
+                            packageId: value,
+                            pricePerMonth: pkg?.pricing?.monthly || pkg?.price_monthly || 0
+                          });
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="-- เลือกแพ็กเกจ --" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {crmPackages?.packages?.filter(p => p.app_system === 'dormitory').map(pkg => (
+                            <SelectItem key={pkg.id} value={pkg.id}>
+                              {pkg.package_name?.name || pkg.package_name || pkg.id} - ฿{pkg.pricing?.monthly || pkg.price_monthly || 0}/เดือน
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {/* Date Range */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold">วันเริ่มต้น *</Label>
+                      <Input
+                        type="date"
+                        value={packageForm.startDate}
+                        onChange={(e) => setPackageForm({ ...packageForm, startDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold">วันสิ้นสุด *</Label>
+                      <Input
+                        type="date"
+                        value={packageForm.endDate}
+                        onChange={(e) => setPackageForm({ ...packageForm, endDate: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Summary */}
+                  {selectedBranchForPackage && (
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200">
+                      <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" />
+                        สรุปการตั้งค่า
+                      </h4>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">ผู้ใช้:</span>
+                          <span className="font-semibold text-slate-800">{selectedUser?.full_name}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">สาขา:</span>
+                          <span className="font-semibold text-slate-800">{getBranchName(selectedBranchForPackage)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">โหมด:</span>
+                          <span className={`font-bold ${packageForm.isTrialMode ? 'text-amber-600' : 'text-green-600'}`}>
+                            {packageForm.isTrialMode ? '🎉 Trial (ฟรี)' : '💳 Paid'}
+                          </span>
+                        </div>
+                        {!packageForm.isTrialMode && packageForm.packageId && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-600">ราคา:</span>
+                            <span className="font-bold text-green-700">฿{packageForm.pricePerMonth}/เดือน</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2 pt-4 border-t">
+                    <Button variant="outline" onClick={() => setShowPackageDialog(false)}>
+                      ยกเลิก
+                    </Button>
+                    <Button
+                      onClick={handlePackageSubmit}
+                      disabled={savePackageMutation.isPending}
+                      className="bg-gradient-to-r from-green-600 to-emerald-600"
+                    >
+                      {savePackageMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          กำลังบันทึก...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-4 h-4 mr-2" />
+                          บันทึก
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>
