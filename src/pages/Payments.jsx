@@ -3710,7 +3710,7 @@ Return JSON.`;
                               .sort((a, b) => a.room_number.localeCompare(b.room_number))
                               .map(room => {
                                 // ⭐ หา payment จากข้อมูลที่ filter มาแล้ว
-                                const roomPayment = payments.find(p => p.room_id === room.id);
+                                const roomPayment = filteredPayments.find(p => p.room_id === room.id);
 
                                 const effectiveStatus = roomPayment ? getEffectiveStatus(roomPayment) : null;
                                 const tenant = roomPayment ? getTenantInfo(roomPayment.tenant_id) : null;
