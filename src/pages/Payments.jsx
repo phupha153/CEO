@@ -56,7 +56,8 @@ export default function PaymentsPage() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date())
   });
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(''); // ข้อความที่พิมพ์
+  const [actualSearchQuery, setActualSearchQuery] = useState(''); // ข้อความที่ใช้ค้นหาจริง (หลังกด Enter)
   const [viewMode, setViewMode] = useState('room');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
@@ -214,7 +215,7 @@ export default function PaymentsPage() {
 
   // ✅ Server-side filtering via Backend Function (SaaS Standard)
   const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
-    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy],
+    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, actualSearchQuery, currentPage, sortBy],
     queryFn: async () => {
       if (!selectedBranchId) return { data: [], total: 0, page: 1, totalPages: 0, counts: { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 }, logs: [] };
       
@@ -223,7 +224,7 @@ export default function PaymentsPage() {
         status_filter: statusFilter,
         date_range_type: dateRangeType,
         custom_range: dateRangeType === 'custom' ? customRange : null,
-        search_query: searchQuery,
+        search_query: actualSearchQuery,
         page: currentPage,
         limit: itemsPerPage,
         sort_by: sortBy,
@@ -832,7 +833,7 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [dateRangeType, customRange, statusFilter, searchQuery, aiResult]);
+  }, [dateRangeType, customRange, statusFilter, actualSearchQuery, aiResult]);
 
   // ✅ Removed separate counts query - now from backend
 
@@ -1617,6 +1618,9 @@ export default function PaymentsPage() {
       toast.error('กรุณาใส่คำค้นหา');
       return;
     }
+    
+    // ⭐ เมื่อกด AI Search ให้เซ็ต actualSearchQuery ด้วย
+    setActualSearchQuery(searchQuery);
 
     const controller = new AbortController();
     setAiAbortController(controller);
@@ -2271,6 +2275,11 @@ Return JSON.`;
                 onStopSearch={handleStopAISearch}
                 aiSearching={aiSearching}
                 placeholder="ค้นหาการชำระเงิน หรือถามเช่น 'สร้างบิลห้อง 101' 'รายการค้างชำระ'"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !aiSearching) {
+                    setActualSearchQuery(searchQuery);
+                  }
+                }}
               />
 
               {aiAction && (
