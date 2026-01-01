@@ -51,17 +51,21 @@ export default function PaymentsPage() {
   const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null, template: null });
 
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
-  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM')); // สำหรับ Card/Table view
-  const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM')); // สำหรับ Room view
+  const [dateRangeType, setDateRangeType] = useState('this_month');
+  const [customRange, setCustomRange] = useState({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date())
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('room');
-  const [showFilters, setShowFilters] = useState(false); // สำหรับซ่อน/แสดง filters ใน Card/Table view
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
   const [sortBy, setSortBy] = useState('due_date'); // 'due_date', 'room', 'created_date', 'amount'
   const [debugLogs, setDebugLogs] = useState([]);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
-  const [isRoomViewLoading, setIsRoomViewLoading] = useState(false);
+  
+  // Room View State
+  const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM'));
 
   const [aiSearching, setAiSearching] = useState(false);
   const [aiResult, setAiResult] = useState(null);
@@ -159,7 +163,7 @@ export default function PaymentsPage() {
 
   // Reset filters and clear cache when branch changes
   useEffect(() => {
-    setSelectedMonth(format(new Date(), 'yyyy-MM')); // ⭐ เริ่มต้นที่เดือนนี้เสมอ
+    setDateRangeType('this_month'); // ⭐ เริ่มต้นที่เดือนนี้เสมอ
     setStatusFilter('all');
     setCurrentPage(1);
     setSearchQuery('');
@@ -180,17 +184,6 @@ export default function PaymentsPage() {
       return new Date().toISOString();
     }
   };
-
-  // ⭐ Load configs first (needed for calculations)
-  const { data: configs = [] } = useQuery({
-    queryKey: ['configs'],
-    queryFn: () => base44.entities.Config.list(),
-    retry: 0,
-    retryDelay: 0,
-    staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 8 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -221,24 +214,15 @@ export default function PaymentsPage() {
 
   // ✅ Server-side filtering via Backend Function (SaaS Standard)
   const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
-    queryKey: ['payments-filtered', selectedBranchId, statusFilter, selectedMonth, searchQuery, currentPage, sortBy],
+    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy],
     queryFn: async () => {
-      if (!selectedBranchId || !configs || configs.length === 0) return { data: [], total: 0, page: 1, totalPages: 0, counts: { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 }, logs: [] };
-      
-      // ⭐ คำนวณช่วงเวลาจาก selectedMonth
-      const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
-      const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
-      const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
-      
-      const [selectedYear, selectedMonthNum] = selectedMonth.split('-').map(Number);
-      const monthStart = new Date(selectedYear, selectedMonthNum - 2, billGenerationDay);
-      const monthEnd = new Date(selectedYear, selectedMonthNum - 1, billGenerationDay - 1, 23, 59, 59);
+      if (!selectedBranchId) return { data: [], total: 0, page: 1, totalPages: 0, counts: { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 }, logs: [] };
       
       const response = await base44.functions.invoke('getFilteredPayments', {
         branch_id: selectedBranchId,
         status_filter: statusFilter,
-        date_range_type: 'custom',
-        custom_range: { from: monthStart, to: monthEnd },
+        date_range_type: dateRangeType,
+        custom_range: dateRangeType === 'custom' ? customRange : null,
         search_query: searchQuery,
         page: currentPage,
         limit: itemsPerPage,
@@ -252,17 +236,17 @@ export default function PaymentsPage() {
       }
       
       console.log('🔍 Payments Response:', {
-      data_length: response.data?.data?.length,
-      total: response.data?.total,
-      counts: response.data?.counts,
-      page: response.data?.page,
-      statusFilter,
-      selectedMonth,
-      logs: response.data?.logs
+        data_length: response.data?.data?.length,
+        total: response.data?.total,
+        counts: response.data?.counts,
+        page: response.data?.page,
+        statusFilter,
+        dateRangeType,
+        logs: response.data?.logs
       });
       return response.data;
     },
-    enabled: canView && !!selectedBranchId && configs.length > 0,
+    enabled: canView && !!selectedBranchId,
     ...retryConfig,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -279,7 +263,7 @@ export default function PaymentsPage() {
     totalFilteredCount,
     statusCounts,
     statusFilter,
-    selectedMonth
+    dateRangeType
   });
 
   // ✅ Shared Query Keys with AccountingData for instant navigation
@@ -345,8 +329,6 @@ export default function PaymentsPage() {
     placeholderData: (previousData) => previousData,
   });
 
-
-
   // ✅ O(1) Lookup Maps
   const tenantsMap = useMemo(() => new Map(tenants.map(t => [t.id, t])), [tenants]);
   const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
@@ -360,52 +342,22 @@ export default function PaymentsPage() {
     refetchOnWindowFocus: false,
   });
 
-  // ⭐ Separate query for Room View payments (ต้องมาหลัง configs)
-  const { data: roomViewPayments = [], isFetching: roomViewPaymentsFetching } = useQuery({
-    queryKey: ['roomViewPayments', selectedBranchId, roomViewMonth],
-    queryFn: async () => {
-      if (!selectedBranchId || !roomViewMonth || viewMode !== 'room' || !configs || configs.length === 0) return [];
-      
-      setIsRoomViewLoading(true);
-      try {
-        const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
-        const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
-        const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
-        
-        const [selectedYear, selectedMonthNum] = roomViewMonth.split('-').map(Number);
-        const monthStart = new Date(selectedYear, selectedMonthNum - 2, billGenerationDay);
-        const monthEnd = new Date(selectedYear, selectedMonthNum - 1, billGenerationDay - 1, 23, 59, 59);
-        
-        const response = await base44.functions.invoke('getFilteredPayments', {
-          branch_id: selectedBranchId,
-          status_filter: 'all',
-          date_range_type: 'custom',
-          custom_range: {
-            from: monthStart,
-            to: monthEnd
-          },
-          search_query: '',
-          page: 1,
-          limit: 10000,
-          sort_by: 'room',
-          debug: false
-        });
-        
-        return response.data?.data || [];
-      } finally {
-        setIsRoomViewLoading(false);
-      }
-    },
-    enabled: canView && !!selectedBranchId && viewMode === 'room' && configs.length > 0,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 60 * 1000,
+  const { data: configs = [] } = useQuery({
+    queryKey: ['configs'],
+    queryFn: () => base44.entities.Config.list(),
+    ...retryConfig,
+    staleTime: 4 * 60 * 60 * 1000,
+    gcTime: 8 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
-    placeholderData: (previousData) => previousData,
-    throwOnError: false,
   });
 
-
+  // ⭐ Auto-update room view month when configs load - ใช้เดือนปัจจุบันเสมอ
+  useEffect(() => {
+    if (!configs || configs.length === 0 || !selectedBranchId) return;
+    
+    const now = new Date();
+    setRoomViewMonth(format(now, 'yyyy-MM'));
+  }, [configs, selectedBranchId]);
 
   const isDataFetching = paymentsFetching || bookingsFetching || roomsFetching || tenantsFetching;
 
@@ -425,7 +377,119 @@ export default function PaymentsPage() {
 
   const getCurrentDate = () => currentDateMemo;
 
+  const getMainDateRange = () => {
+    const now = getCurrentDate();
+    // ⭐ ดึง bill_generation_day ของสาขาก่อน ถ้าไม่มีใช้ global
+    const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
+    const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
+    
+    switch(dateRangeType) {
+      case 'all':
+        return null;
+      case 'this_month': {
+        // งวดบิลเดือนนี้ = ถ้าวันนี้ยังไม่ถึงวันสร้างบิล ให้ดูงวดเดือนก่อนหน้า
+        const currentDay = now.getDate();
+        let cycleMonth = now.getMonth();
+        let cycleYear = now.getFullYear();
+        
+        if (currentDay < billGenerationDay) {
+          cycleMonth -= 1;
+          if (cycleMonth < 0) {
+            cycleMonth = 11;
+            cycleYear -= 1;
+          }
+        }
+        
+        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+        const cycleEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
+        return { from: cycleStart, to: cycleEnd };
+      }
+      case 'last_month': {
+        // งวดบิลเดือนที่แล้ว
+        const currentDay = now.getDate();
+        let cycleMonth = now.getMonth() - 1;
+        let cycleYear = now.getFullYear();
+        
+        if (currentDay < billGenerationDay) {
+          cycleMonth -= 1;
+        }
+        
+        if (cycleMonth < 0) {
+          cycleMonth += 12;
+          cycleYear -= 1;
+        }
+        
+        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+        const cycleEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
+        return { from: cycleStart, to: cycleEnd };
+      }
+      case '3_months': {
+        const currentDay = now.getDate();
+        let cycleMonth = now.getMonth() - 2;
+        let cycleYear = now.getFullYear();
+        
+        if (currentDay < billGenerationDay) {
+          cycleMonth -= 1;
+        }
+        
+        while (cycleMonth < 0) {
+          cycleMonth += 12;
+          cycleYear -= 1;
+        }
+        
+        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + (currentDay >= billGenerationDay ? 1 : 0), billGenerationDay);
+        return { from: cycleStart, to: cycleEnd };
+      }
+      case '6_months': {
+        const currentDay = now.getDate();
+        let cycleMonth = now.getMonth() - 5;
+        let cycleYear = now.getFullYear();
+        
+        if (currentDay < billGenerationDay) {
+          cycleMonth -= 1;
+        }
+        
+        while (cycleMonth < 0) {
+          cycleMonth += 12;
+          cycleYear -= 1;
+        }
+        
+        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + (currentDay >= billGenerationDay ? 1 : 0), billGenerationDay);
+        return { from: cycleStart, to: cycleEnd };
+      }
+      case '12_months': {
+        const currentDay = now.getDate();
+        let cycleMonth = now.getMonth() - 11;
+        let cycleYear = now.getFullYear();
+        
+        if (currentDay < billGenerationDay) {
+          cycleMonth -= 1;
+        }
+        
+        while (cycleMonth < 0) {
+          cycleMonth += 12;
+          cycleYear -= 1;
+        }
+        
+        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
+        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + (currentDay >= billGenerationDay ? 1 : 0), billGenerationDay);
+        return { from: cycleStart, to: cycleEnd };
+      }
+      case 'this_year':
+        return { from: startOfYear(now), to: endOfYear(now) };
+      case 'last_year':
+        return { from: startOfYear(subYears(now, 1)), to: endOfYear(subYears(now, 1)) };
+      case 'custom':
+        return customRange;
+      default:
+        return null;
+    }
+  };
 
+  const dateRange = useMemo(() => getMainDateRange(), [dateRangeType, customRange]);
 
   const calculateDueDate = () => {
     // ดึง pay_day จาก config ของสาขา (ถ้ามี) ไม่งั้นใช้ global
@@ -774,7 +838,7 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedMonth, statusFilter, searchQuery, aiResult]);
+  }, [dateRangeType, customRange, statusFilter, searchQuery, aiResult]);
 
   // ✅ Removed separate counts query - now from backend
 
@@ -840,15 +904,6 @@ export default function PaymentsPage() {
     refetchOnWindowFocus: false,
   });
 
-  const dateRangeLabel = useMemo(() => {
-    if (!selectedMonth) return 'เลือกเดือน';
-    try {
-      return format(new Date(selectedMonth), 'MMMM yyyy', { locale: th });
-    } catch {
-      return 'เลือกเดือน';
-    }
-  }, [selectedMonth]);
-
   const roomsNeedingBills = useMemo(() => {
     if (!rooms.length || !bookings.length || !configs.length) return 0;
 
@@ -890,6 +945,21 @@ export default function PaymentsPage() {
 
     return count;
   }, [rooms, bookings, allPaymentsForCounting, configs, selectedBranchId]);
+
+  const dateRangeLabel = () => {
+    switch(dateRangeType) {
+      case 'all': return 'ทั้งหมด';
+      case 'this_month': return `เดือนนี้ (${format(dateRange.from, 'MMM yyyy', { locale: th })})`;
+      case 'last_month': return `เดือนที่แล้ว (${format(dateRange.from, 'MMM yyyy', { locale: th })})`;
+      case '3_months': return '3 เดือนล่าสุด';
+      case '6_months': return '6 เดือนล่าสุด';
+      case '12_months': return '12 เดือนล่าสุด';
+      case 'this_year': return `ปีนี้ (${format(dateRange.from, 'yyyy', { locale: th })})`;
+      case 'last_year': return `ปีที่แล้ว (${format(dateRange.from, 'yyyy', { locale: th })})`;
+      case 'custom': return `${format(customRange.from, 'd MMM', { locale: th })} - ${format(customRange.to, 'd MMM yyyy', { locale: th })}`;
+      default: return 'เดือนนี้';
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: (data) => {
@@ -2112,87 +2182,93 @@ Return JSON.`;
           <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
             <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
             <CardContent className="p-4 md:p-6 relative">
-              {/* Filters - แสดงเฉพาะ Card/Table view */}
-              {viewMode !== 'room' && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: showFilters ? 1 : 0, height: showFilters ? 'auto' : 0 }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="flex flex-col gap-3 mb-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
-                        <label className="text-xs font-semibold text-slate-700">เลือกเดือน</label>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              const [year, month] = selectedMonth.split('-').map(Number);
-                              const prevMonth = new Date(year, month - 2, 1);
-                              setSelectedMonth(format(prevMonth, 'yyyy-MM'));
-                            }}
-                            className="h-9 w-9 flex-shrink-0"
-                          >
-                            <ChevronLeft className="w-4 h-4" />
-                          </Button>
-                          <Input
-                            type="month"
-                            value={selectedMonth}
-                            onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="flex-1 h-9 text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl"
-                          />
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              const [year, month] = selectedMonth.split('-').map(Number);
-                              const nextMonth = new Date(year, month, 1);
-                              setSelectedMonth(format(nextMonth, 'yyyy-MM'));
-                            }}
-                            className="h-9 w-9 flex-shrink-0"
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
-                        <label className="text-xs font-semibold text-slate-700">สถานะ</label>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
-                          <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">ทั้งหมด</SelectItem>
-                            <SelectItem value="pending">รอชำระ</SelectItem>
-                            <SelectItem value="partial_paid">ชำระบางส่วน</SelectItem>
-                            <SelectItem value="overdue">เกินกำหนด</SelectItem>
-                            <SelectItem value="paid">ชำระแล้ว</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
-                        <label className="text-xs font-semibold text-slate-700">เรียงตาม</label>
-                        <Select value={sortBy} onValueChange={setSortBy}>
-                          <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl h-9">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="due_date">วันครบกำหนด</SelectItem>
-                            <SelectItem value="room">หมายเลขห้อง</SelectItem>
-                            <SelectItem value="created_date">วันที่สร้าง</SelectItem>
-                            <SelectItem value="amount">ยอดเงิน</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+              <div className="flex flex-col gap-3 mb-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                    <label className="text-xs font-semibold text-slate-700">ช่วงเวลา</label>
+                    <Select value={dateRangeType} onValueChange={setDateRangeType}>
+                      <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="this_month">เดือนนี้</SelectItem>
+                        <SelectItem value="last_month">1 เดือนที่แล้ว</SelectItem>
+                        <SelectItem value="3_months">3 เดือน</SelectItem>
+                        <SelectItem value="6_months">6 เดือน</SelectItem>
+                        <SelectItem value="12_months">12 เดือน</SelectItem>
+                        <SelectItem value="this_year">ปีนี้</SelectItem>
+                        <SelectItem value="last_year">ปีที่แล้ว</SelectItem>
+                        <SelectItem value="all">ทั้งหมด</SelectItem>
+                        <SelectItem value="custom">กำหนดเอง</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                </motion.div>
-              )}
+                  
+                  <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                    <label className="text-xs font-semibold text-slate-700">สถานะ</label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">ทั้งหมด</SelectItem>
+                        <SelectItem value="pending">รอชำระ</SelectItem>
+                        <SelectItem value="partial_paid">ชำระบางส่วน</SelectItem>
+                        <SelectItem value="overdue">เกินกำหนด</SelectItem>
+                        <SelectItem value="paid">ชำระแล้ว</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+
+
+                  <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                    <label className="text-xs font-semibold text-slate-700">เรียงตาม</label>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="due_date">วันครบกำหนด</SelectItem>
+                        <SelectItem value="room">หมายเลขห้อง</SelectItem>
+                        <SelectItem value="created_date">วันที่สร้าง</SelectItem>
+                        <SelectItem value="amount">ยอดเงิน</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                {dateRangeType === 'custom' && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 border-green-300 text-green-700 hover:bg-green-50 rounded-xl"
+                      >
+                        <CalendarIcon className="w-4 h-4" />
+                        {format(customRange.from, 'd MMM', { locale: th })} - {format(customRange.to, 'd MMM', { locale: th })}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <CalendarComponent
+                        mode="range"
+                        selected={customRange}
+                        onSelect={(range) => {
+                          if (range?.from && range?.to) {
+                            setCustomRange(range);
+                          }
+                        }}
+                        numberOfMonths={2}
+                        locale={th}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+                </div>
+              </div>
 
               <AISearchBox
                 searchQuery={searchQuery}
@@ -2433,7 +2509,7 @@ Return JSON.`;
                           statusCounts,
                           totalFilteredCount,
                           statusFilter,
-                          selectedMonth,
+                          dateRangeType,
                           searchQuery,
                           aiResult,
                           totalAmounts,
@@ -2469,14 +2545,14 @@ Return JSON.`;
                   </div>
 
                   <div className="text-xs">
-                  <p className="text-purple-600 mb-1">Current Filters:</p>
-                  <div className="bg-white rounded p-2 font-mono text-[10px]">
-                    <p>status: {statusFilter}</p>
-                    <p>selectedMonth: {selectedMonth}</p>
-                    <p>search: "{searchQuery}"</p>
-                    <p>aiResult: {aiResult ? 'YES' : 'NO'}</p>
-                    {aiResult && <p>aiResult.payments: {aiResult.payments?.length || 0}</p>}
-                  </div>
+                    <p className="text-purple-600 mb-1">Current Filters:</p>
+                    <div className="bg-white rounded p-2 font-mono text-[10px]">
+                      <p>status: {statusFilter}</p>
+                      <p>dateRange: {dateRangeType}</p>
+                      <p>search: "{searchQuery}"</p>
+                      <p>aiResult: {aiResult ? 'YES' : 'NO'}</p>
+                      {aiResult && <p>aiResult.payments: {aiResult.payments?.length || 0}</p>}
+                    </div>
                   </div>
 
                   {/* Backend Debug Logs */}
@@ -2701,49 +2777,34 @@ Return JSON.`;
             </motion.div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              {canSendReminder && (
-                <p className="text-xs text-slate-500">
-                  บิลรอบนี้: {(() => {
-                    const now = new Date();
-                    const currentDay = now.getDate();
-                    let cycleStart, cycleEnd;
-                    
-                    if (currentDay >= 20) {
-                      cycleStart = new Date(now.getFullYear(), now.getMonth(), 20);
-                      cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 20);
-                    } else {
-                      cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, 20);
-                      cycleEnd = new Date(now.getFullYear(), now.getMonth(), 20);
-                    }
-                    
-                    const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
-                    const billsThisCycle = payments.filter(p => {
-                      if (!p.due_date) return false;
-                      try {
-                        const dueDate = parseISO(p.due_date);
-                        return dueDate >= cycleStart && dueDate < cycleEnd;
-                      } catch { return false; }
-                    }).length;
-                    return `${billsThisCycle}/${occupiedRooms}`;
-                  })()}
-                </p>
-              )}
-              
-              {/* ปุ่มแสดง/ซ่อน filters สำหรับ Card/Table view */}
-              {viewMode !== 'room' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowFilters(!showFilters)}
-                  className="gap-2"
-                >
-                  <Settings className="w-4 h-4" />
-                  {showFilters ? 'ซ่อนตัวกรอง' : 'แสดงตัวกรอง'}
-                </Button>
-              )}
-            </div>
+          <div className="flex items-center justify-between gap-4">
+            {canSendReminder && (
+              <p className="text-xs text-slate-500">
+                บิลรอบนี้: {(() => {
+                  const now = new Date();
+                  const currentDay = now.getDate();
+                  let cycleStart, cycleEnd;
+                  
+                  if (currentDay >= 20) {
+                    cycleStart = new Date(now.getFullYear(), now.getMonth(), 20);
+                    cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 20);
+                  } else {
+                    cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, 20);
+                    cycleEnd = new Date(now.getFullYear(), now.getMonth(), 20);
+                  }
+                  
+                  const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
+                  const billsThisCycle = payments.filter(p => {
+                    if (!p.due_date) return false;
+                    try {
+                      const dueDate = parseISO(p.due_date);
+                      return dueDate >= cycleStart && dueDate < cycleEnd;
+                    } catch { return false; }
+                  }).length;
+                  return `${billsThisCycle}/${occupiedRooms}`;
+                })()}
+              </p>
+            )}
             
             <div className="flex items-center gap-1 bg-white/90 backdrop-blur-xl shadow-md border border-white/60 rounded-xl p-1">
               <Button
@@ -3492,51 +3553,38 @@ Return JSON.`;
               {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
                   <CardContent className="p-4 md:p-6">
-                    {/* Month Picker for Room View */}
-                    <div className="flex items-center justify-between mb-6 pb-4 border-b">
-                      <div className="flex items-center gap-3">
-                        <CalendarIcon className="w-5 h-5 text-blue-600" />
-                        <label className="font-semibold text-slate-700">เลือกเดือน:</label>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const [year, month] = roomViewMonth.split('-').map(Number);
-                              const prevMonth = new Date(year, month - 2, 1);
-                              setRoomViewMonth(format(prevMonth, 'yyyy-MM'));
-                            }}
-                            className="h-9 w-9"
-                          >
-                            <ChevronLeft className="w-4 h-4" />
-                          </Button>
-                          <Input
-                            type="month"
-                            value={roomViewMonth}
-                            onChange={(e) => setRoomViewMonth(e.target.value)}
-                            className="w-40 h-9 text-sm bg-white shadow-sm"
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const [year, month] = roomViewMonth.split('-').map(Number);
-                              const nextMonth = new Date(year, month, 1);
-                              setRoomViewMonth(format(nextMonth, 'yyyy-MM'));
-                            }}
-                            className="h-9 w-9"
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        <span className="text-sm text-slate-600">
-                          ({format(new Date(roomViewMonth), 'MMMM yyyy', { locale: th })})
-                        </span>
+                    {/* Month Selector */}
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            const [year, month] = roomViewMonth.split('-').map(Number);
+                            const prevMonth = new Date(year, month - 2, 1);
+                            setRoomViewMonth(format(prevMonth, 'yyyy-MM'));
+                          }}
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <Input
+                          type="month"
+                          value={roomViewMonth}
+                          onChange={(e) => setRoomViewMonth(e.target.value)}
+                          className="w-40"
+                        />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => {
+                            const [year, month] = roomViewMonth.split('-').map(Number);
+                            const nextMonth = new Date(year, month, 1);
+                            setRoomViewMonth(format(nextMonth, 'yyyy-MM'));
+                          }}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
                       </div>
-                    </div>
-
-                    {/* Legend */}
-                    <div className="flex items-center justify-end mb-6">
                       <div className="hidden md:flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 rounded bg-green-500"></div>
@@ -3558,15 +3606,7 @@ Return JSON.`;
                     </div>
 
                     {/* Room Grid by Floor */}
-                    {isRoomViewLoading ? (
-                      <div className="flex items-center justify-center py-20">
-                        <div className="text-center space-y-3">
-                          <Loader2 className="w-12 h-12 text-blue-600 mx-auto animate-spin" />
-                          <p className="text-slate-600 font-medium">กำลังโหลดข้อมูลห้องพัก...</p>
-                          <p className="text-sm text-slate-500">เดือน {format(new Date(roomViewMonth), 'MMMM yyyy', { locale: th })}</p>
-                        </div>
-                      </div>
-                    ) : (() => {
+                    {(() => {
                       // Group rooms by floor
                       const roomsByFloor = rooms.reduce((acc, room) => {
                         const floor = room.floor || 1;
@@ -3578,8 +3618,25 @@ Return JSON.`;
                       // Sort floors
                       const sortedFloors = Object.keys(roomsByFloor).sort((a, b) => Number(a) - Number(b));
 
-                      // ⭐ ใช้ roomViewPayments แทน payments
-                      const monthPayments = roomViewPayments;
+                      // Get payments for selected month
+                      // ⭐ คำนวณช่วงงวดบิลจริงๆ โดยใช้ bill_generation_day ของสาขา
+                      const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
+                      const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+                      const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
+                      
+                      const [selectedYear, selectedMonth] = roomViewMonth.split('-').map(Number);
+                      
+                      // งวดบิลเริ่มจากวันที่ bill_generation_day ของเดือนก่อนหน้า
+                      // และสิ้นสุดที่วันที่ bill_generation_day ของเดือนที่เลือก
+                      const monthStart = new Date(selectedYear, selectedMonth - 2, billGenerationDay);
+                      const monthEnd = new Date(selectedYear, selectedMonth - 1, billGenerationDay - 1, 23, 59, 59);
+                      
+                      console.log('🔍 Room View Month Range:', {
+                        selectedMonth: roomViewMonth,
+                        billGenerationDay,
+                        monthStart: format(monthStart, 'yyyy-MM-dd'),
+                        monthEnd: format(monthEnd, 'yyyy-MM-dd')
+                      });
 
                       return sortedFloors.map(floor => (
                         <div key={floor} className="mb-6">
@@ -3591,8 +3648,17 @@ Return JSON.`;
                             {roomsByFloor[floor]
                               .sort((a, b) => a.room_number.localeCompare(b.room_number))
                               .map(room => {
-                                // ⭐ Find payment from roomViewPayments (already filtered by month)
-                                const roomPayment = monthPayments.find(p => p.room_id === room.id);
+                                // Find payment for this room in selected month
+                                const roomPayment = payments.find(p => {
+                                  if (p.room_id !== room.id) return false;
+                                  if (!p.due_date) return false;
+                                  try {
+                                    const dueDate = parseISO(p.due_date);
+                                    return isWithinInterval(dueDate, { start: monthStart, end: monthEnd });
+                                  } catch {
+                                    return false;
+                                  }
+                                });
 
                                 const effectiveStatus = roomPayment ? getEffectiveStatus(roomPayment) : null;
                                 const tenant = roomPayment ? getTenantInfo(roomPayment.tenant_id) : null;

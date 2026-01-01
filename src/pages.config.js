@@ -31,6 +31,7 @@ import MeterReadings from './pages/MeterReadings';
 import NotificationSettings from './pages/NotificationSettings';
 import OwnerAI from './pages/OwnerAI';
 import PackageSelection from './pages/PackageSelection';
+import Payments from './pages/Payments';
 import PrintReceipts from './pages/PrintReceipts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import PublicInvoice from './pages/PublicInvoice';
@@ -49,7 +50,6 @@ import UserBranchAccess from './pages/UserBranchAccess';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import Payments from './pages/Payments';
 import __Layout from './Layout.jsx';
 
 
@@ -87,6 +87,7 @@ export const PAGES = {
     "NotificationSettings": NotificationSettings,
     "OwnerAI": OwnerAI,
     "PackageSelection": PackageSelection,
+    "Payments": Payments,
     "PrintReceipts": PrintReceipts,
     "PrivacyPolicy": PrivacyPolicy,
     "PublicInvoice": PublicInvoice,
@@ -105,7 +106,6 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "Payments": Payments,
 }
 
 export const pagesConfig = {
