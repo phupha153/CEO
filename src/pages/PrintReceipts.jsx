@@ -211,11 +211,11 @@ export default function PrintReceipts() {
             }
             
             failed.push({ 
-              paymentId: paymentId.slice(0, 8),
+              paymentId: paymentId, // เก็บ full ID
+              paymentIdShort: paymentId.slice(0, 8), // ID แบบสั้นสำหรับแสดง
               roomNumber: roomNumber,
               tenantName: tenantName,
-              error: errorMsg,
-              fullId: paymentId
+              error: errorMsg
             });
             console.error(`❌ Failed to fetch payment ${paymentId}:`, errorMsg);
           }
@@ -322,7 +322,7 @@ export default function PrintReceipts() {
                           ห้อง {item.roomNumber} - {item.tenantName}
                         </p>
                         <p className="font-mono text-xs text-slate-500 mb-1">
-                          ID: {item.paymentId}
+                          ID: {item.paymentIdShort}
                         </p>
                         <p className="text-red-600 font-medium">
                           → {item.error}
@@ -427,7 +427,7 @@ export default function PrintReceipts() {
                   <ul className="mt-2 space-y-1 pl-4 list-disc">
                     {failedPayments.slice(0, 5).map((item, idx) => (
                       <li key={idx}>
-                        <span className="font-semibold">ห้อง {item.roomNumber}</span> - {item.tenantName} (ID: {item.paymentId}) - {item.error}
+                        <span className="font-semibold">ห้อง {item.roomNumber}</span> - {item.tenantName} (ID: {item.paymentIdShort}) - {item.error}
                       </li>
                     ))}
                     {failedPayments.length > 5 && (
