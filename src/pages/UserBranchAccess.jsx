@@ -702,7 +702,7 @@ export default function UserBranchAccess() {
 
                       {/* Quick Actions - เฉพาะ Developer และ Owner เท่านั้น */}
                       {(isDeveloper || userRole === 'owner') && (
-                        <div className="mt-4 pt-4 border-t grid grid-cols-3 gap-2">
+                        <div className="mt-4 pt-4 border-t flex flex-wrap gap-2">
                           <Button
                             size="sm"
                             variant="outline"
@@ -718,6 +718,15 @@ export default function UserBranchAccess() {
                           >
                             <Globe className="w-4 h-4 mr-1" />
                             สาขา
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenPackageDialog(user)}
+                            className="text-green-600 hover:bg-green-50 border-green-300"
+                          >
+                            <Package className="w-4 h-4 mr-1" />
+                            แพ็กเกจ
                           </Button>
                           {(() => {
                             const userBranches = user.accessible_branches || [];
