@@ -966,22 +966,18 @@ export default function UserBranchAccess() {
                     </div>
                   </div>
 
-                  {/* Branch Selection */}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold">เลือกสาขา *</Label>
-                    <Select value={selectedBranchForPackage} onValueChange={setSelectedBranchForPackage}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="-- เลือกสาขา --" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {branches.map(branch => (
-                          <SelectItem key={branch.id} value={branch.id}>
-                            {branch.branch_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {/* Info: Package applies to all user's branches */}
+                  <Alert className="bg-blue-50 border-blue-300">
+                    <Building2 className="w-4 h-4 text-blue-600" />
+                    <AlertDescription className="text-sm text-blue-800">
+                      <strong>📦 Package นี้จะใช้ได้กับทุกสาขา</strong>ที่ผู้ใช้คนนี้มีสิทธิ์เข้าถึง
+                      {selectedUser?.accessible_branches?.length > 0 && (
+                        <span className="block mt-1 text-xs">
+                          ({selectedUser.accessible_branches.length} สาขา)
+                        </span>
+                      )}
+                    </AlertDescription>
+                  </Alert>
 
                   {/* Package Selection (Paid mode only) */}
                   {!packageForm.isTrialMode && (
