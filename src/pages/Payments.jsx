@@ -2691,6 +2691,12 @@ Return JSON.`;
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 opacity-5" />
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400 to-indigo-500 opacity-10 blur-3xl" />
                 
+                {paymentsFetching && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
+                    <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                  </div>
+                )}
+                
                 <CardContent className="p-4 md:p-6 relative">
                   <div className="flex items-start justify-between mb-4">
                     <div className="relative">
@@ -2725,6 +2731,12 @@ Return JSON.`;
               <Card className={`relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300 ${statusFilter === 'pending' ? 'ring-2 ring-yellow-500' : ''}`}>
                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-500 to-orange-600 opacity-5" />
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-400 to-orange-500 opacity-10 blur-3xl" />
+                
+                {paymentsFetching && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
+                    <Loader2 className="w-5 h-5 text-yellow-600 animate-spin" />
+                  </div>
+                )}
                 
                 <CardContent className="p-4 md:p-6 relative">
                   <div className="flex items-start justify-between mb-4">
@@ -2761,6 +2773,12 @@ Return JSON.`;
                 <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-600 opacity-5" />
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-400 to-red-500 opacity-10 blur-3xl" />
                 
+                {paymentsFetching && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
+                    <Loader2 className="w-5 h-5 text-red-600 animate-spin" />
+                  </div>
+                )}
+                
                 <CardContent className="p-4 md:p-6 relative">
                   <div className="flex items-start justify-between mb-4">
                     <div className="relative">
@@ -2795,6 +2813,12 @@ Return JSON.`;
               <Card className={`relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300 ${statusFilter === 'paid' ? 'ring-2 ring-green-500' : ''}`}>
                 <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600 opacity-5" />
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400 to-emerald-500 opacity-10 blur-3xl" />
+                
+                {paymentsFetching && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
+                    <Loader2 className="w-5 h-5 text-green-600 animate-spin" />
+                  </div>
+                )}
                 
                 <CardContent className="p-4 md:p-6 relative">
                   <div className="flex items-start justify-between mb-4">
