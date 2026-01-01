@@ -51,9 +51,11 @@ export default function PaymentsPage() {
   const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null, template: null });
 
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
-  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM')); // ⭐ ใช้ state เดียวสำหรับเลือกเดือน
+  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM')); // สำหรับ Card/Table view
+  const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM')); // สำหรับ Room view
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('room');
+  const [showFilters, setShowFilters] = useState(false); // สำหรับซ่อน/แสดง filters ใน Card/Table view
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
   const [sortBy, setSortBy] = useState('due_date'); // 'due_date', 'room', 'created_date', 'amount'
@@ -360,9 +362,9 @@ export default function PaymentsPage() {
 
   // ⭐ Separate query for Room View payments (ต้องมาหลัง configs)
   const { data: roomViewPayments = [], isFetching: roomViewPaymentsFetching } = useQuery({
-    queryKey: ['roomViewPayments', selectedBranchId, selectedMonth],
+    queryKey: ['roomViewPayments', selectedBranchId, roomViewMonth],
     queryFn: async () => {
-      if (!selectedBranchId || !selectedMonth || viewMode !== 'room' || !configs || configs.length === 0) return [];
+      if (!selectedBranchId || !roomViewMonth || viewMode !== 'room' || !configs || configs.length === 0) return [];
       
       setIsRoomViewLoading(true);
       try {
@@ -370,7 +372,7 @@ export default function PaymentsPage() {
         const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
         const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
         
-        const [selectedYear, selectedMonthNum] = selectedMonth.split('-').map(Number);
+        const [selectedYear, selectedMonthNum] = roomViewMonth.split('-').map(Number);
         const monthStart = new Date(selectedYear, selectedMonthNum - 2, billGenerationDay);
         const monthEnd = new Date(selectedYear, selectedMonthNum - 1, billGenerationDay - 1, 23, 59, 59);
         
@@ -2110,76 +2112,87 @@ Return JSON.`;
           <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
             <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
             <CardContent className="p-4 md:p-6 relative">
-              <div className="flex flex-col gap-3 mb-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
-                    <label className="text-xs font-semibold text-slate-700">เลือกเดือน</label>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          const [year, month] = selectedMonth.split('-').map(Number);
-                          const prevMonth = new Date(year, month - 2, 1);
-                          setSelectedMonth(format(prevMonth, 'yyyy-MM'));
-                        }}
-                        className="h-9 w-9 flex-shrink-0"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </Button>
-                      <Input
-                        type="month"
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="flex-1 h-9 text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl"
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          const [year, month] = selectedMonth.split('-').map(Number);
-                          const nextMonth = new Date(year, month, 1);
-                          setSelectedMonth(format(nextMonth, 'yyyy-MM'));
-                        }}
-                        className="h-9 w-9 flex-shrink-0"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
+              {/* Filters - แสดงเฉพาะ Card/Table view */}
+              {viewMode !== 'room' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: showFilters ? 1 : 0, height: showFilters ? 'auto' : 0 }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex flex-col gap-3 mb-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
+                        <label className="text-xs font-semibold text-slate-700">เลือกเดือน</label>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              const [year, month] = selectedMonth.split('-').map(Number);
+                              const prevMonth = new Date(year, month - 2, 1);
+                              setSelectedMonth(format(prevMonth, 'yyyy-MM'));
+                            }}
+                            className="h-9 w-9 flex-shrink-0"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <Input
+                            type="month"
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                            className="flex-1 h-9 text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl"
+                          />
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              const [year, month] = selectedMonth.split('-').map(Number);
+                              const nextMonth = new Date(year, month, 1);
+                              setSelectedMonth(format(nextMonth, 'yyyy-MM'));
+                            }}
+                            className="h-9 w-9 flex-shrink-0"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                        <label className="text-xs font-semibold text-slate-700">สถานะ</label>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">ทั้งหมด</SelectItem>
+                            <SelectItem value="pending">รอชำระ</SelectItem>
+                            <SelectItem value="partial_paid">ชำระบางส่วน</SelectItem>
+                            <SelectItem value="overdue">เกินกำหนด</SelectItem>
+                            <SelectItem value="paid">ชำระแล้ว</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+                        <label className="text-xs font-semibold text-slate-700">เรียงตาม</label>
+                        <Select value={sortBy} onValueChange={setSortBy}>
+                          <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="due_date">วันครบกำหนด</SelectItem>
+                            <SelectItem value="room">หมายเลขห้อง</SelectItem>
+                            <SelectItem value="created_date">วันที่สร้าง</SelectItem>
+                            <SelectItem value="amount">ยอดเงิน</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
-                    <label className="text-xs font-semibold text-slate-700">สถานะ</label>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">ทั้งหมด</SelectItem>
-                        <SelectItem value="pending">รอชำระ</SelectItem>
-                        <SelectItem value="partial_paid">ชำระบางส่วน</SelectItem>
-                        <SelectItem value="overdue">เกินกำหนด</SelectItem>
-                        <SelectItem value="paid">ชำระแล้ว</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
-                    <label className="text-xs font-semibold text-slate-700">เรียงตาม</label>
-                    <Select value={sortBy} onValueChange={setSortBy}>
-                      <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="due_date">วันครบกำหนด</SelectItem>
-                        <SelectItem value="room">หมายเลขห้อง</SelectItem>
-                        <SelectItem value="created_date">วันที่สร้าง</SelectItem>
-                        <SelectItem value="amount">ยอดเงิน</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
+                </motion.div>
+              )}
 
               <AISearchBox
                 searchQuery={searchQuery}
@@ -2688,34 +2701,49 @@ Return JSON.`;
             </motion.div>
           </div>
 
-          <div className="flex items-center justify-between gap-4">
-            {canSendReminder && (
-              <p className="text-xs text-slate-500">
-                บิลรอบนี้: {(() => {
-                  const now = new Date();
-                  const currentDay = now.getDate();
-                  let cycleStart, cycleEnd;
-                  
-                  if (currentDay >= 20) {
-                    cycleStart = new Date(now.getFullYear(), now.getMonth(), 20);
-                    cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 20);
-                  } else {
-                    cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, 20);
-                    cycleEnd = new Date(now.getFullYear(), now.getMonth(), 20);
-                  }
-                  
-                  const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
-                  const billsThisCycle = payments.filter(p => {
-                    if (!p.due_date) return false;
-                    try {
-                      const dueDate = parseISO(p.due_date);
-                      return dueDate >= cycleStart && dueDate < cycleEnd;
-                    } catch { return false; }
-                  }).length;
-                  return `${billsThisCycle}/${occupiedRooms}`;
-                })()}
-              </p>
-            )}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {canSendReminder && (
+                <p className="text-xs text-slate-500">
+                  บิลรอบนี้: {(() => {
+                    const now = new Date();
+                    const currentDay = now.getDate();
+                    let cycleStart, cycleEnd;
+                    
+                    if (currentDay >= 20) {
+                      cycleStart = new Date(now.getFullYear(), now.getMonth(), 20);
+                      cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 20);
+                    } else {
+                      cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, 20);
+                      cycleEnd = new Date(now.getFullYear(), now.getMonth(), 20);
+                    }
+                    
+                    const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
+                    const billsThisCycle = payments.filter(p => {
+                      if (!p.due_date) return false;
+                      try {
+                        const dueDate = parseISO(p.due_date);
+                        return dueDate >= cycleStart && dueDate < cycleEnd;
+                      } catch { return false; }
+                    }).length;
+                    return `${billsThisCycle}/${occupiedRooms}`;
+                  })()}
+                </p>
+              )}
+              
+              {/* ปุ่มแสดง/ซ่อน filters สำหรับ Card/Table view */}
+              {viewMode !== 'room' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="gap-2"
+                >
+                  <Settings className="w-4 h-4" />
+                  {showFilters ? 'ซ่อนตัวกรอง' : 'แสดงตัวกรอง'}
+                </Button>
+              )}
+            </div>
             
             <div className="flex items-center gap-1 bg-white/90 backdrop-blur-xl shadow-md border border-white/60 rounded-xl p-1">
               <Button
@@ -3464,6 +3492,49 @@ Return JSON.`;
               {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
                   <CardContent className="p-4 md:p-6">
+                    {/* Month Picker for Room View */}
+                    <div className="flex items-center justify-between mb-6 pb-4 border-b">
+                      <div className="flex items-center gap-3">
+                        <CalendarIcon className="w-5 h-5 text-blue-600" />
+                        <label className="font-semibold text-slate-700">เลือกเดือน:</label>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const [year, month] = roomViewMonth.split('-').map(Number);
+                              const prevMonth = new Date(year, month - 2, 1);
+                              setRoomViewMonth(format(prevMonth, 'yyyy-MM'));
+                            }}
+                            className="h-9 w-9"
+                          >
+                            <ChevronLeft className="w-4 h-4" />
+                          </Button>
+                          <Input
+                            type="month"
+                            value={roomViewMonth}
+                            onChange={(e) => setRoomViewMonth(e.target.value)}
+                            className="w-40 h-9 text-sm bg-white shadow-sm"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const [year, month] = roomViewMonth.split('-').map(Number);
+                              const nextMonth = new Date(year, month, 1);
+                              setRoomViewMonth(format(nextMonth, 'yyyy-MM'));
+                            }}
+                            className="h-9 w-9"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <span className="text-sm text-slate-600">
+                          ({format(new Date(roomViewMonth), 'MMMM yyyy', { locale: th })})
+                        </span>
+                      </div>
+                    </div>
+
                     {/* Legend */}
                     <div className="flex items-center justify-end mb-6">
                       <div className="hidden md:flex items-center gap-4 text-sm">
@@ -3492,7 +3563,7 @@ Return JSON.`;
                         <div className="text-center space-y-3">
                           <Loader2 className="w-12 h-12 text-blue-600 mx-auto animate-spin" />
                           <p className="text-slate-600 font-medium">กำลังโหลดข้อมูลห้องพัก...</p>
-                          <p className="text-sm text-slate-500">เดือน {format(new Date(selectedMonth), 'MMMM yyyy', { locale: th })}</p>
+                          <p className="text-sm text-slate-500">เดือน {format(new Date(roomViewMonth), 'MMMM yyyy', { locale: th })}</p>
                         </div>
                       </div>
                     ) : (() => {
