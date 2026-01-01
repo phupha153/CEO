@@ -289,6 +289,40 @@ export default function UserBranchAccess() {
     setShowPermissionsDialog(true);
   };
 
+  const handleOpenPackageDialog = (user) => {
+    setSelectedUser(user);
+    setSelectedBranchForPackage('');
+    setPackageForm({
+      packageId: '',
+      startDate: format(new Date(), 'yyyy-MM-dd'),
+      endDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+      isTrialMode: true,
+      pricePerMonth: 0
+    });
+    setShowPackageDialog(true);
+  };
+
+  const handlePackageSubmit = () => {
+    if (!selectedBranchForPackage) {
+      toast.error('กรุณาเลือกสาขา');
+      return;
+    }
+    if (!packageForm.isTrialMode && !packageForm.packageId) {
+      toast.error('กรุณาเลือกแพ็กเกจ');
+      return;
+    }
+    if (!packageForm.startDate || !packageForm.endDate) {
+      toast.error('กรุณาเลือกวันเริ่มต้นและสิ้นสุด');
+      return;
+    }
+
+    savePackageMutation.mutate({
+      userId: selectedUser.id,
+      branchId: selectedBranchForPackage,
+      packageData: packageForm
+    });
+  };
+
 
 
   const getUserPaymentHistory = (userEmail) => {
