@@ -1029,36 +1029,42 @@ export default function UserBranchAccess() {
                   </div>
 
                   {/* Summary */}
-                  {selectedBranchForPackage && (
-                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200">
-                      <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4" />
-                        สรุปการตั้งค่า
-                      </h4>
-                      <div className="space-y-1 text-sm">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border-2 border-blue-200">
+                    <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" />
+                      สรุปการตั้งค่า
+                    </h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">ผู้ใช้:</span>
+                        <span className="font-semibold text-slate-800">{selectedUser?.full_name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">ใช้ได้กับ:</span>
+                        <span className="font-semibold text-blue-700">
+                          🌐 ทุกสาขาที่มีสิทธิ์
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">โหมด:</span>
+                        <span className={`font-bold ${packageForm.isTrialMode ? 'text-amber-600' : 'text-green-600'}`}>
+                          {packageForm.isTrialMode ? '🎉 Trial (ฟรี)' : '💳 Paid'}
+                        </span>
+                      </div>
+                      {!packageForm.isTrialMode && packageForm.packageId && (
                         <div className="flex justify-between">
-                          <span className="text-slate-600">ผู้ใช้:</span>
-                          <span className="font-semibold text-slate-800">{selectedUser?.full_name}</span>
+                          <span className="text-slate-600">ราคา:</span>
+                          <span className="font-bold text-green-700">฿{packageForm.pricePerMonth}/เดือน</span>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">สาขา:</span>
-                          <span className="font-semibold text-slate-800">{getBranchName(selectedBranchForPackage)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-600">โหมด:</span>
-                          <span className={`font-bold ${packageForm.isTrialMode ? 'text-amber-600' : 'text-green-600'}`}>
-                            {packageForm.isTrialMode ? '🎉 Trial (ฟรี)' : '💳 Paid'}
-                          </span>
-                        </div>
-                        {!packageForm.isTrialMode && packageForm.packageId && (
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">ราคา:</span>
-                            <span className="font-bold text-green-700">฿{packageForm.pricePerMonth}/เดือน</span>
-                          </div>
-                        )}
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">วันสิ้นสุด:</span>
+                        <span className="font-semibold text-slate-800">
+                          {packageForm.endDate ? format(parseISO(packageForm.endDate), 'dd MMM yyyy', { locale: require('date-fns/locale/th') }) : '-'}
+                        </span>
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   <div className="flex justify-end gap-2 pt-4 border-t">
                     <Button variant="outline" onClick={() => setShowPackageDialog(false)}>
