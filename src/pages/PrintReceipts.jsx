@@ -169,8 +169,9 @@ export default function PrintReceipts() {
         // ✅ เพิ่ม delay 1 วินาทีระหว่างแต่ละ batch
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // ประมวลผลลัพธ์
-        results.forEach((result, index) => {
+        // ประมวลผลลัพธ์ - ดึงข้อมูลห้อง/ผู้เช่าสำหรับรายการที่ล้มเหลว
+        for (let index = 0; index < results.length; index++) {
+          const result = results[index];
           const paymentId = paymentIds[index];
           
           if (result.status === 'fulfilled' && result.value.success) {
@@ -180,12 +181,11 @@ export default function PrintReceipts() {
               ? result.reason?.message || 'เกิดข้อผิดพลาดในการโหลด'
               : result.value?.error || 'ไม่ทราบสาเหตุ';
             
-            // ⭐ ดึงข้อมูลห้องและผู้เช่าจาก error response (ถ้ามี) เพื่อแสดงในรายการที่ล้มเหลว
+            // ⭐ ดึงข้อมูลห้องและผู้เช่าเพื่อแสดงในรายการที่ล้มเหลว
             let roomNumber = 'N/A';
             let tenantName = 'N/A';
             
             try {
-              // พยายามดึงข้อมูลพื้นฐานจาก payment ID โดยตรง
               const paymentResponse = await base44.entities.Payment.filter({ id: paymentId }, '', 1);
               if (paymentResponse && paymentResponse.length > 0) {
                 const payment = paymentResponse[0];
@@ -219,7 +219,7 @@ export default function PrintReceipts() {
             });
             console.error(`❌ Failed to fetch payment ${paymentId}:`, errorMsg);
           }
-        });
+        }
 
         console.log(`📊 Results: ${receipts.length} success, ${failed.length} failed`);
 
