@@ -1487,10 +1487,29 @@ export default function AccountingData() {
                                 />
                               </td>
                               <td className="px-4 py-3 text-sm">
-                                {payment.payment_date ? format(parseISO(payment.payment_date), 'd MMM yy', { locale: th }) : '-'}
+                               <Link 
+                                 to={`${createPageUrl('Payments')}?paymentId=${payment.id}`}
+                                 className="text-blue-600 hover:text-blue-800 hover:underline"
+                               >
+                                 {payment.payment_date ? format(parseISO(payment.payment_date), 'd MMM yy', { locale: th }) : '-'}
+                               </Link>
                               </td>
-                              <td className="px-4 py-3 text-sm font-medium">{room?.room_number || '-'}</td>
-                              <td className="px-4 py-3 text-sm">{tenant?.full_name || '-'}</td>
+                              <td className="px-4 py-3 text-sm font-medium">
+                               <Link 
+                                 to={`${createPageUrl('Payments')}?paymentId=${payment.id}`}
+                                 className="text-blue-600 hover:text-blue-800 hover:underline"
+                               >
+                                 {room?.room_number || '-'}
+                               </Link>
+                              </td>
+                              <td className="px-4 py-3 text-sm">
+                               <Link 
+                                 to={`${createPageUrl('Payments')}?paymentId=${payment.id}`}
+                                 className="text-blue-600 hover:text-blue-800 hover:underline"
+                               >
+                                 {tenant?.full_name || '-'}
+                               </Link>
+                              </td>
                               <td className="px-4 py-3 text-sm">{tenant?.phone || '-'}</td>
                               <td className="px-4 py-3 text-sm text-right">{(payment.rent_amount || 0).toLocaleString()}</td>
                               <td className="px-4 py-3 text-sm text-right">{(payment.electricity_amount || 0).toLocaleString()}</td>
@@ -1623,10 +1642,29 @@ export default function AccountingData() {
                                 />
                               </td>
                               <td className="px-4 py-3 text-sm">
-                                {payment.due_date ? format(parseISO(payment.due_date), 'd MMM yy', { locale: th }) : '-'}
+                               <Link 
+                                 to={`${createPageUrl('Payments')}?paymentId=${payment.id}`}
+                                 className="text-blue-600 hover:text-blue-800 hover:underline"
+                               >
+                                 {payment.due_date ? format(parseISO(payment.due_date), 'd MMM yy', { locale: th }) : '-'}
+                               </Link>
                               </td>
-                              <td className="px-4 py-3 text-sm font-medium">{room?.room_number || '-'}</td>
-                              <td className="px-4 py-3 text-sm">{tenant?.full_name || '-'}</td>
+                              <td className="px-4 py-3 text-sm font-medium">
+                               <Link 
+                                 to={`${createPageUrl('Payments')}?paymentId=${payment.id}`}
+                                 className="text-blue-600 hover:text-blue-800 hover:underline"
+                               >
+                                 {room?.room_number || '-'}
+                               </Link>
+                              </td>
+                              <td className="px-4 py-3 text-sm">
+                               <Link 
+                                 to={`${createPageUrl('Payments')}?paymentId=${payment.id}`}
+                                 className="text-blue-600 hover:text-blue-800 hover:underline"
+                               >
+                                 {tenant?.full_name || '-'}
+                               </Link>
+                              </td>
                               <td className="px-4 py-3 text-sm">{tenant?.phone || '-'}</td>
                               <td className="px-4 py-3 text-sm text-right">{(payment.rent_amount || 0).toLocaleString()}</td>
                               <td className="px-4 py-3 text-sm text-right">{(payment.electricity_amount || 0).toLocaleString()}</td>

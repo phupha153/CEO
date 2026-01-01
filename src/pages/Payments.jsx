@@ -34,6 +34,7 @@ export default function PaymentsPage() {
   
   const urlParams = new URLSearchParams(window.location.search);
   const initialStatusFilter = urlParams.get('status') || 'all';
+  const paymentIdParam = urlParams.get('paymentId'); // รับ paymentId จาก URL
 
   const [showDialog, setShowDialog] = useState(false);
   const [editingPayment, setEditingPayment] = useState(null);
@@ -147,7 +148,28 @@ export default function PaymentsPage() {
     if (status && ['all', 'pending', 'overdue', 'paid'].includes(status)) {
       setStatusFilter(status);
     }
-  }, []);
+    
+    // ⭐ ถ้ามี paymentId ใน URL = เปิด detail dialog ทันที
+    const paymentId = urlParams.get('paymentId');
+    if (paymentId) {
+      // รอให้ payments โหลดเสร็จก่อน
+      const checkPaymentInterval = setInterval(() => {
+        if (payments && payments.length > 0) {
+          const foundPayment = payments.find(p => p.id === paymentId);
+          if (foundPayment) {
+            setSelectedPayment(foundPayment);
+            setShowDetailDialog(true);
+            clearInterval(checkPaymentInterval);
+          }
+        }
+      }, 500);
+      
+      // Timeout หลัง 10 วินาที
+      setTimeout(() => {
+        clearInterval(checkPaymentInterval);
+      }, 10000);
+    }
+  }, [payments]);
 
   const toggleExpanded = (paymentId) => {
     setExpandedPayments(prev => {
