@@ -20,12 +20,22 @@ export default function UserBranchAccess() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showBranchDialog, setShowBranchDialog] = useState(false);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
+  const [showPackageDialog, setShowPackageDialog] = useState(false);
 
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedBranchForPackage, setSelectedBranchForPackage] = useState('');
   const [userBranchAccess, setUserBranchAccess] = useState({});
   const [userPermissions, setUserPermissions] = useState({});
   const [userRoles, setUserRoles] = useState({}); // เก็บ custom_role ที่เลือก
+  
+  // Package Dialog State
+  const [packageForm, setPackageForm] = useState({
+    packageId: '',
+    startDate: '',
+    endDate: '',
+    isTrialMode: true,
+    pricePerMonth: 0
+  });
 
 
   const queryClient = useQueryClient();
