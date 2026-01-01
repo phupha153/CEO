@@ -97,7 +97,7 @@ export default function MeterReadings() {
     retryDelay: 0,
   };
 
-  // ✅ Backend filtering + Pagination (SaaS Standard)
+  // ✅ Backend filtering + Pagination - รองรับ 1M records (SaaS Standard)
   const { data: meterReadings = [], isLoading: readingsLoading } = useQuery({
     queryKey: ['meterReadings', selectedBranchId],
     queryFn: async () => {
@@ -105,7 +105,7 @@ export default function MeterReadings() {
       
       let allData = [];
       let skip = 0;
-      const limit = 5000;
+      const limit = 10000; // ✅ เพิ่ม batch size เป็น 10K เพื่อลด API calls
       let hasMore = true;
 
       while (hasMore) {
@@ -119,7 +119,7 @@ export default function MeterReadings() {
         skip += limit;
         
         if (batch.length < limit) hasMore = false;
-        if (skip >= 100000) hasMore = false; // Circuit breaker
+        if (skip >= 1000000) hasMore = false; // ✅ Circuit breaker - 1M records
       }
       
       console.log(`📊 MeterReadings - Loaded ${allData.length} readings for branch ${selectedBranchId}`);
@@ -176,7 +176,7 @@ export default function MeterReadings() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ Backend filtering + Pagination (SaaS Standard)
+  // ✅ Backend filtering + Pagination - รองรับ 1M records (SaaS Standard)
   const { data: tenants = [] } = useQuery({
     queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
@@ -184,7 +184,7 @@ export default function MeterReadings() {
       
       let allData = [];
       let skip = 0;
-      const limit = 5000;
+      const limit = 10000; // ✅ เพิ่ม batch size เป็น 10K
       let hasMore = true;
 
       while (hasMore) {
@@ -198,7 +198,7 @@ export default function MeterReadings() {
         skip += limit;
         
         if (batch.length < limit) hasMore = false;
-        if (skip >= 100000) hasMore = false;
+        if (skip >= 1000000) hasMore = false; // ✅ Circuit breaker - 1M records
       }
       
       console.log(`📊 MeterReadings - Loaded ${allData.length} tenants for branch ${selectedBranchId}`);
