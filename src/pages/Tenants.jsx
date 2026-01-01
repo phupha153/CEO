@@ -219,12 +219,12 @@ export default function TenantsPage() {
       });
       return response.data.data;
     },
-    enabled: canView && !!selectedBranchId && (!!selectedTenant || viewMode === 'room'),
+    enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
   });
 
   const { data: rooms = [] } = useQuery({
@@ -239,21 +239,21 @@ export default function TenantsPage() {
       });
       return response.data.data;
     },
-    enabled: canView && !!selectedBranchId && (!!selectedTenant || showDialog || showBookingDialog || viewMode === 'room'),
+    enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
   });
 
   const { data: payments = [] } = useQuery({
     queryKey: ['payments', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      return await base44.entities.Payment.filter({ branch_id: selectedBranchId });
+      return await base44.entities.Payment.filter({ branch_id: selectedBranchId }); // Updated to use filter directly
     },
-    enabled: canView && !!selectedBranchId && !!selectedTenant,
+    enabled: canView && !!selectedBranchId,
     staleTime: 15 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -265,9 +265,9 @@ export default function TenantsPage() {
     queryKey: ['tenantRatings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      return await base44.entities.TenantRating.filter({ branch_id: selectedBranchId });
+      return await base44.entities.TenantRating.filter({ branch_id: selectedBranchId }); // Updated to use filter directly
     },
-    enabled: canView && !!selectedBranchId && !!selectedTenant,
+    enabled: canView && !!selectedBranchId,
     ...retryConfig,
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -283,7 +283,7 @@ export default function TenantsPage() {
       const allContracts = await base44.entities.Contract.list('-contract_date', 200);
       return allContracts.filter(contract => contract.branch_id === selectedBranchId);
     },
-    enabled: canView && !!selectedBranchId && activeTab === 'contracts',
+    enabled: canView && !!selectedBranchId,
     ...retryConfig,
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
