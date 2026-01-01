@@ -662,27 +662,7 @@ export default function UserBranchAccess() {
                       </p>
                     </div>
                   </div>
-                    
-                    <div>
-                      <Label className="text-sm font-semibold mb-2 block">สถานะ/บทบาท</Label>
-                      <Select
-                        value={userRoles[selectedUser.id] || 'employee'}
-                        onValueChange={(value) => setUserRoles({ ...userRoles, [selectedUser.id]: value })}
-                      >
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="เลือกบทบาท" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="owner">👑 เจ้าของหอพัก</SelectItem>
-                          <SelectItem value="manager">👔 ผู้จัดการ</SelectItem>
-                          <SelectItem value="employee">👤 พนักงาน</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-xs text-slate-500 mt-1">
-                        💡 เจ้าของ = มีสิทธิ์ทุกอย่าง, พนักงาน/ผู้จัดการ = มีสิทธิ์ตามที่กำหนด
-                      </p>
-                    </div>
-                  </div>
+                  
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {branches.map(branch => {
                       const isChecked = (userBranchAccess[selectedUser.id] || []).includes(branch.id);
