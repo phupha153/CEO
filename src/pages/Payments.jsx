@@ -2112,30 +2112,46 @@ Return JSON.`;
             <CardContent className="p-4 md:p-6 relative">
               <div className="flex flex-col gap-3 mb-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
-                    <label className="text-xs font-semibold text-slate-700">ช่วงเวลา</label>
-                    <Select value={dateRangeType} onValueChange={setDateRangeType}>
-                      <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="this_month">เดือนนี้</SelectItem>
-                        <SelectItem value="last_month">1 เดือนที่แล้ว</SelectItem>
-                        <SelectItem value="3_months">3 เดือน</SelectItem>
-                        <SelectItem value="6_months">6 เดือน</SelectItem>
-                        <SelectItem value="12_months">12 เดือน</SelectItem>
-                        <SelectItem value="this_year">ปีนี้</SelectItem>
-                        <SelectItem value="last_year">ปีที่แล้ว</SelectItem>
-                        <SelectItem value="all">ทั้งหมด</SelectItem>
-                        <SelectItem value="custom">กำหนดเอง</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="flex flex-col gap-1 flex-1 min-w-[160px]">
+                    <label className="text-xs font-semibold text-slate-700">เลือกเดือน</label>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          const [year, month] = selectedMonth.split('-').map(Number);
+                          const prevMonth = new Date(year, month - 2, 1);
+                          setSelectedMonth(format(prevMonth, 'yyyy-MM'));
+                        }}
+                        className="h-9 w-9 flex-shrink-0"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <Input
+                        type="month"
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        className="flex-1 h-9 text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          const [year, month] = selectedMonth.split('-').map(Number);
+                          const nextMonth = new Date(year, month, 1);
+                          setSelectedMonth(format(nextMonth, 'yyyy-MM'));
+                        }}
+                        className="h-9 w-9 flex-shrink-0"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                   
                   <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
                     <label className="text-xs font-semibold text-slate-700">สถานะ</label>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl">
+                      <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl h-9">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -2147,13 +2163,11 @@ Return JSON.`;
                       </SelectContent>
                     </Select>
                   </div>
-                  
-
 
                   <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
                     <label className="text-xs font-semibold text-slate-700">เรียงตาม</label>
                     <Select value={sortBy} onValueChange={setSortBy}>
-                      <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl">
+                      <SelectTrigger className="w-full text-xs bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl h-9">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -2164,37 +2178,6 @@ Return JSON.`;
                       </SelectContent>
                     </Select>
                   </div>
-
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                {dateRangeType === 'custom' && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2 border-green-300 text-green-700 hover:bg-green-50 rounded-xl"
-                      >
-                        <CalendarIcon className="w-4 h-4" />
-                        {format(customRange.from, 'd MMM', { locale: th })} - {format(customRange.to, 'd MMM', { locale: th })}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="end">
-                      <CalendarComponent
-                        mode="range"
-                        selected={customRange}
-                        onSelect={(range) => {
-                          if (range?.from && range?.to) {
-                            setCustomRange(range);
-                          }
-                        }}
-                        numberOfMonths={2}
-                        locale={th}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                )}
                 </div>
               </div>
 
@@ -2437,7 +2420,7 @@ Return JSON.`;
                           statusCounts,
                           totalFilteredCount,
                           statusFilter,
-                          dateRangeType,
+                          selectedMonth,
                           searchQuery,
                           aiResult,
                           totalAmounts,
@@ -3509,7 +3492,7 @@ Return JSON.`;
                         <div className="text-center space-y-3">
                           <Loader2 className="w-12 h-12 text-blue-600 mx-auto animate-spin" />
                           <p className="text-slate-600 font-medium">กำลังโหลดข้อมูลห้องพัก...</p>
-                          <p className="text-sm text-slate-500">เดือน {format(new Date(roomViewMonth), 'MMMM yyyy', { locale: th })}</p>
+                          <p className="text-sm text-slate-500">เดือน {format(new Date(selectedMonth), 'MMMM yyyy', { locale: th })}</p>
                         </div>
                       </div>
                     ) : (() => {
