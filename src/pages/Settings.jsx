@@ -493,17 +493,6 @@ export default function Settings() {
     return (branchId && branchName) ? { id: branchId, name: branchName } : null;
   });
 
-  const canManagePermissions = userRole === 'developer' || userRole === 'owner';
-  const canSetGlobalConfig = userRole === 'developer' || userRole === 'owner';
-
-  const getConfigValue = (key, defaultValue = '') => {
-    // For general configs (like app_mode), we assume they are global (no branch_id)
-    const config = configs.find(c => c.key === key && !c.branch_id);
-    return config?.value || defaultValue;
-  };
-
-  const appMode = getConfigValue('app_mode', 'single_tenant');
-
   const activeSubscription = (() => {
     // Wait until branchPackages are loaded, especially in multi_tenant mode
     if (branchPackagesLoading) return null;
