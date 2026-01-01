@@ -33,6 +33,7 @@ export default function MeterReadings() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [formData, setFormData] = useState({
     room_id: '',
     reading_date: new Date().toISOString().split('T')[0],
@@ -227,49 +228,18 @@ export default function MeterReadings() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ สร้าง billing periods แบบเดือนทั้งเดือน (1-31)
+  // ✅ สร้าง billing periods แบบเดือนทั้งเดือน (1-31) สำหรับปีที่เลือก
   const billingPeriods = useMemo(() => {
-    if (!configs || configs.length === 0 || !selectedBranchId) {
-      return [];
-    }
-    
-    const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
-    const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
-    const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 5);
-    
     const periods = [];
-    const now = new Date();
-    const currentDay = now.getDate();
     
-    // ⭐ ถ้าวันนี้ < วันสร้างบิล → ใช้เดือนก่อนหน้า
-    let startMonth = now.getMonth();
-    let startYear = now.getFullYear();
-    
-    if (currentDay < billGenerationDay) {
-      startMonth -= 1;
-      if (startMonth < 0) {
-        startMonth = 11;
-        startYear -= 1;
-      }
-    }
-    
-    // สร้าง 12 งวด (แต่ละงวด = เดือนทั้งเดือน 1-31)
-    for (let i = 0; i < 12; i++) {
-      let year = startYear;
-      let month = startMonth - i;
-      
-      while (month < 0) {
-        month += 12;
-        year -= 1;
-      }
-      
-      // วันแรก-วันสุดท้ายของเดือน
-      const cycleStart = new Date(year, month, 1, 0, 0, 0);
-      const cycleEnd = new Date(year, month + 1, 0, 23, 59, 59);
+    // สร้าง 12 เดือนของปีที่เลือก
+    for (let month = 0; month < 12; month++) {
+      const cycleStart = new Date(selectedYear, month, 1, 0, 0, 0);
+      const cycleEnd = new Date(selectedYear, month + 1, 0, 23, 59, 59);
       
       const period = {
-        value: `${year}-${String(month + 1).padStart(2, '0')}`,
-        label: format(cycleStart, 'MMMM yyyy', { locale: th }),
+        value: `${selectedYear}-${String(month + 1).padStart(2, '0')}`,
+        label: format(cycleStart, 'MMMM', { locale: th }),
         start: cycleStart,
         end: cycleEnd
       };
@@ -278,7 +248,7 @@ export default function MeterReadings() {
     }
     
     return periods;
-  }, [configs, selectedBranchId]);
+  }, [selectedYear]);
 
   const [selectedPeriod, setSelectedPeriod] = useState('');
 
@@ -823,10 +793,24 @@ export default function MeterReadings() {
   // ⭐ Auto-set selectedPeriod เมื่อ billingPeriods โหลดเสร็จ
   useEffect(() => {
     if (billingPeriods.length > 0 && !selectedPeriod) {
-      console.log('✅ Auto-setting selectedPeriod to:', billingPeriods[0].value);
-      setSelectedPeriod(billingPeriods[0].value);
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      
+      // ตั้งค่าเริ่มต้นเป็นเดือนปัจจุบัน (ถ้าเป็นปีปัจจุบัน)
+      if (selectedYear === currentYear) {
+        const currentPeriod = billingPeriods.find(p => p.value === `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`);
+        if (currentPeriod) {
+          setSelectedPeriod(currentPeriod.value);
+        } else {
+          setSelectedPeriod(billingPeriods[0].value);
+        }
+      } else {
+        // ถ้าเป็นปีอื่น ให้เริ่มที่เดือนแรก
+        setSelectedPeriod(billingPeriods[0].value);
+      }
     }
-  }, [billingPeriods, selectedPeriod]);
+  }, [billingPeriods, selectedPeriod, selectedYear]);
 
   const { totalElectricityThisMonth, totalWaterThisMonth, monthReadingsCount, displayPeriodLabel } = useMemo(() => {
     const period = billingPeriods.find(p => p.value === selectedPeriod);
@@ -1624,7 +1608,7 @@ export default function MeterReadings() {
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
             <CardContent className="p-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
                     <Building2 className="w-5 h-5 text-slate-600" />
                     <select
@@ -1641,6 +1625,18 @@ export default function MeterReadings() {
                   
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-slate-600" />
+                    <select
+                      value={selectedYear}
+                      onChange={(e) => {
+                        setSelectedYear(parseInt(e.target.value));
+                        setSelectedPeriod('');
+                      }}
+                      className="p-2 border rounded-md text-sm font-semibold"
+                    >
+                      {[2026, 2025, 2024, 2023].map(year => (
+                        <option key={year} value={year}>{year}</option>
+                      ))}
+                    </select>
                     <select
                       value={selectedPeriod}
                       onChange={(e) => setSelectedPeriod(e.target.value)}
