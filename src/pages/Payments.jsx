@@ -253,7 +253,7 @@ export default function PaymentsPage() {
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    keepPreviousData: true,
+    placeholderData: (previousData) => previousData,
   });
 
   const payments = paymentsResponse?.data || [];
@@ -2135,19 +2135,6 @@ Return JSON.`;
     );
   }
 
-  if (paymentsLoading || isDataFetching) {
-    return (
-      <div className="p-4 md:p-8 min-h-screen flex items-center justify-center">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center py-20">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-slate-600 text-lg">กำลังโหลดข้อมูลการชำระเงิน...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -2748,7 +2735,12 @@ Return JSON.`;
             </div>
           </div>
 
-          {paginatedPayments.length === 0 ? (
+          {paymentsLoading && payments.length === 0 ? (
+            <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
+              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-xl font-semibold text-slate-800">กำลังโหลดข้อมูล...</p>
+            </div>
+          ) : paginatedPayments.length === 0 ? (
             <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
               <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
               <p className="text-xl font-semibold text-slate-800">ไม่พบรายการชำระเงิน</p>
@@ -2870,7 +2862,15 @@ Return JSON.`;
               )}
 
               {viewMode === 'card' && (
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-4 relative">
+                  {paymentsFetching && (
+                    <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
+                      <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-3">
+                        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                        <p className="text-slate-700 font-medium">กำลังอัปเดตข้อมูล...</p>
+                      </div>
+                    </div>
+                  )}
                   <AnimatePresence>
                     {paginatedPayments.map((payment) => {
                       // ✅ Use enriched data from server
@@ -3376,7 +3376,15 @@ Return JSON.`;
               )}
 
               {viewMode === 'table' && (
-                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
+                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
+                  {paymentsFetching && (
+                    <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
+                      <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-3">
+                        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                        <p className="text-slate-700 font-medium">กำลังอัปเดตข้อมูล...</p>
+                      </div>
+                    </div>
+                  )}
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -3578,7 +3586,15 @@ Return JSON.`;
               )}
 
               {viewMode === 'room' && (
-                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
+                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
+                  {paymentsFetching && (
+                    <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
+                      <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-3">
+                        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                        <p className="text-slate-700 font-medium">กำลังอัปเดตข้อมูล...</p>
+                      </div>
+                    </div>
+                  )}
                   <CardContent className="p-4 md:p-6">
                     {/* Month Selector */}
                     <div className="flex items-center justify-between mb-6">
