@@ -227,24 +227,21 @@ export default function MeterReadings() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ สร้าง billing periods จาก config (เหมือนหน้า Payments)
+  // ✅ สร้าง billing periods แบบเดือนทั้งเดือน (1-31)
   const billingPeriods = useMemo(() => {
     if (!configs || configs.length === 0 || !selectedBranchId) {
-      console.log('⚠️ billingPeriods: configs not ready', { configsLength: configs.length, selectedBranchId });
       return [];
     }
     
     const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
     const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
-    const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
+    const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 5);
     
     const periods = [];
     const now = new Date();
     const currentDay = now.getDate();
     
-    console.log('📅 Creating billing periods:', { today: format(now, 'yyyy-MM-dd'), currentDay, billGenerationDay });
-    
-    // ⭐ คำนวณงวดปัจจุบัน (ถ้าวันนี้ < billGenerationDay = ใช้งวดเดือนก่อนหน้า)
+    // ⭐ ถ้าวันนี้ < วันสร้างบิล → ใช้เดือนก่อนหน้า
     let startMonth = now.getMonth();
     let startYear = now.getFullYear();
     
@@ -256,9 +253,7 @@ export default function MeterReadings() {
       }
     }
     
-    console.log('📍 Current billing cycle:', { startYear, startMonth: startMonth + 1 });
-    
-    // สร้าง 12 งวดย้อนหลัง
+    // สร้าง 12 งวด (แต่ละงวด = เดือนทั้งเดือน 1-31)
     for (let i = 0; i < 12; i++) {
       let year = startYear;
       let month = startMonth - i;
@@ -268,26 +263,18 @@ export default function MeterReadings() {
         year -= 1;
       }
       
-      const cycleStart = new Date(year, month, billGenerationDay);
-      const cycleEnd = new Date(year, month + 1, billGenerationDay - 1, 23, 59, 59);
+      // วันแรก-วันสุดท้ายของเดือน
+      const cycleStart = new Date(year, month, 1, 0, 0, 0);
+      const cycleEnd = new Date(year, month + 1, 0, 23, 59, 59);
       
       const period = {
         value: `${year}-${String(month + 1).padStart(2, '0')}`,
-        label: `${format(cycleStart, 'd MMM', { locale: th })} - ${format(cycleEnd, 'd MMM yyyy', { locale: th })}`,
+        label: format(cycleStart, 'MMMM yyyy', { locale: th }),
         start: cycleStart,
         end: cycleEnd
       };
       
       periods.push(period);
-      
-      if (i === 0) {
-        console.log('🎯 First billing period:', {
-          value: period.value,
-          label: period.label,
-          start: format(cycleStart, 'yyyy-MM-dd'),
-          end: format(cycleEnd, 'yyyy-MM-dd')
-        });
-      }
     }
     
     return periods;
