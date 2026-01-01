@@ -374,7 +374,18 @@ export default function Settings() {
 
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
-    queryFn: () => base44.entities.Config.list(),
+    queryFn: async () => {
+      const allConfigs = await base44.entities.Config.list();
+      // Filter เฉพาะ configs ที่เกี่ยวข้องกับสาขาที่มีสิทธิ์
+      if (userRole === 'developer') return allConfigs;
+      
+      const accessibleBranchIds = currentUser?.accessible_branches || [];
+      return allConfigs.filter(c => 
+        !c.branch_id || // Global configs
+        accessibleBranchIds.includes(c.branch_id) // Configs ของสาขาที่เข้าถึงได้
+      );
+    },
+    enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
