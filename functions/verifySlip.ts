@@ -410,6 +410,20 @@ Deno.serve(async (req) => {
             });
             
             console.log('✅ Payment updated successfully:', updatedPayment.id, 'status:', updatedPayment.status);
+            
+            // ⭐ คำนวณคะแนนอัตโนมัติหลังยืนยันสลิป
+            if (payment.tenant_id) {
+                try {
+                    const scoreResponse = await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
+                        tenant_id: payment.tenant_id
+                    });
+                    if (scoreResponse.data?.success) {
+                        console.log(`✅ Score updated: avg=${scoreResponse.data.avg_payment_score}/10`);
+                    }
+                } catch (scoreError) {
+                    console.warn('⚠️ Failed to calculate payment score:', scoreError.message);
+                }
+            }
 
             // ส่งข้อมูลไปยัง CRM
             try {

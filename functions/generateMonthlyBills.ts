@@ -683,7 +683,7 @@ Deno.serve(async (req) => {
             }
         }
 
-        // 6. Update Prepaid Balances
+        // 6. Update Prepaid Balances + Calculate Payment Scores
         if (updatesToProcess.length > 0) {
             console.log(`💰 Updating ${updatesToProcess.length} balances...`);
             for (const update of updatesToProcess) {
@@ -691,6 +691,18 @@ Deno.serve(async (req) => {
                     await base44.asServiceRole.entities.Tenant.update(update.tenantId, {
                         prepaid_balance: update.newBalance
                     });
+                    
+                    // ⭐ คำนวณคะแนนอัตโนมัติหลังชำระผ่าน prepaid
+                    try {
+                        const response = await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
+                            tenant_id: update.tenantId
+                        });
+                        if (response.data?.success) {
+                            console.log(`✅ Score updated for tenant ${update.tenantId.slice(0, 8)}: avg=${response.data.avg_payment_score}`);
+                        }
+                    } catch (scoreError) {
+                        console.warn(`⚠️ Failed to calculate scores for ${update.tenantId.slice(0, 8)}:`, scoreError.message);
+                    }
                 });
                 await delay(100);
             }
