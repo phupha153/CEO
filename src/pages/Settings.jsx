@@ -495,6 +495,13 @@ export default function Settings() {
     return (branchId && branchName) ? { id: branchId, name: branchName } : null;
   });
 
+  const getConfigValue = (key, defaultValue = '') => {
+    const config = configs.find(c => c.key === key && !c.branch_id);
+    return config?.value || defaultValue;
+  };
+
+  const appMode = getConfigValue('app_mode', 'single_tenant');
+
   const activeSubscription = (() => {
     // Wait until branchPackages are loaded, especially in multi_tenant mode
     if (branchPackagesLoading) return null;
