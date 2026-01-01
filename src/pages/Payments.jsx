@@ -839,28 +839,7 @@ export default function PaymentsPage() {
 
   // ✅ Removed separate counts query - now from backend
 
-  const totalAmounts = useMemo(() => {
-    const calculateSum = (paymentsToSum) => {
-      return paymentsToSum.reduce((sum, p) => {
-        const baseAmount = parseFloat(p.total_amount) || 0;
-        // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
-        const lateFee = p.late_fee_amount ? 0 : calculateLateFee(p);
-        if (isNaN(baseAmount) || isNaN(lateFee)) {
-          console.error('Invalid amount for payment:', p.id, { baseAmount, lateFee });
-          return sum;
-        }
-        return sum + baseAmount + lateFee;
-      }, 0);
-    };
-  
-    // ⭐ ใช้ payments (จาก server) แทน filteredPayments เพื่อให้นับยอดรวมทั้งหมดตรงกับ counts
-    return {
-      all: calculateSum(payments),
-      paid: calculateSum(payments.filter(p => getEffectiveStatus(p) === 'paid')),
-      pending: calculateSum(payments.filter(p => getEffectiveStatus(p) === 'pending')),
-      overdue: calculateSum(payments.filter(p => getEffectiveStatus(p) === 'overdue')),
-    };
-  }, [payments, getEffectiveStatus, calculateLateFee]);
+  // ⚠️ ลบการคำนวณ totalAmounts ที่ frontend - ใช้จาก backend แทน
 
   // ✅ Use enriched data from server (no lookup needed)
   const pendingOverduePayments = useMemo(() => 
