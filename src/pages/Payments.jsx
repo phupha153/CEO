@@ -2594,7 +2594,7 @@ Return JSON.`;
                   >
                     {totalAmounts.all.toLocaleString('th-TH')}
                   </motion.p>
-                  <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.all} รายการ)</p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({filteredPayments.length} รายการ)</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -2629,7 +2629,7 @@ Return JSON.`;
                   >
                     {totalAmounts.pending.toLocaleString('th-TH')}
                   </motion.p>
-                  <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.pending} รายการ)</p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({filteredPayments.filter(p => getEffectiveStatus(p) === 'pending').length} รายการ)</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -2664,7 +2664,7 @@ Return JSON.`;
                   >
                     {totalAmounts.overdue.toLocaleString('th-TH')}
                   </motion.p>
-                  <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.overdue} รายการ)</p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({filteredPayments.filter(p => getEffectiveStatus(p) === 'overdue').length} รายการ)</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -2699,7 +2699,7 @@ Return JSON.`;
                   >
                     {totalAmounts.paid.toLocaleString('th-TH')}
                   </motion.p>
-                  <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.paid} รายการ)</p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({filteredPayments.filter(p => getEffectiveStatus(p) === 'paid').length} รายการ)</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -2782,7 +2782,7 @@ Return JSON.`;
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-semibold text-slate-700">
-                          🔍 แสดง {filteredPayments.length} จาก {statusCounts.all} รายการ
+                          🔍 แสดง {filteredPayments.length} รายการ
                         </p>
                         {(dateRangeType !== 'this_month' || statusFilter !== 'all' || sortBy !== 'due_date') && (
                           <Button
