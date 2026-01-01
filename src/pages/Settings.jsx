@@ -412,7 +412,22 @@ export default function Settings() {
 
   const { data: branches = [] } = useQuery({
     queryKey: ['branches'],
-    queryFn: () => base44.entities.Branch.list(),
+    queryFn: async () => {
+      const allBranches = await base44.entities.Branch.list();
+      // Filter เฉพาะสาขาที่มีสิทธิ์เข้าถึง
+      if (userRole === 'developer') return allBranches;
+      
+      const accessibleBranchIds = currentUser?.accessible_branches || [];
+      if (!accessibleBranchIds || accessibleBranchIds.length === 0) {
+        // ถ้าเป็น owner ที่ไม่มี accessible_branches set = ดูเฉพาะสาขาที่ตัวเองสร้าง
+        return allBranches.filter(b => 
+          b.owner_id === currentUser?.email || b.created_by === currentUser?.email
+        );
+      }
+      
+      return allBranches.filter(b => accessibleBranchIds.includes(b.id));
+    },
+    enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
