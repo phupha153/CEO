@@ -1311,8 +1311,9 @@ export default function MeterReadings() {
                 <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-cyan-100 text-sm mb-1">น้ำที่ใช้ทั้งหมด (ล่าสุด)</p>
-                            <p className="text-3xl font-bold">{totalWaterLatest.toFixed(2)}</p>
+                            <p className="text-cyan-100 text-sm mb-1">น้ำที่ใช้ (หน่วย)</p>
+                            <p className="text-3xl font-bold">{totalWaterThisMonth.toFixed(2)}</p>
+                            <p className="text-cyan-100 text-xs mt-1">{monthReadingsCount} รายการ</p>
                         </div>
                         <Droplets className="w-12 h-12 text-cyan-200" />
                     </div>
