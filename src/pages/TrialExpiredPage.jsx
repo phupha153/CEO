@@ -68,14 +68,14 @@ export default function TrialExpiredPage() {
               className="space-y-3"
             >
               <Button
-                onClick={() => window.location.href = 'mailto:support@wresidents.com?subject=ต้องการอัปเกรดแพ็กเกจ'}
+                onClick={() => window.open('https://line.me/R/ti/p/@022kpkpo', '_blank')}
                 className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white py-6 text-lg font-semibold rounded-2xl shadow-xl"
               >
-                <Package className="w-5 h-5 mr-2" />
+                <MessageCircle className="w-5 h-5 mr-2" />
                 ติดต่อเพื่ออัปเกรด
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-              
+
               <Button
                 onClick={() => navigate(createPageUrl('Welcome'))}
                 variant="outline"
