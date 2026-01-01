@@ -372,7 +372,7 @@ export default function AccountingData() {
     if (availableMonths.length > 0 && selectedMonth === 'all') {
       setSelectedMonth(availableMonths[0]); // เดือนล่าสุด
     }
-  }, [availableMonths]);
+  }, [availableMonths, selectedMonth]);
 
   // ฟังก์ชันกรองข้อมูล - ใบเสร็จรับเงิน (ทุกรายการ)
   const filteredPayments = useMemo(() => {
@@ -409,7 +409,7 @@ export default function AccountingData() {
     
     console.log('✅ Filtered payments:', filtered.length);
     return filtered;
-  }, [payments, roomsMap, tenantsMap, searchTerm, selectedMonth]);
+  }, [payments, roomsMap, tenantsMap, searchTerm, selectedMonth, getBillingPeriod]);
 
   // ฟังก์ชันกรองใบแจ้งหนี้ (ทุกรายการ)
   const filteredInvoices = useMemo(() => {
