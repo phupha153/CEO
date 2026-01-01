@@ -142,13 +142,13 @@ export default function UserBranchAccess() {
 
   const updateUserBranchesMutation = useMutation({
     mutationFn: async ({ userId, userEmail, accessible_branches }) => {
-      // เช็คว่าเป็นเจ้าของสาขาไหนบ้าง
+      // เช็คว่าเป็นเจ้าของสาขาไหนบ้าง (owner_id หรือ created_by ตรงกับ email)
       const ownedBranches = allBranches.filter(b => 
-        accessible_branches.includes(b.id) && 
-        (b.owner_id === userEmail || b.created_by === userEmail)
+        b.owner_id === userEmail || b.created_by === userEmail
       );
       
-      // ถ้าเป็นเจ้าของอย่างน้อย 1 สาขา → set custom_role = 'owner'
+      // ถ้าเป็นเจ้าของอย่างน้อย 1 สาขา → custom_role = 'owner'
+      // ถ้าไม่ใช่ → custom_role = 'employee' (พนักงาน/ผู้จัดการ)
       const custom_role = ownedBranches.length > 0 ? 'owner' : 'employee';
       
       return base44.entities.User.update(userId, { 
