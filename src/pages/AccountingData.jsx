@@ -163,34 +163,24 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ เพิ่ม limit เป็น 500
+  // ✅ ดึง bookings เฉพาะสาขา (BACKEND FILTERING)
   const { data: bookings = [] } = useQuery({
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allBookings = await base44.entities.Booking.list('-created_date', 500);
-      return allBookings.filter(booking => booking.branch_id === selectedBranchId);
-    },
-    enabled: !!selectedBranchId,
-    ...retryConfig,
-    staleTime: 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-    placeholderData: (previousData) => previousData,
-  });
-
-  // ✅ ดึงห้องทุกสาขาแบบ pagination
-  const { data: rooms = [] } = useQuery({
-    queryKey: ['allRooms'],
-    queryFn: async () => {
+      
       let allData = [];
       let skip = 0;
       const limit = 5000;
       let hasMore = true;
 
       while (hasMore) {
-        const batch = await base44.entities.Room.list('-room_number', limit, skip);
+        const batch = await base44.entities.Booking.filter(
+          { branch_id: selectedBranchId },
+          '-created_date',
+          limit,
+          skip
+        );
         allData = [...allData, ...batch];
         skip += limit;
         
@@ -202,7 +192,48 @@ export default function AccountingData() {
         }
       }
       
-      console.log(`📊 AccountingData - Loaded ${allData.length} rooms (all branches)`);
+      console.log(`📊 AccountingData - Loaded ${allData.length} bookings for branch ${selectedBranchId}`);
+      return allData;
+    },
+    enabled: !!selectedBranchId,
+    ...retryConfig,
+    staleTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    placeholderData: (previousData) => previousData,
+  });
+
+  // ✅ ดึงห้องเฉพาะสาขาที่เลือก (MULTI-TENANT SAFE)
+  const { data: rooms = [] } = useQuery({
+    queryKey: ['rooms', selectedBranchId],
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      
+      let allData = [];
+      let skip = 0;
+      const limit = 5000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch = await base44.entities.Room.filter(
+          { branch_id: selectedBranchId },
+          '-room_number',
+          limit,
+          skip
+        );
+        allData = [...allData, ...batch];
+        skip += limit;
+        
+        if (batch.length < limit) {
+          hasMore = false;
+        }
+        if (skip >= 100000) {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`📊 AccountingData - Loaded ${allData.length} rooms for branch ${selectedBranchId}`);
       return allData;
     },
     enabled: !!selectedBranchId,
@@ -214,17 +245,24 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ ดึงผู้เช่าทุกสาขาแบบ pagination
+  // ✅ ดึงผู้เช่าเฉพาะสาขาที่เลือก (MULTI-TENANT SAFE)
   const { data: tenants = [] } = useQuery({
-    queryKey: ['allTenants'],
+    queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
+      if (!selectedBranchId) return [];
+      
       let allData = [];
       let skip = 0;
       const limit = 5000;
       let hasMore = true;
 
       while (hasMore) {
-        const batch = await base44.entities.Tenant.list('-created_date', limit, skip);
+        const batch = await base44.entities.Tenant.filter(
+          { branch_id: selectedBranchId },
+          '-created_date',
+          limit,
+          skip
+        );
         allData = [...allData, ...batch];
         skip += limit;
         
@@ -236,7 +274,7 @@ export default function AccountingData() {
         }
       }
       
-      console.log(`📊 AccountingData - Loaded ${allData.length} tenants (all branches)`);
+      console.log(`📊 AccountingData - Loaded ${allData.length} tenants for branch ${selectedBranchId}`);
       return allData;
     },
     enabled: !!selectedBranchId,
@@ -248,13 +286,37 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ เพิ่ม limit เป็น 500
+  // ✅ ดึง expenses เฉพาะสาขา (BACKEND FILTERING)
   const { data: expenses = [] } = useQuery({
     queryKey: ['expenses', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allExpenses = await base44.entities.Expense.list('-date', 500);
-      return allExpenses.filter(expense => expense.branch_id === selectedBranchId);
+      
+      let allData = [];
+      let skip = 0;
+      const limit = 5000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const batch = await base44.entities.Expense.filter(
+          { branch_id: selectedBranchId },
+          '-date',
+          limit,
+          skip
+        );
+        allData = [...allData, ...batch];
+        skip += limit;
+        
+        if (batch.length < limit) {
+          hasMore = false;
+        }
+        if (skip >= 100000) {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`📊 AccountingData - Loaded ${allData.length} expenses for branch ${selectedBranchId}`);
+      return allData;
     },
     enabled: !!selectedBranchId,
     ...retryConfig,
@@ -294,6 +356,15 @@ export default function AccountingData() {
     const sortedMonths = Array.from(monthsSet).sort((a, b) => b.localeCompare(a)); // เรียงจากใหม่ไปเก่า
     return sortedMonths;
   }, [payments]);
+
+  // ✅ สร้าง Maps สำหรับ O(1) lookup (แก้ N+1 Problem)
+  const roomsMap = useMemo(() => {
+    return new Map(rooms.map(r => [r.id, r]));
+  }, [rooms]);
+
+  const tenantsMap = useMemo(() => {
+    return new Map(tenants.map(t => [t.id, t]));
+  }, [tenants]);
 
   // ตั้งค่า default เป็นเดือนล่าสุดที่มีข้อมูล
   useEffect(() => {
@@ -337,7 +408,7 @@ export default function AccountingData() {
     
     console.log('✅ Filtered payments:', filtered.length);
     return filtered;
-  }, [payments, rooms, tenants, searchTerm, selectedMonth]);
+  }, [payments, roomsMap, tenantsMap, searchTerm, selectedMonth]);
 
   // ฟังก์ชันกรองใบแจ้งหนี้ (ทุกรายการ)
   const filteredInvoices = useMemo(() => {
@@ -346,8 +417,8 @@ export default function AccountingData() {
 
     const filtered = payments
       .filter(payment => {
-        const room = rooms.find(r => r.id === payment.room_id);
-        const tenant = tenants.find(t => t.id === payment.tenant_id);
+        const room = roomsMap.get(payment.room_id);
+        const tenant = tenantsMap.get(payment.tenant_id);
         
         const matchSearch = !searchTerm || 
           room?.room_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -374,12 +445,12 @@ export default function AccountingData() {
     
     console.log('✅ Filtered invoices:', filtered.length);
     return filtered;
-  }, [payments, rooms, tenants, searchTerm, selectedMonth]);
+  }, [payments, roomsMap, tenantsMap, searchTerm, selectedMonth]);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter(booking => {
-      const room = rooms.find(r => r.id === booking.room_id);
-      const tenant = tenants.find(t => t.id === booking.tenant_id);
+      const room = roomsMap.get(booking.room_id);
+      const tenant = tenantsMap.get(booking.tenant_id);
       
       const matchSearch = !searchTerm || 
         room?.room_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -391,7 +462,7 @@ export default function AccountingData() {
       
       return matchSearch && matchDate;
     });
-  }, [bookings, rooms, tenants, searchTerm, dateFilter]);
+  }, [bookings, roomsMap, tenantsMap, searchTerm, dateFilter]);
 
   const filteredExpenses = useMemo(() => {
     return expenses.filter(expense => {
@@ -437,8 +508,8 @@ export default function AccountingData() {
 
   const filteredDeposits = useMemo(() => {
     return depositData.activeDeposits.filter(booking => {
-      const room = rooms.find(r => r.id === booking.room_id);
-      const tenant = tenants.find(t => t.id === booking.tenant_id);
+      const room = roomsMap.get(booking.room_id);
+      const tenant = tenantsMap.get(booking.tenant_id);
       
       const matchSearch = !searchTerm || 
         room?.room_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -446,7 +517,7 @@ export default function AccountingData() {
       
       return matchSearch;
     });
-  }, [depositData.activeDeposits, rooms, tenants, searchTerm]);
+  }, [depositData.activeDeposits, roomsMap, tenantsMap, searchTerm]);
 
   // Mutation สำหรับคืนเงินมัดจำ
   const returnDepositMutation = useMutation({
@@ -461,8 +532,8 @@ export default function AccountingData() {
     },
     onSuccess: async (data) => {
       const booking = bookings.find(b => b.id === data.bookingId);
-      const room = rooms.find(r => r.id === booking?.room_id);
-      const tenant = tenants.find(t => t.id === booking?.tenant_id);
+      const room = roomsMap.get(booking?.room_id);
+      const tenant = tenantsMap.get(booking?.tenant_id);
 
       // บันทึกประวัติ
       try {
@@ -607,7 +678,7 @@ export default function AccountingData() {
     try {
       const roomNumbers = selectedIds.map(paymentId => {
         const payment = payments.find(p => p.id === paymentId);
-        const room = rooms.find(r => r.id === payment?.room_id);
+        const room = roomsMap.get(payment?.room_id);
         return room?.room_number || 'N/A';
       }).join(', ');
 
@@ -638,8 +709,8 @@ export default function AccountingData() {
   const exportPayments = async () => {
     try {
       const data = filteredPayments.map(payment => {
-        const room = rooms.find(r => r.id === payment.room_id);
-        const tenant = tenants.find(t => t.id === payment.tenant_id);
+        const room = roomsMap.get(payment.room_id);
+        const tenant = tenantsMap.get(payment.tenant_id);
         
         return {
           'วันที่': payment.payment_date ? format(parseISO(payment.payment_date), 'd/M/yyyy', { locale: th }) : '-',
@@ -684,10 +755,10 @@ export default function AccountingData() {
     try {
       const data = selectedPayments.map(paymentId => {
         const payment = payments.find(p => p.id === paymentId);
-        if (!payment) return null; // Should not happen if selectedPayments are valid IDs
+        if (!payment) return null;
 
-        const room = rooms.find(r => r.id === payment.room_id);
-        const tenant = tenants.find(t => t.id === payment.tenant_id);
+        const room = roomsMap.get(payment.room_id);
+        const tenant = tenantsMap.get(payment.tenant_id);
         
         return {
           'วันที่': payment.payment_date ? format(parseISO(payment.payment_date), 'd/M/yyyy', { locale: th }) : '-',
@@ -737,8 +808,8 @@ export default function AccountingData() {
   const exportBookings = async () => {
     try {
       const data = filteredBookings.map(booking => {
-        const room = rooms.find(r => r.id === booking.room_id);
-        const tenant = tenants.find(t => t.id === booking.tenant_id);
+        const room = roomsMap.get(booking.room_id);
+        const tenant = tenantsMap.get(booking.tenant_id);
         
         return {
           'ห้อง': room?.room_number || '-',
@@ -813,8 +884,8 @@ export default function AccountingData() {
   const exportInvoices = async () => {
     try {
       const data = filteredInvoices.map(payment => {
-        const room = rooms.find(r => r.id === payment.room_id);
-        const tenant = tenants.find(t => t.id === payment.tenant_id);
+        const room = roomsMap.get(payment.room_id);
+        const tenant = tenantsMap.get(payment.tenant_id);
         
         return {
           'วันครบกำหนด': payment.due_date ? format(parseISO(payment.due_date), 'd/M/yyyy', { locale: th }) : '-',
@@ -858,8 +929,8 @@ export default function AccountingData() {
   const exportDeposits = async () => {
     try {
       const data = depositData.activeDeposits.map(booking => {
-        const room = rooms.find(r => r.id === booking.room_id);
-        const tenant = tenants.find(t => t.id === booking.tenant_id);
+        const room = roomsMap.get(booking.room_id);
+        const tenant = tenantsMap.get(booking.tenant_id);
         
         return {
           'ห้อง': room?.room_number || '-',
@@ -1061,8 +1132,8 @@ export default function AccountingData() {
                     <p className="font-bold text-purple-800 mb-2">🎯 Payment Sample (First 5)</p>
                     <div className="space-y-2">
                       {payments.slice(0, 5).map((p, idx) => {
-                        const room = rooms.find(r => r.id === p.room_id);
-                        const tenant = tenants.find(t => t.id === p.tenant_id);
+                        const room = roomsMap.get(p.room_id);
+                        const tenant = tenantsMap.get(p.tenant_id);
                         return (
                           <div key={idx} className="text-xs bg-purple-50 p-2 rounded border">
                             <p className="font-mono">
@@ -1083,8 +1154,8 @@ export default function AccountingData() {
                     <p className="font-bold text-purple-800 mb-2">⚠️ Missing Room/Tenant Analysis</p>
                     <div className="space-y-2 text-xs">
                       {(() => {
-                        const paymentsWithMissingRoom = payments.filter(p => !rooms.find(r => r.id === p.room_id));
-                        const paymentsWithMissingTenant = payments.filter(p => !tenants.find(t => t.id === p.tenant_id));
+                        const paymentsWithMissingRoom = payments.filter(p => !roomsMap.has(p.room_id));
+                        const paymentsWithMissingTenant = payments.filter(p => !tenantsMap.has(p.tenant_id));
 
                         return (
                           <>
@@ -1395,8 +1466,8 @@ export default function AccountingData() {
                       </thead>
                       <tbody className="divide-y">
                         {filteredPayments.map((payment) => {
-                          const room = rooms.find(r => r.id === payment.room_id);
-                          const tenant = tenants.find(t => t.id === payment.tenant_id);
+                          const room = roomsMap.get(payment.room_id);
+                          const tenant = tenantsMap.get(payment.tenant_id);
                           const isSelected = selectedPayments.includes(payment.id);
                           
                           const paymentMethodLabel = {
@@ -1537,8 +1608,8 @@ export default function AccountingData() {
                       </thead>
                       <tbody className="divide-y">
                         {filteredInvoices.map((payment) => {
-                          const room = rooms.find(r => r.id === payment.room_id);
-                          const tenant = tenants.find(t => t.id === payment.tenant_id);
+                          const room = roomsMap.get(payment.room_id);
+                          const tenant = tenantsMap.get(payment.tenant_id);
                           const isSelected = selectedInvoices.includes(payment.id);
                           
                           return (
@@ -1630,8 +1701,8 @@ export default function AccountingData() {
                       </thead>
                       <tbody className="divide-y">
                         {filteredBookings.map((booking) => {
-                          const room = rooms.find(r => r.id === booking.room_id);
-                          const tenant = tenants.find(t => t.id === booking.tenant_id);
+                          const room = roomsMap.get(booking.room_id);
+                          const tenant = tenantsMap.get(booking.tenant_id);
                           
                           return (
                             <tr key={booking.id} className="hover:bg-slate-50">
@@ -1735,8 +1806,8 @@ export default function AccountingData() {
                       </thead>
                       <tbody className="divide-y">
                         {filteredDeposits.map((booking) => {
-                          const room = rooms.find(r => r.id === booking.room_id);
-                          const tenant = tenants.find(t => t.id === booking.tenant_id);
+                          const room = roomsMap.get(booking.room_id);
+                          const tenant = tenantsMap.get(booking.tenant_id);
                           
                           return (
                             <tr key={booking.id} className="hover:bg-slate-50">
@@ -1865,8 +1936,8 @@ export default function AccountingData() {
                 {(activeTab === 'invoices' ? selectedInvoices : selectedPayments).map((paymentId) => {
                   const payment = payments.find(p => p.id === paymentId);
                   if (!payment) return null;
-                  const room = rooms.find(r => r.id === payment.room_id);
-                  const tenant = tenants.find(t => t.id === payment.tenant_id);
+                  const room = roomsMap.get(payment.room_id);
+                  const tenant = tenantsMap.get(payment.tenant_id);
                   const pageName = activeTab === 'invoices' ? 'Invoice' : 'Receipt';
                   const url = `${window.location.origin}${createPageUrl(pageName)}?paymentId=${paymentId}`;
                   
@@ -1915,7 +1986,7 @@ export default function AccountingData() {
                     const allUrls = selectedIds
                       .map(id => {
                           const payment = payments.find(p => p.id === id);
-                          const room = rooms.find(r => r.id === payment?.room_id);
+                          const room = roomsMap.get(payment?.room_id);
                           return `ห้อง ${room?.room_number || 'N/A'}: ${window.location.origin}${createPageUrl(pageName)}?paymentId=${id}`;
                       })
                       .join('\n');
@@ -1944,11 +2015,11 @@ export default function AccountingData() {
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="text-slate-600">ห้อง:</div>
                       <div className="font-semibold">
-                        {rooms.find(r => r.id === selectedDeposit.room_id)?.room_number || '-'}
+                        {roomsMap.get(selectedDeposit.room_id)?.room_number || '-'}
                       </div>
                       <div className="text-slate-600">ผู้เช่า:</div>
                       <div className="font-semibold">
-                        {tenants.find(t => t.id === selectedDeposit.tenant_id)?.full_name || '-'}
+                        {tenantsMap.get(selectedDeposit.tenant_id)?.full_name || '-'}
                       </div>
                       <div className="text-slate-600">เงินมัดจำ:</div>
                       <div className="font-semibold text-blue-600">
