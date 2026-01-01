@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     let dateRange = null;
     
     // ⭐ Room View Mode - ใช้ room_view_month แทน date_range_type
-    if (view_mode === 'room' && room_view_month) {
+    if ((view_mode === 'room' || date_range_type === 'room_view') && room_view_month) {
       const [year, month] = room_view_month.split('-').map(Number);
       
       // งวดบิลเริ่มจาก bill_generation_day ของเดือนก่อนหน้า
