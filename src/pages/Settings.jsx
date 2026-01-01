@@ -2036,25 +2036,6 @@ export default function Settings() {
                               <Crown className="w-6 h-6 mr-3" />
                               เลือกแพ็กเกจที่เหมาะกับคุณ
                             </Button>
-
-                            {/* Features Preview */}
-                            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-                              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
-                                <Settings className="w-6 h-6 text-slate-700 mx-auto mb-2" />
-                                <p className="text-sm font-semibold text-slate-800">Basic</p>
-                                <p className="text-xs text-slate-600 mt-1">เริ่มต้นง่าย ครบฟีเจอร์</p>
-                              </div>
-                              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 border-2 border-blue-300">
-                                <Sparkles className="w-6 h-6 text-blue-600 mx-auto mb-2" />
-                                <p className="text-sm font-semibold text-blue-800">Pro</p>
-                                <p className="text-xs text-blue-600 mt-1">สำหรับธุรกิจขนาดกลาง</p>
-                              </div>
-                              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl p-4 border-2 border-amber-300">
-                                <Crown className="w-6 h-6 text-amber-600 mx-auto mb-2" />
-                                <p className="text-sm font-semibold text-amber-800">Elite</p>
-                                <p className="text-xs text-amber-600 mt-1">องค์กรขนาดใหญ่</p>
-                              </div>
-                            </div>
                           </CardContent>
                         </Card>
                       </div>
