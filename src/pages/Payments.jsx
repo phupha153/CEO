@@ -68,6 +68,7 @@ export default function PaymentsPage() {
   
   // Room View State
   const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [isLoadingRoomView, setIsLoadingRoomView] = useState(false);
 
   const [aiSearching, setAiSearching] = useState(false);
   const [aiResult, setAiResult] = useState(null);
@@ -3598,7 +3599,7 @@ Return JSON.`;
 
               {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
-                  {paymentsFetching && (
+                  {(paymentsFetching || isLoadingRoomView) && (
                     <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
                       <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-3">
                         <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
@@ -3616,7 +3617,9 @@ Return JSON.`;
                           onClick={() => {
                             const [year, month] = roomViewMonth.split('-').map(Number);
                             const prevMonth = new Date(year, month - 2, 1);
+                            setIsLoadingRoomView(true);
                             setRoomViewMonth(format(prevMonth, 'yyyy-MM'));
+                            setTimeout(() => setIsLoadingRoomView(false), 400);
                           }}
                         >
                           <ChevronLeft className="w-4 h-4" />
@@ -3624,7 +3627,11 @@ Return JSON.`;
                         <Input
                           type="month"
                           value={roomViewMonth}
-                          onChange={(e) => setRoomViewMonth(e.target.value)}
+                          onChange={(e) => {
+                            setIsLoadingRoomView(true);
+                            setRoomViewMonth(e.target.value);
+                            setTimeout(() => setIsLoadingRoomView(false), 400);
+                          }}
                           className="w-40"
                         />
                         <Button
@@ -3633,7 +3640,9 @@ Return JSON.`;
                           onClick={() => {
                             const [year, month] = roomViewMonth.split('-').map(Number);
                             const nextMonth = new Date(year, month, 1);
+                            setIsLoadingRoomView(true);
                             setRoomViewMonth(format(nextMonth, 'yyyy-MM'));
+                            setTimeout(() => setIsLoadingRoomView(false), 400);
                           }}
                         >
                           <ChevronRight className="w-4 h-4" />
