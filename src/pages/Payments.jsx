@@ -66,6 +66,7 @@ export default function PaymentsPage() {
   
   // Room View State
   const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [isRoomViewLoading, setIsRoomViewLoading] = useState(false);
 
   const [aiSearching, setAiSearching] = useState(false);
   const [aiResult, setAiResult] = useState(null);
@@ -327,6 +328,51 @@ export default function PaymentsPage() {
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
     placeholderData: (previousData) => previousData,
+  });
+
+  // ⭐ Separate query for Room View payments
+  const { data: roomViewPayments = [], isFetching: roomViewPaymentsFetching } = useQuery({
+    queryKey: ['roomViewPayments', selectedBranchId, roomViewMonth],
+    queryFn: async () => {
+      if (!selectedBranchId || !roomViewMonth || viewMode !== 'room') return [];
+      
+      setIsRoomViewLoading(true);
+      try {
+        const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
+        const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+        const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
+        
+        const [selectedYear, selectedMonth] = roomViewMonth.split('-').map(Number);
+        const monthStart = new Date(selectedYear, selectedMonth - 2, billGenerationDay);
+        const monthEnd = new Date(selectedYear, selectedMonth - 1, billGenerationDay - 1, 23, 59, 59);
+        
+        const response = await base44.functions.invoke('getFilteredPayments', {
+          branch_id: selectedBranchId,
+          status_filter: 'all',
+          date_range_type: 'custom',
+          custom_range: {
+            from: monthStart,
+            to: monthEnd
+          },
+          search_query: '',
+          page: 1,
+          limit: 10000,
+          sort_by: 'room',
+          debug: false
+        });
+        
+        return response.data?.data || [];
+      } finally {
+        setIsRoomViewLoading(false);
+      }
+    },
+    enabled: canView && !!selectedBranchId && viewMode === 'room' && configs.length > 0,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
+    placeholderData: (previousData) => previousData,
+    throwOnError: false,
   });
 
   // ✅ O(1) Lookup Maps
@@ -3606,7 +3652,15 @@ Return JSON.`;
                     </div>
 
                     {/* Room Grid by Floor */}
-                    {(() => {
+                    {isRoomViewLoading ? (
+                      <div className="flex items-center justify-center py-20">
+                        <div className="text-center space-y-3">
+                          <Loader2 className="w-12 h-12 text-blue-600 mx-auto animate-spin" />
+                          <p className="text-slate-600 font-medium">กำลังโหลดข้อมูลห้องพัก...</p>
+                          <p className="text-sm text-slate-500">เดือน {format(new Date(roomViewMonth), 'MMMM yyyy', { locale: th })}</p>
+                        </div>
+                      </div>
+                    ) : (() => {
                       // Group rooms by floor
                       const roomsByFloor = rooms.reduce((acc, room) => {
                         const floor = room.floor || 1;
@@ -3618,25 +3672,8 @@ Return JSON.`;
                       // Sort floors
                       const sortedFloors = Object.keys(roomsByFloor).sort((a, b) => Number(a) - Number(b));
 
-                      // Get payments for selected month
-                      // ⭐ คำนวณช่วงงวดบิลจริงๆ โดยใช้ bill_generation_day ของสาขา
-                      const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
-                      const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
-                      const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
-                      
-                      const [selectedYear, selectedMonth] = roomViewMonth.split('-').map(Number);
-                      
-                      // งวดบิลเริ่มจากวันที่ bill_generation_day ของเดือนก่อนหน้า
-                      // และสิ้นสุดที่วันที่ bill_generation_day ของเดือนที่เลือก
-                      const monthStart = new Date(selectedYear, selectedMonth - 2, billGenerationDay);
-                      const monthEnd = new Date(selectedYear, selectedMonth - 1, billGenerationDay - 1, 23, 59, 59);
-                      
-                      console.log('🔍 Room View Month Range:', {
-                        selectedMonth: roomViewMonth,
-                        billGenerationDay,
-                        monthStart: format(monthStart, 'yyyy-MM-dd'),
-                        monthEnd: format(monthEnd, 'yyyy-MM-dd')
-                      });
+                      // ⭐ ใช้ roomViewPayments แทน payments
+                      const monthPayments = roomViewPayments;
 
                       return sortedFloors.map(floor => (
                         <div key={floor} className="mb-6">
@@ -3648,17 +3685,8 @@ Return JSON.`;
                             {roomsByFloor[floor]
                               .sort((a, b) => a.room_number.localeCompare(b.room_number))
                               .map(room => {
-                                // Find payment for this room in selected month
-                                const roomPayment = payments.find(p => {
-                                  if (p.room_id !== room.id) return false;
-                                  if (!p.due_date) return false;
-                                  try {
-                                    const dueDate = parseISO(p.due_date);
-                                    return isWithinInterval(dueDate, { start: monthStart, end: monthEnd });
-                                  } catch {
-                                    return false;
-                                  }
-                                });
+                                // ⭐ Find payment from roomViewPayments (already filtered by month)
+                                const roomPayment = monthPayments.find(p => p.room_id === room.id);
 
                                 const effectiveStatus = roomPayment ? getEffectiveStatus(roomPayment) : null;
                                 const tenant = roomPayment ? getTenantInfo(roomPayment.tenant_id) : null;
