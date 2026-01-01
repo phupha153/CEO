@@ -9,8 +9,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    // Get all branches
+    // Get all branches and users
     const branches = await base44.asServiceRole.entities.Branch.list('-created_date', 10000);
+    const allUsers = await base44.asServiceRole.entities.User.list('-created_date', 10000);
     
     let updatedCount = 0;
     const results = [];
@@ -27,15 +28,31 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      // Use created_by as owner_id
-      const ownerId = branch.created_by;
+      // Find owner by checking user's accessible_branches and role
+      let ownerId = null;
+      
+      for (const checkUser of allUsers) {
+        const accessibleBranches = checkUser.accessible_branches || [];
+        const userRole = checkUser.custom_role || (checkUser.role === 'admin' ? 'owner' : 'employee');
+        
+        // ถ้า user มีสาขานี้ใน accessible_branches และเป็น owner หรือ developer
+        if (accessibleBranches.includes(branch.id) && (userRole === 'owner' || userRole === 'developer')) {
+          ownerId = checkUser.email;
+          break;
+        }
+      }
+
+      // Fallback: ใช้ created_by ถ้าหาไม่เจอ
+      if (!ownerId && branch.created_by) {
+        ownerId = branch.created_by;
+      }
 
       if (!ownerId) {
         results.push({
           branch_id: branch.id,
           branch_name: branch.branch_name,
           status: 'failed',
-          reason: 'no created_by found'
+          reason: 'no owner found'
         });
         continue;
       }
@@ -49,7 +66,8 @@ Deno.serve(async (req) => {
         branch_id: branch.id,
         branch_name: branch.branch_name,
         status: 'updated',
-        owner_id: ownerId
+        owner_id: ownerId,
+        method: branch.created_by === ownerId ? 'created_by' : 'accessible_branches'
       });
     }
 
