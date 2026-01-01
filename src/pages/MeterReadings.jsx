@@ -33,6 +33,10 @@ export default function MeterReadings() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [formData, setFormData] = useState({
     room_id: '',
     reading_date: new Date().toISOString().split('T')[0],
@@ -765,17 +769,15 @@ export default function MeterReadings() {
   const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
   const getLatestReading = useCallback((roomId) => meterReadingsMap.get(roomId), [meterReadingsMap]);
 
-      const { totalElectricityThisMonth, totalWaterLatest } = useMemo(() => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    // Total electricity this month
+  const { totalElectricityThisMonth, totalWaterLatest, monthReadingsCount } = useMemo(() => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    
+    // Total electricity for selected month
     const totalElectricity = meterReadings
       .filter(r => {
         try {
           const readingDate = parseISO(r.reading_date);
-          return readingDate.getMonth() === currentMonth && readingDate.getFullYear() === currentYear;
+          return readingDate.getMonth() === (month - 1) && readingDate.getFullYear() === year;
         } catch {
           return false;
         }
@@ -793,8 +795,22 @@ export default function MeterReadings() {
     const totalWater = Array.from(latestReadings.values())
       .reduce((sum, r) => sum + (r.water_units || 0), 0);
 
-    return { totalElectricityThisMonth: totalElectricity, totalWaterLatest: totalWater };
-  }, [meterReadings]);
+    // Count readings in selected month
+    const monthCount = meterReadings.filter(r => {
+      try {
+        const readingDate = parseISO(r.reading_date);
+        return readingDate.getMonth() === (month - 1) && readingDate.getFullYear() === year;
+      } catch {
+        return false;
+      }
+    }).length;
+
+    return { 
+      totalElectricityThisMonth: totalElectricity, 
+      totalWaterLatest: totalWater,
+      monthReadingsCount: monthCount
+    };
+  }, [meterReadings, selectedMonth]);
 
   const handleAIAnalysis = async () => {
     setIsAnalyzing(true);
@@ -1298,13 +1314,31 @@ export default function MeterReadings() {
             </Card>
             <Card className="bg-gradient-to-br from-yellow-500 to-orange-500 text-white shadow-xl">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-yellow-100 text-sm mb-1">ไฟที่ใช้เดือนนี้ (หน่วย)</p>
+                <div className="flex items-center justify-between mb-3">
+                    <div className="flex-1">
+                        <p className="text-yellow-100 text-sm mb-1">ไฟที่ใช้ (หน่วย)</p>
                         <p className="text-3xl font-bold">{totalElectricityThisMonth.toFixed(2)}</p>
+                        <p className="text-yellow-100 text-xs mt-1">{monthReadingsCount} รายการ</p>
                     </div>
                     <Zap className="w-12 h-12 text-yellow-200" />
                 </div>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="w-full text-xs px-2 py-1 rounded bg-white/20 text-white border border-white/30 hover:bg-white/30 cursor-pointer"
+                >
+                  {(() => {
+                    const months = [];
+                    const now = new Date();
+                    for (let i = 0; i < 12; i++) {
+                      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                      const label = format(d, 'MMM yyyy', { locale: th });
+                      months.push(<option key={value} value={value} className="text-slate-800">{label}</option>);
+                    }
+                    return months;
+                  })()}
+                </select>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-xl">
