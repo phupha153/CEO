@@ -848,6 +848,19 @@ export default function MeterReadings() {
       meterReadingsLength: meterReadings.length 
     });
     
+    // 🐛 DEBUG: แสดง sample reading_date จาก meterReadings
+    if (meterReadings.length > 0) {
+      console.log('📝 Sample meterReadings dates:', 
+        meterReadings.slice(0, 10).map(r => ({
+          room_id: r.room_id?.substring(0, 8),
+          reading_date: r.reading_date,
+          reading_date_parsed: r.reading_date ? format(parseISO(r.reading_date), 'yyyy-MM-dd') : 'null',
+          elec_units: r.electricity_units,
+          water_units: r.water_units
+        }))
+      );
+    }
+    
     const period = billingPeriods.find(p => p.value === selectedPeriod);
     if (!period) {
       console.log('⚠️ Period not found for:', selectedPeriod);
@@ -857,8 +870,8 @@ export default function MeterReadings() {
     console.log('📆 Selected period:', {
       value: period.value,
       label: period.label,
-      start: format(period.start, 'yyyy-MM-dd'),
-      end: format(period.end, 'yyyy-MM-dd')
+      start: format(period.start, 'yyyy-MM-dd HH:mm:ss'),
+      end: format(period.end, 'yyyy-MM-dd HH:mm:ss')
     });
     
     // Total electricity + water for selected period (ตามงวดบิล)
@@ -866,8 +879,23 @@ export default function MeterReadings() {
       try {
         const readingDate = parseISO(r.reading_date);
         const inRange = readingDate >= period.start && readingDate <= period.end;
+        
+        // 🐛 DEBUG: แสดงผลการตรวจสอบแต่ละรายการ (5 รายการแรก)
+        if (periodReadings.length < 5) {
+          console.log('🔎 Checking reading:', {
+            reading_date: format(readingDate, 'yyyy-MM-dd HH:mm:ss'),
+            period_start: format(period.start, 'yyyy-MM-dd HH:mm:ss'),
+            period_end: format(period.end, 'yyyy-MM-dd HH:mm:ss'),
+            inRange,
+            readingDate_timestamp: readingDate.getTime(),
+            start_timestamp: period.start.getTime(),
+            end_timestamp: period.end.getTime()
+          });
+        }
+        
         return inRange;
-      } catch {
+      } catch (e) {
+        console.error('❌ Error parsing reading_date:', r.reading_date, e);
         return false;
       }
     });
