@@ -688,17 +688,16 @@ export default function Layout({ children, currentPageName }) {
           currentPageName === 'UserBranchAccess' ||
           currentPageName === 'AllBranchesDashboard' ||
           currentPageName === 'TrialExpiredPage' ||
-          currentPageName === 'PackageSelection' ||
-          currentPageName === 'Dashboard') return;
+          currentPageName === 'PackageSelection') return;
 
       const planStatus = currentUser.plan_status;
       const trialEndsAt = currentUser.trial_ends_at;
 
-      // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → แสดงข้อความในหน้า Settings แทน (ไม่ redirect)
-      // if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
-      //   navigate(createPageUrl('PackageSelection'), { replace: true });
-      //   return;
-      // }
+      // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป PackageSelection
+      if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
+        navigate(createPageUrl('PackageSelection'), { replace: true });
+        return;
+      }
 
       // ⭐ ถ้า trial หมดอายุ → ไป TrialExpiredPage
       if (trialEndsAt && planStatus === 'trial') {
