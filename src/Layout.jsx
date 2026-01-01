@@ -476,10 +476,10 @@ export default function Layout({ children, currentPageName }) {
       setRetryCount(0);
       return user;
     },
-    retry: 0,
-    retryDelay: 0,
-    staleTime: 60 * 1000,
-    gcTime: 2 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
@@ -487,9 +487,10 @@ export default function Layout({ children, currentPageName }) {
     networkMode: 'online',
     onError: () => setRetryCount(prev => prev + 1),
     placeholderData: (previousData) => previousData,
+    throwOnError: false,
   });
 
-  // เช็คสิทธิ์กับ CRM (เช็คทุก 2 นาที + logout อัตโนมัติถ้าไม่มีสิทธิ์)
+  // เช็คสิทธิ์กับ CRM (เช็คทุก 5 นาที + logout อัตโนมัติถ้าไม่มีสิทธิ์)
   const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError } = useQuery({
     queryKey: ['crmAccess', currentUser?.email],
     queryFn: async () => {
@@ -518,15 +519,15 @@ export default function Layout({ children, currentPageName }) {
           console.warn('⚠️ CRM check timeout - allowing access');
           return { hasAccess: true, timeout: true };
         }
-        throw error;
+        return { hasAccess: true, error: true };
       }
     },
     enabled: !isLoading && !!currentUser && isOnline,
-    staleTime: 30 * 1000,
-    refetchInterval: 2 * 60 * 1000,
-    refetchIntervalInBackground: true,
-    retry: 1,
-    retryDelay: 1000,
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+    refetchIntervalInBackground: false,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     throwOnError: false,
   });
 
@@ -534,8 +535,12 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['appSubscriptions'],
     queryFn: () => base44.entities.AppSubscription.list('-created_date', 1),
     enabled: !isLoading && !!currentUser,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    throwOnError: false,
   });
 
 
@@ -546,13 +551,14 @@ export default function Layout({ children, currentPageName }) {
     enabled: !isLoading && !!currentUser && isOnline,
     staleTime: 24 * 60 * 60 * 1000, // 24 ชั่วโมง
     gcTime: 48 * 60 * 60 * 1000, // 48 ชั่วโมง
-    retry: 0,
-    retryDelay: 0,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     networkMode: 'online',
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
     placeholderData: (previousData) => previousData,
+    throwOnError: false,
   });
 
   const { data: configs = [], isLoading: configsLoading } = useQuery({
@@ -561,10 +567,12 @@ export default function Layout({ children, currentPageName }) {
     enabled: !isLoading && !!currentUser && isOnline,
     staleTime: 24 * 60 * 60 * 1000, // 24 ชั่วโมง
     gcTime: 48 * 60 * 60 * 1000, // 48 ชั่วโมง
-    retry: 0,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     placeholderData: (previousData) => previousData,
+    throwOnError: false,
   });
 
 
