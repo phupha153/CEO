@@ -266,9 +266,9 @@ export default function PaymentsPage() {
     dateRangeType
   });
 
-  // ✅ Fetch minimal data - needed for forms only
+  // ✅ Shared Query Keys with AccountingData for instant navigation
   const { data: bookings = [], isFetching: bookingsFetching } = useQuery({
-    queryKey: ['bookings', selectedBranchId, 'secure'],
+    queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
       const response = await base44.functions.invoke('getSecureData', {
@@ -283,10 +283,11 @@ export default function PaymentsPage() {
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: rooms = [], isFetching: roomsFetching } = useQuery({
-    queryKey: ['rooms', selectedBranchId, 'secure'],
+    queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
       const response = await base44.functions.invoke('getSecureData', {
@@ -302,6 +303,7 @@ export default function PaymentsPage() {
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
+    placeholderData: (previousData) => previousData,
   });
 
   // ✅ O(1) Lookup Maps
@@ -309,7 +311,7 @@ export default function PaymentsPage() {
   const getRoomInfo = useCallback((roomId) => roomsMap.get(roomId), [roomsMap]);
 
   const { data: tenants = [], isFetching: tenantsFetching } = useQuery({
-    queryKey: ['tenants', selectedBranchId, 'secure'],
+    queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
       const response = await base44.functions.invoke('getSecureData', {
@@ -324,6 +326,7 @@ export default function PaymentsPage() {
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: true,
+    placeholderData: (previousData) => previousData,
   });
 
   // ✅ O(1) Lookup Maps
