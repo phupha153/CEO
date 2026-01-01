@@ -1275,67 +1275,46 @@ export default function MeterReadings() {
 
       <div className="px-4 md:px-8 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Real-time Alerts - แบบกะทัดรัด */}
-          {alertsData.length > 0 && (
-            <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-l-4 border-orange-500">
-              <CardContent className="p-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className="flex items-center gap-1.5">
-                    <AlertTriangle className="w-4 h-4 text-orange-600" />
-                    <span className="font-bold text-orange-900 text-xs">⚠️ {alertsData.length} ห้อง</span>
-                  </div>
-                  {alertsData.slice(0, 5).map((alert, idx) => (
-                    <div 
-                      key={idx}
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        alert.severity === 'high' ? 'bg-red-500 text-white' : 'bg-amber-500 text-white'
-                      }`}
-                    >
-                      {alert.room_number} {alert.type === 'water_low' ? '💧' : '⚡'}{(alert.type === 'water_low' ? alert.water_units : alert.electricity_units).toFixed(0)}
-                    </div>
-                  ))}
-                  {alertsData.length > 5 && (
-                    <span className="text-xs text-orange-700">+{alertsData.length - 5}</span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-xl">
-              <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm mb-1">ห้องที่มีการบันทึก</p>
-                    <p className="text-3xl font-bold">{Object.keys(readingsByRoomForSummary).length}</p>
+                  <div className="flex-1">
+                    <p className="text-sm text-slate-500 mb-1 font-medium">ห้องที่มีการบันทึก</p>
+                    <p className="text-3xl font-bold text-slate-800">{Object.keys(readingsByRoomForSummary).length}</p>
                   </div>
-                  <Gauge className="w-12 h-12 text-blue-200" />
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                    <Gauge className="w-6 h-6 text-white" />
+                  </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-yellow-500 to-orange-500 text-white shadow-xl">
-              <CardContent className="p-6">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-yellow-100 text-sm mb-1">ไฟที่ใช้ (หน่วย)</p>
-                        <p className="text-3xl font-bold">{totalElectricityThisMonth.toFixed(2)}</p>
-                        <p className="text-yellow-100 text-xs mt-1">{monthReadingsCount} รายการ</p>
+                    <div className="flex-1">
+                        <p className="text-sm text-slate-500 mb-1 font-medium">ไฟที่ใช้ (หน่วย)</p>
+                        <p className="text-3xl font-bold text-slate-800">{totalElectricityThisMonth.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</p>
+                        <p className="text-xs text-slate-400 mt-1">{monthReadingsCount} รายการ</p>
                     </div>
-                    <Zap className="w-12 h-12 text-yellow-200" />
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center shadow-lg">
+                      <Zap className="w-6 h-6 text-white" />
+                    </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-xl">
-                <CardContent className="p-6">
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-shadow">
+                <CardContent className="p-5">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-cyan-100 text-sm mb-1">น้ำที่ใช้ (หน่วย)</p>
-                            <p className="text-3xl font-bold">{totalWaterThisMonth.toFixed(2)}</p>
-                            <p className="text-cyan-100 text-xs mt-1">{monthReadingsCount} รายการ</p>
+                        <div className="flex-1">
+                            <p className="text-sm text-slate-500 mb-1 font-medium">น้ำที่ใช้ (หน่วย)</p>
+                            <p className="text-3xl font-bold text-slate-800">{totalWaterThisMonth.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</p>
+                            <p className="text-xs text-slate-400 mt-1">{monthReadingsCount} รายการ</p>
                         </div>
-                        <Droplets className="w-12 h-12 text-cyan-200" />
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg">
+                          <Droplets className="w-6 h-6 text-white" />
+                        </div>
                     </div>
                 </CardContent>
             </Card>
