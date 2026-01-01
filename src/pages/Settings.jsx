@@ -1184,6 +1184,21 @@ export default function Settings() {
 
   const handleBillingRatesSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validation
+    const waterRate = parseFloat(billingRates.water_rate);
+    const electricityRate = parseFloat(billingRates.electricity_rate);
+    
+    if (isNaN(waterRate) || waterRate < 0) {
+      toast.error('ค่าน้ำต้องเป็นตัวเลขที่มากกว่าหรือเท่ากับ 0');
+      return;
+    }
+    
+    if (isNaN(electricityRate) || electricityRate < 0) {
+      toast.error('ค่าไฟต้องเป็นตัวเลขที่มากกว่าหรือเท่ากับ 0');
+      return;
+    }
+    
     setIsSavingBillingRates(true);
     try {
       await Promise.all([
