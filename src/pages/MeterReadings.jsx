@@ -33,10 +33,7 @@ export default function MeterReadings() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
+  const [selectedMonth, setSelectedMonth] = useState('auto'); // จะตั้งค่าจริงหลังจากโหลด config
   const [formData, setFormData] = useState({
     room_id: '',
     reading_date: new Date().toISOString().split('T')[0],
@@ -243,6 +240,32 @@ export default function MeterReadings() {
 
   const allowMeterEditingConfig = configs.find(c => c.key === 'allow_meter_history_editing' && (c.branch_id === selectedBranchId || !c.branch_id));
   const canEditHistory = canEditHistoryPermission && (allowMeterEditingConfig?.value === 'true');
+
+  // ✅ ตั้งค่าเดือนอัตโนมัติตาม bill_generation_day
+  useEffect(() => {
+    if (selectedMonth !== 'auto' || !selectedBranchId || configs.length === 0) return;
+
+    const billDayConfig = configs.find(c => 
+      c.key === 'bill_generation_day' && 
+      (c.branch_id === selectedBranchId || !c.branch_id)
+    );
+    const billDay = billDayConfig ? parseInt(billDayConfig.value) : 5; // default วันที่ 5
+
+    const now = new Date();
+    const currentDay = now.getDate();
+
+    let targetMonth;
+    if (currentDay < billDay) {
+      // ยังไม่ถึงวันสร้างบิล → เลือกเดือนที่แล้ว
+      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      targetMonth = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, '0')}`;
+    } else {
+      // ถึงหรือเกินวันสร้างบิลแล้ว → เลือกเดือนปัจจุบัน
+      targetMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    setSelectedMonth(targetMonth);
+  }, [configs, selectedBranchId, selectedMonth]);
 
   // ✅ ดาวน์โหลด Template Excel
   const handleDownloadTemplate = () => {
