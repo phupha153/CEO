@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
         const accessibleBranches = checkUser.accessible_branches || [];
         const userRole = checkUser.custom_role || (checkUser.role === 'admin' ? 'owner' : 'employee');
         
-        // ถ้า user มีสาขานี้ใน accessible_branches และเป็น owner หรือ developer
-        if (accessibleBranches.includes(branch.id) && (userRole === 'owner' || userRole === 'developer')) {
+        // ถ้า user มีสาขานี้ใน accessible_branches และเป็น owner
+        if (accessibleBranches.includes(branch.id) && userRole === 'owner') {
           ownerId = checkUser.email;
           break;
         }
