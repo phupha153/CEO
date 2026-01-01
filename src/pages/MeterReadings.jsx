@@ -33,7 +33,10 @@ export default function MeterReadings() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [formData, setFormData] = useState({
     room_id: '',
     reading_date: new Date().toISOString().split('T')[0],
@@ -216,41 +219,17 @@ export default function MeterReadings() {
   });
 
   const { data: configs = [] } = useQuery({
-    queryKey: ['configs'],
+    queryKey: ['configs'], // Removed selectedBranchId, now fetches all configs
     queryFn: async () => {
-      return base44.entities.Config.list();
+      return base44.entities.Config.list(); // Fetch all configs
     },
-    enabled: canView,
+    enabled: canView, // Enabled when canView
     ...retryConfig,
     staleTime: 60 * 60 * 1000,
     gcTime: 2 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     placeholderData: (previousData) => previousData,
   });
-
-  // ✅ สร้าง billing periods แบบเดือนทั้งเดือน (1-31) สำหรับปีที่เลือก
-  const billingPeriods = useMemo(() => {
-    const periods = [];
-    
-    // สร้าง 12 เดือนของปีที่เลือก
-    for (let month = 0; month < 12; month++) {
-      const cycleStart = new Date(selectedYear, month, 1, 0, 0, 0);
-      const cycleEnd = new Date(selectedYear, month + 1, 0, 23, 59, 59);
-      
-      const period = {
-        value: `${selectedYear}-${String(month + 1).padStart(2, '0')}`,
-        label: format(cycleStart, 'MMMM', { locale: th }),
-        start: cycleStart,
-        end: cycleEnd
-      };
-      
-      periods.push(period);
-    }
-    
-    return periods;
-  }, [selectedYear]);
-
-  const [selectedPeriod, setSelectedPeriod] = useState('');
 
   // Helper to get config value
   const getConfigValue = (key, defaultValue) => {
@@ -790,107 +769,48 @@ export default function MeterReadings() {
   const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
   const getLatestReading = useCallback((roomId) => meterReadingsMap.get(roomId), [meterReadingsMap]);
 
-  // ⭐ Auto-set selectedPeriod เมื่อ billingPeriods โหลดเสร็จ
-  useEffect(() => {
-    if (billingPeriods.length > 0 && !selectedPeriod) {
-      const now = new Date();
-      const currentMonth = now.getMonth();
-      const currentYear = now.getFullYear();
-      
-      // ตั้งค่าเริ่มต้นเป็นเดือนปัจจุบัน (ถ้าเป็นปีปัจจุบัน)
-      if (selectedYear === currentYear) {
-        const currentPeriod = billingPeriods.find(p => p.value === `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`);
-        if (currentPeriod) {
-          setSelectedPeriod(currentPeriod.value);
-        } else {
-          setSelectedPeriod(billingPeriods[0].value);
+  const { totalElectricityThisMonth, totalWaterLatest, monthReadingsCount } = useMemo(() => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    
+    // Total electricity for selected month
+    const totalElectricity = meterReadings
+      .filter(r => {
+        try {
+          const readingDate = parseISO(r.reading_date);
+          return readingDate.getMonth() === (month - 1) && readingDate.getFullYear() === year;
+        } catch {
+          return false;
         }
-      } else {
-        // ถ้าเป็นปีอื่น ให้เริ่มที่เดือนแรก
-        setSelectedPeriod(billingPeriods[0].value);
-      }
-    }
-  }, [billingPeriods, selectedPeriod, selectedYear]);
+      })
+      .reduce((sum, r) => sum + (r.electricity_units || 0), 0);
 
-  const { totalElectricityThisMonth, totalWaterThisMonth, monthReadingsCount, displayPeriodLabel } = useMemo(() => {
-    const period = billingPeriods.find(p => p.value === selectedPeriod);
-    if (!period) {
-      return { totalElectricityThisMonth: 0, totalWaterThisMonth: 0, monthReadingsCount: 0, displayPeriodLabel: '' };
-    }
-    
-    console.log('🔎 [Cards] Selected Period Range:', {
-      label: period.label,
-      start: format(period.start, 'yyyy-MM-dd'),
-      end: format(period.end, 'yyyy-MM-dd')
+    // Total water from latest reading of each room
+    const latestReadings = new Map();
+    meterReadings.forEach(r => {
+      if (!latestReadings.has(r.room_id)) {
+        latestReadings.set(r.room_id, r);
+      }
     });
-    
-    // หาข้อมูลจากงวดที่เลือก
-    let periodReadings = meterReadings.filter(r => {
+
+    const totalWater = Array.from(latestReadings.values())
+      .reduce((sum, r) => sum + (r.water_units || 0), 0);
+
+    // Count readings in selected month
+    const monthCount = meterReadings.filter(r => {
       try {
         const readingDate = parseISO(r.reading_date);
-        return readingDate >= period.start && readingDate <= period.end;
+        return readingDate.getMonth() === (month - 1) && readingDate.getFullYear() === year;
       } catch {
         return false;
       }
-    });
-
-    console.log('🔎 [Cards] Found readings in selected period:', {
-      count: periodReadings.length,
-      sampleDates: periodReadings.slice(0, 3).map(r => r.reading_date)
-    });
-
-    let usedPeriod = period;
-    
-    // ถ้าไม่มีข้อมูลในงวดปัจจุบัน → หางวดก่อนหน้าที่มีข้อมูล
-    if (periodReadings.length === 0) {
-      console.log('⚠️ [Cards] No data in selected period - searching previous periods...');
-      const currentIndex = billingPeriods.findIndex(p => p.value === selectedPeriod);
-      
-      for (let i = currentIndex + 1; i < billingPeriods.length; i++) {
-        const prevPeriod = billingPeriods[i];
-        const prevReadings = meterReadings.filter(r => {
-          try {
-            const readingDate = parseISO(r.reading_date);
-            return readingDate >= prevPeriod.start && readingDate <= prevPeriod.end;
-          } catch {
-            return false;
-          }
-        });
-        
-        console.log('🔎 [Cards] Checking previous period:', {
-          label: prevPeriod.label,
-          start: format(prevPeriod.start, 'yyyy-MM-dd'),
-          end: format(prevPeriod.end, 'yyyy-MM-dd'),
-          foundCount: prevReadings.length
-        });
-        
-        if (prevReadings.length > 0) {
-          periodReadings = prevReadings;
-          usedPeriod = prevPeriod;
-          console.log('✅ [Cards] Using fallback period:', usedPeriod.label);
-          break;
-        }
-      }
-    }
-
-    const totalElectricity = periodReadings.reduce((sum, r) => sum + (r.electricity_units || 0), 0);
-    const totalWater = periodReadings.reduce((sum, r) => sum + (r.water_units || 0), 0);
-
-    console.log('💡 [Cards] Final Result:', {
-      period: usedPeriod.label,
-      totalElectricity,
-      totalWater,
-      count: periodReadings.length,
-      isFallback: usedPeriod.value !== selectedPeriod
-    });
+    }).length;
 
     return { 
       totalElectricityThisMonth: totalElectricity, 
-      totalWaterThisMonth: totalWater,
-      monthReadingsCount: periodReadings.length,
-      displayPeriodLabel: usedPeriod.value !== selectedPeriod ? usedPeriod.label : ''
+      totalWaterLatest: totalWater,
+      monthReadingsCount: monthCount
     };
-  }, [meterReadings, selectedPeriod, billingPeriods]);
+  }, [meterReadings, selectedMonth]);
 
   const handleAIAnalysis = async () => {
     setIsAnalyzing(true);
@@ -1398,10 +1318,7 @@ export default function MeterReadings() {
                     <div>
                         <p className="text-yellow-100 text-sm mb-1">ไฟที่ใช้ (หน่วย)</p>
                         <p className="text-3xl font-bold">{totalElectricityThisMonth.toFixed(2)}</p>
-                        <p className="text-yellow-100 text-xs mt-1">
-                          {monthReadingsCount} รายการ
-                          {displayPeriodLabel && <span className="ml-1">• {displayPeriodLabel}</span>}
-                        </p>
+                        <p className="text-yellow-100 text-xs mt-1">{monthReadingsCount} รายการ</p>
                     </div>
                     <Zap className="w-12 h-12 text-yellow-200" />
                 </div>
@@ -1411,12 +1328,8 @@ export default function MeterReadings() {
                 <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-cyan-100 text-sm mb-1">น้ำที่ใช้ (หน่วย)</p>
-                            <p className="text-3xl font-bold">{totalWaterThisMonth.toFixed(2)}</p>
-                            <p className="text-cyan-100 text-xs mt-1">
-                              {monthReadingsCount} รายการ
-                              {displayPeriodLabel && <span className="ml-1">• {displayPeriodLabel}</span>}
-                            </p>
+                            <p className="text-cyan-100 text-sm mb-1">น้ำที่ใช้ทั้งหมด (ล่าสุด)</p>
+                            <p className="text-3xl font-bold">{totalWaterLatest.toFixed(2)}</p>
                         </div>
                         <Droplets className="w-12 h-12 text-cyan-200" />
                     </div>
@@ -1608,7 +1521,7 @@ export default function MeterReadings() {
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
             <CardContent className="p-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
                     <Building2 className="w-5 h-5 text-slate-600" />
                     <select
@@ -1626,25 +1539,21 @@ export default function MeterReadings() {
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-slate-600" />
                     <select
-                      value={selectedYear}
-                      onChange={(e) => {
-                        setSelectedYear(parseInt(e.target.value));
-                        setSelectedPeriod('');
-                      }}
-                      className="p-2 border rounded-md text-sm font-semibold"
-                    >
-                      {[2026, 2025, 2024, 2023].map(year => (
-                        <option key={year} value={year}>{year}</option>
-                      ))}
-                    </select>
-                    <select
-                      value={selectedPeriod}
-                      onChange={(e) => setSelectedPeriod(e.target.value)}
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
                       className="p-2 border rounded-md text-sm"
                     >
-                      {billingPeriods.map(period => (
-                        <option key={period.value} value={period.value}>{period.label}</option>
-                      ))}
+                      {(() => {
+                        const months = [];
+                        const now = new Date();
+                        for (let i = 0; i < 12; i++) {
+                          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                          const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                          const label = format(d, 'MMM yyyy', { locale: th });
+                          months.push(<option key={value} value={value}>{label}</option>);
+                        }
+                        return months;
+                      })()}
                     </select>
                   </div>
                 </div>
