@@ -591,8 +591,30 @@ export default function Layout({ children, currentPageName }) {
   // ถ้ามี accessible_branches set (ไม่ว่าจะ [] หรือมีค่า) ต้องเช็คว่าสาขาอยู่ในลิสต์หรือไม่
   // ถ้าเป็น null/undefined และเป็น developer ให้เข้าได้ทุกสาขา
   const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
-  const canAccessBranch = (userRole === 'developer' && !hasAccessibleBranchesSet) ||
-    (selectedBranch && userAccessibleBranches && userAccessibleBranches.includes(selectedBranch.id));
+
+  // ⭐ Fallback: ถ้าไม่มี accessible_branches set เลย (null/undefined) 
+  // ให้เข้าได้ทุกสาขาที่ตัวเองเป็น owner (ดูจาก owner_id หรือ created_by)
+  const canAccessBranch = (() => {
+    // Developer ที่ไม่มี accessible_branches set = เข้าได้ทุกสาขา
+    if (userRole === 'developer' && !hasAccessibleBranchesSet) return true;
+
+    // ถ้ามี accessible_branches set แล้ว ต้องเช็คว่าสาขาอยู่ในลิสต์หรือไม่
+    if (hasAccessibleBranchesSet) {
+      return selectedBranch && userAccessibleBranches && userAccessibleBranches.includes(selectedBranch.id);
+    }
+
+    // ⭐ ถ้าไม่มี accessible_branches set และไม่ใช่ developer
+    // ให้เช็คว่าเป็น owner ของสาขาหรือไม่ (จาก owner_id หรือ created_by)
+    if (!hasAccessibleBranchesSet && selectedBranch) {
+      const branch = branches.find(b => b.id === selectedBranch.id);
+      if (branch) {
+        return branch.owner_id === currentUser?.email || 
+               branch.created_by === currentUser?.email;
+      }
+    }
+
+    return false;
+  })();
 
   // ⭐ Feature access - Trial = full access, Active = full access
   const hasFeature = (featureName) => {

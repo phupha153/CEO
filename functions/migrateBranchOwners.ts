@@ -1,0 +1,67 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+
+    if (!user || user.role !== 'admin') {
+      return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
+    }
+
+    // Get all branches
+    const branches = await base44.asServiceRole.entities.Branch.list('-created_date', 10000);
+    
+    let updatedCount = 0;
+    const results = [];
+
+    for (const branch of branches) {
+      // Skip if already has owner_id
+      if (branch.owner_id) {
+        results.push({
+          branch_id: branch.id,
+          branch_name: branch.branch_name,
+          status: 'skipped',
+          reason: 'already has owner_id'
+        });
+        continue;
+      }
+
+      // Use created_by as owner_id
+      const ownerId = branch.created_by;
+
+      if (!ownerId) {
+        results.push({
+          branch_id: branch.id,
+          branch_name: branch.branch_name,
+          status: 'failed',
+          reason: 'no created_by found'
+        });
+        continue;
+      }
+
+      await base44.asServiceRole.entities.Branch.update(branch.id, {
+        owner_id: ownerId
+      });
+
+      updatedCount++;
+      results.push({
+        branch_id: branch.id,
+        branch_name: branch.branch_name,
+        status: 'updated',
+        owner_id: ownerId
+      });
+    }
+
+    return Response.json({
+      success: true,
+      message: `Migration completed: ${updatedCount} branches updated`,
+      total_branches: branches.length,
+      updated_count: updatedCount,
+      results
+    });
+
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});
