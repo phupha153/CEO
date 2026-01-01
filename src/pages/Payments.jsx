@@ -2133,7 +2133,7 @@ Return JSON.`;
     );
   }
 
-  if (paymentsLoading || isDataFetching) {
+  if (paymentsLoading) {
     return (
       <div className="p-4 md:p-8 min-h-screen flex items-center justify-center">
         <div className="max-w-7xl mx-auto">
@@ -3596,6 +3596,16 @@ Return JSON.`;
               {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
                   <CardContent className="p-4 md:p-6">
+                    {/* Loading State for Room View */}
+                    {paymentsFetching && (
+                      <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
+                        <div className="flex flex-col items-center gap-3">
+                          <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                          <p className="text-sm text-slate-600">กำลังโหลดข้อมูล...</p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Month Selector */}
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-2">
