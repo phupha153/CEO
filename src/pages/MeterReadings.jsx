@@ -917,7 +917,7 @@ export default function MeterReadings() {
       totalElectricityThisMonth: totalElectricity, 
       totalWaterThisMonth: totalWater,
       monthReadingsCount: periodReadings.length,
-      displayPeriodLabel: usedPeriod.value !== selectedPeriod ? usedPeriodLabel : ''
+      displayPeriodLabel: usedPeriod.value !== selectedPeriod ? usedPeriod.label : ''
     };
   }, [meterReadings, selectedPeriod, billingPeriods]);
 
