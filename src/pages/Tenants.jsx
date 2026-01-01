@@ -2239,21 +2239,6 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     );
   }
 
-  if (tenantsLoading && tenants.length === 0) {
-    return (
-      <div className="p-4 md:p-8 min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-              <p className="text-slate-600 text-lg">กำลังโหลดข้อมูลผู้เช่า...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
       <PageHeader
@@ -2568,7 +2553,14 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
             </div>
           </div>
 
-          {filteredTenants.length === 0 && tenants.length > 0 && debouncedSearch && (
+          {tenantsLoading && tenants.length === 0 ? (
+            <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg">
+              <CardContent className="p-12 text-center">
+                <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
+                <p className="text-slate-600 text-lg">กำลังโหลดข้อมูลผู้เช่า...</p>
+              </CardContent>
+            </Card>
+          ) : filteredTenants.length === 0 && tenants.length > 0 && debouncedSearch ? (
             <Card className="bg-yellow-50 border-yellow-200">
               <CardContent className="p-8 text-center">
                 <Search className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
@@ -2583,9 +2575,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                 </Button>
               </CardContent>
             </Card>
-          )}
-
-          {tenants.length === 0 && (
+          ) : tenants.length === 0 ? (
             <Card className="bg-slate-50">
               <CardContent className="p-8 text-center">
                 <Users className="w-16 h-16 text-slate-400 mx-auto mb-4" />
@@ -2605,7 +2595,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                 )}
               </CardContent>
             </Card>
-          )}
+          ) : null}
 
           {viewMode === 'room' ? (
             // Room View - แสดงผู้เช่าแยกตามห้อง
