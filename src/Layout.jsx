@@ -667,29 +667,37 @@ export default function Layout({ children, currentPageName }) {
       return;
     }
 
-    // ⭐ Check trial expiry and redirect
+    // ⭐ Check subscription status and redirect
     if (!isLoading && currentUser) {
       const currentUserRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
-      
-      // Skip trial check for developer and special pages
+
+      // Skip check for developer and special pages
       if (currentUserRole === 'developer') return;
       if (currentPageName === 'BranchSelection' ||
           currentPageName === 'BranchManagement' ||
           currentPageName === 'Settings' ||
           currentPageName === 'UserBranchAccess' ||
           currentPageName === 'AllBranchesDashboard' ||
-          currentPageName === 'TrialExpiredPage') return;
-      
+          currentPageName === 'TrialExpiredPage' ||
+          currentPageName === 'PackageSelection') return;
+
       const planStatus = currentUser.plan_status || 'trial';
       const trialEndsAt = currentUser.trial_ends_at;
-      
-      if (trialEndsAt && planStatus !== 'active') {
+
+      // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป PackageSelection
+      if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
+        navigate(createPageUrl('PackageSelection'), { replace: true });
+        return;
+      }
+
+      // ⭐ ถ้า trial หมดอายุ → ไป TrialExpiredPage
+      if (trialEndsAt && planStatus === 'trial') {
         try {
           const trialEndDate = parseISO(trialEndsAt);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const daysRemaining = differenceInDays(trialEndDate, today);
-          
+
           if (daysRemaining < 0) {
             navigate(createPageUrl('TrialExpiredPage'), { replace: true });
           }
