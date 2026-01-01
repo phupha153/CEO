@@ -36,6 +36,7 @@ import Welcome from './pages/Welcome';
 import reports from './pages/reports';
 import f12 from './pages/f12';
 import Tenants from './pages/Tenants';
+import NoPackagePage from './pages/NoPackagePage';
 import AccountingData from './pages/AccountingData';
 import AllBranchesDashboard from './pages/AllBranchesDashboard';
 import Bookings from './pages/Bookings';
@@ -50,7 +51,6 @@ import PrintReceipts from './pages/PrintReceipts';
 import Rooms from './pages/Rooms';
 import TrialExpiredPage from './pages/TrialExpiredPage';
 import UserBranchAccess from './pages/UserBranchAccess';
-import NoPackagePage from './pages/NoPackagePage';
 import __Layout from './Layout.jsx';
 
 
@@ -93,6 +93,7 @@ export const PAGES = {
     "reports": reports,
     "f12": f12,
     "Tenants": Tenants,
+    "NoPackagePage": NoPackagePage,
     "AccountingData": AccountingData,
     "AllBranchesDashboard": AllBranchesDashboard,
     "Bookings": Bookings,
@@ -107,7 +108,6 @@ export const PAGES = {
     "Rooms": Rooms,
     "TrialExpiredPage": TrialExpiredPage,
     "UserBranchAccess": UserBranchAccess,
-    "NoPackagePage": NoPackagePage,
 }
 
 export const pagesConfig = {

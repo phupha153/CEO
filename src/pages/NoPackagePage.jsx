@@ -78,47 +78,7 @@ export default function NoPackagePage() {
             </Button>
           </motion.div>
 
-          {/* Features Preview */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6"
-          >
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-slate-200 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="w-7 h-7 text-blue-400" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-800 mb-2">Basic</h3>
-              <p className="text-sm text-slate-600">เริ่มต้นง่าย ครบฟีเจอร์<br/>เหมาะสำหรับหอพักขนาดเล็ก</p>
-            </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6 border-2 border-blue-300 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-lg font-bold text-blue-800 mb-2">Pro</h3>
-              <p className="text-sm text-blue-600">สำหรับธุรกิจขนาดกลาง<br/>พร้อม AI และระบบอัตโนมัติ</p>
-            </div>
-
-            <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl p-6 border-2 border-amber-300 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-500 flex items-center justify-center mx-auto mb-4">
-                <Crown className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-lg font-bold text-amber-800 mb-2">Elite</h3>
-              <p className="text-sm text-amber-600">องค์กรขนาดใหญ่<br/>ไม่จำกัดผู้ใช้และสาขา</p>
-            </div>
-          </motion.div>
-
-          {/* Additional Info */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="mt-8 text-sm text-slate-500"
-          >
-            <p>💡 ทุกแพ็กเกจได้ฟีเจอร์ครบทุกอย่าง แตกต่างเพียงจำนวนผู้ใช้และสาขา</p>
-          </motion.div>
         </div>
       </motion.div>
     </div>
