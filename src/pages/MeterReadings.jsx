@@ -229,7 +229,10 @@ export default function MeterReadings() {
 
   // ✅ สร้าง billing periods จาก config (เหมือนหน้า Payments)
   const billingPeriods = useMemo(() => {
-    if (!configs || configs.length === 0 || !selectedBranchId) return [];
+    if (!configs || configs.length === 0 || !selectedBranchId) {
+      console.log('⚠️ billingPeriods: configs not ready', { configsLength: configs.length, selectedBranchId });
+      return [];
+    }
     
     const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
     const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
@@ -238,6 +241,8 @@ export default function MeterReadings() {
     const periods = [];
     const now = new Date();
     const currentDay = now.getDate();
+    
+    console.log('📅 Creating billing periods:', { today: format(now, 'yyyy-MM-dd'), currentDay, billGenerationDay });
     
     // ⭐ คำนวณงวดปัจจุบัน (ถ้าวันนี้ < billGenerationDay = ใช้งวดเดือนก่อนหน้า)
     let startMonth = now.getMonth();
@@ -250,6 +255,8 @@ export default function MeterReadings() {
         startYear -= 1;
       }
     }
+    
+    console.log('📍 Current billing cycle:', { startYear, startMonth: startMonth + 1 });
     
     // สร้าง 12 งวดย้อนหลัง
     for (let i = 0; i < 12; i++) {
@@ -264,18 +271,29 @@ export default function MeterReadings() {
       const cycleStart = new Date(year, month, billGenerationDay);
       const cycleEnd = new Date(year, month + 1, billGenerationDay - 1, 23, 59, 59);
       
-      periods.push({
+      const period = {
         value: `${year}-${String(month + 1).padStart(2, '0')}`,
         label: format(cycleStart, 'MMM yyyy', { locale: th }),
         start: cycleStart,
         end: cycleEnd
-      });
+      };
+      
+      periods.push(period);
+      
+      if (i === 0) {
+        console.log('🎯 First billing period:', {
+          value: period.value,
+          label: period.label,
+          start: format(cycleStart, 'yyyy-MM-dd'),
+          end: format(cycleEnd, 'yyyy-MM-dd')
+        });
+      }
     }
     
     return periods;
   }, [configs, selectedBranchId]);
 
-  const [selectedPeriod, setSelectedPeriod] = useState(() => billingPeriods[0]?.value || '');
+  const [selectedPeriod, setSelectedPeriod] = useState('');
 
   // Helper to get config value
   const getConfigValue = (key, defaultValue) => {
@@ -818,28 +836,56 @@ export default function MeterReadings() {
   // ⭐ Auto-set selectedPeriod เมื่อ billingPeriods โหลดเสร็จ
   useEffect(() => {
     if (billingPeriods.length > 0 && !selectedPeriod) {
+      console.log('✅ Auto-setting selectedPeriod to:', billingPeriods[0].value);
       setSelectedPeriod(billingPeriods[0].value);
     }
   }, [billingPeriods, selectedPeriod]);
 
   const { totalElectricityThisMonth, totalWaterThisMonth, monthReadingsCount } = useMemo(() => {
+    console.log('🔍 Calculating totals:', { 
+      selectedPeriod, 
+      billingPeriodsLength: billingPeriods.length,
+      meterReadingsLength: meterReadings.length 
+    });
+    
     const period = billingPeriods.find(p => p.value === selectedPeriod);
     if (!period) {
+      console.log('⚠️ Period not found for:', selectedPeriod);
       return { totalElectricityThisMonth: 0, totalWaterThisMonth: 0, monthReadingsCount: 0 };
     }
+    
+    console.log('📆 Selected period:', {
+      value: period.value,
+      label: period.label,
+      start: format(period.start, 'yyyy-MM-dd'),
+      end: format(period.end, 'yyyy-MM-dd')
+    });
     
     // Total electricity + water for selected period (ตามงวดบิล)
     const periodReadings = meterReadings.filter(r => {
       try {
         const readingDate = parseISO(r.reading_date);
-        return readingDate >= period.start && readingDate <= period.end;
+        const inRange = readingDate >= period.start && readingDate <= period.end;
+        return inRange;
       } catch {
         return false;
       }
     });
 
+    console.log('📊 Period readings:', {
+      total: periodReadings.length,
+      sample: periodReadings.slice(0, 3).map(r => ({
+        room_id: r.room_id?.substring(0, 8),
+        reading_date: r.reading_date,
+        elec_units: r.electricity_units,
+        water_units: r.water_units
+      }))
+    });
+
     const totalElectricity = periodReadings.reduce((sum, r) => sum + (r.electricity_units || 0), 0);
     const totalWater = periodReadings.reduce((sum, r) => sum + (r.water_units || 0), 0);
+
+    console.log('💡 Calculated totals:', { totalElectricity, totalWater, monthReadingsCount: periodReadings.length });
 
     return { 
       totalElectricityThisMonth: totalElectricity, 
