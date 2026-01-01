@@ -1061,7 +1061,7 @@ export default function UserBranchAccess() {
                       <div className="flex justify-between">
                         <span className="text-slate-600">วันสิ้นสุด:</span>
                         <span className="font-semibold text-slate-800">
-                          {packageForm.endDate ? format(parseISO(packageForm.endDate), 'dd MMM yyyy', { locale: require('date-fns/locale/th') }) : '-'}
+                          {packageForm.endDate ? format(parseISO(packageForm.endDate), 'dd MMM yyyy') : '-'}
                         </span>
                       </div>
                     </div>
