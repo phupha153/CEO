@@ -388,12 +388,13 @@ export default function AccountingData() {
           tenant?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
         
         let matchMonth = true;
-        if (selectedMonth !== 'all') {
-          const billingPeriod = getBillingPeriod(payment);
-          if (billingPeriod) {
+        if (selectedMonth !== 'all' && payment.due_date) {
+          try {
+            const dueDate = parseISO(payment.due_date);
+            const billingPeriod = dueDate.getDate() <= 10 ? subMonths(dueDate, 1) : dueDate;
             const paymentMonth = format(billingPeriod, 'yyyy-MM');
             matchMonth = paymentMonth === selectedMonth;
-          } else {
+          } catch {
             matchMonth = false;
           }
         }
@@ -425,12 +426,13 @@ export default function AccountingData() {
           tenant?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
         
         let matchMonth = true;
-        if (selectedMonth !== 'all') {
-          const billingPeriod = getBillingPeriod(payment);
-          if (billingPeriod) {
+        if (selectedMonth !== 'all' && payment.due_date) {
+          try {
+            const dueDate = parseISO(payment.due_date);
+            const billingPeriod = dueDate.getDate() <= 10 ? subMonths(dueDate, 1) : dueDate;
             const paymentMonth = format(billingPeriod, 'yyyy-MM');
             matchMonth = paymentMonth === selectedMonth;
-          } else {
+          } catch {
             matchMonth = false;
           }
         }
