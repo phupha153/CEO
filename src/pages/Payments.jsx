@@ -1104,23 +1104,23 @@ export default function PaymentsPage() {
           try {
             const dueDate = parseISO(updatedPayment.due_date);
             const paymentDate = parseISO(updatedPayment.payment_date);
-            const daysDiff = differenceInDays(dueDate, paymentDate); // บวก = ชำระก่อนกำหนด, ลบ = ชำระช้า
+            const daysDiff = differenceInDays(paymentDate, dueDate); // บวก = ชำระช้า, ลบ = ชำระก่อนกำหนด
 
             let paymentScore = 5; // คะแนนฐาน
 
-            if (daysDiff >= 7) {
+            if (daysDiff <= -7) {
               paymentScore = 10; // ชำระก่อนกำหนด 7 วันขึ้นไป → 10 คะแนน
-            } else if (daysDiff >= 3) {
+            } else if (daysDiff <= -3) {
               paymentScore = 9; // ชำระก่อนกำหนด 3-6 วัน → 9 คะแนน
-            } else if (daysDiff >= 1) {
+            } else if (daysDiff <= -1) {
               paymentScore = 8; // ชำระก่อนกำหนด 1-2 วัน → 8 คะแนน
             } else if (daysDiff === 0) {
               paymentScore = 7; // ชำระตรงเวลา → 7 คะแนน
-            } else if (daysDiff >= -3) {
+            } else if (daysDiff <= 3) {
               paymentScore = 5; // ชำระช้า 1-3 วัน → 5 คะแนน
-            } else if (daysDiff >= -7) {
+            } else if (daysDiff <= 7) {
               paymentScore = 3; // ชำระช้า 4-7 วัน → 3 คะแนน
-            } else if (daysDiff >= -14) {
+            } else if (daysDiff <= 14) {
               paymentScore = 2; // ชำระช้า 8-14 วัน → 2 คะแนน
             } else {
               paymentScore = 1; // ชำระช้ามากกว่า 14 วัน → 1 คะแนน
