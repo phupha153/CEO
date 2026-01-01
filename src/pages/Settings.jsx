@@ -330,6 +330,18 @@ export default function Settings() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  // ⭐ โหลด currentUser ก่อนเสมอ (ป้องกัน "Cannot access before initialization")
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+
   // Listen for Facebook Pages data
   useEffect(() => {
     const handleMessage = async (event) => {
