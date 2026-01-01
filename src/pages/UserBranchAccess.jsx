@@ -41,15 +41,8 @@ export default function UserBranchAccess() {
   }, [currentUser]);
 
   const { data: allUsers = [], isLoading: usersLoading } = useQuery({
-    queryKey: ['users', 'secure'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'User',
-        filters: {},
-        limit: 500
-      });
-      return response.data.data;
-    },
+    queryKey: ['users'],
+    queryFn: () => base44.entities.User.list('-created_date', 500),
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
