@@ -35,19 +35,25 @@ Deno.serve(async (req) => {
 
     const paymentDate = parseISO(payment.payment_date);
     const dueDate = parseISO(payment.due_date);
-    const daysDiff = differenceInDays(paymentDate, dueDate);
+    const daysDiff = differenceInDays(paymentDate, dueDate); // บวก = ชำระช้า, ลบ = ชำระก่อนกำหนด
 
-    let score = 10;
-    if (daysDiff > 0) {
-      // ชำระล่าช้า
-      if (daysDiff <= 3) score = 8;
-      else if (daysDiff <= 7) score = 6;
-      else if (daysDiff <= 14) score = 4;
-      else if (daysDiff <= 30) score = 2;
-      else score = 0;
-    } else if (daysDiff < -7) {
-      // ชำระล่วงหน้ามาก
-      score = 10;
+    let score = 5; // คะแนนฐาน
+    if (daysDiff <= -7) {
+      score = 10; // ชำระก่อนกำหนด 7+ วัน
+    } else if (daysDiff <= -3) {
+      score = 9; // ชำระก่อนกำหนด 3-6 วัน
+    } else if (daysDiff <= -1) {
+      score = 8; // ชำระก่อนกำหนด 1-2 วัน
+    } else if (daysDiff === 0) {
+      score = 7; // ชำระตรงเวลา
+    } else if (daysDiff <= 3) {
+      score = 5; // ชำระช้า 1-3 วัน
+    } else if (daysDiff <= 7) {
+      score = 3; // ชำระช้า 4-7 วัน
+    } else if (daysDiff <= 14) {
+      score = 2; // ชำระช้า 8-14 วัน
+    } else {
+      score = 1; // ชำระช้า 14+ วัน
     }
 
     paymentScores.push({
