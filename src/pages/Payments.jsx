@@ -330,7 +330,31 @@ export default function PaymentsPage() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ⭐ Separate query for Room View payments
+
+
+  // ✅ O(1) Lookup Maps
+  const tenantsMap = useMemo(() => new Map(tenants.map(t => [t.id, t])), [tenants]);
+  const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
+
+  const { data: meterReadings = [] } = useQuery({
+    queryKey: ['meterReadings'],
+    queryFn: () => base44.entities.MeterReading.list('-reading_date', 100),
+    ...retryConfig,
+    staleTime: 60 * 60 * 1000,
+    gcTime: 2 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: configs = [] } = useQuery({
+    queryKey: ['configs'],
+    queryFn: () => base44.entities.Config.list(),
+    ...retryConfig,
+    staleTime: 4 * 60 * 60 * 1000,
+    gcTime: 8 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  // ⭐ Separate query for Room View payments (ต้องมาหลัง configs)
   const { data: roomViewPayments = [], isFetching: roomViewPaymentsFetching } = useQuery({
     queryKey: ['roomViewPayments', selectedBranchId, roomViewMonth],
     queryFn: async () => {
@@ -373,28 +397,6 @@ export default function PaymentsPage() {
     refetchOnWindowFocus: false,
     placeholderData: (previousData) => previousData,
     throwOnError: false,
-  });
-
-  // ✅ O(1) Lookup Maps
-  const tenantsMap = useMemo(() => new Map(tenants.map(t => [t.id, t])), [tenants]);
-  const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
-
-  const { data: meterReadings = [] } = useQuery({
-    queryKey: ['meterReadings'],
-    queryFn: () => base44.entities.MeterReading.list('-reading_date', 100),
-    ...retryConfig,
-    staleTime: 60 * 60 * 1000,
-    gcTime: 2 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: configs = [] } = useQuery({
-    queryKey: ['configs'],
-    queryFn: () => base44.entities.Config.list(),
-    ...retryConfig,
-    staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 8 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
   });
 
   // ⭐ Auto-update room view month when configs load - ใช้เดือนปัจจุบันเสมอ
