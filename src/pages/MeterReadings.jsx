@@ -1277,43 +1277,43 @@ export default function MeterReadings() {
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <p className="text-sm text-slate-500 mb-1 font-medium">ห้องที่มีการบันทึก</p>
-                    <p className="text-3xl font-bold text-slate-800">{Object.keys(readingsByRoomForSummary).length}</p>
+                    <p className="text-blue-100 text-sm mb-1 font-medium">ห้องที่มีการบันทึก</p>
+                    <p className="text-4xl font-bold">{Object.keys(readingsByRoomForSummary).length}</p>
                   </div>
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                    <Gauge className="w-6 h-6 text-white" />
+                  <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Gauge className="w-7 h-7 text-white" />
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="bg-gradient-to-br from-yellow-500 to-orange-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                     <div className="flex-1">
-                        <p className="text-sm text-slate-500 mb-1 font-medium">ไฟที่ใช้ (หน่วย)</p>
-                        <p className="text-3xl font-bold text-slate-800">{totalElectricityThisMonth.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</p>
-                        <p className="text-xs text-slate-400 mt-1">{monthReadingsCount} รายการ</p>
+                        <p className="text-yellow-100 text-sm mb-1 font-medium">ไฟที่ใช้ (หน่วย)</p>
+                        <p className="text-4xl font-bold">{totalElectricityThisMonth.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</p>
+                        <p className="text-yellow-100 text-xs mt-1">{monthReadingsCount} รายการ</p>
                     </div>
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center shadow-lg">
-                      <Zap className="w-6 h-6 text-white" />
+                    <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                      <Zap className="w-7 h-7 text-white" />
                     </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="bg-gradient-to-br from-cyan-500 to-blue-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all">
                 <CardContent className="p-5">
                     <div className="flex items-center justify-between">
                         <div className="flex-1">
-                            <p className="text-sm text-slate-500 mb-1 font-medium">น้ำที่ใช้ (หน่วย)</p>
-                            <p className="text-3xl font-bold text-slate-800">{totalWaterThisMonth.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</p>
-                            <p className="text-xs text-slate-400 mt-1">{monthReadingsCount} รายการ</p>
+                            <p className="text-cyan-100 text-sm mb-1 font-medium">น้ำที่ใช้ (หน่วย)</p>
+                            <p className="text-4xl font-bold">{totalWaterThisMonth.toLocaleString('th-TH', { maximumFractionDigits: 2 })}</p>
+                            <p className="text-cyan-100 text-xs mt-1">{monthReadingsCount} รายการ</p>
                         </div>
-                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg">
-                          <Droplets className="w-6 h-6 text-white" />
+                        <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                          <Droplets className="w-7 h-7 text-white" />
                         </div>
                     </div>
                 </CardContent>
