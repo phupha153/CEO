@@ -684,7 +684,6 @@ export default function Layout({ children, currentPageName }) {
       if (currentUserRole === 'developer') return;
       if (currentPageName === 'BranchSelection' ||
           currentPageName === 'BranchManagement' ||
-          currentPageName === 'Settings' ||
           currentPageName === 'UserBranchAccess' ||
           currentPageName === 'AllBranchesDashboard' ||
           currentPageName === 'TrialExpiredPage' ||
