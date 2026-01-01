@@ -841,78 +841,55 @@ export default function MeterReadings() {
     }
   }, [billingPeriods, selectedPeriod]);
 
-  const { totalElectricityThisMonth, totalWaterThisMonth, monthReadingsCount } = useMemo(() => {
-    console.log('🔍 Calculating totals:', { 
-      selectedPeriod, 
-      billingPeriodsLength: billingPeriods.length,
-      meterReadingsLength: meterReadings.length 
-    });
-    
-    // 🐛 DEBUG: แสดง sample reading_date จาก meterReadings
-    if (meterReadings.length > 0) {
-      console.log('📝 Sample meterReadings dates:', 
-        meterReadings.slice(0, 10).map(r => ({
-          room_id: r.room_id?.substring(0, 8),
-          reading_date: r.reading_date,
-          reading_date_parsed: r.reading_date ? format(parseISO(r.reading_date), 'yyyy-MM-dd') : 'null',
-          elec_units: r.electricity_units,
-          water_units: r.water_units
-        }))
-      );
-    }
-    
+  const { totalElectricityThisMonth, totalWaterThisMonth, monthReadingsCount, displayPeriodLabel } = useMemo(() => {
     const period = billingPeriods.find(p => p.value === selectedPeriod);
     if (!period) {
-      console.log('⚠️ Period not found for:', selectedPeriod);
-      return { totalElectricityThisMonth: 0, totalWaterThisMonth: 0, monthReadingsCount: 0 };
+      return { totalElectricityThisMonth: 0, totalWaterThisMonth: 0, monthReadingsCount: 0, displayPeriodLabel: '' };
     }
     
-    console.log('📆 Selected period:', {
-      value: period.value,
-      label: period.label,
-      start: format(period.start, 'yyyy-MM-dd HH:mm:ss'),
-      end: format(period.end, 'yyyy-MM-dd HH:mm:ss')
-    });
-    
-    // Total electricity + water for selected period (ตามงวดบิล)
-    let matchCount = 0;
-    const periodReadings = meterReadings.filter(r => {
+    // หาข้อมูลจากงวดที่เลือก
+    let periodReadings = meterReadings.filter(r => {
       try {
         const readingDate = parseISO(r.reading_date);
-        const inRange = readingDate >= period.start && readingDate <= period.end;
-        
-        // 🐛 DEBUG: แสดงผลการตรวจสอบ 5 รายการแรก
-        if (matchCount < 5 && inRange) {
-          console.log('✅ Reading MATCHES:', {
-            reading_date: format(readingDate, 'yyyy-MM-dd HH:mm:ss'),
-            elec_units: r.electricity_units,
-            water_units: r.water_units
-          });
-          matchCount++;
-        }
-        
-        return inRange;
-      } catch (e) {
-        console.error('❌ Error parsing reading_date:', r.reading_date, e);
+        return readingDate >= period.start && readingDate <= period.end;
+      } catch {
         return false;
       }
     });
 
-    console.log('📊 Period readings:', {
-      total: periodReadings.length,
-      totalElec: periodReadings.reduce((sum, r) => sum + (r.electricity_units || 0), 0),
-      totalWater: periodReadings.reduce((sum, r) => sum + (r.water_units || 0), 0)
-    });
+    let usedPeriod = period;
+    
+    // ถ้าไม่มีข้อมูลในงวดปัจจุบัน → หางวดก่อนหน้าที่มีข้อมูล
+    if (periodReadings.length === 0) {
+      const currentIndex = billingPeriods.findIndex(p => p.value === selectedPeriod);
+      
+      for (let i = currentIndex + 1; i < billingPeriods.length; i++) {
+        const prevPeriod = billingPeriods[i];
+        const prevReadings = meterReadings.filter(r => {
+          try {
+            const readingDate = parseISO(r.reading_date);
+            return readingDate >= prevPeriod.start && readingDate <= prevPeriod.end;
+          } catch {
+            return false;
+          }
+        });
+        
+        if (prevReadings.length > 0) {
+          periodReadings = prevReadings;
+          usedPeriod = prevPeriod;
+          break;
+        }
+      }
+    }
 
     const totalElectricity = periodReadings.reduce((sum, r) => sum + (r.electricity_units || 0), 0);
     const totalWater = periodReadings.reduce((sum, r) => sum + (r.water_units || 0), 0);
 
-    console.log('💡 Calculated totals:', { totalElectricity, totalWater, monthReadingsCount: periodReadings.length });
-
     return { 
       totalElectricityThisMonth: totalElectricity, 
       totalWaterThisMonth: totalWater,
-      monthReadingsCount: periodReadings.length
+      monthReadingsCount: periodReadings.length,
+      displayPeriodLabel: usedPeriod.value !== selectedPeriod ? usedPeriod.label : ''
     };
   }, [meterReadings, selectedPeriod, billingPeriods]);
 
