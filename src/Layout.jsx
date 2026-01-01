@@ -694,9 +694,7 @@ export default function Layout({ children, currentPageName }) {
         currentPageName === 'ActivityLog' ||
         currentPageName === 'DataLists' ||
         currentPageName === 'UpdateMyBranches' ||
-        currentPageName === 'UserBranchAccess' ||
-        currentPageName === 'f12' ||
-        currentPageName === 'AIGuidelines') {
+        currentPageName === 'UserBranchAccess') {
       console.log('✅ หน้านี้ไม่ต้องเลือกสาขา - อนุญาต');
       return;
     }
@@ -802,6 +800,8 @@ export default function Layout({ children, currentPageName }) {
   if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
       currentPageName === 'PrintReceipts' || 
       currentPageName === 'TrialExpiredPage' ||
+      currentPageName === 'BranchSelection' ||
+      currentPageName === 'BranchManagement' ||
       currentPageName === 'Welcome') {
     return (
       <>
@@ -1124,14 +1124,14 @@ export default function Layout({ children, currentPageName }) {
     return null;
   };
 
-  // If no branch selected, navigate to BranchSelection (except special pages)
-  if (!selectedBranch && 
-      currentPageName !== 'BranchSelection' && 
-      currentPageName !== 'BranchManagement' &&
-      currentPageName !== 'UserBranchAccess' &&
-      currentPageName !== 'AllBranchesDashboard') {
-    navigate(createPageUrl('BranchSelection'), { replace: true });
-    return null;
+  // If no branch selected, redirect to BranchSelection (except special pages)
+  if (!selectedBranch && currentPageName !== 'BranchSelection' && currentPageName !== 'BranchManagement') {
+    return (
+      <>
+        <Toaster richColors position="top-center" />
+        <BranchSelection />
+      </>
+    );
   }
   
   console.log('✅ Layout กำลัง render ปกติ', { currentPageName, selectedBranch: selectedBranch?.id });
