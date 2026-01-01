@@ -616,7 +616,7 @@ export default function Layout({ children, currentPageName }) {
     return false;
   })();
 
-  // ⭐ Feature access - Trial = full access, Active = full access
+  // ⭐ Feature access - Trial = full access, Active = full access, Owner = full access
   const hasFeature = (featureName) => {
     if (!currentUser) return false;
     
@@ -624,6 +624,9 @@ export default function Layout({ children, currentPageName }) {
     
     // Developer = full access
     if (userRole === 'developer') return true;
+    
+    // Owner = full access (เจ้าของหอพัก)
+    if (userRole === 'owner') return true;
     
     // Trial or Active = full access
     if (currentUser.plan_status === 'trial' || currentUser.plan_status === 'active') return true;
