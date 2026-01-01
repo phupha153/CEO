@@ -239,6 +239,10 @@ export default function UserBranchAccess() {
 
   const savePackageMutation = useMutation({
     mutationFn: async ({ userId, packageData }) => {
+      const targetUser = allUsers.find(u => u.id === userId);
+      if (!targetUser?.email) throw new Error('User email not found');
+
+      // 1. Update user in local database
       const updateData = {
         plan_status: packageData.isTrialMode ? 'trial' : 'active',
         trial_ends_at: packageData.isTrialMode ? packageData.endDate : null,
@@ -246,11 +250,33 @@ export default function UserBranchAccess() {
         package_id: packageData.isTrialMode ? 'trial' : packageData.packageId,
       };
       
-      return await base44.entities.User.update(userId, updateData);
+      const updateResult = await base44.entities.User.update(userId, updateData);
+
+      // 2. Sync to CRM
+      const pkg = crmPackages?.packages?.find(p => p.id === packageData.packageId);
+      const packageName = packageData.isTrialMode 
+        ? 'Trial' 
+        : (pkg?.package_name?.name || pkg?.package_name || packageData.packageId);
+
+      await base44.functions.invoke('sendSubscriptionToCRM', {
+        user_email: targetUser.email,
+        user_name: targetUser.full_name,
+        package_id: packageData.isTrialMode ? 'trial' : packageData.packageId,
+        package_name: packageName,
+        subscription_start_date: packageData.startDate,
+        subscription_end_date: packageData.endDate,
+        price_per_month: packageData.isTrialMode ? 0 : packageData.pricePerMonth,
+        total_price: packageData.isTrialMode ? 0 : packageData.pricePerMonth,
+        status: packageData.isTrialMode ? 'trial' : 'active',
+        app_mode: 'multi_tenant',
+        is_free: packageData.isTrialMode
+      });
+
+      return updateResult;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['users']);
-      toast.success('✅ บันทึกแพ็กเกจสำเร็จ - ใช้ได้กับทุกสาขา');
+      toast.success('✅ บันทึกและส่งข้อมูลไป CRM สำเร็จ');
       setShowPackageDialog(false);
     },
     onError: (error) => {
