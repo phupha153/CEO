@@ -115,28 +115,22 @@ Deno.serve(async (req) => {
             console.log('User created successfully in Base44:', targetUser.id);
         }
 
-        // 2. ส่งข้อมูลไปยัง CRM
-        console.log('Creating Employee in CRM...');
+        // 2. ส่งอีเมลเชิญเข้าใช้งาน
+        console.log('Sending invitation email...');
         
-        const employee = await crmClient.entities.Employee.create({
-            full_name: full_name || '',
-            email: email || '',
-            phone: phone || '',
-            custom_role: custom_role || 'employee',
-            accessible_branches: accessible_branches || [],
-            added_by: user.email || '',
-            added_date: new Date().toISOString(),
-            base44_user_id: targetUser.id // เก็บ ID เพื่อ sync
-        });
-
-        console.log('Employee created successfully in CRM:', employee.id);
+        try {
+            await base44.users.inviteUser(email, 'user');
+            console.log('Invitation email sent successfully to:', email);
+        } catch (inviteError) {
+            console.warn('Failed to send invitation email:', inviteError.message);
+            // ไม่ให้ fail ทั้งหมด แค่ log warning
+        }
 
         return Response.json({ 
             success: true,
-            message: 'เพิ่มพนักงานในระบบและส่งไปยัง CRM สำเร็จ',
+            message: 'เพิ่มพนักงานในระบบและส่งอีเมลเชิญสำเร็จ',
             user_id: targetUser.id,
-            employee_id: employee.id,
-            employee: {
+            user: {
                 full_name,
                 email,
                 custom_role,
