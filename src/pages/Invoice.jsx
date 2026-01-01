@@ -376,11 +376,11 @@ export default function Invoice() {
                   <h1 className="text-lg font-bold text-slate-800">{buildingName}</h1>
                 </div>
                 <div className="text-right">
-                  <h2 className={`text-lg font-bold ${isPaid ? 'text-green-600' : 'text-blue-600'}`}>
-                    {isPaid ? 'ใบเสร็จรับเงิน' : 'ใบแจ้งหนี้'}
+                  <h2 className="text-lg font-bold text-orange-600">
+                    ใบแจ้งหนี้
                   </h2>
-                  <p className={`text-xs ${isPaid ? 'text-green-600' : 'text-blue-600'}`}>
-                    {isPaid ? 'Receipt' : 'Invoice'}
+                  <p className="text-xs text-orange-600">
+                    Invoice
                   </p>
                 </div>
               </div>
@@ -413,12 +413,12 @@ export default function Invoice() {
             {/* Invoice Info */}
             <div className="grid grid-cols-2 gap-3 mb-5 p-3 bg-slate-50 rounded-lg">
               <div>
-                <p className="text-xs text-slate-500 mb-1">เลขที่{isPaid ? 'ใบเสร็จ' : 'ใบแจ้งหนี้'}</p>
-                <p className="font-bold text-slate-800">{isPaid ? `REC-${invoiceData.id.slice(0, 8).toUpperCase()}` : invoiceNumber}</p>
+                <p className="text-xs text-slate-500 mb-1">เลขที่ใบแจ้งหนี้</p>
+                <p className="font-bold text-slate-800">{invoiceNumber}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-slate-500 mb-1">{isPaid ? 'วันที่ชำระ' : 'วันที่ออก'}</p>
-                <p className="font-bold text-slate-800">{isPaid ? paymentDate : issueDate}</p>
+                <p className="text-xs text-slate-500 mb-1">วันครบกำหนด</p>
+                <p className="font-bold text-slate-800">{dueDate}</p>
               </div>
             </div>
 
@@ -493,12 +493,19 @@ export default function Invoice() {
                       <p className="text-xs font-bold text-green-700">✓ ชำระแล้ว</p>
                       <p className="text-[9px] text-green-600">{paymentDate}</p>
                     </div>
+                  ) : isOverdue ? (
+                    <div className="border-2 border-red-500 rounded px-2.5 py-1 text-center transform rotate-[-3deg]">
+                      <p className="text-xs font-bold text-red-600 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" /> เกินกำหนด
+                      </p>
+                      <p className="text-[9px] text-red-500">{daysOverdue} วัน</p>
+                    </div>
                   ) : (
                     <div className="border-2 border-orange-500 rounded px-2.5 py-1 text-center transform rotate-[-3deg]">
                       <p className="text-xs font-bold text-orange-600 flex items-center gap-1">
                         <Clock className="w-3 h-3" /> รอชำระ
                       </p>
-                      {!isOverdue && <p className="text-[9px] text-orange-500">ครบกำหนด: {dueDate}</p>}
+                      <p className="text-[9px] text-orange-500">ครบกำหนด: {dueDate}</p>
                     </div>
                   )}
                 </div>
@@ -507,7 +514,7 @@ export default function Invoice() {
 
             {/* Payment Method & Notes - แบบเรียบง่าย */}
             <div className="mb-3 text-xs text-slate-500">
-              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {invoiceData.bank.name} | {invoiceData.bank.account_number} • {isPaid ? 'ใบเสร็จนี้ออกให้เป็นหลักฐานการรับเงินเรียบร้อยแล้ว' : 'กรุณาชำระเงินภายในวันที่กำหนด'}
+              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {invoiceData.bank.name} | {invoiceData.bank.account_number} • {isPaid ? `ชำระเงินเรียบร้อยเมื่อ ${paymentDate}` : 'กรุณาชำระเงินภายในวันที่กำหนด'}
             </div>
 
             {/* Signature Section */}
