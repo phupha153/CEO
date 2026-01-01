@@ -51,11 +51,7 @@ export default function PaymentsPage() {
   const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null, template: null });
 
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
-  const [dateRangeType, setDateRangeType] = useState('this_month');
-  const [customRange, setCustomRange] = useState({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(new Date())
-  });
+  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM')); // ⭐ ใช้ state เดียวสำหรับเลือกเดือน
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('room');
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,9 +59,6 @@ export default function PaymentsPage() {
   const [sortBy, setSortBy] = useState('due_date'); // 'due_date', 'room', 'created_date', 'amount'
   const [debugLogs, setDebugLogs] = useState([]);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
-  
-  // Room View State
-  const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [isRoomViewLoading, setIsRoomViewLoading] = useState(false);
 
   const [aiSearching, setAiSearching] = useState(false);
@@ -164,7 +157,7 @@ export default function PaymentsPage() {
 
   // Reset filters and clear cache when branch changes
   useEffect(() => {
-    setDateRangeType('this_month'); // ⭐ เริ่มต้นที่เดือนนี้เสมอ
+    setSelectedMonth(format(new Date(), 'yyyy-MM')); // ⭐ เริ่มต้นที่เดือนนี้เสมอ
     setStatusFilter('all');
     setCurrentPage(1);
     setSearchQuery('');
@@ -215,15 +208,24 @@ export default function PaymentsPage() {
 
   // ✅ Server-side filtering via Backend Function (SaaS Standard)
   const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
-    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy],
+    queryKey: ['payments-filtered', selectedBranchId, statusFilter, selectedMonth, searchQuery, currentPage, sortBy],
     queryFn: async () => {
-      if (!selectedBranchId) return { data: [], total: 0, page: 1, totalPages: 0, counts: { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 }, logs: [] };
+      if (!selectedBranchId || !configs || configs.length === 0) return { data: [], total: 0, page: 1, totalPages: 0, counts: { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 }, logs: [] };
+      
+      // ⭐ คำนวณช่วงเวลาจาก selectedMonth
+      const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
+      const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+      const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
+      
+      const [selectedYear, selectedMonthNum] = selectedMonth.split('-').map(Number);
+      const monthStart = new Date(selectedYear, selectedMonthNum - 2, billGenerationDay);
+      const monthEnd = new Date(selectedYear, selectedMonthNum - 1, billGenerationDay - 1, 23, 59, 59);
       
       const response = await base44.functions.invoke('getFilteredPayments', {
         branch_id: selectedBranchId,
         status_filter: statusFilter,
-        date_range_type: dateRangeType,
-        custom_range: dateRangeType === 'custom' ? customRange : null,
+        date_range_type: 'custom',
+        custom_range: { from: monthStart, to: monthEnd },
         search_query: searchQuery,
         page: currentPage,
         limit: itemsPerPage,
@@ -237,17 +239,17 @@ export default function PaymentsPage() {
       }
       
       console.log('🔍 Payments Response:', {
-        data_length: response.data?.data?.length,
-        total: response.data?.total,
-        counts: response.data?.counts,
-        page: response.data?.page,
-        statusFilter,
-        dateRangeType,
-        logs: response.data?.logs
+      data_length: response.data?.data?.length,
+      total: response.data?.total,
+      counts: response.data?.counts,
+      page: response.data?.page,
+      statusFilter,
+      selectedMonth,
+      logs: response.data?.logs
       });
       return response.data;
     },
-    enabled: canView && !!selectedBranchId,
+    enabled: canView && !!selectedBranchId && configs.length > 0,
     ...retryConfig,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -264,7 +266,7 @@ export default function PaymentsPage() {
     totalFilteredCount,
     statusCounts,
     statusFilter,
-    dateRangeType
+    selectedMonth
   });
 
   // ✅ Shared Query Keys with AccountingData for instant navigation
@@ -356,9 +358,9 @@ export default function PaymentsPage() {
 
   // ⭐ Separate query for Room View payments (ต้องมาหลัง configs)
   const { data: roomViewPayments = [], isFetching: roomViewPaymentsFetching } = useQuery({
-    queryKey: ['roomViewPayments', selectedBranchId, roomViewMonth],
+    queryKey: ['roomViewPayments', selectedBranchId, selectedMonth],
     queryFn: async () => {
-      if (!selectedBranchId || !roomViewMonth || viewMode !== 'room') return [];
+      if (!selectedBranchId || !selectedMonth || viewMode !== 'room' || !configs || configs.length === 0) return [];
       
       setIsRoomViewLoading(true);
       try {
@@ -366,9 +368,9 @@ export default function PaymentsPage() {
         const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
         const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
         
-        const [selectedYear, selectedMonth] = roomViewMonth.split('-').map(Number);
-        const monthStart = new Date(selectedYear, selectedMonth - 2, billGenerationDay);
-        const monthEnd = new Date(selectedYear, selectedMonth - 1, billGenerationDay - 1, 23, 59, 59);
+        const [selectedYear, selectedMonthNum] = selectedMonth.split('-').map(Number);
+        const monthStart = new Date(selectedYear, selectedMonthNum - 2, billGenerationDay);
+        const monthEnd = new Date(selectedYear, selectedMonthNum - 1, billGenerationDay - 1, 23, 59, 59);
         
         const response = await base44.functions.invoke('getFilteredPayments', {
           branch_id: selectedBranchId,
@@ -399,13 +401,7 @@ export default function PaymentsPage() {
     throwOnError: false,
   });
 
-  // ⭐ Auto-update room view month when configs load - ใช้เดือนปัจจุบันเสมอ
-  useEffect(() => {
-    if (!configs || configs.length === 0 || !selectedBranchId) return;
-    
-    const now = new Date();
-    setRoomViewMonth(format(now, 'yyyy-MM'));
-  }, [configs, selectedBranchId]);
+
 
   const isDataFetching = paymentsFetching || bookingsFetching || roomsFetching || tenantsFetching;
 
@@ -425,119 +421,7 @@ export default function PaymentsPage() {
 
   const getCurrentDate = () => currentDateMemo;
 
-  const getMainDateRange = () => {
-    const now = getCurrentDate();
-    // ⭐ ดึง bill_generation_day ของสาขาก่อน ถ้าไม่มีใช้ global
-    const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
-    const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
-    const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
-    
-    switch(dateRangeType) {
-      case 'all':
-        return null;
-      case 'this_month': {
-        // งวดบิลเดือนนี้ = ถ้าวันนี้ยังไม่ถึงวันสร้างบิล ให้ดูงวดเดือนก่อนหน้า
-        const currentDay = now.getDate();
-        let cycleMonth = now.getMonth();
-        let cycleYear = now.getFullYear();
-        
-        if (currentDay < billGenerationDay) {
-          cycleMonth -= 1;
-          if (cycleMonth < 0) {
-            cycleMonth = 11;
-            cycleYear -= 1;
-          }
-        }
-        
-        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
-        const cycleEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
-        return { from: cycleStart, to: cycleEnd };
-      }
-      case 'last_month': {
-        // งวดบิลเดือนที่แล้ว
-        const currentDay = now.getDate();
-        let cycleMonth = now.getMonth() - 1;
-        let cycleYear = now.getFullYear();
-        
-        if (currentDay < billGenerationDay) {
-          cycleMonth -= 1;
-        }
-        
-        if (cycleMonth < 0) {
-          cycleMonth += 12;
-          cycleYear -= 1;
-        }
-        
-        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
-        const cycleEnd = new Date(cycleYear, cycleMonth + 1, billGenerationDay);
-        return { from: cycleStart, to: cycleEnd };
-      }
-      case '3_months': {
-        const currentDay = now.getDate();
-        let cycleMonth = now.getMonth() - 2;
-        let cycleYear = now.getFullYear();
-        
-        if (currentDay < billGenerationDay) {
-          cycleMonth -= 1;
-        }
-        
-        while (cycleMonth < 0) {
-          cycleMonth += 12;
-          cycleYear -= 1;
-        }
-        
-        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
-        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + (currentDay >= billGenerationDay ? 1 : 0), billGenerationDay);
-        return { from: cycleStart, to: cycleEnd };
-      }
-      case '6_months': {
-        const currentDay = now.getDate();
-        let cycleMonth = now.getMonth() - 5;
-        let cycleYear = now.getFullYear();
-        
-        if (currentDay < billGenerationDay) {
-          cycleMonth -= 1;
-        }
-        
-        while (cycleMonth < 0) {
-          cycleMonth += 12;
-          cycleYear -= 1;
-        }
-        
-        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
-        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + (currentDay >= billGenerationDay ? 1 : 0), billGenerationDay);
-        return { from: cycleStart, to: cycleEnd };
-      }
-      case '12_months': {
-        const currentDay = now.getDate();
-        let cycleMonth = now.getMonth() - 11;
-        let cycleYear = now.getFullYear();
-        
-        if (currentDay < billGenerationDay) {
-          cycleMonth -= 1;
-        }
-        
-        while (cycleMonth < 0) {
-          cycleMonth += 12;
-          cycleYear -= 1;
-        }
-        
-        const cycleStart = new Date(cycleYear, cycleMonth, billGenerationDay);
-        const cycleEnd = new Date(now.getFullYear(), now.getMonth() + (currentDay >= billGenerationDay ? 1 : 0), billGenerationDay);
-        return { from: cycleStart, to: cycleEnd };
-      }
-      case 'this_year':
-        return { from: startOfYear(now), to: endOfYear(now) };
-      case 'last_year':
-        return { from: startOfYear(subYears(now, 1)), to: endOfYear(subYears(now, 1)) };
-      case 'custom':
-        return customRange;
-      default:
-        return null;
-    }
-  };
 
-  const dateRange = useMemo(() => getMainDateRange(), [dateRangeType, customRange]);
 
   const calculateDueDate = () => {
     // ดึง pay_day จาก config ของสาขา (ถ้ามี) ไม่งั้นใช้ global
@@ -886,7 +770,7 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [dateRangeType, customRange, statusFilter, searchQuery, aiResult]);
+  }, [selectedMonth, statusFilter, searchQuery, aiResult]);
 
   // ✅ Removed separate counts query - now from backend
 
@@ -952,6 +836,15 @@ export default function PaymentsPage() {
     refetchOnWindowFocus: false,
   });
 
+  const dateRangeLabel = useMemo(() => {
+    if (!selectedMonth) return 'เลือกเดือน';
+    try {
+      return format(new Date(selectedMonth), 'MMMM yyyy', { locale: th });
+    } catch {
+      return 'เลือกเดือน';
+    }
+  }, [selectedMonth]);
+
   const roomsNeedingBills = useMemo(() => {
     if (!rooms.length || !bookings.length || !configs.length) return 0;
 
@@ -993,21 +886,6 @@ export default function PaymentsPage() {
 
     return count;
   }, [rooms, bookings, allPaymentsForCounting, configs, selectedBranchId]);
-
-  const dateRangeLabel = () => {
-    switch(dateRangeType) {
-      case 'all': return 'ทั้งหมด';
-      case 'this_month': return `เดือนนี้ (${format(dateRange.from, 'MMM yyyy', { locale: th })})`;
-      case 'last_month': return `เดือนที่แล้ว (${format(dateRange.from, 'MMM yyyy', { locale: th })})`;
-      case '3_months': return '3 เดือนล่าสุด';
-      case '6_months': return '6 เดือนล่าสุด';
-      case '12_months': return '12 เดือนล่าสุด';
-      case 'this_year': return `ปีนี้ (${format(dateRange.from, 'yyyy', { locale: th })})`;
-      case 'last_year': return `ปีที่แล้ว (${format(dateRange.from, 'yyyy', { locale: th })})`;
-      case 'custom': return `${format(customRange.from, 'd MMM', { locale: th })} - ${format(customRange.to, 'd MMM yyyy', { locale: th })}`;
-      default: return 'เดือนนี้';
-    }
-  };
 
   const createMutation = useMutation({
     mutationFn: (data) => {
@@ -2593,14 +2471,14 @@ Return JSON.`;
                   </div>
 
                   <div className="text-xs">
-                    <p className="text-purple-600 mb-1">Current Filters:</p>
-                    <div className="bg-white rounded p-2 font-mono text-[10px]">
-                      <p>status: {statusFilter}</p>
-                      <p>dateRange: {dateRangeType}</p>
-                      <p>search: "{searchQuery}"</p>
-                      <p>aiResult: {aiResult ? 'YES' : 'NO'}</p>
-                      {aiResult && <p>aiResult.payments: {aiResult.payments?.length || 0}</p>}
-                    </div>
+                  <p className="text-purple-600 mb-1">Current Filters:</p>
+                  <div className="bg-white rounded p-2 font-mono text-[10px]">
+                    <p>status: {statusFilter}</p>
+                    <p>selectedMonth: {selectedMonth}</p>
+                    <p>search: "{searchQuery}"</p>
+                    <p>aiResult: {aiResult ? 'YES' : 'NO'}</p>
+                    {aiResult && <p>aiResult.payments: {aiResult.payments?.length || 0}</p>}
+                  </div>
                   </div>
 
                   {/* Backend Debug Logs */}
@@ -3601,38 +3479,8 @@ Return JSON.`;
               {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
                   <CardContent className="p-4 md:p-6">
-                    {/* Month Selector */}
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            const [year, month] = roomViewMonth.split('-').map(Number);
-                            const prevMonth = new Date(year, month - 2, 1);
-                            setRoomViewMonth(format(prevMonth, 'yyyy-MM'));
-                          }}
-                        >
-                          <ChevronLeft className="w-4 h-4" />
-                        </Button>
-                        <Input
-                          type="month"
-                          value={roomViewMonth}
-                          onChange={(e) => setRoomViewMonth(e.target.value)}
-                          className="w-40"
-                        />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => {
-                            const [year, month] = roomViewMonth.split('-').map(Number);
-                            const nextMonth = new Date(year, month, 1);
-                            setRoomViewMonth(format(nextMonth, 'yyyy-MM'));
-                          }}
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Button>
-                      </div>
+                    {/* Legend */}
+                    <div className="flex items-center justify-end mb-6">
                       <div className="hidden md:flex items-center gap-4 text-sm">
                         <div className="flex items-center gap-2">
                           <div className="w-4 h-4 rounded bg-green-500"></div>
