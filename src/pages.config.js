@@ -27,7 +27,6 @@ import Invoice from './pages/Invoice';
 import LineConnect from './pages/LineConnect';
 import Maintenance from './pages/Maintenance';
 import Materials from './pages/Materials';
-import MeterReadings from './pages/MeterReadings';
 import NotificationSettings from './pages/NotificationSettings';
 import OwnerAI from './pages/OwnerAI';
 import PackageSelection from './pages/PackageSelection';
@@ -50,6 +49,7 @@ import UserBranchAccess from './pages/UserBranchAccess';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
+import MeterReadings from './pages/MeterReadings';
 import __Layout from './Layout.jsx';
 
 
@@ -83,7 +83,6 @@ export const PAGES = {
     "LineConnect": LineConnect,
     "Maintenance": Maintenance,
     "Materials": Materials,
-    "MeterReadings": MeterReadings,
     "NotificationSettings": NotificationSettings,
     "OwnerAI": OwnerAI,
     "PackageSelection": PackageSelection,
@@ -106,6 +105,7 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
+    "MeterReadings": MeterReadings,
 }
 
 export const pagesConfig = {

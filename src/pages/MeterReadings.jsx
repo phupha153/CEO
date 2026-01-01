@@ -769,46 +769,29 @@ export default function MeterReadings() {
   const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
   const getLatestReading = useCallback((roomId) => meterReadingsMap.get(roomId), [meterReadingsMap]);
 
-  const { totalElectricityThisMonth, totalWaterLatest, monthReadingsCount } = useMemo(() => {
+  const { totalElectricityThisMonth, totalWaterThisMonth, monthReadingsCount } = useMemo(() => {
     const [year, month] = selectedMonth.split('-').map(Number);
     
-    // Total electricity for selected month
-    const totalElectricity = meterReadings
-      .filter(r => {
-        try {
-          const readingDate = parseISO(r.reading_date);
-          return readingDate.getMonth() === (month - 1) && readingDate.getFullYear() === year;
-        } catch {
-          return false;
-        }
-      })
-      .reduce((sum, r) => sum + (r.electricity_units || 0), 0);
-
-    // Total water from latest reading of each room
-    const latestReadings = new Map();
-    meterReadings.forEach(r => {
-      if (!latestReadings.has(r.room_id)) {
-        latestReadings.set(r.room_id, r);
-      }
-    });
-
-    const totalWater = Array.from(latestReadings.values())
-      .reduce((sum, r) => sum + (r.water_units || 0), 0);
-
-    // Count readings in selected month
-    const monthCount = meterReadings.filter(r => {
+    // Filter readings for selected month
+    const monthReadings = meterReadings.filter(r => {
       try {
         const readingDate = parseISO(r.reading_date);
         return readingDate.getMonth() === (month - 1) && readingDate.getFullYear() === year;
       } catch {
         return false;
       }
-    }).length;
+    });
+
+    // Total electricity for selected month
+    const totalElectricity = monthReadings.reduce((sum, r) => sum + (r.electricity_units || 0), 0);
+
+    // Total water for selected month
+    const totalWater = monthReadings.reduce((sum, r) => sum + (r.water_units || 0), 0);
 
     return { 
       totalElectricityThisMonth: totalElectricity, 
-      totalWaterLatest: totalWater,
-      monthReadingsCount: monthCount
+      totalWaterThisMonth: totalWater,
+      monthReadingsCount: monthReadings.length
     };
   }, [meterReadings, selectedMonth]);
 
