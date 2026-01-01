@@ -811,8 +811,8 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const visibleMenuItems = currentUser ? navigationItems.filter(canAccessMenuItem) : [];
-  // Admin items are usually developer-only and have requiredPermission, so the hasFeature check within canAccessMenuItem handles them.
-  const visibleAdminItems = currentUser && userRole === 'developer' ? adminOnlyItems.filter(canAccessMenuItem) : [];
+  // Admin items - show for both developer and owner
+  const visibleAdminItems = currentUser && (userRole === 'developer' || userRole === 'owner') ? adminOnlyItems.filter(canAccessMenuItem) : [];
 
   // Don't apply subscription check to these pages (public or critical admin pages)
   // Developer สามารถเข้าถึงทุกหน้าได้แม้แพ็กเกจหมดอายุ
