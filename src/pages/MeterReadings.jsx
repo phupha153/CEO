@@ -237,11 +237,24 @@ export default function MeterReadings() {
     
     const periods = [];
     const now = new Date();
+    const currentDay = now.getDate();
     
+    // ⭐ คำนวณงวดปัจจุบัน (ถ้าวันนี้ < billGenerationDay = ใช้งวดเดือนก่อนหน้า)
+    let startMonth = now.getMonth();
+    let startYear = now.getFullYear();
+    
+    if (currentDay < billGenerationDay) {
+      startMonth -= 1;
+      if (startMonth < 0) {
+        startMonth = 11;
+        startYear -= 1;
+      }
+    }
+    
+    // สร้าง 12 งวดย้อนหลัง
     for (let i = 0; i < 12; i++) {
-      const cycleMonth = now.getMonth() - i;
-      let year = now.getFullYear();
-      let month = cycleMonth;
+      let year = startYear;
+      let month = startMonth - i;
       
       while (month < 0) {
         month += 12;
@@ -262,7 +275,7 @@ export default function MeterReadings() {
     return periods;
   }, [configs, selectedBranchId]);
 
-  const [selectedPeriod, setSelectedPeriod] = useState(() => billingPeriods[0]?.value || format(new Date(), 'yyyy-MM'));
+  const [selectedPeriod, setSelectedPeriod] = useState(() => billingPeriods[0]?.value || '');
 
   // Helper to get config value
   const getConfigValue = (key, defaultValue) => {
@@ -801,6 +814,13 @@ export default function MeterReadings() {
   const getActiveBooking = useCallback((roomId) => bookingsMap.get(roomId), [bookingsMap]);
   const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
   const getLatestReading = useCallback((roomId) => meterReadingsMap.get(roomId), [meterReadingsMap]);
+
+  // ⭐ Auto-set selectedPeriod เมื่อ billingPeriods โหลดเสร็จ
+  useEffect(() => {
+    if (billingPeriods.length > 0 && !selectedPeriod) {
+      setSelectedPeriod(billingPeriods[0].value);
+    }
+  }, [billingPeriods, selectedPeriod]);
 
   const { totalElectricityThisMonth, totalWaterThisMonth, monthReadingsCount } = useMemo(() => {
     const period = billingPeriods.find(p => p.value === selectedPeriod);
