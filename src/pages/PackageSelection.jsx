@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Crown, Check, Upload, Loader2, CheckCircle, ArrowLeft, X, AlertCircle, Building2, Users, Settings, Sparkles, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Crown, Check, Loader2, ArrowLeft, AlertCircle, Building2, Users, Settings, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -45,20 +47,29 @@ export default function PackageSelectionPage() {
     queryFn: () => base44.entities.BranchPackage.list('-created_date', 200),
   });
 
+  // หาว่า package ที่หมดอายุเป็น trial หรือ paid
   const selectedBranchId = localStorage.getItem('selected_branch_id');
   const expiredPackageType = useMemo(() => {
     if (!selectedBranchId) return null;
     
+    // หา package ล่าสุดของสาขานี้ (ไม่ว่าจะ status ไหน)
     const branchPkgs = branchPackages.filter(bp => bp.branch_id === selectedBranchId);
     if (branchPkgs.length === 0) return null;
     
+    // เรียงตามวันที่สร้างล่าสุด
     const latestPkg = branchPkgs.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0];
     
+    // เช็คว่าเป็น trial หรือ paid
     if (latestPkg.package_id === 'trial' || latestPkg.price_per_month === 0 || !latestPkg.price_per_month) {
       return 'trial';
     }
     return 'paid';
   }, [branchPackages, selectedBranchId]);
+
+  const handleGoBack = () => {
+    // ⭐ กลับไปหน้าก่อนหน้า (ใช้ browser history)
+    window.history.back();
+  };
 
   const { data: crmPackages, isLoading: loadingPackages } = useQuery({
     queryKey: ['crmPackages'],
@@ -77,6 +88,7 @@ export default function PackageSelectionPage() {
   const accountNumber = getConfigValue('bank_account_number', 'xxx-x-xxxxx-x');
   const accountName = getConfigValue('bank_account_name', 'บริษัท...');
   const promptpay = getConfigValue('promptpay', '0812345678');
+
   const appMode = getConfigValue('app_mode', 'single_tenant');
 
   const userAccessibleBranches = currentUser?.accessible_branches || [];
@@ -101,9 +113,11 @@ export default function PackageSelectionPage() {
     
     const months = parseInt(billingCycle);
     
+    // รองรับทั้ง 2 โครงสร้าง: pricing object และ price_* fields
     const pricing = selectedPackage.pricing || {};
     const hasNewStructure = pricing.monthly !== undefined;
     
+    // ดึงราคาตามโครงสร้างที่มี (ราคาจาก CRM รวม VAT แล้ว)
     let baseMonthlyPrice = hasNewStructure ? (pricing.monthly || 0) : (selectedPackage.price_monthly || 0);
     let totalPrice = 0;
     let monthlyPrice = baseMonthlyPrice;
@@ -147,6 +161,7 @@ export default function PackageSelectionPage() {
     const subtotal = totalPrice;
     const discountPercent = savings > 0 && baseMonthlyPrice > 0 ? Math.round((savings / (baseMonthlyPrice * months)) * 100) : 0;
     
+    // คำนวณส่วนลดจากโค้ด
     const discountAmount = appliedDiscount?.discount_amount || 0;
     const finalTotal = Math.max(0, subtotal - discountAmount);
     
@@ -300,7 +315,6 @@ export default function PackageSelectionPage() {
                   >
                     6 เดือน
                     {(() => {
-                      if (!selectedPackage) return null;
                       const sixMonthsSavings = selectedPackage?.pricing?.six_months_savings;
                       const savings = (typeof sixMonthsSavings === 'number' ? sixMonthsSavings : 0) || 
                         (selectedPackage?.price_monthly && selectedPackage?.price_6_months 
@@ -323,7 +337,6 @@ export default function PackageSelectionPage() {
                   >
                     1 ปี
                     {(() => {
-                      if (!selectedPackage) return null;
                       const yearlySavings = selectedPackage?.pricing?.yearly_savings;
                       const savings = (typeof yearlySavings === 'number' ? yearlySavings : 0) || 
                         (selectedPackage?.price_monthly && selectedPackage?.price_yearly 
@@ -398,6 +411,7 @@ export default function PackageSelectionPage() {
                     const isSelected = selectedPackageId === pkg.id;
                     const isDisabled = pkg.is_active === false;
                     
+                    // กำหนดไอคอนและสีตาม package_name - รองรับทั้ง string และ object
                     const pkgName = typeof pkg.package_name === 'string' 
                       ? pkg.package_name 
                       : (pkg.package_name && typeof pkg.package_name === 'object' && pkg.package_name.name 
@@ -464,6 +478,8 @@ export default function PackageSelectionPage() {
                                 }`}>
                                   {isBasic ? 'Basic' : isPro ? 'Pro' : 'Elite'}
                                 </Badge>
+                                {/* Package Name - hidden, just for reference */}
+                                {/* {pkgName} */}
                                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
                                   isBasic
                                     ? 'bg-slate-700/50'
@@ -616,6 +632,7 @@ export default function PackageSelectionPage() {
                                 {(() => {
                                   if (!Array.isArray(pkg.features)) return null;
                                   
+                                  // Get highlighted first, then others
                                   const highlighted = pkg.features.filter(f => f && typeof f === 'object' && f.is_highlighted === true);
                                   const featuresToShow = highlighted.length > 0 ? highlighted.slice(0, 5) : pkg.features.slice(0, 5);
                                   
@@ -656,9 +673,11 @@ export default function PackageSelectionPage() {
                                 {expandedPackageId === pkg.id && Array.isArray(pkg.features) && (
                                   <div className="mt-3 pt-3 border-t border-slate-200 space-y-2">
                                     {(() => {
+                                      // Get highlighted features
                                       const highlighted = pkg.features.filter(f => f && typeof f === 'object' && f.is_highlighted === true);
                                       const hasHighlighted = highlighted.length > 0;
                                       
+                                      // Create set of shown feature names
                                       const shownFeatures = new Set();
                                       const featuresShownAbove = hasHighlighted ? highlighted.slice(0, 5) : pkg.features.slice(0, 5);
                                       for (let i = 0; i < featuresShownAbove.length; i++) {
@@ -678,7 +697,7 @@ export default function PackageSelectionPage() {
                                         }
                                         
                                         if (!text) continue;
-                                        if (shownFeatures.has(text)) continue;
+                                        if (shownFeatures.has(text)) continue; // Skip already shown
                                         
                                         result.push(
                                           <div key={idx} className="flex items-start gap-2">
