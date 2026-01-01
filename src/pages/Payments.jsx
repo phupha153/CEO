@@ -57,7 +57,9 @@ export default function PaymentsPage() {
     to: endOfMonth(new Date())
   });
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState('room');
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('payments_view_mode') || 'room';
+  });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
   const [sortBy, setSortBy] = useState('due_date'); // 'due_date', 'room', 'created_date', 'amount'
