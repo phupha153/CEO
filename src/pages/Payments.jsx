@@ -222,12 +222,14 @@ export default function PaymentsPage() {
       const response = await base44.functions.invoke('getFilteredPayments', {
         branch_id: selectedBranchId,
         status_filter: statusFilter,
-        date_range_type: dateRangeType,
+        date_range_type: viewMode === 'room' ? 'room_view' : dateRangeType,
         custom_range: dateRangeType === 'custom' ? customRange : null,
         search_query: actualSearchQuery,
         page: currentPage,
         limit: itemsPerPage,
         sort_by: sortBy,
+        view_mode: viewMode,
+        room_view_month: viewMode === 'room' ? roomViewMonth : null,
         debug: true // Request debug logs
       });
       
