@@ -1089,6 +1089,13 @@ export default function PaymentsPage() {
           description: `ยืนยันชำระเงินห้อง ${room?.room_number || 'N/A'} จำนวน ${updatedPayment.total_amount?.toLocaleString()} บาท`
         });
 
+        // สร้างการแจ้งเตือน
+        await base44.entities.Notification.create({
+          user_email: currentUser?.email,
+          notification_id: `payment-confirmed-${updatedPayment.id}`,
+          is_read: false
+        });
+
         // ⭐ คำนวณและให้คะแนนชำระเงิน (ยิ่งชำระเร็วยิ่งได้คะแนนสูง)
         if (tenant && updatedPayment.due_date && updatedPayment.payment_date) {
           try {

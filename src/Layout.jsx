@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import BranchSelection from "./pages/BranchSelection";
 import { differenceInDays, parseISO, startOfDay, format } from "date-fns";
 import OnboardingTutorial from "./components/onboarding/OnboardingTutorial";
+import NotificationsPanel from "./components/shared/NotificationsPanel";
 import {
   LayoutDashboard,
   DoorOpen,
@@ -1403,30 +1404,38 @@ export default function Layout({ children, currentPageName }) {
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-400/10 to-pink-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
           </div>
 
+          {/* Desktop Notification Bell */}
+          <div className="hidden md:block absolute top-4 right-6 z-40">
+            {currentUser && <NotificationsPanel />}
+          </div>
+
           {/* Subscription Status Banner */}
           {renderSubscriptionBanner()}
 
           <header className="relative z-30 bg-white/40 backdrop-blur-2xl border-b border-white/40 px-6 py-4 md:hidden shadow-sm flex-shrink-0">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger className="hover:bg-white/50 p-2 rounded-2xl transition-all duration-300 z-40" />
-              <div className="flex items-center gap-2">
-                <img
-                  src={buildingLogo}
-                  alt={`${buildingName} Logo`}
-                  className="w-8 h-8 object-contain"
-                  onError={(e) => {
-                    e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
-                  }}
-                />
-                <div>
-                  <h1 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                    {buildingName}
-                  </h1>
-                  {selectedBranch && (
-                    <p className="text-xs text-slate-500">{selectedBranch.branch_name}</p>
-                  )}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <SidebarTrigger className="hover:bg-white/50 p-2 rounded-2xl transition-all duration-300 z-40" />
+                <div className="flex items-center gap-2">
+                  <img
+                    src={buildingLogo}
+                    alt={`${buildingName} Logo`}
+                    className="w-8 h-8 object-contain"
+                    onError={(e) => {
+                      e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
+                    }}
+                  />
+                  <div>
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                      {buildingName}
+                    </h1>
+                    {selectedBranch && (
+                      <p className="text-xs text-slate-500">{selectedBranch.branch_name}</p>
+                    )}
+                  </div>
                 </div>
-            </div>
+              </div>
+              {currentUser && <NotificationsPanel />}
             </div>
           </header>
 
