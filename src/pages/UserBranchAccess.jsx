@@ -425,14 +425,54 @@ export default function UserBranchAccess() {
                             )}
                           </div>
 
-                          {canAccessAllBranches ? (
-                            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border-2 border-purple-200">
-                              <div className="flex items-center gap-2">
-                                <Globe className="w-5 h-5 text-purple-600" />
-                                <span className="font-bold text-purple-700">เข้าถึงทุกสาขา</span>
-                              </div>
-                            </div>
-                          ) : accessibleBranches.length > 0 ? (
+                          {(() => {
+                            // Developer ที่ไม่มี accessible_branches = เข้าถึงทุกสาขา
+                            if (role === 'developer' && accessibleBranches.length === 0) {
+                              return (
+                                <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border-2 border-purple-200">
+                                  <div className="flex items-center gap-2">
+                                    <Globe className="w-5 h-5 text-purple-600" />
+                                    <span className="font-bold text-purple-700">เข้าถึงทุกสาขา (Developer)</span>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            
+                            // Owner ที่ไม่มี accessible_branches = แสดงสาขาที่ตัวเองเป็นเจ้าของ
+                            if (role === 'owner' && accessibleBranches.length === 0) {
+                              const ownedBranches = allBranches.filter(b => b.owner_id === user.email || b.created_by === user.email);
+                              if (ownedBranches.length === 0) {
+                                return (
+                                  <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                                    <div className="flex items-center gap-2 text-amber-700">
+                                      <AlertTriangle className="w-5 h-5" />
+                                      <span className="text-sm font-semibold">ยังไม่มีสาขา</span>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return (
+                                <div className="space-y-2">
+                                  {ownedBranches.map((branch, idx) => (
+                                    <div key={branch.id} className="bg-green-50 rounded-lg p-2 border border-green-200">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                          <span className="text-green-700 font-bold text-xs">{idx + 1}</span>
+                                        </div>
+                                        <span className="text-sm text-slate-800 font-medium truncate">
+                                          {branch.branch_name}
+                                        </span>
+                                        <Badge className="ml-auto bg-green-100 text-green-700 text-xs">เจ้าของ</Badge>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            }
+                            
+                            // ถ้ามี accessible_branches set แล้ว
+                            if (accessibleBranches.length > 0) {
+                              return (
                             <div className="space-y-2">
                               {accessibleBranches.map((branchId, idx) => (
                                 <div key={branchId} className="bg-blue-50 rounded-lg p-2 border border-blue-200">
@@ -447,14 +487,19 @@ export default function UserBranchAccess() {
                                 </div>
                               ))}
                             </div>
-                          ) : (
-                            <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-                              <div className="flex items-center gap-2 text-amber-700">
-                                <AlertTriangle className="w-5 h-5" />
-                                <span className="text-sm font-semibold">ยังไม่ได้กำหนดสาขา</span>
+                              );
+                            }
+                            
+                            // Default: ไม่มีสาขา
+                            return (
+                              <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                                <div className="flex items-center gap-2 text-amber-700">
+                                  <AlertTriangle className="w-5 h-5" />
+                                  <span className="text-sm font-semibold">ยังไม่ได้กำหนดสาขา</span>
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            );
+                          })()}
                         </div>
 
                         {/* User Plan Status */}
