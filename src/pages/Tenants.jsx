@@ -3069,10 +3069,12 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                                  <div key={idx} className="text-xs bg-white rounded p-2 border border-green-100">
                                    <div className="flex justify-between items-center">
                                      <span className="text-slate-600">
-                                       {scoreRecord.days_diff >= 0 ? (
-                                         <span className="text-green-700">ก่อนกำหนด {scoreRecord.days_diff} วัน</span>
+                                       {scoreRecord.days_diff <= 0 ? (
+                                         <span className="text-green-700">
+                                           {scoreRecord.days_diff === 0 ? 'ตรงเวลา' : `ก่อนกำหนด ${Math.abs(scoreRecord.days_diff)} วัน`}
+                                         </span>
                                        ) : (
-                                         <span className="text-red-700">หลังกำหนด {Math.abs(scoreRecord.days_diff)} วัน</span>
+                                         <span className="text-red-700">หลังกำหนด {scoreRecord.days_diff} วัน</span>
                                        )}
                                      </span>
                                      <Badge className={`text-xs ${
