@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileText, Download, Search, Calendar, DollarSign, Home, Camera, Shield, Banknote, AlertTriangle, RefreshCw, Database, Loader2 } from "lucide-react";
 import { format, parseISO, subMonths, startOfMonth, endOfMonth, subYears, isWithinInterval } from "date-fns";
+import { useCallback } from "react";
 import { th } from "date-fns/locale";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
@@ -327,8 +328,17 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
+  // ✅ สร้าง Maps สำหรับ O(1) lookup (แก้ N+1 Problem)
+  const roomsMap = useMemo(() => {
+    return new Map(rooms.map(r => [r.id, r]));
+  }, [rooms]);
+
+  const tenantsMap = useMemo(() => {
+    return new Map(tenants.map(t => [t.id, t]));
+  }, [tenants]);
+
   // ฟังก์ชันคำนวณงวดบิล - ถ้า due_date อยู่ช่วงต้นเดือน (1-10) = บิลของเดือนก่อนหน้า
-  const getBillingPeriod = (payment) => {
+  const getBillingPeriod = useCallback((payment) => {
     if (!payment.due_date) return null;
     try {
       const dueDate = parseISO(payment.due_date);
@@ -340,7 +350,7 @@ export default function AccountingData() {
     } catch {
       return null;
     }
-  };
+  }, []);
 
   // สร้างรายการเดือน/ปีที่มีข้อมูล
   const availableMonths = useMemo(() => {
@@ -355,16 +365,7 @@ export default function AccountingData() {
     
     const sortedMonths = Array.from(monthsSet).sort((a, b) => b.localeCompare(a)); // เรียงจากใหม่ไปเก่า
     return sortedMonths;
-  }, [payments]);
-
-  // ✅ สร้าง Maps สำหรับ O(1) lookup (แก้ N+1 Problem)
-  const roomsMap = useMemo(() => {
-    return new Map(rooms.map(r => [r.id, r]));
-  }, [rooms]);
-
-  const tenantsMap = useMemo(() => {
-    return new Map(tenants.map(t => [t.id, t]));
-  }, [tenants]);
+  }, [payments, getBillingPeriod]);
 
   // ตั้งค่า default เป็นเดือนล่าสุดที่มีข้อมูล
   useEffect(() => {
@@ -445,7 +446,7 @@ export default function AccountingData() {
     
     console.log('✅ Filtered invoices:', filtered.length);
     return filtered;
-  }, [payments, roomsMap, tenantsMap, searchTerm, selectedMonth]);
+  }, [payments, roomsMap, tenantsMap, searchTerm, selectedMonth, getBillingPeriod]);
 
   const filteredBookings = useMemo(() => {
     return bookings.filter(booking => {
