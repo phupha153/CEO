@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Package, ArrowRight, RefreshCw } from "lucide-react";
+import { Package, ArrowRight, RefreshCw, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 import { createPageUrl } from "@/utils";
 
@@ -71,7 +71,7 @@ export default function TrialExpiredPage() {
                 onClick={() => window.open('https://line.me/R/ti/p/@022kpkpo', '_blank')}
                 className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white py-6 text-lg font-semibold rounded-2xl shadow-xl"
               >
-                <MessageCircle className="w-5 h-5 mr-2" />
+                <MessageSquare className="w-5 h-5 mr-2" />
                 ติดต่อเพื่ออัปเกรด
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
