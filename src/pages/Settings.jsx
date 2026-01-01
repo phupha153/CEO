@@ -1309,84 +1309,64 @@ export default function Settings() {
       console.error('❌ ERROR: ไม่มี targetBranchIds - ไม่สามารถบันทึกได้');
       addDebugLog('❌ ERROR: ไม่มีสาขาที่จะบันทึก', 'error');
       toast.error('ไม่พบสาขาที่จะบันทึก - กรุณาเลือกสาขาก่อน');
+      setIsSavingLineSettings(false);
+      return;
+    }
+    
+    // Validation
+    if (!lineSettings.line_channel_access_token.trim()) {
+      toast.error('กรุณากรอก LINE Channel Access Token');
+      setIsSavingLineSettings(false);
       return;
     }
     
     try {
-      // ✅ บันทึกให้ทุกสาขาที่กำหนด
-      const savedResults = [];
-      
-      for (let i = 0; i < targetBranchIds.length; i++) {
-        const branchId = targetBranchIds[i];
+      // ✅ Bulk save using Promise.all (แก้ N+1 Query Problem)
+      const savePromises = targetBranchIds.map(async (branchId) => {
         const branchName = branches.find(b => b.id === branchId)?.branch_name || 'ไม่พบชื่อ';
-        
-        addDebugLog(`📍 [${i + 1}/${targetBranchIds.length}] ${branchName}`);
-        
-        console.log(`\n📍 กำลังบันทึกสาขาที่ ${i + 1}/${targetBranchIds.length}:`);
-        console.log(`   - Branch ID: ${branchId}`);
-        console.log(`   - Branch Name: ${branchName}`);
         
         // Token
         const existingTokenConfig = configs.find(c => 
           c.key === 'line_channel_access_token' && c.branch_id === branchId
         );
         
-        console.log(`   - มี Token Config เดิมหรือไม่: ${existingTokenConfig ? `✅ มี (ID: ${existingTokenConfig.id})` : '❌ ไม่มี (จะสร้างใหม่)'}`);
-        
-        let tokenResult;
-        if (existingTokenConfig) {
-          addDebugLog(`   → UPDATE Token (ID: ${existingTokenConfig.id.substring(0, 8)}...)`);
-          console.log(`   - กำลัง UPDATE Token Config ID: ${existingTokenConfig.id}`);
-          tokenResult = await base44.entities.Config.update(existingTokenConfig.id, {
-            value: lineSettings.line_channel_access_token.trim()
-          });
-          console.log(`   - ✅ UPDATE Token สำเร็จ`);
-          addDebugLog(`   ✅ UPDATE Token สำเร็จ`);
-        } else {
-          addDebugLog(`   → CREATE Token ใหม่`);
-          console.log(`   - กำลัง CREATE Token Config ใหม่`);
-          tokenResult = await base44.entities.Config.create({
-            key: 'line_channel_access_token',
-            value: lineSettings.line_channel_access_token.trim(),
-            branch_id: branchId,
-            category: 'notification',
-            description: `LINE Token สำหรับสาขา ${branchName}`
-          });
-          console.log(`   - ✅ CREATE Token สำเร็จ (New ID: ${tokenResult.id})`);
-          addDebugLog(`   ✅ CREATE Token สำเร็จ (ID: ${tokenResult.id.substring(0, 8)}...)`);
-        }
-        
-        savedResults.push({ branchId, branchName, tokenSaved: true });
+        const tokenPromise = existingTokenConfig
+          ? base44.entities.Config.update(existingTokenConfig.id, {
+              value: lineSettings.line_channel_access_token.trim()
+            })
+          : base44.entities.Config.create({
+              key: 'line_channel_access_token',
+              value: lineSettings.line_channel_access_token.trim(),
+              branch_id: branchId,
+              category: 'notification',
+              description: `LINE Token สำหรับสาขา ${branchName}`
+            });
 
         // Secret
-        if (lineSettings.line_channel_secret && lineSettings.line_channel_secret.trim()) {
+        let secretPromise = Promise.resolve();
+        if (lineSettings.line_channel_secret?.trim()) {
           const existingSecretConfig = configs.find(c => 
             c.key === 'line_channel_secret' && c.branch_id === branchId
           );
           
-          console.log(`   - มี Secret Config เดิมหรือไม่: ${existingSecretConfig ? `✅ มี (ID: ${existingSecretConfig.id})` : '❌ ไม่มี (จะสร้างใหม่)'}`);
-          
-          if (existingSecretConfig) {
-            console.log(`   - กำลัง UPDATE Secret Config ID: ${existingSecretConfig.id}`);
-            await base44.entities.Config.update(existingSecretConfig.id, {
-              value: lineSettings.line_channel_secret.trim()
-            });
-            console.log(`   - ✅ UPDATE Secret สำเร็จ`);
-          } else {
-            console.log(`   - กำลัง CREATE Secret Config ใหม่`);
-            const secretResult = await base44.entities.Config.create({
-              key: 'line_channel_secret',
-              value: lineSettings.line_channel_secret.trim(),
-              branch_id: branchId,
-              category: 'notification',
-              description: `LINE Secret สำหรับสาขา ${branchName}`
-            });
-            console.log(`   - ✅ CREATE Secret สำเร็จ (New ID: ${secretResult.id})`);
-          }
+          secretPromise = existingSecretConfig
+            ? base44.entities.Config.update(existingSecretConfig.id, {
+                value: lineSettings.line_channel_secret.trim()
+              })
+            : base44.entities.Config.create({
+                key: 'line_channel_secret',
+                value: lineSettings.line_channel_secret.trim(),
+                branch_id: branchId,
+                category: 'notification',
+                description: `LINE Secret สำหรับสาขา ${branchName}`
+              });
         }
 
-
-      }
+        await Promise.all([tokenPromise, secretPromise]);
+        return { branchId, branchName, tokenSaved: true };
+      });
+      
+      const savedResults = await Promise.all(savePromises)
       
       addDebugLog('✅ บันทึกเสร็จทั้งหมด', 'success');
       savedResults.forEach((result, idx) => {
