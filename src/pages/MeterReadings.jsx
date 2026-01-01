@@ -33,10 +33,6 @@ export default function MeterReadings() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
   const [formData, setFormData] = useState({
     room_id: '',
     reading_date: new Date().toISOString().split('T')[0],
@@ -219,17 +215,54 @@ export default function MeterReadings() {
   });
 
   const { data: configs = [] } = useQuery({
-    queryKey: ['configs'], // Removed selectedBranchId, now fetches all configs
+    queryKey: ['configs'],
     queryFn: async () => {
-      return base44.entities.Config.list(); // Fetch all configs
+      return base44.entities.Config.list();
     },
-    enabled: canView, // Enabled when canView
+    enabled: canView,
     ...retryConfig,
     staleTime: 60 * 60 * 1000,
     gcTime: 2 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     placeholderData: (previousData) => previousData,
   });
+
+  // ✅ สร้าง billing periods จาก config (เหมือนหน้า Payments)
+  const billingPeriods = useMemo(() => {
+    if (!configs || configs.length === 0 || !selectedBranchId) return [];
+    
+    const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
+    const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
+    
+    const periods = [];
+    const now = new Date();
+    
+    for (let i = 0; i < 12; i++) {
+      const cycleMonth = now.getMonth() - i;
+      let year = now.getFullYear();
+      let month = cycleMonth;
+      
+      while (month < 0) {
+        month += 12;
+        year -= 1;
+      }
+      
+      const cycleStart = new Date(year, month, billGenerationDay);
+      const cycleEnd = new Date(year, month + 1, billGenerationDay - 1, 23, 59, 59);
+      
+      periods.push({
+        value: `${year}-${String(month + 1).padStart(2, '0')}`,
+        label: format(cycleStart, 'MMM yyyy', { locale: th }),
+        start: cycleStart,
+        end: cycleEnd
+      });
+    }
+    
+    return periods;
+  }, [configs, selectedBranchId]);
+
+  const [selectedPeriod, setSelectedPeriod] = useState(() => billingPeriods[0]?.value || format(new Date(), 'yyyy-MM'));
 
   // Helper to get config value
   const getConfigValue = (key, defaultValue) => {
@@ -769,48 +802,31 @@ export default function MeterReadings() {
   const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
   const getLatestReading = useCallback((roomId) => meterReadingsMap.get(roomId), [meterReadingsMap]);
 
-  const { totalElectricityThisMonth, totalWaterLatest, monthReadingsCount } = useMemo(() => {
-    const [year, month] = selectedMonth.split('-').map(Number);
+  const { totalElectricityThisMonth, totalWaterThisMonth, monthReadingsCount } = useMemo(() => {
+    const period = billingPeriods.find(p => p.value === selectedPeriod);
+    if (!period) {
+      return { totalElectricityThisMonth: 0, totalWaterThisMonth: 0, monthReadingsCount: 0 };
+    }
     
-    // Total electricity for selected month
-    const totalElectricity = meterReadings
-      .filter(r => {
-        try {
-          const readingDate = parseISO(r.reading_date);
-          return readingDate.getMonth() === (month - 1) && readingDate.getFullYear() === year;
-        } catch {
-          return false;
-        }
-      })
-      .reduce((sum, r) => sum + (r.electricity_units || 0), 0);
-
-    // Total water from latest reading of each room
-    const latestReadings = new Map();
-    meterReadings.forEach(r => {
-      if (!latestReadings.has(r.room_id)) {
-        latestReadings.set(r.room_id, r);
-      }
-    });
-
-    const totalWater = Array.from(latestReadings.values())
-      .reduce((sum, r) => sum + (r.water_units || 0), 0);
-
-    // Count readings in selected month
-    const monthCount = meterReadings.filter(r => {
+    // Total electricity + water for selected period (ตามงวดบิล)
+    const periodReadings = meterReadings.filter(r => {
       try {
         const readingDate = parseISO(r.reading_date);
-        return readingDate.getMonth() === (month - 1) && readingDate.getFullYear() === year;
+        return readingDate >= period.start && readingDate <= period.end;
       } catch {
         return false;
       }
-    }).length;
+    });
+
+    const totalElectricity = periodReadings.reduce((sum, r) => sum + (r.electricity_units || 0), 0);
+    const totalWater = periodReadings.reduce((sum, r) => sum + (r.water_units || 0), 0);
 
     return { 
       totalElectricityThisMonth: totalElectricity, 
-      totalWaterLatest: totalWater,
-      monthReadingsCount: monthCount
+      totalWaterThisMonth: totalWater,
+      monthReadingsCount: periodReadings.length
     };
-  }, [meterReadings, selectedMonth]);
+  }, [meterReadings, selectedPeriod, billingPeriods]);
 
   const handleAIAnalysis = async () => {
     setIsAnalyzing(true);
@@ -1328,8 +1344,9 @@ export default function MeterReadings() {
                 <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-cyan-100 text-sm mb-1">น้ำที่ใช้ทั้งหมด (ล่าสุด)</p>
-                            <p className="text-3xl font-bold">{totalWaterLatest.toFixed(2)}</p>
+                            <p className="text-cyan-100 text-sm mb-1">น้ำที่ใช้ (หน่วย)</p>
+                            <p className="text-3xl font-bold">{totalWaterThisMonth.toFixed(2)}</p>
+                            <p className="text-cyan-100 text-xs mt-1">{monthReadingsCount} รายการ</p>
                         </div>
                         <Droplets className="w-12 h-12 text-cyan-200" />
                     </div>
@@ -1539,21 +1556,13 @@ export default function MeterReadings() {
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-slate-600" />
                     <select
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      value={selectedPeriod}
+                      onChange={(e) => setSelectedPeriod(e.target.value)}
                       className="p-2 border rounded-md text-sm"
                     >
-                      {(() => {
-                        const months = [];
-                        const now = new Date();
-                        for (let i = 0; i < 12; i++) {
-                          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                          const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                          const label = format(d, 'MMM yyyy', { locale: th });
-                          months.push(<option key={value} value={value}>{label}</option>);
-                        }
-                        return months;
-                      })()}
+                      {billingPeriods.map(period => (
+                        <option key={period.value} value={period.value}>{period.label}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
