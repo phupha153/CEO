@@ -1314,31 +1314,14 @@ export default function MeterReadings() {
             </Card>
             <Card className="bg-gradient-to-br from-yellow-500 to-orange-500 text-white shadow-xl">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-3">
-                    <div className="flex-1">
+                <div className="flex items-center justify-between">
+                    <div>
                         <p className="text-yellow-100 text-sm mb-1">ไฟที่ใช้ (หน่วย)</p>
                         <p className="text-3xl font-bold">{totalElectricityThisMonth.toFixed(2)}</p>
                         <p className="text-yellow-100 text-xs mt-1">{monthReadingsCount} รายการ</p>
                     </div>
                     <Zap className="w-12 h-12 text-yellow-200" />
                 </div>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="w-full text-xs px-2 py-1 rounded bg-white/20 text-white border border-white/30 hover:bg-white/30 cursor-pointer"
-                >
-                  {(() => {
-                    const months = [];
-                    const now = new Date();
-                    for (let i = 0; i < 12; i++) {
-                      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                      const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                      const label = format(d, 'MMM yyyy', { locale: th });
-                      months.push(<option key={value} value={value} className="text-slate-800">{label}</option>);
-                    }
-                    return months;
-                  })()}
-                </select>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-xl">
@@ -1538,18 +1521,41 @@ export default function MeterReadings() {
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
             <CardContent className="p-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-slate-600" />
-                  <select
-                    value={selectedFloor}
-                    onChange={(e) => setSelectedFloor(e.target.value)}
-                    className="p-2 border rounded-md"
-                  >
-                    <option value="all">ทุกชั้น</option>
-                    {sortedFloorsForDropdown.map(floor => (
-                      <option key={floor} value={floor}>ชั้น {floor}</option>
-                    ))}
-                  </select>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-slate-600" />
+                    <select
+                      value={selectedFloor}
+                      onChange={(e) => setSelectedFloor(e.target.value)}
+                      className="p-2 border rounded-md"
+                    >
+                      <option value="all">ทุกชั้น</option>
+                      {sortedFloorsForDropdown.map(floor => (
+                        <option key={floor} value={floor}>ชั้น {floor}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-slate-600" />
+                    <select
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      className="p-2 border rounded-md text-sm"
+                    >
+                      {(() => {
+                        const months = [];
+                        const now = new Date();
+                        for (let i = 0; i < 12; i++) {
+                          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                          const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                          const label = format(d, 'MMM yyyy', { locale: th });
+                          months.push(<option key={value} value={value}>{label}</option>);
+                        }
+                        return months;
+                      })()}
+                    </select>
+                  </div>
                 </div>
                 
                 <div className="flex items-center gap-2">
