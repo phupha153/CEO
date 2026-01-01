@@ -2171,14 +2171,25 @@ Return JSON.`;
           <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
             <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
             <CardContent className="p-4 md:p-6 relative">
-              <AISearchBox
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onAISearch={handleAISearch}
-                onStopSearch={handleStopAISearch}
-                aiSearching={aiSearching}
-                placeholder="ค้นหาการชำระเงิน หรือถามเช่น 'สร้างบิลห้อง 101' 'รายการค้างชำระ'"
-              />
+              <div className="relative">
+                <AISearchBox
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  onAISearch={handleAISearch}
+                  onStopSearch={handleStopAISearch}
+                  aiSearching={aiSearching}
+                  placeholder="ค้นหาการชำระเงิน หรือถามเช่น 'สร้างบิลห้อง 101' 'รายการค้างชำระ'"
+                />
+
+                {aiSearching && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl mt-4">
+                    <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-3">
+                      <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
+                      <p className="text-slate-700 font-medium">AI กำลังวิเคราะห์...</p>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {aiAction && (
                 <AIActionConfirmation
