@@ -64,6 +64,24 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // 🔒 Security: Plan Verification (SaaS Standard)
+        const planStatus = user.plan_status;
+        if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
+            return Response.json({ 
+                error: 'Subscription required', 
+                message: 'แพ็กเกจของคุณหมดอายุแล้ว กรุณาต่ออายุเพื่อใช้งานต่อ' 
+            }, { status: 402 });
+        }
+        if (planStatus === 'trial' && user.trial_ends_at) {
+            const trialEnd = new Date(user.trial_ends_at);
+            if (new Date() > trialEnd) {
+                return Response.json({ 
+                    error: 'Trial expired', 
+                    message: 'ช่วงทดลองใช้หมดอายุแล้ว กรุณาเลือกแพ็กเกจเพื่อใช้งานต่อ' 
+                }, { status: 402 });
+            }
+        }
+
         const { recipients, options = {} } = await req.json();
 
         if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
