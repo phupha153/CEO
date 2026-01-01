@@ -144,6 +144,7 @@ export default function UserBranchAccess() {
 
   const updateUserBranchesMutation = useMutation({
     mutationFn: async ({ userId, accessible_branches, custom_role }) => {
+      // ใช้ค่า custom_role ที่ส่งมาจาก UI dropdown โดยตรง
       return base44.entities.User.update(userId, { 
         accessible_branches,
         custom_role
@@ -661,6 +662,27 @@ export default function UserBranchAccess() {
                       </p>
                     </div>
                   </div>
+                    
+                    <div>
+                      <Label className="text-sm font-semibold mb-2 block">สถานะ/บทบาท</Label>
+                      <Select
+                        value={userRoles[selectedUser.id] || 'employee'}
+                        onValueChange={(value) => setUserRoles({ ...userRoles, [selectedUser.id]: value })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="เลือกบทบาท" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="owner">👑 เจ้าของหอพัก</SelectItem>
+                          <SelectItem value="manager">👔 ผู้จัดการ</SelectItem>
+                          <SelectItem value="employee">👤 พนักงาน</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-slate-500 mt-1">
+                        💡 เจ้าของ = มีสิทธิ์ทุกอย่าง, พนักงาน/ผู้จัดการ = มีสิทธิ์ตามที่กำหนด
+                      </p>
+                    </div>
+                  </div>
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {branches.map(branch => {
                       const isChecked = (userBranchAccess[selectedUser.id] || []).includes(branch.id);
@@ -709,9 +731,10 @@ export default function UserBranchAccess() {
                           custom_role: userRoles[selectedUser.id] || 'employee'
                         });
                       }}
+                      disabled={updateUserBranchesMutation.isPending}
                       className="bg-gradient-to-r from-blue-600 to-indigo-600"
                     >
-                      บันทึก
+                      {updateUserBranchesMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
                     </Button>
                   </div>
                 </div>
