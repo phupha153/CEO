@@ -3063,45 +3063,38 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                           </div>
 
                           {hasPaymentScores && selectedTenant.payment_scores.length > 0 && (
-                           <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                             <div className="flex items-center justify-between mb-2">
-                               <p className="text-sm font-semibold text-slate-700">ประวัติการชำระเงิน</p>
-                               <Button
-                                 variant="ghost"
-                                 size="sm"
-                                 onClick={() => setShowPaymentHistory(!showPaymentHistory)}
-                                 className="h-7 text-xs text-green-700 hover:bg-green-100"
-                               >
-                                 {showPaymentHistory ? 'ซ่อน' : 'ดูเพิ่มเติม'}
-                               </Button>
-                             </div>
-                             {showPaymentHistory && (
-                               <div className="space-y-2 max-h-32 overflow-y-auto">
-                                 {selectedTenant.payment_scores.slice(-5).reverse().map((scoreRecord, idx) => (
-                                   <div key={idx} className="text-xs bg-white rounded p-2 border border-green-100">
-                                     <div className="flex justify-between items-center">
-                                       <span className="text-slate-600">
-                                         {scoreRecord.days_diff <= 0 ? (
-                                           <span className="text-green-700">
-                                             {scoreRecord.days_diff === 0 ? 'ตรงเวลา' : `ก่อนกำหนด ${Math.abs(scoreRecord.days_diff)} วัน`}
-                                           </span>
-                                         ) : (
-                                           <span className="text-red-700">หลังกำหนด {scoreRecord.days_diff} วัน</span>
-                                         )}
-                                       </span>
-                                       <Badge className={`text-xs ${
-                                         scoreRecord.score >= 8 ? 'bg-green-100 text-green-700' :
-                                         scoreRecord.score >= 5 ? 'bg-yellow-100 text-yellow-700' :
-                                         'bg-red-100 text-red-700'
-                                       }`}>
-                                         {scoreRecord.score}/10
-                                       </Badge>
-                                     </div>
-                                   </div>
-                                 ))}
-                               </div>
-                             )}
-                           </div>
+                          <div className="mt-2">
+                            <button
+                              onClick={() => setShowPaymentHistory(!showPaymentHistory)}
+                              className="text-sm font-bold text-green-700 hover:text-green-800 underline decoration-2 underline-offset-2 transition-colors bg-green-50 px-3 py-2 rounded-lg hover:bg-green-100"
+                            >
+                              {showPaymentHistory ? '▼ ซ่อนประวัติการชำระเงิน' : `▶ ดูประวัติการชำระเงิน (${selectedTenant.payment_scores.length} ครั้ง)`}
+                            </button>
+                            {showPaymentHistory && (
+                              <div className="mt-3 space-y-2 max-h-40 overflow-y-auto pl-4 border-l-2 border-green-400">
+                                {selectedTenant.payment_scores.slice(-5).reverse().map((scoreRecord, idx) => (
+                                  <div key={idx} className="text-xs flex justify-between items-center py-1">
+                                    <span className="text-slate-600">
+                                      {scoreRecord.days_diff <= 0 ? (
+                                        <span className="text-green-700 font-medium">
+                                          {scoreRecord.days_diff === 0 ? '✓ ตรงเวลา' : `✓ ก่อนกำหนด ${Math.abs(scoreRecord.days_diff)} วัน`}
+                                        </span>
+                                      ) : (
+                                        <span className="text-red-700 font-medium">⚠ หลังกำหนด {scoreRecord.days_diff} วัน</span>
+                                      )}
+                                    </span>
+                                    <Badge className={`text-xs ${
+                                      scoreRecord.score >= 8 ? 'bg-green-100 text-green-700' :
+                                      scoreRecord.score >= 5 ? 'bg-yellow-100 text-yellow-700' :
+                                      'bg-red-100 text-red-700'
+                                    }`}>
+                                      {scoreRecord.score}/10
+                                    </Badge>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                           )}
                           </>
                           );
