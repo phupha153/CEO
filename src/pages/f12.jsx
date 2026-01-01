@@ -356,6 +356,57 @@ export default function F12Page() {
                 <Trash2 className="w-4 h-4 mr-2" />
                 {isDeleting ? 'กำลังลบ...' : '🗑️ ลบข้อมูลทดสอบทั้งหมด'}
               </Button>
+
+              <Button 
+                onClick={async () => {
+                  const selectedBranchId = localStorage.getItem('selected_branch_id');
+                  if (!selectedBranchId) {
+                    toast.error('กรุณาเลือกสาขาก่อน');
+                    return;
+                  }
+
+                  if (!confirm(`🎯 คำนวณคะแนนการชำระเงินให้ผู้เช่าทุกคนในสาขานี้?\n\nระบบจะประมวลผลทีละ 5 คน`)) return;
+
+                  setIsDeleting(true);
+                  toast.loading('กำลังคำนวณคะแนน...', { id: 'recalc-scores' });
+
+                  try {
+                    const result = await base44.functions.invoke('recalculateAllScores', { 
+                      branch_id: selectedBranchId 
+                    });
+                    console.log('✅ Recalculate scores result:', result.data);
+
+                    toast.dismiss('recalc-scores');
+                    if (result.data.success) {
+                      toast.success(result.data.message, { duration: 8000 });
+                    } else {
+                      toast.error('คำนวณไม่สำเร็จ: ' + (result.data.error || 'Unknown error'));
+                    }
+                  } catch (error) {
+                    toast.dismiss('recalc-scores');
+                    console.error('❌ Error:', error);
+                    toast.error('คำนวณไม่สำเร็จ: ' + error.message);
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                }}
+                variant="default"
+                size="sm"
+                disabled={isDeleting}
+                className="h-auto py-3 col-span-2 bg-purple-600 hover:bg-purple-700"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    กำลังคำนวณ...
+                  </>
+                ) : (
+                  <>
+                    <Terminal className="w-4 h-4 mr-2" />
+                    🧮 คำนวณคะแนนทุกคน
+                  </>
+                )}
+              </Button>
             </div>
 
             {/* ส่วนใส่ Branch ID แบบ Manual */}
