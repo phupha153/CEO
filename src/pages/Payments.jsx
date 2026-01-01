@@ -70,20 +70,36 @@ export default function PaymentsPage() {
   const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [isLoadingRoomView, setIsLoadingRoomView] = useState(false);
 
-  // ⭐ เมื่อเปลี่ยน roomViewMonth ให้โหลดข้อมูลเดือนนั้นใหม่
-  useEffect(() => {
-    if (viewMode !== 'room') return;
-    
-    const [year, month] = roomViewMonth.split('-').map(Number);
-    const monthDate = new Date(year, month - 1, 1);
-    
-    // ตั้ง custom range เป็นเดือนที่เลือก
-    setDateRangeType('custom');
-    setCustomRange({
-      from: startOfMonth(monthDate),
-      to: endOfMonth(monthDate)
-    });
-  }, [roomViewMonth, viewMode]);
+  // ⭐ Room View Month - โหลดข้อมูลแยกจาก main filters
+  const { data: roomViewPayments = [], isFetching: roomViewFetching } = useQuery({
+    queryKey: ['payments-room-view', selectedBranchId, roomViewMonth],
+    queryFn: async () => {
+      if (!selectedBranchId || !roomViewMonth) return [];
+      
+      const [year, month] = roomViewMonth.split('-').map(Number);
+      const monthDate = new Date(year, month - 1, 1);
+      
+      const response = await base44.functions.invoke('getFilteredPayments', {
+        branch_id: selectedBranchId,
+        status_filter: 'all',
+        date_range_type: 'custom',
+        custom_range: {
+          from: startOfMonth(monthDate),
+          to: endOfMonth(monthDate)
+        },
+        search_query: '',
+        page: 1,
+        limit: 500,
+        sort_by: 'room'
+      });
+      
+      return response.data?.data || [];
+    },
+    enabled: canView && !!selectedBranchId && viewMode === 'room',
+    retry: 0,
+    staleTime: 30 * 1000,
+    placeholderData: (previousData) => previousData,
+  });
 
   const [aiSearching, setAiSearching] = useState(false);
   const [aiResult, setAiResult] = useState(null);
@@ -3614,7 +3630,7 @@ Return JSON.`;
 
               {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
-                  {(paymentsFetching || isLoadingRoomView) && (
+                  {(roomViewFetching || isLoadingRoomView) && (
                     <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
                       <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-3">
                         <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
@@ -3709,8 +3725,8 @@ Return JSON.`;
                             {roomsByFloor[floor]
                               .sort((a, b) => a.room_number.localeCompare(b.room_number))
                               .map(room => {
-                                // ⭐ หา payment จากข้อมูลที่ filter มาแล้ว
-                                const roomPayment = filteredPayments.find(p => p.room_id === room.id);
+                                // ⭐ ใช้ roomViewPayments แทน filteredPayments
+                                const roomPayment = roomViewPayments.find(p => p.room_id === room.id);
 
                                 const effectiveStatus = roomPayment ? getEffectiveStatus(roomPayment) : null;
                                 const tenant = roomPayment ? getTenantInfo(roomPayment.tenant_id) : null;
