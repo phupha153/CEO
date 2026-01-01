@@ -70,6 +70,21 @@ export default function PaymentsPage() {
   const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [isLoadingRoomView, setIsLoadingRoomView] = useState(false);
 
+  // ⭐ เมื่อเปลี่ยน roomViewMonth ให้โหลดข้อมูลเดือนนั้นใหม่
+  useEffect(() => {
+    if (viewMode !== 'room') return;
+    
+    const [year, month] = roomViewMonth.split('-').map(Number);
+    const monthDate = new Date(year, month - 1, 1);
+    
+    // ตั้ง custom range เป็นเดือนที่เลือก
+    setDateRangeType('custom');
+    setCustomRange({
+      from: startOfMonth(monthDate),
+      to: endOfMonth(monthDate)
+    });
+  }, [roomViewMonth, viewMode]);
+
   const [aiSearching, setAiSearching] = useState(false);
   const [aiResult, setAiResult] = useState(null);
   const [aiAbortController, setAiAbortController] = useState(null);
@@ -3681,25 +3696,8 @@ Return JSON.`;
                       // Sort floors
                       const sortedFloors = Object.keys(roomsByFloor).sort((a, b) => Number(a) - Number(b));
 
-                      // Get payments for selected month
-                      // ⭐ คำนวณช่วงงวดบิลจริงๆ โดยใช้ bill_generation_day ของสาขา
-                      const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
-                      const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
-                      const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
-                      
-                      const [selectedYear, selectedMonth] = roomViewMonth.split('-').map(Number);
-                      
-                      // งวดบิลเริ่มจากวันที่ bill_generation_day ของเดือนก่อนหน้า
-                      // และสิ้นสุดที่วันที่ bill_generation_day ของเดือนที่เลือก
-                      const monthStart = new Date(selectedYear, selectedMonth - 2, billGenerationDay);
-                      const monthEnd = new Date(selectedYear, selectedMonth - 1, billGenerationDay - 1, 23, 59, 59);
-                      
-                      console.log('🔍 Room View Month Range:', {
-                        selectedMonth: roomViewMonth,
-                        billGenerationDay,
-                        monthStart: format(monthStart, 'yyyy-MM-dd'),
-                        monthEnd: format(monthEnd, 'yyyy-MM-dd')
-                      });
+                      // ⭐ ใช้ข้อมูลจาก payments ที่ filter มาแล้ว (ตาม dateRangeType)
+                      // ไม่ต้องคำนวณ monthStart/monthEnd ใหม่
 
                       return sortedFloors.map(floor => (
                         <div key={floor} className="mb-6">
@@ -3711,17 +3709,8 @@ Return JSON.`;
                             {roomsByFloor[floor]
                               .sort((a, b) => a.room_number.localeCompare(b.room_number))
                               .map(room => {
-                                // Find payment for this room in selected month
-                                const roomPayment = payments.find(p => {
-                                  if (p.room_id !== room.id) return false;
-                                  if (!p.due_date) return false;
-                                  try {
-                                    const dueDate = parseISO(p.due_date);
-                                    return isWithinInterval(dueDate, { start: monthStart, end: monthEnd });
-                                  } catch {
-                                    return false;
-                                  }
-                                });
+                                // ⭐ หา payment จากข้อมูลที่ filter มาแล้ว
+                                const roomPayment = payments.find(p => p.room_id === room.id);
 
                                 const effectiveStatus = roomPayment ? getEffectiveStatus(roomPayment) : null;
                                 const tenant = roomPayment ? getTenantInfo(roomPayment.tenant_id) : null;
