@@ -275,34 +275,28 @@ export default function UserBranchAccess() {
 
   const handleOpenPackageDialog = (user) => {
     setSelectedUser(user);
-    setSelectedBranchForPackage('');
     setPackageForm({
-      packageId: '',
+      packageId: user.package_id || '',
       startDate: format(new Date(), 'yyyy-MM-dd'),
-      endDate: format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
-      isTrialMode: true,
+      endDate: user.trial_ends_at || user.subscription_end_date || format(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
+      isTrialMode: user.plan_status === 'trial' || !user.plan_status,
       pricePerMonth: 0
     });
     setShowPackageDialog(true);
   };
 
   const handlePackageSubmit = () => {
-    if (!selectedBranchForPackage) {
-      toast.error('กรุณาเลือกสาขา');
-      return;
-    }
     if (!packageForm.isTrialMode && !packageForm.packageId) {
       toast.error('กรุณาเลือกแพ็กเกจ');
       return;
     }
-    if (!packageForm.startDate || !packageForm.endDate) {
-      toast.error('กรุณาเลือกวันเริ่มต้นและสิ้นสุด');
+    if (!packageForm.endDate) {
+      toast.error('กรุณาเลือกวันสิ้นสุด');
       return;
     }
 
     savePackageMutation.mutate({
       userId: selectedUser.id,
-      branchId: selectedBranchForPackage,
       packageData: packageForm
     });
   };
