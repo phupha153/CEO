@@ -51,6 +51,7 @@ import PrintReceipts from './pages/PrintReceipts';
 import Rooms from './pages/Rooms';
 import TrialExpiredPage from './pages/TrialExpiredPage';
 import UserBranchAccess from './pages/UserBranchAccess';
+import PackagePaymentPage from './pages/PackagePaymentPage';
 import __Layout from './Layout.jsx';
 
 
@@ -108,6 +109,7 @@ export const PAGES = {
     "Rooms": Rooms,
     "TrialExpiredPage": TrialExpiredPage,
     "UserBranchAccess": UserBranchAccess,
+    "PackagePaymentPage": PackagePaymentPage,
 }
 
 export const pagesConfig = {
