@@ -215,7 +215,7 @@ export default function PaymentsPage() {
 
   // ✅ Server-side filtering via Backend Function (SaaS Standard)
   const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
-    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, actualSearchQuery, currentPage, sortBy],
+    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, actualSearchQuery, currentPage, sortBy, viewMode, roomViewMonth],
     queryFn: async () => {
       if (!selectedBranchId) return { data: [], total: 0, page: 1, totalPages: 0, counts: { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 }, logs: [] };
       
