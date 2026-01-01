@@ -681,7 +681,7 @@ export default function Layout({ children, currentPageName }) {
           currentPageName === 'TrialExpiredPage' ||
           currentPageName === 'PackageSelection') return;
 
-      const planStatus = currentUser.plan_status || 'trial';
+      const planStatus = currentUser.plan_status;
       const trialEndsAt = currentUser.trial_ends_at;
 
       // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป PackageSelection
