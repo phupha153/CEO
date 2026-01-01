@@ -847,6 +847,12 @@ export default function MeterReadings() {
       return { totalElectricityThisMonth: 0, totalWaterThisMonth: 0, monthReadingsCount: 0, displayPeriodLabel: '' };
     }
     
+    console.log('🔎 [Cards] Selected Period Range:', {
+      label: period.label,
+      start: format(period.start, 'yyyy-MM-dd'),
+      end: format(period.end, 'yyyy-MM-dd')
+    });
+    
     // หาข้อมูลจากงวดที่เลือก
     let periodReadings = meterReadings.filter(r => {
       try {
@@ -857,10 +863,16 @@ export default function MeterReadings() {
       }
     });
 
+    console.log('🔎 [Cards] Found readings in selected period:', {
+      count: periodReadings.length,
+      sampleDates: periodReadings.slice(0, 3).map(r => r.reading_date)
+    });
+
     let usedPeriod = period;
     
     // ถ้าไม่มีข้อมูลในงวดปัจจุบัน → หางวดก่อนหน้าที่มีข้อมูล
     if (periodReadings.length === 0) {
+      console.log('⚠️ [Cards] No data in selected period - searching previous periods...');
       const currentIndex = billingPeriods.findIndex(p => p.value === selectedPeriod);
       
       for (let i = currentIndex + 1; i < billingPeriods.length; i++) {
@@ -874,9 +886,17 @@ export default function MeterReadings() {
           }
         });
         
+        console.log('🔎 [Cards] Checking previous period:', {
+          label: prevPeriod.label,
+          start: format(prevPeriod.start, 'yyyy-MM-dd'),
+          end: format(prevPeriod.end, 'yyyy-MM-dd'),
+          foundCount: prevReadings.length
+        });
+        
         if (prevReadings.length > 0) {
           periodReadings = prevReadings;
           usedPeriod = prevPeriod;
+          console.log('✅ [Cards] Using fallback period:', usedPeriod.label);
           break;
         }
       }
@@ -885,11 +905,19 @@ export default function MeterReadings() {
     const totalElectricity = periodReadings.reduce((sum, r) => sum + (r.electricity_units || 0), 0);
     const totalWater = periodReadings.reduce((sum, r) => sum + (r.water_units || 0), 0);
 
+    console.log('💡 [Cards] Final Result:', {
+      period: usedPeriod.label,
+      totalElectricity,
+      totalWater,
+      count: periodReadings.length,
+      isFallback: usedPeriod.value !== selectedPeriod
+    });
+
     return { 
       totalElectricityThisMonth: totalElectricity, 
       totalWaterThisMonth: totalWater,
       monthReadingsCount: periodReadings.length,
-      displayPeriodLabel: usedPeriod.value !== selectedPeriod ? usedPeriod.label : ''
+      displayPeriodLabel: usedPeriod.value !== selectedPeriod ? usedPeriodLabel : ''
     };
   }, [meterReadings, selectedPeriod, billingPeriods]);
 
