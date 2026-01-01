@@ -272,15 +272,21 @@ export default function Dashboard() {
   });
 
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ['payments', selectedBranchId, 'secure'],
+    queryKey: ['payments-filtered', selectedBranchId, 'all', 'all', null, '', 1, 'due_date'],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Payment',
-        filters: { branch_id: selectedBranchId },
-        limit: 1000
+      const response = await base44.functions.invoke('getFilteredPayments', {
+        branch_id: selectedBranchId,
+        status_filter: 'all',
+        date_range_type: 'all',
+        custom_range: null,
+        search_query: '',
+        page: 1,
+        limit: 1000,
+        sort_by: 'due_date',
+        debug: false
       });
-      return response.data.data;
+      return response.data?.data || [];
     },
     enabled: !!selectedBranchId,
     retry: 2,
