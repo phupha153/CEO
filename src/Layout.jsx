@@ -585,13 +585,15 @@ export default function Layout({ children, currentPageName }) {
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   const userPermissions = currentUser?.permissions || [];
   
-  // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้
+  // ⭐ แก้ไข: null/undefined = ไม่ set สิทธิ์, [] = set แล้วแต่ไม่มีสาขา
   const userAccessibleBranches = currentUser?.accessible_branches;
 
-  // ถ้ามี accessible_branches set (ไม่ว่าจะ [] หรือมีค่า) ต้องเช็คว่าสาขาอยู่ในลิสต์หรือไม่
-  // ถ้าเป็น null/undefined และเป็น developer ให้เข้าได้ทุกสาขา
+  // Logic การเข้าถึง:
+  // - Developer + ไม่มี accessible_branches set (null/undefined) = เข้าได้ทุกสาขา
+  // - Owner/Manager/Employee + ไม่มี accessible_branches set = เข้าได้ทุกสาขา (backward compatibility)
+  // - ถ้า set accessible_branches แล้ว (แม้ว่า = []) = เช็คตาม list
   const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
-  const canAccessBranch = (userRole === 'developer' && !hasAccessibleBranchesSet) ||
+  const canAccessBranch = !hasAccessibleBranchesSet || // ไม่ set = เข้าได้ทุกสาขา
     (selectedBranch && userAccessibleBranches && userAccessibleBranches.includes(selectedBranch.id));
 
   // ⭐ Feature access - Trial = full access, Active = full access
