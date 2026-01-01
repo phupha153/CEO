@@ -35,6 +35,16 @@ Deno.serve(async (req) => {
         // ดึงข้อมูล Payment โดยตรงด้วย filter
         console.log('📥 Querying Database for Payment...');
         const paymentResults = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
+        
+        console.log(`📊 Query Results: Found ${Array.isArray(paymentResults) ? paymentResults.length : (paymentResults ? 1 : 0)} payment(s)`);
+        
+        if (Array.isArray(paymentResults) && paymentResults.length > 1) {
+            console.error(`⚠️ DUPLICATE PAYMENT IDS FOUND: ${paymentResults.length} records with same ID`);
+            paymentResults.forEach((p, idx) => {
+                console.log(`  [${idx}] room_id: ${p.room_id}, tenant_id: ${p.tenant_id}, total: ${p.total_amount}`);
+            });
+        }
+        
         const payment = Array.isArray(paymentResults) ? paymentResults[0] : paymentResults;
 
         if (!payment) {
@@ -77,6 +87,31 @@ Deno.serve(async (req) => {
         const branch = actualBranchId ? allBranches.find(b => b.id === actualBranchId) : null;
 
         console.log(`📋 Found: room=${room?.room_number || 'NOT FOUND'}, tenant=${tenant?.full_name || 'NOT FOUND'}, branch=${branch?.branch_name || 'NOT FOUND'}`);
+        
+        // ⚠️ ตรวจสอบว่าข้อมูลครบถ้วนหรือไม่
+        if (!room) {
+            console.error(`❌ CRITICAL: Room not found for room_id: ${payment.room_id}`);
+            return Response.json({ 
+                success: false, 
+                error: `ไม่พบข้อมูลห้อง (room_id: ${payment.room_id})` 
+            }, { status: 500 });
+        }
+        
+        if (!tenant) {
+            console.error(`❌ CRITICAL: Tenant not found for tenant_id: ${payment.tenant_id}`);
+            return Response.json({ 
+                success: false, 
+                error: `ไม่พบข้อมูลผู้เช่า (tenant_id: ${payment.tenant_id})` 
+            }, { status: 500 });
+        }
+        
+        if (!branch) {
+            console.error(`❌ CRITICAL: Branch not found for branch_id: ${actualBranchId}`);
+            return Response.json({ 
+                success: false, 
+                error: `ไม่พบข้อมูลสาขา (branch_id: ${actualBranchId})` 
+            }, { status: 500 });
+        }
 
         // ดึง config ของสาขา
         const getConfigValue = (key) => {
