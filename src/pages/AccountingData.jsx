@@ -327,15 +327,6 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ สร้าง Maps สำหรับ O(1) lookup (แก้ N+1 Problem)
-  const roomsMap = useMemo(() => {
-    return new Map(rooms.map(r => [r.id, r]));
-  }, [rooms]);
-
-  const tenantsMap = useMemo(() => {
-    return new Map(tenants.map(t => [t.id, t]));
-  }, [tenants]);
-
   // ฟังก์ชันคำนวณงวดบิล - ถ้า due_date อยู่ช่วงต้นเดือน (1-10) = บิลของเดือนก่อนหน้า
   const getBillingPeriod = useCallback((payment) => {
     if (!payment.due_date) return null;
@@ -365,6 +356,15 @@ export default function AccountingData() {
     const sortedMonths = Array.from(monthsSet).sort((a, b) => b.localeCompare(a)); // เรียงจากใหม่ไปเก่า
     return sortedMonths;
   }, [payments, getBillingPeriod]);
+
+  // ✅ สร้าง Maps สำหรับ O(1) lookup (แก้ N+1 Problem)
+  const roomsMap = useMemo(() => {
+    return new Map(rooms.map(r => [r.id, r]));
+  }, [rooms]);
+
+  const tenantsMap = useMemo(() => {
+    return new Map(tenants.map(t => [t.id, t]));
+  }, [tenants]);
 
   // ตั้งค่า default เป็นเดือนล่าสุดที่มีข้อมูล
   useEffect(() => {
