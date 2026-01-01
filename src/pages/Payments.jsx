@@ -70,37 +70,6 @@ export default function PaymentsPage() {
   const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [isLoadingRoomView, setIsLoadingRoomView] = useState(false);
 
-  // ⭐ Room View Month - โหลดข้อมูลแยกจาก main filters
-  const { data: roomViewPayments = [], isFetching: roomViewFetching } = useQuery({
-    queryKey: ['payments-room-view', selectedBranchId, roomViewMonth],
-    queryFn: async () => {
-      if (!selectedBranchId || !roomViewMonth) return [];
-      
-      const [year, month] = roomViewMonth.split('-').map(Number);
-      const monthDate = new Date(year, month - 1, 1);
-      
-      const response = await base44.functions.invoke('getFilteredPayments', {
-        branch_id: selectedBranchId,
-        status_filter: 'all',
-        date_range_type: 'custom',
-        custom_range: {
-          from: startOfMonth(monthDate),
-          to: endOfMonth(monthDate)
-        },
-        search_query: '',
-        page: 1,
-        limit: 500,
-        sort_by: 'room'
-      });
-      
-      return response.data?.data || [];
-    },
-    enabled: canView && !!selectedBranchId && viewMode === 'room',
-    retry: 0,
-    staleTime: 30 * 1000,
-    placeholderData: (previousData) => previousData,
-  });
-
   const [aiSearching, setAiSearching] = useState(false);
   const [aiResult, setAiResult] = useState(null);
   const [aiAbortController, setAiAbortController] = useState(null);
@@ -240,6 +209,37 @@ export default function PaymentsPage() {
   const canViewReceipt = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_view_receipt');
   const canAutoCalculate = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_autocalculate');
   const canDeleteTestData = userRole === 'developer';
+
+  // ⭐ Room View Month - โหลดข้อมูลแยกจาก main filters
+  const { data: roomViewPayments = [], isFetching: roomViewFetching } = useQuery({
+    queryKey: ['payments-room-view', selectedBranchId, roomViewMonth],
+    queryFn: async () => {
+      if (!selectedBranchId || !roomViewMonth) return [];
+      
+      const [year, month] = roomViewMonth.split('-').map(Number);
+      const monthDate = new Date(year, month - 1, 1);
+      
+      const response = await base44.functions.invoke('getFilteredPayments', {
+        branch_id: selectedBranchId,
+        status_filter: 'all',
+        date_range_type: 'custom',
+        custom_range: {
+          from: startOfMonth(monthDate),
+          to: endOfMonth(monthDate)
+        },
+        search_query: '',
+        page: 1,
+        limit: 500,
+        sort_by: 'room'
+      });
+      
+      return response.data?.data || [];
+    },
+    enabled: canView && !!selectedBranchId && viewMode === 'room',
+    retry: 0,
+    staleTime: 30 * 1000,
+    placeholderData: (previousData) => previousData,
+  });
 
   const retryConfig = {
     retry: 0,
