@@ -302,13 +302,16 @@ export default function AccountingData() {
     }
   }, [availableMonths]);
 
-  // ฟังก์ชันกรองข้อมูล - ใบเสร็จรับเงิน (แสดงทุกรายการ)
+  // ฟังก์ชันกรองข้อมูล - ใบเสร็จรับเงิน (เฉพาะชำระแล้ว)
   const filteredPayments = useMemo(() => {
     console.log('🔍 filteredPayments calculation - Total payments:', payments.length);
     console.log('selectedMonth:', selectedMonth, 'searchTerm:', searchTerm);
 
     const filtered = payments
       .filter(payment => {
+        // ⭐ กรองเฉพาะที่ชำระแล้ว
+        if (payment.status !== 'paid') return false;
+
         const room = rooms.find(r => r.id === payment.room_id);
         const tenant = tenants.find(t => t.id === payment.tenant_id);
         
@@ -339,13 +342,16 @@ export default function AccountingData() {
     return filtered;
   }, [payments, rooms, tenants, searchTerm, selectedMonth]);
 
-  // ฟังก์ชันกรองใบแจ้งหนี้ - แสดงทุกรายการ
+  // ฟังก์ชันกรองใบแจ้งหนี้ - เฉพาะยังไม่ชำระ
   const filteredInvoices = useMemo(() => {
     console.log('🔍 filteredInvoices calculation - Total payments:', payments.length);
     console.log('selectedMonth:', selectedMonth);
 
     const filtered = payments
       .filter(payment => {
+        // ⭐ กรองเฉพาะที่ยังไม่ชำระ (pending หรือ overdue)
+        if (payment.status === 'paid') return false;
+
         const room = rooms.find(r => r.id === payment.room_id);
         const tenant = tenants.find(t => t.id === payment.tenant_id);
         
@@ -1344,7 +1350,7 @@ export default function AccountingData() {
             <TabsContent value="payments" className="space-y-4">
               <div className="flex justify-between items-center flex-wrap gap-2">
                 <p className="text-sm text-slate-600">
-                  พบ {filteredPayments.length} รายการ (ทุกสถานะ)
+                  พบ {filteredPayments.length} รายการ (ชำระแล้ว)
                 </p>
                 {filteredPayments.length > 0 && (
                   <Button
@@ -1488,7 +1494,7 @@ export default function AccountingData() {
             <TabsContent value="invoices" className="space-y-4">
               <div className="flex justify-between items-center flex-wrap gap-2">
                 <p className="text-sm text-slate-600">
-                  พบ {filteredInvoices.length} รายการ (ทุกสถานะ)
+                  พบ {filteredInvoices.length} รายการ (รอชำระ/เกินกำหนด)
                 </p>
                 {filteredInvoices.length > 0 && (
                   <Button
