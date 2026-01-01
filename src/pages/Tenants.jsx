@@ -3066,7 +3066,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                           <div className="mt-2">
                             <button
                               onClick={() => setShowPaymentHistory(!showPaymentHistory)}
-                              className="text-sm font-bold text-green-700 hover:text-green-800 underline decoration-2 underline-offset-2 transition-colors bg-green-50 px-3 py-2 rounded-lg hover:bg-green-100"
+                              className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
                             >
                               {showPaymentHistory ? '▼ ซ่อนประวัติการชำระเงิน' : `▶ ดูประวัติการชำระเงิน (${selectedTenant.payment_scores.length} ครั้ง)`}
                             </button>
