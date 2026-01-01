@@ -273,7 +273,7 @@ export default function MeterReadings() {
       
       const period = {
         value: `${year}-${String(month + 1).padStart(2, '0')}`,
-        label: format(cycleStart, 'MMM yyyy', { locale: th }),
+        label: `${format(cycleStart, 'd MMM', { locale: th })} - ${format(cycleEnd, 'd MMM yyyy', { locale: th })}`,
         start: cycleStart,
         end: cycleEnd
       };
