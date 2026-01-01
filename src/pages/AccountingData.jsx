@@ -380,8 +380,8 @@ export default function AccountingData() {
 
     const filtered = payments
       .filter(payment => {
-        const room = rooms.find(r => r.id === payment.room_id);
-        const tenant = tenants.find(t => t.id === payment.tenant_id);
+        const room = roomsMap.get(payment.room_id);
+        const tenant = tenantsMap.get(payment.tenant_id);
         
         const matchSearch = !searchTerm || 
           room?.room_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
