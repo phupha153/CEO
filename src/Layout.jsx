@@ -833,6 +833,7 @@ export default function Layout({ children, currentPageName }) {
   if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
       currentPageName === 'PrintReceipts' || 
       currentPageName === 'TrialExpiredPage' ||
+      currentPageName === 'PackageSelection' ||
       currentPageName === 'BranchSelection' ||
       currentPageName === 'BranchManagement' ||
       currentPageName === 'Welcome') {
