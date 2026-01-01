@@ -141,11 +141,24 @@ export default function UserBranchAccess() {
   };
 
   const updateUserBranchesMutation = useMutation({
-    mutationFn: ({ userId, accessible_branches }) =>
-      base44.entities.User.update(userId, { accessible_branches }),
+    mutationFn: async ({ userId, userEmail, accessible_branches }) => {
+      // เช็คว่าเป็นเจ้าของสาขาไหนบ้าง
+      const ownedBranches = allBranches.filter(b => 
+        accessible_branches.includes(b.id) && 
+        (b.owner_id === userEmail || b.created_by === userEmail)
+      );
+      
+      // ถ้าเป็นเจ้าของอย่างน้อย 1 สาขา → set custom_role = 'owner'
+      const custom_role = ownedBranches.length > 0 ? 'owner' : 'employee';
+      
+      return base44.entities.User.update(userId, { 
+        accessible_branches,
+        custom_role
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['users']);
-      toast.success('อัปเดตสาขาสำเร็จ');
+      toast.success('อัปเดตสาขาและสิทธิ์สำเร็จ');
       setShowBranchDialog(false);
     },
     onError: () => toast.error('เกิดข้อผิดพลาด'),
@@ -675,6 +688,7 @@ export default function UserBranchAccess() {
                       onClick={() => {
                         updateUserBranchesMutation.mutate({
                           userId: selectedUser.id,
+                          userEmail: selectedUser.email,
                           accessible_branches: userBranchAccess[selectedUser.id] || []
                         });
                       }}
