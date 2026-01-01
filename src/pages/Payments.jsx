@@ -179,6 +179,17 @@ export default function PaymentsPage() {
     }
   };
 
+  // ⭐ Load configs first (needed for calculations)
+  const { data: configs = [] } = useQuery({
+    queryKey: ['configs'],
+    queryFn: () => base44.entities.Config.list(),
+    retry: 0,
+    retryDelay: 0,
+    staleTime: 4 * 60 * 60 * 1000,
+    gcTime: 8 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
@@ -205,16 +216,6 @@ export default function PaymentsPage() {
     retry: 0,
     retryDelay: 0,
   };
-
-  // ⭐ Load configs first (needed for date range calculations)
-  const { data: configs = [] } = useQuery({
-    queryKey: ['configs'],
-    queryFn: () => base44.entities.Config.list(),
-    ...retryConfig,
-    staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 8 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
 
   // ✅ Server-side filtering via Backend Function (SaaS Standard)
   const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
