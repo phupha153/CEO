@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Users, Search, Globe, AlertTriangle, Edit2, Check, Shield, Package, Calendar, CreditCard, Loader2, Crown, Sparkles, Settings as SettingsIcon, X, TrendingUp, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import PageHeader from "../components/shared/PageHeader";
