@@ -359,18 +359,63 @@ export default function PackageSelectionPage() {
                 <p className="text-slate-600">กำลังโหลดแพ็กเกจ...</p>
               </div>
             ) : packages.length === 0 ? (
-              <div className="text-center py-12">
-                <AlertCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-                <p className="text-slate-800 font-semibold mb-2">ไม่พบแพ็กเกจ</p>
-                <p className="text-sm text-slate-600 mb-4">กรุณาติดต่อผู้ดูแลระบบเพื่อตั้งค่าแพ็กเกจ</p>
-                {debugMode && crmPackages && (
-                  <details className="text-left bg-slate-100 p-4 rounded-lg max-w-2xl mx-auto">
-                    <summary className="cursor-pointer font-semibold text-slate-700">Debug: ข้อมูลจาก CRM</summary>
-                    <pre className="text-xs mt-2 overflow-auto max-h-96 text-slate-600">
-                      {JSON.stringify(crmPackages, null, 2)}
-                    </pre>
-                  </details>
-                )}
+              <div className="max-w-2xl mx-auto">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  {/* Decorative Background */}
+                  <div className="relative mb-8">
+                    <div className="absolute inset-0 bg-gradient-to-br from-orange-400/30 via-red-400/30 to-pink-400/30 rounded-full blur-3xl animate-pulse" />
+                    <div className="relative w-64 h-64 mx-auto rounded-full bg-gradient-to-br from-white/40 via-white/30 to-white/20 backdrop-blur-2xl border border-white/50 shadow-2xl flex items-center justify-center">
+                      <div className="absolute inset-8 rounded-full bg-gradient-to-br from-white/30 to-white/10 backdrop-blur-xl" />
+                      <AlertCircle className="w-20 h-20 text-orange-500/80 relative z-10" />
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="text-center space-y-6 px-4">
+                    <div>
+                      <h2 className="text-3xl font-bold text-slate-800 mb-3">ไม่พบแพ็กเกจในระบบ</h2>
+                      <p className="text-slate-600 text-lg leading-relaxed">
+                        ขออภัยค่ะ ขณะนี้ยังไม่มีแพ็กเกจที่พร้อมให้บริการ<br/>
+                        กรุณาติดต่อเจ้าหน้าที่เพื่อสอบถามข้อมูลเพิ่มเติม
+                      </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+                      <Button
+                        onClick={() => window.open('https://line.me/R/ti/p/@022kpkpo', '_blank')}
+                        className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-8 py-6 text-base font-semibold rounded-2xl shadow-xl"
+                      >
+                        <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.193 0-.378-.09-.503-.234l-1.89-2.181v1.787c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.27.173-.51.43-.595.063-.021.13-.03.196-.03.195 0 .38.089.503.234l1.89 2.181V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.001zm-5.741 0c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.003zm-2.466.63H4.917c-.345 0-.63-.285-.63-.63V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629z"/>
+                        </svg>
+                        ติดต่อเจ้าหน้าที่
+                      </Button>
+                      <Button
+                        onClick={() => navigate(createPageUrl('Dashboard'))}
+                        variant="outline"
+                        className="border-slate-300 text-slate-700 hover:bg-slate-50 px-8 py-6 text-base font-semibold rounded-2xl"
+                      >
+                        <ArrowLeft className="w-5 h-5 mr-2" />
+                        กลับหน้าหลัก
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Debug Mode */}
+                  {debugMode && crmPackages && (
+                    <details className="text-left bg-yellow-50 border-2 border-yellow-300 p-4 rounded-lg mt-8">
+                      <summary className="cursor-pointer font-semibold text-yellow-900 mb-2">🐛 Debug: ข้อมูลจาก CRM</summary>
+                      <pre className="text-xs mt-2 overflow-auto max-h-96 text-slate-700 bg-white p-3 rounded">
+                        {JSON.stringify(crmPackages, null, 2)}
+                      </pre>
+                    </details>
+                  )}
+                </motion.div>
               </div>
             ) : (
               <>
