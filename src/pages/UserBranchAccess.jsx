@@ -144,18 +144,24 @@ export default function UserBranchAccess() {
 
   const updateUserBranchesMutation = useMutation({
     mutationFn: async ({ userId, accessible_branches, custom_role }) => {
-      // ใช้ค่า custom_role ที่ส่งมาจาก UI dropdown โดยตรง
-      return base44.entities.User.update(userId, { 
+      console.log('🔄 Updating user:', { userId, accessible_branches, custom_role });
+      const result = await base44.entities.User.update(userId, { 
         accessible_branches,
         custom_role
       });
+      console.log('✅ Update result:', result);
+      return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['users']);
+    onSuccess: async () => {
+      await queryClient.invalidateQueries(['users']);
+      await queryClient.refetchQueries(['users']);
       toast.success('อัปเดตสาขาและสิทธิ์สำเร็จ');
       setShowBranchDialog(false);
     },
-    onError: () => toast.error('เกิดข้อผิดพลาด'),
+    onError: (error) => {
+      console.error('❌ Update error:', error);
+      toast.error('เกิดข้อผิดพลาด: ' + error.message);
+    },
   });
 
   // ฟังก์ชันลบสาขาที่ไม่มีอยู่แล้วออกจาก accessible_branches
@@ -511,18 +517,19 @@ export default function UserBranchAccess() {
                           })()}
                         </div>
 
-                        {/* User Plan Status */}
+                        {/* User Plan Status + Package Info */}
                         <div>
                           <div className="flex items-center justify-between gap-2 mb-3">
                             <div className="flex items-center gap-2">
                               <Package className="w-5 h-5 text-green-600" />
-                              <h4 className="font-semibold text-slate-700">สถานะการใช้งาน</h4>
+                              <h4 className="font-semibold text-slate-700">แพ็กเกจและสถานะ</h4>
                             </div>
                           </div>
 
                           {(() => {
                             const planStatus = user.plan_status || 'trial';
                             const trialEndsAt = user.trial_ends_at;
+                            const packageName = user.package_name || '-';
                             
                             if (planStatus === 'trial' && trialEndsAt) {
                               try {
@@ -532,17 +539,27 @@ export default function UserBranchAccess() {
                                 const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
                                 
                                 return (
-                                  <div className="rounded-xl border-2 overflow-hidden bg-amber-50 border-amber-300">
-                                    <div className="p-3 bg-amber-200/50">
-                                      <div className="flex items-center gap-2">
-                                        <Package className="w-5 h-5 text-amber-700" />
-                                        <span className="text-sm font-bold text-amber-800">🎉 ทดลองใช้</span>
+                                  <div className="space-y-2">
+                                    <div className="rounded-xl border-2 overflow-hidden bg-amber-50 border-amber-300">
+                                      <div className="p-3 bg-amber-200/50">
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-2">
+                                            <Package className="w-5 h-5 text-amber-700" />
+                                            <span className="text-sm font-bold text-amber-800">🎉 ทดลองใช้</span>
+                                          </div>
+                                          <Badge className="bg-amber-600 text-white text-xs">Trial</Badge>
+                                        </div>
                                       </div>
-                                    </div>
-                                    <div className="p-3 bg-white/50">
-                                      <div className="flex items-center gap-1 text-xs text-slate-700">
-                                        <Calendar className="w-3 h-3" />
-                                        <span>หมดอายุ {format(endDate, 'dd/MM/yyyy')} ({daysLeft > 0 ? `เหลือ ${daysLeft} วัน` : 'หมดอายุแล้ว'})</span>
+                                      <div className="p-3 bg-white/50 space-y-1">
+                                        <div className="flex items-center gap-1 text-xs text-slate-700">
+                                          <Calendar className="w-3 h-3" />
+                                          <span>หมดอายุ {format(endDate, 'dd/MM/yyyy')}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-xs">
+                                          <span className={daysLeft > 0 ? 'text-green-700 font-semibold' : 'text-red-700 font-semibold'}>
+                                            {daysLeft > 0 ? `⏳ เหลือ ${daysLeft} วัน` : '⚠️ หมดอายุแล้ว'}
+                                          </span>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -556,11 +573,30 @@ export default function UserBranchAccess() {
                               }
                             } else if (planStatus === 'active') {
                               return (
-                                <div className="rounded-xl border-2 overflow-hidden bg-green-50 border-green-300">
-                                  <div className="p-3 bg-green-200/50">
-                                    <div className="flex items-center gap-2">
-                                      <Crown className="w-5 h-5 text-green-700" />
-                                      <span className="text-sm font-bold text-green-800">✅ Active</span>
+                                <div className="space-y-2">
+                                  <div className="rounded-xl border-2 overflow-hidden bg-green-50 border-green-300">
+                                    <div className="p-3 bg-green-200/50">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <Crown className="w-5 h-5 text-green-700" />
+                                          <span className="text-sm font-bold text-green-800">✅ Active</span>
+                                        </div>
+                                        <Badge className="bg-green-600 text-white text-xs">Premium</Badge>
+                                      </div>
+                                    </div>
+                                    <div className="p-3 bg-white/50">
+                                      <div className="space-y-1">
+                                        <div className="flex items-center justify-between text-xs">
+                                          <span className="text-slate-600">แพ็กเกจ:</span>
+                                          <span className="font-semibold text-slate-800">{packageName}</span>
+                                        </div>
+                                        {user.subscription_end_date && (
+                                          <div className="flex items-center justify-between text-xs">
+                                            <span className="text-slate-600">หมดอายุ:</span>
+                                            <span className="text-slate-800">{format(parseISO(user.subscription_end_date), 'dd/MM/yyyy')}</span>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
@@ -705,10 +741,18 @@ export default function UserBranchAccess() {
                     </Button>
                     <Button
                       onClick={() => {
+                        const selectedBranches = userBranchAccess[selectedUser.id] || [];
+                        const selectedRole = userRoles[selectedUser.id] || 'employee';
+                        console.log('💾 Saving:', { 
+                          userId: selectedUser.id, 
+                          email: selectedUser.email,
+                          accessible_branches: selectedBranches, 
+                          custom_role: selectedRole 
+                        });
                         updateUserBranchesMutation.mutate({
                           userId: selectedUser.id,
-                          accessible_branches: userBranchAccess[selectedUser.id] || [],
-                          custom_role: userRoles[selectedUser.id] || 'employee'
+                          accessible_branches: selectedBranches,
+                          custom_role: selectedRole
                         });
                       }}
                       disabled={updateUserBranchesMutation.isPending}
