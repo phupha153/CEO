@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect } from "react"; // Added useEffect
 import { base44 } from "@/api/base44Client";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -327,15 +327,6 @@ export default function AccountingData() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ สร้าง Maps สำหรับ O(1) lookup (แก้ N+1 Problem)
-  const roomsMap = useMemo(() => {
-    return new Map(rooms.map(r => [r.id, r]));
-  }, [rooms]);
-
-  const tenantsMap = useMemo(() => {
-    return new Map(tenants.map(t => [t.id, t]));
-  }, [tenants]);
-
   // ฟังก์ชันคำนวณงวดบิล - ถ้า due_date อยู่ช่วงต้นเดือน (1-10) = บิลของเดือนก่อนหน้า
   const getBillingPeriod = (payment) => {
     if (!payment.due_date) return null;
@@ -366,12 +357,21 @@ export default function AccountingData() {
     return sortedMonths;
   }, [payments]);
 
+  // ✅ สร้าง Maps สำหรับ O(1) lookup (แก้ N+1 Problem)
+  const roomsMap = useMemo(() => {
+    return new Map(rooms.map(r => [r.id, r]));
+  }, [rooms]);
+
+  const tenantsMap = useMemo(() => {
+    return new Map(tenants.map(t => [t.id, t]));
+  }, [tenants]);
+
   // ตั้งค่า default เป็นเดือนล่าสุดที่มีข้อมูล
   useEffect(() => {
     if (availableMonths.length > 0 && selectedMonth === 'all') {
       setSelectedMonth(availableMonths[0]); // เดือนล่าสุด
     }
-  }, [availableMonths, selectedMonth]);
+  }, [availableMonths]);
 
   // ฟังก์ชันกรองข้อมูล - ใบเสร็จรับเงิน (ทุกรายการ)
   const filteredPayments = useMemo(() => {
@@ -388,13 +388,12 @@ export default function AccountingData() {
           tenant?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
         
         let matchMonth = true;
-        if (selectedMonth !== 'all' && payment.due_date) {
-          try {
-            const dueDate = parseISO(payment.due_date);
-            const billingPeriod = dueDate.getDate() <= 10 ? subMonths(dueDate, 1) : dueDate;
+        if (selectedMonth !== 'all') {
+          const billingPeriod = getBillingPeriod(payment);
+          if (billingPeriod) {
             const paymentMonth = format(billingPeriod, 'yyyy-MM');
             matchMonth = paymentMonth === selectedMonth;
-          } catch {
+          } else {
             matchMonth = false;
           }
         }
@@ -426,13 +425,12 @@ export default function AccountingData() {
           tenant?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
         
         let matchMonth = true;
-        if (selectedMonth !== 'all' && payment.due_date) {
-          try {
-            const dueDate = parseISO(payment.due_date);
-            const billingPeriod = dueDate.getDate() <= 10 ? subMonths(dueDate, 1) : dueDate;
+        if (selectedMonth !== 'all') {
+          const billingPeriod = getBillingPeriod(payment);
+          if (billingPeriod) {
             const paymentMonth = format(billingPeriod, 'yyyy-MM');
             matchMonth = paymentMonth === selectedMonth;
-          } catch {
+          } else {
             matchMonth = false;
           }
         }
@@ -1489,29 +1487,10 @@ export default function AccountingData() {
                                 />
                               </td>
                               <td className="px-4 py-3 text-sm">
-                               <Link 
-                                 to={`${createPageUrl('Payments')}?paymentId=${payment.id}`}
-                                 className="text-blue-600 hover:text-blue-800 hover:underline"
-                               >
-                                 {payment.payment_date ? format(parseISO(payment.payment_date), 'd MMM yy', { locale: th }) : '-'}
-                               </Link>
+                                {payment.payment_date ? format(parseISO(payment.payment_date), 'd MMM yy', { locale: th }) : '-'}
                               </td>
-                              <td className="px-4 py-3 text-sm font-medium">
-                               <Link 
-                                 to={`${createPageUrl('Payments')}?paymentId=${payment.id}`}
-                                 className="text-blue-600 hover:text-blue-800 hover:underline"
-                               >
-                                 {room?.room_number || '-'}
-                               </Link>
-                              </td>
-                              <td className="px-4 py-3 text-sm">
-                               <Link 
-                                 to={`${createPageUrl('Payments')}?paymentId=${payment.id}`}
-                                 className="text-blue-600 hover:text-blue-800 hover:underline"
-                               >
-                                 {tenant?.full_name || '-'}
-                               </Link>
-                              </td>
+                              <td className="px-4 py-3 text-sm font-medium">{room?.room_number || '-'}</td>
+                              <td className="px-4 py-3 text-sm">{tenant?.full_name || '-'}</td>
                               <td className="px-4 py-3 text-sm">{tenant?.phone || '-'}</td>
                               <td className="px-4 py-3 text-sm text-right">{(payment.rent_amount || 0).toLocaleString()}</td>
                               <td className="px-4 py-3 text-sm text-right">{(payment.electricity_amount || 0).toLocaleString()}</td>
@@ -1644,29 +1623,10 @@ export default function AccountingData() {
                                 />
                               </td>
                               <td className="px-4 py-3 text-sm">
-                               <Link 
-                                 to={`${createPageUrl('Payments')}?paymentId=${payment.id}`}
-                                 className="text-blue-600 hover:text-blue-800 hover:underline"
-                               >
-                                 {payment.due_date ? format(parseISO(payment.due_date), 'd MMM yy', { locale: th }) : '-'}
-                               </Link>
+                                {payment.due_date ? format(parseISO(payment.due_date), 'd MMM yy', { locale: th }) : '-'}
                               </td>
-                              <td className="px-4 py-3 text-sm font-medium">
-                               <Link 
-                                 to={`${createPageUrl('Payments')}?paymentId=${payment.id}`}
-                                 className="text-blue-600 hover:text-blue-800 hover:underline"
-                               >
-                                 {room?.room_number || '-'}
-                               </Link>
-                              </td>
-                              <td className="px-4 py-3 text-sm">
-                               <Link 
-                                 to={`${createPageUrl('Payments')}?paymentId=${payment.id}`}
-                                 className="text-blue-600 hover:text-blue-800 hover:underline"
-                               >
-                                 {tenant?.full_name || '-'}
-                               </Link>
-                              </td>
+                              <td className="px-4 py-3 text-sm font-medium">{room?.room_number || '-'}</td>
+                              <td className="px-4 py-3 text-sm">{tenant?.full_name || '-'}</td>
                               <td className="px-4 py-3 text-sm">{tenant?.phone || '-'}</td>
                               <td className="px-4 py-3 text-sm text-right">{(payment.rent_amount || 0).toLocaleString()}</td>
                               <td className="px-4 py-3 text-sm text-right">{(payment.electricity_amount || 0).toLocaleString()}</td>

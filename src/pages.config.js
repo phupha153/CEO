@@ -1,6 +1,5 @@
 import AIFinancialAnalysis from './pages/AIFinancialAnalysis';
 import AIGuidelines from './pages/AIGuidelines';
-import AccountingData from './pages/AccountingData';
 import ActivityLog from './pages/ActivityLog';
 import AllBranchesDashboard from './pages/AllBranchesDashboard';
 import Announcements from './pages/Announcements';
@@ -50,13 +49,13 @@ import UserBranchAccess from './pages/UserBranchAccess';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
+import AccountingData from './pages/AccountingData';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AIFinancialAnalysis": AIFinancialAnalysis,
     "AIGuidelines": AIGuidelines,
-    "AccountingData": AccountingData,
     "ActivityLog": ActivityLog,
     "AllBranchesDashboard": AllBranchesDashboard,
     "Announcements": Announcements,
@@ -106,6 +105,7 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
+    "AccountingData": AccountingData,
 }
 
 export const pagesConfig = {
