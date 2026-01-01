@@ -1822,7 +1822,7 @@ export default function Settings() {
 
                                   <div className="p-5 bg-gradient-to-b from-stone-50 to-white">
                                     <Button
-                                      onClick={() => navigate(createPageUrl(activeSubscription.status === 'trial' ? 'PackageSelectionPage' : (appMode === 'multi_tenant' ? 'PackageSelectionPage' : 'RenewalPage')))}
+                                      onClick={() => navigate(createPageUrl('PackageSelection'))}
                                       className={`w-full py-3 text-sm font-semibold rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] ${
                                         isTrial
                                           ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600'
@@ -1996,24 +1996,68 @@ export default function Settings() {
 
                     </>
                   ) : (
-                    <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200 shadow-xl">
-                      <CardContent className="p-12 text-center">
-                        <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                          <Crown className="w-10 h-10 text-white" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-slate-800 mb-3">ยังไม่มีแพ็กเกจ</h3>
-                        <p className="text-slate-600 mb-6 max-w-md mx-auto">
-                          คุณกำลังทดลองใช้งานฟรี กรุณาเลือกแพ็กเกจที่เหมาะสมเพื่อใช้งานต่อ
-                        </p>
-                        <Button
-                          onClick={() => navigate(createPageUrl('PackageSelectionPage'))}
-                          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-8 py-6 text-lg"
-                        >
-                          <Crown className="w-5 h-5 mr-2" />
-                          เลือกแพ็กเกจ
-                        </Button>
-                      </CardContent>
-                    </Card>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.4 }}
+                    >
+                      <div className="relative">
+                        {/* Decorative Background */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-amber-400/20 via-orange-400/20 to-red-400/20 rounded-3xl blur-3xl animate-pulse" />
+                        
+                        <Card className="relative bg-gradient-to-br from-white via-amber-50/30 to-orange-50/30 backdrop-blur-xl border-0 shadow-2xl rounded-3xl overflow-hidden">
+                          <CardContent className="p-12 text-center">
+                            {/* Animated Icon */}
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                              className="relative inline-block mb-8"
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/30 to-orange-500/30 rounded-full blur-2xl animate-pulse" />
+                              <div className="relative w-24 h-24 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center shadow-2xl">
+                                <Crown className="w-12 h-12 text-white" />
+                              </div>
+                            </motion.div>
+
+                            {/* Content */}
+                            <h3 className="text-3xl font-bold text-slate-800 mb-4">ยังไม่มีแพ็กเกจในระบบ</h3>
+                            <p className="text-slate-600 text-lg mb-8 max-w-lg mx-auto leading-relaxed">
+                              เริ่มต้นใช้งานระบบจัดการหอพักอัจฉริยะ<br/>
+                              เลือกแพ็กเกจที่เหมาะสมกับธุรกิจของคุณ
+                            </p>
+
+                            {/* Action Button */}
+                            <Button
+                              onClick={() => navigate(createPageUrl('PackageSelection'))}
+                              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-10 py-7 text-lg font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-all hover:scale-105 active:scale-95"
+                            >
+                              <Crown className="w-6 h-6 mr-3" />
+                              เลือกแพ็กเกจที่เหมาะกับคุณ
+                            </Button>
+
+                            {/* Features Preview */}
+                            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
+                              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-slate-200">
+                                <Settings className="w-6 h-6 text-slate-700 mx-auto mb-2" />
+                                <p className="text-sm font-semibold text-slate-800">Basic</p>
+                                <p className="text-xs text-slate-600 mt-1">เริ่มต้นง่าย ครบฟีเจอร์</p>
+                              </div>
+                              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 border-2 border-blue-300">
+                                <Sparkles className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                                <p className="text-sm font-semibold text-blue-800">Pro</p>
+                                <p className="text-xs text-blue-600 mt-1">สำหรับธุรกิจขนาดกลาง</p>
+                              </div>
+                              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl p-4 border-2 border-amber-300">
+                                <Crown className="w-6 h-6 text-amber-600 mx-auto mb-2" />
+                                <p className="text-sm font-semibold text-amber-800">Elite</p>
+                                <p className="text-xs text-amber-600 mt-1">องค์กรขนาดใหญ่</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </motion.div>
                   )}
                 </div>
               )}
