@@ -687,14 +687,15 @@ export default function Layout({ children, currentPageName }) {
           currentPageName === 'UserBranchAccess' ||
           currentPageName === 'AllBranchesDashboard' ||
           currentPageName === 'TrialExpiredPage' ||
+          currentPageName === 'NoPackagePage' ||
           currentPageName === 'PackageSelection') return;
 
       const planStatus = currentUser.plan_status;
       const trialEndsAt = currentUser.trial_ends_at;
 
-      // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป PackageSelection
+      // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป NoPackagePage
       if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
-        navigate(createPageUrl('PackageSelection'), { replace: true });
+        navigate(createPageUrl('NoPackagePage'), { replace: true });
         return;
       }
 
@@ -841,6 +842,7 @@ export default function Layout({ children, currentPageName }) {
   if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
       currentPageName === 'PrintReceipts' || 
       currentPageName === 'TrialExpiredPage' ||
+      currentPageName === 'NoPackagePage' ||
       currentPageName === 'PackageSelection' ||
       currentPageName === 'BranchSelection' ||
       currentPageName === 'BranchManagement' ||

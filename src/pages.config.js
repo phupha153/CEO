@@ -50,6 +50,7 @@ import PrintReceipts from './pages/PrintReceipts';
 import Rooms from './pages/Rooms';
 import TrialExpiredPage from './pages/TrialExpiredPage';
 import UserBranchAccess from './pages/UserBranchAccess';
+import NoPackagePage from './pages/NoPackagePage';
 import __Layout from './Layout.jsx';
 
 
@@ -106,6 +107,7 @@ export const PAGES = {
     "Rooms": Rooms,
     "TrialExpiredPage": TrialExpiredPage,
     "UserBranchAccess": UserBranchAccess,
+    "NoPackagePage": NoPackagePage,
 }
 
 export const pagesConfig = {
