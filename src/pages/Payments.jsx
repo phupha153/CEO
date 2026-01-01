@@ -2268,19 +2268,57 @@ Return JSON.`;
                 </div>
               </div>
 
-              <AISearchBox
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onAISearch={handleAISearch}
-                onStopSearch={handleStopAISearch}
-                aiSearching={aiSearching}
-                placeholder="ค้นหาการชำระเงิน หรือถามเช่น 'สร้างบิลห้อง 101' 'รายการค้างชำระ'"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !aiSearching) {
-                    setActualSearchQuery(searchQuery);
-                  }
-                }}
-              />
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none z-10" />
+                <Input
+                  type="text"
+                  placeholder="ค้นหาห้อง, ชื่อผู้เช่า, หมายเลขโทร (กด Enter เพื่อค้นหา)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && searchQuery.trim()) {
+                      setActualSearchQuery(searchQuery);
+                    }
+                  }}
+                  className="pl-12 pr-24 h-14 rounded-2xl bg-white border-slate-200 shadow-sm text-base placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1 z-10">
+                  {searchQuery && (
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setActualSearchQuery('');
+                      }}
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 hover:bg-slate-100 rounded-xl"
+                    >
+                      <X className="w-4 h-4 text-slate-500" />
+                    </Button>
+                  )}
+                  {aiSearching ? (
+                    <Button
+                      onClick={handleStopAISearch}
+                      size="icon"
+                      className="h-10 w-10 bg-gradient-to-br from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 shadow-md rounded-xl"
+                      title="หยุดการค้นหา"
+                    >
+                      <Square className="w-5 h-5 text-white fill-white" />
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleAISearch}
+                      disabled={!searchQuery.trim()}
+                      size="icon"
+                      className="h-10 w-10 bg-gradient-to-br from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 shadow-md rounded-xl disabled:opacity-50"
+                      title="ถาม AI ผู้ช่วย"
+                    >
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </Button>
+                  )}
+                </div>
+              </div>
 
               {aiAction && (
                 <AIActionConfirmation
