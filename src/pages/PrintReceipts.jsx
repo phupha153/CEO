@@ -180,10 +180,42 @@ export default function PrintReceipts() {
               ? result.reason?.message || 'เกิดข้อผิดพลาดในการโหลด'
               : result.value?.error || 'ไม่ทราบสาเหตุ';
             
+            // ⭐ ดึงข้อมูลห้องและผู้เช่าจาก error response (ถ้ามี) เพื่อแสดงในรายการที่ล้มเหลว
+            let roomNumber = 'N/A';
+            let tenantName = 'N/A';
+            
+            try {
+              // พยายามดึงข้อมูลพื้นฐานจาก payment ID โดยตรง
+              const paymentResponse = await base44.entities.Payment.filter({ id: paymentId }, '', 1);
+              if (paymentResponse && paymentResponse.length > 0) {
+                const payment = paymentResponse[0];
+                
+                // ดึงข้อมูลห้อง
+                if (payment.room_id) {
+                  const roomResponse = await base44.entities.Room.filter({ id: payment.room_id }, '', 1);
+                  if (roomResponse && roomResponse.length > 0) {
+                    roomNumber = roomResponse[0].room_number || 'N/A';
+                  }
+                }
+                
+                // ดึงข้อมูลผู้เช่า
+                if (payment.tenant_id) {
+                  const tenantResponse = await base44.entities.Tenant.filter({ id: payment.tenant_id }, '', 1);
+                  if (tenantResponse && tenantResponse.length > 0) {
+                    tenantName = tenantResponse[0].full_name || 'N/A';
+                  }
+                }
+              }
+            } catch (e) {
+              console.warn('Could not fetch room/tenant for failed payment:', e);
+            }
+            
             failed.push({ 
               paymentId: paymentId.slice(0, 8),
+              roomNumber: roomNumber,
+              tenantName: tenantName,
               error: errorMsg,
-              fullId: paymentId // เก็บ full ID สำหรับ debug
+              fullId: paymentId
             });
             console.error(`❌ Failed to fetch payment ${paymentId}:`, errorMsg);
           }
@@ -286,7 +318,10 @@ export default function PrintReceipts() {
                         #{idx + 1}
                       </span>
                       <div className="flex-1">
-                        <p className="font-mono text-xs text-slate-600 mb-1">
+                        <p className="font-semibold text-slate-800 mb-1">
+                          ห้อง {item.roomNumber} - {item.tenantName}
+                        </p>
+                        <p className="font-mono text-xs text-slate-500 mb-1">
                           ID: {item.paymentId}
                         </p>
                         <p className="text-red-600 font-medium">
@@ -391,7 +426,9 @@ export default function PrintReceipts() {
                   </summary>
                   <ul className="mt-2 space-y-1 pl-4 list-disc">
                     {failedPayments.slice(0, 5).map((item, idx) => (
-                      <li key={idx}>ID: {item.paymentId} - {item.error}</li>
+                      <li key={idx}>
+                        <span className="font-semibold">ห้อง {item.roomNumber}</span> - {item.tenantName} (ID: {item.paymentId}) - {item.error}
+                      </li>
                     ))}
                     {failedPayments.length > 5 && (
                       <li className="text-orange-600 font-semibold">
