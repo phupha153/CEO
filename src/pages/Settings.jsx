@@ -436,7 +436,18 @@ export default function Settings() {
 
   const { data: notificationConfigs = [] } = useQuery({
     queryKey: ['notificationConfigs'],
-    queryFn: () => base44.entities.NotificationConfig.list(),
+    queryFn: async () => {
+      const allConfigs = await base44.entities.NotificationConfig.list();
+      // Filter เฉพาะ configs ของสาขาที่มีสิทธิ์
+      if (userRole === 'developer') return allConfigs;
+      
+      const accessibleBranchIds = currentUser?.accessible_branches || [];
+      return allConfigs.filter(c => 
+        !c.branch_id || // Global configs
+        accessibleBranchIds.includes(c.branch_id)
+      );
+    },
+    enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
