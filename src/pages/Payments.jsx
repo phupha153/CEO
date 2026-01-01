@@ -56,8 +56,7 @@ export default function PaymentsPage() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date())
   });
-  const [searchQuery, setSearchQuery] = useState(''); // ข้อความที่พิมพ์
-  const [actualSearchQuery, setActualSearchQuery] = useState(''); // ข้อความที่ใช้ค้นหาจริง (หลังกด Enter)
+  const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('room');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
@@ -65,7 +64,7 @@ export default function PaymentsPage() {
   const [debugLogs, setDebugLogs] = useState([]);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
   
-  // Room View State - แยก filter เดือนสำหรับโหมดดูห้อง
+  // Room View State
   const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM'));
 
   const [aiSearching, setAiSearching] = useState(false);
@@ -215,21 +214,19 @@ export default function PaymentsPage() {
 
   // ✅ Server-side filtering via Backend Function (SaaS Standard)
   const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
-    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, actualSearchQuery, currentPage, sortBy, viewMode, roomViewMonth],
+    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy],
     queryFn: async () => {
       if (!selectedBranchId) return { data: [], total: 0, page: 1, totalPages: 0, counts: { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 }, logs: [] };
       
       const response = await base44.functions.invoke('getFilteredPayments', {
         branch_id: selectedBranchId,
         status_filter: statusFilter,
-        date_range_type: viewMode === 'room' ? 'room_view' : dateRangeType,
+        date_range_type: dateRangeType,
         custom_range: dateRangeType === 'custom' ? customRange : null,
-        search_query: actualSearchQuery,
+        search_query: searchQuery,
         page: currentPage,
         limit: itemsPerPage,
         sort_by: sortBy,
-        view_mode: viewMode,
-        room_view_month: viewMode === 'room' ? roomViewMonth : null,
         debug: true // Request debug logs
       });
       
@@ -254,12 +251,12 @@ export default function PaymentsPage() {
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+    keepPreviousData: true,
   });
 
   const payments = paymentsResponse?.data || [];
   const totalFilteredCount = paymentsResponse?.total || 0;
   const statusCounts = paymentsResponse?.counts || { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 };
-  const backendTotalAmounts = paymentsResponse?.totalAmounts || { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 };
   
   console.log('📊 Payments Page State:', {
     payments_length: payments.length,
@@ -354,7 +351,13 @@ export default function PaymentsPage() {
     refetchOnWindowFocus: false,
   });
 
-
+  // ⭐ Auto-update room view month when configs load - ใช้เดือนปัจจุบันเสมอ
+  useEffect(() => {
+    if (!configs || configs.length === 0 || !selectedBranchId) return;
+    
+    const now = new Date();
+    setRoomViewMonth(format(now, 'yyyy-MM'));
+  }, [configs, selectedBranchId]);
 
   const isDataFetching = paymentsFetching || bookingsFetching || roomsFetching || tenantsFetching;
 
@@ -835,11 +838,32 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [dateRangeType, customRange, statusFilter, actualSearchQuery, aiResult]);
+  }, [dateRangeType, customRange, statusFilter, searchQuery, aiResult]);
 
   // ✅ Removed separate counts query - now from backend
 
-  // ⚠️ ลบการคำนวณ totalAmounts ที่ frontend - ใช้จาก backend แทน
+  const totalAmounts = useMemo(() => {
+    const calculateSum = (paymentsToSum) => {
+      return paymentsToSum.reduce((sum, p) => {
+        const baseAmount = parseFloat(p.total_amount) || 0;
+        // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
+        const lateFee = p.late_fee_amount ? 0 : calculateLateFee(p);
+        if (isNaN(baseAmount) || isNaN(lateFee)) {
+          console.error('Invalid amount for payment:', p.id, { baseAmount, lateFee });
+          return sum;
+        }
+        return sum + baseAmount + lateFee;
+      }, 0);
+    };
+  
+    // ⭐ ใช้ payments (จาก server) แทน filteredPayments เพื่อให้นับยอดรวมทั้งหมดตรงกับ counts
+    return {
+      all: calculateSum(payments),
+      paid: calculateSum(payments.filter(p => getEffectiveStatus(p) === 'paid')),
+      pending: calculateSum(payments.filter(p => getEffectiveStatus(p) === 'pending')),
+      overdue: calculateSum(payments.filter(p => getEffectiveStatus(p) === 'overdue')),
+    };
+  }, [payments, getEffectiveStatus, calculateLateFee]);
 
   // ✅ Use enriched data from server (no lookup needed)
   const pendingOverduePayments = useMemo(() => 
@@ -1599,9 +1623,6 @@ export default function PaymentsPage() {
       toast.error('กรุณาใส่คำค้นหา');
       return;
     }
-    
-    // ⭐ เมื่อกด AI Search ให้เซ็ต actualSearchQuery ด้วย
-    setActualSearchQuery(searchQuery);
 
     const controller = new AbortController();
     setAiAbortController(controller);
@@ -2112,7 +2133,7 @@ Return JSON.`;
     );
   }
 
-  if (paymentsLoading) {
+  if (paymentsLoading || isDataFetching) {
     return (
       <div className="p-4 md:p-8 min-h-screen flex items-center justify-center">
         <div className="max-w-7xl mx-auto">
@@ -2249,57 +2270,14 @@ Return JSON.`;
                 </div>
               </div>
 
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none z-10" />
-                <Input
-                  type="text"
-                  placeholder="ค้นหาห้อง, ชื่อผู้เช่า, หมายเลขโทร (กด Enter เพื่อค้นหา)"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && searchQuery.trim()) {
-                      setActualSearchQuery(searchQuery);
-                    }
-                  }}
-                  className="pl-12 pr-24 h-14 rounded-2xl bg-white border-slate-200 shadow-sm text-base placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                />
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1 z-10">
-                  {searchQuery && (
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        setSearchQuery('');
-                        setActualSearchQuery('');
-                      }}
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 hover:bg-slate-100 rounded-xl"
-                    >
-                      <X className="w-4 h-4 text-slate-500" />
-                    </Button>
-                  )}
-                  {aiSearching ? (
-                    <Button
-                      onClick={handleStopAISearch}
-                      size="icon"
-                      className="h-10 w-10 bg-gradient-to-br from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 shadow-md rounded-xl"
-                      title="หยุดการค้นหา"
-                    >
-                      <Square className="w-5 h-5 text-white fill-white" />
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleAISearch}
-                      disabled={!searchQuery.trim()}
-                      size="icon"
-                      className="h-10 w-10 bg-gradient-to-br from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 shadow-md rounded-xl disabled:opacity-50"
-                      title="ถาม AI ผู้ช่วย"
-                    >
-                      <Sparkles className="w-5 h-5 text-white" />
-                    </Button>
-                  )}
-                </div>
-              </div>
+              <AISearchBox
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onAISearch={handleAISearch}
+                onStopSearch={handleStopAISearch}
+                aiSearching={aiSearching}
+                placeholder="ค้นหาการชำระเงิน หรือถามเช่น 'สร้างบิลห้อง 101' 'รายการค้างชำระ'"
+              />
 
               {aiAction && (
                 <AIActionConfirmation
@@ -2670,12 +2648,6 @@ Return JSON.`;
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 opacity-5" />
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400 to-indigo-500 opacity-10 blur-3xl" />
                 
-                {paymentsFetching && (
-                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
-                    <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                  </div>
-                )}
-                
                 <CardContent className="p-4 md:p-6 relative">
                   <div className="flex items-start justify-between mb-4">
                     <div className="relative">
@@ -2692,7 +2664,7 @@ Return JSON.`;
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200 }}
                   >
-                    {backendTotalAmounts.all.toLocaleString('th-TH')}
+                    {totalAmounts.all.toLocaleString('th-TH')}
                   </motion.p>
                   <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.all} รายการ)</p>
                 </CardContent>
@@ -2711,12 +2683,6 @@ Return JSON.`;
                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-500 to-orange-600 opacity-5" />
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-400 to-orange-500 opacity-10 blur-3xl" />
                 
-                {paymentsFetching && (
-                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
-                    <Loader2 className="w-5 h-5 text-yellow-600 animate-spin" />
-                  </div>
-                )}
-                
                 <CardContent className="p-4 md:p-6 relative">
                   <div className="flex items-start justify-between mb-4">
                     <div className="relative">
@@ -2733,7 +2699,7 @@ Return JSON.`;
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200 }}
                   >
-                    {backendTotalAmounts.pending.toLocaleString('th-TH')}
+                    {totalAmounts.pending.toLocaleString('th-TH')}
                   </motion.p>
                   <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.pending} รายการ)</p>
                 </CardContent>
@@ -2752,12 +2718,6 @@ Return JSON.`;
                 <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-600 opacity-5" />
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-400 to-red-500 opacity-10 blur-3xl" />
                 
-                {paymentsFetching && (
-                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
-                    <Loader2 className="w-5 h-5 text-red-600 animate-spin" />
-                  </div>
-                )}
-                
                 <CardContent className="p-4 md:p-6 relative">
                   <div className="flex items-start justify-between mb-4">
                     <div className="relative">
@@ -2774,7 +2734,7 @@ Return JSON.`;
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200 }}
                   >
-                    {backendTotalAmounts.overdue.toLocaleString('th-TH')}
+                    {totalAmounts.overdue.toLocaleString('th-TH')}
                   </motion.p>
                   <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.overdue} รายการ)</p>
                 </CardContent>
@@ -2793,12 +2753,6 @@ Return JSON.`;
                 <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600 opacity-5" />
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400 to-emerald-500 opacity-10 blur-3xl" />
                 
-                {paymentsFetching && (
-                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
-                    <Loader2 className="w-5 h-5 text-green-600 animate-spin" />
-                  </div>
-                )}
-                
                 <CardContent className="p-4 md:p-6 relative">
                   <div className="flex items-start justify-between mb-4">
                     <div className="relative">
@@ -2815,7 +2769,7 @@ Return JSON.`;
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200 }}
                   >
-                    {backendTotalAmounts.paid.toLocaleString('th-TH')}
+                    {totalAmounts.paid.toLocaleString('th-TH')}
                   </motion.p>
                   <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.paid} รายการ)</p>
                 </CardContent>
@@ -3599,16 +3553,6 @@ Return JSON.`;
               {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
                   <CardContent className="p-4 md:p-6">
-                    {/* Loading State for Room View */}
-                    {paymentsFetching && (
-                      <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-2xl">
-                        <div className="flex flex-col items-center gap-3">
-                          <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                          <p className="text-sm text-slate-600">กำลังโหลดข้อมูล...</p>
-                        </div>
-                      </div>
-                    )}
-
                     {/* Month Selector */}
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-2">
@@ -3620,19 +3564,15 @@ Return JSON.`;
                             const prevMonth = new Date(year, month - 2, 1);
                             setRoomViewMonth(format(prevMonth, 'yyyy-MM'));
                           }}
-                          className="h-9 w-9"
                         >
                           <ChevronLeft className="w-4 h-4" />
                         </Button>
-                        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm">
-                          <CalendarIcon className="w-4 h-4 text-blue-600" />
-                          <Input
-                            type="month"
-                            value={roomViewMonth}
-                            onChange={(e) => setRoomViewMonth(e.target.value)}
-                            className="w-36 border-0 bg-transparent p-0 h-auto focus-visible:ring-0"
-                          />
-                        </div>
+                        <Input
+                          type="month"
+                          value={roomViewMonth}
+                          onChange={(e) => setRoomViewMonth(e.target.value)}
+                          className="w-40"
+                        />
                         <Button
                           variant="outline"
                           size="icon"
@@ -3641,7 +3581,6 @@ Return JSON.`;
                             const nextMonth = new Date(year, month, 1);
                             setRoomViewMonth(format(nextMonth, 'yyyy-MM'));
                           }}
-                          className="h-9 w-9"
                         >
                           <ChevronRight className="w-4 h-4" />
                         </Button>
@@ -3679,23 +3618,24 @@ Return JSON.`;
                       // Sort floors
                       const sortedFloors = Object.keys(roomsByFloor).sort((a, b) => Number(a) - Number(b));
 
-                      // คำนวณช่วงเดือนสำหรับ Room View (ใช้ bill_generation_day)
+                      // Get payments for selected month
+                      // ⭐ คำนวณช่วงงวดบิลจริงๆ โดยใช้ bill_generation_day ของสาขา
                       const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
                       const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
                       const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
                       
                       const [selectedYear, selectedMonth] = roomViewMonth.split('-').map(Number);
                       
-                      // งวดบิลเริ่มจาก bill_generation_day ของเดือนก่อนหน้า
+                      // งวดบิลเริ่มจากวันที่ bill_generation_day ของเดือนก่อนหน้า
+                      // และสิ้นสุดที่วันที่ bill_generation_day ของเดือนที่เลือก
                       const monthStart = new Date(selectedYear, selectedMonth - 2, billGenerationDay);
                       const monthEnd = new Date(selectedYear, selectedMonth - 1, billGenerationDay - 1, 23, 59, 59);
                       
-                      console.log('🔍 Room View Month:', {
-                        roomViewMonth,
+                      console.log('🔍 Room View Month Range:', {
+                        selectedMonth: roomViewMonth,
                         billGenerationDay,
                         monthStart: format(monthStart, 'yyyy-MM-dd'),
-                        monthEnd: format(monthEnd, 'yyyy-MM-dd'),
-                        paymentsCount: payments.length
+                        monthEnd: format(monthEnd, 'yyyy-MM-dd')
                       });
 
                       return sortedFloors.map(floor => (
@@ -3708,7 +3648,7 @@ Return JSON.`;
                             {roomsByFloor[floor]
                               .sort((a, b) => a.room_number.localeCompare(b.room_number))
                               .map(room => {
-                                // หาบิลของห้องนี้ในเดือนที่เลือก (filter จาก payments ที่โหลดมาแล้ว)
+                                // Find payment for this room in selected month
                                 const roomPayment = payments.find(p => {
                                   if (p.room_id !== room.id) return false;
                                   if (!p.due_date) return false;

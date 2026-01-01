@@ -18,9 +18,7 @@ Deno.serve(async (req) => {
       page = 1,
       limit = 50,
       sort_by = 'due_date',
-      debug = false,
-      view_mode = 'list',
-      room_view_month = null
+      debug = false
     } = await req.json();
 
     const logs = [];
@@ -68,23 +66,7 @@ Deno.serve(async (req) => {
     const now = new Date();
     let dateRange = null;
     
-    // ⭐ Room View Mode - ใช้ room_view_month แทน date_range_type
-    if ((view_mode === 'room' || date_range_type === 'room_view') && room_view_month) {
-      const [year, month] = room_view_month.split('-').map(Number);
-      
-      // งวดบิลเริ่มจาก bill_generation_day ของเดือนก่อนหน้า
-      const monthStart = new Date(year, month - 2, billGenerationDay);
-      const monthEnd = new Date(year, month - 1, billGenerationDay - 1, 23, 59, 59);
-      
-      dateRange = { from: monthStart.toISOString(), to: monthEnd.toISOString() };
-      
-      console.log('📅 Room View Date Range:', {
-        room_view_month,
-        billGenerationDay,
-        from: dateRange.from,
-        to: dateRange.to
-      });
-    } else if (date_range_type !== 'all') {
+    if (date_range_type !== 'all') {
       const currentDay = now.getDate();
       let cycleMonth = now.getMonth();
       let cycleYear = now.getFullYear();
@@ -262,64 +244,45 @@ Deno.serve(async (req) => {
     console.log('🔍 Step 8 - Before counts:', step8aData);
     if (debug) logs.push({ step: 'Step 8a: Before Counts', data: step8aData });
     
-    // 🔢 Calculate counts AND total amounts from ENRICHED data
+    // 🔢 Calculate counts from ENRICHED data (before status filter, for all tabs)
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     
-    const calculateTotalAmount = (paymentsSubset) => {
-      return paymentsSubset.reduce((sum, p) => sum + (parseFloat(p.total_amount) || 0), 0);
-    };
-    
-    // แยก payments ตามสถานะ
-    const paidPayments = enrichedPayments.filter(p => p.status === 'paid');
-    const pendingPayments = enrichedPayments.filter(p => {
-      if (p.status === 'paid') return false;
-      if (!p.due_date) return true;
-      try {
-        const dueDate = new Date(p.due_date);
-        dueDate.setHours(0, 0, 0, 0);
-        return now <= dueDate;
-      } catch {
-        return true;
-      }
-    });
-    const overduePayments = enrichedPayments.filter(p => {
-      if (p.status === 'paid') return false;
-      if (!p.due_date) return false;
-      try {
-        const dueDate = new Date(p.due_date);
-        dueDate.setHours(0, 0, 0, 0);
-        return now > dueDate;
-      } catch {
-        return false;
-      }
-    });
-    const partialPaidPayments = enrichedPayments.filter(p => p.status === 'partial_paid');
-    
     const counts = {
       all: enrichedPayments.length,
-      paid: paidPayments.length,
-      pending: pendingPayments.length,
-      overdue: overduePayments.length,
-      partial_paid: partialPaidPayments.length,
-    };
-    
-    const totalAmounts = {
-      all: calculateTotalAmount(enrichedPayments),
-      paid: calculateTotalAmount(paidPayments),
-      pending: calculateTotalAmount(pendingPayments),
-      overdue: calculateTotalAmount(overduePayments),
-      partial_paid: calculateTotalAmount(partialPaidPayments),
+      paid: enrichedPayments.filter(p => p.status === 'paid').length,
+      pending: enrichedPayments.filter(p => {
+        if (p.status === 'paid') return false;
+        if (!p.due_date) return true;
+        try {
+          const dueDate = new Date(p.due_date);
+          dueDate.setHours(0, 0, 0, 0);
+          return now <= dueDate;
+        } catch {
+          return true;
+        }
+      }).length,
+      overdue: enrichedPayments.filter(p => {
+        if (p.status === 'paid') return false;
+        if (!p.due_date) return false;
+        try {
+          const dueDate = new Date(p.due_date);
+          dueDate.setHours(0, 0, 0, 0);
+          return now > dueDate;
+        } catch {
+          return false;
+        }
+      }).length,
+      partial_paid: enrichedPayments.filter(p => p.status === 'partial_paid').length,
     };
 
-    console.log('🔍 Step 8 - Counts & Amounts:', { counts, totalAmounts });
-    if (debug) logs.push({ step: 'Step 8b: Counts & Amounts', data: { counts, totalAmounts } });
+    console.log('🔍 Step 8 - Counts:', counts);
+    if (debug) logs.push({ step: 'Step 8b: Counts Calculated', data: counts });
 
     const result = {
       success: true,
       data: paginatedData,
       counts, // ✅ Total counts (ignoring status filter)
-      totalAmounts, // ✅ Total amounts for each status
       total,  // ✅ Count after status filter
       page,
       limit,
