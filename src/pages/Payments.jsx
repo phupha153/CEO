@@ -259,6 +259,7 @@ export default function PaymentsPage() {
   const payments = paymentsResponse?.data || [];
   const totalFilteredCount = paymentsResponse?.total || 0;
   const statusCounts = paymentsResponse?.counts || { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 };
+  const backendTotalAmounts = paymentsResponse?.totalAmounts || { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 };
   
   console.log('📊 Payments Page State:', {
     payments_length: payments.length,
@@ -2712,7 +2713,7 @@ Return JSON.`;
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200 }}
                   >
-                    {totalAmounts.all.toLocaleString('th-TH')}
+                    {backendTotalAmounts.all.toLocaleString('th-TH')}
                   </motion.p>
                   <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.all} รายการ)</p>
                 </CardContent>
@@ -2753,7 +2754,7 @@ Return JSON.`;
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200 }}
                   >
-                    {totalAmounts.pending.toLocaleString('th-TH')}
+                    {backendTotalAmounts.pending.toLocaleString('th-TH')}
                   </motion.p>
                   <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.pending} รายการ)</p>
                 </CardContent>
@@ -2794,7 +2795,7 @@ Return JSON.`;
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200 }}
                   >
-                    {totalAmounts.overdue.toLocaleString('th-TH')}
+                    {backendTotalAmounts.overdue.toLocaleString('th-TH')}
                   </motion.p>
                   <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.overdue} รายการ)</p>
                 </CardContent>
@@ -2835,7 +2836,7 @@ Return JSON.`;
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 200 }}
                   >
-                    {totalAmounts.paid.toLocaleString('th-TH')}
+                    {backendTotalAmounts.paid.toLocaleString('th-TH')}
                   </motion.p>
                   <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.paid} รายการ)</p>
                 </CardContent>
