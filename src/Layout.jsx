@@ -619,15 +619,24 @@ export default function Layout({ children, currentPageName }) {
   // ⭐ Feature access - Trial = full access, Active = full access
   const hasFeature = (featureName) => {
     if (!currentUser) return false;
-    
+
     const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
-    
+
     // Developer = full access
     if (userRole === 'developer') return true;
-    
+
+    // Owner ที่เป็นเจ้าของสาขา = full access (ไม่ต้องดู plan_status)
+    if (userRole === 'owner' && branches.length > 0) {
+      // เช็คว่าเป็นเจ้าของสาขาจริงๆ (owner_id หรือ created_by)
+      const ownedBranches = branches.filter(b => 
+        b.owner_id === currentUser.email || b.created_by === currentUser.email
+      );
+      if (ownedBranches.length > 0) return true;
+    }
+
     // Trial or Active = full access
     if (currentUser.plan_status === 'trial' || currentUser.plan_status === 'active') return true;
-    
+
     return false;
   };
 
