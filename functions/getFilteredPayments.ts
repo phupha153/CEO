@@ -18,7 +18,9 @@ Deno.serve(async (req) => {
       page = 1,
       limit = 50,
       sort_by = 'due_date',
-      debug = false
+      debug = false,
+      view_mode = 'list',
+      room_view_month = null
     } = await req.json();
 
     const logs = [];
@@ -66,7 +68,23 @@ Deno.serve(async (req) => {
     const now = new Date();
     let dateRange = null;
     
-    if (date_range_type !== 'all') {
+    // ⭐ Room View Mode - ใช้ room_view_month แทน date_range_type
+    if (view_mode === 'room' && room_view_month) {
+      const [year, month] = room_view_month.split('-').map(Number);
+      
+      // งวดบิลเริ่มจาก bill_generation_day ของเดือนก่อนหน้า
+      const monthStart = new Date(year, month - 2, billGenerationDay);
+      const monthEnd = new Date(year, month - 1, billGenerationDay - 1, 23, 59, 59);
+      
+      dateRange = { from: monthStart.toISOString(), to: monthEnd.toISOString() };
+      
+      console.log('📅 Room View Date Range:', {
+        room_view_month,
+        billGenerationDay,
+        from: dateRange.from,
+        to: dateRange.to
+      });
+    } else if (date_range_type !== 'all') {
       const currentDay = now.getDate();
       let cycleMonth = now.getMonth();
       let cycleYear = now.getFullYear();
