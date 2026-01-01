@@ -407,6 +407,25 @@ export default function PaymentsPage() {
     setRoomViewMonth(format(now, 'yyyy-MM'));
   }, [configs, selectedBranchId]);
 
+  // ⭐ Sync filters when switching from room view to card/table view
+  useEffect(() => {
+    if (viewMode !== 'room' && roomViewMonth) {
+      // เมื่อสลับจาก room view ไป card/table ให้ sync filter
+      const [year, month] = roomViewMonth.split('-').map(Number);
+      const monthDate = new Date(year, month - 1, 1);
+      setDateRangeType('custom');
+      
+      const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
+      const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+      const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
+      
+      const monthStart = new Date(year, month - 2, billGenerationDay);
+      const monthEnd = new Date(year, month - 1, billGenerationDay - 1, 23, 59, 59);
+      
+      setCustomRange({ from: monthStart, to: monthEnd });
+    }
+  }, [viewMode, roomViewMonth, configs, selectedBranchId]);
+
   const isDataFetching = paymentsFetching || bookingsFetching || roomsFetching || tenantsFetching;
 
   const currentDateMemo = useMemo(() => {
