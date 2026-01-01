@@ -875,22 +875,20 @@ export default function MeterReadings() {
     });
     
     // Total electricity + water for selected period (ตามงวดบิล)
+    let matchCount = 0;
     const periodReadings = meterReadings.filter(r => {
       try {
         const readingDate = parseISO(r.reading_date);
         const inRange = readingDate >= period.start && readingDate <= period.end;
         
-        // 🐛 DEBUG: แสดงผลการตรวจสอบแต่ละรายการ (5 รายการแรก)
-        if (periodReadings.length < 5) {
-          console.log('🔎 Checking reading:', {
+        // 🐛 DEBUG: แสดงผลการตรวจสอบ 5 รายการแรก
+        if (matchCount < 5 && inRange) {
+          console.log('✅ Reading MATCHES:', {
             reading_date: format(readingDate, 'yyyy-MM-dd HH:mm:ss'),
-            period_start: format(period.start, 'yyyy-MM-dd HH:mm:ss'),
-            period_end: format(period.end, 'yyyy-MM-dd HH:mm:ss'),
-            inRange,
-            readingDate_timestamp: readingDate.getTime(),
-            start_timestamp: period.start.getTime(),
-            end_timestamp: period.end.getTime()
+            elec_units: r.electricity_units,
+            water_units: r.water_units
           });
+          matchCount++;
         }
         
         return inRange;
@@ -902,12 +900,8 @@ export default function MeterReadings() {
 
     console.log('📊 Period readings:', {
       total: periodReadings.length,
-      sample: periodReadings.slice(0, 3).map(r => ({
-        room_id: r.room_id?.substring(0, 8),
-        reading_date: r.reading_date,
-        elec_units: r.electricity_units,
-        water_units: r.water_units
-      }))
+      totalElec: periodReadings.reduce((sum, r) => sum + (r.electricity_units || 0), 0),
+      totalWater: periodReadings.reduce((sum, r) => sum + (r.water_units || 0), 0)
     });
 
     const totalElectricity = periodReadings.reduce((sum, r) => sum + (r.electricity_units || 0), 0);
