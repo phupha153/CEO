@@ -493,7 +493,6 @@ export default function Settings() {
     return (branchId && branchName) ? { id: branchId, name: branchName } : null;
   });
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   const canManagePermissions = userRole === 'developer' || userRole === 'owner';
   const canSetGlobalConfig = userRole === 'developer' || userRole === 'owner';
 
