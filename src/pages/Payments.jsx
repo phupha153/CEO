@@ -206,6 +206,16 @@ export default function PaymentsPage() {
     retryDelay: 0,
   };
 
+  // ⭐ Load configs first (needed for date range calculations)
+  const { data: configs = [] } = useQuery({
+    queryKey: ['configs'],
+    queryFn: () => base44.entities.Config.list(),
+    ...retryConfig,
+    staleTime: 4 * 60 * 60 * 1000,
+    gcTime: 8 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
   // ✅ Server-side filtering via Backend Function (SaaS Standard)
   const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
     queryKey: ['payments-filtered', selectedBranchId, statusFilter, selectedMonth, searchQuery, currentPage, sortBy],
@@ -344,15 +354,6 @@ export default function PaymentsPage() {
     ...retryConfig,
     staleTime: 60 * 60 * 1000,
     gcTime: 2 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: configs = [] } = useQuery({
-    queryKey: ['configs'],
-    queryFn: () => base44.entities.Config.list(),
-    ...retryConfig,
-    staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 8 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
