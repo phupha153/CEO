@@ -1,5 +1,6 @@
 import AIFinancialAnalysis from './pages/AIFinancialAnalysis';
 import AIGuidelines from './pages/AIGuidelines';
+import AccountingData from './pages/AccountingData';
 import ActivityLog from './pages/ActivityLog';
 import AllBranchesDashboard from './pages/AllBranchesDashboard';
 import Announcements from './pages/Announcements';
@@ -22,6 +23,7 @@ import FacebookScreencastGuide from './pages/FacebookScreencastGuide';
 import FacebookSetupGuide from './pages/FacebookSetupGuide';
 import FacebookTestDemo from './pages/FacebookTestDemo';
 import Home from './pages/Home';
+import Invoice from './pages/Invoice';
 import LineConnect from './pages/LineConnect';
 import Maintenance from './pages/Maintenance';
 import Materials from './pages/Materials';
@@ -34,6 +36,9 @@ import PackageSelection from './pages/PackageSelection';
 import Payments from './pages/Payments';
 import PrintReceipts from './pages/PrintReceipts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import PublicInvoice from './pages/PublicInvoice';
+import PublicReceipt from './pages/PublicReceipt';
+import Receipt from './pages/Receipt';
 import Rooms from './pages/Rooms';
 import Settings from './pages/Settings';
 import SupportTickets from './pages/SupportTickets';
@@ -46,19 +51,15 @@ import TrialExpiredPage from './pages/TrialExpiredPage';
 import UpdateMyBranches from './pages/UpdateMyBranches';
 import UserBranchAccess from './pages/UserBranchAccess';
 import Welcome from './pages/Welcome';
-import reports from './pages/reports';
 import f12 from './pages/f12';
-import Invoice from './pages/Invoice';
-import Receipt from './pages/Receipt';
-import AccountingData from './pages/AccountingData';
-import PublicInvoice from './pages/PublicInvoice';
-import PublicReceipt from './pages/PublicReceipt';
+import reports from './pages/reports';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AIFinancialAnalysis": AIFinancialAnalysis,
     "AIGuidelines": AIGuidelines,
+    "AccountingData": AccountingData,
     "ActivityLog": ActivityLog,
     "AllBranchesDashboard": AllBranchesDashboard,
     "Announcements": Announcements,
@@ -81,6 +82,7 @@ export const PAGES = {
     "FacebookSetupGuide": FacebookSetupGuide,
     "FacebookTestDemo": FacebookTestDemo,
     "Home": Home,
+    "Invoice": Invoice,
     "LineConnect": LineConnect,
     "Maintenance": Maintenance,
     "Materials": Materials,
@@ -93,6 +95,9 @@ export const PAGES = {
     "Payments": Payments,
     "PrintReceipts": PrintReceipts,
     "PrivacyPolicy": PrivacyPolicy,
+    "PublicInvoice": PublicInvoice,
+    "PublicReceipt": PublicReceipt,
+    "Receipt": Receipt,
     "Rooms": Rooms,
     "Settings": Settings,
     "SupportTickets": SupportTickets,
@@ -105,13 +110,8 @@ export const PAGES = {
     "UpdateMyBranches": UpdateMyBranches,
     "UserBranchAccess": UserBranchAccess,
     "Welcome": Welcome,
-    "reports": reports,
     "f12": f12,
-    "Invoice": Invoice,
-    "Receipt": Receipt,
-    "AccountingData": AccountingData,
-    "PublicInvoice": PublicInvoice,
-    "PublicReceipt": PublicReceipt,
+    "reports": reports,
 }
 
 export const pagesConfig = {
