@@ -79,16 +79,23 @@ export default function PublicReceipt() {
       try {
         console.log('🔍 [PublicReceipt] Fetching for paymentId:', paymentId);
         
-        const response = await base44.functions.invoke('getPublicInvoice', {
-          paymentId
+        // ⭐ เรียก API endpoint โดยตรง (ไม่ผ่าน SDK เพื่อไม่ต้อง auth)
+        const apiUrl = `/api/apps/public/prod/functions/getPublicInvoice`;
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ paymentId })
         });
 
-        console.log('🔍 [PublicReceipt] Response:', response.data);
+        const data = await response.json();
+        console.log('🔍 [PublicReceipt] Response:', data);
         
-        if (response.data.success) {
-          setReceiptData(response.data.invoice);
+        if (data.success) {
+          setReceiptData(data.invoice);
         } else {
-          setError(response.data.error || 'ไม่พบข้อมูลใบเสร็จ');
+          setError(data.error || 'ไม่พบข้อมูลใบเสร็จ');
         }
       } catch (err) {
         console.error('Error fetching receipt:', err);

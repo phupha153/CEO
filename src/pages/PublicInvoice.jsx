@@ -82,19 +82,24 @@ export default function PublicInvoice() {
       try {
         console.log('🔍 [PublicInvoice] Fetching for paymentId:', paymentId);
         
-        // ⭐ ใช้ SDK แทน fetch เพื่อให้จัดการ path อัตโนมัติทั้ง production และ preview
-        const response = await base44.functions.invoke('getPublicInvoice', {
-          paymentId,
-          branchId
+        // ⭐ เรียก API endpoint โดยตรง (ไม่ผ่าน SDK เพื่อไม่ต้อง auth)
+        const apiUrl = `/api/apps/public/prod/functions/getPublicInvoice`;
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ paymentId, branchId })
         });
 
-        console.log('🔍 [PublicInvoice] Response:', response.data);
+        const data = await response.json();
+        console.log('🔍 [PublicInvoice] Response:', data);
         
-        if (response.data.success) {
-          console.log('🔍 [PublicInvoice] Invoice Data:', response.data.invoice);
-          setInvoiceData(response.data.invoice);
+        if (data.success) {
+          console.log('🔍 [PublicInvoice] Invoice Data:', data.invoice);
+          setInvoiceData(data.invoice);
         } else {
-          setError(response.data.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
+          setError(data.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
         }
       } catch (err) {
         console.error('Error fetching invoice:', err);
