@@ -19,6 +19,20 @@ export default function RatingDialog({ open, onOpenChange, tenant, onSubmit, isL
     rating_period: ''
   });
 
+  // ✅ ดึงข้อมูล tenant ล่าสุด (เพื่อดู avg_payment_score ที่อัปเดตแล้ว)
+  const { data: latestTenant } = useQuery({
+    queryKey: ['tenant-latest', tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return null;
+      const tenants = await base44.entities.Tenant.filter({ id: tenant.id });
+      return Array.isArray(tenants) ? tenants[0] : tenants;
+    },
+    enabled: !!tenant?.id && open,
+    staleTime: 0, // ไม่ cache - ดึงใหม่ทุกครั้ง
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+  });
+
   // ✅ ดึงข้อมูลการชำระเงินเฉพาะเมื่อเปิด dialog
   const { data: payments = [] } = useQuery({
     queryKey: ['tenant-payments', tenant?.id],
@@ -47,9 +61,28 @@ export default function RatingDialog({ open, onOpenChange, tenant, onSubmit, isL
     refetchOnMount: false,
   });
 
-  // ✅ ใช้ useMemo แทน useEffect สำหรับการคำนวณ scoreBreakdown
+  // ✅ ใช้คะแนนจาก tenant.avg_payment_score (ที่คำนวณจริงแล้ว) หรือคำนวณใหม่ถ้าไม่มี
   const scoreBreakdown = useMemo(() => {
-    if (!open || !tenant?.id || !payments || payments.length === 0) {
+    const currentTenant = latestTenant || tenant;
+    
+    // ⭐ ถ้ามี avg_payment_score อยู่แล้ว = ใช้เลย (ไม่ต้องคำนวณใหม่)
+    if (currentTenant?.avg_payment_score !== null && currentTenant?.avg_payment_score !== undefined) {
+      const paymentScores = currentTenant.payment_scores || [];
+      const paidPayments = paymentScores.filter(p => p.days_diff <= 0);
+      const latePayments = paymentScores.filter(p => p.days_diff > 0);
+      
+      return {
+        totalPayments: paymentScores.length,
+        paidOnTime: paidPayments.length,
+        paidLate: latePayments.length,
+        overdue: 0,
+        calculatedScore: currentTenant.avg_payment_score,
+        message: `วิเคราะห์จาก ${paymentScores.length} บิล: จ่ายตรงเวลา ${paidPayments.length} ครั้ง, จ่ายล่าช้า ${latePayments.length} ครั้ง`
+      };
+    }
+    
+    // Fallback: คำนวณจาก payments ถ้ายังไม่มีคะแนน
+    if (!open || !currentTenant?.id || !payments || payments.length === 0) {
       return {
         totalPayments: 0,
         paidOnTime: 0,
@@ -100,7 +133,7 @@ export default function RatingDialog({ open, onOpenChange, tenant, onSubmit, isL
       calculatedScore: score,
       message: `วิเคราะห์จาก ${totalPayments} บิล: จ่ายตรงเวลา ${paidOnTime} ครั้ง, จ่ายล่าช้า ${paidLate} ครั้ง, ค้างชำระ ${overduePayments.length} บิล`
     };
-  }, [payments, open, tenant?.id]);
+  }, [payments, open, tenant?.id, latestTenant]);
 
   // ✅ อัปเดต payment_score เมื่อเปิด dialog และคำนวณใหม่
   useEffect(() => {
