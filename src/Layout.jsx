@@ -841,6 +841,7 @@ export default function Layout({ children, currentPageName }) {
   // หน้าที่ไม่ต้องมี sidebar - return children เลย
   if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
       currentPageName === 'PrintReceipts' || 
+      currentPageName === 'PublicInvoice' ||
       currentPageName === 'TrialExpiredPage' ||
       currentPageName === 'NoPackagePage' ||
       currentPageName === 'PackageSelection' ||
