@@ -1160,7 +1160,16 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         // ⭐⭐⭐ แยกประเภท error:
         // 1. ไม่พบ QR Code เลย = ไม่ใช่สลิป (ผ้าขนหนู, รูปทั่วไป) → ไม่ตอบ ไม่บันทึก
-        // 2. พบ QR แต่ธนาคารยังไม่มีข้อมูล (กรุงไทย/กรุงเทพ) → บันทึกรอตรวจซ้ำ
+        // 2. สลิปปลอม (Fraud) = ไม่ใช่สลิปจริง → ไม่ตอบ ไม่บันทึก
+        // 3. พบ QR แต่ธนาคารยังไม่มีข้อมูล (กรุงไทย/กรุงเทพ) → บันทึกรอตรวจซ้ำ
+
+        const isFraudSlip = errorCode === '200500' || errorMessage.toLowerCase().includes('fraud');
+
+        // ⭐ สลิปปลอม = ไม่ตอบอะไรเลย
+        if (isFraudSlip && !verificationSuccess) {
+            console.log(`ℹ️ Fraud slip detected (code: ${errorCode}) - NOT responding, NOT saving`);
+            return;
+        }
 
         const isNoQRCode = errorCode === '200400' || 
                           errorMessage.toLowerCase().includes('qr code not found') ||
