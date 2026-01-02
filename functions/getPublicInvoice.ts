@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createServiceRoleClient } from 'npm:@base44/sdk@0.8.4';
 
 // Public API สำหรับดึงข้อมูลใบแจ้งหนี้ (ไม่ต้อง login)
 Deno.serve(async (req) => {
@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
     console.log('========================================');
 
     try {
-        const base44 = createClientFromRequest(req);
+        const base44 = createServiceRoleClient();
         
         // Parse request body
         let paymentId, branchId;
@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
 
         // ดึงข้อมูล Payment โดยตรงด้วย filter
         console.log('📥 Querying Database for Payment...');
-        const paymentResults = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
+        const paymentResults = await base44.entities.Payment.filter({ id: paymentId });
         
         console.log(`📊 Query Results: Found ${Array.isArray(paymentResults) ? paymentResults.length : (paymentResults ? 1 : 0)} payment(s)`);
         
@@ -76,10 +76,10 @@ Deno.serve(async (req) => {
         console.log(`🔍 Looking for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}, branch_id: ${actualBranchId}`);
         
         const [allTenants, allRooms, allBranches, configs] = await Promise.all([
-            base44.asServiceRole.entities.Tenant.filter({ branch_id: actualBranchId }, '-created_date', 5000),
-            base44.asServiceRole.entities.Room.filter({ branch_id: actualBranchId }, '-created_date', 5000),
-            base44.asServiceRole.entities.Branch.list(),
-            base44.asServiceRole.entities.Config.list()
+            base44.entities.Tenant.filter({ branch_id: actualBranchId }, '-created_date', 5000),
+            base44.entities.Room.filter({ branch_id: actualBranchId }, '-created_date', 5000),
+            base44.entities.Branch.list(),
+            base44.entities.Config.list()
         ]);
 
         const tenant = payment.tenant_id ? allTenants.find(t => t.id === payment.tenant_id) : null;
