@@ -1457,6 +1457,7 @@ export default function AccountingData() {
                           <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">ค่าไฟ</th>
                           <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">ค่าน้ำ</th>
                           <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">อื่นๆ</th>
+                          <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">ค่าปรับ</th>
                           <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">รวม</th>
                           <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">สถานะ</th>
                           <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">วิธีชำระ</th>
@@ -1497,6 +1498,9 @@ export default function AccountingData() {
                               <td className="px-4 py-3 text-sm text-right">{(payment.water_amount || 0).toLocaleString()}</td>
                               <td className="px-4 py-3 text-sm text-right">
                                 {((payment.internet_amount || 0) + (payment.other_amount || 0)).toLocaleString()}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right text-red-600 font-semibold">
+                                {(payment.late_fee_amount || 0).toLocaleString()}
                               </td>
                               <td className="px-4 py-3 text-sm text-right font-bold text-green-600">
                                 {(payment.total_amount || 0).toLocaleString()}
@@ -1601,6 +1605,7 @@ export default function AccountingData() {
                           <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">ค่าไฟ</th>
                           <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">ค่าน้ำ</th>
                           <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">อื่นๆ</th>
+                          <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">ค่าปรับ</th>
                           <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">รวม</th>
                           <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">สถานะ</th>
                           <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">ใบแจ้งหนี้</th>
@@ -1633,6 +1638,9 @@ export default function AccountingData() {
                               <td className="px-4 py-3 text-sm text-right">{(payment.water_amount || 0).toLocaleString()}</td>
                               <td className="px-4 py-3 text-sm text-right">
                                 {((payment.internet_amount || 0) + (payment.other_amount || 0)).toLocaleString()}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-right text-red-600 font-semibold">
+                                {(payment.late_fee_amount || 0).toLocaleString()}
                               </td>
                               <td className="px-4 py-3 text-sm text-right font-bold text-orange-600">
                                 {(payment.total_amount || 0).toLocaleString()}
