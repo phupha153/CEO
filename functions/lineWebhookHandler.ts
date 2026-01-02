@@ -1363,13 +1363,28 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             const room = rooms.find(r => r.id === pendingPayment.room_id);
             const roomNumber = room?.room_number || 'ไม่ทราบ';
             
+            // ⭐ สร้างข้อความที่ชัดเจนพร้อมบัญชีที่ถูกต้อง
+            const bankName = getConfigValue('bank_name') || 'ธนาคาร';
+            let correctAccountInfo = '';
+            
+            if (expectedAccountNumber) {
+                correctAccountInfo = `\n\n✅ บัญชีที่ถูกต้อง:\n${bankName}\nชื่อบัญชี: ${expectedAccountName || 'ไม่ระบุ'}\nเลขบัญชี: ${expectedAccountNumber}`;
+            } else if (expectedPromptPay) {
+                correctAccountInfo = `\n\n✅ พร้อมเพย์ที่ถูกต้อง:\n${expectedPromptPay}`;
+            }
+            
             let errorMsg = '';
+            let lineMessage = '';
+            
             if (!accountMatch && !nameMatch) {
                 errorMsg = `โอนเงินไปผิดบัญชี และชื่อไม่ตรง (ตรวจพบ: ${receiverName} บช ${receiverAccount})`;
+                lineMessage = `❌ โอนผิดบัญชี!\n\nคุณโอนเข้า:\n• ชื่อ: ${receiverName}\n• บัญชี: ${receiverAccount}${correctAccountInfo}\n\nกรุณาโอนใหม่เข้าบัญชีที่ถูกต้อง หรือติดต่อเจ้าของหอพักค่ะ 🙏`;
             } else if (!accountMatch) {
                 errorMsg = `โอนเงินไปผิดบัญชี (ตรวจพบ: ${receiverAccount}, ควรโอนเข้า ${expectedAccountNumber || expectedPromptPay})`;
+                lineMessage = `❌ โอนผิดบัญชี!\n\nคุณโอนเข้า: ${receiverAccount}${correctAccountInfo}\n\nกรุณาโอนใหม่เข้าบัญชีที่ถูกต้อง หรือติดต่อเจ้าของหอพักค่ะ 🙏`;
             } else if (!nameMatch) {
                 errorMsg = `ชื่อบัญชีไม่ตรง (ตรวจพบ: ${receiverName}, ควรเป็น ${expectedAccountName})`;
+                lineMessage = `❌ ชื่อบัญชีไม่ตรง!\n\nคุณโอนเข้า: ${receiverName}${correctAccountInfo}\n\nกรุณาตรวจสอบหรือติดต่อเจ้าของหอพักค่ะ 🙏`;
             }
             
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
@@ -1377,11 +1392,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
             });
             
-            await sendMessage(base44, lineUserId, 
-                `📸 อัปโหลดสลิปสำเร็จ\n\n⚠️ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบ หรือติดต่อโดยตรงค่ะ`,
-                branchId,
-                replyToken
-            );
+            await sendMessage(base44, lineUserId, lineMessage, branchId, replyToken);
             return;
         }
 
