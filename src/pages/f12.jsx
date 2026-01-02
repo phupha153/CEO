@@ -554,10 +554,10 @@ export default function F12Page() {
             <div className="mt-6 p-4 bg-green-50 border-2 border-green-300 rounded-xl">
               <h3 className="font-bold text-green-800 mb-3 flex items-center gap-2">
                 <LinkIcon className="w-5 h-5" />
-                🔗 ทดสอบลิงก์ใบแจ้งหนี้สาธารณะ (ไม่ต้องล็อกอิน)
+                🔗 ลิงก์ใบแจ้งหนี้/ใบเสร็จ (ไม่ต้องล็อกอิน)
               </h3>
               <p className="text-sm text-green-700 mb-3">
-                สร้างลิงก์ใบแจ้งหนี้ที่เข้าถึงได้โดยไม่ต้องล็อกอิน (เหมือนหน้า Welcome)
+                สร้างลิงก์แบบ Direct URL - ใช้ได้แม้แอปเป็น Private (ข้าม React Router)
               </p>
 
               {/* Branch Selector */}
@@ -602,8 +602,9 @@ export default function F12Page() {
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
                   {pendingPayments.map((payment) => {
                     const isPaid = payment.status === 'paid';
-                    const publicInvoiceLink = `${window.location.origin}${createPageUrl('PublicInvoice')}?id=${payment.id}`;
-                    const publicReceiptLink = `${window.location.origin}${createPageUrl('PublicReceipt')}?id=${payment.id}`;
+                    // ⭐ ใช้ Direct Function URL - ไม่ต้องเปลี่ยน Access Control
+                    const publicInvoiceLink = `${window.location.origin}/api/apps/${Deno.env.get('BASE44_APP_ID') || 'APP_ID'}/functions/publicInvoiceView?paymentId=${payment.id}`;
+                    const publicReceiptLink = `${window.location.origin}/api/apps/${Deno.env.get('BASE44_APP_ID') || 'APP_ID'}/functions/publicReceiptView?paymentId=${payment.id}`;
                     const alreadyGenerated = generatedLinks.some(l => l.paymentId === payment.id);
 
                     const statusColors = {
