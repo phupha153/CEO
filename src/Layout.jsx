@@ -628,18 +628,21 @@ export default function Layout({ children, currentPageName }) {
   // ⭐ Feature access - Trial = full access, Active = full access, Owner = full access
   const hasFeature = (featureName) => {
     if (!currentUser) return false;
-    
+
     const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
-    
+
     // Developer = full access
     if (userRole === 'developer') return true;
-    
+
     // Owner = full access (เจ้าของหอพัก)
     if (userRole === 'owner') return true;
-    
+
+    // ⭐ พนักงาน/ผู้จัดการ = ให้ full access เสมอ (inherit จากเจ้าของสาขา)
+    if (userRole === 'employee' || userRole === 'manager') return true;
+
     // Trial or Active = full access
     if (currentUser.plan_status === 'trial' || currentUser.plan_status === 'active') return true;
-    
+
     return false;
   };
 
