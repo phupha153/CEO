@@ -108,19 +108,6 @@ Deno.serve(async (req) => {
 
         const { paymentId, branch_id, template, customMessage } = await req.json();
 
-        // 🔒 Security: Branch Access Check
-        if (branch_id) {
-            const userAccessibleBranches = user.accessible_branches;
-            const isDeveloper = user.custom_role === 'developer';
-            const isOwner = user.custom_role === 'owner';
-            
-            if (!isDeveloper && !isOwner) {
-                if (userAccessibleBranches && !userAccessibleBranches.includes(branch_id)) {
-                    return Response.json({ error: 'Branch access denied' }, { status: 403 });
-                }
-            }
-        }
-
         // ⭐ ดึงข้อมูลตาม branch_id หรือ payment_id
         console.log('📊 Fetching data...');
 
