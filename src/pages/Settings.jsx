@@ -1895,9 +1895,29 @@ export default function Settings() {
                                 // ⭐ ถ้าเป็น currentUser เอง = นับ
                                 if (user.email === currentUser?.email) return true;
                                 
-                                // ผู้ใช้อื่นๆ ต้องมี accessible_branches ที่ตรงกับสาขาที่ currentUser เป็นเจ้าของ
-                                if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
-                                return user.accessible_branches.some(branchId => myOwnedBranchIds.includes(branchId));
+                                // ⭐ หาสาขาที่ currentUser เป็นเจ้าของ
+                                const myOwnedBranchIds = branches
+                                  .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
+                                  .map(b => b.id);
+                                
+                                // ถ้าไม่มีสาขาของตัวเอง = ไม่เห็นใคร
+                                if (myOwnedBranchIds.length === 0) return false;
+                                
+                                const userBranches = user.accessible_branches || [];
+                                
+                                // ⭐ ถ้าผู้ใช้ไม่มี accessible_branches set → เช็คว่าเป็น owner ของสาขาเดียวกันหรือไม่
+                                if (userBranches.length === 0) {
+                                  // ผู้ใช้นี้อาจเป็น owner ของสาขาอื่นๆ
+                                  const userOwnedBranches = branches
+                                    .filter(b => b.owner_id === user.email || b.created_by === user.email)
+                                    .map(b => b.id);
+                                  
+                                  // เห็นก็ต่อเมื่อเป็น owner ของสาขาเดียวกัน
+                                  return userOwnedBranches.some(branchId => myOwnedBranchIds.includes(branchId));
+                                }
+                                
+                                // ⭐ ถ้ามี accessible_branches → เช็คว่าตรงกับสาขาของ currentUser หรือไม่
+                                return userBranches.some(branchId => myOwnedBranchIds.includes(branchId));
                               });
 
                               // ⭐ นับจำนวนผู้ใช้ + ตรวจสอบว่า currentUser อยู่ใน users array หรือไม่
