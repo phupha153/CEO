@@ -927,7 +927,11 @@ export default function Settings() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['configs']);
+      // ⭐ ใช้ refetchQueries แทน invalidateQueries เพื่อควบคุม refetch ได้ละเอียดขึ้น
+      queryClient.refetchQueries({ 
+        queryKey: ['configs'], 
+        type: 'active' 
+      });
     },
     onError: (error) => {
       toast.error('เกิดข้อผิดพลาด: ' + (error.message || 'ไม่สามารถบันทึกได้'));
