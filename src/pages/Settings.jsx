@@ -344,9 +344,13 @@ export default function Settings() {
   useEffect(() => {
     if (currentUser) {
       base44.functions.invoke('syncCurrentUser', {})
+        .then(() => {
+          console.log('✅ Synced current user to User entity - invalidating users query');
+          queryClient.invalidateQueries(['users']);
+        })
         .catch(error => console.error('Failed to sync user:', error));
     }
-  }, [currentUser?.email]);
+  }, [currentUser?.email, queryClient]);
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   const canManagePermissions = userRole === 'developer' || userRole === 'owner';
