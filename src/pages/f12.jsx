@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Terminal, Trash2, AlertCircle, Info, AlertTriangle, Bug, Eye, User, Settings, Loader2, ExternalLink, Link as LinkIcon } from "lucide-react";
+import { Terminal, Trash2, AlertCircle, Info, AlertTriangle, Bug, Eye, User, Settings, Loader2, ExternalLink, Link as LinkIcon, RefreshCw } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -14,7 +15,7 @@ export default function F12Page() {
   const originalConsole = useRef({});
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteProgress, setDeleteProgress] = useState({ deleted: 0, remaining: 0, initial: 0 });
-  const [manualBranchId, setManualBranchId] = useState('69255a34e816a8749fc765c2');
+  const [manualBranchId, setManualBranchId] = useState('');
   const [generatedLinks, setGeneratedLinks] = useState([]);
 
   // Fetch user data for debugging
@@ -29,7 +30,7 @@ export default function F12Page() {
   });
 
   // ⭐ Fetch payments for link testing (ทุกสถานะ)
-  const { data: pendingPayments = [], refetch: refetchPayments } = useQuery({
+  const { data: pendingPayments = [], refetch: refetchPayments, isLoading: paymentsLoading } = useQuery({
     queryKey: ['pendingPayments', manualBranchId],
     queryFn: async () => {
       if (!manualBranchId) return [];
@@ -41,6 +42,13 @@ export default function F12Page() {
     },
     enabled: !!manualBranchId
   });
+
+  // Auto-select first branch on load
+  useEffect(() => {
+    if (branches.length > 0 && !manualBranchId) {
+      setManualBranchId(branches[0].id);
+    }
+  }, [branches, manualBranchId]);
 
   useEffect(() => {
     // บันทึก console functions เดิม
@@ -551,6 +559,31 @@ export default function F12Page() {
               <p className="text-sm text-green-700 mb-3">
                 สร้างลิงก์ใบแจ้งหนี้ที่เข้าถึงได้โดยไม่ต้องล็อกอิน (เหมือนหน้า Welcome)
               </p>
+
+              {/* Branch Selector */}
+              <div className="flex gap-2 mb-4">
+                <Select value={manualBranchId} onValueChange={setManualBranchId}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="เลือกสาขา..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches.map((branch) => (
+                      <SelectItem key={branch.id} value={branch.id}>
+                        {branch.branch_name} ({branch.branch_code || 'N/A'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={() => refetchPayments()}
+                  variant="outline"
+                  size="sm"
+                  disabled={paymentsLoading}
+                  className="border-green-300 text-green-700 hover:bg-green-50"
+                >
+                  <RefreshCw className={`w-4 h-4 ${paymentsLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
 
               {/* แสดงรายการ Payment ที่สามารถสร้างลิงก์ได้ */}
               {pendingPayments.length > 0 ? (
