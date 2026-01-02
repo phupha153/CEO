@@ -83,16 +83,23 @@ export default function PublicReceipt() {
           paymentId
         });
 
-        console.log('🔍 [PublicReceipt] Response:', response.data);
+        console.log('🔍 [PublicReceipt] Full Response:', response);
+        console.log('🔍 [PublicReceipt] Response Data:', response.data);
+        console.log('🔍 [PublicReceipt] Response Status:', response.status);
         
-        if (response.data.success) {
+        if (response.data?.success) {
+          console.log('✅ [PublicReceipt] Receipt Data:', response.data.invoice);
           setReceiptData(response.data.invoice);
         } else {
-          setError(response.data.error || 'ไม่พบข้อมูลใบเสร็จ');
+          const errorMsg = response.data?.error || 'ไม่พบข้อมูลใบเสร็จ';
+          console.error('❌ [PublicReceipt] API Error:', errorMsg);
+          setError(errorMsg);
         }
       } catch (err) {
-        console.error('Error fetching receipt:', err);
-        setError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+        console.error('❌ [PublicReceipt] Exception:', err);
+        console.error('❌ [PublicReceipt] Error Message:', err.message);
+        console.error('❌ [PublicReceipt] Error Stack:', err.stack);
+        setError(`เกิดข้อผิดพลาด: ${err.message || 'ไม่สามารถโหลดข้อมูลได้'}`);
       } finally {
         setLoading(false);
       }

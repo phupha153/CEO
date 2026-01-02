@@ -84,19 +84,23 @@ export default function Invoice() {
           paymentId: paymentId
         });
 
-        console.log('🔍 [Invoice] Response:', response.data);
+        console.log('🔍 [Invoice] Full Response:', response);
+        console.log('🔍 [Invoice] Response Data:', response.data);
+        console.log('🔍 [Invoice] Response Status:', response.status);
         
-        if (response.data.success) {
+        if (response.data?.success) {
           console.log('🔍 [Invoice] Invoice Data:', response.data.invoice);
-          console.log('🔍 [Invoice] Recipient:', response.data.invoice?.recipient);
-          console.log('🔍 [Invoice] Company Registration Number:', response.data.invoice?.recipient?.company_registration_number);
           setInvoiceData(response.data.invoice);
         } else {
-          setError(response.data.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
+          const errorMsg = response.data?.error || 'ไม่พบข้อมูลใบแจ้งหนี้';
+          console.error('❌ [Invoice] API Error:', errorMsg);
+          setError(errorMsg);
         }
       } catch (err) {
-        console.error('Error fetching invoice:', err);
-        setError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+        console.error('❌ [Invoice] Exception:', err);
+        console.error('❌ [Invoice] Error Message:', err.message);
+        console.error('❌ [Invoice] Error Stack:', err.stack);
+        setError(`เกิดข้อผิดพลาด: ${err.message || 'ไม่สามารถโหลดข้อมูลได้'}`);
       } finally {
         setLoading(false);
       }

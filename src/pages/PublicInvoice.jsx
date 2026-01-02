@@ -82,23 +82,28 @@ export default function PublicInvoice() {
       try {
         console.log('🔍 [PublicInvoice] Fetching for paymentId:', paymentId);
         
-        // ⭐ ใช้ SDK แทน fetch เพื่อให้จัดการ path อัตโนมัติทั้ง production และ preview
         const response = await base44.functions.invoke('getPublicInvoice', {
           paymentId,
           branchId
         });
 
-        console.log('🔍 [PublicInvoice] Response:', response.data);
+        console.log('🔍 [PublicInvoice] Full Response:', response);
+        console.log('🔍 [PublicInvoice] Response Data:', response.data);
+        console.log('🔍 [PublicInvoice] Response Status:', response.status);
         
-        if (response.data.success) {
-          console.log('🔍 [PublicInvoice] Invoice Data:', response.data.invoice);
+        if (response.data?.success) {
+          console.log('✅ [PublicInvoice] Invoice Data:', response.data.invoice);
           setInvoiceData(response.data.invoice);
         } else {
-          setError(response.data.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
+          const errorMsg = response.data?.error || 'ไม่พบข้อมูลใบแจ้งหนี้';
+          console.error('❌ [PublicInvoice] API Error:', errorMsg);
+          setError(errorMsg);
         }
       } catch (err) {
-        console.error('Error fetching invoice:', err);
-        setError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+        console.error('❌ [PublicInvoice] Exception:', err);
+        console.error('❌ [PublicInvoice] Error Message:', err.message);
+        console.error('❌ [PublicInvoice] Error Stack:', err.stack);
+        setError(`เกิดข้อผิดพลาด: ${err.message || 'ไม่สามารถโหลดข้อมูลได้'}`);
       } finally {
         setLoading(false);
       }
