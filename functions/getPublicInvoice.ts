@@ -67,26 +67,33 @@ Deno.serve(async (req) => {
             serviceRoleKey: Deno.env.get('BASE44_SERVICE_ROLE_KEY')
         });
         
-        // ⭐ เช็คว่าต้องการ JSON หรือ HTML
-        const isJsonRequest = req.method === 'POST' || 
-                             req.headers.get('Accept')?.includes('application/json') ||
-                             req.headers.get('Content-Type')?.includes('application/json');
-        
-        console.log(`📋 Request Type: ${isJsonRequest ? 'JSON' : 'HTML'}`);
-        
         // Parse parameters
         let paymentId, branchId, type;
+        let isJsonRequest = false;
         
         if (req.method === 'POST') {
-            const body = await req.json();
-            paymentId = body.paymentId;
-            branchId = body.branchId;
-            type = body.type || 'invoice';
+            try {
+                const body = await req.json();
+                paymentId = body.paymentId;
+                branchId = body.branchId;
+                type = body.type || 'invoice';
+                isJsonRequest = true; // POST with body = JSON request
+                console.log('📋 Request Type: JSON (POST)');
+            } catch (err) {
+                console.error('❌ Failed to parse JSON body:', err);
+                return Response.json({ 
+                    success: false, 
+                    error: 'Invalid JSON body' 
+                }, { status: 400 });
+            }
         } else {
+            // GET request = HTML request
             const url = new URL(req.url);
             paymentId = url.searchParams.get('id') || url.searchParams.get('paymentId');
             branchId = url.searchParams.get('branch') || url.searchParams.get('branchId');
             type = url.searchParams.get('type') || 'invoice';
+            isJsonRequest = false;
+            console.log('📋 Request Type: HTML (GET)');
         }
 
         console.log(`📋 Payment ID: ${paymentId}, Branch ID: ${branchId}, Type: ${type}`);
