@@ -460,9 +460,12 @@ Deno.serve(async (req) => {
                         console.log(`✅ Invoice image generated: ${invoiceImageUrl}`);
                     } else {
                         console.error(`❌ Failed to generate invoice image: ${invoiceResult.data?.error || 'Unknown error'}`);
+                        invoiceImageUrl = null; // ⭐ ล้างค่าเพื่อไม่ให้ใช้รูปเก่าที่อาจไม่ตรง
                     }
                 } catch (invoiceError) {
                     console.error(`❌ Error generating invoice image:`, invoiceError.message);
+                    console.error(`   Continue sending message without image...`);
+                    invoiceImageUrl = null; // ⭐ ส่งแค่ข้อความ ไม่มีรูป
                 }
             } else if (needsHashUpdate) {
                 try {
