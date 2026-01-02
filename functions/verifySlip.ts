@@ -380,6 +380,30 @@ Deno.serve(async (req) => {
             console.log('  Receiver PromptPay:', receiverPromptPay);
             console.log('  Receiver Name:', receiverName);
             
+            // ⭐ ถ้าไม่มี config บัญชีเลย = บังคับให้ตรวจสอบด้วยตนเอง
+            if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
+                (!expectedPromptPay || expectedPromptPay.trim() === '')) {
+                const rooms = await base44.asServiceRole.entities.Room.list();
+                const room = rooms.find(r => r.id === payment.room_id);
+                const roomNumber = room?.room_number || 'ไม่ทราบ';
+                
+                console.log('⚠️ NO CONFIG FOUND - Manual review required');
+                
+                await base44.asServiceRole.entities.Payment.update(paymentId, {
+                    payment_slip_url: uploadedSlipUrl,
+                    notes: payment.notes ? 
+                        `${payment.notes}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})` :
+                        `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
+                });
+                
+                return Response.json({ 
+                    success: true,
+                    message: `อัปโหลดสลิปสำเร็จ\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบ`,
+                    manual_review_required: true,
+                    no_config: true
+                });
+            }
+            
             let accountMatch = false;
             let nameMatch = false;
             
