@@ -70,9 +70,9 @@ const TenantCard = React.memo(({
         {(() => {
           // คำนวณคะแนนดาวจาก paymentScore หรือ avgRating
           let stars = null;
-          if (paymentScore !== null && paymentScore !== undefined && paymentScore > 0) {
+          if (paymentScore !== null && paymentScore !== undefined) {
             stars = (paymentScore / 10) * 5;
-          } else if (avgRating !== null && avgRating > 0) {
+          } else if (avgRating !== null && avgRating !== undefined) {
             stars = avgRating;
           }
           
