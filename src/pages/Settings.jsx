@@ -3673,14 +3673,28 @@ export default function Settings() {
                           // ไม่แสดงตัวเอง
                           if (user.id === currentUser?.id) return false;
                           
-                          // ⭐ กรองเฉพาะผู้ใช้ที่มีสิทธิ์ในสาขาที่ currentUser เป็นเจ้าของ
+                          // ⭐ หาสาขาที่ currentUser เป็นเจ้าของ
                           const myOwnedBranchIds = branches
                             .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
                             .map(b => b.id);
                           
+                          // ถ้าไม่มีสาขาของตัวเอง = ไม่เห็นใคร
+                          if (myOwnedBranchIds.length === 0) return false;
+                          
                           const userBranches = user.accessible_branches || [];
                           
-                          // เห็นเฉพาะคนที่เข้าถึงสาขาเดียวกัน
+                          // ⭐ ถ้าผู้ใช้ไม่มี accessible_branches set → เช็คว่าเป็น owner ของสาขาเดียวกันหรือไม่
+                          if (userBranches.length === 0) {
+                            // ผู้ใช้นี้อาจเป็น owner ของสาขาอื่นๆ
+                            const userOwnedBranches = branches
+                              .filter(b => b.owner_id === user.email || b.created_by === user.email)
+                              .map(b => b.id);
+                            
+                            // เห็นก็ต่อเมื่อเป็น owner ของสาขาเดียวกัน
+                            return userOwnedBranches.some(branchId => myOwnedBranchIds.includes(branchId));
+                          }
+                          
+                          // ⭐ ถ้ามี accessible_branches → เช็คว่าตรงกับสาขาของ currentUser หรือไม่
                           return userBranches.some(branchId => myOwnedBranchIds.includes(branchId));
                         })
                         .sort((a, b) => {
