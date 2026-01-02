@@ -1881,6 +1881,9 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
+                              // ⭐ ถ้ามีสิทธิ์เข้าแพ็กเกจ = เห็นผู้ใช้และสาขาทั้งหมดเหมือน owner
+                              const canSeeAllData = canAccessPackagePage;
+                              
                               // ⭐ แสดงผู้ใช้ที่เข้าถึงสาขาที่ currentUser เป็นเจ้าของ
                               const myOwnedBranchIds = branches
                                 .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
@@ -1891,6 +1894,9 @@ export default function Settings() {
                                 
                                 // ไม่นับ Developer
                                 if (role === 'developer') return false;
+                                
+                                // ⭐ ถ้ามีสิทธิ์เข้าแพ็กเกจ = เห็นทุกคน
+                                if (canSeeAllData) return true;
                                 
                                 // ⭐ ถ้าเป็น currentUser เอง = นับ
                                 if (user.email === currentUser?.email) return true;
@@ -1959,10 +1965,15 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
+                              // ⭐ ถ้ามีสิทธิ์เข้าแพ็กเกจ = เห็นสาขาทั้งหมดเหมือน owner
+                              const canSeeAllData = canAccessPackagePage;
+                              
                               // ⭐ แสดงเฉพาะสาขาที่ currentUser เป็นเจ้าของจริงๆ (ไม่ใช่ accessible_branches)
-                              const myOwnedBranches = branches.filter(b => 
-                                b.owner_id === currentUser?.email || b.created_by === currentUser?.email
-                              );
+                              const myOwnedBranches = canSeeAllData 
+                                ? branches 
+                                : branches.filter(b => 
+                                    b.owner_id === currentUser?.email || b.created_by === currentUser?.email
+                                  );
                               const totalBranchesInSystem = myOwnedBranches.length;
                               
                               // ⭐ เช็ค trial mode จาก currentUser.plan_status
