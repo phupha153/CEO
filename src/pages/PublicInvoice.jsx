@@ -81,15 +81,22 @@ export default function PublicInvoice() {
       try {
         console.log('🔍 [PublicInvoice] Fetching for paymentId:', paymentId);
         
-        const functionUrl = `${window.location.origin}/api/functions/getPublicInvoice`;
+        // ⭐ เรียกผ่าน Deno function path ที่ถูกต้อง
+        const functionUrl = `/api/apps/${window.location.hostname.split('.')[0]}/functions/getPublicInvoice`;
+        console.log('🔍 Function URL:', functionUrl);
+        
         const fetchResponse = await fetch(functionUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ paymentId, branchId })
         });
 
+        console.log('🔍 Response status:', fetchResponse.status);
+
         if (!fetchResponse.ok) {
-          throw new Error(`HTTP ${fetchResponse.status}`);
+          const errorText = await fetchResponse.text();
+          console.error('❌ Error response:', errorText);
+          throw new Error(`HTTP ${fetchResponse.status}: ${errorText}`);
         }
 
         const response = await fetchResponse.json();
