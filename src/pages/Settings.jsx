@@ -1892,8 +1892,9 @@ export default function Settings() {
                                 return user.accessible_branches.some(branchId => myOwnedBranchIds.includes(branchId));
                               });
 
-                              // นับจำนวนผู้ใช้เฉพาะในสาขาของเรา
-                              const totalUsersInMyBranches = usersInMyBranches.length;
+                              // ⭐ นับจำนวนผู้ใช้ + ตรวจสอบว่า currentUser อยู่ใน users array หรือไม่
+                              const currentUserInList = users.some(u => u.email === currentUser?.email);
+                              const totalUsersInMyBranches = currentUserInList ? usersInMyBranches.length : usersInMyBranches.length + 1;
                               
                               // ⭐ เช็ค trial mode จาก currentUser.plan_status
                               const isTrialMode = currentUser?.plan_status === 'trial';
