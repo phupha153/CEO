@@ -383,7 +383,11 @@ Deno.serve(async (req) => {
             })
         });
 
-        if (!browserlessResponse.ok) throw new Error(await browserlessResponse.text());
+        if (!browserlessResponse.ok) {
+            const errorText = await browserlessResponse.text();
+            console.error('❌ Browserless API Error:', browserlessResponse.status, errorText);
+            throw new Error(`Browserless API failed (${browserlessResponse.status}): ${errorText}`);
+        }
         const imageBlob = await browserlessResponse.blob();
         const imageFile = new File([imageBlob], `invoice-${paymentId}.png`, { type: 'image/png' });
 
