@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -27,6 +26,20 @@ export default function RatingDialog({ open, onOpenChange, tenant, onSubmit, isL
       if (!tenant?.id) return [];
       const allPayments = await base44.entities.Payment.list('-created_date', 50);
       return allPayments.filter(p => p.tenant_id === tenant.id);
+    },
+    enabled: !!tenant?.id && open,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  });
+
+  // ⭐ ดึงคะแนนเดิมของผู้เช่า
+  const { data: existingRatings = [] } = useQuery({
+    queryKey: ['tenant-ratings', tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return [];
+      const allRatings = await base44.entities.TenantRating.list('-rating_date', 10);
+      return allRatings.filter(r => r.tenant_id === tenant.id);
     },
     enabled: !!tenant?.id && open,
     staleTime: 5 * 60 * 1000,
