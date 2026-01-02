@@ -4017,7 +4017,14 @@ Return JSON.`;
                                                <Button 
                                                  size="sm" 
                                                  className="w-full text-xs bg-purple-600 hover:bg-purple-700"
-                                                 onClick={() => openReminderDialog(roomPayment.id)}
+                                                 onClick={(e) => {
+                                                   e.stopPropagation();
+                                                   setConfirmReminderDialog({
+                                                     open: true,
+                                                     payment: roomPayment,
+                                                     template: null
+                                                   });
+                                                 }}
                                                  disabled={sendingReminder === roomPayment.id}
                                                >
                                                  {sendingReminder === roomPayment.id ? (
