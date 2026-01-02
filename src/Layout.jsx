@@ -469,6 +469,13 @@ export default function Layout({ children, currentPageName }) {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  // ⭐ หน้า Public ไม่ต้องโหลด user
+  const isPublicPage = currentPageName === 'Welcome' || 
+                       currentPageName === 'Invoice' || 
+                       currentPageName === 'Receipt' || 
+                       currentPageName === 'PrintReceipts' || 
+                       currentPageName === 'PublicInvoice';
+
   const { data: currentUser, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
@@ -483,7 +490,7 @@ export default function Layout({ children, currentPageName }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    enabled: isOnline,
+    enabled: isOnline && !isPublicPage, // ⭐ ไม่โหลดถ้าเป็นหน้า public
     networkMode: 'online',
     onError: () => setRetryCount(prev => prev + 1),
     placeholderData: (previousData) => previousData,
@@ -522,7 +529,7 @@ export default function Layout({ children, currentPageName }) {
         return { hasAccess: true, error: true };
       }
     },
-    enabled: !isLoading && !!currentUser && isOnline,
+    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage, // ⭐ ไม่เช็คถ้าเป็นหน้า public
     staleTime: 5 * 60 * 1000,
     refetchInterval: 5 * 60 * 1000,
     refetchIntervalInBackground: false,
