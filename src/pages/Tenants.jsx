@@ -1959,7 +1959,14 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
       const activeBookings = getActiveBookings(tenant.id);
       const hasExpiringSoon = activeBookings.some(b => isContractExpiringSoon(b));
       const avgRating = getTenantAverageRating(tenant.id);
-      const paymentScore = tenant.avg_payment_score; // ⭐ เพิ่มคะแนนการชำระเงิน
+      
+      // ⭐ คำนวณ paymentScore จาก payment_scores ถ้ายังไม่มี avg_payment_score
+      let paymentScore = tenant.avg_payment_score;
+      if ((paymentScore === null || paymentScore === undefined) && tenant.payment_scores?.length > 0) {
+        const avgScore = tenant.payment_scores.reduce((sum, p) => sum + (p.score || 0), 0) / tenant.payment_scores.length;
+        paymentScore = Math.round(avgScore * 10) / 10;
+      }
+      
       const vehicleCount = getVehicleCount(tenant);
       
       // หาห้องล่าสุดที่เคยเช่า (สำหรับผู้เช่าที่ย้ายออกแล้ว)
