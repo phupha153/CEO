@@ -161,29 +161,17 @@ Deno.serve(async (req) => {
 
         console.log(`📋 Found: room=${room?.room_number || 'NOT FOUND'}, tenant=${tenant?.full_name || 'NOT FOUND'}, branch=${branch?.branch_name || 'NOT FOUND'}`);
         
-        // ⚠️ ตรวจสอบว่าข้อมูลครบถ้วนหรือไม่
+        // ⚠️ แสดง warning แต่ไม่ fail - ให้ใช้ข้อมูล fallback
         if (!room) {
-            console.error(`❌ CRITICAL: Room not found for room_id: ${payment.room_id}`);
-            return Response.json({ 
-                success: false, 
-                error: `ไม่พบข้อมูลห้อง (room_id: ${payment.room_id})` 
-            }, { status: 500 });
+            console.warn(`⚠️ WARNING: Room not found for room_id: ${payment.room_id} - Using fallback data`);
         }
         
         if (!tenant) {
-            console.error(`❌ CRITICAL: Tenant not found for tenant_id: ${payment.tenant_id}`);
-            return Response.json({ 
-                success: false, 
-                error: `ไม่พบข้อมูลผู้เช่า (tenant_id: ${payment.tenant_id})` 
-            }, { status: 500 });
+            console.warn(`⚠️ WARNING: Tenant not found for tenant_id: ${payment.tenant_id} - Using fallback data`);
         }
         
         if (!branch) {
-            console.error(`❌ CRITICAL: Branch not found for branch_id: ${actualBranchId}`);
-            return Response.json({ 
-                success: false, 
-                error: `ไม่พบข้อมูลสาขา (branch_id: ${actualBranchId})` 
-            }, { status: 500 });
+            console.warn(`⚠️ WARNING: Branch not found for branch_id: ${actualBranchId} - Using fallback data`);
         }
 
         // ดึง config ของสาขา
