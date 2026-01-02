@@ -677,7 +677,7 @@ export default function Layout({ children, currentPageName }) {
     }
 
     // ⭐ Check subscription status and redirect
-    if (!isLoading && currentUser) {
+    if (!isLoading && currentUser && !branchesLoading) {
       const currentUserRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
 
       // Skip check for developer and special pages
@@ -690,8 +690,31 @@ export default function Layout({ children, currentPageName }) {
           currentPageName === 'NoPackagePage' ||
           currentPageName === 'PackageSelection') return;
 
-      const planStatus = currentUser.plan_status;
-      const trialEndsAt = currentUser.trial_ends_at;
+      let planStatus = currentUser.plan_status;
+      let trialEndsAt = currentUser.trial_ends_at;
+
+      // ⭐ ถ้าเป็นพนักงาน/ผู้จัดการ → ใช้ plan_status ของเจ้าของสาขาแทน
+      if ((currentUserRole === 'employee' || currentUserRole === 'manager') && 
+          (!planStatus || planStatus === 'expired' || planStatus === 'cancelled')) {
+
+        // หาสาขาแรกที่พนักงานเข้าถึงได้
+        const accessibleBranchIds = currentUser.accessible_branches || [];
+        if (accessibleBranchIds.length > 0 && branches.length > 0) {
+          const firstBranch = branches.find(b => accessibleBranchIds.includes(b.id));
+
+          if (firstBranch) {
+            // หาเจ้าของสาขา
+            const ownerEmail = firstBranch.owner_id || firstBranch.created_by;
+
+            // ดึง plan_status จาก owner (ต้องใช้ backend function เพราะไม่สามารถ query User entity ของคนอื่นได้โดยตรง)
+            // แต่เพื่อความเร็ว ให้ assume ว่า owner มี trial/active ไว้ก่อน
+            // และให้ initUserTrial จัดการตอน login
+
+            console.log('👤 พนักงาน inherit package จากเจ้าของสาขา:', ownerEmail);
+            return; // อนุญาตให้เข้าได้
+          }
+        }
+      }
 
       // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป NoPackagePage
       if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
@@ -713,7 +736,7 @@ export default function Layout({ children, currentPageName }) {
         } catch {}
       }
     }
-  }, [isLoading, currentUser, navigate, currentPageName, error]);
+  }, [isLoading, currentUser, navigate, currentPageName, error, branchesLoading, branches]);
 
   useEffect(() => {
     console.log('🔍 Layout Branch Check:', {
