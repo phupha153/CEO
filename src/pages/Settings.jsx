@@ -1886,16 +1886,21 @@ export default function Settings() {
                                 .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
                                 .map(b => b.id);
                               
-                              // ⭐ กรองผู้ใช้ที่เข้าถึงสาขาของฉัน
                               const usersInMyBranches = users.filter(user => {
                                 const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                                
+                                // ไม่นับ Developer
                                 if (role === 'developer') return false;
+                                
+                                // ⭐ ถ้าเป็น currentUser เอง = นับ
                                 if (user.email === currentUser?.email) return true;
+                                
+                                // ผู้ใช้อื่นๆ ต้องมี accessible_branches ที่ตรงกับสาขาที่ currentUser เป็นเจ้าของ
                                 if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
                                 return user.accessible_branches.some(branchId => myOwnedBranchIds.includes(branchId));
                               });
 
-                              // ⭐ นับจำนวนผู้ใช้
+                              // ⭐ นับจำนวนผู้ใช้ + ตรวจสอบว่า currentUser อยู่ใน users array หรือไม่
                               const currentUserInList = users.some(u => u.email === currentUser?.email);
                               const totalUsersInMyBranches = currentUserInList ? usersInMyBranches.length : usersInMyBranches.length + 1;
                               
@@ -1934,27 +1939,17 @@ export default function Settings() {
                                       {currentUser?.full_name || currentUser?.email} <span className="text-blue-500 ml-1">(คุณ)</span>
                                     </div>
                                     
-                                    {/* แสดงพนักงานที่เหลือ - ใช้ตัวแปรภายใน closure */}
-                                    {usersInMyBranches
-                                      .filter(u => u.email !== currentUser?.email)
-                                      .slice(0, 4)
-                                      .map(user => (
-                                        <div key={user.id} className="text-xs text-slate-600 flex items-center gap-1">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                          {user.full_name || user.email}
-                                        </div>
-                                      ))}
+                                    {/* แสดงพนักงานที่เหลือ */}
+                                    {usersInMyBranches.filter(u => u.email !== currentUser?.email).slice(0, 4).map(user => (
+                                      <div key={user.id} className="text-xs text-slate-600 flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                        {user.full_name || user.email}
+                                      </div>
+                                    ))}
                                     
                                     {usersInMyBranches.filter(u => u.email !== currentUser?.email).length > 4 && (
                                       <p className="text-xs text-slate-500 italic">
                                         และอีก {usersInMyBranches.filter(u => u.email !== currentUser?.email).length - 4} คน
-                                      </p>
-                                    )}
-                                    
-                                    {/* กรณีไม่มีพนักงาน */}
-                                    {usersInMyBranches.length === 1 && (
-                                      <p className="text-xs text-slate-400 italic mt-2">
-                                        ยังไม่มีพนักงานเพิ่มเติม
                                       </p>
                                     )}
                                   </div>
