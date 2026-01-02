@@ -406,15 +406,20 @@ export default function Settings() {
     refetchOnMount: false,
   });
 
-  const { data: users = [] } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
+  const { data: usersData } = useQuery({
+    queryKey: ['usersInMyBranches'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getUsersInMyBranches', {});
+      return response.data;
+    },
     enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
+
+  const users = usersData?.users || [];
 
   const { data: branches = [] } = useQuery({
     queryKey: ['branches'],
