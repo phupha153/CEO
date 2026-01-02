@@ -675,10 +675,13 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
     } catch (error) {
         console.error('❌ Maintenance report error:', error);
         console.error('Error stack:', error.stack);
-        // ⭐ ใช้ filter แทน list + find
+        // ⭐ ใช้ filter พร้อม branch_id
         let errorTenant = null;
         try {
-            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ line_user_id: lineUserId });
+            const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
+                line_user_id: lineUserId,
+                branch_id: branchId
+            });
             errorTenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
         } catch (e) {
             console.log('⚠️ Could not find tenant for error handling:', e.message);
@@ -1324,8 +1327,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             (!expectedPromptPay || expectedPromptPay.trim() === '')) {
             console.log('⚠️ NO BANK CONFIG - Manual review required');
             
-            const rooms = await base44.asServiceRole.entities.Room.list();
-            const room = rooms.find(r => r.id === pendingPayment.room_id);
+            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
+            const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
             const roomNumber = room?.room_number || 'ไม่ทราบ';
             
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
@@ -1410,8 +1413,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         if (!accountMatch || !nameMatch) {
             console.log('❌ ACCOUNT MISMATCH - Manual review required');
             
-            const rooms = await base44.asServiceRole.entities.Room.list();
-            const room = rooms.find(r => r.id === pendingPayment.room_id);
+            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
+            const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
             const roomNumber = room?.room_number || 'ไม่ทราบ';
             
             // ⭐ สร้างข้อความที่ชัดเจนพร้อมบัญชีที่ถูกต้อง
