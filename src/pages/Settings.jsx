@@ -340,6 +340,14 @@ export default function Settings() {
     refetchOnMount: false,
   });
 
+  // ⭐ Auto-sync current user เข้า User entity เมื่อเข้าหน้า Settings
+  useEffect(() => {
+    if (currentUser) {
+      base44.functions.invoke('syncCurrentUser', {})
+        .catch(error => console.error('Failed to sync user:', error));
+    }
+  }, [currentUser?.email]);
+
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   const canManagePermissions = userRole === 'developer' || userRole === 'owner';
   const canSetGlobalConfig = userRole === 'developer' || userRole === 'owner';
