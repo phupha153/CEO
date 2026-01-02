@@ -68,6 +68,13 @@ const TenantCard = React.memo(({
 
         {/* แสดงคะแนนดาวเท่านั้น */}
         {(() => {
+          // 🔍 DEBUG: Log ข้อมูลคะแนน
+          if (tenant.full_name?.includes('ภูผา')) {
+            console.log('🔍 [TenantCard Render]', tenant.full_name);
+            console.log('  - paymentScore (prop):', paymentScore, typeof paymentScore);
+            console.log('  - avgRating (prop):', avgRating, typeof avgRating);
+          }
+          
           // คำนวณคะแนนดาวจาก paymentScore หรือ avgRating
           let stars = null;
           if (paymentScore !== null && paymentScore !== undefined) {
