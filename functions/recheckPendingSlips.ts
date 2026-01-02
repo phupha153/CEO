@@ -239,23 +239,57 @@ Deno.serve(async (req) => {
                     continue;
                 }
 
-                // เช็คบัญชีปลายทาง
+                // ⭐ เช็คบัญชีปลายทาง (เหมือน lineWebhookHandler)
                 const expectedAccountNumber = getConfigValue('bank_account_number', payment.branch_id);
                 const expectedPromptPay = getConfigValue('promptpay', payment.branch_id);
-                const receiverAccount = slipData.receiver?.account?.value || '';
-                const receiverPromptPay = slipData.receiver?.proxy?.value || '';
+                const expectedAccountName = getConfigValue('bank_account_name', payment.branch_id);
+                
+                const receiverAccount = slipData.receiver?.account?.bank?.account || '';
+                const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
+                const receiverName = slipData.receiver?.account?.name || '';
 
                 let accountMatch = false;
-                if (expectedAccountNumber && receiverAccount.includes(expectedAccountNumber.replace(/-/g, ''))) {
-                    accountMatch = true;
-                } else if (expectedPromptPay && (receiverPromptPay === expectedPromptPay || receiverAccount.includes(expectedPromptPay))) {
-                    accountMatch = true;
+                let nameMatch = false;
+                
+                // เช็คเลขบัญชี (เช็คว่าเลขในสลิปอยู่ในบัญชีเต็มหรือไม่)
+                if (expectedAccountNumber) {
+                    const expectedDigits = expectedAccountNumber.replace(/-/g, '').replace(/\s/g, '');
+                    const receiverDigits = receiverAccount.replace(/-/g, '').replace(/x/g, '').replace(/X/g, '').replace(/\s/g, '');
+                    
+                    if (receiverDigits && expectedDigits.includes(receiverDigits)) {
+                        accountMatch = true;
+                    }
+                }
+                
+                if (!accountMatch && expectedPromptPay) {
+                    if (receiverPromptPay === expectedPromptPay || receiverAccount.includes(expectedPromptPay)) {
+                        accountMatch = true;
+                    }
+                }
+                
+                // เช็คชื่อบัญชี แบบ Fuzzy
+                if (expectedAccountName && receiverName) {
+                    const cleanExpected = expectedAccountName
+                        .replace(/นาย|นาง|นางสาว|mr\.|mrs\.|miss/gi, '')
+                        .replace(/\s+/g, '')
+                        .replace(/\./g, '')
+                        .toLowerCase();
+                    
+                    const cleanReceiver = receiverName
+                        .replace(/นาย|นาง|นางสาว|mr\.|mrs\.|miss/gi, '')
+                        .replace(/\s+/g, '')
+                        .replace(/\./g, '')
+                        .toLowerCase();
+                    
+                    nameMatch = cleanReceiver.includes(cleanExpected) || cleanExpected.includes(cleanReceiver);
+                } else {
+                    nameMatch = true;
                 }
 
-                if (!accountMatch && (expectedAccountNumber || expectedPromptPay)) {
-                    console.log(`   ⚠️ Account mismatch`);
+                if (!accountMatch || !nameMatch) {
+                    console.log(`   ⚠️ Account/Name mismatch`);
                     await base44.asServiceRole.entities.Payment.update(payment.id, {
-                        notes: `${payment.notes}\n\n⚠️ โอนไปผิดบัญชี - กรุณาตรวจสอบด้วยตนเอง`
+                        notes: `${payment.notes}\n\n⚠️ โอนไปผิดบัญชีหรือชื่อไม่ตรง - กรุณาตรวจสอบด้วยตนเอง`
                     });
                     
                     failCount++;
