@@ -1499,7 +1499,9 @@ export default function PaymentsPage() {
 
   const handleConfirmSendNow = async (payment, forceTemplate = null) => {
     const effectiveStatus = getEffectiveStatus(payment);
-    const template = forceTemplate || (effectiveStatus === 'overdue' ? 'overdue' : 'due_date');
+    const template = forceTemplate || (effectiveStatus === 'overdue' ? 'overdue' : 'advance');
+    
+    console.log('🔍 handleConfirmSendNow:', { effectiveStatus, template });
     
     setConfirmReminderDialog({ open: false, payment: null });
     await handleSendReminder(payment.id, template, null);
