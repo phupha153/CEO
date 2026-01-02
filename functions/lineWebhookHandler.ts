@@ -1287,7 +1287,107 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
-        // ⭐ ชำระครบแล้ว
+        // ⭐⭐⭐ CRITICAL: เช็คบัญชีธนาคารก่อนยืนยันการชำระเงิน
+        const configs = await base44.asServiceRole.entities.Config.list();
+        const getConfigValue = (key) => {
+            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+            if (branchConfig) return branchConfig.value;
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+            return globalConfig?.value || null;
+        };
+
+        const expectedAccountNumber = getConfigValue('bank_account_number');
+        const expectedPromptPay = getConfigValue('promptpay');
+        const expectedAccountName = getConfigValue('bank_account_name');
+        
+        const receiverAccount = slipData.receiver?.account?.bank?.account || '';
+        const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
+        const receiverName = slipData.receiver?.account?.name || '';
+        
+        console.log('🔍 Account Verification:');
+        console.log('  Expected Account:', expectedAccountNumber);
+        console.log('  Expected PromptPay:', expectedPromptPay);
+        console.log('  Expected Name:', expectedAccountName);
+        console.log('  Receiver Account:', receiverAccount);
+        console.log('  Receiver PromptPay:', receiverPromptPay);
+        console.log('  Receiver Name:', receiverName);
+        
+        // ⭐ ถ้าไม่มี config บัญชีเลย = บังคับให้ตรวจสอบด้วยตนเอง
+        if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
+            (!expectedPromptPay || expectedPromptPay.trim() === '')) {
+            console.log('⚠️ NO BANK CONFIG - Manual review required');
+            
+            const rooms = await base44.asServiceRole.entities.Room.list();
+            const room = rooms.find(r => r.id === pendingPayment.room_id);
+            const roomNumber = room?.room_number || 'ไม่ทราบ';
+            
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                payment_slip_url: slipImageUrl,
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
+            });
+            
+            await sendMessage(base44, lineUserId, 
+                `📸 อัปโหลดสลิปสำเร็จ\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ`,
+                branchId,
+                replyToken
+            );
+            return;
+        }
+        
+        let accountMatch = false;
+        let nameMatch = false;
+        
+        // ⭐ เช็คเลขบัญชี/พร้อมเพย์
+        if (expectedAccountNumber && receiverAccount.includes(expectedAccountNumber.replace(/-/g, ''))) {
+            accountMatch = true;
+        } else if (expectedPromptPay && (receiverPromptPay === expectedPromptPay || receiverAccount.includes(expectedPromptPay))) {
+            accountMatch = true;
+        }
+        
+        // ⭐ เช็คชื่อบัญชี (ถ้ามีตั้งค่าไว้)
+        if (expectedAccountName && receiverName) {
+            const normalizedExpected = expectedAccountName.replace(/\s+/g, '').toLowerCase();
+            const normalizedReceiver = receiverName.replace(/\s+/g, '').toLowerCase();
+            nameMatch = normalizedReceiver.includes(normalizedExpected) || normalizedExpected.includes(normalizedReceiver);
+        } else {
+            nameMatch = true; // ถ้าไม่ได้ตั้งค่าชื่อ = ถือว่าผ่าน
+        }
+
+        console.log('  Account Match:', accountMatch);
+        console.log('  Name Match:', nameMatch);
+
+        if (!accountMatch || !nameMatch) {
+            console.log('❌ ACCOUNT MISMATCH - Manual review required');
+            
+            const rooms = await base44.asServiceRole.entities.Room.list();
+            const room = rooms.find(r => r.id === pendingPayment.room_id);
+            const roomNumber = room?.room_number || 'ไม่ทราบ';
+            
+            let errorMsg = '';
+            if (!accountMatch && !nameMatch) {
+                errorMsg = `โอนเงินไปผิดบัญชี และชื่อไม่ตรง (ตรวจพบ: ${receiverName} บช ${receiverAccount})`;
+            } else if (!accountMatch) {
+                errorMsg = `โอนเงินไปผิดบัญชี (ตรวจพบ: ${receiverAccount}, ควรโอนเข้า ${expectedAccountNumber || expectedPromptPay})`;
+            } else if (!nameMatch) {
+                errorMsg = `ชื่อบัญชีไม่ตรง (ตรวจพบ: ${receiverName}, ควรเป็น ${expectedAccountName})`;
+            }
+            
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                payment_slip_url: slipImageUrl,
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
+            });
+            
+            await sendMessage(base44, lineUserId, 
+                `📸 อัปโหลดสลิปสำเร็จ\n\n⚠️ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบ หรือติดต่อโดยตรงค่ะ`,
+                branchId,
+                replyToken
+            );
+            return;
+        }
+
+        console.log('✅ Account verification passed - Processing payment');
+
+        // ⭐ ชำระครบแล้ว + บัญชีถูกต้อง
         await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
             status: 'paid',
             payment_date: transDate.split('T')[0],
