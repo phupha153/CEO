@@ -554,19 +554,11 @@ export default function F12Page() {
             <div className="mt-6 p-4 bg-green-50 border-2 border-green-300 rounded-xl">
               <h3 className="font-bold text-green-800 mb-3 flex items-center gap-2">
                 <LinkIcon className="w-5 h-5" />
-                🔗 ลิงก์ใบแจ้งหนี้/ใบเสร็จ (ไม่ต้องล็อกอิน)
+                🔗 ทดสอบลิงก์ใบแจ้งหนี้สาธารณะ (ไม่ต้องล็อกอิน)
               </h3>
               <p className="text-sm text-green-700 mb-3">
-                สร้างลิงก์แบบ Direct URL - ใช้ได้แม้แอปเป็น Private (ข้าม React Router)
+                สร้างลิงก์ใบแจ้งหนี้ที่เข้าถึงได้โดยไม่ต้องล็อกอิน (เหมือนหน้า Welcome)
               </p>
-
-              {/* Debug URL Info */}
-              <div className="mb-3 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs space-y-1">
-                <p><strong>🔍 Debug URL:</strong></p>
-                <p>• Full URL: <code className="bg-white px-1">{window.location.href}</code></p>
-                <p>• Pathname: <code className="bg-white px-1">{window.location.pathname}</code></p>
-                <p>• Regex Match: <code className="bg-white px-1">{window.location.pathname.match(/^(\/apps\/[^\/]+)/)?.[1] || 'NOT FOUND'}</code></p>
-              </div>
 
               {/* Branch Selector */}
               <div className="flex gap-2 mb-4">
@@ -610,11 +602,8 @@ export default function F12Page() {
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
                   {pendingPayments.map((payment) => {
                     const isPaid = payment.status === 'paid';
-                    // ⭐ ดึง /apps/xxx จาก URL (ตัด /pages/... ออก)
-                    const match = window.location.pathname.match(/^(\/apps\/[^\/]+)/);
-                    const appPath = match ? match[1] : '';
-                    const publicInvoiceLink = `${window.location.origin}${appPath}/api/functions/publicInvoiceView?paymentId=${payment.id}`;
-                    const publicReceiptLink = `${window.location.origin}${appPath}/api/functions/publicReceiptView?paymentId=${payment.id}`;
+                    const publicInvoiceLink = `${window.location.origin}${createPageUrl('PublicInvoice')}?id=${payment.id}`;
+                    const publicReceiptLink = `${window.location.origin}${createPageUrl('PublicReceipt')}?id=${payment.id}`;
                     const alreadyGenerated = generatedLinks.some(l => l.paymentId === payment.id);
 
                     const statusColors = {
