@@ -1867,6 +1867,70 @@ export default function Settings() {
                         );
                       })()}
 
+                      {/* สิทธิ์การเข้าถึงแพ็กเกจ */}
+                      <Card className="bg-white border-slate-200 shadow-lg">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2 text-lg">
+                            <Shield className="w-5 h-5 text-indigo-600" />
+                            สิทธิ์การเข้าถึงแพ็กเกจ
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {(() => {
+                            // นับผู้ที่มีสิทธิ์เข้าถึงแพ็กเกจ = ผู้ที่อยู่ในสาขาของ currentUser
+                            const myOwnedBranchIds = branches
+                              .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
+                              .map(b => b.id);
+                            
+                            const usersWithPackageAccess = users.filter(user => {
+                              const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                              if (role === 'developer') return false;
+                              if (user.email === currentUser?.email) return true;
+                              if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
+                              return user.accessible_branches.some(branchId => myOwnedBranchIds.includes(branchId));
+                            });
+
+                            const currentUserInList = users.some(u => u.email === currentUser?.email);
+                            const totalWithAccess = currentUserInList ? usersWithPackageAccess.length : usersWithPackageAccess.length + 1;
+
+                            return (
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-slate-600">ผู้มีสิทธิ์ใช้แพ็กเกจ</span>
+                                  <span className="text-2xl font-bold text-indigo-600">
+                                    {totalWithAccess} คน
+                                  </span>
+                                </div>
+                                <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
+                                    style={{ width: '100%' }}
+                                  />
+                                </div>
+                                <p className="text-xs text-slate-500">
+                                  ผู้ใช้ที่เข้าถึงสาขาที่คุณเป็นเจ้าของ
+                                </p>
+
+                                {usersWithPackageAccess.length > 0 && (
+                                  <div className="pt-3 border-t border-slate-200 space-y-1.5">
+                                    <p className="text-xs font-semibold text-slate-700 mb-2">👥 รายชื่อผู้มีสิทธิ์:</p>
+                                    {usersWithPackageAccess.map(user => (
+                                      <div key={user.id} className="text-xs text-slate-600 flex items-center gap-2 bg-slate-50 px-3 py-2 rounded-lg">
+                                        <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                                        <span className="font-medium">{user.full_name || user.email}</span>
+                                        <Badge variant="outline" className="text-[10px] ml-auto">
+                                          {user.custom_role === 'owner' ? '👑' : user.custom_role === 'manager' ? '👔' : '👤'}
+                                        </Badge>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </CardContent>
+                      </Card>
+
                       {/* การใช้งานผู้ใช้และสาขา */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Card className="bg-white border-slate-200 shadow-lg">
