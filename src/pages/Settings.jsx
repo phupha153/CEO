@@ -502,52 +502,33 @@ export default function Settings() {
 
   const appMode = getConfigValue('app_mode', 'single_tenant');
 
+  // ⭐ User-Centric Package Model - ดูจาก currentUser.plan_status
   const activeSubscription = (() => {
-    // Wait until branchPackages are loaded, especially in multi_tenant mode
-    if (branchPackagesLoading) return null;
+    if (!currentUser) return null;
     
-    if (appMode === 'multi_tenant' && selectedBranch) {
-      const branchPackage = branchPackages.find(bp =>
-        bp.branch_id === selectedBranch.id && bp.status === 'active'
-      );
-
-      if (branchPackage) {
-        const isTrial = branchPackage.package_id === 'trial' || branchPackage.price_per_month === 0;
-
-        return {
-          ...branchPackage,
-          app_name: branchPackage.package_name, // Use package_name as app_name for display
-          status: isTrial ? 'trial' : 'active',
-          subscription_start_date: branchPackage.subscription_start_date,
-          subscription_end_date: branchPackage.subscription_end_date,
-          trial_end_date: isTrial ? branchPackage.subscription_end_date : null,
-          subscription_duration_months: (() => {
-            if (!branchPackage.subscription_start_date || !branchPackage.subscription_end_date) return 0;
-            const start = parseISO(branchPackage.subscription_start_date);
-            const end = parseISO(branchPackage.subscription_end_date);
-            return Math.round(differenceInDays(end, start) / 30);
-          })(),
-          price_per_month: branchPackage.price_per_month || 0,
-          total_price: (() => {
-            if (!branchPackage.subscription_start_date || !branchPackage.subscription_end_date) return 0;
-            const start = parseISO(branchPackage.subscription_start_date);
-            const end = parseISO(branchPackage.subscription_end_date);
-            const months = Math.round(differenceInDays(end, start) / 30);
-            return (branchPackage.price_per_month || 0) * months;
-          })(),
-          payment_status: 'paid', // Assuming an 'active' branch package is paid
-          auto_renew: false, // Default to false, adjust if BranchPackage has this field
-          notes: branchPackage.notes,
-        };
-      }
-
-      return null; // No active branch package found for the selected branch
+    const planStatus = currentUser.plan_status; // 'trial' | 'active' | 'expired' | 'cancelled'
+    const trialEndsAt = currentUser.trial_ends_at;
+    const subscriptionEndDate = currentUser.subscription_end_date;
+    const packageId = currentUser.package_id;
+    
+    // ถ้าไม่มี plan_status หรือ expired/cancelled = ไม่มี package
+    if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
+      return null;
     }
-
-    // Existing logic for single_tenant or if no selectedBranch in multi_tenant mode
-    return appSubscriptions.find(s => s.status === 'active') ||
-           appSubscriptions.find(s => s.status === 'trial') ||
-           appSubscriptions[0]; // Fallback to the first subscription if no active/trial
+    
+    // ⭐ สร้าง subscription object จาก User data
+    return {
+      package_id: packageId || 'trial',
+      package_name: packageId || 'ทดลองใช้งาน',
+      app_name: packageId || 'ทดลองใช้งาน',
+      status: planStatus, // 'trial' | 'active'
+      subscription_end_date: planStatus === 'trial' ? trialEndsAt : subscriptionEndDate,
+      trial_end_date: planStatus === 'trial' ? trialEndsAt : null,
+      subscription_start_date: currentUser.created_date, // ใช้วันที่สร้าง user แทน
+      payment_status: 'paid',
+      auto_renew: false,
+      notes: null
+    };
   })();
 
 
