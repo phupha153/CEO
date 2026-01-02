@@ -1453,28 +1453,16 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             notes: `${pendingPayment.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}`
         });
 
-        // ⭐⭐⭐ ส่งใบเสร็จโดยตรงเลย (ไม่ต้องส่งข้อความยืนยันแยก = ประหยัด Token)
-        console.log('📄 Sending receipt directly (skip confirmation message to save token)...');
+        // ⭐⭐⭐ ส่งใบเสร็จเท่านั้น (ไม่ส่งข้อความยืนยัน)
+        console.log('📄 Sending receipt...');
         
         try {
-            const receiptResponse = await base44.asServiceRole.functions.invoke('sendReceipt', { 
+            await base44.asServiceRole.functions.invoke('sendReceipt', { 
                 paymentId: pendingPayment.id 
             });
-            
-            if (receiptResponse.data?.success) {
-                console.log('✅ Receipt sent successfully via LINE (1 message only)');
-            } else {
-                // ⚠️ ถ้าส่งใบเสร็จไม่สำเร็จ → fallback ส่งข้อความยืนยันแทน
-                console.error('⚠️ Receipt sending failed, sending fallback message:', receiptResponse.data?.error);
-                await sendMessage(base44, lineUserId, 
-                    `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${slipAmount.toLocaleString()} บาท\n📅 วันที่: ${transDate.split('T')[0]}\n\n✓ อัปเดตสถานะ "ชำระแล้ว"\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
-                    branchId,
-                    replyToken
-                );
-            }
+            console.log('✅ Receipt sent');
         } catch (receiptError) {
-            // ⚠️ ถ้า error → fallback ส่งข้อความยืนยันแทน
-            console.error('⚠️ Failed to send receipt, sending fallback message:', receiptError.message);
+            console.error('⚠️ Receipt error:', receiptError.message);
             await sendMessage(base44, lineUserId, 
                 `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${slipAmount.toLocaleString()} บาท\n📅 วันที่: ${transDate.split('T')[0]}\n\n✓ อัปเดตสถานะ "ชำระแล้ว"\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
                 branchId,
