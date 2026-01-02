@@ -79,32 +79,20 @@ export default function PublicReceipt() {
       try {
         console.log('🔍 [PublicReceipt] Fetching for paymentId:', paymentId);
         
-        // ⭐ เรียก API endpoint โดยตรง (ไม่ผ่าน SDK เพื่อไม่ต้อง auth)
-        const apiUrl = `/api/apps/public/prod/functions/getPublicInvoice`;
-        console.log('🔍 [PublicReceipt] Calling:', apiUrl);
-        
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ paymentId })
+        const response = await base44.functions.invoke('getPublicInvoice', {
+          paymentId
         });
 
-        console.log('🔍 [PublicReceipt] Response status:', response.status);
-        const data = await response.json();
-        console.log('🔍 [PublicReceipt] Response data:', data);
+        console.log('🔍 [PublicReceipt] Response:', response.data);
         
-        if (data.success) {
-          console.log('🔍 [PublicReceipt] Late Fee:', data.invoice?.late_fee_amount);
-          setReceiptData(data.invoice);
+        if (response.data.success) {
+          setReceiptData(response.data.invoice);
         } else {
-          console.error('🔍 [PublicReceipt] Error:', data.error);
-          setError(data.error || 'ไม่พบข้อมูลใบเสร็จ');
+          setError(response.data.error || 'ไม่พบข้อมูลใบเสร็จ');
         }
       } catch (err) {
-        console.error('🔍 [PublicReceipt] Exception:', err);
-        setError('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message);
+        console.error('Error fetching receipt:', err);
+        setError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
       } finally {
         setLoading(false);
       }

@@ -8,7 +8,6 @@ Deno.serve(async (req) => {
     console.log('========================================');
 
     try {
-        // ⭐ สร้าง SDK client จาก request (แต่จะไม่ validate auth)
         const base44 = createClientFromRequest(req);
         
         // Parse request body
@@ -33,7 +32,7 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // ดึงข้อมูล Payment โดยตรงด้วย filter (ใช้ service role เพื่อข้าม auth)
+        // ดึงข้อมูล Payment โดยตรงด้วย filter
         console.log('📥 Querying Database for Payment...');
         const paymentResults = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
         
