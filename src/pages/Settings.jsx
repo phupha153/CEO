@@ -3654,17 +3654,25 @@ export default function Settings() {
                       {users
                         .filter(user => {
                           const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                          
+                          // Developer เห็นทุกคน
+                          if (userRole === 'developer') return user.id !== currentUser?.id;
+                          
+                          // Owner ไม่เห็น Developer
                           if (userRole === 'owner' && role === 'developer') return false;
+                          
+                          // ไม่แสดงตัวเอง
                           if (user.id === currentUser?.id) return false;
                           
-                          // กรองเฉพาะผู้ใช้ที่มีสิทธิ์ในสาขาที่เลือกอยู่
-                          if (selectedBranch) {
-                            const userBranches = user.accessible_branches || [];
-                            // ถ้าผู้ใช้คนนี้ไม่มีสิทธิ์ในสาขาที่เลือก = ไม่แสดง
-                            if (!userBranches.includes(selectedBranch.id)) return false;
-                          }
+                          // ⭐ กรองเฉพาะผู้ใช้ที่มีสิทธิ์ในสาขาที่ currentUser เป็นเจ้าของ
+                          const myOwnedBranchIds = branches
+                            .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
+                            .map(b => b.id);
                           
-                          return true;
+                          const userBranches = user.accessible_branches || [];
+                          
+                          // เห็นเฉพาะคนที่เข้าถึงสาขาเดียวกัน
+                          return userBranches.some(branchId => myOwnedBranchIds.includes(branchId));
                         })
                         .sort((a, b) => {
                           // เรียงตามลำดับ: pending users (ไม่มี custom_role) -> owner -> manager -> employee
