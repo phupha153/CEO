@@ -1395,7 +1395,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         let accountMatch = false;
         let nameMatch = false;
         
-        // ⭐ เช็คเลขบัญชี (เช็คว่าเลขในสลิปอยู่ในบัญชีเต็มหรือไม่)
+        // ⭐ เช็คเลขบัญชี (รองรับทุกธนาคาร - เช็ค 3-5 ตัวสุดท้าย)
         if (expectedAccountNumber) {
             const expectedDigits = expectedAccountNumber.replace(/-/g, '').replace(/\s/g, '');
             const receiverDigits = receiverAccount.replace(/-/g, '').replace(/x/g, '').replace(/X/g, '').replace(/\s/g, '');
@@ -1403,9 +1403,31 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             console.log('  → Expected:', expectedDigits);
             console.log('  → Receiver:', receiverDigits);
             
-            if (receiverDigits && expectedDigits.includes(receiverDigits)) {
-                accountMatch = true;
-                console.log('  → ✅ Match');
+            if (receiverDigits && receiverDigits.length >= 3) {
+                // ⭐ เช็ค 3-5 ตัวสุดท้าย (รองรับทุกธนาคาร)
+                const receiverLast3 = receiverDigits.slice(-3);
+                const receiverLast4 = receiverDigits.slice(-4);
+                const receiverLast5 = receiverDigits.slice(-5);
+                const expectedLast5 = expectedDigits.slice(-5);
+                const expectedLast4 = expectedDigits.slice(-4);
+                const expectedLast3 = expectedDigits.slice(-3);
+                
+                console.log('  → Expected Last 4:', expectedLast4);
+                console.log('  → Receiver Last 4:', receiverLast4);
+                
+                // เช็คว่า 4 ตัวสุดท้ายตรงกันหรือไม่ (มาตรฐาน)
+                if (receiverDigits.length >= 4 && receiverLast4 === expectedLast4) {
+                    accountMatch = true;
+                    console.log('  → ✅ Match (Last 4 digits)');
+                } else if (receiverDigits.length >= 5 && receiverLast5 === expectedLast5) {
+                    accountMatch = true;
+                    console.log('  → ✅ Match (Last 5 digits)');
+                } else if (receiverLast3 === expectedLast3) {
+                    accountMatch = true;
+                    console.log('  → ✅ Match (Last 3 digits)');
+                } else {
+                    console.log('  → ❌ Mismatch - Expected:', expectedLast4, 'Receiver:', receiverLast4);
+                }
             }
         }
         
