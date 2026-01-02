@@ -81,32 +81,19 @@ export default function PublicInvoice() {
       try {
         console.log('🔍 [PublicInvoice] Fetching for paymentId:', paymentId);
         
-        // ⭐ เรียกผ่าน Deno function path ที่ถูกต้อง
-        const functionUrl = `/api/apps/${window.location.hostname.split('.')[0]}/functions/getPublicInvoice`;
-        console.log('🔍 Function URL:', functionUrl);
-        
-        const fetchResponse = await fetch(functionUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ paymentId, branchId })
+        // ⭐ ใช้ SDK แทน fetch เพื่อให้จัดการ path อัตโนมัติทั้ง production และ preview
+        const response = await base44.functions.invoke('getPublicInvoice', {
+          paymentId,
+          branchId
         });
 
-        console.log('🔍 Response status:', fetchResponse.status);
-
-        if (!fetchResponse.ok) {
-          const errorText = await fetchResponse.text();
-          console.error('❌ Error response:', errorText);
-          throw new Error(`HTTP ${fetchResponse.status}: ${errorText}`);
-        }
-
-        const response = await fetchResponse.json();
-        console.log('🔍 [PublicInvoice] Response:', response);
+        console.log('🔍 [PublicInvoice] Response:', response.data);
         
-        if (response.success) {
-          console.log('🔍 [PublicInvoice] Invoice Data:', response.invoice);
-          setInvoiceData(response.invoice);
+        if (response.data.success) {
+          console.log('🔍 [PublicInvoice] Invoice Data:', response.data.invoice);
+          setInvoiceData(response.data.invoice);
         } else {
-          setError(response.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
+          setError(response.data.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
         }
       } catch (err) {
         console.error('Error fetching invoice:', err);
