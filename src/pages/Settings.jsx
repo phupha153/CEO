@@ -83,11 +83,11 @@ const PERMISSIONS_LIST = [
 
   { id: 'settings_view', label: 'ดูการตั้งค่า', category: 'การตั้งค่า' },
   { id: 'settings_edit', label: 'แก้ไขการตั้งค่า', category: 'การตั้งค่า' },
-  { id: 'settings_access_test_mode', label: 'เข้าถึงโหมดทดสอบ (Developer)', category: 'การตั้งค่า' },
+  { id: 'settings_access_package_page', label: 'เข้าถึงหน้าแพ็กเกจ/ซื้อแพ็กเกจ', category: 'การตั้งค่า' },
 ];
 
 const DEFAULT_PERMISSIONS_MAP = {
-  owner: PERMISSIONS_LIST.map(p => p.id).filter(id => id !== "settings_access_test_mode"),
+  owner: PERMISSIONS_LIST.map(p => p.id),
   manager: [
     "dashboard_view",
     "rooms_view", "rooms_add", "rooms_edit",
@@ -3775,6 +3775,23 @@ export default function Settings() {
                                       <Globe className="w-4 h-4 mr-2" />
                                       จัดการสาขา
                                     </Button>
+
+                                    {(user.custom_role === 'developer' || currentPermissions.includes('settings_access_test_mode')) && (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={async () => {
+                                          const newPermissions = currentPermissions.filter(p => p !== 'settings_access_test_mode');
+                                          await base44.entities.User.update(user.id, { permissions: newPermissions });
+                                          queryClient.invalidateQueries(['users']);
+                                          toast.success('ลบสิทธิ์โหมดทดสอบแล้ว');
+                                        }}
+                                        className="border-red-600 text-red-600 hover:bg-red-50 flex-1 md:flex-none"
+                                      >
+                                        <X className="w-4 h-4 mr-2" />
+                                        ลบโหมดทดสอบ
+                                      </Button>
+                                    )}
                                   </div>
                                 </div>
                               </CardContent>
