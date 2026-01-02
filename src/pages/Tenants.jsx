@@ -1967,6 +1967,16 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
         paymentScore = Math.round(avgScore * 10) / 10;
       }
       
+      // 🔍 DEBUG: แสดงข้อมูลคะแนนสำหรับผู้เช่าทุกคน
+      if (tenant.full_name?.includes('ภูผา') || isDeveloper) {
+        console.log('🔍 [TenantCard Debug]', tenant.full_name);
+        console.log('  - avg_payment_score:', tenant.avg_payment_score, typeof tenant.avg_payment_score);
+        console.log('  - payment_scores:', tenant.payment_scores);
+        console.log('  - payment_scores.length:', tenant.payment_scores?.length);
+        console.log('  - calculated paymentScore:', paymentScore);
+        console.log('  - avgRating (from TenantRating):', avgRating);
+      }
+      
       const vehicleCount = getVehicleCount(tenant);
       
       // หาห้องล่าสุดที่เคยเช่า (สำหรับผู้เช่าที่ย้ายออกแล้ว)
