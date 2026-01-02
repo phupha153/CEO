@@ -603,8 +603,8 @@ export default function F12Page() {
                   {pendingPayments.map((payment) => {
                     const isPaid = payment.status === 'paid';
                     // ⭐ ใช้ Direct Function URL - ไม่ต้องเปลี่ยน Access Control
-                    const publicInvoiceLink = `${window.location.origin}/api/apps/${Deno.env.get('BASE44_APP_ID') || 'APP_ID'}/functions/publicInvoiceView?paymentId=${payment.id}`;
-                    const publicReceiptLink = `${window.location.origin}/api/apps/${Deno.env.get('BASE44_APP_ID') || 'APP_ID'}/functions/publicReceiptView?paymentId=${payment.id}`;
+                    const publicInvoiceLink = `${window.location.origin}/api/functions/publicInvoiceView?paymentId=${payment.id}`;
+                    const publicReceiptLink = `${window.location.origin}/api/functions/publicReceiptView?paymentId=${payment.id}`;
                     const alreadyGenerated = generatedLinks.some(l => l.paymentId === payment.id);
 
                     const statusColors = {
