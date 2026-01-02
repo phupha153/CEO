@@ -1337,18 +1337,31 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         let accountMatch = false;
         let nameMatch = false;
         
-        // ⭐ เช็คเลขบัญชี/พร้อมเพย์ (เช็คเฉพาะ 4-5 หลักท้ายเพราะ slip ซ่อนส่วนหน้า)
+        // ⭐ เช็คเลขบัญชี/พร้อมเพย์ (ลอง 4-6 หลักท้ายเพราะสลิปซ่อนหน้า + ตัดเลข check digit)
         if (expectedAccountNumber) {
             const expectedDigits = expectedAccountNumber.replace(/-/g, '').replace(/\s/g, '');
-            const last5Expected = expectedDigits.slice(-5); // เอา 5 หลักท้าย (เช่น 14081)
-            const receiverDigits = receiverAccount.replace(/-/g, '').replace(/x/g, '').replace(/\s/g, '');
+            const receiverDigits = receiverAccount.replace(/-/g, '').replace(/x/g, '').replace(/X/g, '').replace(/\s/g, '');
             
-            console.log('  → Expected last 5 digits:', last5Expected);
-            console.log('  → Receiver digits (no x):', receiverDigits);
+            // ลองเช็ค 4-6 หลักท้าย
+            const last4 = expectedDigits.slice(-4);  // เช่น 4081
+            const last5 = expectedDigits.slice(-5);  // เช่น 14081
+            const last6 = expectedDigits.slice(-6);  // เช่น 140812
             
-            if (receiverDigits.includes(last5Expected)) {
+            console.log('  → Expected last 4:', last4);
+            console.log('  → Expected last 5:', last5);
+            console.log('  → Expected last 6:', last6);
+            console.log('  → Receiver digits:', receiverDigits);
+            
+            // เช็คทั้ง 3 แบบ
+            if (receiverDigits === last4 || 
+                receiverDigits === last5 || 
+                receiverDigits === last6 ||
+                receiverDigits.includes(last4) ||
+                receiverDigits.includes(last5)) {
                 accountMatch = true;
-                console.log('  → ✅ Account matched by last 5 digits');
+                console.log('  → ✅ Account matched');
+            } else {
+                console.log('  → ❌ No match found');
             }
         }
         
