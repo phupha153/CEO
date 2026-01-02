@@ -420,7 +420,11 @@ export default function Settings() {
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: async () => {
+      const response = await base44.functions.invoke('debugUserData');
+      console.log('📥 getUsersData Response:', response.data);
+      return response.data.users_in_my_branches || [];
+    },
     enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,

@@ -1,13 +1,20 @@
 import AIFinancialAnalysis from './pages/AIFinancialAnalysis';
 import AIGuidelines from './pages/AIGuidelines';
+import AccountingData from './pages/AccountingData';
 import ActivityLog from './pages/ActivityLog';
+import AllBranchesDashboard from './pages/AllBranchesDashboard';
 import Announcements from './pages/Announcements';
 import BookingReceipt from './pages/BookingReceipt';
+import Bookings from './pages/Bookings';
+import BranchManagement from './pages/BranchManagement';
+import BranchSelection from './pages/BranchSelection';
 import ContractEditor from './pages/ContractEditor';
 import ContractTemplate from './pages/ContractTemplate';
 import Contracts from './pages/Contracts';
 import CronJobDashboard from './pages/CronJobDashboard';
+import CronJobSettings from './pages/CronJobSettings';
 import CustomTestDataGenerator from './pages/CustomTestDataGenerator';
+import Dashboard from './pages/Dashboard';
 import DataArchive from './pages/DataArchive';
 import DataLists from './pages/DataLists';
 import DeveloperGuide from './pages/DeveloperGuide';
@@ -16,56 +23,56 @@ import FacebookScreencastGuide from './pages/FacebookScreencastGuide';
 import FacebookSetupGuide from './pages/FacebookSetupGuide';
 import FacebookTestDemo from './pages/FacebookTestDemo';
 import Home from './pages/Home';
+import Invoice from './pages/Invoice';
 import LineConnect from './pages/LineConnect';
 import Maintenance from './pages/Maintenance';
 import Materials from './pages/Materials';
-import NotificationSettings from './pages/NotificationSettings';
-import OwnerAI from './pages/OwnerAI';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import PublicInvoice from './pages/PublicInvoice';
-import Receipt from './pages/Receipt';
-import SupportTickets from './pages/SupportTickets';
-import TestInvoiceGeneration from './pages/TestInvoiceGeneration';
-import TestLine from './pages/TestLine';
-import TestingSMS from './pages/TestingSMS';
-import UpdateMyBranches from './pages/UpdateMyBranches';
-import Welcome from './pages/Welcome';
-import reports from './pages/reports';
-import Rooms from './pages/Rooms';
-import Settings from './pages/Settings';
-import Tenants from './pages/Tenants';
-import TrialExpiredPage from './pages/TrialExpiredPage';
-import UserBranchAccess from './pages/UserBranchAccess';
-import Bookings from './pages/Bookings';
-import BranchSelection from './pages/BranchSelection';
-import PrintReceipts from './pages/PrintReceipts';
-import f12 from './pages/f12';
-import AllBranchesDashboard from './pages/AllBranchesDashboard';
-import CronJobSettings from './pages/CronJobSettings';
-import BranchManagement from './pages/BranchManagement';
-import TestingAdmin from './pages/TestingAdmin';
-import AccountingData from './pages/AccountingData';
-import Dashboard from './pages/Dashboard';
-import Invoice from './pages/Invoice';
 import MeterReadings from './pages/MeterReadings';
 import NoPackagePage from './pages/NoPackagePage';
+import NotificationSettings from './pages/NotificationSettings';
+import OwnerAI from './pages/OwnerAI';
 import PackagePaymentPage from './pages/PackagePaymentPage';
 import PackageSelection from './pages/PackageSelection';
 import Payments from './pages/Payments';
+import PrintReceipts from './pages/PrintReceipts';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import PublicInvoice from './pages/PublicInvoice';
+import Receipt from './pages/Receipt';
+import Rooms from './pages/Rooms';
+import Settings from './pages/Settings';
+import SupportTickets from './pages/SupportTickets';
+import Tenants from './pages/Tenants';
+import TestInvoiceGeneration from './pages/TestInvoiceGeneration';
+import TestLine from './pages/TestLine';
+import TestingAdmin from './pages/TestingAdmin';
+import TestingSMS from './pages/TestingSMS';
+import TrialExpiredPage from './pages/TrialExpiredPage';
+import UpdateMyBranches from './pages/UpdateMyBranches';
+import UserBranchAccess from './pages/UserBranchAccess';
+import Welcome from './pages/Welcome';
+import f12 from './pages/f12';
+import reports from './pages/reports';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AIFinancialAnalysis": AIFinancialAnalysis,
     "AIGuidelines": AIGuidelines,
+    "AccountingData": AccountingData,
     "ActivityLog": ActivityLog,
+    "AllBranchesDashboard": AllBranchesDashboard,
     "Announcements": Announcements,
     "BookingReceipt": BookingReceipt,
+    "Bookings": Bookings,
+    "BranchManagement": BranchManagement,
+    "BranchSelection": BranchSelection,
     "ContractEditor": ContractEditor,
     "ContractTemplate": ContractTemplate,
     "Contracts": Contracts,
     "CronJobDashboard": CronJobDashboard,
+    "CronJobSettings": CronJobSettings,
     "CustomTestDataGenerator": CustomTestDataGenerator,
+    "Dashboard": Dashboard,
     "DataArchive": DataArchive,
     "DataLists": DataLists,
     "DeveloperGuide": DeveloperGuide,
@@ -74,42 +81,35 @@ export const PAGES = {
     "FacebookSetupGuide": FacebookSetupGuide,
     "FacebookTestDemo": FacebookTestDemo,
     "Home": Home,
+    "Invoice": Invoice,
     "LineConnect": LineConnect,
     "Maintenance": Maintenance,
     "Materials": Materials,
-    "NotificationSettings": NotificationSettings,
-    "OwnerAI": OwnerAI,
-    "PrivacyPolicy": PrivacyPolicy,
-    "PublicInvoice": PublicInvoice,
-    "Receipt": Receipt,
-    "SupportTickets": SupportTickets,
-    "TestInvoiceGeneration": TestInvoiceGeneration,
-    "TestLine": TestLine,
-    "TestingSMS": TestingSMS,
-    "UpdateMyBranches": UpdateMyBranches,
-    "Welcome": Welcome,
-    "reports": reports,
-    "Rooms": Rooms,
-    "Settings": Settings,
-    "Tenants": Tenants,
-    "TrialExpiredPage": TrialExpiredPage,
-    "UserBranchAccess": UserBranchAccess,
-    "Bookings": Bookings,
-    "BranchSelection": BranchSelection,
-    "PrintReceipts": PrintReceipts,
-    "f12": f12,
-    "AllBranchesDashboard": AllBranchesDashboard,
-    "CronJobSettings": CronJobSettings,
-    "BranchManagement": BranchManagement,
-    "TestingAdmin": TestingAdmin,
-    "AccountingData": AccountingData,
-    "Dashboard": Dashboard,
-    "Invoice": Invoice,
     "MeterReadings": MeterReadings,
     "NoPackagePage": NoPackagePage,
+    "NotificationSettings": NotificationSettings,
+    "OwnerAI": OwnerAI,
     "PackagePaymentPage": PackagePaymentPage,
     "PackageSelection": PackageSelection,
     "Payments": Payments,
+    "PrintReceipts": PrintReceipts,
+    "PrivacyPolicy": PrivacyPolicy,
+    "PublicInvoice": PublicInvoice,
+    "Receipt": Receipt,
+    "Rooms": Rooms,
+    "Settings": Settings,
+    "SupportTickets": SupportTickets,
+    "Tenants": Tenants,
+    "TestInvoiceGeneration": TestInvoiceGeneration,
+    "TestLine": TestLine,
+    "TestingAdmin": TestingAdmin,
+    "TestingSMS": TestingSMS,
+    "TrialExpiredPage": TrialExpiredPage,
+    "UpdateMyBranches": UpdateMyBranches,
+    "UserBranchAccess": UserBranchAccess,
+    "Welcome": Welcome,
+    "f12": f12,
+    "reports": reports,
 }
 
 export const pagesConfig = {
