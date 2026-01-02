@@ -76,10 +76,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    const base44 = createClientFromRequest(req);
+    // ⭐ ใช้ Service Role โดยตรง - ไม่ต้อง authenticate
+    const base44 = createClient(
+      Deno.env.get('BASE44_APP_ID'),
+      { serviceRoleKey: Deno.env.get('BASE44_SERVICE_ROLE_KEY') }
+    );
 
     // ดึงข้อมูลจาก function ที่มีอยู่
-    const invoiceResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', { paymentId });
+    const invoiceResult = await base44.functions.invoke('getPublicInvoice', { paymentId });
     
     if (!invoiceResult.success || !invoiceResult.invoice) {
       return new Response(
