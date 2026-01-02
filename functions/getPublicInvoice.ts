@@ -8,7 +8,24 @@ Deno.serve(async (req) => {
     console.log('========================================');
 
     try {
-        const base44 = createClientFromRequest(req);
+        // ⭐ ไม่ต้องใช้ createClientFromRequest เพราะเป็น public endpoint
+        // ใช้ service role โดยตรงแทน (ไม่ต้อง auth)
+        const API_KEY = Deno.env.get('BASE44_SERVICE_ROLE_KEY');
+        const APP_ID = Deno.env.get('BASE44_APP_ID');
+        
+        if (!API_KEY || !APP_ID) {
+            return Response.json({ 
+                success: false, 
+                error: 'Server configuration error' 
+            }, { status: 500 });
+        }
+        
+        // สร้าง SDK client ด้วย service role (ไม่ใช้ request token)
+        const { createClient } = await import('npm:@base44/sdk@0.8.4');
+        const base44 = createClient({
+            app_id: APP_ID,
+            api_key: API_KEY
+        });
         
         // Parse request body
         let paymentId, branchId;
@@ -32,9 +49,9 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // ดึงข้อมูล Payment โดยตรงด้วย filter
+        // ดึงข้อมูล Payment โดยตรงด้วย filter (ใช้ service role ที่สร้างไว้)
         console.log('📥 Querying Database for Payment...');
-        const paymentResults = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
+        const paymentResults = await base44.entities.Payment.filter({ id: paymentId });
         
         console.log(`📊 Query Results: Found ${Array.isArray(paymentResults) ? paymentResults.length : (paymentResults ? 1 : 0)} payment(s)`);
         
@@ -76,10 +93,10 @@ Deno.serve(async (req) => {
         console.log(`🔍 Looking for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}, branch_id: ${actualBranchId}`);
         
         const [allTenants, allRooms, allBranches, configs] = await Promise.all([
-            base44.asServiceRole.entities.Tenant.filter({ branch_id: actualBranchId }, '-created_date', 5000),
-            base44.asServiceRole.entities.Room.filter({ branch_id: actualBranchId }, '-created_date', 5000),
-            base44.asServiceRole.entities.Branch.list(),
-            base44.asServiceRole.entities.Config.list()
+            base44.entities.Tenant.filter({ branch_id: actualBranchId }, '-created_date', 5000),
+            base44.entities.Room.filter({ branch_id: actualBranchId }, '-created_date', 5000),
+            base44.entities.Branch.list(),
+            base44.entities.Config.list()
         ]);
 
         const tenant = payment.tenant_id ? allTenants.find(t => t.id === payment.tenant_id) : null;
