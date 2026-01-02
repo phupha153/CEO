@@ -259,6 +259,7 @@ export default function SendReminderDialog({
                 toast.error('กรุณาใส่ข้อความ');
                 return;
               }
+              console.log('🔍 SendReminderDialog: Sending with template:', selectedTemplate);
               onConfirm(selectedTemplate, customMessage);
             }}
             disabled={!customMessage.trim() || isSending}
