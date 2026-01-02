@@ -545,8 +545,23 @@ Deno.serve(async (req) => {
 
         if (lineRecipients.length > 0) {
             try {
+                // ⭐ Clean recipients to avoid circular JSON
+                const cleanedRecipients = lineRecipients.map(r => ({
+                    lineUserId: r.lineUserId,
+                    message: r.message,
+                    branchId: r.metadata?.branchId,
+                    metadata: {
+                        paymentId: r.metadata?.paymentId,
+                        tenantId: r.metadata?.tenantId,
+                        tenantName: r.metadata?.tenantName,
+                        roomNumber: r.metadata?.roomNumber,
+                        branchId: r.metadata?.branchId,
+                        platform: r.metadata?.platform
+                    }
+                }));
+
                 const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                    recipients: lineRecipients,
+                    recipients: cleanedRecipients,
                     options: {
                         batchSize: 10,
                         delayBetweenBatches: 2000,
