@@ -585,8 +585,20 @@ export default function F12Page() {
                 </Button>
               </div>
 
-              {/* แสดงรายการ Payment ที่สามารถสร้างลิงก์ได้ */}
-              {pendingPayments.length > 0 ? (
+              {/* Debug Info */}
+              <div className="mb-3 p-2 bg-slate-50 rounded text-xs text-slate-600 space-y-1">
+                <div>📊 สาขาทั้งหมด: {branches.length} | เลือก: {manualBranchId ? 'Yes' : 'No'}</div>
+                <div>📦 Payments: {paymentsLoading ? 'กำลังโหลด...' : `${pendingPayments.length} รายการ`}</div>
+                {manualBranchId && <div>🏢 Branch ID: {manualBranchId.substring(0, 8)}...</div>}
+              </div>
+
+              {/* Loading State */}
+              {paymentsLoading ? (
+                <div className="text-center py-8 bg-white rounded-lg border-2 border-dashed border-green-200">
+                  <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin text-green-500" />
+                  <p className="text-sm text-slate-600">กำลังโหลด Payments...</p>
+                </div>
+              ) : pendingPayments.length > 0 ? (
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
                   {pendingPayments.map((payment) => {
                     const publicLink = `${window.location.origin}${createPageUrl('PublicInvoice')}?paymentId=${payment.id}`;
