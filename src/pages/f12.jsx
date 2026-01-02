@@ -602,12 +602,11 @@ export default function F12Page() {
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
                   {pendingPayments.map((payment) => {
                     const isPaid = payment.status === 'paid';
-                    // ⭐ ดึง App Path จาก URL ปัจจุบัน
-                    const currentPath = window.location.pathname;
-                    const appPathMatch = currentPath.match(/^(\/apps\/[^\/]+)/);
-                    const appPath = appPathMatch ? appPathMatch[1] : '';
-                    const publicInvoiceLink = `${window.location.origin}${appPath}/api/functions/publicInvoiceView?paymentId=${payment.id}`;
-                    const publicReceiptLink = `${window.location.origin}${appPath}/api/functions/publicReceiptView?paymentId=${payment.id}`;
+                    // ⭐ สร้าง URL แบบ absolute จาก window.location
+                    const pathParts = window.location.pathname.split('/');
+                    const basePath = pathParts.slice(0, 3).join('/'); // เช่น /apps/xxx
+                    const publicInvoiceLink = `${window.location.origin}${basePath}/api/functions/publicInvoiceView?paymentId=${payment.id}`;
+                    const publicReceiptLink = `${window.location.origin}${basePath}/api/functions/publicReceiptView?paymentId=${payment.id}`;
                     const alreadyGenerated = generatedLinks.some(l => l.paymentId === payment.id);
 
                     const statusColors = {
