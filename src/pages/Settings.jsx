@@ -420,18 +420,19 @@ export default function Settings() {
     queryKey: ['branches'],
     queryFn: async () => {
       const allBranches = await base44.entities.Branch.list();
-      // Filter เฉพาะสาขาที่มีสิทธิ์เข้าถึง
       if (userRole === 'developer') return allBranches;
       
       const accessibleBranchIds = currentUser?.accessible_branches;
       
-      // ⭐ ถ้ามี accessible_branches set (ไม่ว่าจะ [] หรือมีค่า) = กรองตาม list นั้น
+      // ⭐ ถ้ามี accessible_branches set = กรองตาม list นั้น
       if (accessibleBranchIds !== null && accessibleBranchIds !== undefined) {
         return allBranches.filter(b => accessibleBranchIds.includes(b.id));
       }
       
-      // ⭐ ถ้าไม่ได้ set accessible_branches = ไม่แสดงสาขาเลย (แสดงแค่ [])
-      return [];
+      // ⭐ ถ้าไม่ได้ set accessible_branches = แสดงเฉพาะสาขาที่เป็นเจ้าของ (owner_id)
+      return allBranches.filter(b => 
+        b.owner_id === currentUser?.email || b.created_by === currentUser?.email
+      );
     },
     enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
