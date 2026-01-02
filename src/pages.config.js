@@ -33,8 +33,10 @@ import NotificationSettings from './pages/NotificationSettings';
 import OwnerAI from './pages/OwnerAI';
 import PackagePaymentPage from './pages/PackagePaymentPage';
 import PackageSelection from './pages/PackageSelection';
+import Payments from './pages/Payments';
 import PrintReceipts from './pages/PrintReceipts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import PublicInvoice from './pages/PublicInvoice';
 import Receipt from './pages/Receipt';
 import Rooms from './pages/Rooms';
 import Settings from './pages/Settings';
@@ -48,10 +50,8 @@ import TrialExpiredPage from './pages/TrialExpiredPage';
 import UpdateMyBranches from './pages/UpdateMyBranches';
 import UserBranchAccess from './pages/UserBranchAccess';
 import Welcome from './pages/Welcome';
-import reports from './pages/reports';
-import Payments from './pages/Payments';
-import PublicInvoice from './pages/PublicInvoice';
 import f12 from './pages/f12';
+import reports from './pages/reports';
 import __Layout from './Layout.jsx';
 
 
@@ -91,8 +91,10 @@ export const PAGES = {
     "OwnerAI": OwnerAI,
     "PackagePaymentPage": PackagePaymentPage,
     "PackageSelection": PackageSelection,
+    "Payments": Payments,
     "PrintReceipts": PrintReceipts,
     "PrivacyPolicy": PrivacyPolicy,
+    "PublicInvoice": PublicInvoice,
     "Receipt": Receipt,
     "Rooms": Rooms,
     "Settings": Settings,
@@ -106,10 +108,8 @@ export const PAGES = {
     "UpdateMyBranches": UpdateMyBranches,
     "UserBranchAccess": UserBranchAccess,
     "Welcome": Welcome,
-    "reports": reports,
-    "Payments": Payments,
-    "PublicInvoice": PublicInvoice,
     "f12": f12,
+    "reports": reports,
 }
 
 export const pagesConfig = {
