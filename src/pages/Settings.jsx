@@ -1895,11 +1895,6 @@ export default function Settings() {
                                 // ⭐ ถ้าเป็น currentUser เอง = นับ
                                 if (user.email === currentUser?.email) return true;
                                 
-                                // ⭐ หาสาขาที่ currentUser เป็นเจ้าของ
-                                const myOwnedBranchIds = branches
-                                  .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
-                                  .map(b => b.id);
-                                
                                 // ถ้าไม่มีสาขาของตัวเอง = ไม่เห็นใคร
                                 if (myOwnedBranchIds.length === 0) return false;
                                 
