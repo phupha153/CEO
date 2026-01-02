@@ -423,15 +423,15 @@ export default function Settings() {
       // Filter เฉพาะสาขาที่มีสิทธิ์เข้าถึง
       if (userRole === 'developer') return allBranches;
       
-      const accessibleBranchIds = currentUser?.accessible_branches || [];
-      if (!accessibleBranchIds || accessibleBranchIds.length === 0) {
-        // ถ้าเป็น owner ที่ไม่มี accessible_branches set = ดูเฉพาะสาขาที่ตัวเองสร้าง
-        return allBranches.filter(b => 
-          b.owner_id === currentUser?.email || b.created_by === currentUser?.email
-        );
+      const accessibleBranchIds = currentUser?.accessible_branches;
+      
+      // ⭐ ถ้ามี accessible_branches set (ไม่ว่าจะ [] หรือมีค่า) = กรองตาม list นั้น
+      if (accessibleBranchIds !== null && accessibleBranchIds !== undefined) {
+        return allBranches.filter(b => accessibleBranchIds.includes(b.id));
       }
       
-      return allBranches.filter(b => accessibleBranchIds.includes(b.id));
+      // ⭐ ถ้าไม่ได้ set accessible_branches = ไม่แสดงสาขาเลย (แสดงแค่ [])
+      return [];
     },
     enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
