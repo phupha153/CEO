@@ -1098,10 +1098,26 @@ export default function PaymentsPage() {
         throw new Error('คุณไม่มีสิทธิ์ยืนยันการชำระเงิน');
       }
       console.log('✅ Permission check passed, calling API...');
+      
+      // ⭐ FIX: ดึง payment เดิมมาก่อน เพื่อ clean notes
+      const existingPayment = await base44.entities.Payment.filter({ id }, '', 1);
+      const payment = existingPayment[0];
+      
+      // ⭐ ลบ warning flags ออกจาก notes + เพิ่มการยืนยัน
+      let cleanedNotes = payment?.notes || '';
+      if (cleanedNotes.includes('⚠️ รอตรวจสอบ')) {
+        // เอาแค่ส่วน warning ออก แล้วเพิ่มการยืนยัน
+        cleanedNotes = cleanedNotes
+          .split('\n\n')
+          .filter(line => !line.includes('⚠️ รอตรวจสอบ') && !line.includes('⚠️ โอนไปผิดบัญชี'))
+          .join('\n\n')
+          .trim();
+      }
+      
       const result = await base44.entities.Payment.update(id, { 
         status, 
         payment_date,
-        notes: '✅ ยืนยันชำระแล้ว (ผ่านการตรวจสอบด้วยตนเอง)'
+        notes: (cleanedNotes ? cleanedNotes + '\n\n' : '') + '✅ ยืนยันชำระแล้ว (ผ่านการตรวจสอบด้วยตนเอง)'
       });
       console.log('📤 API call completed:', result);
       return result;
@@ -2295,11 +2311,12 @@ Return JSON.`;
 
           {/* แจ้งเตือนสลิปที่รอตรวจสอบ */}
           {(() => {
-            const needReviewPayments = payments.filter(p => 
-              p.notes?.includes('⚠️ รอตรวจสอบ') && 
-              p.status !== 'paid' &&
-              !p.notes?.includes('✅ ยืนยันชำระแล้ว')
-            );
+            // ⭐ FIX: แสดงห้องที่รอตรวจ ไม่สนใจ status (เพราะอาจยืนยันไปแล้วแต่ยัง flag อยู่)
+            const needReviewPayments = payments.filter(p => {
+              const hasReviewFlag = p.notes?.includes('⚠️ รอตรวจสอบ');
+              const alreadyConfirmed = p.notes?.includes('✅ ยืนยันชำระแล้ว');
+              return hasReviewFlag && !alreadyConfirmed;
+            });
             if (needReviewPayments.length === 0) return null;
 
             return (
