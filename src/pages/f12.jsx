@@ -588,7 +588,7 @@ export default function F12Page() {
               {/* Debug Info */}
               <div className="mb-3 p-2 bg-slate-50 rounded text-xs text-slate-600 space-y-1">
                 <div>📊 สาขาทั้งหมด: {branches.length} | เลือก: {manualBranchId ? 'Yes' : 'No'}</div>
-                <div>📦 Payments: {paymentsLoading ? 'กำลังโหลด...' : `${pendingPayments.length} รายการ`}</div>
+                <div>📦 Payments: {paymentsLoading ? 'กำลังโหลด...' : `${pendingPayments.length} รายการ (${pendingPayments.filter(p => p.status === 'paid').length} ชำระแล้ว)`}</div>
                 {manualBranchId && <div>🏢 Branch ID: {manualBranchId.substring(0, 8)}...</div>}
               </div>
 
@@ -601,7 +601,9 @@ export default function F12Page() {
               ) : pendingPayments.length > 0 ? (
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
                   {pendingPayments.map((payment) => {
-                    const publicLink = `${window.location.origin}${createPageUrl('PublicInvoice')}?id=${payment.id}`;
+                    const isPaid = payment.status === 'paid';
+                    const publicInvoiceLink = `${window.location.origin}${createPageUrl('PublicInvoice')}?id=${payment.id}`;
+                    const publicReceiptLink = `${window.location.origin}${createPageUrl('PublicReceipt')}?id=${payment.id}`;
                     const alreadyGenerated = generatedLinks.some(l => l.paymentId === payment.id);
 
                     const statusColors = {
@@ -612,9 +614,9 @@ export default function F12Page() {
                     };
 
                     return (
-                      <div key={payment.id} className="bg-white p-3 rounded-lg border border-green-200 flex items-center justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
+                      <div key={payment.id} className="bg-white p-3 rounded-lg border border-green-200">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
                             <p className="text-sm font-semibold text-slate-800 truncate">
                               {payment.id.substring(0, 8)}...
                             </p>
@@ -622,49 +624,78 @@ export default function F12Page() {
                               {payment.status}
                             </Badge>
                           </div>
-                          <p className="text-xs text-slate-600">
-                            ยอด: {payment.total_amount?.toLocaleString()} บาท • ครบ: {payment.due_date ? new Date(payment.due_date).toLocaleDateString('th-TH') : '-'}
-                          </p>
-                          {alreadyGenerated && (
-                            <div className="mt-1 flex items-center gap-1">
+                        </div>
+                        <p className="text-xs text-slate-600 mb-2">
+                          ยอด: {payment.total_amount?.toLocaleString()} บาท • ครบ: {payment.due_date ? new Date(payment.due_date).toLocaleDateString('th-TH') : '-'}
+                        </p>
+                        {alreadyGenerated ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-medium text-orange-600 w-16">ใบแจ้งหนี้:</span>
                               <input
                                 type="text"
                                 readOnly
-                                value={publicLink}
-                                className="flex-1 text-xs bg-green-50 border border-green-300 rounded px-2 py-1"
+                                value={publicInvoiceLink}
+                                className="flex-1 text-xs bg-orange-50 border border-orange-300 rounded px-2 py-1"
                               />
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => {
-                                  navigator.clipboard.writeText(publicLink);
-                                  toast.success('คัดลอกลิงก์แล้ว');
+                                  navigator.clipboard.writeText(publicInvoiceLink);
+                                  toast.success('คัดลอกลิงก์ใบแจ้งหนี้แล้ว');
                                 }}
                                 className="h-7 text-xs"
                               >
                                 Copy
                               </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => window.open(publicInvoiceLink, '_blank')}
+                                className="bg-orange-600 hover:bg-orange-700 h-7 text-xs"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </Button>
                             </div>
-                          )}
-                        </div>
-                        {alreadyGenerated ? (
-                          <Button
-                            size="sm"
-                            onClick={() => window.open(publicLink, '_blank')}
-                            className="bg-green-600 hover:bg-green-700 h-8"
-                          >
-                            <ExternalLink className="w-3 h-3 mr-1" />
-                            เปิดลิงก์
-                          </Button>
+                            {isPaid && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs font-medium text-green-600 w-16">ใบเสร็จ:</span>
+                                <input
+                                  type="text"
+                                  readOnly
+                                  value={publicReceiptLink}
+                                  className="flex-1 text-xs bg-green-50 border border-green-300 rounded px-2 py-1"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(publicReceiptLink);
+                                    toast.success('คัดลอกลิงก์ใบเสร็จแล้ว');
+                                  }}
+                                  className="h-7 text-xs"
+                                >
+                                  Copy
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={() => window.open(publicReceiptLink, '_blank')}
+                                  className="bg-green-600 hover:bg-green-700 h-7 text-xs"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           <Button
                             size="sm"
                             onClick={() => {
-                              setGeneratedLinks(prev => [...prev, { paymentId: payment.id, link: publicLink }]);
+                              setGeneratedLinks(prev => [...prev, { paymentId: payment.id, link: publicInvoiceLink }]);
                               toast.success('สร้างลิงก์แล้ว!');
                             }}
                             variant="outline"
-                            className="border-green-300 text-green-700 hover:bg-green-50 h-8"
+                            className="w-full border-green-300 text-green-700 hover:bg-green-50 h-8"
                           >
                             สร้างลิงก์
                           </Button>

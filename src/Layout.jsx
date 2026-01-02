@@ -474,7 +474,8 @@ export default function Layout({ children, currentPageName }) {
                        currentPageName === 'Invoice' || 
                        currentPageName === 'Receipt' || 
                        currentPageName === 'PrintReceipts' || 
-                       currentPageName === 'PublicInvoice';
+                       currentPageName === 'PublicInvoice' ||
+                       currentPageName === 'PublicReceipt';
 
   const { data: currentUser, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['currentUser'],
@@ -678,7 +679,8 @@ export default function Layout({ children, currentPageName }) {
         currentPageName !== 'Invoice' &&
         currentPageName !== 'Receipt' &&
         currentPageName !== 'PrintReceipts' &&
-        currentPageName !== 'PublicInvoice') {
+        currentPageName !== 'PublicInvoice' &&
+        currentPageName !== 'PublicReceipt') {
       navigate(createPageUrl('Welcome'), { replace: true });
       return;
     }
@@ -849,6 +851,7 @@ export default function Layout({ children, currentPageName }) {
   if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
       currentPageName === 'PrintReceipts' || 
       currentPageName === 'PublicInvoice' ||
+      currentPageName === 'PublicReceipt' ||
       currentPageName === 'TrialExpiredPage' ||
       currentPageName === 'NoPackagePage' ||
       currentPageName === 'PackageSelection' ||
