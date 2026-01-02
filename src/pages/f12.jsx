@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Terminal, Trash2, AlertCircle, Info, AlertTriangle, Bug, Eye, User, Settings, Loader2 } from "lucide-react";
+import { Terminal, Trash2, AlertCircle, Info, AlertTriangle, Bug, Eye, User, Settings, Loader2, ExternalLink, Link as LinkIcon } from "lucide-react";
 import PageHeader from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import { createPageUrl } from "@/utils";
 
 export default function F12Page() {
   const [logs, setLogs] = useState([]);
@@ -14,6 +15,7 @@ export default function F12Page() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteProgress, setDeleteProgress] = useState({ deleted: 0, remaining: 0, initial: 0 });
   const [manualBranchId, setManualBranchId] = useState('69255a34e816a8749fc765c2');
+  const [generatedLinks, setGeneratedLinks] = useState([]);
 
   // Fetch user data for debugging
   const { data: currentUser } = useQuery({
@@ -24,6 +26,20 @@ export default function F12Page() {
   const { data: branches = [] } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
+  });
+
+  // ⭐ Fetch payments for link testing
+  const { data: pendingPayments = [], refetch: refetchPayments } = useQuery({
+    queryKey: ['pendingPayments', manualBranchId],
+    queryFn: async () => {
+      if (!manualBranchId) return [];
+      const payments = await base44.entities.Payment.filter({ 
+        branch_id: manualBranchId,
+        status: 'pending'
+      });
+      return payments.slice(0, 5); // แสดงแค่ 5 รายการแรก
+    },
+    enabled: !!manualBranchId
   });
 
   useEffect(() => {
@@ -524,6 +540,111 @@ export default function F12Page() {
                   )}
                 </Button>
               </div>
+            </div>
+
+            {/* ⭐ Public Invoice Link Generator */}
+            <div className="mt-6 p-4 bg-green-50 border-2 border-green-300 rounded-xl">
+              <h3 className="font-bold text-green-800 mb-3 flex items-center gap-2">
+                <LinkIcon className="w-5 h-5" />
+                🔗 ทดสอบลิงก์ใบแจ้งหนี้สาธารณะ (ไม่ต้องล็อกอิน)
+              </h3>
+              <p className="text-sm text-green-700 mb-3">
+                สร้างลิงก์ใบแจ้งหนี้ที่เข้าถึงได้โดยไม่ต้องล็อกอิน (เหมือนหน้า Welcome)
+              </p>
+
+              {/* แสดงรายการ Payment ที่สามารถสร้างลิงก์ได้ */}
+              {pendingPayments.length > 0 ? (
+                <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
+                  {pendingPayments.map((payment) => {
+                    const publicLink = `${window.location.origin}${createPageUrl('PublicInvoice')}?paymentId=${payment.id}`;
+                    const alreadyGenerated = generatedLinks.some(l => l.paymentId === payment.id);
+
+                    return (
+                      <div key={payment.id} className="bg-white p-3 rounded-lg border border-green-200 flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate">
+                            Payment: {payment.id.substring(0, 8)}...
+                          </p>
+                          <p className="text-xs text-slate-600">
+                            ยอด: {payment.total_amount?.toLocaleString()} บาท
+                          </p>
+                          {alreadyGenerated && (
+                            <div className="mt-1 flex items-center gap-1">
+                              <input
+                                type="text"
+                                readOnly
+                                value={publicLink}
+                                className="flex-1 text-xs bg-green-50 border border-green-300 rounded px-2 py-1"
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(publicLink);
+                                  toast.success('คัดลอกลิงก์แล้ว');
+                                }}
+                                className="h-7 text-xs"
+                              >
+                                Copy
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                        {alreadyGenerated ? (
+                          <Button
+                            size="sm"
+                            onClick={() => window.open(publicLink, '_blank')}
+                            className="bg-green-600 hover:bg-green-700 h-8"
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            เปิดลิงก์
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setGeneratedLinks(prev => [...prev, { paymentId: payment.id, link: publicLink }]);
+                              toast.success('สร้างลิงก์แล้ว!');
+                            }}
+                            variant="outline"
+                            className="border-green-300 text-green-700 hover:bg-green-50 h-8"
+                          >
+                            สร้างลิงก์
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-slate-500 bg-white rounded-lg border-2 border-dashed border-green-200">
+                  <LinkIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">ไม่มี Payment (pending) ในสาขานี้</p>
+                  <p className="text-xs mt-1">ลองเปลี่ยน Branch ID ด้านล่าง</p>
+                </div>
+              )}
+
+              {/* Generate All Links */}
+              <Button
+                onClick={() => {
+                  if (pendingPayments.length === 0) {
+                    toast.error('ไม่มี Payment ให้สร้างลิงก์');
+                    return;
+                  }
+                  const newLinks = pendingPayments.map(p => ({
+                    paymentId: p.id,
+                    link: `${window.location.origin}${createPageUrl('PublicInvoice')}?paymentId=${p.id}`
+                  }));
+                  setGeneratedLinks(newLinks);
+                  toast.success(`สร้างลิงก์ทั้งหมด ${pendingPayments.length} รายการแล้ว!`);
+                }}
+                variant="outline"
+                size="sm"
+                className="w-full border-green-300 text-green-700 hover:bg-green-50"
+              >
+                <LinkIcon className="w-4 h-4 mr-2" />
+                สร้างลิงก์ทั้งหมด ({pendingPayments.length})
+              </Button>
             </div>
 
             {/* Delete Progress Indicator */}
