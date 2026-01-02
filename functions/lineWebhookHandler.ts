@@ -1158,49 +1158,33 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
-        // ⭐⭐⭐ แยกประเภท error:
-        // 1. ไม่พบ QR Code เลย = ไม่ใช่สลิป (ผ้าขนหนู, รูปทั่วไป) → ไม่ตอบ ไม่บันทึก
-        // 2. สลิปปลอม (Fraud) = ไม่ใช่สลิปจริง → ไม่ตอบ ไม่บันทึก
-        // 3. พบ QR แต่ธนาคารยังไม่มีข้อมูล (กรุงไทย/กรุงเทพ) → บันทึกรอตรวจซ้ำ
+        // ⭐⭐⭐ Slip2Go Error Codes:
+        // 200500 = Fraud (สลิปปลอม) → ไม่ตอบ ไม่บันทึก
+        // 200404 = Not found (ธนาคารยัง sync ไม่ทัน) → บันทึกรอตรวจซ้ำ
+        // อื่นๆ = Unknown error → ไม่ตอบ ไม่บันทึก
 
         const isFraudSlip = errorCode === '200500' || errorMessage.toLowerCase().includes('fraud');
 
-        // ⭐ สลิปปลอม = ไม่ตอบอะไรเลย
+        // ⭐ สลิปปลอม = เงียบ
         if (isFraudSlip && !verificationSuccess) {
-            console.log(`ℹ️ Fraud slip detected (code: ${errorCode}) - NOT responding, NOT saving`);
-            return;
-        }
-
-        const isNoQRCode = errorCode === '200400' || 
-                          errorMessage.toLowerCase().includes('qr code not found') ||
-                          errorMessage.toLowerCase().includes('no qr') ||
-                          errorMessage.toLowerCase().includes('cannot detect') ||
-                          errorMessage.toLowerCase().includes('invalid image');
-
-        // ⭐ ไม่พบ QR Code = ไม่ใช่สลิป → ไม่ตอบอะไรเลย
-        if (isNoQRCode && !verificationSuccess) {
-            console.log(`ℹ️ No QR code found - image is not a slip (code: ${errorCode}) - NOT responding, NOT saving`);
+            console.log(`ℹ️ Fraud slip (${errorCode}) - NOT responding, NOT saving`);
             return;
         }
 
         const isSlipValid = slip2goResponse.ok && slip2goData.data && verificationSuccess;
-        
+
         if (!isSlipValid) {
-            // ⭐ แยกประเภท error:
-            // - 200404 (Slip not found) = สลิปจริงแต่ธนาคารยัง sync ไม่ทัน → บันทึกเพื่อตรวจซ้ำ
-            // - error อื่นๆ = รูปขยะ → ไม่บันทึก
-            
             const isSlipNotFound = errorCode === '200404' || errorMessage === 'Slip not found';
-            
+
             if (isSlipNotFound) {
-                console.log(`⏳ Slip not found in bank (code: ${errorCode}) - SAVING for recheck`);
-                
+                console.log(`⏳ Slip not found (${errorCode}) - SAVING for recheck`);
+
                 const now = new Date().toISOString();
                 await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                     payment_slip_url: slipImageUrl,
                     notes: `${pendingPayment.notes || ''}\n\n⏳ รอตรวจสอบซ้ำ: ธนาคารยังไม่มีข้อมูล - ${now}`
                 });
-                
+
                 await sendMessage(base44, lineUserId, 
                     `📸 ได้รับสลิปแล้ว!\n\n⏳ ธนาคารกำลังประมวลผล\nระบบจะตรวจสอบซ้ำอัตโนมัติทุก 15-30 นาที\n\nหากชำระครบจะได้รับใบเสร็จอัตโนมัติค่ะ`,
                     branchId,
@@ -1208,9 +1192,9 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 );
                 return;
             }
-            
-            // error อื่นๆ ที่ไม่ชัดเจน → ไม่ตอบ ไม่บันทึก (ป้องกันรูปขยะ)
-            console.log(`ℹ️ Unknown error (code: ${errorCode}, msg: ${errorMessage}) - NOT responding, NOT saving`);
+
+            // Unknown error → เงียบ (ป้องกันรูปไม่เกี่ยวข้อง)
+            console.log(`ℹ️ Unknown error (${errorCode}: ${errorMessage}) - NOT responding, NOT saving`);
             return;
         }
 
