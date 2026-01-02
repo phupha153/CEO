@@ -1886,34 +1886,58 @@ export default function Settings() {
                                 .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
                                 .map(b => b.id);
                               
+                              console.log('🔍 DEBUG - Package Tab User Count:');
+                              console.log('  currentUser:', currentUser?.email);
+                              console.log('  myOwnedBranchIds:', myOwnedBranchIds);
+                              console.log('  branches.length:', branches.length);
+                              console.log('  users.length:', users.length);
+                              
                               const usersInMyBranches = users.filter(user => {
                                 const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
                                 
                                 // ไม่นับ Developer
-                                if (role === 'developer') return false;
+                                if (role === 'developer') {
+                                  console.log(`  ❌ ${user.email} - Skip (developer)`);
+                                  return false;
+                                }
                                 
                                 // ⭐ ถ้าเป็น currentUser เอง = นับ
-                                if (user.email === currentUser?.email) return true;
+                                if (user.email === currentUser?.email) {
+                                  console.log(`  ✅ ${user.email} - Include (self)`);
+                                  return true;
+                                }
                                 
                                 // ถ้าไม่มีสาขาของตัวเอง = ไม่เห็นใคร
-                                if (myOwnedBranchIds.length === 0) return false;
+                                if (myOwnedBranchIds.length === 0) {
+                                  console.log(`  ❌ ${user.email} - No owned branches`);
+                                  return false;
+                                }
                                 
                                 const userBranches = user.accessible_branches || [];
+                                console.log(`  🔎 Checking ${user.email}:`, {
+                                  accessible_branches: userBranches,
+                                  myOwnedBranchIds
+                                });
                                 
                                 // ⭐ ถ้าผู้ใช้ไม่มี accessible_branches set → เช็คว่าเป็น owner ของสาขาเดียวกันหรือไม่
                                 if (userBranches.length === 0) {
-                                  // ผู้ใช้นี้อาจเป็น owner ของสาขาอื่นๆ
                                   const userOwnedBranches = branches
                                     .filter(b => b.owner_id === user.email || b.created_by === user.email)
                                     .map(b => b.id);
-                                  
-                                  // เห็นก็ต่อเมื่อเป็น owner ของสาขาเดียวกัน
-                                  return userOwnedBranches.some(branchId => myOwnedBranchIds.includes(branchId));
+                                  const result = userOwnedBranches.some(branchId => myOwnedBranchIds.includes(branchId));
+                                  console.log(`  ${result ? '✅' : '❌'} ${user.email} - No accessible_branches, owned check: ${result}`);
+                                  return result;
                                 }
                                 
                                 // ⭐ ถ้ามี accessible_branches → เช็คว่าตรงกับสาขาของ currentUser หรือไม่
-                                return userBranches.some(branchId => myOwnedBranchIds.includes(branchId));
+                                const overlap = userBranches.filter(branchId => myOwnedBranchIds.includes(branchId));
+                                const result = overlap.length > 0;
+                                console.log(`  ${result ? '✅' : '❌'} ${user.email} - Has accessible_branches, overlap:`, overlap);
+                                return result;
                               });
+                              
+                              console.log('📊 Total usersInMyBranches:', usersInMyBranches.length);
+                              console.log('📋 Users:', usersInMyBranches.map(u => u.email));
 
                               // ⭐ นับจำนวนผู้ใช้ + ตรวจสอบว่า currentUser อยู่ใน users array หรือไม่
                               const currentUserInList = users.some(u => u.email === currentUser?.email);
