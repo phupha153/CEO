@@ -352,44 +352,85 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // ตรวจสอบบัญชีปลายทาง
+            // ⭐ ตรวจสอบบัญชีปลายทาง (เช็คทั้งเลขบัญชีและชื่อบัญชี)
             const configs = await base44.asServiceRole.entities.Config.list();
             const getConfigValue = (key) => {
-                const config = configs.find(c => c.key === key && !c.branch_id);
-                return config?.value || null;
+                // ⭐ หา config เฉพาะสาขาก่อน ถ้าไม่มีค่อย fallback ไป global
+                const branchConfig = configs.find(c => c.key === key && c.branch_id === payment.branch_id);
+                if (branchConfig) return branchConfig.value;
+                
+                const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+                return globalConfig?.value || null;
             };
 
             const expectedAccountNumber = getConfigValue('bank_account_number');
             const expectedPromptPay = getConfigValue('promptpay');
+            const expectedAccountName = getConfigValue('bank_account_name');
             
-            const receiverAccount = slipData.receiver?.account?.value || '';
-            const receiverPromptPay = slipData.receiver?.proxy?.value || '';
+            // ⭐ แก้ไข: ดึงเลขบัญชีและชื่อจาก slip data ให้ถูกต้อง
+            const receiverAccount = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.value || '';
+            const receiverPromptPay = slipData.receiver?.account?.proxy?.value || slipData.receiver?.proxy?.value || '';
+            const receiverName = slipData.receiver?.account?.name || '';
+            
+            console.log('🔍 Checking account match:');
+            console.log('  Expected Account:', expectedAccountNumber);
+            console.log('  Expected PromptPay:', expectedPromptPay);
+            console.log('  Expected Name:', expectedAccountName);
+            console.log('  Receiver Account:', receiverAccount);
+            console.log('  Receiver PromptPay:', receiverPromptPay);
+            console.log('  Receiver Name:', receiverName);
             
             let accountMatch = false;
+            let nameMatch = false;
+            
+            // ⭐ เช็คเลขบัญชี/พร้อมเพย์
             if (expectedAccountNumber && receiverAccount.includes(expectedAccountNumber.replace(/-/g, ''))) {
                 accountMatch = true;
             } else if (expectedPromptPay && (receiverPromptPay === expectedPromptPay || receiverAccount.includes(expectedPromptPay))) {
                 accountMatch = true;
             }
+            
+            // ⭐ เช็คชื่อบัญชี (ถ้ามีตั้งค่าไว้)
+            if (expectedAccountName && receiverName) {
+                // ตัดช่องว่างและตัวพิเศษออก แล้วเปรียบเทียบ
+                const normalizedExpected = expectedAccountName.replace(/\s+/g, '').toLowerCase();
+                const normalizedReceiver = receiverName.replace(/\s+/g, '').toLowerCase();
+                nameMatch = normalizedReceiver.includes(normalizedExpected) || normalizedExpected.includes(normalizedReceiver);
+            } else {
+                nameMatch = true; // ถ้าไม่ได้ตั้งค่าชื่อ = ถือว่าผ่าน
+            }
 
-            if (!accountMatch) {
+            console.log('  Account Match:', accountMatch);
+            console.log('  Name Match:', nameMatch);
+
+            if (!accountMatch || !nameMatch) {
                 // ดึงข้อมูลห้องเพื่อแสดงหมายเลขห้อง
                 const rooms = await base44.asServiceRole.entities.Room.list();
                 const room = rooms.find(r => r.id === payment.room_id);
                 const roomNumber = room?.room_number || 'ไม่ทราบ';
                 
+                let errorMsg = '';
+                if (!accountMatch && !nameMatch) {
+                    errorMsg = `โอนเงินไปผิดบัญชี และชื่อไม่ตรง (ตรวจพบ: ${receiverName} บช ${receiverAccount})`;
+                } else if (!accountMatch) {
+                    errorMsg = `โอนเงินไปผิดบัญชี (ตรวจพบ: ${receiverAccount}, ควรโอนเข้า ${expectedAccountNumber || expectedPromptPay})`;
+                } else if (!nameMatch) {
+                    errorMsg = `ชื่อบัญชีไม่ตรง (ตรวจพบ: ${receiverName}, ควรเป็น ${expectedAccountName})`;
+                }
+                
                 await base44.asServiceRole.entities.Payment.update(paymentId, {
                     payment_slip_url: uploadedSlipUrl,
                     notes: payment.notes ? 
-                        `${payment.notes}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - โอนเงินไปผิดบัญชี (ควรโอนเข้า ${expectedAccountNumber || expectedPromptPay})` :
-                        `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - โอนเงินไปผิดบัญชี (ควรโอนเข้า ${expectedAccountNumber || expectedPromptPay})`
+                        `${payment.notes}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}` :
+                        `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
                 });
                 
                 return Response.json({ 
                     success: true,
-                    message: `อัปโหลดสลิปสำเร็จ แต่โอนไปผิดบัญชี\nกรุณารอเจ้าของหอพักตรวจสอบ`,
+                    message: `อัปโหลดสลิปสำเร็จ แต่${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบ`,
                     manual_review_required: true,
-                    account_mismatch: true
+                    account_mismatch: !accountMatch,
+                    name_mismatch: !nameMatch
                 });
             }
 
