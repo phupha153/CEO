@@ -986,7 +986,10 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 retryCount++;
                 
                 if (retryCount < maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    // ⭐ Exponential backoff: 2s, 4s, 8s
+                    const backoffMs = 2000 * Math.pow(2, retryCount);
+                    console.log(`⏳ Download retry waiting ${backoffMs}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, backoffMs));
                 }
                 
             } catch (downloadError) {
@@ -994,7 +997,10 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 retryCount++;
                 
                 if (retryCount < maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    // ⭐ Exponential backoff: 2s, 4s, 8s
+                    const backoffMs = 2000 * Math.pow(2, retryCount);
+                    console.log(`⏳ Download error retry waiting ${backoffMs}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, backoffMs));
                 }
             }
         }
