@@ -81,9 +81,12 @@ export default function PublicInvoice() {
     const fetchInvoice = async () => {
       try {
         console.log('🔍 [PublicInvoice] Fetching for paymentId:', paymentId);
+        console.log('🔍 [PublicInvoice] branchId:', branchId);
         
         // ⭐ เรียก API endpoint โดยตรง (ไม่ผ่าน SDK เพื่อไม่ต้อง auth)
         const apiUrl = `/api/apps/public/prod/functions/getPublicInvoice`;
+        console.log('🔍 [PublicInvoice] Calling:', apiUrl);
+        
         const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
@@ -92,18 +95,21 @@ export default function PublicInvoice() {
           body: JSON.stringify({ paymentId, branchId })
         });
 
+        console.log('🔍 [PublicInvoice] Response status:', response.status);
         const data = await response.json();
-        console.log('🔍 [PublicInvoice] Response:', data);
+        console.log('🔍 [PublicInvoice] Response data:', data);
         
         if (data.success) {
           console.log('🔍 [PublicInvoice] Invoice Data:', data.invoice);
+          console.log('🔍 [PublicInvoice] Late Fee:', data.invoice?.late_fee_amount);
           setInvoiceData(data.invoice);
         } else {
+          console.error('🔍 [PublicInvoice] Error:', data.error);
           setError(data.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
         }
       } catch (err) {
-        console.error('Error fetching invoice:', err);
-        setError('เกิดข้อผิดพลาดในการโหลดข้อมูล');
+        console.error('🔍 [PublicInvoice] Exception:', err);
+        setError('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + err.message);
       } finally {
         setLoading(false);
       }
