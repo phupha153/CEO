@@ -601,7 +601,7 @@ export default function F12Page() {
               ) : pendingPayments.length > 0 ? (
                 <div className="space-y-2 mb-4 max-h-64 overflow-y-auto">
                   {pendingPayments.map((payment) => {
-                    const publicLink = `${window.location.origin}${createPageUrl('PublicInvoice')}?paymentId=${payment.id}`;
+                    const publicLink = `${window.location.origin}${createPageUrl('PublicInvoice')}?id=${payment.id}`;
                     const alreadyGenerated = generatedLinks.some(l => l.paymentId === payment.id);
 
                     const statusColors = {
@@ -690,7 +690,7 @@ export default function F12Page() {
                   }
                   const newLinks = pendingPayments.map(p => ({
                     paymentId: p.id,
-                    link: `${window.location.origin}${createPageUrl('PublicInvoice')}?paymentId=${p.id}`
+                    link: `${window.location.origin}${createPageUrl('PublicInvoice')}?id=${p.id}`
                   }));
                   setGeneratedLinks(newLinks);
                   toast.success(`สร้างลิงก์ทั้งหมด ${pendingPayments.length} รายการแล้ว!`);

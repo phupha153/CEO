@@ -25,7 +25,7 @@ import { Separator } from "@/components/ui/separator";
 
 export default function PublicInvoice() {
   const [searchParams] = useSearchParams();
-  const paymentId = searchParams.get("id");
+  const paymentId = searchParams.get("id") || searchParams.get("paymentId"); // รองรับทั้ง 2 format
   const branchId = searchParams.get("branch");
   
   const [loading, setLoading] = useState(true);
@@ -41,19 +41,33 @@ export default function PublicInvoice() {
       }
 
       try {
-        const response = await base44.functions.invoke("getPublicInvoice", {
-          paymentId,
-          branchId
+        console.log('🔍 PublicInvoice: Calling getPublicInvoice with:', { paymentId, branchId });
+        
+        // ใช้ fetch ตรงแทน invoke เพื่อไม่ต้อง auth
+        const functionUrl = `${window.location.origin}/api/functions/getPublicInvoice`;
+        const fetchResponse = await fetch(functionUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId, branchId })
         });
 
-        if (response.data?.success) {
-          setData(response.data.data);
+        if (!fetchResponse.ok) {
+          const errorText = await fetchResponse.text();
+          console.error('❌ Function call failed:', fetchResponse.status, errorText);
+          throw new Error(`HTTP ${fetchResponse.status}: ${errorText}`);
+        }
+
+        const response = await fetchResponse.json();
+        console.log('✅ Response:', response);
+
+        if (response?.success) {
+          setData(response.data);
         } else {
-          setError(response.data?.error || "ไม่สามารถโหลดข้อมูลได้");
+          setError(response?.error || "ไม่สามารถโหลดข้อมูลได้");
         }
       } catch (err) {
-        console.error("Error fetching invoice:", err);
-        setError("เกิดข้อผิดพลาดในการโหลดข้อมูล");
+        console.error("❌ Error fetching invoice:", err);
+        setError(`เกิดข้อผิดพลาด: ${err.message}`);
       } finally {
         setLoading(false);
       }
