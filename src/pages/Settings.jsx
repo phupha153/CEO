@@ -1725,6 +1725,7 @@ export default function Settings() {
                     แพ็กเกจ
                   </Button>
                 )}
+                {!canAccessPackagePage && activeTab === 'package' && setActiveTab('building')}
                 <Button variant={activeTab === 'building' ? 'default' : 'ghost'} onClick={() => setActiveTab('building')} className={activeTab === 'building' ? 'bg-blue-600' : ''}>อาคาร</Button>
                 <Button variant={activeTab === 'billing' ? 'default' : 'ghost'} onClick={() => setActiveTab('billing')} className={activeTab === 'billing' ? 'bg-blue-600' : ''}>อัตรา</Button>
                 <Button variant={activeTab === 'bill_notifications' ? 'default' : 'ghost'} onClick={() => setActiveTab('bill_notifications')} className={activeTab === 'bill_notifications' ? 'bg-blue-600' : ''}>บิล</Button>
@@ -3779,15 +3780,19 @@ export default function Settings() {
                                       จัดการสาขา
                                     </Button>
 
-                                    {(user.custom_role === 'developer' || currentPermissions.includes('settings_access_test_mode')) && (
+                                    {currentPermissions.includes('settings_access_test_mode') && (
                                       <Button
                                         type="button"
                                         variant="outline"
                                         onClick={async () => {
-                                          const newPermissions = currentPermissions.filter(p => p !== 'settings_access_test_mode');
-                                          await base44.entities.User.update(user.id, { permissions: newPermissions });
-                                          queryClient.invalidateQueries(['users']);
-                                          toast.success('ลบสิทธิ์โหมดทดสอบแล้ว');
+                                          try {
+                                            await base44.functions.invoke('removeTestModePermission', { userId: user.id });
+                                            queryClient.invalidateQueries(['users']);
+                                            queryClient.invalidateQueries(['usersInMyBranches']);
+                                            toast.success('ลบสิทธิ์โหมดทดสอบแล้ว');
+                                          } catch (error) {
+                                            toast.error('ลบสิทธิ์ไม่สำเร็จ: ' + (error.message || 'กรุณาลองใหม่'));
+                                          }
                                         }}
                                         className="border-red-600 text-red-600 hover:bg-red-50 flex-1 md:flex-none"
                                       >
