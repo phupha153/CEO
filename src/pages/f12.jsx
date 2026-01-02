@@ -28,16 +28,16 @@ export default function F12Page() {
     queryFn: () => base44.entities.Branch.list(),
   });
 
-  // ⭐ Fetch payments for link testing
+  // ⭐ Fetch payments for link testing (ทุกสถานะ)
   const { data: pendingPayments = [], refetch: refetchPayments } = useQuery({
     queryKey: ['pendingPayments', manualBranchId],
     queryFn: async () => {
       if (!manualBranchId) return [];
-      const payments = await base44.entities.Payment.filter({ 
-        branch_id: manualBranchId,
-        status: 'pending'
+      const allPayments = await base44.entities.Payment.filter({ 
+        branch_id: manualBranchId
       });
-      return payments.slice(0, 5); // แสดงแค่ 5 รายการแรก
+      // เรียงตาม created_date ล่าสุด แล้วเอา 10 รายการแรก
+      return allPayments.sort((a, b) => new Date(b.created_date) - new Date(a.created_date)).slice(0, 10);
     },
     enabled: !!manualBranchId
   });
@@ -559,14 +559,26 @@ export default function F12Page() {
                     const publicLink = `${window.location.origin}${createPageUrl('PublicInvoice')}?paymentId=${payment.id}`;
                     const alreadyGenerated = generatedLinks.some(l => l.paymentId === payment.id);
 
+                    const statusColors = {
+                      paid: 'bg-green-100 text-green-700',
+                      pending: 'bg-yellow-100 text-yellow-700',
+                      partial_paid: 'bg-blue-100 text-blue-700',
+                      overdue: 'bg-red-100 text-red-700'
+                    };
+
                     return (
                       <div key={payment.id} className="bg-white p-3 rounded-lg border border-green-200 flex items-center justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">
-                            Payment: {payment.id.substring(0, 8)}...
-                          </p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="text-sm font-semibold text-slate-800 truncate">
+                              {payment.id.substring(0, 8)}...
+                            </p>
+                            <Badge className={`text-xs ${statusColors[payment.status] || 'bg-slate-100'}`}>
+                              {payment.status}
+                            </Badge>
+                          </div>
                           <p className="text-xs text-slate-600">
-                            ยอด: {payment.total_amount?.toLocaleString()} บาท
+                            ยอด: {payment.total_amount?.toLocaleString()} บาท • ครบ: {payment.due_date ? new Date(payment.due_date).toLocaleDateString('th-TH') : '-'}
                           </p>
                           {alreadyGenerated && (
                             <div className="mt-1 flex items-center gap-1">
@@ -619,8 +631,8 @@ export default function F12Page() {
               ) : (
                 <div className="text-center py-8 text-slate-500 bg-white rounded-lg border-2 border-dashed border-green-200">
                   <LinkIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">ไม่มี Payment (pending) ในสาขานี้</p>
-                  <p className="text-xs mt-1">ลองเปลี่ยน Branch ID ด้านล่าง</p>
+                  <p className="text-sm">ไม่มี Payment ในสาขานี้</p>
+                  <p className="text-xs mt-1">ลองเปลี่ยน Branch ID ด้านล่าง หรือสร้างข้อมูลทดสอบ</p>
                 </div>
               )}
 
