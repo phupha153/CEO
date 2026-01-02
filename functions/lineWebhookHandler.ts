@@ -14,6 +14,7 @@ const CONFIG_CACHE_DURATION = 5 * 60 * 1000; // 5 นาที (ลด query ซ
 // ⭐ Branch-specific Config Cache (แยก cache ตามสาขา)
 const branchConfigCache = new Map();
 const BRANCH_CONFIG_CACHE_DURATION = 5 * 60 * 1000; // 5 นาที (ลด query ซ้ำซ้อน)
+const MAX_BRANCH_CONFIG_CACHE_SIZE = 1000; // ⭐ จำกัดไม่ให้เกิน 1000 สาขา
 
 // ⭐ Branches Cache (ลด query ซ้ำซ้อน)
 let branchesCache = null;
@@ -36,6 +37,14 @@ async function getLineToken(base44, branchId = null) {
             const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
             if (branchToken?.value?.trim()) {
                 const token = branchToken.value.trim();
+                
+                // ⭐ Evict oldest entry ถ้า cache เต็ม
+                if (branchConfigCache.size >= MAX_BRANCH_CONFIG_CACHE_SIZE) {
+                    const oldestKey = branchConfigCache.keys().next().value;
+                    branchConfigCache.delete(oldestKey);
+                    console.log(`🗑️ Cache evicted: ${oldestKey}`);
+                }
+                
                 branchConfigCache.set(cacheKey, { token, timestamp: Date.now() });
                 return token;
             }
@@ -44,6 +53,13 @@ async function getLineToken(base44, branchId = null) {
         const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
         if (globalToken?.value?.trim()) {
             const token = globalToken.value.trim();
+            
+            // ⭐ Evict oldest entry ถ้า cache เต็ม
+            if (branchConfigCache.size >= MAX_BRANCH_CONFIG_CACHE_SIZE) {
+                const oldestKey = branchConfigCache.keys().next().value;
+                branchConfigCache.delete(oldestKey);
+            }
+            
             branchConfigCache.set(cacheKey, { token, timestamp: Date.now() });
             return token;
         }
@@ -1039,7 +1055,10 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                     return;
                 }
                 
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // ⭐ Exponential backoff: 2s, 4s, 8s
+                const backoffMs = 2000 * Math.pow(2, uploadRetryCount);
+                console.log(`⏳ Upload retry waiting ${backoffMs}ms...`);
+                await new Promise(resolve => setTimeout(resolve, backoffMs));
             }
         }
 
@@ -1211,7 +1230,18 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         
         let lateFeeAmount = 0;
         if (daysLate > 0) {
-            const configs = await base44.asServiceRole.entities.Config.list();
+            // ⭐ ใช้ cache config แทนการโหลดใหม่
+            const now = Date.now();
+            let configs;
+            if (!configCache || (now - configCacheTime) > CONFIG_CACHE_DURATION) {
+                configs = await base44.asServiceRole.entities.Config.list();
+                configCache = configs;
+                configCacheTime = now;
+                console.log(`✅ Refreshed config cache (${configs.length} items)`);
+            } else {
+                configs = configCache;
+                console.log(`✅ Using cached config (${configs.length} items)`);
+            }
             
             // เช็คว่าใช้ค่าปรับแบบขั้นบันไดหรือไม่
             const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (c.branch_id === branchId || !c.branch_id));
@@ -1298,7 +1328,19 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         }
 
         // ⭐⭐⭐ CRITICAL: เช็คบัญชีธนาคารก่อนยืนยันการชำระเงิน
-        const configs = await base44.asServiceRole.entities.Config.list();
+        // ⭐ ใช้ cache config แทนการโหลดใหม่
+        const now2 = Date.now();
+        let configs;
+        if (!configCache || (now2 - configCacheTime) > CONFIG_CACHE_DURATION) {
+            configs = await base44.asServiceRole.entities.Config.list();
+            configCache = configs;
+            configCacheTime = now2;
+            console.log(`✅ Refreshed config cache (${configs.length} items)`);
+        } else {
+            configs = configCache;
+            console.log(`✅ Using cached config (${configs.length} items)`);
+        }
+        
         const getConfigValue = (key) => {
             const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
             if (branchConfig) return branchConfig.value;
