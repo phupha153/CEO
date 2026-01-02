@@ -517,8 +517,6 @@ Deno.serve(async (req) => {
                         retryAttempts: 2
                     }
                 });
-                console.log('🔍 DEEP DEBUG RAW:', JSON.stringify(batchResult, null, 2));
-                console.log('🔍 DEEP DEBUG DATA:', JSON.stringify(batchResult.data, null, 2));
 
                 const result = batchResult.data;
                 successCount += result.success || 0;
@@ -527,7 +525,7 @@ Deno.serve(async (req) => {
 
                 console.log(`✅ LINE: ${result.success}/${lineRecipients.length} sent`);
             } catch (lineError) {
-                console.error('❌ LINE batch send failed:', lineError);
+                console.error('❌ LINE batch send failed:', lineError.message || String(lineError));
                 failCount += lineRecipients.length;
             }
         }
