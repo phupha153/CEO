@@ -33,15 +33,15 @@ export default function RatingDialog({ open, onOpenChange, tenant, onSubmit, isL
     refetchOnMount: false,
   });
 
-  // ⭐ ดึงคะแนนเดิมของผู้เช่า
-  const { data: existingRatings = [] } = useQuery({
+  // ⭐ ดึงคะแนนเดิมของผู้เช่า (โหลดทันทีไม่ต้องรอเปิด dialog)
+  const { data: existingRatings = [], isLoading: ratingsLoading } = useQuery({
     queryKey: ['tenant-ratings', tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return [];
       const allRatings = await base44.entities.TenantRating.list('-rating_date', 10);
       return allRatings.filter(r => r.tenant_id === tenant.id);
     },
-    enabled: !!tenant?.id && open,
+    enabled: !!tenant?.id,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -109,27 +109,31 @@ export default function RatingDialog({ open, onOpenChange, tenant, onSubmit, isL
     }
   }, [open, scoreBreakdown.calculatedScore]);
 
-  // ✅ โหลดคะแนนเดิม (ล่าสุด) เมื่อเปิด dialog
+  // ✅ โหลดคะแนนเดิม (ล่าสุด) เมื่อเปิด dialog และโหลดข้อมูลเสร็จ
   useEffect(() => {
-    if (open && existingRatings.length > 0) {
-      const latestRating = existingRatings[0];
-      setFormData({
-        payment_score: latestRating.payment_score || scoreBreakdown.calculatedScore,
-        property_care_score: latestRating.property_care_score || 10,
-        cohabitation_score: latestRating.cohabitation_score || 10,
-        notes: latestRating.notes || '',
-        rating_period: latestRating.rating_period || ''
-      });
-    } else if (open) {
-      setFormData({
-        payment_score: scoreBreakdown.calculatedScore,
-        property_care_score: 10,
-        cohabitation_score: 10,
-        notes: '',
-        rating_period: ''
-      });
+    if (open && !ratingsLoading) {
+      if (existingRatings.length > 0) {
+        const latestRating = existingRatings[0];
+        console.log('📊 Loading existing rating:', latestRating);
+        setFormData({
+          payment_score: latestRating.payment_score || scoreBreakdown.calculatedScore,
+          property_care_score: latestRating.property_care_score || 10,
+          cohabitation_score: latestRating.cohabitation_score || 10,
+          notes: latestRating.notes || '',
+          rating_period: latestRating.rating_period || ''
+        });
+      } else {
+        console.log('📊 No existing ratings, using defaults');
+        setFormData({
+          payment_score: scoreBreakdown.calculatedScore,
+          property_care_score: 10,
+          cohabitation_score: 10,
+          notes: '',
+          rating_period: ''
+        });
+      }
     }
-  }, [open, existingRatings, scoreBreakdown.calculatedScore]);
+  }, [open, existingRatings, scoreBreakdown.calculatedScore, ratingsLoading]);
 
   // ✅ Reset form เมื่อปิด dialog
   useEffect(() => {
@@ -213,7 +217,15 @@ export default function RatingDialog({ open, onOpenChange, tenant, onSubmit, isL
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        {ratingsLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center space-y-3">
+              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-sm text-slate-600">กำลังโหลดคะแนนเดิม...</p>
+            </div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
           {/* คะแนนรวม */}
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-200">
             <div className="text-center">
