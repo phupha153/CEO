@@ -341,8 +341,10 @@ export default function Settings() {
   });
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userPermissions = currentUser?.permissions || [];
   const canManagePermissions = userRole === 'developer' || userRole === 'owner';
   const canSetGlobalConfig = userRole === 'developer' || userRole === 'owner';
+  const canAccessPackagePage = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('settings_access_package_page');
 
   // Listen for Facebook Pages data
   useEffect(() => {
@@ -1718,10 +1720,12 @@ export default function Settings() {
           <Card className="bg-white/80 backdrop-blur-xl shadow-2xl border-white/60">
             <CardContent className="p-6">
               <div className="flex gap-2 mb-6 border-b overflow-x-auto">
-                <Button variant={activeTab === 'package' ? 'default' : 'ghost'} onClick={() => setActiveTab('package')} className={activeTab === 'package' ? 'bg-blue-600' : ''}>
-                  <Crown className="w-4 h-4 mr-2" />
-                  แพ็กเกจ
-                </Button>
+                {canAccessPackagePage && (
+                  <Button variant={activeTab === 'package' ? 'default' : 'ghost'} onClick={() => setActiveTab('package')} className={activeTab === 'package' ? 'bg-blue-600' : ''}>
+                    <Crown className="w-4 h-4 mr-2" />
+                    แพ็กเกจ
+                  </Button>
+                )}
                 <Button variant={activeTab === 'building' ? 'default' : 'ghost'} onClick={() => setActiveTab('building')} className={activeTab === 'building' ? 'bg-blue-600' : ''}>อาคาร</Button>
                 <Button variant={activeTab === 'billing' ? 'default' : 'ghost'} onClick={() => setActiveTab('billing')} className={activeTab === 'billing' ? 'bg-blue-600' : ''}>อัตรา</Button>
                 <Button variant={activeTab === 'bill_notifications' ? 'default' : 'ghost'} onClick={() => setActiveTab('bill_notifications')} className={activeTab === 'bill_notifications' ? 'bg-blue-600' : ''}>บิล</Button>
@@ -1739,7 +1743,7 @@ export default function Settings() {
 
 
 
-              {activeTab === 'package' && (
+              {canAccessPackagePage && activeTab === 'package' && (
                 <div className="space-y-6">
                   {activeSubscription ? (
                     <>
