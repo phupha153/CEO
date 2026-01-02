@@ -1872,31 +1872,24 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // กรองเฉพาะผู้ใช้ที่มีสิทธิ์เข้าถึงสาขาในระบบนี้ (ยกเว้น developer)
-                              const branchIds = branches.map(b => b.id);
+                              // ⭐ กรองเฉพาะสาขาที่ currentUser เป็นเจ้าของจริงๆ
+                              const myOwnedBranchIds = branches
+                                .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
+                                .map(b => b.id);
                               
-                              // ⭐ หา owner_email จาก BranchPackages ที่เป็นของสาขาในระบบนี้
-                              const packageOwnersInMyBranches = new Set(
-                                branchPackages
-                                  .filter(bp => branchIds.includes(bp.branch_id))
-                                  .map(bp => bp.owner_email)
-                                  .filter(Boolean)
-                              );
-                              
+                              // นับผู้ใช้เฉพาะในสาขาที่ currentUser เป็นเจ้าของ
                               const usersInMyBranches = users.filter(user => {
                                 const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
                                 
-                                // ⭐ ไม่นับ Developer
+                                // ไม่นับ Developer
                                 if (role === 'developer') return false;
                                 
-                                // ⭐ Owner ที่ยังไม่ set accessible_branches ต้องเช็คว่าเป็น owner จริงๆ (ผ่าน owner_email)
-                                if (role === 'owner' && (!user.accessible_branches || user.accessible_branches.length === 0)) {
-                                  return packageOwnersInMyBranches.has(user.email);
-                                }
+                                // ⭐ ถ้าเป็น currentUser เอง = นับ
+                                if (user.email === currentUser?.email) return true;
                                 
-                                // ผู้ใช้อื่นๆ ต้องมี accessible_branches ที่ตรงกับสาขาในระบบ
+                                // ผู้ใช้อื่นๆ ต้องมี accessible_branches ที่ตรงกับสาขาของเรา
                                 if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
-                                return user.accessible_branches.some(branchId => branchIds.includes(branchId));
+                                return user.accessible_branches.some(branchId => myOwnedBranchIds.includes(branchId));
                               });
 
                               // นับจำนวนผู้ใช้เฉพาะในสาขาของเรา
@@ -1957,8 +1950,11 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // นับจำนวนสาขาจริงในระบบ
-                              const totalBranchesInSystem = branches.length;
+                              // ⭐ นับเฉพาะสาขาที่ currentUser เป็นเจ้าของจริงๆ (ไม่ใช่ทุกสาขาที่เข้าถึงได้)
+                              const myOwnedBranches = branches.filter(b => 
+                                b.owner_id === currentUser?.email || b.created_by === currentUser?.email
+                              );
+                              const totalBranchesInSystem = myOwnedBranches.length;
                               
                               // ⭐ เช็ค trial mode จาก currentUser.plan_status
                               const isTrialMode = currentUser?.plan_status === 'trial';
@@ -1986,10 +1982,10 @@ export default function Settings() {
                                     {isTrialMode ? `จำกัด ${maxBranches} สาขาในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInSystem)} สาขา`}
                                   </p>
 
-                                  {branches.length > 0 && (
+                                  {myOwnedBranches.length > 0 && (
                                     <div className="pt-3 border-t border-slate-200 space-y-1">
-                                      <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อสาขา:</p>
-                                      {branches.map(branch => (
+                                      <p className="text-xs font-semibold text-slate-700 mb-2">สาขาที่เป็นเจ้าของ:</p>
+                                      {myOwnedBranches.map(branch => (
                                         <div key={branch.id} className="text-xs text-slate-600 flex items-center gap-1">
                                           <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                                           {branch.branch_name}
