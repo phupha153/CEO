@@ -1453,6 +1453,20 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             notes: `${pendingPayment.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}`
         });
 
+        // ⭐⭐⭐ คำนวณคะแนนอัตโนมัติหลังยืนยันสลิป
+        if (tenant?.id) {
+            try {
+                const scoreResponse = await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
+                    tenant_id: tenant.id
+                });
+                if (scoreResponse.data?.success) {
+                    console.log(`✅ Score updated: avg=${scoreResponse.data.avg_payment_score}/10`);
+                }
+            } catch (scoreError) {
+                console.warn('⚠️ Failed to calculate payment score:', scoreError.message);
+            }
+        }
+
         // ⭐⭐⭐ ส่งใบเสร็จเท่านั้น (ไม่ส่งข้อความยืนยัน)
         console.log('📄 Sending receipt...');
         
