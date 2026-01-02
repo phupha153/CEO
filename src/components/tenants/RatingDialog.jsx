@@ -373,6 +373,7 @@ export default function RatingDialog({ open, onOpenChange, tenant, onSubmit, isL
             </Button>
           </div>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
