@@ -78,47 +78,44 @@ export default function Receipt() {
 
     setLoading(true);
     setError(null);
-    console.log('🔍 [Receipt] Fetching receipt for paymentId:', paymentId);
+    console.log('Fetching receipt for paymentId:', paymentId);
 
     const timeoutId = setTimeout(() => {
       setError('การโหลดข้อมูลใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง');
       setLoading(false);
-      console.error('⏱️ [Receipt] Timeout: took too long');
+      console.error('Timeout: Receipt fetch took too long');
     }, 15000);
 
     try {
-      console.log('🔍 [Receipt] Calling getPublicInvoice...');
+      console.log('Calling getPublicInvoice via base44.functions.invoke');
       const response = await base44.functions.invoke('getPublicInvoice', { 
         paymentId: paymentId 
       });
 
       clearTimeout(timeoutId);
-      console.log('🔍 [Receipt] Full Response:', response);
-      console.log('🔍 [Receipt] Response Data:', response.data);
-      console.log('🔍 [Receipt] Response Status:', response.status);
+      console.log('Receipt response:', response.data);
 
-      if (response.data?.success) {
+      if (response.data.success) {
         const invoice = response.data.invoice;
-        console.log('✅ [Receipt] Invoice Data:', invoice);
         setReceiptData(invoice);
         setLoading(false);
       } else {
         clearTimeout(timeoutId);
-        const errorMsg = response.data?.error || 'ไม่พบข้อมูลใบเสร็จ';
-        console.error('❌ [Receipt] API Error:', errorMsg);
+        const errorMsg = response.data.error || 'ไม่พบข้อมูลใบเสร็จ';
+        console.error('Receipt fetch failed:', errorMsg);
         setError(errorMsg);
         setLoading(false);
       }
     } catch (err) {
       clearTimeout(timeoutId);
-      console.error('❌ [Receipt] Exception:', err);
-      console.error('❌ [Receipt] Error Message:', err.message);
-      console.error('❌ [Receipt] Error Stack:', err.stack);
+      console.error('Error fetching receipt:', err);
       
-      let errorMessage = `เกิดข้อผิดพลาด: ${err.message || 'ไม่สามารถโหลดข้อมูลได้'}`;
+      let errorMessage = 'เกิดข้อผิดพลาดในการโหลดใบเสร็จ';
       
       if (err.response?.data?.error) {
         errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
       }
       
       setError(errorMessage);
