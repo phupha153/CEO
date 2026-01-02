@@ -407,22 +407,40 @@ Deno.serve(async (req) => {
             
             let accountMatch = false;
             let nameMatch = false;
-            
-            // ⭐ เช็คเลขบัญชี/พร้อมเพย์
-            if (expectedAccountNumber && receiverAccount.includes(expectedAccountNumber.replace(/-/g, ''))) {
-                accountMatch = true;
-            } else if (expectedPromptPay && (receiverPromptPay === expectedPromptPay || receiverAccount.includes(expectedPromptPay))) {
-                accountMatch = true;
+
+            // ⭐ เช็คเลขบัญชี (เช็คว่าเลขในสลิปอยู่ในบัญชีเต็มหรือไม่)
+            if (expectedAccountNumber) {
+                const expectedDigits = expectedAccountNumber.replace(/-/g, '').replace(/\s/g, '');
+                const receiverDigits = receiverAccount.replace(/-/g, '').replace(/x/g, '').replace(/X/g, '').replace(/\s/g, '');
+
+                if (receiverDigits && expectedDigits.includes(receiverDigits)) {
+                    accountMatch = true;
+                }
             }
-            
-            // ⭐ เช็คชื่อบัญชี (ถ้ามีตั้งค่าไว้)
+
+            if (!accountMatch && expectedPromptPay) {
+                if (receiverPromptPay === expectedPromptPay || receiverAccount.includes(expectedPromptPay)) {
+                    accountMatch = true;
+                }
+            }
+
+            // ⭐ เช็คชื่อบัญชี แบบ Fuzzy
             if (expectedAccountName && receiverName) {
-                // ตัดช่องว่างและตัวพิเศษออก แล้วเปรียบเทียบ
-                const normalizedExpected = expectedAccountName.replace(/\s+/g, '').toLowerCase();
-                const normalizedReceiver = receiverName.replace(/\s+/g, '').toLowerCase();
-                nameMatch = normalizedReceiver.includes(normalizedExpected) || normalizedExpected.includes(normalizedReceiver);
+                const cleanExpected = expectedAccountName
+                    .replace(/นาย|นาง|นางสาว|mr\.|mrs\.|miss/gi, '')
+                    .replace(/\s+/g, '')
+                    .replace(/\./g, '')
+                    .toLowerCase();
+
+                const cleanReceiver = receiverName
+                    .replace(/นาย|นาง|นางสาว|mr\.|mrs\.|miss/gi, '')
+                    .replace(/\s+/g, '')
+                    .replace(/\./g, '')
+                    .toLowerCase();
+
+                nameMatch = cleanReceiver.includes(cleanExpected) || cleanExpected.includes(cleanReceiver);
             } else {
-                nameMatch = true; // ถ้าไม่ได้ตั้งค่าชื่อ = ถือว่าผ่าน
+                nameMatch = true;
             }
 
             console.log('  Account Match:', accountMatch);
