@@ -1337,18 +1337,63 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         let accountMatch = false;
         let nameMatch = false;
         
-        // ⭐ เช็คเลขบัญชี/พร้อมเพย์
-        if (expectedAccountNumber && receiverAccount.includes(expectedAccountNumber.replace(/-/g, ''))) {
-            accountMatch = true;
-        } else if (expectedPromptPay && (receiverPromptPay === expectedPromptPay || receiverAccount.includes(expectedPromptPay))) {
-            accountMatch = true;
+        // ⭐ เช็คเลขบัญชี/พร้อมเพย์ (เช็คเฉพาะ 4-5 หลักท้ายเพราะ slip ซ่อนส่วนหน้า)
+        if (expectedAccountNumber) {
+            const expectedDigits = expectedAccountNumber.replace(/-/g, '').replace(/\s/g, '');
+            const last5Expected = expectedDigits.slice(-5); // เอา 5 หลักท้าย (เช่น 14081)
+            const receiverDigits = receiverAccount.replace(/-/g, '').replace(/x/g, '').replace(/\s/g, '');
+            
+            console.log('  → Expected last 5 digits:', last5Expected);
+            console.log('  → Receiver digits (no x):', receiverDigits);
+            
+            if (receiverDigits.includes(last5Expected)) {
+                accountMatch = true;
+                console.log('  → ✅ Account matched by last 5 digits');
+            }
         }
         
-        // ⭐ เช็คชื่อบัญชี (ถ้ามีตั้งค่าไว้)
+        if (!accountMatch && expectedPromptPay) {
+            if (receiverPromptPay === expectedPromptPay || receiverAccount.includes(expectedPromptPay)) {
+                accountMatch = true;
+                console.log('  → ✅ Account matched by PromptPay');
+            }
+        }
+        
+        // ⭐ เช็คชื่อบัญชี แบบ Fuzzy (ลบช่องว่าง + นำหน้า + สระ)
         if (expectedAccountName && receiverName) {
-            const normalizedExpected = expectedAccountName.replace(/\s+/g, '').toLowerCase();
-            const normalizedReceiver = receiverName.replace(/\s+/g, '').toLowerCase();
-            nameMatch = normalizedReceiver.includes(normalizedExpected) || normalizedExpected.includes(normalizedReceiver);
+            // ลบ "นาย", "นาง", "นางสาว", ช่องว่าง, จุด
+            const cleanExpected = expectedAccountName
+                .replace(/นาย|นาง|นางสาว|mr\.|mrs\.|miss/gi, '')
+                .replace(/\s+/g, '')
+                .replace(/\./g, '')
+                .toLowerCase();
+            
+            const cleanReceiver = receiverName
+                .replace(/นาย|นาง|นางสาว|mr\.|mrs\.|miss/gi, '')
+                .replace(/\s+/g, '')
+                .replace(/\./g, '')
+                .toLowerCase();
+            
+            console.log('  → Clean Expected:', cleanExpected);
+            console.log('  → Clean Receiver:', cleanReceiver);
+            
+            // เช็คว่าตรงกัน 80% ขึ้นไป
+            const similarity = cleanReceiver.includes(cleanExpected) || cleanExpected.includes(cleanReceiver);
+            
+            if (similarity) {
+                nameMatch = true;
+                console.log('  → ✅ Name matched (fuzzy)');
+            } else {
+                // Fallback: เช็คว่ามีคำสำคัญตรงกันหรือไม่ (เช่น นามสกุล)
+                const expectedWords = cleanExpected.split(/(?=[ก-๙])/); // แยกคำไทย
+                const receiverWords = cleanReceiver.split(/(?=[ก-๙])/);
+                const commonWords = expectedWords.filter(w => w.length > 2 && cleanReceiver.includes(w));
+                
+                if (commonWords.length > 0) {
+                    nameMatch = true;
+                    console.log('  → ✅ Name matched (partial):', commonWords);
+                }
+            }
         } else {
             nameMatch = true; // ถ้าไม่ได้ตั้งค่าชื่อ = ถือว่าผ่าน
         }
