@@ -1455,16 +1455,23 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         // ⭐⭐⭐ คำนวณคะแนนอัตโนมัติหลังยืนยันสลิป
         if (tenant?.id) {
+            console.log(`🔍 [Score Calculation] Starting for tenant: ${tenant.full_name} (ID: ${tenant.id.substring(0, 12)}...)`);
             try {
                 const scoreResponse = await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
                     tenant_id: tenant.id
                 });
+                console.log('🔍 [Score Calculation] Response:', scoreResponse.data);
                 if (scoreResponse.data?.success) {
-                    console.log(`✅ Score updated: avg=${scoreResponse.data.avg_payment_score}/10`);
+                    console.log(`✅ Score updated: avg=${scoreResponse.data.avg_payment_score}/10, scores count=${scoreResponse.data.payment_scores_count}`);
+                } else {
+                    console.error(`❌ Score calculation failed:`, scoreResponse.data);
                 }
             } catch (scoreError) {
-                console.warn('⚠️ Failed to calculate payment score:', scoreError.message);
+                console.error('❌ Failed to calculate payment score:', scoreError);
+                console.error('Error details:', scoreError.message, scoreError.stack);
             }
+        } else {
+            console.error('❌ Cannot calculate score - tenant is null or has no ID');
         }
 
         // ⭐⭐⭐ ส่งใบเสร็จเท่านั้น (ไม่ส่งข้อความยืนยัน)
