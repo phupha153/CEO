@@ -1690,8 +1690,8 @@ export default function Settings() {
               <span className="hidden md:inline">รายงานปัญหา</span>
             </Button>
             {canManagePermissions && (() => {
-              const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
-              const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
+              // ⭐ เช็ค trial mode จาก currentUser.plan_status
+              const isTrialMode = currentUser?.plan_status === 'trial';
 
               return !isTrialMode && (
                 <Button
@@ -1902,12 +1902,11 @@ export default function Settings() {
                               // นับจำนวนผู้ใช้เฉพาะในสาขาของเรา
                               const totalUsersInMyBranches = usersInMyBranches.length;
                               
-                              // ⭐ เช็ค trial mode - แสดง 1/1
-                              const userPackagesCheck = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
-                              const isTrialModeCheck = userPackagesCheck.length > 0 && userPackagesCheck.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
+                              // ⭐ เช็ค trial mode จาก currentUser.plan_status
+                              const isTrialMode = currentUser?.plan_status === 'trial';
                               
-                              // ดึง max_users จาก crmPackageInfo (ข้อมูลล่าสุดจาก CRM) หรือใช้ 1 ถ้าเป็น trial
-                              const maxUsers = isTrialModeCheck ? 1 : crmPackageInfo?.max_users;
+                              // ดึง max_users จาก crmPackageInfo หรือใช้ 1 ถ้าเป็น trial
+                              const maxUsers = isTrialMode ? 1 : crmPackageInfo?.max_users;
                               const hasLimit = maxUsers !== null && maxUsers !== undefined && maxUsers > 0;
                               const usagePercent = hasLimit ? Math.min((totalUsersInMyBranches / maxUsers) * 100, 100) : 10;
 
@@ -1926,7 +1925,7 @@ export default function Settings() {
                                     />
                                   </div>
                                   <p className="text-xs text-slate-500">
-                                    {isTrialModeCheck ? `จำกัด ${maxUsers} ผู้ใช้ในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInMyBranches)} ที่นั่ง`}
+                                    {isTrialMode ? `จำกัด ${maxUsers} ผู้ใช้ในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInMyBranches)} ที่นั่ง`}
                                   </p>
 
                                   {usersInMyBranches.length > 0 && (
@@ -1961,12 +1960,11 @@ export default function Settings() {
                               // นับจำนวนสาขาจริงในระบบ
                               const totalBranchesInSystem = branches.length;
                               
-                              // ⭐ เช็ค trial mode - แสดง 1/1
-                              const userPackagesCheck = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
-                              const isTrialModeCheck = userPackagesCheck.length > 0 && userPackagesCheck.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
+                              // ⭐ เช็ค trial mode จาก currentUser.plan_status
+                              const isTrialMode = currentUser?.plan_status === 'trial';
                               
-                              // ดึง max_branches จาก crmPackageInfo (ข้อมูลล่าสุดจาก CRM) หรือใช้ 1 ถ้าเป็น trial
-                              const maxBranches = isTrialModeCheck ? 1 : crmPackageInfo?.max_branches;
+                              // ดึง max_branches จาก crmPackageInfo หรือใช้ 1 ถ้าเป็น trial
+                              const maxBranches = isTrialMode ? 1 : crmPackageInfo?.max_branches;
                               const hasLimit = maxBranches !== null && maxBranches !== undefined && maxBranches > 0;
                               const usagePercent = hasLimit ? Math.min((totalBranchesInSystem / maxBranches) * 100, 100) : 10;
 
@@ -1985,7 +1983,7 @@ export default function Settings() {
                                     />
                                   </div>
                                   <p className="text-xs text-slate-500">
-                                    {isTrialModeCheck ? `จำกัด ${maxBranches} สาขาในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInSystem)} สาขา`}
+                                    {isTrialMode ? `จำกัด ${maxBranches} สาขาในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInSystem)} สาขา`}
                                   </p>
 
                                   {branches.length > 0 && (
