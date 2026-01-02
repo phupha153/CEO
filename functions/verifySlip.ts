@@ -367,18 +367,19 @@ Deno.serve(async (req) => {
             const expectedPromptPay = getConfigValue('promptpay');
             const expectedAccountName = getConfigValue('bank_account_name');
             
-            // ⭐ แก้ไข: ดึงเลขบัญชีและชื่อจาก slip data ให้ถูกต้อง
-            const receiverAccount = slipData.receiver?.account?.bank?.account || slipData.receiver?.account?.value || '';
-            const receiverPromptPay = slipData.receiver?.account?.proxy?.value || slipData.receiver?.proxy?.value || '';
+            // ⭐ ดึงข้อมูลจาก Slip2Go Response (ตาม structure ที่ถูกต้อง)
+            const receiverAccount = slipData.receiver?.account?.bank?.account || '';
+            const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
             const receiverName = slipData.receiver?.account?.name || '';
             
             console.log('🔍 Checking account match:');
             console.log('  Expected Account:', expectedAccountNumber);
             console.log('  Expected PromptPay:', expectedPromptPay);
             console.log('  Expected Name:', expectedAccountName);
-            console.log('  Receiver Account:', receiverAccount);
-            console.log('  Receiver PromptPay:', receiverPromptPay);
-            console.log('  Receiver Name:', receiverName);
+            console.log('  Receiver Account (from slip):', receiverAccount);
+            console.log('  Receiver PromptPay (from slip):', receiverPromptPay);
+            console.log('  Receiver Name (from slip):', receiverName);
+            console.log('  Full receiver data:', JSON.stringify(slipData.receiver, null, 2));
             
             // ⭐ ถ้าไม่มี config บัญชีเลย = บังคับให้ตรวจสอบด้วยตนเอง
             if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
