@@ -340,18 +340,6 @@ export default function Settings() {
     refetchOnMount: false,
   });
 
-  // ⭐ Auto-sync current user เข้า User entity เมื่อเข้าหน้า Settings
-  useEffect(() => {
-    if (currentUser) {
-      base44.functions.invoke('syncCurrentUser', {})
-        .then(() => {
-          console.log('✅ Synced current user to User entity - invalidating users query');
-          queryClient.invalidateQueries(['users']);
-        })
-        .catch(error => console.error('Failed to sync user:', error));
-    }
-  }, [currentUser?.email, queryClient]);
-
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   const canManagePermissions = userRole === 'developer' || userRole === 'owner';
   const canSetGlobalConfig = userRole === 'developer' || userRole === 'owner';
@@ -420,11 +408,7 @@ export default function Settings() {
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('debugUserData');
-      console.log('📥 getUsersData Response:', response.data);
-      return response.data.users_in_my_branches || [];
-    },
+    queryFn: () => base44.entities.User.list(),
     enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -1894,59 +1878,19 @@ export default function Settings() {
                                 .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
                                 .map(b => b.id);
                               
-                              console.log('🔍 DEBUG - Package Tab User Count:');
-                              console.log('  currentUser:', currentUser?.email);
-                              console.log('  myOwnedBranchIds:', myOwnedBranchIds);
-                              console.log('  branches.length:', branches.length);
-                              console.log('  users:', users);
-                              console.log('  users.length:', users?.length || 0);
-                              
                               const usersInMyBranches = users.filter(user => {
                                 const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
                                 
                                 // ไม่นับ Developer
-                                if (role === 'developer') {
-                                  console.log(`  ❌ ${user.email} - Skip (developer)`);
-                                  return false;
-                                }
+                                if (role === 'developer') return false;
                                 
                                 // ⭐ ถ้าเป็น currentUser เอง = นับ
-                                if (user.email === currentUser?.email) {
-                                  console.log(`  ✅ ${user.email} - Include (self)`);
-                                  return true;
-                                }
+                                if (user.email === currentUser?.email) return true;
                                 
-                                // ถ้าไม่มีสาขาของตัวเอง = ไม่เห็นใคร
-                                if (myOwnedBranchIds.length === 0) {
-                                  console.log(`  ❌ ${user.email} - No owned branches`);
-                                  return false;
-                                }
-                                
-                                const userBranches = user.accessible_branches || [];
-                                console.log(`  🔎 Checking ${user.email}:`, {
-                                  accessible_branches: userBranches,
-                                  myOwnedBranchIds
-                                });
-                                
-                                // ⭐ ถ้าผู้ใช้ไม่มี accessible_branches set → เช็คว่าเป็น owner ของสาขาเดียวกันหรือไม่
-                                if (userBranches.length === 0) {
-                                  const userOwnedBranches = branches
-                                    .filter(b => b.owner_id === user.email || b.created_by === user.email)
-                                    .map(b => b.id);
-                                  const result = userOwnedBranches.some(branchId => myOwnedBranchIds.includes(branchId));
-                                  console.log(`  ${result ? '✅' : '❌'} ${user.email} - No accessible_branches, owned check: ${result}`);
-                                  return result;
-                                }
-                                
-                                // ⭐ ถ้ามี accessible_branches → เช็คว่าตรงกับสาขาของ currentUser หรือไม่
-                                const overlap = userBranches.filter(branchId => myOwnedBranchIds.includes(branchId));
-                                const result = overlap.length > 0;
-                                console.log(`  ${result ? '✅' : '❌'} ${user.email} - Has accessible_branches, overlap:`, overlap);
-                                return result;
+                                // ผู้ใช้อื่นๆ ต้องมี accessible_branches ที่ตรงกับสาขาที่ currentUser เป็นเจ้าของ
+                                if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
+                                return user.accessible_branches.some(branchId => myOwnedBranchIds.includes(branchId));
                               });
-                              
-                              console.log('📊 Total usersInMyBranches:', usersInMyBranches.length);
-                              console.log('📋 Users:', usersInMyBranches.map(u => u.email));
 
                               // ⭐ นับจำนวนผู้ใช้ + ตรวจสอบว่า currentUser อยู่ใน users array หรือไม่
                               const currentUserInList = users.some(u => u.email === currentUser?.email);
@@ -1978,29 +1922,20 @@ export default function Settings() {
                                     {isTrialMode ? `จำกัด ${maxUsers} ผู้ใช้ในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInMyBranches)} ที่นั่ง`}
                                   </p>
 
-                                  <div className="pt-3 border-t border-slate-200 space-y-1">
-                                    <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อผู้ใช้:</p>
-                                    
-                                    {/* แสดง currentUser เสมอ (คุณเอง) */}
-                                    <div className="text-xs text-blue-700 flex items-center gap-1.5 bg-blue-50 px-2 py-1 rounded">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                                      {currentUser?.full_name || currentUser?.email} <span className="text-blue-500 ml-1">(คุณ)</span>
+                                  {usersInMyBranches.length > 0 && (
+                                    <div className="pt-3 border-t border-slate-200 space-y-1">
+                                      <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อผู้ใช้ในสาขา:</p>
+                                      {usersInMyBranches.slice(0, 5).map(user => (
+                                        <div key={user.id} className="text-xs text-slate-600 flex items-center gap-1">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                          {user.full_name || user.email}
+                                        </div>
+                                      ))}
+                                      {usersInMyBranches.length > 5 && (
+                                        <p className="text-xs text-slate-500 italic">และอีก {usersInMyBranches.length - 5} คน</p>
+                                      )}
                                     </div>
-                                    
-                                    {/* แสดงพนักงานที่เหลือ */}
-                                    {usersInMyBranches.filter(u => u.email !== currentUser?.email).slice(0, 4).map(user => (
-                                      <div key={user.id} className="text-xs text-slate-600 flex items-center gap-1">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                        {user.full_name || user.email}
-                                      </div>
-                                    ))}
-                                    
-                                    {usersInMyBranches.filter(u => u.email !== currentUser?.email).length > 4 && (
-                                      <p className="text-xs text-slate-500 italic">
-                                        และอีก {usersInMyBranches.filter(u => u.email !== currentUser?.email).length - 4} คน
-                                      </p>
-                                    )}
-                                  </div>
+                                  )}
                                 </div>
                               );
                             })()}
@@ -3711,39 +3646,17 @@ export default function Settings() {
                       {users
                         .filter(user => {
                           const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
-                          
-                          // Developer เห็นทุกคน
-                          if (userRole === 'developer') return user.id !== currentUser?.id;
-                          
-                          // Owner ไม่เห็น Developer
                           if (userRole === 'owner' && role === 'developer') return false;
-                          
-                          // ไม่แสดงตัวเอง
                           if (user.id === currentUser?.id) return false;
                           
-                          // ⭐ หาสาขาที่ currentUser เป็นเจ้าของ
-                          const myOwnedBranchIds = branches
-                            .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
-                            .map(b => b.id);
-                          
-                          // ถ้าไม่มีสาขาของตัวเอง = ไม่เห็นใคร
-                          if (myOwnedBranchIds.length === 0) return false;
-                          
-                          const userBranches = user.accessible_branches || [];
-                          
-                          // ⭐ ถ้าผู้ใช้ไม่มี accessible_branches set → เช็คว่าเป็น owner ของสาขาเดียวกันหรือไม่
-                          if (userBranches.length === 0) {
-                            // ผู้ใช้นี้อาจเป็น owner ของสาขาอื่นๆ
-                            const userOwnedBranches = branches
-                              .filter(b => b.owner_id === user.email || b.created_by === user.email)
-                              .map(b => b.id);
-                            
-                            // เห็นก็ต่อเมื่อเป็น owner ของสาขาเดียวกัน
-                            return userOwnedBranches.some(branchId => myOwnedBranchIds.includes(branchId));
+                          // กรองเฉพาะผู้ใช้ที่มีสิทธิ์ในสาขาที่เลือกอยู่
+                          if (selectedBranch) {
+                            const userBranches = user.accessible_branches || [];
+                            // ถ้าผู้ใช้คนนี้ไม่มีสิทธิ์ในสาขาที่เลือก = ไม่แสดง
+                            if (!userBranches.includes(selectedBranch.id)) return false;
                           }
                           
-                          // ⭐ ถ้ามี accessible_branches → เช็คว่าตรงกับสาขาของ currentUser หรือไม่
-                          return userBranches.some(branchId => myOwnedBranchIds.includes(branchId));
+                          return true;
                         })
                         .sort((a, b) => {
                           // เรียงตามลำดับ: pending users (ไม่มี custom_role) -> owner -> manager -> employee
