@@ -543,7 +543,7 @@ Deno.serve(async (req) => {
 
                 console.log(`✅ Facebook: ${result.success}/${facebookRecipients.length} sent`);
             } catch (fbError) {
-                console.error('❌ Facebook batch send failed:', fbError);
+                console.error('❌ Facebook batch send failed:', fbError.message || String(fbError));
                 failCount += facebookRecipients.length;
             }
         }
