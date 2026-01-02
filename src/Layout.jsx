@@ -814,6 +814,11 @@ export default function Layout({ children, currentPageName }) {
 
     if (userRole === 'developer') return true; // Developers always have full access
 
+    // ⭐ เมนู Settings และ UserBranchAccess - เข้าได้เฉพาะ owner หรือ developer
+    if (item.url === createPageUrl("Settings") || item.url === createPageUrl("UserBranchAccess")) {
+      return userRole === 'owner' || userRole === 'developer';
+    }
+
     // Enforce developer-only items
     if (item.showOnlyForDeveloper && userRole !== 'developer') return false;
     
