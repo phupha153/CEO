@@ -9,31 +9,47 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ⭐ ใช้ service role เพื่อดึง users ทั้งหมด
-    const allUsers = await base44.asServiceRole.entities.User.list();
-    const allBranches = await base44.asServiceRole.entities.Branch.list();
-
     const userRole = currentUser.custom_role || (currentUser.role === 'admin' ? 'owner' : 'employee');
 
-    // ⭐ หา branches ที่ currentUser เป็นเจ้าของ
-    const myOwnedBranchIds = allBranches
-      .filter(b => b.owner_id === currentUser.email || b.created_by === currentUser.email)
-      .map(b => b.id);
+    // ⭐ Step 1: หา branches ที่ currentUser เป็นเจ้าของ (ใช้ filter แทน list)
+    const myOwnedBranches = await base44.asServiceRole.entities.Branch.filter({
+      $or: [
+        { owner_id: currentUser.email },
+        { created_by: currentUser.email }
+      ]
+    }, '-created_date', 1000); // จำกัด 1000 สาขา (ถ้ามีเยอะกว่านี้ต้องใช้ cursor)
 
-    // ⭐ กรองเฉพาะผู้ใช้ที่อยู่ในสาขาของเรา
-    const usersInMyBranches = allUsers.filter(user => {
-      const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+    const myOwnedBranchIds = myOwnedBranches.map(b => b.id);
+
+    // ⭐ Step 2: ดึงเฉพาะ users ที่มี accessible_branches ตรงกับสาขาของเรา
+    // (ใช้ $in query แทนการโหลดทั้งหมด)
+    let usersInMyBranches = [];
+    
+    if (myOwnedBranchIds.length > 0) {
+      // Query users ที่มี accessible_branches ตรงกับสาขาเรา
+      usersInMyBranches = await base44.asServiceRole.entities.User.filter({
+        accessible_branches: { $in: myOwnedBranchIds }
+      }, '-created_date', 500); // จำกัด 500 users
       
-      // ไม่นับ Developer
-      if (role === 'developer') return false;
-      
-      // ⭐ ถ้าเป็น currentUser เอง = นับ
-      if (user.email === currentUser.email) return true;
-      
-      // ผู้ใช้อื่นๆ ต้องมี accessible_branches ที่ตรงกับสาขาที่ currentUser เป็นเจ้าของ
-      if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
-      return user.accessible_branches.some(branchId => myOwnedBranchIds.includes(branchId));
-    });
+      // กรองออก Developer
+      usersInMyBranches = usersInMyBranches.filter(user => {
+        const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+        return role !== 'developer';
+      });
+    }
+
+    // ⭐ Step 3: เพิ่ม currentUser เข้าไปถ้ายังไม่มี
+    const currentUserInList = usersInMyBranches.some(u => u.email === currentUser.email);
+    if (!currentUserInList) {
+      usersInMyBranches.push({
+        id: currentUser.id,
+        email: currentUser.email,
+        full_name: currentUser.full_name,
+        custom_role: currentUser.custom_role,
+        role: currentUser.role,
+        accessible_branches: currentUser.accessible_branches || []
+      });
+    }
 
     return Response.json({
       users: usersInMyBranches,
