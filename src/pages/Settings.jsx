@@ -1930,20 +1930,29 @@ export default function Settings() {
                                     {isTrialMode ? `จำกัด ${maxUsers} ผู้ใช้ในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInMyBranches)} ที่นั่ง`}
                                   </p>
 
-                                  {usersInMyBranches.length > 0 && (
-                                    <div className="pt-3 border-t border-slate-200 space-y-1">
-                                      <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อผู้ใช้ในสาขา:</p>
-                                      {usersInMyBranches.slice(0, 5).map(user => (
-                                        <div key={user.id} className="text-xs text-slate-600 flex items-center gap-1">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                          {user.full_name || user.email}
-                                        </div>
-                                      ))}
-                                      {usersInMyBranches.length > 5 && (
-                                        <p className="text-xs text-slate-500 italic">และอีก {usersInMyBranches.length - 5} คน</p>
-                                      )}
+                                  <div className="pt-3 border-t border-slate-200 space-y-1">
+                                    <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อผู้ใช้:</p>
+                                    
+                                    {/* แสดง currentUser เสมอ (คุณเอง) */}
+                                    <div className="text-xs text-blue-700 flex items-center gap-1.5 bg-blue-50 px-2 py-1 rounded">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
+                                      {currentUser?.full_name || currentUser?.email} <span className="text-blue-500 ml-1">(คุณ)</span>
                                     </div>
-                                  )}
+                                    
+                                    {/* แสดงพนักงานที่เหลือ */}
+                                    {usersInMyBranches.filter(u => u.email !== currentUser?.email).slice(0, 4).map(user => (
+                                      <div key={user.id} className="text-xs text-slate-600 flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                        {user.full_name || user.email}
+                                      </div>
+                                    ))}
+                                    
+                                    {usersInMyBranches.filter(u => u.email !== currentUser?.email).length > 4 && (
+                                      <p className="text-xs text-slate-500 italic">
+                                        และอีก {usersInMyBranches.filter(u => u.email !== currentUser?.email).length - 4} คน
+                                      </p>
+                                    )}
+                                  </div>
                                 </div>
                               );
                             })()}
