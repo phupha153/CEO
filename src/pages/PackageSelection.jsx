@@ -31,6 +31,46 @@ export default function PackageSelectionPage() {
   });
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userPermissions = currentUser?.permissions || [];
+
+  // ⭐ เช็คสิทธิ์เข้าถึงหน้าแพ็กเกจ
+  const hasPackageAccess = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('settings_access_package_page');
+
+  // ⭐ ถ้าไม่มีสิทธิ์ = แสดงหน้าไม่มีสิทธิ์
+  if (currentUser && !hasPackageAccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="max-w-md mx-auto text-center"
+        >
+          <div className="relative mb-8">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-400/30 via-orange-400/30 to-pink-400/30 rounded-full blur-3xl animate-pulse" />
+            <div className="relative w-64 h-64 mx-auto rounded-full bg-gradient-to-br from-white/40 via-white/30 to-white/20 backdrop-blur-2xl border border-white/50 shadow-2xl flex items-center justify-center">
+              <div className="absolute inset-8 rounded-full bg-gradient-to-br from-white/30 to-white/10 backdrop-blur-xl" />
+              <AlertCircle className="w-20 h-20 text-red-500/80 relative z-10" />
+            </div>
+          </div>
+
+          <h2 className="text-3xl font-bold text-slate-800 mb-4">ไม่มีสิทธิ์เข้าถึง</h2>
+          <p className="text-slate-600 text-lg leading-relaxed mb-8">
+            คุณไม่มีสิทธิ์เข้าถึงหน้าจัดการแพ็กเกจ<br/>
+            กรุณาติดต่อผู้ดูแลระบบ
+          </p>
+
+          <Button
+            onClick={() => navigate(createPageUrl('Dashboard'))}
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-6 text-base font-semibold rounded-2xl shadow-xl"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            กลับหน้าหลัก
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
 
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
