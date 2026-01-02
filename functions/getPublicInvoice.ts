@@ -69,12 +69,10 @@ Deno.serve(async (req) => {
         
         // Parse URL parameters
         const url = new URL(req.url);
-        const paymentId = url.searchParams.get('id') || url.searchParams.get('paymentId');
+        const paymentId = url.searchParams.get('id');
         const type = url.searchParams.get('type') || 'invoice'; // 'invoice' or 'receipt'
-        const format = url.searchParams.get('format') || 'json'; // 'json' or 'html'
-        const branchId = url.searchParams.get('branch');
 
-        console.log(`📋 Payment ID: ${paymentId}, Type: ${type}, Format: ${format}`);
+        console.log(`📋 Payment ID: ${paymentId}, Type: ${type}`);
 
         if (!paymentId) {
             return Response.json({ 
@@ -185,69 +183,6 @@ Deno.serve(async (req) => {
 
         console.log('✅ Invoice data fetched successfully');
 
-        // ⭐ ถ้าต้องการ JSON (ใช้ในระบบ) - return เหมือนเดิม
-        if (format === 'json') {
-            const invoiceObject = {
-                id: payment.id,
-                status: payment.status,
-                due_date: payment.due_date,
-                payment_date: payment.payment_date,
-                created_date: payment.created_date,
-                rent_amount: payment.rent_amount,
-                water_amount: payment.water_amount,
-                water_units: payment.water_units,
-                water_rate: payment.water_rate,
-                water_previous: payment.water_previous,
-                water_current: payment.water_current,
-                electricity_amount: payment.electricity_amount,
-                electricity_units: payment.electricity_units,
-                electricity_rate: payment.electricity_rate,
-                electricity_previous: payment.electricity_previous,
-                electricity_current: payment.electricity_current,
-                internet_amount: payment.internet_amount,
-                common_fee_amount: payment.common_fee_amount,
-                parking_fee_amount: payment.parking_fee_amount,
-                other_amount: payment.other_amount,
-                late_fee_amount: payment.late_fee_amount,
-                total_amount: payment.total_amount,
-                room: room ? {
-                    room_number: room.room_number,
-                    floor: room.floor
-                } : { room_number: 'N/A', floor: 0 },
-                tenant: tenant ? {
-                    full_name: tenant.full_name,
-                    phone: tenant.phone,
-                    address: tenant.address,
-                    national_id: tenant.national_id
-                } : { full_name: 'ไม่ระบุ', phone: '' },
-                bank: {
-                    name: configData.bank_name || 'กสิกรไทย',
-                    account_number: configData.bank_account_number || '',
-                    account_name: configData.bank_account_name || ''
-                },
-                recipient: {
-                    building_name: configData.building_name || branch?.branch_name || 'W RESIDENTS',
-                    building_logo: configData.building_logo || '',
-                    building_address: branch?.address || '',
-                    building_phone: configData.contact_phone || branch?.phone || '',
-                    lessor_name: getConfigValue('lessor_name') || '',
-                    lessor_address: getConfigValue('lessor_address') || '',
-                    company_name: getConfigValue('company_name') || '',
-                    tax_id: getConfigValue('company_tax_id') || '',
-                    company_registration_number: getConfigValue('company_registration_number') || '',
-                    company_phone: getConfigValue('company_phone') || '',
-                    company_address: getConfigValue('company_address') || '',
-                    account_name: configData.bank_account_name || ''
-                }
-            };
-
-            return Response.json({
-                success: true,
-                invoice: invoiceObject
-            });
-        }
-
-        // ⭐ ถ้าต้องการ HTML (สำหรับลิงก์สาธารณะ)
         // สร้าง line items
         const lineItems = [];
         if (payment.rent_amount > 0) {
