@@ -1890,7 +1890,9 @@ export default function Settings() {
                               console.log('  currentUser:', currentUser?.email);
                               console.log('  myOwnedBranchIds:', myOwnedBranchIds);
                               console.log('  branches.length:', branches.length);
-                              console.log('  users.length:', users.length);
+                              console.log('  users:', users);
+                              console.log('  users.length:', users?.length || 0);
+                              console.log('  isLoading:', isLoading);
                               
                               const usersInMyBranches = users.filter(user => {
                                 const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
