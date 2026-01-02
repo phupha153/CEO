@@ -127,6 +127,8 @@ Deno.serve(async (req) => {
         }
 
         const { paymentId, branch_id, template, customMessage } = await req.json();
+        
+        console.log('🔍 sendPaymentReminder received:', { paymentId, branch_id, template, hasCustomMessage: !!customMessage });
 
         // 🔒 Security: Branch Access Check
         if (branch_id) {
@@ -339,6 +341,8 @@ Deno.serve(async (req) => {
 
             // --- ส่วนสร้างข้อความ ---
             let message = '';
+
+            console.log(`📝 Message template for payment ${payment.id}: "${template}", customMessage: ${!!customMessage}`);
 
             if (customMessage && customMessage.trim()) {
                 message = customMessage.trim();
