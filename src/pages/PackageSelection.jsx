@@ -34,7 +34,7 @@ export default function PackageSelectionPage() {
   const userPermissions = currentUser?.permissions || [];
 
   // ⭐ เช็คสิทธิ์เข้าถึงหน้าแพ็กเกจ
-  const hasPackageAccess = userRole === 'developer' || userPermissions.includes('settings_access_package_page');
+  const hasPackageAccess = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('settings_access_package_page');
 
   // ⭐ ถ้าไม่มีสิทธิ์ = แสดงหน้าไม่มีสิทธิ์
   if (currentUser && !hasPackageAccess) {
