@@ -79,7 +79,7 @@ const TenantCard = React.memo(({
           if (stars !== null) {
             return (
               <div className="mb-3">
-                <RatingDisplay rating={stars} size="sm" showText={false} />
+                <RatingDisplay rating={stars} size="sm" />
               </div>
             );
           }
