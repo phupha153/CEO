@@ -380,25 +380,33 @@ Deno.serve(async (req) => {
             console.log('  Receiver PromptPay:', receiverPromptPay);
             console.log('  Receiver Name:', receiverName);
             
-            // ⭐ ถ้าไม่มี config บัญชีเลย = บังคับให้ตรวจสอบด้วยตนเอง
-            if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
-                (!expectedPromptPay || expectedPromptPay.trim() === '')) {
+            // ⭐⭐⭐ CRITICAL: ถ้าไม่มี config บัญชี**เฉพาะสาขา**นี้ = บังคับให้ตรวจสอบด้วยตนเอง
+            // (ไม่สนว่าจะมี global config หรือไม่ เพราะแต่ละสาขาใช้บัญชีคนละตัว)
+            const branchConfig = configs.find(c => c.branch_id === payment.branch_id);
+            const hasBranchBankConfig = configs.some(c => 
+                c.branch_id === payment.branch_id && 
+                (c.key === 'bank_account_number' || c.key === 'promptpay')
+            );
+            
+            if (!hasBranchBankConfig) {
                 const rooms = await base44.asServiceRole.entities.Room.list();
                 const room = rooms.find(r => r.id === payment.room_id);
                 const roomNumber = room?.room_number || 'ไม่ทราบ';
                 
-                console.log('⚠️ NO CONFIG FOUND - Manual review required');
+                console.log('⚠️ NO BRANCH-SPECIFIC BANK CONFIG - Manual review required');
+                console.log('  Branch ID:', payment.branch_id);
+                console.log('  Receiver:', receiverName, 'บช', receiverAccount);
                 
                 await base44.asServiceRole.entities.Payment.update(paymentId, {
                     payment_slip_url: uploadedSlipUrl,
                     notes: payment.notes ? 
-                        `${payment.notes}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})` :
-                        `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
+                        `${payment.notes}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - สาขานี้ยังไม่ได้ตั้งค่าบัญชีธนาคาร (โอนเข้า: ${receiverName} บช ${receiverAccount})` :
+                        `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - สาขานี้ยังไม่ได้ตั้งค่าบัญชีธนาคาร (โอนเข้า: ${receiverName} บช ${receiverAccount})`
                 });
                 
                 return Response.json({ 
                     success: true,
-                    message: `อัปโหลดสลิปสำเร็จ\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบ`,
+                    message: `อัปโหลดสลิปสำเร็จ\n\n⚠️ สาขานี้ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\n(โอนเข้า: ${receiverName})\n\nกรุณารอเจ้าของหอพักตรวจสอบ`,
                     manual_review_required: true,
                     no_config: true
                 });
