@@ -560,6 +560,14 @@ export default function F12Page() {
                 สร้างลิงก์แบบ Direct URL - ใช้ได้แม้แอปเป็น Private (ข้าม React Router)
               </p>
 
+              {/* Debug URL Info */}
+              <div className="mb-3 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs space-y-1">
+                <p><strong>🔍 Debug URL:</strong></p>
+                <p>• Full URL: <code className="bg-white px-1">{window.location.href}</code></p>
+                <p>• Pathname: <code className="bg-white px-1">{window.location.pathname}</code></p>
+                <p>• Regex Match: <code className="bg-white px-1">{window.location.pathname.match(/^(\/apps\/[^\/]+)/)?.[1] || 'NOT FOUND'}</code></p>
+              </div>
+
               {/* Branch Selector */}
               <div className="flex gap-2 mb-4">
                 <Select value={manualBranchId} onValueChange={setManualBranchId}>
