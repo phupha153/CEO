@@ -1872,12 +1872,9 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // ⭐ กรองเฉพาะสาขาที่ currentUser เป็นเจ้าของจริงๆ
-                              const myOwnedBranchIds = branches
-                                .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
-                                .map(b => b.id);
+                              // ⭐ แสดงผู้ใช้ที่เข้าถึงสาขาเดียวกันกับ currentUser (branches ที่ query มากรองแล้ว)
+                              const myAccessibleBranchIds = branches.map(b => b.id);
                               
-                              // นับผู้ใช้เฉพาะในสาขาที่ currentUser เป็นเจ้าของ
                               const usersInMyBranches = users.filter(user => {
                                 const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
                                 
@@ -1887,9 +1884,9 @@ export default function Settings() {
                                 // ⭐ ถ้าเป็น currentUser เอง = นับ
                                 if (user.email === currentUser?.email) return true;
                                 
-                                // ผู้ใช้อื่นๆ ต้องมี accessible_branches ที่ตรงกับสาขาของเรา
+                                // ผู้ใช้อื่นๆ ต้องมี accessible_branches ที่ตรงกับสาขาที่ currentUser เข้าถึงได้
                                 if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
-                                return user.accessible_branches.some(branchId => myOwnedBranchIds.includes(branchId));
+                                return user.accessible_branches.some(branchId => myAccessibleBranchIds.includes(branchId));
                               });
 
                               // นับจำนวนผู้ใช้เฉพาะในสาขาของเรา
@@ -1950,11 +1947,8 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // ⭐ นับเฉพาะสาขาที่ currentUser เป็นเจ้าของจริงๆ (ไม่ใช่ทุกสาขาที่เข้าถึงได้)
-                              const myOwnedBranches = branches.filter(b => 
-                                b.owner_id === currentUser?.email || b.created_by === currentUser?.email
-                              );
-                              const totalBranchesInSystem = myOwnedBranches.length;
+                              // ⭐ แสดงสาขาที่ currentUser เข้าถึงได้ทั้งหมด (branches ที่ query มากรองแล้ว)
+                              const totalBranchesInSystem = branches.length;
                               
                               // ⭐ เช็ค trial mode จาก currentUser.plan_status
                               const isTrialMode = currentUser?.plan_status === 'trial';
@@ -1982,10 +1976,10 @@ export default function Settings() {
                                     {isTrialMode ? `จำกัด ${maxBranches} สาขาในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนสาขา' : `สร้างได้อีก ${Math.max(0, maxBranches - totalBranchesInSystem)} สาขา`}
                                   </p>
 
-                                  {myOwnedBranches.length > 0 && (
+                                  {branches.length > 0 && (
                                     <div className="pt-3 border-t border-slate-200 space-y-1">
-                                      <p className="text-xs font-semibold text-slate-700 mb-2">สาขาที่เป็นเจ้าของ:</p>
-                                      {myOwnedBranches.map(branch => (
+                                      <p className="text-xs font-semibold text-slate-700 mb-2">สาขาที่เข้าถึงได้:</p>
+                                      {branches.map(branch => (
                                         <div key={branch.id} className="text-xs text-slate-600 flex items-center gap-1">
                                           <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                                           {branch.branch_name}
