@@ -1337,38 +1337,25 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         let accountMatch = false;
         let nameMatch = false;
         
-        // ⭐ เช็คเลขบัญชี/พร้อมเพย์ (ลอง 4-6 หลักท้ายเพราะสลิปซ่อนหน้า + ตัดเลข check digit)
+        // ⭐ เช็คเลขบัญชี (เช็ค 4 หลักท้าย)
         if (expectedAccountNumber) {
             const expectedDigits = expectedAccountNumber.replace(/-/g, '').replace(/\s/g, '');
             const receiverDigits = receiverAccount.replace(/-/g, '').replace(/x/g, '').replace(/X/g, '').replace(/\s/g, '');
-            
-            // ลองเช็ค 4-6 หลักท้าย
-            const last4 = expectedDigits.slice(-4);  // เช่น 4081
-            const last5 = expectedDigits.slice(-5);  // เช่น 14081
-            const last6 = expectedDigits.slice(-6);  // เช่น 140812
+            const last4 = expectedDigits.slice(-4);
             
             console.log('  → Expected last 4:', last4);
-            console.log('  → Expected last 5:', last5);
-            console.log('  → Expected last 6:', last6);
             console.log('  → Receiver digits:', receiverDigits);
             
-            // เช็คทั้ง 3 แบบ
-            if (receiverDigits === last4 || 
-                receiverDigits === last5 || 
-                receiverDigits === last6 ||
-                receiverDigits.includes(last4) ||
-                receiverDigits.includes(last5)) {
+            if (receiverDigits === last4) {
                 accountMatch = true;
-                console.log('  → ✅ Account matched');
-            } else {
-                console.log('  → ❌ No match found');
+                console.log('  → ✅ Match');
             }
         }
         
         if (!accountMatch && expectedPromptPay) {
             if (receiverPromptPay === expectedPromptPay || receiverAccount.includes(expectedPromptPay)) {
                 accountMatch = true;
-                console.log('  → ✅ Account matched by PromptPay');
+                console.log('  → ✅ PromptPay');
             }
         }
         
