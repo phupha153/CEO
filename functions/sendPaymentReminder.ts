@@ -102,11 +102,44 @@ async function getLineToken(base44, branchId = null) {
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
-        
-        // ⭐ ไม่เช็ค user auth เพราะฟังก์ชันนี้อาจถูกเรียกจากระบบอัตโนมัติ (cron) หรือ internal functions
-        // Plan check ทำที่ UI แทน
+        const user = await base44.auth.me();
+
+        if (!user) {
+            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // 🔒 Security: Plan Verification (SaaS Standard)
+        const planStatus = user.plan_status;
+        if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
+            return Response.json({ 
+                error: 'Subscription required', 
+                message: 'แพ็กเกจของคุณหมดอายุแล้ว กรุณาต่ออายุเพื่อใช้งานต่อ' 
+            }, { status: 402 });
+        }
+        if (planStatus === 'trial' && user.trial_ends_at) {
+            const trialEnd = new Date(user.trial_ends_at);
+            if (new Date() > trialEnd) {
+                return Response.json({ 
+                    error: 'Trial expired', 
+                    message: 'ช่วงทดลองใช้หมดอายุแล้ว กรุณาเลือกแพ็กเกจเพื่อใช้งานต่อ' 
+                }, { status: 402 });
+            }
+        }
 
         const { paymentId, branch_id, template, customMessage } = await req.json();
+
+        // 🔒 Security: Branch Access Check
+        if (branch_id) {
+            const userAccessibleBranches = user.accessible_branches;
+            const isDeveloper = user.custom_role === 'developer';
+            const isOwner = user.custom_role === 'owner';
+            
+            if (!isDeveloper && !isOwner) {
+                if (userAccessibleBranches && !userAccessibleBranches.includes(branch_id)) {
+                    return Response.json({ error: 'Branch access denied' }, { status: 403 });
+                }
+            }
+        }
 
         // ⭐ ดึงข้อมูลตาม branch_id หรือ payment_id
         console.log('📊 Fetching data...');
@@ -517,6 +550,8 @@ Deno.serve(async (req) => {
                         retryAttempts: 2
                     }
                 });
+                console.log('🔍 DEEP DEBUG RAW:', JSON.stringify(batchResult, null, 2));
+                console.log('🔍 DEEP DEBUG DATA:', JSON.stringify(batchResult.data, null, 2));
 
                 const result = batchResult.data;
                 successCount += result.success || 0;
@@ -525,7 +560,7 @@ Deno.serve(async (req) => {
 
                 console.log(`✅ LINE: ${result.success}/${lineRecipients.length} sent`);
             } catch (lineError) {
-                console.error('❌ LINE batch send failed:', lineError.message || String(lineError));
+                console.error('❌ LINE batch send failed:', lineError);
                 failCount += lineRecipients.length;
             }
         }
@@ -543,7 +578,7 @@ Deno.serve(async (req) => {
 
                 console.log(`✅ Facebook: ${result.success}/${facebookRecipients.length} sent`);
             } catch (fbError) {
-                console.error('❌ Facebook batch send failed:', fbError.message || String(fbError));
+                console.error('❌ Facebook batch send failed:', fbError);
                 failCount += facebookRecipients.length;
             }
         }
