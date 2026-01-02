@@ -1337,16 +1337,15 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         let accountMatch = false;
         let nameMatch = false;
         
-        // ⭐ เช็คเลขบัญชี (เช็ค 4 หลักท้าย)
+        // ⭐ เช็คเลขบัญชี (เช็คว่าเลขในสลิปอยู่ในบัญชีเต็มหรือไม่)
         if (expectedAccountNumber) {
             const expectedDigits = expectedAccountNumber.replace(/-/g, '').replace(/\s/g, '');
             const receiverDigits = receiverAccount.replace(/-/g, '').replace(/x/g, '').replace(/X/g, '').replace(/\s/g, '');
-            const last4 = expectedDigits.slice(-4);
             
-            console.log('  → Expected last 4:', last4);
-            console.log('  → Receiver digits:', receiverDigits);
+            console.log('  → Expected:', expectedDigits);
+            console.log('  → Receiver:', receiverDigits);
             
-            if (receiverDigits === last4) {
+            if (receiverDigits && expectedDigits.includes(receiverDigits)) {
                 accountMatch = true;
                 console.log('  → ✅ Match');
             }
