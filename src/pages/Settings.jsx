@@ -1187,22 +1187,29 @@ export default function Settings() {
     e.preventDefault();
     setIsSavingBuildingInfo(true);
     try {
-      const savePromises = [
-        updateConfigMutation.mutateAsync({ key: 'building_name', value: buildingInfo.building_name, description: 'ชื่อหอพัก', category: 'general', applyToAllBranches: applyToAllBranches_building }),
-        updateConfigMutation.mutateAsync({ key: 'building_address', value: buildingInfo.address, description: 'ที่อยู่หอพัก', category: 'general', applyToAllBranches: applyToAllBranches_building }),
-        updateConfigMutation.mutateAsync({ key: 'building_phone', value: buildingInfo.phone, description: 'เบอร์โทรหอพัก', category: 'general', applyToAllBranches: applyToAllBranches_building }),
-        updateConfigMutation.mutateAsync({ key: 'lessor_name', value: lessorInfo.lessor_name, description: 'ชื่อ-นามสกุลผู้ให้เช่า', category: 'general', applyToAllBranches: applyToAllBranches_building }),
-        updateConfigMutation.mutateAsync({ key: 'lessor_id', value: lessorInfo.lessor_id, description: 'เลขบัตรประชาชนผู้ให้เช่า', category: 'general', applyToAllBranches: applyToAllBranches_building }),
-        updateConfigMutation.mutateAsync({ key: 'lessor_phone', value: lessorInfo.lessor_phone, description: 'เบอร์โทรผู้ให้เช่า', category: 'general', applyToAllBranches: applyToAllBranches_building }),
-        updateConfigMutation.mutateAsync({ key: 'lessor_address', value: lessorInfo.lessor_address, description: 'ที่อยู่ผู้ให้เช่า', category: 'general', applyToAllBranches: applyToAllBranches_building }),
-        updateConfigMutation.mutateAsync({ key: 'company_name', value: companyInfo.company_name, description: 'ชื่อบริษัท (ถ้ามี)', category: 'general', applyToAllBranches: applyToAllBranches_building }),
-        updateConfigMutation.mutateAsync({ key: 'company_registration_number', value: companyInfo.company_registration_number, description: 'เลขทะเบียนนิติบุคคล', category: 'general', applyToAllBranches: applyToAllBranches_building }),
-        updateConfigMutation.mutateAsync({ key: 'company_tax_id', value: companyInfo.company_tax_id, description: 'เลขประจำตัวผู้เสียภาษี (13 หลัก)', category: 'general', applyToAllBranches: applyToAllBranches_building }),
-        updateConfigMutation.mutateAsync({ key: 'company_phone', value: companyInfo.company_phone, description: 'เบอร์โทรบริษัท', category: 'general', applyToAllBranches: applyToAllBranches_building }),
-        updateConfigMutation.mutateAsync({ key: 'company_address', value: companyInfo.use_building_address ? buildingInfo.address : companyInfo.company_address, description: 'ที่อยู่บริษัท (ตามทะเบียน)', category: 'general', applyToAllBranches: applyToAllBranches_building }),
-        updateConfigMutation.mutateAsync({ key: 'use_building_address_for_company', value: companyInfo.use_building_address ? 'true' : 'false', description: 'ใช้ที่อยู่เดียวกับหอพัก', category: 'general', applyToAllBranches: applyToAllBranches_building })
+      const configsToSave = [
+        { key: 'building_name', value: buildingInfo.building_name, description: 'ชื่อหอพัก', category: 'general', applyToAllBranches: applyToAllBranches_building },
+        { key: 'building_address', value: buildingInfo.address, description: 'ที่อยู่หอพัก', category: 'general', applyToAllBranches: applyToAllBranches_building },
+        { key: 'building_phone', value: buildingInfo.phone, description: 'เบอร์โทรหอพัก', category: 'general', applyToAllBranches: applyToAllBranches_building },
+        { key: 'lessor_name', value: lessorInfo.lessor_name, description: 'ชื่อ-นามสกุลผู้ให้เช่า', category: 'general', applyToAllBranches: applyToAllBranches_building },
+        { key: 'lessor_id', value: lessorInfo.lessor_id, description: 'เลขบัตรประชาชนผู้ให้เช่า', category: 'general', applyToAllBranches: applyToAllBranches_building },
+        { key: 'lessor_phone', value: lessorInfo.lessor_phone, description: 'เบอร์โทรผู้ให้เช่า', category: 'general', applyToAllBranches: applyToAllBranches_building },
+        { key: 'lessor_address', value: lessorInfo.lessor_address, description: 'ที่อยู่ผู้ให้เช่า', category: 'general', applyToAllBranches: applyToAllBranches_building },
+        { key: 'company_name', value: companyInfo.company_name, description: 'ชื่อบริษัท (ถ้ามี)', category: 'general', applyToAllBranches: applyToAllBranches_building },
+        { key: 'company_registration_number', value: companyInfo.company_registration_number, description: 'เลขทะเบียนนิติบุคคล', category: 'general', applyToAllBranches: applyToAllBranches_building },
+        { key: 'company_tax_id', value: companyInfo.company_tax_id, description: 'เลขประจำตัวผู้เสียภาษี (13 หลัก)', category: 'general', applyToAllBranches: applyToAllBranches_building },
+        { key: 'company_phone', value: companyInfo.company_phone, description: 'เบอร์โทรบริษัท', category: 'general', applyToAllBranches: applyToAllBranches_building },
+        { key: 'company_address', value: companyInfo.use_building_address ? buildingInfo.address : companyInfo.company_address, description: 'ที่อยู่บริษัท (ตามทะเบียน)', category: 'general', applyToAllBranches: applyToAllBranches_building },
+        { key: 'use_building_address_for_company', value: companyInfo.use_building_address ? 'true' : 'false', description: 'ใช้ที่อยู่เดียวกับหอพัก', category: 'general', applyToAllBranches: applyToAllBranches_building }
       ];
-      await Promise.all(savePromises);
+      
+      // ⭐ Save in chunks (3 at a time) to avoid 429 Rate Limit
+      for (let i = 0; i < configsToSave.length; i += 3) {
+        const chunk = configsToSave.slice(i, i + 3);
+        await Promise.all(chunk.map(cfg => updateConfigMutation.mutateAsync(cfg)));
+        if (i + 3 < configsToSave.length) await new Promise(r => setTimeout(r, 300));
+      }
+      
       toast.success('บันทึกข้อมูลหอพักสำเร็จ' + (applyToAllBranches_building ? ' (ทุกสาขาที่คุณดูแล)' : ` (${selectedBranch?.name})`));
     } catch (error) {
       console.error('Building info save error:', error);
@@ -1231,22 +1238,28 @@ export default function Settings() {
     
     setIsSavingBillingRates(true);
     try {
-      await Promise.all([
-        updateConfigMutation.mutateAsync({ key: 'water_rate', value: billingRates.water_rate, description: 'ค่าน้ำต่อหน่วย (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
-        updateConfigMutation.mutateAsync({ key: 'electricity_rate', value: billingRates.electricity_rate, description: 'ค่าไฟต่อหน่วย (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
-        updateConfigMutation.mutateAsync({ key: 'internet_rate', value: billingRates.internet_fee, description: 'ค่าอินเทอร์เน็ต (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
-        updateConfigMutation.mutateAsync({ key: 'common_fee', value: billingRates.common_fee, description: 'ค่าส่วนกลาง (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
-        updateConfigMutation.mutateAsync({ key: 'car_parking_fee', value: billingRates.car_parking_fee, description: 'ค่าจอดรถยนต์ (บาท/คัน)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
-        updateConfigMutation.mutateAsync({ key: 'motorcycle_parking_fee', value: billingRates.motorcycle_parking_fee, description: 'ค่าจอดรถมอเตอร์ไซค์ (บาท/คัน)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
-        // ค่าขั้นต่ำสำหรับน้ำ
-        updateConfigMutation.mutateAsync({ key: 'water_minimum_enabled', value: billingRates.water_minimum_enabled ? 'true' : 'false', description: 'เปิดใช้ค่าน้ำขั้นต่ำ', value_type: 'string', applyToAllBranches: applyToAllBranches_billing }),
-        updateConfigMutation.mutateAsync({ key: 'water_minimum_units', value: billingRates.water_minimum_units, description: 'หน่วยน้ำขั้นต่ำ', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
-        updateConfigMutation.mutateAsync({ key: 'water_minimum_charge', value: billingRates.water_minimum_charge, description: 'ค่าน้ำขั้นต่ำ (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
-        // ค่าขั้นต่ำสำหรับไฟ
-        updateConfigMutation.mutateAsync({ key: 'electricity_minimum_enabled', value: billingRates.electricity_minimum_enabled ? 'true' : 'false', description: 'เปิดใช้ค่าไฟขั้นต่ำ', value_type: 'string', applyToAllBranches: applyToAllBranches_billing }),
-        updateConfigMutation.mutateAsync({ key: 'electricity_minimum_units', value: billingRates.electricity_minimum_units, description: 'หน่วยไฟขั้นต่ำ', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }),
-        updateConfigMutation.mutateAsync({ key: 'electricity_minimum_charge', value: billingRates.electricity_minimum_charge, description: 'ค่าไฟขั้นต่ำ (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing })
-      ]);
+      const configsToSave = [
+        { key: 'water_rate', value: billingRates.water_rate, description: 'ค่าน้ำต่อหน่วย (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing },
+        { key: 'electricity_rate', value: billingRates.electricity_rate, description: 'ค่าไฟต่อหน่วย (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing },
+        { key: 'internet_rate', value: billingRates.internet_fee, description: 'ค่าอินเทอร์เน็ต (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing },
+        { key: 'common_fee', value: billingRates.common_fee, description: 'ค่าส่วนกลาง (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing },
+        { key: 'car_parking_fee', value: billingRates.car_parking_fee, description: 'ค่าจอดรถยนต์ (บาท/คัน)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing },
+        { key: 'motorcycle_parking_fee', value: billingRates.motorcycle_parking_fee, description: 'ค่าจอดรถมอเตอร์ไซค์ (บาท/คัน)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing },
+        { key: 'water_minimum_enabled', value: billingRates.water_minimum_enabled ? 'true' : 'false', description: 'เปิดใช้ค่าน้ำขั้นต่ำ', value_type: 'string', applyToAllBranches: applyToAllBranches_billing },
+        { key: 'water_minimum_units', value: billingRates.water_minimum_units, description: 'หน่วยน้ำขั้นต่ำ', value_type: 'number', applyToAllBranches: applyToAllBranches_billing },
+        { key: 'water_minimum_charge', value: billingRates.water_minimum_charge, description: 'ค่าน้ำขั้นต่ำ (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing },
+        { key: 'electricity_minimum_enabled', value: billingRates.electricity_minimum_enabled ? 'true' : 'false', description: 'เปิดใช้ค่าไฟขั้นต่ำ', value_type: 'string', applyToAllBranches: applyToAllBranches_billing },
+        { key: 'electricity_minimum_units', value: billingRates.electricity_minimum_units, description: 'หน่วยไฟขั้นต่ำ', value_type: 'number', applyToAllBranches: applyToAllBranches_billing },
+        { key: 'electricity_minimum_charge', value: billingRates.electricity_minimum_charge, description: 'ค่าไฟขั้นต่ำ (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billing }
+      ];
+      
+      // ⭐ Save in chunks to avoid Rate Limit
+      for (let i = 0; i < configsToSave.length; i += 3) {
+        const chunk = configsToSave.slice(i, i + 3);
+        await Promise.all(chunk.map(cfg => updateConfigMutation.mutateAsync(cfg)));
+        if (i + 3 < configsToSave.length) await new Promise(r => setTimeout(r, 300));
+      }
+      
       toast.success('บันทึกอัตราค่าใช้จ่ายสำเร็จ' + (applyToAllBranches_billing ? ' (ทุกสาขาที่คุณดูแล)' : ` (${selectedBranch?.name})`));
     } catch (error) {
       console.error('Billing rates save error:', error);
@@ -1260,18 +1273,25 @@ export default function Settings() {
     e.preventDefault();
     setIsSavingBillSettings(true);
     try {
-      await Promise.all([
-        updateConfigMutation.mutateAsync({ key: 'bill_generation_day', value: billSettings.bill_generation_day, description: 'วันที่สร้างบิลอัตโนมัติ (วันที่ของเดือน)', category: 'general', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif }),
-        updateConfigMutation.mutateAsync({ key: 'pay_day', value: billSettings.pay_day, description: 'วันครบกำหนดชำระ (วันที่ของเดือน)', category: 'general', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif }),
-        updateConfigMutation.mutateAsync({ key: 'late_payment_fee_per_day', value: billSettings.late_fee_per_day, description: 'ค่าปรับล่าช้าต่อวัน (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif }),
-        updateConfigMutation.mutateAsync({ key: 'auto_send_bills_after_generation', value: billSettings.auto_send_bills ? 'true' : 'false', description: 'ส่งบิลอัตโนมัติหลังจากสร้างบิล', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }),
-        updateConfigMutation.mutateAsync({ key: 'bill_advance_notice_days', value: billSettings.bill_advance_notice_days, description: 'แจ้งบิลล่วงหน้ากี่วัน', category: 'general', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif }),
-        updateConfigMutation.mutateAsync({ key: 'send_advance_reminder', value: billSettings.send_advance_reminder ? 'true' : 'false', description: 'เปิด/ปิดการแจ้งบิลล่วงหน้า', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }),
-        updateConfigMutation.mutateAsync({ key: 'send_due_date_reminder', value: billSettings.send_due_date_reminder ? 'true' : 'false', description: 'ส่งข้อความเตือนในวันครบกำหนดชำระ', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }),
-        updateConfigMutation.mutateAsync({ key: 'send_overdue_reminder', value: billSettings.send_overdue_reminder ? 'true' : 'false', description: 'ส่งข้อความเตือนเกินกำหนดชำระ', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }),
-        updateConfigMutation.mutateAsync({ key: 'late_fee_tiers_enabled', value: billSettings.late_fee_tiers_enabled ? 'true' : 'false', description: 'เปิดใช้ค่าปรับแบบขั้นบันได', category: 'billing', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }),
-        updateConfigMutation.mutateAsync({ key: 'late_fee_tiers', value: JSON.stringify(billSettings.late_fee_tiers), description: 'เงื่อนไขค่าปรับแบบขั้นบันได', category: 'billing', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif })
-      ]);
+      const configsToSave = [
+        { key: 'bill_generation_day', value: billSettings.bill_generation_day, description: 'วันที่สร้างบิลอัตโนมัติ (วันที่ของเดือน)', category: 'general', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif },
+        { key: 'pay_day', value: billSettings.pay_day, description: 'วันครบกำหนดชำระ (วันที่ของเดือน)', category: 'general', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif },
+        { key: 'late_payment_fee_per_day', value: billSettings.late_fee_per_day, description: 'ค่าปรับล่าช้าต่อวัน (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif },
+        { key: 'auto_send_bills_after_generation', value: billSettings.auto_send_bills ? 'true' : 'false', description: 'ส่งบิลอัตโนมัติหลังจากสร้างบิล', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif },
+        { key: 'bill_advance_notice_days', value: billSettings.bill_advance_notice_days, description: 'แจ้งบิลล่วงหน้ากี่วัน', category: 'general', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif },
+        { key: 'send_advance_reminder', value: billSettings.send_advance_reminder ? 'true' : 'false', description: 'เปิด/ปิดการแจ้งบิลล่วงหน้า', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif },
+        { key: 'send_due_date_reminder', value: billSettings.send_due_date_reminder ? 'true' : 'false', description: 'ส่งข้อความเตือนในวันครบกำหนดชำระ', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif },
+        { key: 'send_overdue_reminder', value: billSettings.send_overdue_reminder ? 'true' : 'false', description: 'ส่งข้อความเตือนเกินกำหนดชำระ', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif },
+        { key: 'late_fee_tiers_enabled', value: billSettings.late_fee_tiers_enabled ? 'true' : 'false', description: 'เปิดใช้ค่าปรับแบบขั้นบันได', category: 'billing', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif },
+        { key: 'late_fee_tiers', value: JSON.stringify(billSettings.late_fee_tiers), description: 'เงื่อนไขค่าปรับแบบขั้นบันได', category: 'billing', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif }
+      ];
+      
+      // ⭐ Save in chunks to avoid Rate Limit
+      for (let i = 0; i < configsToSave.length; i += 3) {
+        const chunk = configsToSave.slice(i, i + 3);
+        await Promise.all(chunk.map(cfg => updateConfigMutation.mutateAsync(cfg)));
+        if (i + 3 < configsToSave.length) await new Promise(r => setTimeout(r, 300));
+      }
       
       // ✅ Success Message (Requested Feature)
       toast.success('✅ บันทึกการตั้งค่าบิลสำเร็จแล้ว', {
@@ -1294,12 +1314,18 @@ export default function Settings() {
     e.preventDefault();
     setIsSavingBankInfo(true);
     try {
-      await Promise.all([
-        updateConfigMutation.mutateAsync({ key: 'bank_account_name', value: bankInfo.account_name, description: 'ชื่อบัญชีธนาคาร', category: 'general', applyToAllBranches: applyToAllBranches_bank }),
-        updateConfigMutation.mutateAsync({ key: 'bank_account_number', value: bankInfo.account_number, description: 'เลขที่บัญชี', category: 'general', applyToAllBranches: applyToAllBranches_bank }),
-        updateConfigMutation.mutateAsync({ key: 'bank_name', value: bankInfo.bank_name, description: 'ชื่อธนาคาร', category: 'general', applyToAllBranches: applyToAllBranches_bank }),
-        updateConfigMutation.mutateAsync({ key: 'promptpay', value: bankInfo.promptpay, description: 'พร้อมเพย์', category: 'general', applyToAllBranches: applyToAllBranches_bank })
-      ]);
+      const configsToSave = [
+        { key: 'bank_account_name', value: bankInfo.account_name, description: 'ชื่อบัญชีธนาคาร', category: 'general', applyToAllBranches: applyToAllBranches_bank },
+        { key: 'bank_account_number', value: bankInfo.account_number, description: 'เลขที่บัญชี', category: 'general', applyToAllBranches: applyToAllBranches_bank },
+        { key: 'bank_name', value: bankInfo.bank_name, description: 'ชื่อธนาคาร', category: 'general', applyToAllBranches: applyToAllBranches_bank },
+        { key: 'promptpay', value: bankInfo.promptpay, description: 'พร้อมเพย์', category: 'general', applyToAllBranches: applyToAllBranches_bank }
+      ];
+      
+      // ⭐ Save sequentially to avoid Rate Limit (4 items = fast enough)
+      for (const cfg of configsToSave) {
+        await updateConfigMutation.mutateAsync(cfg);
+      }
+      
       toast.success('บันทึกข้อมูลบัญชีธนาคารสำเร็จ' + (applyToAllBranches_bank ? ' (ทุกสาขาที่คุณดูแล)' : ` (${selectedBranch?.name})`));
     } catch (error) {
       console.error('Bank info save error:', error);
@@ -1425,57 +1451,17 @@ export default function Settings() {
         console.log(`   ${idx + 1}. ${result.branchName} (ID: ${result.branchId.substring(0, 12)}...) - ✅ บันทึกสำเร็จ`);
       });
       console.log('');
-      console.log('🔄 กำลัง invalidate queries เพื่อ refresh ข้อมูล...');
+      console.log('🔄 กำลัง refetch queries เพื่อ refresh ข้อมูล...');
       
       addDebugLog('🔄 กำลัง refresh ข้อมูล...');
       
-      // รอให้ query invalidate เสร็จก่อน
-      await queryClient.invalidateQueries(['configs']);
+      // ⭐ ใช้ refetchQueries แทน invalidateQueries เพื่อหลีกเลี่ยง Race Condition
+      await queryClient.refetchQueries({ queryKey: ['configs'], type: 'active' });
       
-      console.log('✅ Invalidate queries เสร็จแล้ว');
-      console.log('🔄 ระบบจะ reload ข้อมูล configs ใหม่อัตโนมัติ...');
+      console.log('✅ Refetch queries เสร็จแล้ว');
       console.log('');
       
       addDebugLog('✅ Refresh ข้อมูลเสร็จแล้ว', 'success');
-      addDebugLog('');
-      addDebugLog('🔍 ===== ตรวจสอบหลังบันทึก =====', 'info');
-      
-      // รอ 1 วินาทีให้ query โหลดเสร็จ
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // ดึงข้อมูล configs ล่าสุดอีกครั้ง
-      const latestConfigs = await base44.entities.Config.list();
-      const verifyResults = [];
-      
-      for (const branchId of targetBranchIds) {
-        const branchName = branches.find(b => b.id === branchId)?.branch_name || 'ไม่พบชื่อ';
-        const savedConfig = latestConfigs.find(c => 
-          c.key === 'line_channel_access_token' && c.branch_id === branchId
-        );
-        
-        if (savedConfig) {
-          const tokenMatch = savedConfig.value === lineSettings.line_channel_access_token.trim();
-          addDebugLog(`   ${tokenMatch ? '✅' : '❌'} ${branchName}: ${tokenMatch ? 'Token ตรงกัน' : 'Token ไม่ตรงกัน!'}`, tokenMatch ? 'success' : 'error');
-          verifyResults.push({ branchName, verified: tokenMatch, configId: savedConfig.id });
-          
-          if (!tokenMatch) {
-            addDebugLog(`      บันทึก: ${lineSettings.line_channel_access_token.substring(0, 20)}...`, 'error');
-            addDebugLog(`      DB มี: ${savedConfig.value.substring(0, 20)}...`, 'error');
-          }
-        } else {
-          addDebugLog(`   ❌ ${branchName}: ไม่พบ Config ใน Database!`, 'error');
-          verifyResults.push({ branchName, verified: false, configId: null });
-        }
-      }
-      
-      const allVerified = verifyResults.every(r => r.verified);
-      addDebugLog('');
-      if (allVerified) {
-        addDebugLog('🎉 ตรวจสอบแล้ว: บันทึกสำเร็จทุกสาขา', 'success');
-      } else {
-        addDebugLog('⚠️ พบปัญหา: บางสาขาบันทึกไม่สำเร็จ', 'error');
-        addDebugLog('📌 แนะนำ: ลอง Refresh หน้า (F5) แล้วเช็คว่า Token ยังอยู่หรือไม่', 'info');
-      }
       
       const branchCount = targetBranchIds.length;
       toast.success(`บันทึก LINE Token สำเร็จ - ${branchCount} สาขา`, {
