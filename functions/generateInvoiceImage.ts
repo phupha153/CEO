@@ -373,6 +373,8 @@ Deno.serve(async (req) => {
         const BROWSERLESS_API_KEY = Deno.env.get("BROWSERLESS_API_KEY");
         if (!BROWSERLESS_API_KEY) throw new Error("BROWSERLESS_API_KEY not set");
 
+        console.log('🔐 Using Browserless API Key:', BROWSERLESS_API_KEY.substring(0, 10) + '...');
+
         const browserlessResponse = await fetch(`https://production-sfo.browserless.io/screenshot?token=${BROWSERLESS_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -383,9 +385,22 @@ Deno.serve(async (req) => {
             })
         });
 
+        console.log('📡 Browserless Response Status:', browserlessResponse.status);
+
         if (!browserlessResponse.ok) {
             const errorText = await browserlessResponse.text();
-            console.error('❌ Browserless API Error:', browserlessResponse.status, errorText);
+            console.error('❌ Browserless API Error Details:', {
+                status: browserlessResponse.status,
+                statusText: browserlessResponse.statusText,
+                errorBody: errorText,
+                headers: Object.fromEntries(browserlessResponse.headers.entries())
+            });
+
+            // ⭐ แสดง error message ที่ชัดเจนขึ้น
+            if (browserlessResponse.status === 402) {
+                throw new Error(`Browserless: Payment Required (402) - Account อาจหมดโควต้าหรือไม่มี credits\nError: ${errorText}`);
+            }
+
             throw new Error(`Browserless API failed (${browserlessResponse.status}): ${errorText}`);
         }
         const imageBlob = await browserlessResponse.blob();
