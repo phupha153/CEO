@@ -109,6 +109,28 @@ export default function RatingDialog({ open, onOpenChange, tenant, onSubmit, isL
     }
   }, [open, scoreBreakdown.calculatedScore]);
 
+  // ✅ โหลดคะแนนเดิม (ล่าสุด) เมื่อเปิด dialog
+  useEffect(() => {
+    if (open && existingRatings.length > 0) {
+      const latestRating = existingRatings[0];
+      setFormData({
+        payment_score: latestRating.payment_score || scoreBreakdown.calculatedScore,
+        property_care_score: latestRating.property_care_score || 10,
+        cohabitation_score: latestRating.cohabitation_score || 10,
+        notes: latestRating.notes || '',
+        rating_period: latestRating.rating_period || ''
+      });
+    } else if (open) {
+      setFormData({
+        payment_score: scoreBreakdown.calculatedScore,
+        property_care_score: 10,
+        cohabitation_score: 10,
+        notes: '',
+        rating_period: ''
+      });
+    }
+  }, [open, existingRatings, scoreBreakdown.calculatedScore]);
+
   // ✅ Reset form เมื่อปิด dialog
   useEffect(() => {
     if (!open) {
