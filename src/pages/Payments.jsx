@@ -4155,11 +4155,12 @@ Return JSON.`;
                                              <Button
                                                size="sm"
                                                className="w-full bg-blue-600 hover:bg-blue-700"
-                                               onClick={() => {
+                                               onClick={async () => {
                                                  // เตรียมข้อมูลสำหรับสร้างบิล
                                                  const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
                                                  if (activeBooking) {
                                                    setEditingPayment(null);
+                                                   resetForm();
                                                    setFormData({
                                                      booking_id: activeBooking.id,
                                                      tenant_id: activeBooking.tenant_id,
