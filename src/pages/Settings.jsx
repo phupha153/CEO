@@ -149,13 +149,13 @@ const BranchToggle = ({ applyToAllBranches, setApplyToAllBranches, selectedBranc
 
   return (
     <div className="flex items-center justify-between gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
         <Globe className={`w-5 h-5 flex-shrink-0 ${applyToAllBranches ? 'text-blue-600' : 'text-slate-500'}`} />
-        <div className="text-sm flex-1">
+        <div className="text-sm flex-1 min-w-0">
           <p className={`font-semibold ${applyToAllBranches ? 'text-blue-700' : 'text-slate-700'}`}>
             {applyToAllBranches ? 'ใช้กับทุกสาขาที่คุณดูแล' : `เฉพาะ ${selectedBranch.name}`}
           </p>
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-slate-600 break-words">
             {applyToAllBranches ? 'การตั้งค่าจะมีผลกับทุกสาขาที่คุณมีสิทธิ์เข้าถึง' : 'การตั้งค่าจะมีผลเฉพาะสาขานี้'}
           </p>
         </div>
@@ -163,7 +163,7 @@ const BranchToggle = ({ applyToAllBranches, setApplyToAllBranches, selectedBranc
       <Switch
         checked={applyToAllBranches}
         onCheckedChange={setApplyToAllBranches}
-        className="data-[state=checked]:bg-blue-600"
+        className="data-[state=checked]:bg-blue-600 flex-shrink-0"
       />
     </div>
   );
@@ -3173,15 +3173,13 @@ export default function Settings() {
                           canSetGlobalConfig={canSetGlobalConfig}
                         />
 
-                        {/* LINE Shield SVG */}
+                        {/* LINE Logo Banner */}
                         <div className="flex items-center gap-3 p-4 bg-[#00B900] rounded-xl">
-                          <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
-                            <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M12 2L4 6V11C4 16.55 7.84 21.74 13 23C18.16 21.74 22 16.55 22 11V6L14 2H12Z" fill="#00B900"/>
-                              <path d="M12 2L4 6V11C4 16.55 7.84 21.74 13 23C18.16 21.74 22 16.55 22 11V6L14 2H12Z" stroke="white" strokeWidth="1.5"/>
-                              <text x="12" y="15" fontSize="10" fontWeight="bold" fill="white" textAnchor="middle">L</text>
-                            </svg>
-                          </div>
+                          <img 
+                            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/2d3db1611_image.png" 
+                            alt="LINE Logo" 
+                            className="w-12 h-12 flex-shrink-0"
+                          />
                           <div className="flex-1">
                             <h3 className="text-white font-bold text-lg">LINE Official Account</h3>
                             <p className="text-white/90 text-sm">เชื่อมต่อ LINE เพื่อส่งข้อความอัตโนมัติ</p>
