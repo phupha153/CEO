@@ -7,6 +7,71 @@ import { Download, Loader2, CheckCircle, RefreshCw, Building2, Users, ArrowLeft 
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 
+// ฟังก์ชันคำนวณค่าปรับ
+function calculateLateFee(payment, configs, selectedBranchId) {
+  if (!payment || !payment.due_date || payment.status === 'paid') return 0;
+  if (payment.late_fee_amount && payment.late_fee_amount > 0) return payment.late_fee_amount;
+
+  try {
+    const dueDate = parseISO(payment.due_date);
+    const today = new Date();
+    const daysOverdue = differenceInDays(today, dueDate);
+
+    if (daysOverdue <= 0) return 0;
+
+    // ตรวจสอบว่าเปิดใช้ค่าปรับแบบขั้นบันไดหรือไม่
+    const branchConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === selectedBranchId);
+    const globalConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
+    const tiersEnabledConfig = branchConfig || globalConfig;
+    const tiersEnabled = tiersEnabledConfig?.value === 'true';
+
+    if (tiersEnabled) {
+      const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === selectedBranchId);
+      const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
+      const tiersConfig = branchTiersConfig || globalTiersConfig;
+      
+      if (tiersConfig?.value) {
+        try {
+          const tiers = JSON.parse(tiersConfig.value);
+          let totalFee = 0;
+
+          for (const tier of tiers) {
+            const daysFrom = tier.days_from || 1;
+            const daysTo = tier.days_to || 999;
+            const feePerDay = parseFloat(tier.fee_per_day || 0);
+
+            if (daysOverdue >= daysFrom) {
+              const daysInThisTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+              if (daysInThisTier > 0) {
+                totalFee += daysInThisTier * feePerDay;
+              }
+            }
+
+            if (daysOverdue <= daysTo) break;
+          }
+
+          return totalFee;
+        } catch (e) {
+          console.error('Error parsing late fee tiers:', e);
+        }
+      }
+    }
+
+    // ค่าปรับแบบธรรมดา
+    const branchLateFeeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === selectedBranchId);
+    const globalLateFeeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
+    const lateFeeConfig = branchLateFeeConfig || globalLateFeeConfig;
+    const lateFeePerDay = lateFeeConfig ? parseFloat(lateFeeConfig.value) : 0;
+    
+    if (lateFeePerDay === 0 || isNaN(lateFeePerDay)) return 0;
+
+    return daysOverdue * lateFeePerDay;
+  } catch (error) {
+    console.error('Error calculating late fee:', error);
+    return 0;
+  }
+}
+
 // ✅ เพิ่มฟังก์ชันแปลงตัวเลขเป็นตัวหนังสือไทย
 function numberToThaiText(number) {
   if (number === undefined || number === null || isNaN(number) || number === 0) return 'ศูนย์บาทถ้วน';
@@ -68,6 +133,7 @@ export default function Receipt() {
   const [receiptData, setReceiptData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [configs, setConfigs] = useState([]);
 
   const fetchReceipt = async () => {
     if (!paymentId) {
@@ -87,6 +153,10 @@ export default function Receipt() {
     }, 15000);
 
     try {
+      // ⭐ ดึง configs เพื่อคำนวณค่าปรับ
+      const configsData = await base44.entities.Config.list();
+      setConfigs(configsData);
+      
       console.log('Calling getPublicInvoice via base44.functions.invoke');
       const response = await base44.functions.invoke('getPublicInvoice', { 
         paymentId: paymentId 
@@ -182,6 +252,10 @@ export default function Receipt() {
     ? format(parseISO(receiptData.payment_date), 'd MMMM yyyy', { locale: th })
     : format(new Date(), 'd MMMM yyyy', { locale: th });
 
+  // ⭐ คำนวณค่าปรับ
+  const calculatedLateFee = calculateLateFee(receiptData, configs, receiptData.branch_id);
+  const displayLateFee = receiptData.late_fee_amount > 0 ? receiptData.late_fee_amount : calculatedLateFee;
+
   const lineItems = [];
   if (receiptData.rent_amount > 0) {
     lineItems.push({
@@ -259,12 +333,12 @@ export default function Receipt() {
       total: receiptData.other_amount
     });
   }
-  if (receiptData.late_fee_amount && receiptData.late_fee_amount > 0) {
+  if (displayLateFee > 0) {
     lineItems.push({
       name: 'ค่าปรับชำระล่าช้า',
       quantity: 1,
-      price: receiptData.late_fee_amount,
-      total: receiptData.late_fee_amount
+      price: displayLateFee,
+      total: displayLateFee
     });
   }
 
@@ -510,11 +584,11 @@ export default function Receipt() {
               <div className="flex justify-between items-center">
                 <div className="text-sm text-slate-600">
                   <span className="font-medium">ยอดเงินสุทธิ</span>
-                  <span className="ml-2">({numberToThaiText(receiptData.total_amount || 0)})</span>
+                  <span className="ml-2">({numberToThaiText((receiptData.total_amount || 0) + (displayLateFee > receiptData.late_fee_amount ? displayLateFee - receiptData.late_fee_amount : 0))})</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-lg font-bold text-slate-800">
-                    {(receiptData.total_amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                    {((receiptData.total_amount || 0) + (displayLateFee > receiptData.late_fee_amount ? displayLateFee - receiptData.late_fee_amount : 0)).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                   {/* ตราประทับชำระแล้ว */}
                   <div className="border-2 border-green-600 rounded px-2.5 py-1 text-center transform rotate-[-3deg]">
