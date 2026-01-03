@@ -34,10 +34,12 @@ export default function BranchSelection() {
     payment_due_day: ''
   });
 
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
     staleTime: 5 * 60 * 1000,
+    retry: 3, // ⭐ เพิ่ม retry เพื่อรอ auth token ready
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000), // ⭐ Exponential backoff
   });
 
   const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError } = useQuery({
@@ -56,11 +58,12 @@ export default function BranchSelection() {
 
       return data;
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && !userLoading, // ⭐ รอให้ user โหลดเสร็จก่อน
     staleTime: 30 * 1000,
     refetchInterval: 1 * 60 * 1000,
     refetchIntervalInBackground: true,
-    retry: false, // ไม่ retry
+    retry: 2, // ⭐ เพิ่ม retry เพื่อความปลอดภัย
+    retryDelay: 1000, // ⭐ รอ 1 วิก่อน retry
     throwOnError: false,
   });
 
@@ -334,7 +337,7 @@ export default function BranchSelection() {
 
 
 
-  if (isLoading) {
+  if (userLoading || isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-purple-100 flex items-center justify-center">
         <div className="text-center">
