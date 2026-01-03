@@ -51,13 +51,10 @@ export default function BranchSelection() {
         return { hasAccess: true, skipped: true };
       }
 
-      // ⭐⭐ รอ 1 วิ เพื่อให้แน่ใจว่า auth token settle แล้ว
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
       const response = await base44.functions.invoke('checkCRMAccess');
       const data = response.data;
 
-      // ⭐ logout เฉพาะเมื่อ CRM deny ชัดเจน (ไม่มี timeout/error)
+      // ⭐ เพิ่ม validation: logout เฉพาะเมื่อมั่นใจว่า user auth เสถียร + CRM deny ชัดเจน
       if (data && data.hasAccess === false && !data.timeout && !data.error && currentUser?.email) {
         console.warn('🚫 CRM Access denied (confirmed) - Logging out:', currentUser.email);
         setTimeout(() => {
@@ -68,9 +65,9 @@ export default function BranchSelection() {
       return data;
     },
     enabled: !!currentUser && !userLoading && userSuccess, // ⭐ รอให้ user success ก่อน
-    staleTime: 5 * 60 * 1000, // ⭐ เพิ่มเวลา cache
-    refetchInterval: 5 * 60 * 1000, // ⭐ เช็คทุก 5 นาที (ไม่บ่อยเกินไป)
-    refetchIntervalInBackground: false, // ⭐ ไม่ refetch ตอน background
+    staleTime: 30 * 1000,
+    refetchInterval: 1 * 60 * 1000,
+    refetchIntervalInBackground: true,
     retry: 2,
     retryDelay: 1000,
     throwOnError: false,
