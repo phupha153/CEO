@@ -1099,14 +1099,21 @@ export default function PaymentsPage() {
       }
       console.log('✅ Permission check passed, calling API...');
       
-      // ⭐ FIX: ดึง payment เดิมมาก่อน เพื่อ clean notes
+      // ⭐ FIX: ดึง payment เดิมมาก่อน เพื่อ clean notes และ lock late fee
       const existingPayment = await base44.entities.Payment.filter({ id }, '', 1);
       const payment = existingPayment[0];
+      
+      // ⭐ คำนวณและ lock ค่าปรับ ณ เวลาที่ยืนยันชำระ
+      let lockedLateFee = payment.late_fee_amount || 0;
+      if (status === 'paid' && lockedLateFee === 0) {
+        // คำนวณค่าปรับครั้งสุดท้าย ณ วันที่ชำระ
+        lockedLateFee = calculateLateFee(payment);
+        console.log(`🔒 Locking late fee at payment confirmation: ${lockedLateFee} บาท`);
+      }
       
       // ⭐ ลบ warning flags ออกจาก notes + เพิ่มการยืนยัน
       let cleanedNotes = payment?.notes || '';
       if (cleanedNotes.includes('⚠️ รอตรวจสอบ')) {
-        // เอาแค่ส่วน warning ออก แล้วเพิ่มการยืนยัน
         cleanedNotes = cleanedNotes
           .split('\n\n')
           .filter(line => !line.includes('⚠️ รอตรวจสอบ') && !line.includes('⚠️ โอนไปผิดบัญชี'))
@@ -1114,9 +1121,15 @@ export default function PaymentsPage() {
           .trim();
       }
       
+      // ⭐ อัปเดต total_amount ให้รวมค่าปรับที่ lock ไว้
+      const baseAmount = payment.total_amount - (payment.late_fee_amount || 0);
+      const newTotalAmount = baseAmount + lockedLateFee;
+      
       const result = await base44.entities.Payment.update(id, { 
         status, 
         payment_date,
+        late_fee_amount: lockedLateFee,
+        total_amount: newTotalAmount,
         notes: (cleanedNotes ? cleanedNotes + '\n\n' : '') + '✅ ยืนยันชำระแล้ว (ผ่านการตรวจสอบด้วยตนเอง)'
       });
       console.log('📤 API call completed:', result);

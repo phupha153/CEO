@@ -7,87 +7,8 @@ import { Download, Loader2, AlertCircle, ArrowLeft, Clock, CheckCircle } from "l
 import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 
-// ฟังก์ชันคำนวณค่าปรับ
-function calculateLateFee(payment, configs, selectedBranchId) {
-  if (!payment || !payment.due_date) return 0;
-  
-  // ⭐ ถ้าชำระแล้ว ให้ใช้ค่าปรับที่บันทึกไว้
-  if (payment.status === 'paid') {
-    return payment.late_fee_amount || 0;
-  }
-  
-  // ⭐ ถ้ายังไม่ชำระ แต่มีค่าปรับบันทึกไว้แล้ว ให้ใช้ตามที่บันทึก
-  if (payment.late_fee_amount && payment.late_fee_amount > 0) return payment.late_fee_amount;
-
-  try {
-    const dueDate = parseISO(payment.due_date);
-    const today = new Date();
-    const daysOverdue = differenceInDays(today, dueDate);
-
-    if (daysOverdue <= 0) return 0;
-
-    // ตรวจสอบว่าเปิดใช้ค่าปรับแบบขั้นบันไดหรือไม่
-    const branchConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === selectedBranchId);
-    const globalConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
-    const tiersEnabledConfig = branchConfig || globalConfig;
-    const tiersEnabled = tiersEnabledConfig?.value === 'true';
-
-    if (tiersEnabled) {
-      const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === selectedBranchId);
-      const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
-      const tiersConfig = branchTiersConfig || globalTiersConfig;
-      
-      if (tiersConfig?.value) {
-        try {
-          const tiers = JSON.parse(tiersConfig.value);
-          let totalFee = 0;
-
-          for (const tier of tiers) {
-            const daysFrom = tier.days_from || 1;
-            const daysTo = tier.days_to || 999;
-            const feePerDay = parseFloat(tier.fee_per_day || 0);
-
-            if (daysOverdue >= daysFrom) {
-              const daysInThisTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
-              if (daysInThisTier > 0) {
-                totalFee += daysInThisTier * feePerDay;
-              }
-            }
-
-            if (daysOverdue <= daysTo) break;
-          }
-
-          return totalFee;
-        } catch (e) {
-          console.error('Error parsing late fee tiers:', e);
-        }
-      }
-    }
-
-    // ค่าปรับแบบธรรมดา
-    const branchLateFeeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === selectedBranchId);
-    const globalLateFeeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
-    const lateFeeConfig = branchLateFeeConfig || globalLateFeeConfig;
-    const lateFeePerDay = lateFeeConfig ? parseFloat(lateFeeConfig.value) : 0;
-    
-    console.log('🔍 [Invoice] Late Fee Calculation:', {
-      selectedBranchId,
-      daysOverdue,
-      branchConfig: branchLateFeeConfig?.value,
-      globalConfig: globalLateFeeConfig?.value,
-      selectedConfig: lateFeeConfig?.value,
-      lateFeePerDay,
-      totalLateFee: daysOverdue * lateFeePerDay
-    });
-    
-    if (lateFeePerDay === 0 || isNaN(lateFeePerDay)) return 0;
-
-    return daysOverdue * lateFeePerDay;
-  } catch (error) {
-    console.error('Error calculating late fee:', error);
-    return 0;
-  }
-}
+// ⭐ Note: ใช้ค่าปรับจาก backend (late_fee_amount) แทนการคำนวณเอง
+// Backend จะคำนวณและบันทึกค่าปรับไว้แล้วใน total_amount
 
 // ฟังก์ชันแปลงตัวเลขเป็นตัวหนังสือไทย
 function numberToThaiText(number) {
@@ -227,9 +148,8 @@ export default function Invoice() {
   const isOverdue = !isPaid && invoiceData.due_date && differenceInDays(new Date(), parseISO(invoiceData.due_date)) > 0;
   const daysOverdue = isOverdue ? differenceInDays(new Date(), parseISO(invoiceData.due_date)) : 0;
 
-  // ⭐ คำนวณค่าปรับ
-  const calculatedLateFee = calculateLateFee(invoiceData, configs, invoiceData.branch_id);
-  const displayLateFee = invoiceData.late_fee_amount > 0 ? invoiceData.late_fee_amount : calculatedLateFee;
+  // ⭐ ใช้ค่าปรับจาก backend (บันทึกไว้แล้ว)
+  const displayLateFee = invoiceData.late_fee_amount || 0;
 
   const handleDownload = () => {
     if (window.print) {
@@ -573,11 +493,11 @@ export default function Invoice() {
               <div className="flex justify-between items-center">
                 <div className="text-sm text-slate-600">
                   <span className="font-medium">ยอดเงินสุทธิ</span>
-                  <span className="ml-2">({numberToThaiText((invoiceData.total_amount || 0) + (displayLateFee > invoiceData.late_fee_amount ? displayLateFee - invoiceData.late_fee_amount : 0))})</span>
+                  <span className="ml-2">({numberToThaiText(invoiceData.total_amount || 0)})</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-lg font-bold text-slate-800">
-                    {((invoiceData.total_amount || 0) + (displayLateFee > invoiceData.late_fee_amount ? displayLateFee - invoiceData.late_fee_amount : 0)).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                    {(invoiceData.total_amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                   {/* ตราประทับ */}
                   {isPaid ? (
