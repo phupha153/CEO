@@ -277,6 +277,7 @@ export default function Receipt() {
     : format(new Date(), 'd MMMM yyyy', { locale: th });
 
   // ⭐ คำนวณค่าปรับ
+  console.log('🔍 [Receipt] receiptData.branch_id:', receiptData.branch_id);
   const calculatedLateFee = calculateLateFee(receiptData, configs, receiptData.branch_id);
   const displayLateFee = receiptData.late_fee_amount > 0 ? receiptData.late_fee_amount : calculatedLateFee;
 

@@ -235,6 +235,7 @@ export default function Invoice() {
   const daysOverdue = isOverdue ? differenceInDays(new Date(), parseISO(invoiceData.due_date)) : 0;
 
   // ⭐ คำนวณค่าปรับ
+  console.log('🔍 [Invoice] invoiceData.branch_id:', invoiceData.branch_id);
   const calculatedLateFee = calculateLateFee(invoiceData, configs, invoiceData.branch_id);
   const displayLateFee = invoiceData.late_fee_amount > 0 ? invoiceData.late_fee_amount : calculatedLateFee;
 
