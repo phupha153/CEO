@@ -899,7 +899,7 @@ export default function PaymentsPage() {
       pending: calculateSum(paymentsForSummary.filter(p => getEffectiveStatus(p) === 'pending')),
       overdue: calculateSum(paymentsForSummary.filter(p => getEffectiveStatus(p) === 'overdue')),
     };
-  }, [filteredPayments, roomViewPayments, roomViewMonth, viewMode, getEffectiveStatus, calculateLateFee]);
+  }, [filteredPayments, roomViewPayments, viewMode, getEffectiveStatus, calculateLateFee]);
 
   // ✅ Use enriched data from server (no lookup needed)
   const pendingOverduePayments = useMemo(() => 
