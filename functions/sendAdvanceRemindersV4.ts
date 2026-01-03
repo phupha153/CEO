@@ -180,7 +180,7 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
             if (lineUsers.length > 0) {
                  if (testLineUserId) {
                      await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                        recipients: [{ lineUserId: testLineUserId, message: lineUsers[0].message, imageUrl: lineUsers[0].imageUrl }]
+                        recipients: [{ lineUserId: testLineUserId, message: lineUsers[0].message }]
                     });
                  } else {
                      await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
@@ -191,7 +191,17 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
             }
             // Send FB
             const fbUsers = recipients.filter(r => r.facebookUserId);
-            if (fbUsers.length > 0) await sendFacebookBatch(base44, fbUsers, branchId);
+            if (fbUsers.length > 0) {
+                const fbMessages = fbUsers.map(r => ({
+                    to: r.facebookUserId,
+                    message: r.message,
+                    branch_id: branchId
+                }));
+                await Promise.all(fbMessages.map(fb => 
+                    base44.asServiceRole.functions.invoke('sendFacebookMessage', fb)
+                        .catch(e => console.error(`⚠️ FB Error:`, e.message))
+                ));
+            }
 
             // Update DB
             const nowIso = new Date().toISOString();
