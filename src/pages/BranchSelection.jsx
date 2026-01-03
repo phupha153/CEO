@@ -34,23 +34,29 @@ export default function BranchSelection() {
     payment_due_day: ''
   });
 
-  const { data: currentUser, isLoading: userLoading } = useQuery({
+  const { data: currentUser, isLoading: userLoading, isSuccess: userSuccess } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
     staleTime: 5 * 60 * 1000,
-    retry: 3, // ⭐ เพิ่ม retry เพื่อรอ auth token ready
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000), // ⭐ Exponential backoff
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
   });
 
   const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError } = useQuery({
     queryKey: ['crmAccess', currentUser?.email],
     queryFn: async () => {
+      // ⭐ Safety: ตรวจสอบว่า user พร้อมจริงๆ ก่อนเรียก CRM
+      if (!currentUser?.email || !currentUser?.id) {
+        console.warn('⚠️ User not fully loaded - skipping CRM check');
+        return { hasAccess: true, skipped: true };
+      }
+
       const response = await base44.functions.invoke('checkCRMAccess');
       const data = response.data;
 
-      // ⭐ ถ้าไม่มีสิทธิ์ = logout ทันที (ทุกคน ไม่เว้นแม้แต่ developer)
-      if (data && data.hasAccess === false && currentUser) {
-        console.warn('🚫 CRM Access denied - Logging out:', currentUser.email);
+      // ⭐ เพิ่ม validation: logout เฉพาะเมื่อมั่นใจว่า user auth เสถียร + CRM deny ชัดเจน
+      if (data && data.hasAccess === false && !data.timeout && !data.error && currentUser?.email) {
+        console.warn('🚫 CRM Access denied (confirmed) - Logging out:', currentUser.email);
         setTimeout(() => {
           base44.auth.logout();
         }, 1500);
@@ -58,12 +64,12 @@ export default function BranchSelection() {
 
       return data;
     },
-    enabled: !!currentUser && !userLoading, // ⭐ รอให้ user โหลดเสร็จก่อน
+    enabled: !!currentUser && !userLoading && userSuccess, // ⭐ รอให้ user success ก่อน
     staleTime: 30 * 1000,
     refetchInterval: 1 * 60 * 1000,
     refetchIntervalInBackground: true,
-    retry: 2, // ⭐ เพิ่ม retry เพื่อความปลอดภัย
-    retryDelay: 1000, // ⭐ รอ 1 วิก่อน retry
+    retry: 2,
+    retryDelay: 1000,
     throwOnError: false,
   });
 
