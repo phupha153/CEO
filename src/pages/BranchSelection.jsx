@@ -167,41 +167,14 @@ export default function BranchSelection() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // ⭐ ดึงข้อมูล User ของเจ้าของสาขาแต่ละคน
-  const { data: allUsers = [] } = useQuery({
-    queryKey: ['allBranchOwners'],
-    queryFn: async () => {
-      const response = await base44.entities.User.list();
-      return response;
-    },
-    enabled: !!currentUser && branches.length > 0,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // ⭐ หาข้อมูลเจ้าของสาขาแต่ละสาขา
-  const getBranchOwnerInfo = (branch) => {
-    const owner = allUsers.find(u => u.email === branch.owner_id);
-    if (!owner) return { planStatus: 'unknown', ownedCount: 0, maxAllowed: 0 };
-    
-    const ownerBranches = branches.filter(b => b.owner_id === owner.email);
-    const planStatus = owner.plan_status || 'trial';
-    const maxAllowed = planStatus === 'trial' ? 1 : 999;
-    
-    return {
-      planStatus,
-      ownedCount: ownerBranches.length,
-      maxAllowed,
-      isOverLimit: ownerBranches.length > maxAllowed,
-      ownerName: owner.full_name || owner.email
-    };
-  };
-
-  // ⭐ เช็คว่า currentUser สามารถสร้างสาขาใหม่ได้ไหม (เป็นของตัวเอง)
+  // ⭐ เช็คจำนวนสาขาที่ user เป็นเจ้าของ (owner_id = email)
   const userOwnedBranches = branches.filter(b => b.owner_id === currentUser?.email);
   const isTrialMode = currentUser?.plan_status === 'trial';
+  
+  // Trial = 1 สาขา, Active = unlimited
   const maxAllowedBranches = isTrialMode ? 1 : 999;
-  const canAddMoreBranches = (userRole === 'developer' || userRole === 'owner') && 
-                             (userRole === 'developer' || userOwnedBranches.length < maxAllowedBranches);
+  
+  const canAddMoreBranches = userRole === 'developer' || userOwnedBranches.length < maxAllowedBranches;
 
   // ✅ เช็คว่าไม่มีสาขาเลย หรือไม่มีสิทธิ์ในสาขาใดเลย
   const hasNoBranches = branches.length === 0;
@@ -490,7 +463,6 @@ export default function BranchSelection() {
                     {filteredBranches.map((branch, index) => {
                     const isSelected = selectedBranchId === branch.id;
                     const isNavigatingThis = isNavigating && isSelected;
-                    const ownerInfo = getBranchOwnerInfo(branch);
 
                     return (
                       <motion.div
@@ -520,29 +492,12 @@ export default function BranchSelection() {
                                 </h3>
                                 <p className="text-sm text-slate-500 font-semibold mb-3">{branch.branch_code}</p>
                                 
-                                <div className="flex flex-col items-center gap-2 mb-3">
+                                <div className="flex items-center justify-center gap-2 mb-3">
                                   <div className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-full">
                                     <Building2 className="w-4 h-4 text-blue-600" />
                                     <span className="text-sm font-semibold text-blue-700">{roomCountByBranch[branch.id] || 0}</span>
                                     <span className="text-xs text-blue-600">ห้อง</span>
                                   </div>
-
-                                  {ownerInfo.planStatus !== 'unknown' && (
-                                    <div className="flex items-center gap-2">
-                                      <div className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                                        ownerInfo.planStatus === 'trial' ? 'bg-amber-100 text-amber-700' : 
-                                        ownerInfo.planStatus === 'active' ? 'bg-green-100 text-green-700' : 
-                                        'bg-slate-100 text-slate-600'
-                                      }`}>
-                                        {ownerInfo.planStatus === 'trial' ? '🎯 Trial' : 
-                                         ownerInfo.planStatus === 'active' ? '✅ Active' : 
-                                         ownerInfo.planStatus}
-                                      </div>
-                                      <div className="text-xs text-slate-500">
-                                        {ownerInfo.ownedCount}/{ownerInfo.maxAllowed} สาขา
-                                      </div>
-                                    </div>
-                                  )}
                                 </div>
 
                                 {branch.address && (
