@@ -17,10 +17,13 @@ Deno.serve(async (req) => {
       trialEndDate.setDate(today.getDate() + 30);
       trialEndDate.setHours(23, 59, 59, 999);
 
-      await base44.asServiceRole.auth.updateUser(user.email, {
-        trial_ends_at: trialEndDate.toISOString().split('T')[0],
-        plan_status: 'trial'
-      });
+      const userToUpdate = await base44.asServiceRole.entities.User.filter({ email: user.email });
+      if (userToUpdate.length > 0) {
+        await base44.asServiceRole.entities.User.update(userToUpdate[0].id, {
+          trial_ends_at: trialEndDate.toISOString().split('T')[0],
+          plan_status: 'trial'
+        });
+      }
 
       // Refresh user object
       user.trial_ends_at = trialEndDate.toISOString().split('T')[0];
@@ -28,10 +31,10 @@ Deno.serve(async (req) => {
     }
 
     // ⭐ ตรวจสอบสถานะ trial ของ user
-    const userRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+    const currentUserRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
     
     // Developer ไม่ต้องเช็ค trial
-    if (userRole !== 'developer') {
+    if (currentUserRole !== 'developer') {
       const trialEndDate = new Date(user.trial_ends_at);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -52,11 +55,10 @@ Deno.serve(async (req) => {
     }
 
     // ตรวจสอบสิทธิ์เข้าถึงสาขา
-    const userRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
     const accessibleBranches = user.accessible_branches;
 
     // Developer ที่ไม่มี accessible_branches = เข้าถึงทุกสาขา
-    const canAccessAllBranches = userRole === 'developer' && (!accessibleBranches || accessibleBranches.length === 0);
+    const canAccessAllBranches = currentUserRole === 'developer' && (!accessibleBranches || accessibleBranches.length === 0);
 
     // ถ้ามี branch_id ใน filters ให้เช็คสิทธิ์
     if (filters.branch_id && !canAccessAllBranches) {
@@ -98,7 +100,7 @@ Deno.serve(async (req) => {
       meta: {
         count: data.length,
         entity,
-        user_role: userRole,
+        user_role: currentUserRole,
         accessible_branches: canAccessAllBranches ? 'all' : accessibleBranches
       }
     });

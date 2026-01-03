@@ -34,10 +34,11 @@ Deno.serve(async (req) => {
     const CRM_SERVICE_ROLE_KEY = Deno.env.get('CRM_SERVICE_ROLE_KEY');
     
     if (!CRM_API_KEY || !CRM_APP_ID || !CRM_SERVICE_ROLE_KEY) {
-      console.error('Missing CRM configuration');
+      console.error('Missing CRM configuration - allowing access');
       return Response.json({ 
-        hasAccess: false, 
-        error: 'ไม่พบการตั้งค่า CRM - กรุณาติดต่อผู้ดูแลระบบ' 
+        hasAccess: true, 
+        error: 'CRM config missing - fail-safe mode',
+        configMissing: true
       }, { status: 200 });
     }
 
@@ -100,11 +101,12 @@ Deno.serve(async (req) => {
 
     if (!crmResponse.ok) {
       const errorText = await crmResponse.text();
-      console.error('❌ CRM API error:', errorText);
+      console.error('❌ CRM API error:', errorText, '- allowing access (fail-safe)');
       return Response.json({ 
-        hasAccess: false, 
+        hasAccess: true, 
         email: userEmail,
-        error: `ไม่สามารถเชื่อมต่อ CRM ได้ (${crmResponse.status})`,
+        error: `CRM API error (${crmResponse.status}) - fail-safe mode`,
+        crmError: true,
         debug: {
           ...debugInfo,
           url: 'getCustomers API',
