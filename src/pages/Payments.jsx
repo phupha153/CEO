@@ -1003,7 +1003,13 @@ export default function PaymentsPage() {
       return base44.entities.Payment.create({...data, branch_id: selectedBranchId});
     },
     onSuccess: async (newPayment) => {
-      queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
+      // ⭐ รีเฟรชข้อมูลทุก query
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-room-view'] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
+      ]);
       
       // บันทึก log
       const room = rooms.find(r => r.id === newPayment.room_id);
@@ -1018,6 +1024,9 @@ export default function PaymentsPage() {
         user_name: currentUser?.full_name,
         description: `สร้างบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} จำนวน ${newPayment.total_amount?.toLocaleString()} บาท`
       });
+      
+      // ⭐ รอให้โหลดข้อมูลใหม่เสร็จ
+      await new Promise(r => setTimeout(r, 500));
       
       setShowDialog(false);
       resetForm();
@@ -1041,7 +1050,13 @@ export default function PaymentsPage() {
       });
     },
     onSuccess: async (updatedPayment) => {
-      queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
+      // ⭐ รีเฟรชข้อมูลทุก query
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-room-view'] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
+      ]);
       
       // บันทึก log
       const room = rooms.find(r => r.id === updatedPayment.room_id);
@@ -1056,6 +1071,9 @@ export default function PaymentsPage() {
         user_name: currentUser?.full_name,
         description: `แก้ไขบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} (รูปจะถูกสร้างใหม่)`
       });
+      
+      // ⭐ รอให้โหลดข้อมูลใหม่เสร็จ
+      await new Promise(r => setTimeout(r, 500));
       
       setShowDialog(false);
       resetForm();
