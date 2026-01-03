@@ -2845,7 +2845,7 @@ Return JSON.`;
               <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-xl font-semibold text-slate-800">กำลังโหลดข้อมูล...</p>
             </div>
-          ) : paginatedPayments.length === 0 ? (
+          ) : paginatedPayments.length === 0 && viewMode !== 'room' ? (
             <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
               <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
               <p className="text-xl font-semibold text-slate-800">ไม่พบรายการชำระเงิน</p>
