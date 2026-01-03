@@ -94,8 +94,37 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
     // 3. Loop Pagination (ทยอยดึงบิลทีละ 50 ใบ)
     let hasMore = true;
     let offset = 0;
-    const BRANCH_BATCH_LIMIT = 500;
-    
+    const BRANCH_BATCH_LIMIT = 1000; // ⬆️ เพิ่มจาก 500 → 1000
+
+    // ⭐ โหลด Cache 1 ครั้ง ก่อน Loop (ประหยัด API calls)
+    const allTenants = [];
+    const allRooms = [];
+    let tenantOffset = 0;
+    let roomOffset = 0;
+    const CACHE_CHUNK = 500;
+
+    // โหลด Tenants ทีละ 500 จนครบ
+    while (true) {
+        const tenantChunk = await base44.asServiceRole.entities.Tenant.filter({ branch_id: branchId }, '-id', CACHE_CHUNK, tenantOffset);
+        if (tenantChunk.length === 0) break;
+        allTenants.push(...tenantChunk);
+        tenantOffset += CACHE_CHUNK;
+        if (tenantChunk.length < CACHE_CHUNK) break; // หมดแล้ว
+    }
+
+    // โหลด Rooms ทีละ 500 จนครบ
+    while (true) {
+        const roomChunk = await base44.asServiceRole.entities.Room.filter({ branch_id: branchId }, '-id', CACHE_CHUNK, roomOffset);
+        if (roomChunk.length === 0) break;
+        allRooms.push(...roomChunk);
+        roomOffset += CACHE_CHUNK;
+        if (roomChunk.length < CACHE_CHUNK) break; // หมดแล้ว
+    }
+
+    const tenantMap = new Map(allTenants.map(t => [t.id, t]));
+    const roomMap = new Map(allRooms.map(r => [r.id, r]));
+    console.log(`📦 Cached: ${allTenants.length} tenants, ${allRooms.length} rooms`);
+
     while (hasMore && offset < BRANCH_BATCH_LIMIT) {
         const payments = await base44.asServiceRole.entities.Payment.filter({
             branch_id: branchId,
@@ -108,11 +137,6 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
             break;
         }
 
-        // โหลด Cache
-        const tenants = await base44.asServiceRole.entities.Tenant.filter({ branch_id: branchId }, '-id', 1000, 0); 
-        const rooms = await base44.asServiceRole.entities.Room.filter({ branch_id: branchId }, '-id', 1000, 0);
-        const tenantMap = new Map(tenants.map(t => [t.id, t]));
-        const roomMap = new Map(rooms.map(r => [r.id, r]));
         const recipients = [];
 
         for (const payment of payments) {
