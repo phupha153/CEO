@@ -433,29 +433,6 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // ⭐ สร้างลิงก์ Public Invoice/Receipt (ระบบใหม่ - ใช้หน้าเว็บแทนรูป)
-            const origin = new URL(req.url).origin;
-            let publicLink = '';
-            
-            if (payment.status === 'paid') {
-                // ส่งลิงก์ใบเสร็จ
-                publicLink = `${origin}/publicreceipt?id=${payment.id}`;
-                console.log(`📄 Generated receipt link for payment ${payment.id}`);
-            } else {
-                // ส่งลิงก์ใบแจ้งหนี้
-                publicLink = `${origin}/publicinvoice?id=${payment.id}`;
-                console.log(`📄 Generated invoice link for payment ${payment.id}`);
-            }
-
-            // เพิ่มลิงก์ลงในข้อความ
-            message += `\n\n📄 ดูใบแจ้งหนี้: ${publicLink}`;
-
-            /* ========================================
-             * 🔄 LEGACY: Image-Based Invoice System
-             * ========================================
-             * เก็บไว้เผื่อต้องการกลับไปใช้ระบบสร้างรูปภาพ
-             * ปิดการใช้งานเพื่อประหยัดค่า API และเพิ่มความเร็ว
-             * 
             // จัดการรูป invoice และ hash
             let invoiceImageUrl = payment.invoice_image_url || null;
             const currentHash = generatePaymentHash(payment);
@@ -487,12 +464,12 @@ Deno.serve(async (req) => {
                         console.log(`✅ Invoice image generated: ${invoiceImageUrl}`);
                     } else {
                         console.error(`❌ Failed to generate invoice image: ${invoiceResult.data?.error || 'Unknown error'}`);
-                        invoiceImageUrl = null;
+                        invoiceImageUrl = null; // ⭐ ล้างค่าเพื่อไม่ให้ใช้รูปเก่าที่อาจไม่ตรง
                     }
                 } catch (invoiceError) {
                     console.error(`❌ Error generating invoice image:`, invoiceError.message);
                     console.error(`   Continue sending message without image...`);
-                    invoiceImageUrl = null;
+                    invoiceImageUrl = null; // ⭐ ส่งแค่ข้อความ ไม่มีรูป
                 }
             } else if (needsHashUpdate) {
                 try {
@@ -510,7 +487,6 @@ Deno.serve(async (req) => {
             if (invoiceImageUrl) {
                 message += `\n\n📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}`;
             }
-            * ======================================== */
 
             if (template !== 'due_date' && template !== 'overdue') {
                 message += `\n\n📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
