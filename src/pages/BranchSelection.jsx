@@ -66,10 +66,11 @@ export default function BranchSelection() {
         return { hasAccess: false, reason: 'CRM timeout' };
       }
 
-      // ⚡ INSTANT LOGOUT: ถ้า CRM deny ชัดเจน → logout ทันที
+      // ⚡ INSTANT LOGOUT: ถ้า CRM deny ชัดเจน → logout + redirect
       if (data.hasAccess === false && currentUser?.email) {
         console.warn('🚫 CRM Access denied - Immediate logout:', currentUser.email);
-        base44.auth.logout(); // ไม่ต้อง setTimeout
+        const welcomeUrl = window.location.origin + '/Welcome';
+        base44.auth.logout(welcomeUrl);
         return data;
       }
 

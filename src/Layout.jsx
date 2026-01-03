@@ -515,27 +515,31 @@ export default function Layout({ children, currentPageName }) {
         // 🔒 FAIL-CLOSED: ถ้ามี error/timeout → DENY
         if (!data || data.error) {
           console.error('❌ CRM check error - DENYING access');
-          base44.auth.logout();
+          const welcomeUrl = window.location.origin + '/Welcome';
+          base44.auth.logout(welcomeUrl);
           return { hasAccess: false, reason: 'CRM error' };
         }
 
         if (data.timeout) {
           console.warn('⏱️ CRM timeout - DENYING access');
-          base44.auth.logout();
+          const welcomeUrl = window.location.origin + '/Welcome';
+          base44.auth.logout(welcomeUrl);
           return { hasAccess: false, reason: 'CRM timeout' };
         }
 
-        // ⚡ INSTANT LOGOUT: ถ้า deny → logout ทันที
+        // ⚡ INSTANT LOGOUT: ถ้า deny → logout + redirect
         if (data.hasAccess === false && currentUser) {
           console.warn('🚫 CRM Access denied - Immediate logout:', currentUser.email);
-          base44.auth.logout();
+          const welcomeUrl = window.location.origin + '/Welcome';
+          base44.auth.logout(welcomeUrl);
         }
 
         return data;
       } catch (error) {
         clearTimeout(timeoutId);
         console.error('❌ CRM check failed - DENYING access:', error);
-        base44.auth.logout(); // 🔒 FAIL-CLOSED
+        const welcomeUrl = window.location.origin + '/Welcome';
+        base44.auth.logout(welcomeUrl);
         return { hasAccess: false, reason: 'CRM error' };
       }
     },
