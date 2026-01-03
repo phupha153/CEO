@@ -508,8 +508,6 @@ Deno.serve(async (req) => {
                     if (roomDueMonth > 11) { roomDueMonth = 0; roomDueYear = currentYear + 1; }
                 }
 
-                // ⭐ สร้าง dueDate เป็น Date object (ใช้ในบรรทัด 648)
-                const dueDate = new Date(roomDueYear, roomDueMonth, roomPayDay);
                 const targetDueYearMonth = `${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`;
                 const mapKey = `${room.id}|${targetDueYearMonth}`;
 
