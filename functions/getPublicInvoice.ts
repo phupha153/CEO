@@ -33,9 +33,9 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // ดึงข้อมูล Payment
+        // ดึงข้อมูล Payment - ใช้ service role เพื่อเข้าถึงข้อมูลได้โดยไม่ต้อง auth
         console.log('📥 Querying Database...');
-        const allPayments = await base44.entities.Payment.list();
+        const allPayments = await base44.asServiceRole.entities.Payment.list();
         console.log(`📊 Total payments in DB: ${allPayments.length}`);
         
         const payment = allPayments.find(p => p.id === paymentId);
