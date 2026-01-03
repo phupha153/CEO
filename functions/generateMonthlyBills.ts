@@ -510,6 +510,10 @@ Deno.serve(async (req) => {
 
                 const targetDueYearMonth = `${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`;
                 const mapKey = `${room.id}|${targetDueYearMonth}`;
+                
+                // ⭐ สร้าง dueDate object (ใช้ roomPayDay เป็นวันครบกำหนด)
+                const dueDate = new Date(roomDueYear, roomDueMonth, roomPayDay);
+                console.log(`📅 Room ${room.room_number}: dueDate=${dueDate.toISOString()}, targetYM=${targetDueYearMonth}`);
 
                 if (!forceSkipDuplicateCheck) {
                     let existingBill = existingPaymentsMap.get(mapKey) || null;
