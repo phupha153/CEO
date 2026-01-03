@@ -3141,7 +3141,7 @@ export default function Settings() {
                 </Card>
               )}
 
-              {activeTab === 'messaging' && (
+              {userRole === 'developer' && activeTab === 'messaging' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -3151,17 +3151,15 @@ export default function Settings() {
                   </CardHeader>
                   <CardContent>
                     <Tabs defaultValue="line" className="w-full">
-                      <TabsList className={`grid w-full ${userRole === 'developer' ? 'grid-cols-2' : 'grid-cols-1'} mb-6`}>
+                      <TabsList className="grid w-full grid-cols-2 mb-6">
                         <TabsTrigger value="line" className="flex items-center gap-2">
                           <MessageSquare className="w-4 h-4" />
                           LINE
                         </TabsTrigger>
-                        {userRole === 'developer' && (
-                          <TabsTrigger value="facebook" className="flex items-center gap-2">
-                            <Globe className="w-4 h-4" />
-                            Facebook
-                          </TabsTrigger>
-                        )}
+                        <TabsTrigger value="facebook" className="flex items-center gap-2">
+                          <Globe className="w-4 h-4" />
+                          Facebook
+                        </TabsTrigger>
                       </TabsList>
 
                       <TabsContent value="line" className="space-y-6">
@@ -3271,8 +3269,7 @@ export default function Settings() {
                         </form>
                       </TabsContent>
 
-                      {userRole === 'developer' && (
-                        <TabsContent value="facebook" className="space-y-6">
+                      <TabsContent value="facebook" className="space-y-6">
                         <BranchToggle
                           applyToAllBranches={applyToAllBranches_facebook}
                           setApplyToAllBranches={setApplyToAllBranches_facebook}
@@ -3513,7 +3510,6 @@ export default function Settings() {
                           </>
                         )}
                         </TabsContent>
-                      )}
                     </Tabs>
                   </CardContent>
                 </Card>
