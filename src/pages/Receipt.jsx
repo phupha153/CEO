@@ -370,10 +370,13 @@ export default function Receipt() {
   const buildingLogo = receiptData?.recipient?.building_logo || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
   const buildingName = receiptData?.recipient?.building_name || 'W RESIDENTS';
 
-  // Debug info
+  // Debug info - เพิ่มข้อมูลดิบจาก API
   const debugInfo = {
     paymentId: receiptData?.id,
     branchId: receiptData?.branch_id,
+    branchIdType: typeof receiptData?.branch_id,
+    branchIdIsUndefined: receiptData?.branch_id === undefined,
+    branchIdIsNull: receiptData?.branch_id === null,
     status: receiptData?.status,
     payment_late_fee_amount: receiptData?.late_fee_amount,
     calculated_late_fee: calculatedLateFee,
@@ -385,7 +388,9 @@ export default function Receipt() {
     configs_global: configs.filter(c => 
       !c.branch_id && c.key === 'late_payment_fee_per_day'
     ),
-    all_late_fee_configs: configs.filter(c => c.key === 'late_payment_fee_per_day')
+    all_late_fee_configs: configs.filter(c => c.key === 'late_payment_fee_per_day'),
+    raw_response_keys: receiptData ? Object.keys(receiptData) : [],
+    full_receiptData: receiptData
   };
 
   return (
@@ -397,6 +402,16 @@ export default function Receipt() {
             <DialogTitle>🐛 Debug ข้อมูลค่าปรับ</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-sm">
+            <div className="bg-purple-100 p-3 rounded border-2 border-purple-300">
+              <p className="font-bold mb-2 text-purple-800">🔍 ข้อมูลดิบจาก API Response:</p>
+              <p>• Branch ID: <span className={debugInfo.branchIdIsUndefined ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>{debugInfo.branchId || '❌ undefined/null'}</span></p>
+              <p>• Type: {debugInfo.branchIdType}</p>
+              <p>• Is undefined? {debugInfo.branchIdIsUndefined ? '✅ YES (ปัญหา!)' : '❌ NO'}</p>
+              <p>• Is null? {debugInfo.branchIdIsNull ? '✅ YES' : '❌ NO'}</p>
+              <p className="mt-2 font-semibold">Keys in response:</p>
+              <p className="text-xs bg-white p-2 rounded">{debugInfo.raw_response_keys.join(', ')}</p>
+            </div>
+
             <div className="bg-slate-100 p-3 rounded">
               <p className="font-bold mb-2">ข้อมูล Payment:</p>
               <p>• ID: {debugInfo.paymentId}</p>
@@ -448,6 +463,13 @@ export default function Receipt() {
                   <p>• id: {c.id}</p>
                 </div>
               ))}
+            </div>
+
+            <div className="bg-orange-100 p-3 rounded border-2 border-orange-400">
+              <p className="font-bold mb-2 text-orange-800">📦 Full Receipt Data Object:</p>
+              <pre className="text-xs bg-white p-2 rounded overflow-auto max-h-96 border">
+                {JSON.stringify(debugInfo.full_receiptData, null, 2)}
+              </pre>
             </div>
           </div>
         </DialogContent>
