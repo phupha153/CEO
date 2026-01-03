@@ -540,10 +540,11 @@ export default function Layout({ children, currentPageName }) {
       }
     },
     enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
-    staleTime: 10 * 1000, // ⚡ ลด cache เป็น 10 วิ
-    refetchInterval: 30 * 1000, // ⚡ เช็คทุก 30 วิ
-    refetchIntervalInBackground: true, // ⚡ เช็คแม้ background
-    retry: 1, // ⚠️ ลด retry
+    staleTime: 10 * 60 * 1000, // ⚡ Cache 10 นาที
+    refetchInterval: false, // ⚠️ ปิด auto-refetch
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true, // ✅ เช็คเมื่อกลับมาที่แท็บ
+    retry: 1,
     retryDelay: 500,
     throwOnError: false,
   });

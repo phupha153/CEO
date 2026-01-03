@@ -76,10 +76,11 @@ export default function BranchSelection() {
       return data;
     },
     enabled: !!currentUser && !userLoading && userSuccess,
-    staleTime: 10 * 1000, // ⚡ ลด cache เป็น 10 วิ
-    refetchInterval: 30 * 1000, // ⚡ เช็คทุก 30 วิ (แทนที่จะ 1 นาที)
-    refetchIntervalInBackground: true,
-    retry: 1, // ⚠️ ลด retry เป็น 1 (ไม่ให้รอนาน)
+    staleTime: 10 * 60 * 1000, // ⚡ Cache 10 นาที (ลด API calls)
+    refetchInterval: false, // ⚠️ ปิด auto-refetch (เช็คเฉพาะตอน reload)
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true, // ✅ เช็คใหม่เมื่อกลับมาที่หน้าต่าง
+    retry: 1,
     retryDelay: 500,
     throwOnError: false,
   });
