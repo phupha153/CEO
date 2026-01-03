@@ -8,6 +8,10 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
+        // ⭐ Import calculateLateFee utility
+        const calculateLateFeeModule = await import('./utils/calculateLateFee.js');
+        const calculateLateFee = calculateLateFeeModule.calculateLateFee;
+        
         console.log('🔔 Starting due date reminder check...');
 
         // Parse request body to check for test mode and limit
@@ -201,14 +205,23 @@ Deno.serve(async (req) => {
                 const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', paymentBranchId);
                 const branchLateFeePerDay = parseFloat(getConfigValue('late_payment_fee_per_day', '0', paymentBranchId));
 
-                // ⭐ ข้อความสั้นกระชับ - วันครบกำหนดชำระ
+                // ⭐ คำนวณค่าปรับ real-time
+                const lateFee = calculateLateFee(payment, configs, paymentBranchId);
+                const totalWithLateFee = (payment.total_amount || 0) + lateFee;
+                
+                // ⭐ ข้อความสั้นกระชับ - วันครบกำหนดชำระ (รวมค่าปรับ)
                 let message = `⏰ วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
                 message += `🏠 ${branchBuildingName}\n`;
                 message += `👤 คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n`;
-                message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
+                message += `💰 ยอดชำระ: ${totalWithLateFee.toLocaleString()} บาท\n`;
+                
+                if (lateFee > 0) {
+                    message += `   (รวมค่าปรับ ${lateFee.toLocaleString()} บาท)\n`;
+                }
+                message += `\n`;
                 
                 if (branchLateFeePerDay > 0) {
-                    message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน\n\n`;
+                    message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับเพิ่ม ${branchLateFeePerDay} บาท/วัน\n\n`;
                 }
                 
                 message += `💳 โอนเงินได้ที่:\n`;

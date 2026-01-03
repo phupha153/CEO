@@ -141,7 +141,11 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
             const room = roomMap.get(payment.room_id);
             if (!tenant || (!tenant.line_user_id && !tenant.facebook_user_id)) continue;
 
-            // --- 📝 MESSAGE BUILDER (แก้ให้ถูกต้องแล้ว) ---
+            // --- 📝 MESSAGE BUILDER (รองรับค่าปรับ real-time) ---
+            // ⭐ คำนวณค่าปรับแบบ real-time
+            const lateFee = calculateLateFee(payment, configs, payment.branch_id);
+            const totalWithLateFee = (payment.total_amount || 0) + lateFee;
+            
             let message = `📢 ${branchConfigs.building} - แจ้งเตือนค่าเช่า\n\n`;
             message += `สวัสดีคุณ ${tenant.full_name}\nห้อง ${room?.room_number || 'N/A'}\n\n`;
             message += `รายละเอียดค่าใช้จ่าย:\n━━━━━━━━━━━━━━━━━━━━\n`;
@@ -157,9 +161,11 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
             if (payment.internet_amount > 0) message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
             if (payment.common_fee_amount > 0) message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
             
+            if (lateFee > 0) message += `⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท\n`;
+            
             message += `━━━━━━━━━━━━━━━━━━━━\n`;
-            message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
-            message += `(${numberToThaiText(payment.total_amount)})\n\n`;
+            message += `💰 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท\n`;
+            message += `(${numberToThaiText(totalWithLateFee)})\n\n`;
             message += `📅 ครบกำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
             
             message += `สถานะ: รอชำระ\n\n💳 โอนเงินได้ที่: ${branchConfigs.bankName} ${branchConfigs.accNum} (${branchConfigs.accName})\n\n`;
