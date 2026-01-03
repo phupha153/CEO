@@ -1035,9 +1035,10 @@ export default function Layout({ children, currentPageName }) {
 
   // แสดงหน้าไม่มีสิทธิ์ถ้าเช็ค CRM แล้วไม่ผ่าน (บล็อกการเข้าถึงทั้งหมด)
   // ⭐ ถ้า error หรือ timeout = อนุญาตให้เข้าใช้งานต่อได้ (fail-open)
-  // ⭐ ถ้า hasAccess === false ชัดเจน = deny access (รวมหน้า BranchSelection ด้วย)
+  // ⭐ ถ้า hasAccess === false ชัดเจน = deny access
   if (!isLoading && !crmAccessLoading && currentUser && 
-      crmAccess && crmAccess.hasAccess === false && !crmAccess.timeout && !crmAccess.error) {
+      crmAccess && crmAccess.hasAccess === false && !crmAccess.timeout &&
+      currentPageName !== 'BranchSelection') {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 via-red-50 to-orange-50 overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
