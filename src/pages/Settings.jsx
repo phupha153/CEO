@@ -754,15 +754,21 @@ export default function Settings() {
       }
     }
 
+    // ⭐ ถ้าไม่มี branch-specific config = ใช้ false เสมอ (ไม่ fallback ไป global)
+    const hasBranchAutoSend = configs.some(c => c.key === 'auto_send_bills_after_generation' && c.branch_id === selectedBranch?.id);
+    const hasBranchAdvance = configs.some(c => c.key === 'send_advance_reminder' && c.branch_id === selectedBranch?.id);
+    const hasBranchDueDate = configs.some(c => c.key === 'send_due_date_reminder' && c.branch_id === selectedBranch?.id);
+    const hasBranchOverdue = configs.some(c => c.key === 'send_overdue_reminder' && c.branch_id === selectedBranch?.id);
+
     setBillSettings({
       bill_generation_day: billGenerationDayConfig?.value || '27',
       pay_day: payDayConfig?.value || '5',
       late_fee_per_day: lateFeeConfig?.value || '',
-      auto_send_bills: autoSendBillsConfig?.value === 'true',
+      auto_send_bills: hasBranchAutoSend ? (autoSendBillsConfig?.value === 'true') : false,
       bill_advance_notice_days: billAdvanceNoticeConfig?.value || '3',
-      send_advance_reminder: sendAdvanceReminderConfig?.value === 'true',
-      send_due_date_reminder: sendDueDateReminderConfig?.value === 'true',
-      send_overdue_reminder: sendOverdueReminderConfig?.value === 'true',
+      send_advance_reminder: hasBranchAdvance ? (sendAdvanceReminderConfig?.value === 'true') : false,
+      send_due_date_reminder: hasBranchDueDate ? (sendDueDateReminderConfig?.value === 'true') : false,
+      send_overdue_reminder: hasBranchOverdue ? (sendOverdueReminderConfig?.value === 'true') : false,
       late_fee_tiers_enabled: lateFeeeTiersEnabledConfig?.value === 'true',
       late_fee_tiers: parsedTiers
     });
