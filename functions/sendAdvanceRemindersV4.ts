@@ -131,47 +131,44 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
 
         for (const payment of payments) {
             if (payment.advance_reminder_sent_date || payment.bill_sent_date) continue;
-            if (!payment.invoice_image_url) continue;
-            if (payment.invoice_data_hash) {
-                 const currentHash = generatePaymentHash(payment);
-                 if (currentHash !== payment.invoice_data_hash) continue;
-            }
 
             const tenant = tenantMap.get(payment.tenant_id);
             const room = roomMap.get(payment.room_id);
             if (!tenant || (!tenant.line_user_id && !tenant.facebook_user_id)) continue;
 
-            // --- 📝 MESSAGE BUILDER (แก้ให้ถูกต้องแล้ว) ---
+            // ⭐ สร้างลิงค์ Public Invoice
+            const frontendUrl = getConfig('frontend_url', branchId) || Deno.env.get('FRONTEND_URL');
+            if (!frontendUrl) {
+                console.error(`❌ Missing FRONTEND_URL for branch ${branchId}`);
+                continue;
+            }
+            const invoiceLink = `${frontendUrl}/publicinvoice?id=${payment.id}`;
+
+            // --- 📝 MESSAGE BUILDER ---
             let message = `📢 ${branchConfigs.building} - แจ้งเตือนค่าเช่า\n\n`;
             message += `สวัสดีคุณ ${tenant.full_name}\nห้อง ${room?.room_number || 'N/A'}\n\n`;
             message += `รายละเอียดค่าใช้จ่าย:\n━━━━━━━━━━━━━━━━━━━━\n`;
             
-            if (payment.rent_amount > 0) message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+            if (payment.rent_amount > 0) message += `🏠 ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
             if (payment.electricity_amount > 0) message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-            
-            // โชว์ค่าน้ำถ้ามีเงิน หรือ มีหน่วยการใช้
             if (payment.water_amount > 0 || payment.water_units > 0) {
                 message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
             }
-            
-            if (payment.internet_amount > 0) message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
-            if (payment.common_fee_amount > 0) message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
+            if (payment.internet_amount > 0) message += `🌐 ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
+            if (payment.common_fee_amount > 0) message += `🧹 ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
             
             message += `━━━━━━━━━━━━━━━━━━━━\n`;
             message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
             message += `(${numberToThaiText(payment.total_amount)})\n\n`;
             message += `📅 ครบกำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
-            
-            message += `สถานะ: รอชำระ\n\n💳 โอนเงินได้ที่: ${branchConfigs.bankName} ${branchConfigs.accNum} (${branchConfigs.accName})\n\n`;
-            
-            if (payment.invoice_image_url) message += `📄 ดูใบแจ้งหนี้: ${payment.invoice_image_url}\n\n`;
+            message += `สถานะ: รอชำระ\n\n`;
+            message += `💳 โอนเงินได้ที่:\n${branchConfigs.bankName} ${branchConfigs.accNum}\nชื่อ: ${branchConfigs.accName}\n\n`;
+            message += `📄 ดูเอกสาร: ${invoiceLink}\n\n`;
             message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
-            // -----------------------
 
             recipients.push({
                 lineUserId: tenant.line_user_id,
                 facebookUserId: tenant.facebook_user_id,
-                imageUrl: payment.invoice_image_url,
                 message: message,
                 metadata: { paymentId: payment.id }
             });
