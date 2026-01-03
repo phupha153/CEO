@@ -77,32 +77,6 @@ export default function AddEmployeeDialog({ isOpen, onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // ⭐ เช็คจำนวนผู้ใช้สูงสุดตามแพ็กเกจ
-    const userPackages = currentUser?.email ? branchPackages.filter(bp => bp.owner_email === currentUser.email && bp.status === 'active') : [];
-    const isTrialMode = userPackages.length > 0 && userPackages.every(pkg => pkg.package_id === 'trial' || pkg.price_per_month === 0);
-    
-    let maxAllowedUsers = 1; // Default สำหรับ trial
-    
-    if (!isTrialMode && userPackages.length > 0) {
-      const activePaidPackage = userPackages.find(pkg => pkg.package_id !== 'trial' && pkg.price_per_month > 0);
-      if (activePaidPackage) {
-        const packageConfig = packageFeatureConfigs.find(c => c.package_id === activePaidPackage.package_id);
-        if (packageConfig?.max_users) {
-          maxAllowedUsers = packageConfig.max_users;
-        } else {
-          maxAllowedUsers = 999; // ไม่จำกัด
-        }
-      }
-    }
-    
-    // นับจำนวนผู้ใช้ปัจจุบัน
-    const currentUserCount = allUsers.length;
-    
-    if (currentUserCount >= maxAllowedUsers) {
-      toast.error(`เพิ่มได้สูงสุด ${maxAllowedUsers} คน - อัปเกรดเพื่อเพิ่มผู้ใช้ได้ไม่จำกัด`);
-      return;
-    }
-
     // ⭐ ตรวจสอบว่าเลือกสาขาอย่างน้อย 1 สาขา
     if (!formData.accessible_branches || formData.accessible_branches.length === 0) {
       toast.error('กรุณาเลือกอย่างน้อย 1 สาขาที่พนักงานสามารถเข้าถึงได้');
@@ -112,8 +86,15 @@ export default function AddEmployeeDialog({ isOpen, onClose, onSuccess }) {
     setIsSending(true);
 
     try {
-      // ส่งข้อมูลไปยัง CRM ผ่าน backend function (พร้อม accessible_branches)
-      await base44.functions.invoke('sendEmployeeToCRM', formData);
+      // ✅ Backend จะ validate limits - ไม่ต้องเช็คที่ frontend (ป้องกัน bypass)
+      const response = await base44.functions.invoke('sendEmployeeToCRM', formData);
+      
+      // ⭐ เช็ค response ว่ามี error หรือไม่
+      if (response.data?.error) {
+        toast.error(response.data.error);
+        setIsSending(false);
+        return;
+      }
       
       toast.success(
         `✅ เพิ่มพนักงาน ${formData.full_name} สำเร็จ!\n\n📧 ระบบได้ส่งอีเมลเชิญเข้าใช้งานไปที่ ${formData.email} แล้ว\n🏢 สามารถเข้าถึง ${formData.accessible_branches.length} สาขา`,

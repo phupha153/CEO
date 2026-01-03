@@ -1905,30 +1905,33 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // ⭐ ใช้ owner_email จาก branchOwnerStatus (เจ้าของสาขาที่เลือก)
-                              const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
-                              
-                              // ⭐ กรองเฉพาะผู้ใช้ที่มีสิทธิ์เข้าถึงสาขาที่เลือกอยู่ (selectedBranch)
-                              const usersInMyBranches = users.filter(user => {
-                                const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                              // ⭐ Optimize: ใช้ useMemo + Map สำหรับ O(1) lookup
+                              const { usersInMyBranches, totalUsersInMyBranches } = React.useMemo(() => {
+                                // สร้าง Map สำหรับ branch lookup (O(1) แทน find)
+                                const branchMap = new Map(branches.map(b => [b.id, b]));
+                                const currentBranch = branchMap.get(selectedBranch?.id);
                                 
-                                // ไม่นับ Developer
-                                if (role === 'developer') return false;
+                                // กรองผู้ใช้ในสาขาที่เลือก
+                                const filteredUsers = users.filter(user => {
+                                  const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                                  if (role === 'developer') return false;
+                                  
+                                  // Owner check
+                                  if (currentBranch && (user.email === currentBranch.owner_id || user.email === currentBranch.created_by)) {
+                                    return true;
+                                  }
+                                  
+                                  // Branch access check
+                                  if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
+                                  return selectedBranch && user.accessible_branches.includes(selectedBranch.id);
+                                });
                                 
-                                // ⭐ ถ้าเป็นเจ้าของสาขาที่เลือกอยู่ = นับ
-                                const currentBranch = branches.find(b => b.id === selectedBranch?.id);
-                                if (currentBranch && (user.email === currentBranch.owner_id || user.email === currentBranch.created_by)) {
-                                  return true;
-                                }
+                                // นับรวม currentUser ถ้ายังไม่อยู่ใน list
+                                const currentUserInList = users.some(u => u.email === currentUser?.email);
+                                const total = currentUserInList ? filteredUsers.length : filteredUsers.length + 1;
                                 
-                                // ⭐ ผู้ใช้อื่นๆ ต้องมีสิทธิ์เข้าถึงสาขาที่เลือกอยู่โดยตรง
-                                if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
-                                return selectedBranch && user.accessible_branches.includes(selectedBranch.id);
-                              });
-
-                              // ⭐ นับจำนวนผู้ใช้ + ตรวจสอบว่า currentUser อยู่ใน users array หรือไม่
-                              const currentUserInList = users.some(u => u.email === currentUser?.email);
-                              const totalUsersInMyBranches = currentUserInList ? usersInMyBranches.length : usersInMyBranches.length + 1;
+                                return { usersInMyBranches: filteredUsers, totalUsersInMyBranches: total };
+                              }, [users, branches, selectedBranch?.id, currentUser?.email]);
                               
                               // ⭐ เช็ค trial mode จาก currentUser.plan_status
                               const isTrialMode = currentUser?.plan_status === 'trial';
@@ -1985,14 +1988,17 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // ⭐ ใช้ owner_email จาก branchOwnerStatus (เจ้าของสาขาที่เลือก)
-                              const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
-                              
-                              // ⭐ แสดงสาขาของเจ้าของแพ็กเกจ (เพื่อนับจำนวนสาขาทั้งหมด)
-                              const myOwnedBranches = branches.filter(b => 
-                                b.owner_id === ownerEmail || b.created_by === ownerEmail
-                              );
-                              const totalBranchesInSystem = myOwnedBranches.length;
+                              // ⭐ Optimize: ใช้ useMemo สำหรับนับสาขา
+                              const { myOwnedBranches, totalBranchesInSystem } = React.useMemo(() => {
+                                const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
+                                const ownedBranches = branches.filter(b => 
+                                  b.owner_id === ownerEmail || b.created_by === ownerEmail
+                                );
+                                return { 
+                                  myOwnedBranches: ownedBranches, 
+                                  totalBranchesInSystem: ownedBranches.length 
+                                };
+                              }, [branches, branchOwnerStatus?.owner_email, currentUser?.email]);
                               
                               // ⭐ เช็ค trial mode จาก currentUser.plan_status
                               const isTrialMode = currentUser?.plan_status === 'trial';

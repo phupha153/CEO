@@ -503,7 +503,7 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['crmAccess', currentUser?.email],
     queryFn: async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // ⚡ ลดเป็น 8 วิ
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
       try {
         const response = await base44.functions.invoke('checkCRMAccess', {}, {
@@ -544,10 +544,10 @@ export default function Layout({ children, currentPageName }) {
       }
     },
     enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
-    staleTime: 10 * 60 * 1000, // ⚡ Cache 10 นาที
-    refetchInterval: false, // ⚠️ ปิด auto-refetch
+    staleTime: 60 * 60 * 1000, // ⚡ Cache 1 ชม. (ลดจาก 10 นาที)
+    refetchInterval: false,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true, // ✅ เช็คเมื่อกลับมาที่แท็บ
+    refetchOnWindowFocus: false, // ❌ ปิด auto-refetch (เช็คเฉพาะตอน mount)
     retry: 1,
     retryDelay: 500,
     throwOnError: false,
