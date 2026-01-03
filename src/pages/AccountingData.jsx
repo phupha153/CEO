@@ -9,12 +9,77 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileText, Download, Search, Calendar, DollarSign, Home, Camera, Shield, Banknote, AlertTriangle, RefreshCw, Database, Loader2 } from "lucide-react";
-import { format, parseISO, subMonths, startOfMonth, endOfMonth, subYears, isWithinInterval } from "date-fns";
+import { format, parseISO, subMonths, startOfMonth, endOfMonth, subYears, isWithinInterval, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PageHeader from "../components/shared/PageHeader"; // Added PageHeader import
+
+// ฟังก์ชันคำนวณค่าปรับ
+function calculateLateFee(payment, configs, selectedBranchId) {
+  if (!payment || !payment.due_date || payment.status === 'paid') return 0;
+  if (payment.late_fee_amount && payment.late_fee_amount > 0) return payment.late_fee_amount;
+
+  try {
+    const dueDate = parseISO(payment.due_date);
+    const today = new Date();
+    const daysOverdue = differenceInDays(today, dueDate);
+
+    if (daysOverdue <= 0) return 0;
+
+    // ตรวจสอบว่าเปิดใช้ค่าปรับแบบขั้นบันไดหรือไม่
+    const branchConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === selectedBranchId);
+    const globalConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
+    const tiersEnabledConfig = branchConfig || globalConfig;
+    const tiersEnabled = tiersEnabledConfig?.value === 'true';
+
+    if (tiersEnabled) {
+      const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === selectedBranchId);
+      const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
+      const tiersConfig = branchTiersConfig || globalTiersConfig;
+      
+      if (tiersConfig?.value) {
+        try {
+          const tiers = JSON.parse(tiersConfig.value);
+          let totalFee = 0;
+
+          for (const tier of tiers) {
+            const daysFrom = tier.days_from || 1;
+            const daysTo = tier.days_to || 999;
+            const feePerDay = parseFloat(tier.fee_per_day || 0);
+
+            if (daysOverdue >= daysFrom) {
+              const daysInThisTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+              if (daysInThisTier > 0) {
+                totalFee += daysInThisTier * feePerDay;
+              }
+            }
+
+            if (daysOverdue <= daysTo) break;
+          }
+
+          return totalFee;
+        } catch (e) {
+          console.error('Error parsing late fee tiers:', e);
+        }
+      }
+    }
+
+    // ค่าปรับแบบธรรมดา
+    const branchLateFeeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === selectedBranchId);
+    const globalLateFeeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
+    const lateFeeConfig = branchLateFeeConfig || globalLateFeeConfig;
+    const lateFeePerDay = lateFeeConfig ? parseFloat(lateFeeConfig.value) : 0;
+    
+    if (lateFeePerDay === 0 || isNaN(lateFeePerDay)) return 0;
+
+    return daysOverdue * lateFeePerDay;
+  } catch (error) {
+    console.error('Error calculating late fee:', error);
+    return 0;
+  }
+}
 
 export default function AccountingData() {
   const navigate = useNavigate();
@@ -58,6 +123,16 @@ export default function AccountingData() {
     retry: 0, // Changed retry to 0
     retryDelay: 0, // Changed retryDelay to 0
   };
+
+  // ⭐ ดึง configs เพื่อคำนวณค่าปรับ
+  const { data: configs = [] } = useQuery({
+    queryKey: ['configs'],
+    queryFn: () => base44.entities.Config.list(),
+    ...retryConfig,
+    staleTime: 4 * 60 * 60 * 1000,
+    gcTime: 8 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
   // ✅ เช็ค sessionStorage เมื่อโหลดหน้า
   useEffect(() => {
@@ -711,6 +786,9 @@ export default function AccountingData() {
       const data = filteredPayments.map(payment => {
         const room = roomsMap.get(payment.room_id);
         const tenant = tenantsMap.get(payment.tenant_id);
+        const calculatedLateFee = calculateLateFee(payment, configs, selectedBranchId);
+        const displayLateFee = payment.late_fee_amount > 0 ? payment.late_fee_amount : calculatedLateFee;
+        const totalWithLateFee = (payment.total_amount || 0) + (displayLateFee > payment.late_fee_amount ? displayLateFee - payment.late_fee_amount : 0);
         
         return {
           'วันที่': payment.payment_date ? format(parseISO(payment.payment_date), 'd/M/yyyy', { locale: th }) : '-',
@@ -722,8 +800,8 @@ export default function AccountingData() {
           'ค่าน้ำ': payment.water_amount || 0,
           'ค่าอินเทอร์เน็ต': payment.internet_amount || 0,
           'อื่นๆ': payment.other_amount || 0,
-          'ค่าปรับ': payment.late_fee_amount || 0,
-          'รวม': payment.total_amount || 0,
+          'ค่าปรับ': displayLateFee || 0,
+          'รวม': totalWithLateFee || 0,
           'วิธีชำระ': payment.payment_method === 'cash' ? 'เงินสด' : payment.payment_method === 'transfer' ? 'โอนเงิน' : 'QR Code'
         };
       });
@@ -760,6 +838,9 @@ export default function AccountingData() {
 
         const room = roomsMap.get(payment.room_id);
         const tenant = tenantsMap.get(payment.tenant_id);
+        const calculatedLateFee = calculateLateFee(payment, configs, selectedBranchId);
+        const displayLateFee = payment.late_fee_amount > 0 ? payment.late_fee_amount : calculatedLateFee;
+        const totalWithLateFee = (payment.total_amount || 0) + (displayLateFee > payment.late_fee_amount ? displayLateFee - payment.late_fee_amount : 0);
         
         return {
           'วันที่': payment.payment_date ? format(parseISO(payment.payment_date), 'd/M/yyyy', { locale: th }) : '-',
@@ -771,8 +852,8 @@ export default function AccountingData() {
           'ค่าน้ำ': payment.water_amount || 0,
           'ค่าอินเทอร์เน็ต': payment.internet_amount || 0,
           'อื่นๆ': payment.other_amount || 0,
-          'ค่าปรับ': payment.late_fee_amount || 0,
-          'รวม': payment.total_amount || 0,
+          'ค่าปรับ': displayLateFee || 0,
+          'รวม': totalWithLateFee || 0,
           'วิธีชำระ': payment.payment_method === 'cash' ? 'เงินสด' : payment.payment_method === 'transfer' ? 'โอนเงิน' : 'QR Code'
         };
       }).filter(Boolean); // Remove any null entries
@@ -888,6 +969,9 @@ export default function AccountingData() {
       const data = filteredInvoices.map(payment => {
         const room = roomsMap.get(payment.room_id);
         const tenant = tenantsMap.get(payment.tenant_id);
+        const calculatedLateFee = calculateLateFee(payment, configs, selectedBranchId);
+        const displayLateFee = payment.late_fee_amount > 0 ? payment.late_fee_amount : calculatedLateFee;
+        const totalWithLateFee = (payment.total_amount || 0) + (displayLateFee > payment.late_fee_amount ? displayLateFee - payment.late_fee_amount : 0);
         
         return {
           'วันครบกำหนด': payment.due_date ? format(parseISO(payment.due_date), 'd/M/yyyy', { locale: th }) : '-',
@@ -899,8 +983,8 @@ export default function AccountingData() {
           'ค่าน้ำ': payment.water_amount || 0,
           'ค่าอินเทอร์เน็ต': payment.internet_amount || 0,
           'อื่นๆ': payment.other_amount || 0,
-          'ค่าปรับ': payment.late_fee_amount || 0,
-          'รวม': payment.total_amount || 0,
+          'ค่าปรับ': displayLateFee || 0,
+          'รวม': totalWithLateFee || 0,
           'สถานะ': payment.status === 'pending' ? 'รอชำระ' : 'เกินกำหนด'
         };
       });
@@ -1474,6 +1558,10 @@ export default function AccountingData() {
                           const tenant = tenantsMap.get(payment.tenant_id);
                           const isSelected = selectedPayments.includes(payment.id);
                           
+                          const calculatedLateFee = calculateLateFee(payment, configs, selectedBranchId);
+                          const displayLateFee = payment.late_fee_amount > 0 ? payment.late_fee_amount : calculatedLateFee;
+                          const totalWithLateFee = (payment.total_amount || 0) + (displayLateFee > payment.late_fee_amount ? displayLateFee - payment.late_fee_amount : 0);
+                          
                           const paymentMethodLabel = {
                             'cash': '💵 เงินสด',
                             'transfer': '🏦 โอนเงิน',
@@ -1503,10 +1591,10 @@ export default function AccountingData() {
                                 {((payment.internet_amount || 0) + (payment.other_amount || 0)).toLocaleString()}
                               </td>
                               <td className="px-4 py-3 text-sm text-right font-semibold text-red-600">
-                                {(payment.late_fee_amount || 0).toLocaleString()}
+                                {displayLateFee.toLocaleString()}
                               </td>
                               <td className="px-4 py-3 text-sm text-right font-bold text-green-600">
-                                {(payment.total_amount || 0).toLocaleString()}
+                                {totalWithLateFee.toLocaleString()}
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
@@ -1620,6 +1708,10 @@ export default function AccountingData() {
                           const tenant = tenantsMap.get(payment.tenant_id);
                           const isSelected = selectedInvoices.includes(payment.id);
                           
+                          const calculatedLateFee = calculateLateFee(payment, configs, selectedBranchId);
+                          const displayLateFee = payment.late_fee_amount > 0 ? payment.late_fee_amount : calculatedLateFee;
+                          const totalWithLateFee = (payment.total_amount || 0) + (displayLateFee > payment.late_fee_amount ? displayLateFee - payment.late_fee_amount : 0);
+                          
                           return (
                             <tr key={payment.id} className={`hover:bg-slate-50 ${isSelected ? 'bg-orange-50' : ''}`}>
                               <td className="px-4 py-3">
@@ -1643,10 +1735,10 @@ export default function AccountingData() {
                                 {((payment.internet_amount || 0) + (payment.other_amount || 0)).toLocaleString()}
                               </td>
                               <td className="px-4 py-3 text-sm text-right font-semibold text-red-600">
-                                {(payment.late_fee_amount || 0).toLocaleString()}
+                                {displayLateFee.toLocaleString()}
                               </td>
                               <td className="px-4 py-3 text-sm text-right font-bold text-orange-600">
-                                {(payment.total_amount || 0).toLocaleString()}
+                                {totalWithLateFee.toLocaleString()}
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
