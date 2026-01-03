@@ -2769,10 +2769,9 @@ export default function Settings() {
                                 <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4 flex items-start gap-3">
                                   <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                                   <div>
-                                    <p className="text-sm font-semibold text-red-800 mb-1">⚠️ ไม่สามารถเปิดการแจ้งเตือนได้</p>
+                                    <p className="text-sm font-semibold text-red-800 mb-1">ไม่สามารถเปิดการแจ้งเตือนได้</p>
                                     <p className="text-xs text-red-700">
-                                      กรุณากรอก <strong>ชื่อบัญชี</strong> และ <strong>เลขที่บัญชี</strong> ในแท็บ "ธนาคาร" ก่อน<br/>
-                                      เพื่อความปลอดภัย ระบบไม่อนุญาตให้ส่งบิลโดยไม่มีข้อมูลบัญชีธนาคาร
+                                      กรุณากรอก <strong>ชื่อบัญชี</strong> และ <strong>เลขที่บัญชี</strong> ในแท็บ "ธนาคาร" ก่อน
                                     </p>
                                   </div>
                                 </div>
