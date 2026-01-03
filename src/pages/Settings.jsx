@@ -386,6 +386,27 @@ export default function Settings() {
     }
   };
 
+  const [selectedBranch] = useState(() => {
+    const branchId = localStorage.getItem('selected_branch_id');
+    const branchName = localStorage.getItem('selected_branch_name');
+    return (branchId && branchName) ? { id: branchId, name: branchName } : null;
+  });
+
+  // ⭐ ดึงข้อมูลแพ็กเกจของเจ้าของสาขา - ต้องมาก่อน usersData
+  const { data: branchOwnerStatus } = useQuery({
+    queryKey: ['branchOwnerStatus', selectedBranch?.id],
+    queryFn: async () => {
+      if (!selectedBranch?.id) return null;
+      const response = await base44.functions.invoke('getBranchOwnerStatus', {
+        branch_id: selectedBranch.id
+      });
+      return response.data;
+    },
+    enabled: !!selectedBranch && !!currentUser,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
     queryFn: async () => {
@@ -495,27 +516,6 @@ export default function Settings() {
     },
     enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
-  });
-
-  const [selectedBranch] = useState(() => {
-    const branchId = localStorage.getItem('selected_branch_id');
-    const branchName = localStorage.getItem('selected_branch_name');
-    return (branchId && branchName) ? { id: branchId, name: branchName } : null;
-  });
-
-  // ⭐ ดึงข้อมูลแพ็กเกจของเจ้าของสาขา
-  const { data: branchOwnerStatus } = useQuery({
-    queryKey: ['branchOwnerStatus', selectedBranch?.id],
-    queryFn: async () => {
-      if (!selectedBranch?.id) return null;
-      const response = await base44.functions.invoke('getBranchOwnerStatus', {
-        branch_id: selectedBranch.id
-      });
-      return response.data;
-    },
-    enabled: !!selectedBranch && !!currentUser,
-    staleTime: 5 * 60 * 1000,
-    retry: 1,
   });
 
   const getConfigValue = (key, defaultValue = '') => {
