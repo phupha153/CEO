@@ -3693,11 +3693,9 @@ export default function Settings() {
                         💡 ตราประทับช่วยเพิ่มความน่าเชื่อถือให้กับใบเสร็จ (ไม่บังคับ)
                       </p>
                     </div>
-
-                    {/* คำแนะนำ */}
-                    </CardContent>
-                    </Card>
-                    )}
+                  </CardContent>
+                </Card>
+              )}
 
                     {canManagePermissions && activeTab === 'permissions' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
