@@ -9,13 +9,18 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { owner_email } = await req.json().catch(() => ({}));
+    
     const userRole = currentUser.custom_role || (currentUser.role === 'admin' ? 'owner' : 'employee');
 
-    // ⭐ Step 1: หา branches ที่ currentUser เป็นเจ้าของ (ใช้ filter แทน list)
+    // ⭐ ใช้ owner_email ที่ส่งมา หรือใช้ currentUser.email
+    const targetOwnerEmail = owner_email || currentUser.email;
+
+    // ⭐ Step 1: หา branches ที่ targetOwner เป็นเจ้าของ (ใช้ filter แทน list)
     const myOwnedBranches = await base44.asServiceRole.entities.Branch.filter({
       $or: [
-        { owner_id: currentUser.email },
-        { created_by: currentUser.email }
+        { owner_id: targetOwnerEmail },
+        { created_by: targetOwnerEmail }
       ]
     }, '-created_date', 1000); // จำกัด 1000 สาขา (ถ้ามีเยอะกว่านี้ต้องใช้ cursor)
 
@@ -38,23 +43,29 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ⭐ Step 3: เพิ่ม currentUser เข้าไปถ้ายังไม่มี
-    const currentUserInList = usersInMyBranches.some(u => u.email === currentUser.email);
-    if (!currentUserInList) {
-      usersInMyBranches.push({
-        id: currentUser.id,
-        email: currentUser.email,
-        full_name: currentUser.full_name,
-        custom_role: currentUser.custom_role,
-        role: currentUser.role,
-        accessible_branches: currentUser.accessible_branches || []
-      });
+    // ⭐ Step 3: เพิ่ม targetOwner เข้าไปถ้ายังไม่มี (นับ owner ด้วย)
+    const targetOwnerInList = usersInMyBranches.some(u => u.email === targetOwnerEmail);
+    if (!targetOwnerInList) {
+      // ดึงข้อมูล owner จาก User entity
+      const ownerUsers = await base44.asServiceRole.entities.User.filter({ email: targetOwnerEmail }, null, 1);
+      if (ownerUsers && ownerUsers.length > 0) {
+        const ownerUser = ownerUsers[0];
+        usersInMyBranches.push({
+          id: ownerUser.id,
+          email: ownerUser.email,
+          full_name: ownerUser.full_name,
+          custom_role: ownerUser.custom_role,
+          role: ownerUser.role,
+          accessible_branches: ownerUser.accessible_branches || []
+        });
+      }
     }
 
     return Response.json({
       users: usersInMyBranches,
       total: usersInMyBranches.length,
-      myOwnedBranchIds
+      myOwnedBranchIds,
+      targetOwnerEmail // เพิ่มเพื่อ debug
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
