@@ -343,6 +343,19 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error('Error:', error);
+        
+        // 🚨 ส่งอีเมลแจ้งเตือนเมื่อเกิดข้อผิดพลาด
+        try {
+            const body = await req.json().catch(() => ({}));
+            await base44.integrations.Core.SendEmail({
+                to: 'phupha20517@gmail.com',
+                subject: '🚨 Error in generateReceiptImage',
+                body: `เกิดข้อผิดพลาดในการสร้างรูปใบเสร็จ\n\nPayment ID: ${body?.paymentId || 'N/A'}\nError: ${error.message}\n\nStack:\n${error.stack}`
+            });
+        } catch (e) {
+            console.error('Failed to send error email:', e);
+        }
+        
         return Response.json({ success: false, error: error.message }, { status: 500 });
     }
 });

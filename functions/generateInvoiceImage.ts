@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { calculateLateFee } from './utils/calculateLateFee.js';
 
 // --- Helper Functions ---
 function getThaiMidnight(dateInput = new Date()) {
@@ -100,72 +101,18 @@ Deno.serve(async (req) => {
         console.log(`🏢 DETECTED BRANCH ID: "${branchId}"`); 
         // 👆 ดูบรรทัดนี้: ถ้าเป็น null หรือ undefined คือสาเหตุที่มันไปดึง Config ผิดตัว
 
-        // --- เริ่มการสืบสวนค่าปรับ ---
+        // --- คำนวณค่าปรับโดยใช้ shared utility ---
         let finalLateFee = 0;
-        let calculationMethod = 'Unknown';
-
+        
         // CASE A: มี Override ส่งมา
         if (lateFeeOverride !== undefined && lateFeeOverride !== null) {
             finalLateFee = Number(lateFeeOverride);
-            calculationMethod = 'OVERRIDE (Received from sender)';
-            console.log(`✅ CASE A: Used Override Value = ${finalLateFee}`);
+            console.log(`✅ Using Override Late Fee: ${finalLateFee}`);
         } 
-        // CASE B: ต้องคำนวณเอง (จุดที่น่าจะเจอ 100)
+        // CASE B: คำนวณด้วย utility function
         else {
-            console.log('⚠️ CASE B: No Override provided. Starting Auto-Calculation...');
-            
-            if (payment.due_date) {
-                const dueDateObj = getThaiMidnight(new Date(payment.due_date));
-                const todayObj = getThaiMidnight(new Date());
-                const diffTime = todayObj.getTime() - dueDateObj.getTime();
-                const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                
-                console.log(`📅 Days Overdue: ${daysOverdue}`);
-
-                if (daysOverdue > 0) {
-                    // สืบหา Config ที่ระบบเลือกใช้
-                    
-                    // 1. ลองหา Tiers
-                    const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && (!c.branch_id || c.branch_id === branchId));
-                    const tiersEnabled = configs.find(c => c.key === 'late_fee_tiers_enabled' && (!c.branch_id || c.branch_id === branchId));
-                    
-                    console.log(`   - Tiers Enabled: ${tiersEnabled?.value} (ConfigID: ${tiersEnabled?.id})`);
-
-                    if (tiersEnabled?.value === 'true' && tiersConfig) {
-                        // ... Logic Tiers ...
-                    } else {
-                        // 2. ลองหา Per Day (น่าจะเป็นจุดที่เจอ 100)
-                        let feeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === branchId); // หาตรงสาขา
-                        if (!feeConfig) {
-                            console.log('   ❌ No Branch Config found for "late_payment_fee_per_day"');
-                            // หา Global
-                            feeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
-                            if (feeConfig) console.log(`   ⚠️ Found GLOBAL Config instead!`);
-                        }
-
-                        // ถ้ายังไม่เจอ ลองหาชื่อ key เก่า
-                        if (!feeConfig) {
-                             feeConfig = configs.find(c => c.key === 'late_fee_per_day' && !c.branch_id);
-                             if (feeConfig) console.log(`   ⚠️ Found GLOBAL Config (Old Key: late_fee_per_day)!`);
-                        }
-
-                        if (feeConfig) {
-                            const fee = parseFloat(feeConfig.value);
-                            console.log(`   🚨 CULPRIT FOUND (ตัวการ): Config ID: ${feeConfig.id}`);
-                            console.log(`   🚨 Value: ${feeConfig.value} (This creates the ${fee * daysOverdue})`);
-                            console.log(`   🚨 Belongs to Branch: ${feeConfig.branch_id || 'GLOBAL (No Branch)'}`);
-                            
-                            finalLateFee = daysOverdue * fee;
-                            calculationMethod = `Auto-Calc (Config ID: ${feeConfig.id})`;
-                        } else {
-                            console.log('   ❌ No Config found anywhere.');
-                        }
-                    }
-                }
-            }
-        }
-
-        console.log(`🏁 FINAL DECISION: Late Fee = ${finalLateFee} (Method: ${calculationMethod})`);
+            finalLateFee = calculateLateFee(payment, configs, branchId);
+            console.log(`✅ Calculated Late Fee: ${finalLateFee}`);
 
         // --- ส่วนสร้างรูปตามปกติ ---
         const dbLateFee = Number(payment.late_fee_amount || 0);
@@ -402,6 +349,18 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error('Error:', error);
+        
+        // 🚨 ส่งอีเมลแจ้งเตือนเมื่อเกิดข้อผิดพลาด
+        try {
+            await base44.integrations.Core.SendEmail({
+                to: 'phupha20517@gmail.com',
+                subject: '🚨 Error in generateInvoiceImage',
+                body: `เกิดข้อผิดพลาดในการสร้างรูปใบแจ้งหนี้\n\nPayment ID: ${body?.paymentId || 'N/A'}\nError: ${error.message}\n\nStack:\n${error.stack}`
+            });
+        } catch (e) {
+            console.error('Failed to send error email:', e);
+        }
+        
         return Response.json({ success: false, error: error.message }, { status: 500 });
     }
 });

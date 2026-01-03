@@ -556,6 +556,17 @@ Deno.serve(async (req) => {
                         message: `LINE send critical failure: ${result.failed}/${lineRecipients.length} failed`,
                         details: { errors: result.errors?.slice(0, 5) }
                     }).catch(err => console.warn('Failed to log error:', err));
+
+                    // ส่งอีเมลแจ้งเตือน
+                    try {
+                        await base44.integrations.Core.SendEmail({
+                            to: 'phupha20517@gmail.com',
+                            subject: '🚨 Critical LINE Send Failure',
+                            body: `เกิดความล้มเหลวร้ายแรงในการส่งข้อความ LINE\n\nอัตราความล้มเหลว: ${Math.round((result.failed/lineRecipients.length)*100)}%\nล้มเหลว: ${result.failed}/${lineRecipients.length} ข้อความ\n\nBranch: ${branch_id || 'N/A'}\n\nErrors:\n${JSON.stringify(result.errors?.slice(0, 3), null, 2)}`
+                        });
+                    } catch (e) {
+                        console.error('Failed to send LINE critical failure email:', e);
+                    }
                 }
             } catch (lineError) {
                 console.error('❌ LINE batch send failed:', lineError);
@@ -569,6 +580,17 @@ Deno.serve(async (req) => {
                     message: `LINE batch send exception: ${lineError.message}`,
                     details: { error: lineError.toString(), recipients: lineRecipients.length }
                 }).catch(err => console.warn('Failed to log error:', err));
+
+                // ส่งอีเมลแจ้งเตือน
+                try {
+                    await base44.integrations.Core.SendEmail({
+                        to: 'phupha20517@gmail.com',
+                        subject: '🚨 LINE Batch Send Exception',
+                        body: `การส่งข้อความ LINE ล้มเหลวทั้งหมด\n\nError: ${lineError.message}\n\nRecipients: ${lineRecipients.length}\nBranch: ${branch_id || 'N/A'}\n\nStack:\n${lineError.stack}`
+                    });
+                } catch (e) {
+                    console.error('Failed to send LINE exception email:', e);
+                }
             }
         }
 
@@ -595,6 +617,17 @@ Deno.serve(async (req) => {
                         message: `Facebook send critical failure: ${result.failed}/${facebookRecipients.length} failed`,
                         details: { errors: result.errors?.slice(0, 5) }
                     }).catch(err => console.warn('Failed to log error:', err));
+
+                    // ส่งอีเมลแจ้งเตือน
+                    try {
+                        await base44.integrations.Core.SendEmail({
+                            to: 'phupha20517@gmail.com',
+                            subject: '🚨 Critical Facebook Send Failure',
+                            body: `เกิดความล้มเหลวร้ายแรงในการส่งข้อความ Facebook\n\nอัตราความล้มเหลว: ${Math.round((result.failed/facebookRecipients.length)*100)}%\nล้มเหลว: ${result.failed}/${facebookRecipients.length} ข้อความ\n\nBranch: ${branch_id || 'N/A'}\n\nErrors:\n${JSON.stringify(result.errors?.slice(0, 3), null, 2)}`
+                        });
+                    } catch (e) {
+                        console.error('Failed to send Facebook critical failure email:', e);
+                    }
                 }
             } catch (fbError) {
                 console.error('❌ Facebook batch send failed:', fbError);
@@ -608,6 +641,17 @@ Deno.serve(async (req) => {
                     message: `Facebook batch send exception: ${fbError.message}`,
                     details: { error: fbError.toString(), recipients: facebookRecipients.length }
                 }).catch(err => console.warn('Failed to log error:', err));
+
+                // ส่งอีเมลแจ้งเตือน
+                try {
+                    await base44.integrations.Core.SendEmail({
+                        to: 'phupha20517@gmail.com',
+                        subject: '🚨 Facebook Batch Send Exception',
+                        body: `การส่งข้อความ Facebook ล้มเหลวทั้งหมด\n\nError: ${fbError.message}\n\nRecipients: ${facebookRecipients.length}\nBranch: ${branch_id || 'N/A'}\n\nStack:\n${fbError.stack}`
+                    });
+                } catch (e) {
+                    console.error('Failed to send Facebook exception email:', e);
+                }
             }
         }
 
@@ -624,6 +668,18 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error('Error in sendPaymentReminder:', error);
+        
+        // 🚨 ส่งอีเมลแจ้งเตือนเมื่อเกิดข้อผิดพลาดร้ายแรง
+        try {
+            await base44.integrations.Core.SendEmail({
+                to: 'phupha20517@gmail.com',
+                subject: '🚨 Error in sendPaymentReminder Function',
+                body: `เกิดข้อผิดพลาดในฟังก์ชัน sendPaymentReminder\n\nError Message: ${error.message}\n\nStack Trace:\n${error.stack}\n\nTimestamp: ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`
+            });
+        } catch (emailError) {
+            console.error('Failed to send error notification email:', emailError);
+        }
+        
         return Response.json({
             error: error.message
         }, { status: 500 });
