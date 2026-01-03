@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { calculateLateFee } from './utils/calculateLateFee.js';
 
 // ⭐ ฟังก์ชันสร้าง hash จากข้อมูลบิล เพื่อตรวจจับการเปลี่ยนแปลง
 function generatePaymentHash(payment) {
@@ -434,10 +435,13 @@ Deno.serve(async (req) => {
             }
 
             // ⭐ สร้างลิงก์ Public Invoice/Receipt
-            // ดึง URL จาก Config (ถ้าไม่มีถึงใช้ env)
-            const frontendUrl = getConfigValue('frontend_url', branchId) || 
-                               Deno.env.get('FRONTEND_URL') || 
-                               'https://preview--xn--12cl3e0a3aco3ae.base44.app';
+            // ⚠️ SECURITY: ต้องตั้งค่า frontend_url ใน Config หรือ FRONTEND_URL env variable
+            const frontendUrl = getConfigValue('frontend_url', branchId) || Deno.env.get('FRONTEND_URL');
+
+            if (!frontendUrl) {
+                console.error(`❌ Missing frontend_url config for branch ${branchId}`);
+                throw new Error('FRONTEND_URL not configured. Please set frontend_url in Config or FRONTEND_URL environment variable.');
+            }
             
             let documentLink = '';
             
@@ -532,18 +536,39 @@ Deno.serve(async (req) => {
                         retryAttempts: 2
                     }
                 });
-                
+
                 const result = batchResult.data;
                 console.log('✅ Batch result:', { success: result.success, failed: result.failed, total: lineRecipients.length });
-                
+
                 successCount += result.success || 0;
                 failCount += result.failed || 0;
                 if (result.errors) errors.push(...result.errors);
 
                 console.log(`✅ LINE: ${result.success}/${lineRecipients.length} sent`);
+
+                // 🚨 Alert if critical failure
+                if (result.failed > 0 && result.failed / lineRecipients.length > 0.3) {
+                    console.error(`🚨 CRITICAL: LINE send failure rate ${Math.round((result.failed/lineRecipients.length)*100)}% (${result.failed}/${lineRecipients.length})`);
+                    await base44.asServiceRole.entities.FunctionLog.create({
+                        function_name: 'sendPaymentReminder',
+                        run_timestamp: new Date().toISOString(),
+                        status: 'error',
+                        message: `LINE send critical failure: ${result.failed}/${lineRecipients.length} failed`,
+                        details: { errors: result.errors?.slice(0, 5) }
+                    }).catch(err => console.warn('Failed to log error:', err));
+                }
             } catch (lineError) {
                 console.error('❌ LINE batch send failed:', lineError);
                 failCount += lineRecipients.length;
+
+                // 🚨 Log critical error
+                await base44.asServiceRole.entities.FunctionLog.create({
+                    function_name: 'sendPaymentReminder',
+                    run_timestamp: new Date().toISOString(),
+                    status: 'error',
+                    message: `LINE batch send exception: ${lineError.message}`,
+                    details: { error: lineError.toString(), recipients: lineRecipients.length }
+                }).catch(err => console.warn('Failed to log error:', err));
             }
         }
 
@@ -559,9 +584,30 @@ Deno.serve(async (req) => {
                 if (result.errors) errors.push(...result.errors);
 
                 console.log(`✅ Facebook: ${result.success}/${facebookRecipients.length} sent`);
+
+                // 🚨 Alert if critical failure
+                if (result.failed > 0 && result.failed / facebookRecipients.length > 0.3) {
+                    console.error(`🚨 CRITICAL: Facebook send failure rate ${Math.round((result.failed/facebookRecipients.length)*100)}% (${result.failed}/${facebookRecipients.length})`);
+                    await base44.asServiceRole.entities.FunctionLog.create({
+                        function_name: 'sendPaymentReminder',
+                        run_timestamp: new Date().toISOString(),
+                        status: 'error',
+                        message: `Facebook send critical failure: ${result.failed}/${facebookRecipients.length} failed`,
+                        details: { errors: result.errors?.slice(0, 5) }
+                    }).catch(err => console.warn('Failed to log error:', err));
+                }
             } catch (fbError) {
                 console.error('❌ Facebook batch send failed:', fbError);
                 failCount += facebookRecipients.length;
+
+                // 🚨 Log critical error
+                await base44.asServiceRole.entities.FunctionLog.create({
+                    function_name: 'sendPaymentReminder',
+                    run_timestamp: new Date().toISOString(),
+                    status: 'error',
+                    message: `Facebook batch send exception: ${fbError.message}`,
+                    details: { error: fbError.toString(), recipients: facebookRecipients.length }
+                }).catch(err => console.warn('Failed to log error:', err));
             }
         }
 

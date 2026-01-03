@@ -8,16 +8,15 @@ import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { base44 } from "@/api/base44Client";
 
-// ฟังก์ชันคำนวณค่าปรับ
+// ⚠️ Note: Late fee calculation logic ควรถูก refactor ไปยัง backend utility
+// เพื่อให้ frontend และ backend ใช้ logic เดียวกัน
 function calculateLateFee(payment, configs, selectedBranchId) {
   if (!payment || !payment.due_date) return 0;
   
-  // ⭐ ถ้าชำระแล้ว ให้ใช้ค่าปรับที่บันทึกไว้
   if (payment.status === 'paid') {
     return payment.late_fee_amount || 0;
   }
   
-  // ⭐ ถ้ายังไม่ชำระ แต่มีค่าปรับบันทึกไว้แล้ว ให้ใช้ตามที่บันทึก
   if (payment.late_fee_amount && payment.late_fee_amount > 0) return payment.late_fee_amount;
 
   try {
@@ -27,7 +26,6 @@ function calculateLateFee(payment, configs, selectedBranchId) {
 
     if (daysOverdue <= 0) return 0;
 
-    // ตรวจสอบว่าเปิดใช้ค่าปรับแบบขั้นบันไดหรือไม่
     const branchConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === selectedBranchId);
     const globalConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
     const tiersEnabledConfig = branchConfig || globalConfig;
@@ -65,7 +63,6 @@ function calculateLateFee(payment, configs, selectedBranchId) {
       }
     }
 
-    // ค่าปรับแบบธรรมดา
     const branchLateFeeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === selectedBranchId);
     const globalLateFeeConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
     const lateFeeConfig = branchLateFeeConfig || globalLateFeeConfig;
