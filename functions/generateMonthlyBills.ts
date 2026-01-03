@@ -299,8 +299,11 @@ Deno.serve(async (req) => {
         const branchesSkipped = [];
 
         for (const branchId of branchIds) {
-            const genDay = parseInt(getConfigValue('bill_generation_day', '27', branchId));
+            const genDayConfig = getConfigValue('bill_generation_day', '27', branchId);
+            const genDay = parseInt(genDayConfig);
             branchGenDayMap[branchId] = genDay;
+
+            console.log(`🔍 Branch ${branchId}: genDayConfig="${genDayConfig}", genDay=${genDay}, currentDay=${currentDay}, match=${currentDay === genDay}`);
 
             if (forceCreate || currentDay === genDay) {
                 branchesToProcess.push({ branchId, genDay });
