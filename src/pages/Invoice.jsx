@@ -6,6 +6,12 @@ import { Card } from "@/components/ui/card";
 import { Download, Loader2, AlertCircle, ArrowLeft, Clock, CheckCircle } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // ฟังก์ชันคำนวณค่าปรับ
 function calculateLateFee(payment, configs, selectedBranchId) {
