@@ -3,6 +3,7 @@ import { createServiceRoleClient } from 'npm:@base44/sdk@0.8.4';
 // Public API สำหรับดึงข้อมูลใบแจ้งหนี้ (ไม่ต้อง login)
 Deno.serve(async (req) => {
     console.log('========================================');
+    console.log('🔥🔥🔥 VERSION 4 - NEW DEPLOY 🔥🔥🔥');
     console.log('📄 GET PUBLIC INVOICE (DEBUG MODE)');
     console.log(`📅 Timestamp: ${new Date().toISOString()}`);
     console.log('========================================');
