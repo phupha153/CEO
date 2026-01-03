@@ -1,15 +1,15 @@
-import { createServiceRoleClient } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 // Public API สำหรับดึงข้อมูลใบแจ้งหนี้ (ไม่ต้อง login)
 Deno.serve(async (req) => {
     console.log('========================================');
-    console.log('✨✨✨ VERSION 5 - FRESH DEPLOY ✨✨✨');
+    console.log('🎯🎯🎯 VERSION 6 - FIXED IMPORT 🎯🎯🎯');
     console.log('📄 GET PUBLIC INVOICE');
     console.log(`📅 Timestamp: ${new Date().toISOString()}`);
     console.log('========================================');
 
     try {
-        const base44 = createServiceRoleClient();
+        const base44 = createClientFromRequest(req);
         
         // Parse request body
         let paymentId, branchId;
