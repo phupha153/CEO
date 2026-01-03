@@ -73,10 +73,10 @@ Deno.serve(async (req) => {
         console.log(`🔍 Fetching related data for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}, branch_id: ${actualBranchId}`);
         
         const [tenantResults, roomResults, branchResults, configs] = await Promise.all([
-            payment.tenant_id ? base44.entities.Tenant.filter({ id: payment.tenant_id }) : Promise.resolve([]),
-            payment.room_id ? base44.entities.Room.filter({ id: payment.room_id }) : Promise.resolve([]),
-            actualBranchId ? base44.entities.Branch.filter({ id: actualBranchId }) : Promise.resolve([]),
-            base44.entities.Config.list()
+            payment.tenant_id ? base44.asServiceRole.entities.Tenant.filter({ id: payment.tenant_id }) : Promise.resolve([]),
+            payment.room_id ? base44.asServiceRole.entities.Room.filter({ id: payment.room_id }) : Promise.resolve([]),
+            actualBranchId ? base44.asServiceRole.entities.Branch.filter({ id: actualBranchId }) : Promise.resolve([]),
+            base44.asServiceRole.entities.Config.list()
         ]);
 
         const tenant = Array.isArray(tenantResults) ? tenantResults[0] : tenantResults;
