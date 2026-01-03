@@ -407,9 +407,11 @@ export default function Settings() {
   });
 
   const { data: usersData } = useQuery({
-    queryKey: ['usersInMyBranches'],
+    queryKey: ['usersInMyBranches', branchOwnerStatus?.owner_email],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getUsersInMyBranches', {});
+      const response = await base44.functions.invoke('getUsersInMyBranches', {
+        owner_email: branchOwnerStatus?.owner_email // ⭐ ส่ง owner_email ถ้ามี
+      });
       return response.data;
     },
     enabled: !!currentUser,
