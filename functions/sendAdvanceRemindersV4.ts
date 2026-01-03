@@ -96,34 +96,57 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
     let offset = 0;
     const BRANCH_BATCH_LIMIT = 1000; // ⬆️ เพิ่มจาก 500 → 1000
 
-    // ⭐ โหลด Cache 1 ครั้ง ก่อน Loop (ประหยัด API calls)
-    const allTenants = [];
-    const allRooms = [];
-    let tenantOffset = 0;
-    let roomOffset = 0;
+    // ⭐ โหลด Cache แบบ Lightweight (เฉพาะ fields ที่ใช้)
     const CACHE_CHUNK = 500;
+    const MAX_SAFE_RECORDS = 10000; // 🛡️ Safety limit
 
-    // โหลด Tenants ทีละ 500 จนครบ
-    while (true) {
+    // โหลด Tenants ทีละ 500 จนครบ (เก็บเฉพาะ fields ที่ใช้)
+    const allTenants = [];
+    let tenantOffset = 0;
+    while (allTenants.length < MAX_SAFE_RECORDS) {
         const tenantChunk = await base44.asServiceRole.entities.Tenant.filter({ branch_id: branchId }, '-id', CACHE_CHUNK, tenantOffset);
         if (tenantChunk.length === 0) break;
-        allTenants.push(...tenantChunk);
+
+        // ⭐ Projection: เก็บเฉพาะ fields ที่จำเป็น (ลด memory ~70%)
+        allTenants.push(...tenantChunk.map(t => ({
+            id: t.id,
+            full_name: t.full_name,
+            line_user_id: t.line_user_id,
+            facebook_user_id: t.facebook_user_id
+        })));
+
         tenantOffset += CACHE_CHUNK;
-        if (tenantChunk.length < CACHE_CHUNK) break; // หมดแล้ว
+        if (tenantChunk.length < CACHE_CHUNK) break;
     }
 
-    // โหลด Rooms ทีละ 500 จนครบ
-    while (true) {
+    // โหลด Rooms ทีละ 500 จนครบ (เก็บเฉพาะ fields ที่ใช้)
+    const allRooms = [];
+    let roomOffset = 0;
+    while (allRooms.length < MAX_SAFE_RECORDS) {
         const roomChunk = await base44.asServiceRole.entities.Room.filter({ branch_id: branchId }, '-id', CACHE_CHUNK, roomOffset);
         if (roomChunk.length === 0) break;
-        allRooms.push(...roomChunk);
+
+        // ⭐ Projection: เก็บเฉพาะ fields ที่จำเป็น
+        allRooms.push(...roomChunk.map(r => ({
+            id: r.id,
+            room_number: r.room_number
+        })));
+
         roomOffset += CACHE_CHUNK;
-        if (roomChunk.length < CACHE_CHUNK) break; // หมดแล้ว
+        if (roomChunk.length < CACHE_CHUNK) break;
+    }
+
+    // 🛡️ Safety Check
+    if (allTenants.length >= MAX_SAFE_RECORDS || allRooms.length >= MAX_SAFE_RECORDS) {
+        console.warn(`⚠️ Hit safety limit! Tenants: ${allTenants.length}, Rooms: ${allRooms.length}`);
     }
 
     const tenantMap = new Map(allTenants.map(t => [t.id, t]));
     const roomMap = new Map(allRooms.map(r => [r.id, r]));
-    console.log(`📦 Cached: ${allTenants.length} tenants, ${allRooms.length} rooms`);
+
+    // 📊 Memory Usage Estimate
+    const estimatedMemoryMB = ((allTenants.length * 200 + allRooms.length * 100) / 1024 / 1024).toFixed(2);
+    console.log(`📦 Cached: ${allTenants.length} tenants, ${allRooms.length} rooms (~${estimatedMemoryMB} MB)`);
 
     while (hasMore && offset < BRANCH_BATCH_LIMIT) {
         const payments = await base44.asServiceRole.entities.Payment.filter({
