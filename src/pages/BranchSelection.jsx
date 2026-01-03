@@ -47,29 +47,40 @@ export default function BranchSelection() {
     queryFn: async () => {
       // ⭐ Safety: ตรวจสอบว่า user พร้อมจริงๆ ก่อนเรียก CRM
       if (!currentUser?.email || !currentUser?.id) {
-        console.warn('⚠️ User not fully loaded - skipping CRM check');
-        return { hasAccess: true, skipped: true };
+        console.warn('⚠️ User not fully loaded - blocking access');
+        return { hasAccess: false, reason: 'User not loaded' };
       }
 
       const response = await base44.functions.invoke('checkCRMAccess');
       const data = response.data;
 
-      // ⭐ เพิ่ม validation: logout เฉพาะเมื่อมั่นใจว่า user auth เสถียร + CRM deny ชัดเจน
-      if (data && data.hasAccess === false && !data.timeout && !data.error && currentUser?.email) {
-        console.warn('🚫 CRM Access denied (confirmed) - Logging out:', currentUser.email);
-        setTimeout(() => {
-          base44.auth.logout();
-        }, 1500);
+      // 🔒 FAIL-CLOSED: ถ้ามี error/timeout → DENY ACCESS (ไม่ fallback เป็น allow)
+      if (!data || data.error) {
+        console.error('❌ CRM check error - DENYING access for security');
+        return { hasAccess: false, reason: 'CRM error' };
+      }
+
+      // ⚠️ Timeout = ปัญหาเครือข่าย → DENY (แทนที่จะ allow)
+      if (data.timeout) {
+        console.warn('⏱️ CRM timeout - DENYING access for security');
+        return { hasAccess: false, reason: 'CRM timeout' };
+      }
+
+      // ⚡ INSTANT LOGOUT: ถ้า CRM deny ชัดเจน → logout ทันที
+      if (data.hasAccess === false && currentUser?.email) {
+        console.warn('🚫 CRM Access denied - Immediate logout:', currentUser.email);
+        base44.auth.logout(); // ไม่ต้อง setTimeout
+        return data;
       }
 
       return data;
     },
-    enabled: !!currentUser && !userLoading && userSuccess, // ⭐ รอให้ user success ก่อน
-    staleTime: 30 * 1000,
-    refetchInterval: 1 * 60 * 1000,
+    enabled: !!currentUser && !userLoading && userSuccess,
+    staleTime: 10 * 1000, // ⚡ ลด cache เป็น 10 วิ
+    refetchInterval: 30 * 1000, // ⚡ เช็คทุก 30 วิ (แทนที่จะ 1 นาที)
     refetchIntervalInBackground: true,
-    retry: 2,
-    retryDelay: 1000,
+    retry: 1, // ⚠️ ลด retry เป็น 1 (ไม่ให้รอนาน)
+    retryDelay: 500,
     throwOnError: false,
   });
 
@@ -354,20 +365,21 @@ export default function BranchSelection() {
     );
   }
 
-  // ⭐ รอให้ได้ผล CRM access ก่อน (ไม่ให้ข้ามเงื่อนไข)
+  // 🔒 BLOCK UI จนกว่า CRM จะตอบ (ไม่ให้เข้าก่อน)
   if (crmAccessLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-purple-100 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600 text-lg">กำลังตรวจสอบสิทธิ์ CRM...</p>
+          <p className="text-slate-600 text-lg font-semibold">🔒 กำลังตรวจสอบสิทธิ์...</p>
+          <p className="text-slate-500 text-sm mt-2">กรุณารอสักครู่</p>
         </div>
       </div>
     );
   }
 
-  // ⭐ เช็คสิทธิ์ CRM ก่อนแสดงหน้า (ถ้าไม่มีสิทธิ์ชัดเจน = บล็อก, แต่ถ้า timeout/error = อนุญาต)
-  if (currentUser && crmAccess && crmAccess.hasAccess === false && !crmAccess.timeout && !crmAccess.error) {
+  // 🚫 FAIL-CLOSED: ถ้า CRM ไม่ตอบหรือ deny → BLOCK ACCESS
+  if (currentUser && crmAccess && crmAccess.hasAccess === false) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-50 overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
