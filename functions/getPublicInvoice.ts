@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
         };
 
         // ⭐ LOG: ตรวจสอบ object ที่กำลังจะส่งกลับ
-        console.log('📤 [DEBUG] Sending Invoice Object:');
+        console.log('🚀🚀🚀 [NEW LOG v2] SENDING INVOICE OBJECT 🚀🚀🚀');
         console.log(`   - Branch ID in Object: ${invoiceObject.branch_id} (Type: ${typeof invoiceObject.branch_id})`);
         console.log(`   - Late Fee in Object: ${invoiceObject.late_fee_amount}`);
         console.log(`   - Keys in Object: ${Object.keys(invoiceObject).join(', ')}`);
