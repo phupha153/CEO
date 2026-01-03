@@ -9,7 +9,14 @@ import { base44 } from "@/api/base44Client";
 
 // ฟังก์ชันคำนวณค่าปรับ
 function calculateLateFee(payment, configs, selectedBranchId) {
-  if (!payment || !payment.due_date || payment.status === 'paid') return 0;
+  if (!payment || !payment.due_date) return 0;
+  
+  // ⭐ ถ้าชำระแล้ว ให้ใช้ค่าปรับที่บันทึกไว้
+  if (payment.status === 'paid') {
+    return payment.late_fee_amount || 0;
+  }
+  
+  // ⭐ ถ้ายังไม่ชำระ แต่มีค่าปรับบันทึกไว้แล้ว ให้ใช้ตามที่บันทึก
   if (payment.late_fee_amount && payment.late_fee_amount > 0) return payment.late_fee_amount;
 
   try {
