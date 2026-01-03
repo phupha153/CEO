@@ -1139,8 +1139,18 @@ export default function PaymentsPage() {
     },
     onSuccess: async (updatedPayment, variables) => {
       console.log('✅ onSuccess triggered! Updated payment:', updatedPayment);
-      queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
-      queryClient.invalidateQueries({ queryKey: ['allPayments'] });
+      
+      // ⭐ รีเฟรชข้อมูลทุก query ที่เกี่ยวข้อง
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-room-view'] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
+        queryClient.invalidateQueries({ queryKey: ['allPayments'] }),
+      ]);
+      
+      // ⭐ รอให้ query โหลดเสร็จก่อนแสดง toast
+      await new Promise(r => setTimeout(r, 500));
       
       // บันทึก log การยืนยันชำระเงิน
       if (variables.status === 'paid') {
