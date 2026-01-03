@@ -70,6 +70,16 @@ function calculateLateFee(payment, configs, selectedBranchId) {
     const lateFeeConfig = branchLateFeeConfig || globalLateFeeConfig;
     const lateFeePerDay = lateFeeConfig ? parseFloat(lateFeeConfig.value) : 0;
     
+    console.log('🔍 [Invoice] Late Fee Calculation:', {
+      selectedBranchId,
+      daysOverdue,
+      branchConfig: branchLateFeeConfig?.value,
+      globalConfig: globalLateFeeConfig?.value,
+      selectedConfig: lateFeeConfig?.value,
+      lateFeePerDay,
+      totalLateFee: daysOverdue * lateFeePerDay
+    });
+    
     if (lateFeePerDay === 0 || isNaN(lateFeePerDay)) return 0;
 
     return daysOverdue * lateFeePerDay;
