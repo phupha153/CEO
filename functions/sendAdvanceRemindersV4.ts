@@ -67,21 +67,7 @@ function numberToThaiText(number) {
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// ฟังก์ชันส่ง Facebook แบบขนาน
-async function sendFacebookBatch(base44, recipients, branchId) {
-    const BATCH_SIZE = 5; 
-    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-        const chunk = recipients.slice(i, i + BATCH_SIZE);
-        await Promise.all(chunk.map(r => 
-            base44.asServiceRole.functions.invoke('sendFacebookMessage', {
-                to: r.facebookUserId,
-                message: r.message,
-                imageUrl: r.imageUrl,
-                branch_id: branchId
-            }).catch(e => console.error(`⚠️ FB Error (${r.facebookUserId}):`, e.message))
-        ));
-    }
-}
+
 
 // =========================================================
 // 👷 WORKER FUNCTION (คนงาน 1 คน รับเหมา 1 สาขา)
