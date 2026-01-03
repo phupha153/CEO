@@ -1905,12 +1905,12 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // ⭐ ถ้ามีสิทธิ์เข้าแพ็กเกจ = เห็นผู้ใช้และสาขาทั้งหมดเหมือน owner
-                              const canSeeAllData = canAccessPackagePage;
+                              // ⭐ ใช้ owner_email จาก branchOwnerStatus (เจ้าของสาขาที่เลือก) แทน currentUser
+                              const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
                               
-                              // ⭐ แสดงผู้ใช้ที่เข้าถึงสาขาที่ currentUser เป็นเจ้าของ
+                              // ⭐ แสดงผู้ใช้ที่เข้าถึงสาขาที่เจ้าของแพ็กเกจ (owner_email) เป็นเจ้าของ
                               const myOwnedBranchIds = branches
-                                .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
+                                .filter(b => b.owner_id === ownerEmail || b.created_by === ownerEmail)
                                 .map(b => b.id);
                               
                               const usersInMyBranches = users.filter(user => {
@@ -1919,13 +1919,10 @@ export default function Settings() {
                                 // ไม่นับ Developer
                                 if (role === 'developer') return false;
                                 
-                                // ⭐ ถ้ามีสิทธิ์เข้าแพ็กเกจ = เห็นทุกคน
-                                if (canSeeAllData) return true;
+                                // ⭐ ถ้าเป็นเจ้าของแพ็กเกจเอง = นับ
+                                if (user.email === ownerEmail) return true;
                                 
-                                // ⭐ ถ้าเป็น currentUser เอง = นับ
-                                if (user.email === currentUser?.email) return true;
-                                
-                                // ผู้ใช้อื่นๆ ต้องมี accessible_branches ที่ตรงกับสาขาที่ currentUser เป็นเจ้าของ
+                                // ผู้ใช้อื่นๆ ต้องมี accessible_branches ที่ตรงกับสาขาที่เจ้าของแพ็กเกจเป็นเจ้าของ
                                 if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
                                 return user.accessible_branches.some(branchId => myOwnedBranchIds.includes(branchId));
                               });
@@ -1989,15 +1986,13 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // ⭐ ถ้ามีสิทธิ์เข้าแพ็กเกจ = เห็นสาขาทั้งหมดเหมือน owner
-                              const canSeeAllData = canAccessPackagePage;
+                              // ⭐ ใช้ owner_email จาก branchOwnerStatus (เจ้าของสาขาที่เลือก) แทน currentUser
+                              const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
                               
-                              // ⭐ แสดงเฉพาะสาขาที่ currentUser เป็นเจ้าของจริงๆ (ไม่ใช่ accessible_branches)
-                              const myOwnedBranches = canSeeAllData 
-                                ? branches 
-                                : branches.filter(b => 
-                                    b.owner_id === currentUser?.email || b.created_by === currentUser?.email
-                                  );
+                              // ⭐ แสดงเฉพาะสาขาที่เจ้าของแพ็กเกจเป็นเจ้าของจริงๆ
+                              const myOwnedBranches = branches.filter(b => 
+                                b.owner_id === ownerEmail || b.created_by === ownerEmail
+                              );
                               const totalBranchesInSystem = myOwnedBranches.length;
                               
                               // ⭐ เช็ค trial mode จาก currentUser.plan_status
