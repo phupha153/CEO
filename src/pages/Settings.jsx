@@ -501,6 +501,21 @@ export default function Settings() {
     return (branchId && branchName) ? { id: branchId, name: branchName } : null;
   });
 
+  // ⭐ ดึงข้อมูลแพ็กเกจของเจ้าของสาขา
+  const { data: branchOwnerStatus } = useQuery({
+    queryKey: ['branchOwnerStatus', selectedBranch?.id],
+    queryFn: async () => {
+      if (!selectedBranch?.id) return null;
+      const response = await base44.functions.invoke('getBranchOwnerStatus', {
+        branch_id: selectedBranch.id
+      });
+      return response.data;
+    },
+    enabled: !!selectedBranch && !!currentUser,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
   const getConfigValue = (key, defaultValue = '') => {
     const config = configs.find(c => c.key === key && !c.branch_id);
     return config?.value || defaultValue;
@@ -508,13 +523,14 @@ export default function Settings() {
 
   const appMode = getConfigValue('app_mode', 'single_tenant');
 
-  // ⭐ User-Centric Package Model - ดูจาก currentUser.plan_status
+  // ⭐ User-Centric Package Model - ดูจากเจ้าของสาขา
   const activeSubscription = (() => {
     if (!currentUser) return null;
     
-    const planStatus = currentUser.plan_status; // 'trial' | 'active' | 'expired' | 'cancelled'
-    const trialEndsAt = currentUser.trial_ends_at;
-    const subscriptionEndDate = currentUser.subscription_end_date;
+    // ⭐ ถ้ามีสาขาเลือก ให้ดูของเจ้าของสาขา, ถ้าไม่มีให้ดูของตัวเอง
+    const planStatus = branchOwnerStatus?.plan_status || currentUser.plan_status;
+    const trialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
+    const subscriptionEndDate = currentUser.subscription_end_date; // ยังไม่มีใน branchOwnerStatus
     const packageId = currentUser.package_id;
     
     // ถ้าไม่มี plan_status หรือ expired/cancelled = ไม่มี package
@@ -522,7 +538,7 @@ export default function Settings() {
       return null;
     }
     
-    // ⭐ สร้าง subscription object จาก User data
+    // ⭐ สร้าง subscription object จาก Owner data
     return {
       package_id: packageId || 'trial',
       package_name: packageId || 'ทดลองใช้งาน',
@@ -530,10 +546,12 @@ export default function Settings() {
       status: planStatus, // 'trial' | 'active'
       subscription_end_date: planStatus === 'trial' ? trialEndsAt : subscriptionEndDate,
       trial_end_date: planStatus === 'trial' ? trialEndsAt : null,
-      subscription_start_date: currentUser.created_date, // ใช้วันที่สร้าง user แทน
+      subscription_start_date: currentUser.created_date,
       payment_status: 'paid',
       auto_renew: false,
-      notes: null
+      notes: null,
+      owner_name: branchOwnerStatus?.owner_name, // เพิ่มชื่อเจ้าของ
+      is_owner: branchOwnerStatus?.is_owner !== false
     };
   })();
 
@@ -1819,7 +1837,16 @@ export default function Settings() {
                                       }`}>
                                         {isTrial ? '🎉 ทดลองใช้งาน' : activeSubscription?.package_name || activeSubscription?.app_name || 'แพ็กเกจระบบจัดการหอพัก'}
                                       </h3>
-                                      
+
+                                      {/* ⭐ แสดงชื่อเจ้าของถ้าไม่ใช่ตัวเอง */}
+                                      {!activeSubscription?.is_owner && activeSubscription?.owner_name && (
+                                        <p className={`relative z-10 text-sm font-semibold mb-1 ${
+                                          isTrial ? 'text-white/95' : isBasic ? 'text-slate-200' : 'text-slate-700'
+                                        }`}>
+                                          👑 แพ็กเกจของ {activeSubscription.owner_name}
+                                        </p>
+                                      )}
+
                                       {activeSubscription?.subscription_end_date && (
                                         <p className={`relative z-10 text-xs ${
                                           isTrial ? 'text-white/90' : isBasic ? 'text-slate-300' : isElite ? 'text-amber-800' : 'text-slate-600'
