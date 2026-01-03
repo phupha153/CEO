@@ -3146,9 +3146,6 @@ export default function Settings() {
                       <MessageSquare className="w-5 h-5 text-indigo-600" />
                       เชื่อมต่อช่องทางสื่อสาร
                     </CardTitle>
-                    <p className="text-sm text-slate-600 mt-2">
-                      ตั้งค่าการเชื่อมต่อ LINE และ Facebook เพื่อส่งข้อความอัตโนมัติถึงผู้เช่า
-                    </p>
                   </CardHeader>
                   <CardContent>
                     <Tabs defaultValue="line" className="w-full">
