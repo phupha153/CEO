@@ -56,12 +56,13 @@ Deno.serve(async (req) => {
         }
 
         // ⭐ LOG: ดูข้อมูลดิบจาก Database ว่ามีค่าปรับหรือไม่
-        console.log('🔍 [DEBUG] Raw DB Data:');
-        console.log(`   - ID: ${payment.id}`);
-        console.log(`   - Branch ID: ${payment.branch_id} (Type: ${typeof payment.branch_id})`);
+        console.log('🆕🆕🆕 [VERSION 3] Raw DB Data:');
+        console.log(`   - Payment ID: ${payment.id}`);
+        console.log(`   - Branch ID FROM DB: ${payment.branch_id}`);
+        console.log(`   - Branch ID Type: ${typeof payment.branch_id}`);
         console.log(`   - Status: ${payment.status}`);
         console.log(`   - Total Amount: ${payment.total_amount}`);
-        console.log(`   - Late Fee Amount: ${payment.late_fee_amount} (Type: ${typeof payment.late_fee_amount})`);
+        console.log(`   - Late Fee Amount: ${payment.late_fee_amount}`);
 
         // ตรวจสอบ branch_id ถ้ามีการส่งมา
         if (branchId && payment.branch_id !== branchId) {
