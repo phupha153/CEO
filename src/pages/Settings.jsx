@@ -2759,78 +2759,126 @@ export default function Settings() {
                          การแจ้งเตือนอัตโนมัติ
                        </h3>
 
-                        <div className="space-y-3">
-                          <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
-                            <input
-                              type="checkbox"
-                              checked={billSettings.auto_send_bills}
-                              onChange={(e) => setBillSettings({ ...billSettings, auto_send_bills: e.target.checked })}
-                              className="w-5 h-5 rounded"
-                            />
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800">ส่งบิลทาง LINE หลังสร้างบิล</p>
-                              <p className="text-xs text-slate-600">ส่งใบแจ้งหนี้ให้ผู้เช่าทันทีเมื่อสร้างบิล</p>
-                            </div>
-                          </label>
+                        {(() => {
+                          // ⭐ Validate: ต้องมีเลขบัญชีและชื่อบัญชีก่อนถึงจะเปิดการแจ้งเตือนได้
+                          const hasBankConfig = bankInfo.account_number?.trim() && bankInfo.account_name?.trim();
+                          
+                          return (
+                            <div className="space-y-3">
+                              {!hasBankConfig && (
+                                <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4 flex items-start gap-3">
+                                  <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                  <div>
+                                    <p className="text-sm font-semibold text-red-800 mb-1">⚠️ ไม่สามารถเปิดการแจ้งเตือนได้</p>
+                                    <p className="text-xs text-red-700">
+                                      กรุณากรอก <strong>ชื่อบัญชี</strong> และ <strong>เลขที่บัญชี</strong> ในแท็บ "ธนาคาร" ก่อน<br/>
+                                      เพื่อความปลอดภัย ระบบไม่อนุญาตให้ส่งบิลโดยไม่มีข้อมูลบัญชีธนาคาร
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
 
-                          <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
-                            <input
-                              type="checkbox"
-                              checked={billSettings.send_advance_reminder}
-                              onChange={(e) => setBillSettings({ ...billSettings, send_advance_reminder: e.target.checked })}
-                              className="w-5 h-5 rounded"
-                            />
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800">แจ้งบิลล่วงหน้า</p>
-                              <p className="text-xs text-slate-600">ส่งแจ้งเตือนก่อนถึงวันครบกำหนด {billSettings.bill_advance_notice_days} วัน</p>
-                            </div>
-                          </label>
-
-                          {billSettings.send_advance_reminder && (
-                            <div className="ml-8 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                              <Label className="text-sm font-medium text-blue-800 mb-2 block">จำนวนวันล่วงหน้า</Label>
-                              <div className="flex items-center gap-3">
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  max="30"
-                                  value={billSettings.bill_advance_notice_days}
-                                  onChange={(e) => setBillSettings({ ...billSettings, bill_advance_notice_days: e.target.value })}
-                                  className="max-w-xs"
+                              <label className={`flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 ${hasBankConfig ? 'cursor-pointer hover:bg-slate-100' : 'opacity-50 cursor-not-allowed'} transition-colors`}>
+                                <input
+                                  type="checkbox"
+                                  checked={billSettings.auto_send_bills}
+                                  onChange={(e) => {
+                                    if (hasBankConfig) {
+                                      setBillSettings({ ...billSettings, auto_send_bills: e.target.checked });
+                                    } else {
+                                      toast.error('กรุณากรอกข้อมูลบัญชีธนาคารก่อน');
+                                    }
+                                  }}
+                                  disabled={!hasBankConfig}
+                                  className="w-5 h-5 rounded"
                                 />
-                                <span className="text-xs text-blue-700">
-                                  วันก่อนครบกำหนด
-                                </span>
-                              </div>
-                            </div>
-                          )}
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-slate-800">ส่งบิลทาง LINE หลังสร้างบิล</p>
+                                  <p className="text-xs text-slate-600">ส่งใบแจ้งหนี้ให้ผู้เช่าทันทีเมื่อสร้างบิล</p>
+                                </div>
+                              </label>
 
-                          <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
-                            <input
-                              type="checkbox"
-                              checked={billSettings.send_due_date_reminder}
-                              onChange={(e) => setBillSettings({ ...billSettings, send_due_date_reminder: e.target.checked })}
-                              className="w-5 h-5 rounded"
-                            />
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800">แจ้งเตือนในวันครบกำหนด</p>
-                              <p className="text-xs text-slate-600">ส่งข้อความเตือนในวันที่ {billSettings.pay_day} (เฉพาะรายการที่รอชำระ)</p>
-                            </div>
-                          </label>
+                              <label className={`flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 ${hasBankConfig ? 'cursor-pointer hover:bg-slate-100' : 'opacity-50 cursor-not-allowed'} transition-colors`}>
+                                <input
+                                  type="checkbox"
+                                  checked={billSettings.send_advance_reminder}
+                                  onChange={(e) => {
+                                    if (hasBankConfig) {
+                                      setBillSettings({ ...billSettings, send_advance_reminder: e.target.checked });
+                                    } else {
+                                      toast.error('กรุณากรอกข้อมูลบัญชีธนาคารก่อน');
+                                    }
+                                  }}
+                                  disabled={!hasBankConfig}
+                                  className="w-5 h-5 rounded"
+                                />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-slate-800">แจ้งบิลล่วงหน้า</p>
+                                  <p className="text-xs text-slate-600">ส่งแจ้งเตือนก่อนถึงวันครบกำหนด {billSettings.bill_advance_notice_days} วัน</p>
+                                </div>
+                              </label>
 
-                          <label className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors">
-                            <input
-                              type="checkbox"
-                              checked={billSettings.send_overdue_reminder}
-                              onChange={(e) => setBillSettings({ ...billSettings, send_overdue_reminder: e.target.checked })}
-                              className="w-5 h-5 rounded"
-                            />
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-slate-800">แจ้งเตือนเกินกำหนด</p>
-                              <p className="text-xs text-slate-600">ส่งข้อความเตือนทุกวันสำหรับรายการที่เกินกำหนดชำระแล้ว (พร้อมค่าปรับ)</p>
+                              {billSettings.send_advance_reminder && hasBankConfig && (
+                                <div className="ml-8 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                  <Label className="text-sm font-medium text-blue-800 mb-2 block">จำนวนวันล่วงหน้า</Label>
+                                  <div className="flex items-center gap-3">
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      max="30"
+                                      value={billSettings.bill_advance_notice_days}
+                                      onChange={(e) => setBillSettings({ ...billSettings, bill_advance_notice_days: e.target.value })}
+                                      className="max-w-xs"
+                                    />
+                                    <span className="text-xs text-blue-700">
+                                      วันก่อนครบกำหนด
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              <label className={`flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 ${hasBankConfig ? 'cursor-pointer hover:bg-slate-100' : 'opacity-50 cursor-not-allowed'} transition-colors`}>
+                                <input
+                                  type="checkbox"
+                                  checked={billSettings.send_due_date_reminder}
+                                  onChange={(e) => {
+                                    if (hasBankConfig) {
+                                      setBillSettings({ ...billSettings, send_due_date_reminder: e.target.checked });
+                                    } else {
+                                      toast.error('กรุณากรอกข้อมูลบัญชีธนาคารก่อน');
+                                    }
+                                  }}
+                                  disabled={!hasBankConfig}
+                                  className="w-5 h-5 rounded"
+                                />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-slate-800">แจ้งเตือนในวันครบกำหนด</p>
+                                  <p className="text-xs text-slate-600">ส่งข้อความเตือนในวันที่ {billSettings.pay_day} (เฉพาะรายการที่รอชำระ)</p>
+                                </div>
+                              </label>
+
+                              <label className={`flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 ${hasBankConfig ? 'cursor-pointer hover:bg-slate-100' : 'opacity-50 cursor-not-allowed'} transition-colors`}>
+                                <input
+                                  type="checkbox"
+                                  checked={billSettings.send_overdue_reminder}
+                                  onChange={(e) => {
+                                    if (hasBankConfig) {
+                                      setBillSettings({ ...billSettings, send_overdue_reminder: e.target.checked });
+                                    } else {
+                                      toast.error('กรุณากรอกข้อมูลบัญชีธนาคารก่อน');
+                                    }
+                                  }}
+                                  disabled={!hasBankConfig}
+                                  className="w-5 h-5 rounded"
+                                />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-slate-800">แจ้งเตือนเกินกำหนด</p>
+                                  <p className="text-xs text-slate-600">ส่งข้อความเตือนทุกวันสำหรับรายการที่เกินกำหนดชำระแล้ว (พร้อมค่าปรับ)</p>
+                                </div>
+                              </label>
                             </div>
-                          </label>
-                        </div>
+                          );
+                        })()}
                       </div>
 
                       <Button
