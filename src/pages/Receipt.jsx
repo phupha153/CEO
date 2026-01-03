@@ -6,6 +6,12 @@ import { Card } from "@/components/ui/card";
 import { Download, Loader2, CheckCircle, RefreshCw, Building2, Users, ArrowLeft } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // ฟังก์ชันคำนวณค่าปรับ
 function calculateLateFee(payment, configs, selectedBranchId) {
@@ -151,6 +157,7 @@ export default function Receipt() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [configs, setConfigs] = useState([]);
+  const [showDebug, setShowDebug] = useState(false);
 
   const fetchReceipt = async () => {
     if (!paymentId) {
@@ -362,8 +369,88 @@ export default function Receipt() {
   const buildingLogo = receiptData?.recipient?.building_logo || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
   const buildingName = receiptData?.recipient?.building_name || 'W RESIDENTS';
 
+  // Debug info
+  const debugInfo = {
+    paymentId: receiptData?.id,
+    branchId: receiptData?.branch_id,
+    status: receiptData?.status,
+    payment_late_fee_amount: receiptData?.late_fee_amount,
+    calculated_late_fee: calculatedLateFee,
+    display_late_fee: displayLateFee,
+    daysOverdue: receiptData?.due_date ? differenceInDays(new Date(), parseISO(receiptData.due_date)) : 0,
+    configs_for_branch: configs.filter(c => 
+      c.branch_id === receiptData?.branch_id && c.key === 'late_payment_fee_per_day'
+    ),
+    configs_global: configs.filter(c => 
+      !c.branch_id && c.key === 'late_payment_fee_per_day'
+    ),
+    all_late_fee_configs: configs.filter(c => c.key === 'late_payment_fee_per_day')
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 print:bg-white">
+      {/* Debug Dialog */}
+      <Dialog open={showDebug} onOpenChange={setShowDebug}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>🐛 Debug ข้อมูลค่าปรับ</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div className="bg-slate-100 p-3 rounded">
+              <p className="font-bold mb-2">ข้อมูล Payment:</p>
+              <p>• ID: {debugInfo.paymentId}</p>
+              <p>• Branch ID: {debugInfo.branchId}</p>
+              <p>• Status: {debugInfo.status}</p>
+              <p>• ค่าปรับที่บันทึก (late_fee_amount): {debugInfo.payment_late_fee_amount} บาท</p>
+              <p>• วันเกินกำหนด: {debugInfo.daysOverdue} วัน</p>
+            </div>
+
+            <div className="bg-yellow-100 p-3 rounded">
+              <p className="font-bold mb-2">ค่าปรับที่คำนวณได้:</p>
+              <p>• คำนวณใหม่: {debugInfo.calculated_late_fee} บาท</p>
+              <p>• แสดงในบิล: {debugInfo.display_late_fee} บาท</p>
+            </div>
+
+            <div className="bg-blue-100 p-3 rounded">
+              <p className="font-bold mb-2">Config สาขานี้:</p>
+              {debugInfo.configs_for_branch.length > 0 ? (
+                debugInfo.configs_for_branch.map((c, i) => (
+                  <div key={i} className="ml-4">
+                    <p>• branch_id: {c.branch_id}</p>
+                    <p>• value: {c.value} บาท/วัน</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-red-600">❌ ไม่มี config สำหรับสาขานี้</p>
+              )}
+            </div>
+
+            <div className="bg-green-100 p-3 rounded">
+              <p className="font-bold mb-2">Config ระดับ Global:</p>
+              {debugInfo.configs_global.length > 0 ? (
+                debugInfo.configs_global.map((c, i) => (
+                  <div key={i} className="ml-4">
+                    <p>• value: {c.value} บาท/วัน</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-slate-500">ไม่มี global config</p>
+              )}
+            </div>
+
+            <div className="bg-red-100 p-3 rounded">
+              <p className="font-bold mb-2">⚠️ Config ทั้งหมดในระบบ (late_payment_fee_per_day):</p>
+              {debugInfo.all_late_fee_configs.map((c, i) => (
+                <div key={i} className="ml-4 mb-2 border-b pb-1">
+                  <p>• branch_id: {c.branch_id || 'null (global)'}</p>
+                  <p>• value: {c.value} บาท/วัน</p>
+                  <p>• id: {c.id}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Print Styles - ปรับปรุงสำหรับ A4 */}
       <style>{`
         @media print {
@@ -452,6 +539,14 @@ export default function Receipt() {
             ย้อนกลับ
           </Button>
           <div className="flex gap-2">
+            <Button
+              onClick={() => setShowDebug(true)}
+              size="sm"
+              variant="outline"
+              className="gap-2 text-xs border-purple-600 text-purple-600 hover:bg-purple-50"
+            >
+              🐛 Debug ค่าปรับ
+            </Button>
             {receiptData?.receipt_image_url && (
               <a 
                 href={receiptData.receipt_image_url} 
