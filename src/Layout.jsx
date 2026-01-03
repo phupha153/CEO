@@ -597,6 +597,22 @@ export default function Layout({ children, currentPageName }) {
     throwOnError: false,
   });
 
+  // ⭐ ดึงข้อมูลแพ็กเกจของเจ้าของสาขา
+  const { data: branchOwnerStatus } = useQuery({
+    queryKey: ['branchOwnerStatus', selectedBranch?.id],
+    queryFn: async () => {
+      if (!selectedBranch?.id) return null;
+      const response = await base44.functions.invoke('getBranchOwnerStatus', {
+        branch_id: selectedBranch.id
+      });
+      return response.data;
+    },
+    enabled: !!selectedBranch && !!currentUser && isOnline,
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+    throwOnError: false,
+  });
+
 
 
   const getConfigValue = (key, defaultValue = '') => {
@@ -1132,12 +1148,14 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // ⭐ User trial banner
+  // ⭐ User trial banner - แสดงของเจ้าของสาขา
   const renderSubscriptionBanner = () => {
     if (isLoading || configsLoading || !currentUser) return null;
 
-    const planStatus = currentUser.plan_status || 'trial';
-    const trialEndsAt = currentUser.trial_ends_at;
+    // ⭐ ถ้ามีสาขาเลือก ให้ดู status ของเจ้าของสาขา, ถ้าไม่มีให้ดูของตัวเอง
+    const planStatus = branchOwnerStatus?.plan_status || currentUser.plan_status || 'trial';
+    const trialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
+    const isOwner = branchOwnerStatus?.is_owner !== false; // ถ้าไม่มีข้อมูล = ตัวเอง
 
     if (planStatus === 'trial' && trialEndsAt) {
       try {
@@ -1152,7 +1170,9 @@ export default function Layout({ children, currentPageName }) {
               <div className="flex items-center gap-3">
                 <Crown className="w-5 h-5" />
                 <div>
-                  <p className="font-semibold text-sm">🎉 กำลังทดลองใช้งาน</p>
+                  <p className="font-semibold text-sm">
+                    🎉 {isOwner ? 'กำลังทดลองใช้งาน' : `แพ็กเกจของ ${branchOwnerStatus?.owner_name || 'เจ้าของ'}`}
+                  </p>
                   <p className="text-xs opacity-90">เหลืออีก {daysRemaining} วัน</p>
                 </div>
               </div>
@@ -1177,7 +1197,9 @@ export default function Layout({ children, currentPageName }) {
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="w-5 h-5" />
                   <div>
-                    <p className="font-semibold text-sm">⚠️ แพ็กเกจใกล้หมดอายุ</p>
+                    <p className="font-semibold text-sm">
+                      ⚠️ {isOwner ? 'แพ็กเกจใกล้หมดอายุ' : `แพ็กเกจของ ${branchOwnerStatus?.owner_name || 'เจ้าของ'} ใกล้หมด`}
+                    </p>
                     <p className="text-xs opacity-90">เหลืออีก {daysLeft} วัน</p>
                   </div>
                 </div>
