@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Download, Loader2, CheckCircle } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { base44 } from "@/api/base44Client";
 
@@ -144,6 +144,10 @@ export default function PublicReceipt() {
       try {
         console.log('🔍 [PublicReceipt] Fetching for paymentId:', paymentId);
         
+        // ⭐ ดึง configs เพื่อคำนวณค่าปรับ
+        const configsData = await base44.entities.Config.list();
+        setConfigs(configsData);
+        
         const response = await base44.functions.invoke('getPublicInvoice', {
           paymentId
         });
@@ -192,6 +196,10 @@ export default function PublicReceipt() {
   const paymentDate = receiptData.payment_date 
     ? format(parseISO(receiptData.payment_date), 'd MMMM yyyy', { locale: th })
     : format(new Date(), 'd MMMM yyyy', { locale: th });
+
+  // ⭐ คำนวณค่าปรับ
+  const calculatedLateFee = calculateLateFee(receiptData, configs, receiptData.branch_id);
+  const displayLateFee = receiptData.late_fee_amount > 0 ? receiptData.late_fee_amount : calculatedLateFee;
 
   const lineItems = [];
   if (receiptData.rent_amount > 0) {
@@ -266,12 +274,12 @@ export default function PublicReceipt() {
       total: receiptData.other_amount
     });
   }
-  if (receiptData.late_fee_amount && receiptData.late_fee_amount > 0) {
+  if (displayLateFee > 0) {
     lineItems.push({
       name: 'ค่าปรับชำระล่าช้า',
       quantity: 1,
-      price: receiptData.late_fee_amount,
-      total: receiptData.late_fee_amount
+      price: displayLateFee,
+      total: displayLateFee
     });
   }
 
@@ -466,11 +474,11 @@ export default function PublicReceipt() {
               <div className="flex justify-between items-center">
                 <div className="text-sm text-slate-600">
                   <span className="font-medium">ยอดเงินสุทธิ</span>
-                  <span className="ml-2">({numberToThaiText(receiptData.total_amount || 0)})</span>
+                  <span className="ml-2">({numberToThaiText((receiptData.total_amount || 0) + (displayLateFee > receiptData.late_fee_amount ? displayLateFee - receiptData.late_fee_amount : 0))})</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-lg font-bold text-slate-800">
-                    {(receiptData.total_amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                    {((receiptData.total_amount || 0) + (displayLateFee > receiptData.late_fee_amount ? displayLateFee - receiptData.late_fee_amount : 0)).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                   <div className="border-2 border-green-600 rounded px-2.5 py-1 text-center transform rotate-[-3deg]">
                     <p className="text-xs font-bold text-green-700">✓ ชำระแล้ว</p>
