@@ -187,6 +187,19 @@ Deno.serve(async (req) => {
             allTenants = Array.isArray(tenantResults) ? tenantResults : [];
             allRooms = Array.isArray(roomResults) ? roomResults : [];
 
+            // 🛡️ Safety Check: Validate Bank Config
+            const bankName = getConfigValue('bank_name', branch_id, null);
+            const accNum = getConfigValue('bank_account_number', branch_id, null);
+            const accName = getConfigValue('bank_account_name', branch_id, null);
+
+            if (!bankName || !accNum || !accName) {
+                console.error(`❌ Missing bank config for branch ${branch_id} - ABORT`);
+                return Response.json({
+                    success: false,
+                    message: 'ไม่พบข้อมูลบัญชีธนาคาร กรุณาตั้งค่าในแท็บ "ธนาคาร" ก่อน'
+                }, { status: 400 });
+            }
+
             // ⭐ ดึง pending และ overdue ที่ยังไม่ส่ง (bill_sent_date = null)
             const [pendingResults, overdueResults] = await Promise.all([
                 base44.asServiceRole.entities.Payment.filter({ branch_id, status: 'pending' }),
