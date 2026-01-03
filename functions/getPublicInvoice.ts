@@ -35,14 +35,18 @@ Deno.serve(async (req) => {
 
         // ดึงข้อมูล Payment
         console.log('📥 Querying Database...');
-        const paymentResults = await base44.entities.Payment.filter({ id: paymentId });
-        const payment = Array.isArray(paymentResults) ? paymentResults[0] : paymentResults;
+        const allPayments = await base44.entities.Payment.list();
+        console.log(`📊 Total payments in DB: ${allPayments.length}`);
+        
+        const payment = allPayments.find(p => p.id === paymentId);
 
         if (!payment) {
-            console.error('❌ Payment not found');
+            console.error('❌ Payment not found in database');
+            console.error(`   Searched for ID: ${paymentId}`);
+            console.error(`   Sample IDs: ${allPayments.slice(0, 3).map(p => p.id).join(', ')}`);
             return Response.json({ 
                 success: false, 
-                error: 'ไม่พบใบแจ้งหนี้' 
+                error: 'ไม่พบใบแจ้งหนี้ในระบบ กรุณาตรวจสอบลิงก์อีกครั้ง' 
             }, { status: 404 });
         }
 
