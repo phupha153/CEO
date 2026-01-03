@@ -230,18 +230,29 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
                     });
                  }
             }
-            // Send FB
+            // Send FB (แบบ Batch เพื่อหลีกเลี่ยง Rate Limit)
             const fbUsers = recipients.filter(r => r.facebookUserId);
             if (fbUsers.length > 0) {
-                const fbMessages = fbUsers.map(r => ({
-                    to: r.facebookUserId,
-                    message: r.message,
-                    branch_id: branchId
-                }));
-                await Promise.all(fbMessages.map(fb => 
-                    base44.asServiceRole.functions.invoke('sendFacebookMessage', fb)
-                        .catch(e => console.error(`⚠️ FB Error:`, e.message))
-                ));
+                const FB_BATCH_SIZE = 10; // ส่งทีละ 10 คน
+                const FB_DELAY_MS = 500;  // พัก 500ms ระหว่าง batch
+                
+                for (let i = 0; i < fbUsers.length; i += FB_BATCH_SIZE) {
+                    const batch = fbUsers.slice(i, i + FB_BATCH_SIZE);
+                    const fbMessages = batch.map(r => ({
+                        to: r.facebookUserId,
+                        message: r.message,
+                        branch_id: branchId
+                    }));
+                    
+                    await Promise.all(fbMessages.map(fb => 
+                        base44.asServiceRole.functions.invoke('sendFacebookMessage', fb)
+                            .catch(e => console.error(`⚠️ FB Error:`, e.message))
+                    ));
+                    
+                    if (i + FB_BATCH_SIZE < fbUsers.length) {
+                        await delay(FB_DELAY_MS);
+                    }
+                }
             }
 
             // Update DB (แบบ Batch เพื่อไม่ให้ database overwhelm)
