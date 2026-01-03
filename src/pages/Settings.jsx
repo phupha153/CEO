@@ -3231,9 +3231,7 @@ export default function Settings() {
                                   คัดลอก
                                 </Button>
                               </div>
-                              <p className="text-xs text-purple-700">
-                                💡 แต่ละสาขาต้องใช้ Webhook URL คนละอัน เมื่อสร้างสาขาใหม่ ให้นำ URL ใหม่ไปตั้งค่าใน LINE OA ของสาขานั้น
-                              </p>
+
                             </div>
                           </div>
 
