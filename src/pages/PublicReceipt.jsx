@@ -151,10 +151,6 @@ export default function PublicReceipt() {
       try {
         console.log('🔍 [PublicReceipt] Fetching for paymentId:', paymentId);
         
-        // ⭐ ดึง configs เพื่อคำนวณค่าปรับ
-        const configsData = await base44.entities.Config.list();
-        setConfigs(configsData);
-        
         const response = await base44.functions.invoke('getPublicInvoice', {
           paymentId
         });
@@ -163,6 +159,8 @@ export default function PublicReceipt() {
         
         if (response.data.success) {
           setReceiptData(response.data.invoice);
+          // ⭐ ดึง configs จาก response
+          setConfigs(response.data.invoice?.configs || []);
         } else {
           setError(response.data.error || 'ไม่พบข้อมูลใบเสร็จ');
         }

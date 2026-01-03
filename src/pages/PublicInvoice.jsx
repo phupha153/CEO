@@ -155,10 +155,6 @@ export default function PublicInvoice() {
       try {
         console.log('🔍 [PublicInvoice] Fetching for paymentId:', paymentId);
         
-        // ⭐ ดึง configs เพื่อคำนวณค่าปรับ
-        const configsData = await base44.entities.Config.list();
-        setConfigs(configsData);
-        
         // ⭐ ใช้ SDK แทน fetch เพื่อให้จัดการ path อัตโนมัติทั้ง production และ preview
         const response = await base44.functions.invoke('getPublicInvoice', {
           paymentId,
@@ -170,6 +166,8 @@ export default function PublicInvoice() {
         if (response.data.success) {
           console.log('🔍 [PublicInvoice] Invoice Data:', response.data.invoice);
           setInvoiceData(response.data.invoice);
+          // ⭐ ดึง configs จาก response
+          setConfigs(response.data.invoice?.configs || []);
         } else {
           setError(response.data.error || 'ไม่พบข้อมูลใบแจ้งหนี้');
         }

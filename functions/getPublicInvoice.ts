@@ -112,6 +112,13 @@ Deno.serve(async (req) => {
             contact_phone: getConfigValue('contact_phone')
         };
 
+        // ⭐ ส่ง configs กลับไปด้วยเพื่อคำนวณค่าปรับที่ frontend
+        const relevantConfigs = configs.filter(c => 
+            c.key === 'late_payment_fee_per_day' || 
+            c.key === 'late_fee_tiers_enabled' || 
+            c.key === 'late_fee_tiers'
+        );
+
         // ⭐ สร้าง invoice object
         const invoiceObject = {
             id: payment.id,
@@ -165,7 +172,8 @@ Deno.serve(async (req) => {
                 company_phone: getConfigValue('company_phone') || '',
                 company_address: getConfigValue('company_address') || '',
                 account_name: configData.bank_account_name || ''
-            }
+            },
+            configs: relevantConfigs  // ⭐ ส่ง configs กลับไปด้วย
         };
 
         // ⭐ DEBUG LOG
