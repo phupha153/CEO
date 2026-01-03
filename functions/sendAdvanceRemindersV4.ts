@@ -213,19 +213,24 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
                 ));
             }
 
-            // Update DB
+            // Update DB (แบบ Batch เพื่อไม่ให้ database overwhelm)
             const nowIso = new Date().toISOString();
-            await Promise.all(recipients.map(r => 
-                base44.asServiceRole.entities.Payment.update(r.metadata.paymentId, { 
-                    advance_reminder_sent_date: nowIso,
-                    bill_sent_date: nowIso
-                }).catch(e => console.error(e))
-            ));
+            const UPDATE_BATCH_SIZE = 20;
+            for (let i = 0; i < recipients.length; i += UPDATE_BATCH_SIZE) {
+                const batch = recipients.slice(i, i + UPDATE_BATCH_SIZE);
+                await Promise.all(batch.map(r => 
+                    base44.asServiceRole.entities.Payment.update(r.metadata.paymentId, { 
+                        advance_reminder_sent_date: nowIso,
+                        bill_sent_date: nowIso
+                    }).catch(e => console.error(`⚠️ Update Error:`, e.message))
+                ));
+                if (i + UPDATE_BATCH_SIZE < recipients.length) await delay(100); // พักระหว่าง batch
+            }
             
             branchSent += recipients.length;
         }
         offset += 50;
-        await delay(50);
+        await delay(100); // ⬆️ เพิ่มจาก 50ms → 100ms (ลด database pressure)
     }
     return branchSent;
 }
