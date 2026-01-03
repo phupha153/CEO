@@ -4,7 +4,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Download, Loader2, CheckCircle, RefreshCw, Building2, Users, ArrowLeft } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 
 // ฟังก์ชันคำนวณค่าปรับ
