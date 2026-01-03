@@ -3231,11 +3231,10 @@ export default function Settings() {
                                   คัดลอก
                                 </Button>
                               </div>
+                              </div>
+                              </div>
 
-                            </div>
-                          </div>
-
-                          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                             <h4 className="font-semibold text-green-900 mb-2">วิธีตั้งค่า LINE Official Account:</h4>
                             <ol className="text-sm text-green-700 space-y-2 list-decimal ml-5">
                               <li>ไปที่ <a href="https://developers.line.biz/console/" target="_blank" className="underline font-semibold">LINE Developers Console</a></li>
