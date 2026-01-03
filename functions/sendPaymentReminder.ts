@@ -433,18 +433,20 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // ⭐ สร้างลิงก์ Public Invoice/Receipt (เหมือน f12)
-            const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://preview-sandbox--935de36c36132b11882a8b2b670b1e52.base44.app';
+            // ⭐ สร้างลิงก์ Public Invoice/Receipt
+            // ดึง URL จาก Config (ถ้าไม่มีถึงใช้ env)
+            const frontendUrl = getConfigValue('frontend_url', branchId) || 
+                               Deno.env.get('FRONTEND_URL') || 
+                               'https://preview--xn--12cl3e0a3aco3ae.base44.app';
+            
             let documentLink = '';
             
             if (payment.status === 'paid') {
-                // ถ้าชำระแล้ว = ส่งลิงก์ใบเสร็จ
                 documentLink = `${frontendUrl}/publicreceipt?id=${payment.id}`;
-                console.log(`📄 Generated receipt link for payment ${payment.id}: ${documentLink}`);
+                console.log(`📄 Receipt link: ${documentLink}`);
             } else {
-                // ถ้ายังไม่ชำระ = ส่งลิงก์ใบแจ้งหนี้
                 documentLink = `${frontendUrl}/publicinvoice?id=${payment.id}`;
-                console.log(`📄 Generated invoice link for payment ${payment.id}: ${documentLink}`);
+                console.log(`📄 Invoice link: ${documentLink}`);
             }
 
             message += `\n\n📄 ดูเอกสาร: ${documentLink}`;
