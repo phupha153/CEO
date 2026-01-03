@@ -167,14 +167,41 @@ export default function BranchSelection() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // ⭐ เช็คจำนวนสาขาที่ user เป็นเจ้าของ (owner_id = email)
+  // ⭐ ดึงข้อมูล User ของเจ้าของสาขาแต่ละคน
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ['allBranchOwners'],
+    queryFn: async () => {
+      const response = await base44.entities.User.list();
+      return response;
+    },
+    enabled: !!currentUser && branches.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // ⭐ หาข้อมูลเจ้าของสาขาแต่ละสาขา
+  const getBranchOwnerInfo = (branch) => {
+    const owner = allUsers.find(u => u.email === branch.owner_id);
+    if (!owner) return { planStatus: 'unknown', ownedCount: 0, maxAllowed: 0 };
+    
+    const ownerBranches = branches.filter(b => b.owner_id === owner.email);
+    const planStatus = owner.plan_status || 'trial';
+    const maxAllowed = planStatus === 'trial' ? 1 : 999;
+    
+    return {
+      planStatus,
+      ownedCount: ownerBranches.length,
+      maxAllowed,
+      isOverLimit: ownerBranches.length > maxAllowed,
+      ownerName: owner.full_name || owner.email
+    };
+  };
+
+  // ⭐ เช็คว่า currentUser สามารถสร้างสาขาใหม่ได้ไหม (เป็นของตัวเอง)
   const userOwnedBranches = branches.filter(b => b.owner_id === currentUser?.email);
   const isTrialMode = currentUser?.plan_status === 'trial';
-  
-  // Trial = 1 สาขา, Active = unlimited
   const maxAllowedBranches = isTrialMode ? 1 : 999;
-  
-  const canAddMoreBranches = userRole === 'developer' || userOwnedBranches.length < maxAllowedBranches;
+  const canAddMoreBranches = (userRole === 'developer' || userRole === 'owner') && 
+                             (userRole === 'developer' || userOwnedBranches.length < maxAllowedBranches);
 
   // ✅ เช็คว่าไม่มีสาขาเลย หรือไม่มีสิทธิ์ในสาขาใดเลย
   const hasNoBranches = branches.length === 0;
