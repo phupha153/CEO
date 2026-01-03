@@ -1442,7 +1442,7 @@ export default function Settings() {
         return { branchId, branchName, tokenSaved: true };
       });
       
-      const savedResults = await Promise.all(savePromises)
+      const savedResults = await Promise.all(savePromises);
       
       addDebugLog('✅ บันทึกเสร็จทั้งหมด', 'success');
       savedResults.forEach((result, idx) => {
