@@ -55,10 +55,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!entity) {
-      return Response.json({ error: 'Missing entity parameter' }, { status: 400 });
-    }
-
     // ตรวจสอบสิทธิ์เข้าถึงสาขา
     const accessibleBranches = user.accessible_branches;
 
