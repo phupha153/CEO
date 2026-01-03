@@ -1725,12 +1725,10 @@ export default function Settings() {
                 <Button variant={activeTab === 'bill_notifications' ? 'default' : 'ghost'} onClick={() => setActiveTab('bill_notifications')} className={activeTab === 'bill_notifications' ? 'bg-blue-600' : ''}>บิล</Button>
                 <Button variant={activeTab === 'notifications' ? 'default' : 'ghost'} onClick={() => setActiveTab('notifications')} className={activeTab === 'notifications' ? 'bg-blue-600' : ''}>การแจ้งเตือน</Button>
                 <Button variant={activeTab === 'bank' ? 'default' : 'ghost'} onClick={() => setActiveTab('bank')} className={activeTab === 'bank' ? 'bg-blue-600' : ''}>ธนาคาร</Button>
-                {userRole === 'developer' && (
-                  <Button variant={activeTab === 'messaging' ? 'default' : 'ghost'} onClick={() => setActiveTab('messaging')} className={activeTab === 'messaging' ? 'bg-blue-600' : ''}>
-                    <MessageSquare className="w-4 h-4 mr-1" />
-                    ช่องทางสื่อสาร
-                  </Button>
-                )}
+                <Button variant={activeTab === 'messaging' ? 'default' : 'ghost'} onClick={() => setActiveTab('messaging')} className={activeTab === 'messaging' ? 'bg-blue-600' : ''}>
+                  <MessageSquare className="w-4 h-4 mr-1" />
+                  ช่องทางสื่อสาร
+                </Button>
                 <Button variant={activeTab === 'signature' ? 'default' : 'ghost'} onClick={() => setActiveTab('signature')} className={activeTab === 'signature' ? 'bg-blue-600' : ''}>ลายเซ็น</Button>
                 {canManagePermissions && (
                   <Button variant={activeTab === 'permissions' ? 'default' : 'ghost'} onClick={() => setActiveTab('permissions')} className={activeTab === 'permissions' ? 'bg-blue-600' : ''}>สิทธิ์</Button>
@@ -3141,7 +3139,7 @@ export default function Settings() {
                 </Card>
               )}
 
-              {userRole === 'developer' && activeTab === 'messaging' && (
+              {activeTab === 'messaging' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -3151,15 +3149,17 @@ export default function Settings() {
                   </CardHeader>
                   <CardContent>
                     <Tabs defaultValue="line" className="w-full">
-                      <TabsList className="grid w-full grid-cols-2 mb-6">
+                      <TabsList className={`grid w-full ${userRole === 'developer' ? 'grid-cols-2' : 'grid-cols-1'} mb-6`}>
                         <TabsTrigger value="line" className="flex items-center gap-2">
                           <MessageSquare className="w-4 h-4" />
                           LINE
                         </TabsTrigger>
-                        <TabsTrigger value="facebook" className="flex items-center gap-2">
-                          <Globe className="w-4 h-4" />
-                          Facebook
-                        </TabsTrigger>
+                        {userRole === 'developer' && (
+                          <TabsTrigger value="facebook" className="flex items-center gap-2">
+                            <Globe className="w-4 h-4" />
+                            Facebook
+                          </TabsTrigger>
+                        )}
                       </TabsList>
 
                       <TabsContent value="line" className="space-y-6">
@@ -3269,7 +3269,8 @@ export default function Settings() {
                         </form>
                       </TabsContent>
 
-                      <TabsContent value="facebook" className="space-y-6">
+                      {userRole === 'developer' && (
+                        <TabsContent value="facebook" className="space-y-6">
                         <BranchToggle
                           applyToAllBranches={applyToAllBranches_facebook}
                           setApplyToAllBranches={setApplyToAllBranches_facebook}
@@ -3510,6 +3511,7 @@ export default function Settings() {
                           </>
                         )}
                         </TabsContent>
+                      )}
                     </Tabs>
                   </CardContent>
                 </Card>
@@ -3693,9 +3695,11 @@ export default function Settings() {
                         💡 ตราประทับช่วยเพิ่มความน่าเชื่อถือให้กับใบเสร็จ (ไม่บังคับ)
                       </p>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+
+                    {/* คำแนะนำ */}
+                    </CardContent>
+                    </Card>
+                    )}
 
                     {canManagePermissions && activeTab === 'permissions' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
