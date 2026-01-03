@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
         // ⭐ LOG: ดูข้อมูลดิบจาก Database ว่ามีค่าปรับหรือไม่
         console.log('🔍 [DEBUG] Raw DB Data:');
         console.log(`   - ID: ${payment.id}`);
+        console.log(`   - Branch ID: ${payment.branch_id} (Type: ${typeof payment.branch_id})`);
         console.log(`   - Status: ${payment.status}`);
         console.log(`   - Total Amount: ${payment.total_amount}`);
         console.log(`   - Late Fee Amount: ${payment.late_fee_amount} (Type: ${typeof payment.late_fee_amount})`);
@@ -212,7 +213,9 @@ Deno.serve(async (req) => {
 
         // ⭐ LOG: ตรวจสอบ object ที่กำลังจะส่งกลับ
         console.log('📤 [DEBUG] Sending Invoice Object:');
+        console.log(`   - Branch ID in Object: ${invoiceObject.branch_id} (Type: ${typeof invoiceObject.branch_id})`);
         console.log(`   - Late Fee in Object: ${invoiceObject.late_fee_amount}`);
+        console.log(`   - Keys in Object: ${Object.keys(invoiceObject).join(', ')}`);
 
         return Response.json({
             success: true,
