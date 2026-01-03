@@ -3148,9 +3148,9 @@ export default function Settings() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Tabs defaultValue="line" className="w-full">
-                      {userRole === 'developer' && (
-                        <TabsList className={`grid w-full grid-cols-2 mb-6`}>
+                    {userRole === 'developer' && (
+                      <Tabs defaultValue="line" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2 mb-6">
                           <TabsTrigger value="line" className="flex items-center gap-2">
                             <MessageSquare className="w-4 h-4" />
                             LINE
@@ -3160,31 +3160,29 @@ export default function Settings() {
                             Facebook
                           </TabsTrigger>
                         </TabsList>
-                      )}
 
-                      {userRole === 'developer' && (
                         <TabsContent value="line" className="space-y-6">
-                        <BranchToggle
-                          applyToAllBranches={applyToAllBranches_line}
-                          setApplyToAllBranches={setApplyToAllBranches_line}
-                          selectedBranch={selectedBranch}
-                          canSetGlobalConfig={canSetGlobalConfig}
-                        />
-
-                        {/* LINE Logo Banner */}
-                        <div className="flex items-center gap-3 p-4 bg-[#00B900] rounded-xl">
-                          <img 
-                            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/2d3db1611_image.png" 
-                            alt="LINE Logo" 
-                            className="w-12 h-12 flex-shrink-0"
+                          <BranchToggle
+                            applyToAllBranches={applyToAllBranches_line}
+                            setApplyToAllBranches={setApplyToAllBranches_line}
+                            selectedBranch={selectedBranch}
+                            canSetGlobalConfig={canSetGlobalConfig}
                           />
-                          <div className="flex-1">
-                            <h3 className="text-white font-bold text-lg">LINE Official Account</h3>
-                            <p className="text-white/90 text-sm">เชื่อมต่อ LINE เพื่อส่งข้อความอัตโนมัติ</p>
-                          </div>
-                        </div>
 
-                        <form onSubmit={handleLineSettingsSubmit} className="space-y-6">
+                          {/* LINE Logo Banner */}
+                          <div className="flex items-center gap-3 p-4 bg-[#00B900] rounded-xl">
+                            <img 
+                              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/2d3db1611_image.png" 
+                              alt="LINE Logo" 
+                              className="w-12 h-12 flex-shrink-0"
+                            />
+                            <div className="flex-1">
+                              <h3 className="text-white font-bold text-lg">LINE Official Account</h3>
+                              <p className="text-white/90 text-sm">เชื่อมต่อ LINE เพื่อส่งข้อความอัตโนมัติ</p>
+                            </div>
+                          </div>
+
+                          <form onSubmit={handleLineSettingsSubmit} className="space-y-6">
                           <div className="space-y-4">
                             <div>
                               <Label>LINE Channel Access Token *</Label>
@@ -3266,12 +3264,10 @@ export default function Settings() {
                                 บันทึกการตั้งค่า LINE
                               </>
                             )}
-                          </Button>
-                        </form>
+                            </Button>
+                          </form>
                         </TabsContent>
-                      )}
 
-                      {userRole === 'developer' && (
                         <TabsContent value="facebook" className="space-y-6">
                         <BranchToggle
                           applyToAllBranches={applyToAllBranches_facebook}
@@ -3511,15 +3507,13 @@ export default function Settings() {
                               </Button>
                             </form>
                           </>
-                        )}
+                          )}
                         </TabsContent>
-                      )}
-                    </Tabs>
+                      </Tabs>
+                    )}
                   </CardContent>
                 </Card>
               )}
-            </div>
-          )}
 
               {activeTab === 'signature' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
