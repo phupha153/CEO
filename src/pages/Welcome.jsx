@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import HeroSection from "../components/welcome/HeroSection";
 import HowItWorksSection from "../components/welcome/HowItWorksSection";
 import FeaturesShowcase from "../components/welcome/FeaturesShowcase";
@@ -14,6 +19,9 @@ export default function Welcome() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
   const [buildingName, setBuildingName] = useState('หลังหอพัก');
   const [buildingLogo, setBuildingLogo] = useState('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/41d4e63e1_DC4395DB-4B27-4859-85B3-4F2948654F9E.png');
+  const [showTrialForm, setShowTrialForm] = useState(false);
+  const [trialFormData, setTrialFormData] = useState({ rooms: '', email: '', phone: '', name: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     base44.auth.isAuthenticated()
@@ -35,6 +43,28 @@ export default function Welcome() {
       navigate(createPageUrl('Dashboard'));
     } else {
       base44.auth.redirectToLogin(window.location.origin);
+    }
+  };
+
+  const handleTrialRequest = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      await base44.functions.invoke('sendTrialRequest', {
+        name: trialFormData.name,
+        email: trialFormData.email,
+        phone: trialFormData.phone,
+        rooms: trialFormData.rooms
+      });
+
+      toast.success('ส่งคำขอทดลองใช้สำเร็จ! ทีมงานจะติดต่อกลับเร็วๆ นี้');
+      setShowTrialForm(false);
+      setTrialFormData({ rooms: '', email: '', phone: '', name: '' });
+    } catch (error) {
+      toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -90,8 +120,17 @@ export default function Welcome() {
               onClick={handleCta}
               className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6"
             >
-              {isAuthenticated ? 'เข้าสู่ระบบ' : 'ทดลองใช้ฟรี'}
+              เข้าสู่ระบบ
             </Button>
+            {!isAuthenticated && (
+              <Button
+                onClick={() => setShowTrialForm(true)}
+                variant="outline"
+                className="border-blue-600 text-blue-600 hover:bg-blue-50 rounded-lg px-6"
+              >
+                ขอทดลองใช้
+              </Button>
+            )}
           </div>
         </div>
       </nav>
@@ -100,6 +139,7 @@ export default function Welcome() {
       <HeroSection 
         isAuthenticated={isAuthenticated}
         onCtaClick={handleCta}
+        onTrialClick={() => setShowTrialForm(true)}
         buildingLogo={buildingLogo}
       />
 
@@ -144,11 +184,104 @@ export default function Welcome() {
               onClick={handleCta}
               className="bg-white text-blue-600 hover:bg-blue-50 shadow-2xl px-12 py-7 text-lg rounded-xl font-bold"
             >
-              {isAuthenticated ? 'ไปที่แดชบอร์ด' : 'เริ่มทดลองใช้งานฟรี'}
+              เข้าสู่ระบบ
             </Button>
+            {!isAuthenticated && (
+              <Button
+                size="lg"
+                onClick={() => setShowTrialForm(true)}
+                variant="outline"
+                className="bg-transparent border-2 border-white text-white hover:bg-white/10 shadow-2xl px-12 py-7 text-lg rounded-xl font-bold"
+              >
+                ขอทดลองใช้
+              </Button>
+            )}
           </div>
         </motion.div>
       </section>
+
+      {/* Trial Request Dialog */}
+      <Dialog open={showTrialForm} onOpenChange={setShowTrialForm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-slate-900">ขอทดลองใช้งาน</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleTrialRequest} className="space-y-4 mt-4">
+            <div>
+              <Label htmlFor="name">ชื่อ-นามสกุล *</Label>
+              <Input
+                id="name"
+                value={trialFormData.name}
+                onChange={(e) => setTrialFormData({ ...trialFormData, name: e.target.value })}
+                required
+                placeholder="คุณสมชาย ใจดี"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="email">อีเมล *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={trialFormData.email}
+                onChange={(e) => setTrialFormData({ ...trialFormData, email: e.target.value })}
+                required
+                placeholder="example@email.com"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">เบอร์โทรศัพท์ *</Label>
+              <Input
+                id="phone"
+                value={trialFormData.phone}
+                onChange={(e) => setTrialFormData({ ...trialFormData, phone: e.target.value })}
+                required
+                placeholder="081-234-5678"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="rooms">จำนวนห้องพัก *</Label>
+              <Input
+                id="rooms"
+                type="number"
+                min="1"
+                value={trialFormData.rooms}
+                onChange={(e) => setTrialFormData({ ...trialFormData, rooms: e.target.value })}
+                required
+                placeholder="เช่น 50"
+                className="mt-1"
+              />
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowTrialForm(false)}
+                disabled={isSubmitting}
+                className="flex-1"
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    กำลังส่ง...
+                  </>
+                ) : (
+                  'ส่งคำขอ'
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer */}
       <footer className="py-12 bg-slate-900">

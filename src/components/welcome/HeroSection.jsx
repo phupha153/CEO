@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Users, TrendingUp, Home, Star } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function HeroSection({ isAuthenticated, onCtaClick, buildingLogo }) {
+export default function HeroSection({ isAuthenticated, onCtaClick, buildingLogo, onTrialClick }) {
   const stats = [
     { icon: Users, label: "ผู้ใช้งาน", value: "500+", color: "from-blue-500 to-cyan-500" },
     { icon: TrendingUp, label: "เพิ่มประสิทธิภาพ", value: "80%", color: "from-green-500 to-emerald-500" },
@@ -43,14 +43,26 @@ export default function HeroSection({ isAuthenticated, onCtaClick, buildingLogo 
             ตั้งแต่การสร้างบิล ส่งแจ้งเตือน ไปจนถึงรายงานทางการเงิน
           </p>
           
-          <Button
-            size="lg"
-            onClick={onCtaClick}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-7 text-lg rounded-xl shadow-xl hover:shadow-2xl transition-all"
-          >
-            {isAuthenticated ? 'ไปที่แดชบอร์ด' : 'เริ่มทดลองใช้งาน'}
-            <ArrowRight className="w-5 h-5 ml-2" />
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              size="lg"
+              onClick={onCtaClick}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-7 text-lg rounded-xl shadow-xl hover:shadow-2xl transition-all"
+            >
+              เข้าสู่ระบบ
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+            {!isAuthenticated && (
+              <Button
+                size="lg"
+                onClick={onTrialClick}
+                variant="outline"
+                className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 px-10 py-7 text-lg rounded-xl shadow-xl hover:shadow-2xl transition-all"
+              >
+                ขอทดลองใช้
+              </Button>
+            )}
+          </div>
         </motion.div>
 
         {/* Stats Cards */}
