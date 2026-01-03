@@ -64,20 +64,23 @@ export default function BranchSelection() {
     throwOnError: false,
   });
 
+  // 🔒 รอให้ CRM check เสร็จก่อนถึงจะโหลดข้อมูล
+  const canLoadData = !crmAccessLoading && crmAccess && crmAccess.hasAccess !== false;
+
   const { data: branches = [], isLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
+    enabled: canLoadData && !!currentUser,
     retry: 2,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: true,
   });
 
-
-
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
+    enabled: canLoadData && !!currentUser,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -92,6 +95,7 @@ export default function BranchSelection() {
       });
       return response.data.data;
     },
+    enabled: canLoadData && !!currentUser,
     retry: 2,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
@@ -353,8 +357,8 @@ export default function BranchSelection() {
     );
   }
 
-  // ⭐ เช็คสิทธิ์ CRM ก่อนแสดงหน้า (ถ้า error หรือไม่มีสิทธิ์ = บล็อก)
-  if (currentUser && (crmAccessError || !crmAccess || crmAccess.hasAccess === false)) {
+  // ⭐ เช็คสิทธิ์ CRM ก่อนแสดงหน้า (ถ้าไม่มีสิทธิ์ชัดเจน = บล็อก, แต่ถ้า timeout/error = อนุญาต)
+  if (currentUser && crmAccess && crmAccess.hasAccess === false && !crmAccess.timeout && !crmAccess.error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-50 overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
