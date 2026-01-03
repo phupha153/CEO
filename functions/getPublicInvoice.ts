@@ -72,19 +72,19 @@ Deno.serve(async (req) => {
 
         const actualBranchId = payment.branch_id;
 
-        // ดึงข้อมูลที่เกี่ยวข้อง - ดึงเฉพาะสาขาเพื่อความแม่นยำ
+        // ดึงข้อมูลที่เกี่ยวข้อง - ดึงแบบ targeted query
         console.log(`🔍 Looking for room_id: ${payment.room_id}, tenant_id: ${payment.tenant_id}, branch_id: ${actualBranchId}`);
         
-        const [allTenants, allRooms, allBranches, configs] = await Promise.all([
-            base44.entities.Tenant.filter({ branch_id: actualBranchId }, '-created_date', 5000),
-            base44.entities.Room.filter({ branch_id: actualBranchId }, '-created_date', 5000),
-            base44.entities.Branch.list(),
+        const [tenantResults, roomResults, branchResults, configs] = await Promise.all([
+            payment.tenant_id ? base44.entities.Tenant.filter({ id: payment.tenant_id }) : Promise.resolve([]),
+            payment.room_id ? base44.entities.Room.filter({ id: payment.room_id }) : Promise.resolve([]),
+            actualBranchId ? base44.entities.Branch.filter({ id: actualBranchId }) : Promise.resolve([]),
             base44.entities.Config.list()
         ]);
 
-        const tenant = payment.tenant_id ? allTenants.find(t => t.id === payment.tenant_id) : null;
-        const room = payment.room_id ? allRooms.find(r => r.id === payment.room_id) : null;
-        const branch = actualBranchId ? allBranches.find(b => b.id === actualBranchId) : null;
+        const tenant = Array.isArray(tenantResults) ? tenantResults[0] : tenantResults;
+        const room = Array.isArray(roomResults) ? roomResults[0] : roomResults;
+        const branch = Array.isArray(branchResults) ? branchResults[0] : branchResults;
 
         console.log(`📋 Found: room=${room?.room_number || 'NOT FOUND'}, tenant=${tenant?.full_name || 'NOT FOUND'}, branch=${branch?.branch_name || 'NOT FOUND'}`);
         
