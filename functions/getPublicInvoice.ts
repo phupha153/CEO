@@ -155,6 +155,7 @@ Deno.serve(async (req) => {
         // ⭐ สร้าง invoice object สำหรับ generateInvoiceImage
         const invoiceObject = {
             id: payment.id,
+            branch_id: payment.branch_id,
             status: payment.status,
             due_date: payment.due_date,
             payment_date: payment.payment_date,
