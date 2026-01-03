@@ -440,11 +440,11 @@ Deno.serve(async (req) => {
             
             if (payment.status === 'paid') {
                 // ถ้าชำระแล้ว = ส่งลิงก์ใบเสร็จ
-                documentLink = `${frontendUrl}/#/publicreceipt?id=${payment.id}`;
+                documentLink = `${frontendUrl}/#/PublicReceipt?id=${payment.id}`;
                 console.log(`📄 Generated receipt link for payment ${payment.id}: ${documentLink}`);
             } else {
                 // ถ้ายังไม่ชำระ = ส่งลิงก์ใบแจ้งหนี้
-                documentLink = `${frontendUrl}/#/publicinvoice?id=${payment.id}`;
+                documentLink = `${frontendUrl}/#/PublicInvoice?id=${payment.id}`;
                 console.log(`📄 Generated invoice link for payment ${payment.id}: ${documentLink}`);
             }
 
