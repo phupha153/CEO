@@ -741,7 +741,7 @@ Deno.serve(async (req) => {
             const shouldAutoProcess = getConfigValue('auto_process_invoice_queue_after_generation', 'false', targetBranchId) === 'true';
 
             if (shouldAutoProcess && billsToSend.length <= 30) {
-                console.log(`🚀 Auto-processing invoice queue...`);
+                console.log(`🚀 Auto-processing...`);
 
                 try {
                     const queueResult = await base44.asServiceRole.functions.invoke('processInvoiceImageQueue', {
