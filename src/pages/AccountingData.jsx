@@ -722,6 +722,7 @@ export default function AccountingData() {
           'ค่าน้ำ': payment.water_amount || 0,
           'ค่าอินเทอร์เน็ต': payment.internet_amount || 0,
           'อื่นๆ': payment.other_amount || 0,
+          'ค่าปรับ': payment.late_fee_amount || 0,
           'รวม': payment.total_amount || 0,
           'วิธีชำระ': payment.payment_method === 'cash' ? 'เงินสด' : payment.payment_method === 'transfer' ? 'โอนเงิน' : 'QR Code'
         };
@@ -770,6 +771,7 @@ export default function AccountingData() {
           'ค่าน้ำ': payment.water_amount || 0,
           'ค่าอินเทอร์เน็ต': payment.internet_amount || 0,
           'อื่นๆ': payment.other_amount || 0,
+          'ค่าปรับ': payment.late_fee_amount || 0,
           'รวม': payment.total_amount || 0,
           'วิธีชำระ': payment.payment_method === 'cash' ? 'เงินสด' : payment.payment_method === 'transfer' ? 'โอนเงิน' : 'QR Code'
         };
