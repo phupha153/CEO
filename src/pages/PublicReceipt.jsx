@@ -139,6 +139,7 @@ export default function PublicReceipt() {
   const [receiptData, setReceiptData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [configs, setConfigs] = useState([]);
 
   useEffect(() => {
     if (!paymentId) {
