@@ -3817,7 +3817,10 @@ Return JSON.`;
                                          {roomPayment && (
                                            <>
                                              <p className="text-xs opacity-90">
-                                               {(roomPayment.total_amount || 0).toLocaleString()}฿
+                                               {(() => {
+                                                 const lateFee = (roomPayment.late_fee_amount && roomPayment.late_fee_amount > 0) ? 0 : calculateLateFee(roomPayment);
+                                                 return ((roomPayment.total_amount || 0) + lateFee).toLocaleString();
+                                               })()}฿
                                              </p>
                                              <p className="text-xs font-medium mt-0.5">{statusLabel}</p>
                                            </>
