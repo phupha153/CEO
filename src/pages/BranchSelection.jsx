@@ -356,25 +356,12 @@ export default function BranchSelection() {
 
 
 
-  if (userLoading || isLoading) {
+  if (userLoading || isLoading || crmAccessLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-purple-100 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600 text-lg">กำลังโหลดข้อมูลผู้ใช้...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // 🔒 BLOCK UI จนกว่า CRM จะตอบ (ไม่ให้เข้าก่อน)
-  if (crmAccessLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-purple-100 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600 text-lg font-semibold">🔒 กำลังตรวจสอบสิทธิ์...</p>
-          <p className="text-slate-500 text-sm mt-2">กรุณารอสักครู่</p>
+          <p className="text-slate-600 text-lg">กำลังโหลด...</p>
         </div>
       </div>
     );
