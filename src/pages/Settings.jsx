@@ -3700,11 +3700,11 @@ export default function Settings() {
                     </div>
 
                     {/* คำแนะนำ */}
-                    </CardContent>
-                    </Card>
-                    )}
+                  </CardContent>
+                </Card>
+              )}
 
-                    {canManagePermissions && activeTab === 'permissions' && (
+              {canManagePermissions && activeTab === 'permissions' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
                   <CardHeader>
                     <div className="flex items-center justify-between">
