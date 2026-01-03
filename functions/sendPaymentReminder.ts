@@ -433,7 +433,7 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // ⭐ สร้างลิงก์ Public Invoice/Receipt (ไม่ใช้รูปภาพอีกต่อไป)
+            // ⭐ สร้างลิงก์ Public Invoice/Receipt (ระบบใหม่ - ใช้หน้าเว็บแทนรูป)
             const origin = new URL(req.url).origin;
             let publicLink = '';
             
@@ -449,6 +449,68 @@ Deno.serve(async (req) => {
 
             // เพิ่มลิงก์ลงในข้อความ
             message += `\n\n📄 ดูใบแจ้งหนี้: ${publicLink}`;
+
+            /* ========================================
+             * 🔄 LEGACY: Image-Based Invoice System
+             * ========================================
+             * เก็บไว้เผื่อต้องการกลับไปใช้ระบบสร้างรูปภาพ
+             * ปิดการใช้งานเพื่อประหยัดค่า API และเพิ่มความเร็ว
+             * 
+            // จัดการรูป invoice และ hash
+            let invoiceImageUrl = payment.invoice_image_url || null;
+            const currentHash = generatePaymentHash(payment);
+            const savedHash = payment.invoice_data_hash || '';
+
+            let needsRegenerate = false;
+            let needsHashUpdate = false;
+
+            if (!invoiceImageUrl) {
+                needsRegenerate = true;
+            } else if (!savedHash) {
+                needsHashUpdate = true;
+                console.log(`📝 Payment ${payment.id}: Has image but no hash - will save hash without regenerating`);
+            } else if (currentHash !== savedHash) {
+                needsRegenerate = true;
+            }
+
+            if (needsRegenerate) {
+                const reason = !invoiceImageUrl ? 'ยังไม่มีรูป' : 'บิลถูกแก้ไข (hash mismatch)';
+                console.log(`🖼️ Generating invoice image for payment ${payment.id} (${reason})...`);
+                
+                try {
+                    const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
+                        paymentId: payment.id,
+                        forceRegenerate: true
+                    });
+                    if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
+                        invoiceImageUrl = invoiceResult.data.invoice_image_url;
+                        console.log(`✅ Invoice image generated: ${invoiceImageUrl}`);
+                    } else {
+                        console.error(`❌ Failed to generate invoice image: ${invoiceResult.data?.error || 'Unknown error'}`);
+                        invoiceImageUrl = null;
+                    }
+                } catch (invoiceError) {
+                    console.error(`❌ Error generating invoice image:`, invoiceError.message);
+                    console.error(`   Continue sending message without image...`);
+                    invoiceImageUrl = null;
+                }
+            } else if (needsHashUpdate) {
+                try {
+                    await base44.asServiceRole.entities.Payment.update(payment.id, {
+                        invoice_data_hash: currentHash
+                    });
+                    console.log(`✅ Payment ${payment.id}: Hash saved (${currentHash})`);
+                } catch (hashError) {
+                    console.error(`⚠️ Failed to save hash:`, hashError.message);
+                }
+            } else {
+                console.log(`✅ Using existing invoice image for payment ${payment.id} (hash matched)`);
+            }
+
+            if (invoiceImageUrl) {
+                message += `\n\n📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}`;
+            }
+            * ======================================== */
 
             if (template !== 'due_date' && template !== 'overdue') {
                 message += `\n\n📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
