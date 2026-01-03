@@ -7,9 +7,7 @@ import { Download, Loader2, AlertCircle, Clock, CheckCircle } from "lucide-react
 import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { base44 } from "@/api/base44Client";
-
-// ⭐ Note: ใช้ค่าปรับจาก backend (late_fee_amount) แทนการคำนวณเอง
-// Backend คำนวณและบันทึกไว้ใน total_amount แล้ว
+import { calculateLateFee } from "../functions/utils/calculateLateFeeClient";
 
 // ฟังก์ชันแปลงตัวเลขเป็นตัวหนังสือไทย
 function numberToThaiText(number) {
@@ -146,8 +144,10 @@ export default function PublicInvoice() {
   const isOverdue = !isPaid && invoiceData.due_date && differenceInDays(new Date(), parseISO(invoiceData.due_date)) > 0;
   const daysOverdue = isOverdue ? differenceInDays(new Date(), parseISO(invoiceData.due_date)) : 0;
 
-  // ⭐ ใช้ค่าปรับที่บันทึกไว้แล้ว (ไม่คำนวณใหม่)
-  const displayLateFee = invoiceData.late_fee_amount || 0;
+  // ⭐ คำนวณค่าปรับสำหรับบิลที่ยังไม่ชำระ (real-time)
+  // ถ้าชำระแล้ว จะใช้ค่าที่ lock ไว้จาก DB
+  const calculatedLateFee = calculateLateFee(invoiceData, configs, invoiceData.branch_id);
+  const displayLateFee = calculatedLateFee;
 
   const handleDownload = () => {
     if (window.print) {
@@ -435,11 +435,11 @@ export default function PublicInvoice() {
               <div className="flex justify-between items-center">
                 <div className="text-sm text-slate-600">
                   <span className="font-medium">ยอดเงินสุทธิ</span>
-                  <span className="ml-2">({numberToThaiText(invoiceData.total_amount || 0)})</span>
+                  <span className="ml-2">({numberToThaiText((invoiceData.total_amount || 0) + (displayLateFee - (invoiceData.late_fee_amount || 0)))})</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-lg font-bold text-slate-800">
-                    {(invoiceData.total_amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                    {((invoiceData.total_amount || 0) + (displayLateFee - (invoiceData.late_fee_amount || 0))).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                   {isPaid ? (
                     <div className="border-2 border-green-600 rounded px-2.5 py-1 text-center transform rotate-[-3deg]">
