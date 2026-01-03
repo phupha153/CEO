@@ -75,19 +75,27 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 async function processBranchWorker(base44, branchId, getConfig, testLineUserId) {
     let branchSent = 0;
     
-    // 1. คำนวณวัน
+    // 1. คำนวณวัน (UTC+7 - Asia/Bangkok)
     const advanceDays = parseInt(getConfig('bill_advance_notice_days', branchId, '3'));
     const targetDate = new Date();
     targetDate.setDate(targetDate.getDate() + advanceDays);
-    const targetDateStr = targetDate.toISOString().split('T')[0];
+    // ⭐ แปลงเป็นเวลาไทย (UTC+7)
+    const localDate = new Date(targetDate.getTime() + (7 * 60 * 60 * 1000));
+    const targetDateStr = localDate.toISOString().split('T')[0];
 
-    // 2. เตรียม Config (ดึงค่าให้ถูกต้อง)
-    const branchConfigs = {
-        bankName: getConfig('bank_name', branchId, 'กสิกร'),
-        accNum: getConfig('bank_account_number', branchId, '0722835522'),
-        accName: getConfig('bank_account_name', branchId, 'ธนานนท์ พรมพักตร์'),
-        building: getConfig('building_name', branchId, 'W RESIDENTS')
-    };
+    // 2. เตรียม Config (ไม่มี = skip branch)
+    const bankName = getConfig('bank_name', branchId, null);
+    const accNum = getConfig('bank_account_number', branchId, null);
+    const accName = getConfig('bank_account_name', branchId, null);
+    const building = getConfig('building_name', branchId, 'W RESIDENTS');
+
+    // 🛡️ Safety Check: ถ้าไม่มี bank config = skip branch นี้
+    if (!bankName || !accNum || !accName) {
+        console.error(`❌ Missing bank config for branch ${branchId} - SKIPPING`);
+        return 0;
+    }
+
+    const branchConfigs = { bankName, accNum, accName, building };
 
     console.log(`🔹 Worker processing Branch: ${branchId} | Due: ${targetDateStr}`);
 
