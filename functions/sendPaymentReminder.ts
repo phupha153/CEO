@@ -433,18 +433,18 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // ⭐ สร้างลิงก์ Public Invoice/Receipt
-            const baseUrl = Deno.env.get('BASE_URL') || 'https://w-residents-backend.base44.app';
+            // ⭐ สร้างลิงก์ Public Invoice/Receipt (ต้องใช้ FRONTEND_URL ไม่ใช่ backend URL)
+            const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://preview-sandbox--935de36c36132b11882a8b2b670b1e52.base44.app';
             let documentLink = '';
             
             if (payment.status === 'paid') {
                 // ถ้าชำระแล้ว = ส่งลิงก์ใบเสร็จ
-                documentLink = `${baseUrl}/publicreceipt?id=${payment.id}`;
-                console.log(`📄 Generated receipt link for payment ${payment.id}`);
+                documentLink = `${frontendUrl}/publicreceipt?id=${payment.id}`;
+                console.log(`📄 Generated receipt link for payment ${payment.id}: ${documentLink}`);
             } else {
                 // ถ้ายังไม่ชำระ = ส่งลิงก์ใบแจ้งหนี้
-                documentLink = `${baseUrl}/publicinvoice?id=${payment.id}`;
-                console.log(`📄 Generated invoice link for payment ${payment.id}`);
+                documentLink = `${frontendUrl}/publicinvoice?id=${payment.id}`;
+                console.log(`📄 Generated invoice link for payment ${payment.id}: ${documentLink}`);
             }
 
             message += `\n\n📄 ดูเอกสาร: ${documentLink}`;
