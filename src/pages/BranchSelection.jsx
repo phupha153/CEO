@@ -174,7 +174,9 @@ export default function BranchSelection() {
   // Trial = 1 สาขา, Active = unlimited
   const maxAllowedBranches = isTrialMode ? 1 : 999;
   
-  const canAddMoreBranches = userRole === 'developer' || userOwnedBranches.length < maxAllowedBranches;
+  // ⭐ พนักงานสร้างสาขาไม่ได้เลย, เฉพาะ owner/developer
+  const canAddMoreBranches = (userRole === 'developer' || userRole === 'owner') && 
+                              (userRole === 'developer' || userOwnedBranches.length < maxAllowedBranches);
 
   // ✅ เช็คว่าไม่มีสาขาเลย หรือไม่มีสิทธิ์ในสาขาใดเลย
   const hasNoBranches = branches.length === 0;
