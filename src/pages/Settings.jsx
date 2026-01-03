@@ -2770,7 +2770,7 @@ export default function Settings() {
                                   <div>
                                     <p className="text-sm font-semibold text-red-800 mb-1">ไม่สามารถเปิดการแจ้งเตือนได้</p>
                                     <p className="text-xs text-red-700">
-                                      กรุณากรอก <strong>ชื่อบัญชี</strong> และ <strong>เลขที่บัญชี</strong> ในแท็บ "ธนาคาร" ก่อน
+                                      กรุณากรอกข้อมูลบัญชีธนาคารในแท็บ "ธนาคาร" ก่อน
                                     </p>
                                   </div>
                                 </div>
