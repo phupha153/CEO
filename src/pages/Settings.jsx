@@ -3146,6 +3146,9 @@ export default function Settings() {
                       <MessageSquare className="w-5 h-5 text-indigo-600" />
                       เชื่อมต่อช่องทางสื่อสาร
                     </CardTitle>
+                    <p className="text-sm text-slate-600 mt-2">
+                      ตั้งค่าการเชื่อมต่อ LINE และ Facebook เพื่อส่งข้อความอัตโนมัติถึงผู้เช่า
+                    </p>
                   </CardHeader>
                   <CardContent>
                     <Tabs defaultValue="line" className="w-full">
@@ -3231,10 +3234,13 @@ export default function Settings() {
                                   คัดลอก
                                 </Button>
                               </div>
-                              </div>
-                              </div>
+                              <p className="text-xs text-purple-700">
+                                💡 แต่ละสาขาต้องใช้ Webhook URL คนละอัน เมื่อสร้างสาขาใหม่ ให้นำ URL ใหม่ไปตั้งค่าใน LINE OA ของสาขานั้น
+                              </p>
+                            </div>
+                          </div>
 
-                              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                             <h4 className="font-semibold text-green-900 mb-2">วิธีตั้งค่า LINE Official Account:</h4>
                             <ol className="text-sm text-green-700 space-y-2 list-decimal ml-5">
                               <li>ไปที่ <a href="https://developers.line.biz/console/" target="_blank" className="underline font-semibold">LINE Developers Console</a></li>
