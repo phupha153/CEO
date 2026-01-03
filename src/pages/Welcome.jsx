@@ -40,9 +40,9 @@ export default function Welcome() {
 
   const handleCta = () => {
     if (isAuthenticated) {
-      navigate(createPageUrl('Dashboard'));
+      navigate(createPageUrl('BranchSelection'));
     } else {
-      base44.auth.redirectToLogin(window.location.origin);
+      base44.auth.redirectToLogin(window.location.origin + createPageUrl('BranchSelection'));
     }
   };
 
