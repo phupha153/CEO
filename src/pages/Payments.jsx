@@ -2613,15 +2613,7 @@ Return JSON.`;
                 <GenerateMonthlyBillsButton 
                   branchId={selectedBranchId} 
                   roomsNeedingBills={roomsNeedingBills}
-                  onSuccess={async () => {
-                    await Promise.all([
-                      queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
-                      queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
-                      queryClient.invalidateQueries({ queryKey: ['payments-room-view'] }),
-                      queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
-                    ]);
-                    await new Promise(r => setTimeout(r, 500));
-                  }} 
+                  onSuccess={() => queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] })} 
                   compact 
                 />
               )}
