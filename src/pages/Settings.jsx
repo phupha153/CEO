@@ -3149,20 +3149,21 @@ export default function Settings() {
                   </CardHeader>
                   <CardContent>
                     <Tabs defaultValue="line" className="w-full">
-                      <TabsList className={`grid w-full ${userRole === 'developer' ? 'grid-cols-2' : 'grid-cols-1'} mb-6`}>
-                        <TabsTrigger value="line" className="flex items-center gap-2">
-                          <MessageSquare className="w-4 h-4" />
-                          LINE
-                        </TabsTrigger>
-                        {userRole === 'developer' && (
+                      {userRole === 'developer' && (
+                        <TabsList className={`grid w-full grid-cols-2 mb-6`}>
+                          <TabsTrigger value="line" className="flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4" />
+                            LINE
+                          </TabsTrigger>
                           <TabsTrigger value="facebook" className="flex items-center gap-2">
                             <Globe className="w-4 h-4" />
                             Facebook
                           </TabsTrigger>
-                        )}
-                      </TabsList>
+                        </TabsList>
+                      )}
 
-                      <TabsContent value="line" className="space-y-6">
+                      {userRole === 'developer' && (
+                        <TabsContent value="line" className="space-y-6">
                         <BranchToggle
                           applyToAllBranches={applyToAllBranches_line}
                           setApplyToAllBranches={setApplyToAllBranches_line}
@@ -3267,7 +3268,8 @@ export default function Settings() {
                             )}
                           </Button>
                         </form>
-                      </TabsContent>
+                        </TabsContent>
+                      )}
 
                       {userRole === 'developer' && (
                         <TabsContent value="facebook" className="space-y-6">
@@ -3516,6 +3518,8 @@ export default function Settings() {
                   </CardContent>
                 </Card>
               )}
+            </div>
+          )}
 
               {activeTab === 'signature' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
