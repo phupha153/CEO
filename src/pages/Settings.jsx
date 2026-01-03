@@ -223,7 +223,6 @@ export default function Settings() {
     send_advance_reminder: false,
     send_due_date_reminder: false,
     send_overdue_reminder: false,
-    // ค่าปรับแบบขั้นบันได
     late_fee_tiers_enabled: false,
     late_fee_tiers: [
       { days_from: 1, days_to: 7, fee_per_day: '' },
