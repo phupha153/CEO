@@ -9,6 +9,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Parse request body once at the beginning
+    const { entity, filters = {}, sort = '-created_date', limit = 10000 } = await req.json();
+
+    if (!entity) {
+      return Response.json({ error: 'Missing entity parameter' }, { status: 400 });
+    }
+
     // ⭐ Auto-init trial ถ้ายังไม่มี
     if (!user.trial_ends_at) {
       const today = new Date();
@@ -47,8 +54,6 @@ Deno.serve(async (req) => {
         }, { status: 403 });
       }
     }
-
-    const { entity, filters = {}, sort = '-created_date', limit = 10000 } = await req.json();
 
     if (!entity) {
       return Response.json({ error: 'Missing entity parameter' }, { status: 400 });
