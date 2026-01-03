@@ -518,26 +518,17 @@ Deno.serve(async (req) => {
                 if (!forceSkipDuplicateCheck) {
                     let existingBill = existingPaymentsMap.get(mapKey) || null;
 
-                    console.log(`🔍 Room ${room.room_number}: Checking existing bill for key "${mapKey}"`);
-                    console.log(`   - From Map: ${existingBill ? `Found (${existingBill.id})` : 'Not found'}`);
-
                     if (!existingBill) {
-                        // ค้นหาด้วยมือ
                         for (const p of normalizedPayments) {
                             if (p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
                                 existingBill = p;
-                                console.log(`   - Manual search: Found (${p.id})`);
                                 break;
                             }
-                        }
-                        if (!existingBill) {
-                            console.log(`   - Manual search: Not found`);
                         }
                     }
 
                     if (existingBill) {
                         skippedDueToExistingBill++;
-                        console.log(`⏭️ SKIP Room ${room.room_number}: มีบิลแล้ว (${existingBill.id})`);
 
                         if (resendNotifications) {
                             const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
@@ -546,8 +537,6 @@ Deno.serve(async (req) => {
                             }
                         }
                         continue;
-                    } else {
-                        console.log(`✅ Room ${room.room_number}: ไม่มีบิล → จะสร้างใหม่`);
                     }
                 }
 
