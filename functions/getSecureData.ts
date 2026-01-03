@@ -9,13 +9,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Parse request body once at the beginning
-    const { entity, filters = {}, sort = '-created_date', limit = 10000 } = await req.json();
-
-    if (!entity) {
-      return Response.json({ error: 'Missing entity parameter' }, { status: 400 });
-    }
-
     // ⭐ Auto-init trial ถ้ายังไม่มี
     if (!user.trial_ends_at) {
       const today = new Date();
@@ -24,13 +17,10 @@ Deno.serve(async (req) => {
       trialEndDate.setDate(today.getDate() + 30);
       trialEndDate.setHours(23, 59, 59, 999);
 
-      const userToUpdate = await base44.asServiceRole.entities.User.filter({ email: user.email });
-      if (userToUpdate.length > 0) {
-        await base44.asServiceRole.entities.User.update(userToUpdate[0].id, {
-          trial_ends_at: trialEndDate.toISOString().split('T')[0],
-          plan_status: 'trial'
-        });
-      }
+      await base44.asServiceRole.auth.updateUser(user.email, {
+        trial_ends_at: trialEndDate.toISOString().split('T')[0],
+        plan_status: 'trial'
+      });
 
       // Refresh user object
       user.trial_ends_at = trialEndDate.toISOString().split('T')[0];
@@ -38,10 +28,10 @@ Deno.serve(async (req) => {
     }
 
     // ⭐ ตรวจสอบสถานะ trial ของ user
-    const currentUserRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+    const userRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
     
     // Developer ไม่ต้องเช็ค trial
-    if (currentUserRole !== 'developer') {
+    if (userRole !== 'developer') {
       const trialEndDate = new Date(user.trial_ends_at);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -55,11 +45,18 @@ Deno.serve(async (req) => {
       }
     }
 
+    const { entity, filters = {}, sort = '-created_date', limit = 10000 } = await req.json();
+
+    if (!entity) {
+      return Response.json({ error: 'Missing entity parameter' }, { status: 400 });
+    }
+
     // ตรวจสอบสิทธิ์เข้าถึงสาขา
+    const userRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
     const accessibleBranches = user.accessible_branches;
 
     // Developer ที่ไม่มี accessible_branches = เข้าถึงทุกสาขา
-    const canAccessAllBranches = currentUserRole === 'developer' && (!accessibleBranches || accessibleBranches.length === 0);
+    const canAccessAllBranches = userRole === 'developer' && (!accessibleBranches || accessibleBranches.length === 0);
 
     // ถ้ามี branch_id ใน filters ให้เช็คสิทธิ์
     if (filters.branch_id && !canAccessAllBranches) {
@@ -101,7 +98,7 @@ Deno.serve(async (req) => {
       meta: {
         count: data.length,
         entity,
-        user_role: currentUserRole,
+        user_role: userRole,
         accessible_branches: canAccessAllBranches ? 'all' : accessibleBranches
       }
     });

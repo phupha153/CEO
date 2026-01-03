@@ -4220,34 +4220,6 @@ export default function Settings() {
           </Dialog>
         </div>
       </div>
-
-      {/* Developer Debug Console (mobile) */}
-      {userRole === 'developer' && showDebugConsole && (
-        <div className="fixed bottom-4 right-4 z-50 w-96 max-w-[90vw]">
-          <Card className="bg-slate-900 border-slate-700 shadow-2xl">
-            <CardHeader className="flex flex-row items-center justify-between p-3 border-b border-slate-700">
-              <CardTitle className="text-sm text-white">Debug Console</CardTitle>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={clearDebugLogs} className="text-xs h-7">Clear</Button>
-                <Button size="sm" variant="outline" onClick={() => setShowDebugConsole(false)} className="text-xs h-7">Close</Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-3">
-              <div ref={debugConsoleRef} className="h-64 overflow-y-auto space-y-1 font-mono text-xs">
-                {debugLogs.map((log, idx) => (
-                  <div key={idx} className={`${
-                    log.type === 'error' ? 'text-red-400' : 
-                    log.type === 'success' ? 'text-green-400' : 
-                    'text-slate-300'
-                  }`}>
-                    <span className="text-slate-500">{log.timestamp}</span> {log.message}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }
