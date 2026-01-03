@@ -302,9 +302,9 @@ Deno.serve(async (req) => {
 
         // ⭐⭐⭐ PARALLEL PROCESSING LOGIC (หัวใจของ V6) ⭐⭐⭐
         // แบ่งสาขาเป็นก้อนๆ (Chunks) แล้วให้ Worker รุมทำ
-        
+
         for (let i = 0; i < targetBranches.length; i += WORKER_LIMIT) {
-            
+
             // 🛑 Safety Cut
             if (Date.now() - START_TIME > SAFETY_LIMIT_MS) {
                 logs.push('⚠️ Timeout! Stopping workers.');
@@ -315,22 +315,32 @@ Deno.serve(async (req) => {
             const chunk = targetBranches.slice(i, i + WORKER_LIMIT);
             console.log(`\n🏗️ Starting Worker Batch ${Math.floor(i/WORKER_LIMIT) + 1} (Processing ${chunk.length} branches)`);
 
-            // สั่งให้ Worker ทำงานพร้อมกัน (Parallel)
-            const results = await Promise.all(chunk.map(bId => 
-                processBranchWorker(base44, bId, getConfig, testLineUserId)
-                    .then(sent => {
-                        logs.push(`Branch ${bId}: Done (${sent} sent)`);
+            // สั่งให้ Worker ทำงานพร้อมกัน (Parallel) + Retry Logic
+            const results = await Promise.all(chunk.map(async (bId) => {
+                let retries = 0;
+                const MAX_RETRIES = 2;
+
+                while (retries <= MAX_RETRIES) {
+                    try {
+                        const sent = await processBranchWorker(base44, bId, getConfig, testLineUserId);
+                        logs.push(`Branch ${bId.substring(0, 8)}...: Done (${sent} sent)`);
                         return sent;
-                    })
-                    .catch(err => {
-                        console.error(`❌ Worker Error (${bId}):`, err.message);
-                        logs.push(`Branch ${bId}: Error`);
-                        return 0;
-                    })
-            ));
+                    } catch (err) {
+                        retries++;
+                        if (retries > MAX_RETRIES) {
+                            console.error(`❌ Worker Failed After ${MAX_RETRIES} Retries (${bId}):`, err.message);
+                            logs.push(`Branch ${bId.substring(0, 8)}...: Error - ${err.message}`);
+                            return 0;
+                        }
+                        console.warn(`⚠️ Retry ${retries}/${MAX_RETRIES} for ${bId}`);
+                        await delay(1000 * retries); // Exponential backoff
+                    }
+                }
+                return 0;
+            }));
 
             totalSent += results.reduce((a, b) => a + b, 0);
-            await delay(100); // พักหายใจก่อนเริ่มก้อนถัดไป
+            await delay(200); // ⬆️ เพิ่มจาก 100ms → 200ms (ปลอดภัยกว่า)
         }
 
         const duration = (Date.now() - START_TIME) / 1000;
