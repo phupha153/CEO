@@ -890,16 +890,14 @@ export default function PaymentsPage() {
       }, 0);
     };
   
-    // ⭐ ถ้าอยู่ใน Room View ให้ใช้ roomViewPayments แทน
-    const paymentsForSummary = viewMode === 'room' ? roomViewPayments : filteredPayments;
-    
+    // ⭐ ใช้ filteredPayments เพื่อให้สรุปตามตัวกรอง
     return {
-      all: calculateSum(paymentsForSummary),
-      paid: calculateSum(paymentsForSummary.filter(p => getEffectiveStatus(p) === 'paid')),
-      pending: calculateSum(paymentsForSummary.filter(p => getEffectiveStatus(p) === 'pending')),
-      overdue: calculateSum(paymentsForSummary.filter(p => getEffectiveStatus(p) === 'overdue')),
+      all: calculateSum(filteredPayments),
+      paid: calculateSum(filteredPayments.filter(p => getEffectiveStatus(p) === 'paid')),
+      pending: calculateSum(filteredPayments.filter(p => getEffectiveStatus(p) === 'pending')),
+      overdue: calculateSum(filteredPayments.filter(p => getEffectiveStatus(p) === 'overdue')),
     };
-  }, [filteredPayments, roomViewPayments, viewMode, getEffectiveStatus, calculateLateFee]);
+  }, [filteredPayments, getEffectiveStatus, calculateLateFee]);
 
   // ✅ Use enriched data from server (no lookup needed)
   const pendingOverduePayments = useMemo(() => 
