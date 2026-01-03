@@ -403,8 +403,10 @@ export default function Settings() {
       return response.data;
     },
     enabled: !!selectedBranch && !!currentUser,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // ⚡ Cache 30 นาที (ลดจาก 5 นาที - package ไม่เปลี่ยนบ่อย)
     retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const { data: configs = [] } = useQuery({

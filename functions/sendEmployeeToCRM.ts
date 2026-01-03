@@ -61,6 +61,44 @@ Deno.serve(async (req) => {
         const payload = await req.json();
         const { full_name, email, phone, custom_role, accessible_branches } = payload;
 
+        // 🔒 BACKEND VALIDATION: เช็คจำนวน users ก่อนเพิ่ม (ป้องกัน bypass frontend)
+        const planStatus = user.plan_status || 'trial';
+        const isTrialMode = planStatus === 'trial';
+        
+        // ดึง max_users จาก cached_package_info หรือใช้ default
+        const maxAllowedUsers = isTrialMode ? 1 : (user.cached_package_info?.max_users || 999);
+        
+        // นับผู้ใช้จริงในสาขาที่กำลังจะเพิ่ม (ไม่รวม developer)
+        const firstBranchId = accessible_branches?.[0];
+        if (!firstBranchId) {
+          return Response.json({ 
+            error: 'กรุณาระบุสาขาที่พนักงานจะเข้าถึง' 
+          }, { status: 400 });
+        }
+        
+        const existingUsers = await base44.asServiceRole.entities.User.filter({});
+        const usersInBranch = existingUsers.filter(u => {
+          const role = u.custom_role || (u.role === 'admin' ? 'owner' : 'employee');
+          if (role === 'developer') return false; // ไม่นับ developer
+          return u.accessible_branches?.includes(firstBranchId);
+        });
+        
+        console.log('🔍 User Limit Check:', {
+          planStatus,
+          maxAllowedUsers,
+          currentCount: usersInBranch.length,
+          newEmail: email
+        });
+        
+        // ⚠️ ถ้าครบจำนวนแล้ว → REJECT
+        if (usersInBranch.length >= maxAllowedUsers) {
+          return Response.json({ 
+            error: `ครบจำนวนผู้ใช้แล้ว (${maxAllowedUsers} คน) - กรุณาอัปเกรดแพ็กเกจ`,
+            current_count: usersInBranch.length,
+            max_allowed: maxAllowedUsers
+          }, { status: 403 });
+        }
+
         const crmAppId = Deno.env.get('CRM_APP_ID');
         const crmServiceRoleKey = Deno.env.get('CRM_SERVICE_ROLE_KEY');
 
