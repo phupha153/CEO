@@ -43,24 +43,45 @@ export default function BranchSelection() {
   const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError } = useQuery({
     queryKey: ['crmAccess', currentUser?.email],
     queryFn: async () => {
-      const response = await base44.functions.invoke('checkCRMAccess');
-      const data = response.data;
+      console.log('🔍 BranchSelection: เริ่มเช็ค CRM Access สำหรับ:', currentUser?.email);
 
-      // ⭐ ถ้าไม่มีสิทธิ์ = logout ทันที (ทุกคน ไม่เว้นแม้แต่ developer)
-      if (data && data.hasAccess === false && currentUser) {
-        console.warn('🚫 CRM Access denied - Logging out:', currentUser.email);
-        setTimeout(() => {
-          base44.auth.logout();
-        }, 1500);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+      try {
+        const response = await base44.functions.invoke('checkCRMAccess', {}, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        const data = response.data;
+
+        console.log('📊 BranchSelection: CRM Response:', data);
+
+        // ⭐ ถ้าไม่มีสิทธิ์ = logout ทันที (ทุกคน ไม่เว้นแม้แต่ developer)
+        if (data && data.hasAccess === false && currentUser && !data.timeout && !data.error) {
+          console.warn('🚫 BranchSelection: CRM Access denied - Logging out:', currentUser.email);
+          setTimeout(() => {
+            base44.auth.logout();
+          }, 1000);
+        }
+
+        return data;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        console.error('❌ BranchSelection: CRM Check Error:', error);
+        if (error.name === 'AbortError') {
+          console.warn('⚠️ BranchSelection: CRM check timeout - DENYING access for security');
+          return { hasAccess: false, timeout: true, shouldLogout: true };
+        }
+        // ⭐ กรณี error อื่นๆ = deny access เพื่อความปลอดภัย
+        return { hasAccess: false, error: true, shouldLogout: true };
       }
-
-      return data;
     },
     enabled: !!currentUser,
     staleTime: 30 * 1000,
     refetchInterval: 1 * 60 * 1000,
     refetchIntervalInBackground: true,
-    retry: false, // ไม่ retry
+    retry: false,
     throwOnError: false,
   });
 
@@ -357,8 +378,8 @@ export default function BranchSelection() {
     );
   }
 
-  // ⭐ เช็คสิทธิ์ CRM ก่อนแสดงหน้า (ถ้าไม่มีสิทธิ์ชัดเจน = บล็อก, แต่ถ้า timeout/error = อนุญาต)
-  if (currentUser && crmAccess && crmAccess.hasAccess === false && !crmAccess.timeout && !crmAccess.error) {
+  // ⭐ เช็คสิทธิ์ CRM ก่อนแสดงหน้า (ถ้าไม่มีสิทธิ์ = บล็อกทันที, ไม่ fail-open)
+  if (currentUser && crmAccess && (crmAccess.hasAccess === false || crmAccess.shouldLogout)) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-50 overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
