@@ -327,21 +327,22 @@ export default function PublicReceipt() {
                 {receiptData.recipient?.company_name ? (
                   <>
                     <p className="font-medium text-slate-800">{receiptData.recipient.company_name}</p>
-                    {receiptData.recipient.tax_id && <p>เลขที่ผู้เสียภาษี: {receiptData.recipient.tax_id}</p>}
+                    {receiptData.recipient.tax_id && <p>เลขประจำตัวผู้เสียภาษี: {receiptData.recipient.tax_id}</p>}
                     {receiptData.recipient.company_registration_number && <p>เลขทะเบียนนิติบุคคล: {receiptData.recipient.company_registration_number}</p>}
                     <p>{receiptData.recipient?.company_address || receiptData.recipient?.building_address}</p>
-                    {receiptData.recipient?.building_phone && <p>โทร: {receiptData.recipient.building_phone}</p>}
+                    {receiptData.recipient?.company_phone && <p>เบอร์ติดต่อ: {receiptData.recipient.company_phone}</p>}
                   </>
                 ) : receiptData.recipient?.lessor_name ? (
                   <>
                     <p className="font-medium text-slate-800">{receiptData.recipient.lessor_name}</p>
+                    {receiptData.recipient.lessor_id && <p>เลขประจำตัวผู้เสียภาษี: {receiptData.recipient.lessor_id}</p>}
                     <p>{receiptData.recipient?.lessor_address || receiptData.recipient?.building_address}</p>
-                    {receiptData.recipient?.building_phone && <p>โทร: {receiptData.recipient.building_phone}</p>}
+                    {receiptData.recipient?.building_phone && <p>เบอร์ติดต่อ: {receiptData.recipient.building_phone}</p>}
                   </>
                 ) : receiptData.recipient?.building_address ? (
                   <>
                     <p>{receiptData.recipient.building_address}</p>
-                    {receiptData.recipient?.building_phone && <p>โทร: {receiptData.recipient.building_phone}</p>}
+                    {receiptData.recipient?.building_phone && <p>เบอร์ติดต่อ: {receiptData.recipient.building_phone}</p>}
                   </>
                 ) : null}
               </div>
@@ -362,8 +363,19 @@ export default function PublicReceipt() {
               <div className="border border-slate-200 rounded p-2">
                 <h3 className="font-semibold text-slate-700 text-xs mb-1">ผู้รับเงิน</h3>
                 <div className="text-xs text-slate-600 space-y-0.5">
-                  <p className="font-medium text-slate-800">{receiptData.bank?.account_name || receiptData.recipient?.lessor_name || receiptData.recipient?.building_name}</p>
-                  <p>{receiptData.recipient?.lessor_address || receiptData.recipient?.building_address}</p>
+                  {receiptData.recipient?.company_name ? (
+                    <>
+                      <p className="font-medium text-slate-800">{receiptData.recipient.company_name}</p>
+                      {receiptData.recipient.tax_id && <p>เลขประจำตัวผู้เสียภาษี: {receiptData.recipient.tax_id}</p>}
+                      <p>{receiptData.recipient?.company_address || receiptData.recipient?.building_address}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium text-slate-800">{receiptData.recipient?.lessor_name || receiptData.recipient?.building_name}</p>
+                      {receiptData.recipient?.lessor_id && <p>เลขประจำตัวผู้เสียภาษี: {receiptData.recipient.lessor_id}</p>}
+                      <p>{receiptData.recipient?.lessor_address || receiptData.recipient?.building_address}</p>
+                    </>
+                  )}
                 </div>
               </div>
 
