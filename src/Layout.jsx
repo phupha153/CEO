@@ -192,10 +192,10 @@ const adminOnlyItems = [
     title: "จัดการผู้ใช้และแพ็กเกจ",
     url: createPageUrl("UserBranchAccess"),
     icon: Users,
-    badge: "Admin",
-    showOnlyForDeveloper: false,
-    requiredPermission: null, // ไม่ต้องเช็คสิทธิ์ - หน้านี้จัดการเองภายใน
-    requiredFeature: null
+    badge: "Dev",
+    showOnlyForDeveloper: true,
+    requiredPermission: "settings_access_test_mode",
+    requiredFeature: "settings_access_test_mode"
   },
   {
     title: "ดูข้อมูล Lists",
