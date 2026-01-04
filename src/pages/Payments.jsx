@@ -901,6 +901,22 @@ export default function PaymentsPage() {
     };
   }, [filteredPayments, roomViewPayments, viewMode, getEffectiveStatus, calculateLateFee]);
 
+  // ⭐ นับจำนวนรายการแยกตาม viewMode
+  const displayCounts = useMemo(() => {
+    if (viewMode === 'room') {
+      // Room View = นับจาก roomViewPayments
+      return {
+        all: roomViewPayments.length,
+        paid: roomViewPayments.filter(p => getEffectiveStatus(p) === 'paid').length,
+        pending: roomViewPayments.filter(p => getEffectiveStatus(p) === 'pending').length,
+        overdue: roomViewPayments.filter(p => getEffectiveStatus(p) === 'overdue').length,
+      };
+    } else {
+      // Card/Table View = ใช้ counts จาก backend
+      return statusCounts;
+    }
+  }, [viewMode, roomViewPayments, statusCounts, getEffectiveStatus]);
+
   // ✅ Use enriched data from server (no lookup needed)
   const pendingOverduePayments = useMemo(() => 
     filteredPayments.filter(p => {
@@ -2677,7 +2693,7 @@ Return JSON.`;
                   >
                     {totalAmounts.all.toLocaleString('th-TH')}
                   </motion.p>
-                  <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.all} รายการ)</p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({displayCounts.all} รายการ)</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -2712,7 +2728,7 @@ Return JSON.`;
                   >
                     {totalAmounts.pending.toLocaleString('th-TH')}
                   </motion.p>
-                  <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.pending} รายการ)</p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({displayCounts.pending} รายการ)</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -2747,7 +2763,7 @@ Return JSON.`;
                   >
                     {totalAmounts.overdue.toLocaleString('th-TH')}
                   </motion.p>
-                  <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.overdue} รายการ)</p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({displayCounts.overdue} รายการ)</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -2782,7 +2798,7 @@ Return JSON.`;
                   >
                     {totalAmounts.paid.toLocaleString('th-TH')}
                   </motion.p>
-                  <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.paid} รายการ)</p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({displayCounts.paid} รายการ)</p>
                 </CardContent>
               </Card>
             </motion.div>
