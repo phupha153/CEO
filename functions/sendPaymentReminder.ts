@@ -360,7 +360,7 @@ Deno.serve(async (req) => {
 
             if (customMessage && customMessage.trim()) {
                 message = customMessage.trim();
-                message += `\n\n💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}`;
+                message += `\n\nโอนเงินได้ที่: ${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}`;
             } else {
                 const roomNum = room?.room_number || 'N/A';
                 const lateFee = calculatedLateFee;
@@ -371,79 +371,79 @@ Deno.serve(async (req) => {
                 const feePerDay = parseFloat(lateFeePerDayConfig);
 
                 if (template === 'overdue') {
-                    // --- CASE 1: เกินกำหนด (Summary เน้นยอด) ---
-                    message = `🔴 แจ้งเตือนเกินกำหนดชำระ\n\n`;
+                    // --- CASE 1: เกินกำหนด ---
+                    message = `แจ้งเตือนค่าเช่าเกินกำหนด\n\n`;
                     message += `${buildingName}\n`;
                     message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
-                    message += `💰 ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
+                    message += `ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
                     if (lateFee > 0) {
-                        message += `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท`;
+                        message += `\nค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท`;
                     }
-                    message += `\n💰 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
+                    message += `\nรวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
                     message += `\nเกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
                     message += `กรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
-                    message += `💳 โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
-                    message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
+                    message += `โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
+                    message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ`;
 
                 } else if (template === 'due_date') {
-                    // --- CASE 2: ครบกำหนด (ใช้คำว่า แจ้งเตือนค่าเช่า และแสดงรายละเอียดครบ) ---
-                    message = `📢 แจ้งเตือนค่าเช่า (ครบกำหนดวันนี้)\n\n`; // ใช้คำว่าแจ้งเตือนค่าเช่าตามที่ขอ
+                    // --- CASE 2: ครบกำหนด ---
+                    message = `แจ้งเตือนค่าเช่า (ครบกำหนดวันนี้)\n\n`;
                     message += `${buildingName}\n`;
                     message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n\n`;
                     
-                    // เพิ่มรายละเอียดค่าใช้จ่าย
+                    // รายละเอียดค่าใช้จ่าย
                     message += `รายละเอียดค่าใช้จ่าย:\n`;
                     message += `━━━━━━━━━━━━━━━━━━━━\n`;
                     
-                    if (payment.rent_amount >= 0) message += `🏠 ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
-                    if (payment.electricity_amount >= 0) message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-                    if (payment.water_amount >= 0) message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
-                    if (payment.internet_amount > 0) message += `🌐 ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
-                    if (payment.common_fee_amount > 0) message += `🧹 ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
-                    if (payment.parking_fee_amount > 0) message += `🚗 ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
-                    if (payment.other_amount > 0) message += `📝 ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
+                    if (payment.rent_amount >= 0) message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+                    if (payment.electricity_amount >= 0) message += `ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
+                    if (payment.water_amount >= 0) message += `ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
+                    if (payment.internet_amount > 0) message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
+                    if (payment.common_fee_amount > 0) message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
+                    if (payment.parking_fee_amount > 0) message += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
+                    if (payment.other_amount > 0) message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
                     
                     message += `━━━━━━━━━━━━━━━━━━━━\n`;
-                    message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
+                    message += `รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
                     message += `(${numberToThaiText(payment.total_amount)})\n\n`;
                     
                     if (!isNaN(feePerDay) && feePerDay > 0) {
-                        message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${feePerDay} บาท/วัน\n\n`;
+                        message += `หากชำระหลังวันนี้ มีค่าปรับ ${feePerDay} บาท/วัน\n\n`;
                     }
                     
-                    message += `💳 โอนเงินได้ที่:\n`;
+                    message += `โอนเงินได้ที่:\n`;
                     message += `${bankName} ${bankAccountNumber}\n`;
                     message += `ชื่อ: ${bankAccountName}\n\n`;
-                    message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
+                    message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ`;
 
                 } else {
                     // --- CASE 3: ปกติ (Advance/General) ---
-                    message = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
+                    message = `${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
                     message += `สวัสดีคุณ ${tenant.full_name}\n`;
                     message += `ห้อง ${roomNum}\n\n`;
                     message += `รายละเอียดค่าใช้จ่าย:\n`;
                     message += `━━━━━━━━━━━━━━━━━━━━\n`;
 
-                    if (payment.rent_amount >= 0) message += `🏠 ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
-                    if (payment.electricity_amount >= 0) message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-                    if (payment.water_amount >= 0) message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
-                    if (payment.internet_amount > 0) message += `🌐 ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
-                    if (payment.common_fee_amount > 0) message += `🧹 ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
-                    if (payment.parking_fee_amount > 0) message += `🚗 ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
-                    if (payment.other_amount > 0) message += `📝 ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
+                    if (payment.rent_amount >= 0) message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+                    if (payment.electricity_amount >= 0) message += `ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
+                    if (payment.water_amount >= 0) message += `ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
+                    if (payment.internet_amount > 0) message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
+                    if (payment.common_fee_amount > 0) message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
+                    if (payment.parking_fee_amount > 0) message += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
+                    if (payment.other_amount > 0) message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
 
                     message += `━━━━━━━━━━━━━━━━━━━━\n`;
-                    message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
+                    message += `รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
                     message += `(${numberToThaiText(payment.total_amount)})\n\n`;
-                    message += `📅 ครบกำหนดชำระ: ${dueDateStr}\n`;
+                    message += `ครบกำหนดชำระ: ${dueDateStr}\n`;
 
                     if (daysOverdue > 0) {
-                        message += `⚠️ สถานะ: ${statusText}\n\n`;
+                        message += `สถานะ: ${statusText}\n\n`;
                     } else {
                         message += `สถานะ: ${statusText}\n\n`;
                     }
 
-                    message += `💳 โอนเงินได้ที่: ${bankName} ${bankAccountNumber} (${bankAccountName})\n\n`;
+                    message += `โอนเงินได้ที่: ${bankName} ${bankAccountNumber} (${bankAccountName})\n\n`;
                 }
             }
 
@@ -466,11 +466,11 @@ Deno.serve(async (req) => {
                 console.log(`📄 Invoice link: ${documentLink}`);
             }
 
-            message += `\n\n📄 ดูเอกสาร: ${documentLink}`;
+            message += `\n\nดูเอกสาร: ${documentLink}`;
 
             if (template !== 'due_date' && template !== 'overdue') {
-                message += `\n\n📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
-                message += `ขอบคุณค่ะ 🙏`;
+                message += `\n\nกรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
+                message += `ขอบคุณค่ะ`;
             }
 
             recipients.push({
