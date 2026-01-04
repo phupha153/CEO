@@ -298,7 +298,6 @@ export default function Receipt() {
     branchIdIsNull: receiptData?.branch_id === null,
     status: receiptData?.status,
     payment_late_fee_amount: receiptData?.late_fee_amount,
-    calculated_late_fee: calculatedLateFee,
     display_late_fee: displayLateFee,
     daysOverdue: receiptData?.due_date ? differenceInDays(new Date(), parseISO(receiptData.due_date)) : 0,
     configs_for_branch: configs.filter(c => 
