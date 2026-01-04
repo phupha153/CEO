@@ -39,6 +39,7 @@ export default function Announcements() {
   // Chat State
   const [chatSearchTerm, setChatSearchTerm] = useState('');
   const [selectedConversation, setSelectedConversation] = useState(null);
+  const [showChatWindow, setShowChatWindow] = useState(false); // Mobile state: ซ่อน/แสดง chat window
 
   // Get selected branch from localStorage
   const selectedBranchId = localStorage.getItem('selected_branch_id');
@@ -610,13 +611,16 @@ export default function Announcements() {
                 </div>
               )}
               
-              <div className="flex h-[600px] relative">
-                {/* Sidebar */}
-                <div className="w-80 border-r flex-shrink-0">
+              <div className="flex h-[600px] md:h-[700px] relative">
+                {/* Sidebar - แสดง/ซ่อนตาม state บน mobile */}
+                <div className={`w-full md:w-80 md:border-r md:flex-shrink-0 ${showChatWindow ? 'hidden md:block' : 'block'}`}>
                   <ChatSidebar
                       conversations={conversations}
                       selectedConversation={selectedConversation}
-                      onSelectConversation={setSelectedConversation}
+                      onSelectConversation={(conv) => {
+                        setSelectedConversation(conv);
+                        setShowChatWindow(true); // เปิด chat window บน mobile
+                      }}
                       searchTerm={chatSearchTerm}
                       onSearchChange={setChatSearchTerm}
                       tenantsMap={tenantsMap}
@@ -645,11 +649,13 @@ export default function Announcements() {
                     />
                 </div>
                 
-                {/* Chat Window */}
-                <ChatWindow
-                  conversation={selectedConversation}
-                  messages={selectedMessages}
-                  tenant={selectedConversation ? (
+                {/* Chat Window - แสดง/ซ่อนตาม state บน mobile */}
+                <div className={`flex-1 ${showChatWindow ? 'block' : 'hidden md:block'}`}>
+                  <ChatWindow
+                    conversation={selectedConversation}
+                    messages={selectedMessages}
+                    onBack={() => setShowChatWindow(false)} // ปุ่มย้อนกลับบน mobile
+                    tenant={selectedConversation ? (
                     // ⭐ หา tenant ที่มี line_user_id หรือ facebook_user_id ตรงกับ conversation
                     tenants.find(t => 
                       t.line_user_id === selectedConversation.line_user_id ||
@@ -714,8 +720,9 @@ export default function Announcements() {
                       toast.error('ยกเลิกการเชื่อมต่อไม่สำเร็จ: ' + error.message);
                     }
                   }}
-                  loading={messagesLoading}
-                />
+                    loading={messagesLoading}
+                  />
+                </div>
               </div>
             </Card>
           </TabsContent>

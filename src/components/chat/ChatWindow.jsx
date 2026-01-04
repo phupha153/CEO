@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { 
   Send, User, Phone, Home, Loader2, 
-  CheckCircle, Info, Sparkles, X, Link, Save, Facebook
+  CheckCircle, Info, Sparkles, X, Link, Save, Facebook, ArrowLeft
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
@@ -23,6 +23,7 @@ export default function ChatWindow({
   onRefresh,
   onLinkTenant,
   onUnlinkTenant,
+  onBack, // ฟังก์ชันย้อนกลับสำหรับ mobile
   loading
 }) {
   const [newMessage, setNewMessage] = useState('');
@@ -70,6 +71,17 @@ export default function ChatWindow({
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between z-10 relative">
         <div className="flex items-center gap-3">
+          {/* ปุ่มย้อนกลับ - แสดงเฉพาะบน mobile */}
+          {onBack && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onBack}
+              className="md:hidden hover:bg-slate-100 -ml-2"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          )}
           <div className="relative">
             {conversation.line_picture_url || conversation.facebook_picture_url ? (
               <img 
