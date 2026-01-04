@@ -89,6 +89,10 @@ Deno.serve(async (req) => {
     // 2️⃣ ถ้าไม่เจอใน Employee table ให้เช็คที่ Customer API
     console.log('🔄 Calling CRM API with email:', userEmail);
 
+    // 🔒 Security: เพิ่ม timeout protection (8 วินาที)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     const crmResponse = await fetch(
       'https://connect-sphere-crm-8aa1f2d8.base44.app/api/apps/6919c20da02654368aa1f2d8/functions/getCustomers',
       {
@@ -97,9 +101,10 @@ Deno.serve(async (req) => {
           'api_key': CRM_API_KEY,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email: userEmail })
+        body: JSON.stringify({ email: userEmail }),
+        signal: controller.signal
       }
-    );
+    ).finally(() => clearTimeout(timeoutId));
 
     console.log('📡 CRM Response Status:', crmResponse.status);
 
@@ -195,6 +200,17 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error checking CRM access:', error);
+    
+    // 🔒 Security: Timeout = DENY access
+    if (error.name === 'AbortError') {
+      console.error('⏱️ CRM Timeout - DENYING access');
+      return Response.json({ 
+        hasAccess: false, 
+        timeout: true,
+        error: 'CRM timeout - please try again' 
+      }, { status: 200 });
+    }
+    
     return Response.json({ 
       hasAccess: false, 
       error: error.message 

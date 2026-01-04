@@ -543,13 +543,16 @@ export default function Layout({ children, currentPageName }) {
             crmRole: data.role,
             needsUpdate: currentRole !== data.role
           });
-          
+
           if (currentRole !== data.role) {
             try {
               console.log('⚡ Updating role from', currentRole, 'to', data.role);
               await base44.entities.User.update(currentUser.id, { custom_role: data.role });
               console.log('✅ Synced role from CRM:', data.role);
-              
+
+              // ⭐ Wait 500ms ให้ database persist ก่อน reload
+              await new Promise(resolve => setTimeout(resolve, 500));
+
               // ⭐ Force reload เพื่อให้ role เปลี่ยนทันทีทุก component
               console.log('🔄 Reloading page to apply new role...');
               window.location.reload();

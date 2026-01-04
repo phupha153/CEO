@@ -51,8 +51,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing entity parameter' }, { status: 400 });
     }
 
-    // ตรวจสอบสิทธิ์เข้าถึงสาขา
-    const userRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+    // ตรวจสอบสิทธิ์เข้าถึงสาขา (ใช้ตัวแปร userRole จาก line 31 แล้ว)
     const accessibleBranches = user.accessible_branches;
 
     // Developer ที่ไม่มี accessible_branches = เข้าถึงทุกสาขา
