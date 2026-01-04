@@ -412,16 +412,13 @@ export default function ChatWindow({
                         const updateData = conversation.facebook_user_id 
                           ? { facebook_user_id: null }
                           : { line_user_id: null };
-
+                        
                         await base44.entities.Tenant.update(tenant.id, updateData);
                         toast.success(`ยกเลิกการเชื่อมต่อ ${platform} สำเร็จ`);
-
-                        // ⭐ เรียก onUnlinkTenant เพื่อให้หน้า Announcements จัดการ state
-                        if (onUnlinkTenant) {
-                          await onUnlinkTenant(tenant.id);
-                        }
-
                         setShowProfile(false);
+                        
+                        // ⭐ Refresh เฉพาะ tenants
+                        if (onRefresh) await onRefresh();
                       } catch (err) {
                         console.error('Unlink error:', err);
                         toast.error('ยกเลิกการเชื่อมต่อไม่สำเร็จ');
