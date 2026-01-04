@@ -413,9 +413,9 @@ export default function Invoice() {
                 ) : invoiceData.recipient?.lessor_name ? (
                   <>
                     <p className="font-medium text-slate-800">{invoiceData.recipient.lessor_name}</p>
-                    {invoiceData.recipient.lessor_id && <p>เลขบัตรประชาชน: {invoiceData.recipient.lessor_id}</p>}
+                    {invoiceData.recipient.lessor_id && <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.lessor_id}</p>}
                     <p>{invoiceData.recipient?.lessor_address || invoiceData.recipient?.building_address}</p>
-                    {invoiceData.recipient?.lessor_phone && <p>โทร: {invoiceData.recipient.lessor_phone}</p>}
+                    {invoiceData.recipient?.lessor_phone && <p>เบอร์ติดต่อ: {invoiceData.recipient.lessor_phone}</p>}
                   </>
                 ) : invoiceData.recipient?.building_address ? (
                   <>
