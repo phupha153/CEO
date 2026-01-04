@@ -65,49 +65,63 @@ export default function SendReminderDialog({
 
   const getDefaultMessage = () => {
     const roomNum = room?.room_number || 'N/A';
-    const amount = (payment.total_amount || 0).toLocaleString();
-    const dueDate = payment.due_date ? format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A';
+    const buildingName = (() => {
+      if (!configs || !selectedBranchId) return 'W RESIDENTS';
+      const branchConfig = configs.find(c => c.key === 'building_name' && c.branch_id === selectedBranchId);
+      if (branchConfig) return branchConfig.value;
+      const globalConfig = configs.find(c => c.key === 'building_name' && !c.branch_id);
+      return globalConfig?.value || 'W RESIDENTS';
+    })();
+    const bankName = (() => {
+      if (!configs || !selectedBranchId) return 'กสิกร';
+      const branchConfig = configs.find(c => c.key === 'bank_name' && c.branch_id === selectedBranchId);
+      if (branchConfig) return branchConfig.value;
+      const globalConfig = configs.find(c => c.key === 'bank_name' && !c.branch_id);
+      return globalConfig?.value || 'กสิกร';
+    })();
+    const bankAccountNumber = (() => {
+      if (!configs || !selectedBranchId) return '0722835522';
+      const branchConfig = configs.find(c => c.key === 'bank_account_number' && c.branch_id === selectedBranchId);
+      if (branchConfig) return branchConfig.value;
+      const globalConfig = configs.find(c => c.key === 'bank_account_number' && !c.branch_id);
+      return globalConfig?.value || '0722835522';
+    })();
+    const bankAccountName = (() => {
+      if (!configs || !selectedBranchId) return 'ธนานนท์ พรมพักตร์';
+      const branchConfig = configs.find(c => c.key === 'bank_account_name' && c.branch_id === selectedBranchId);
+      if (branchConfig) return branchConfig.value;
+      const globalConfig = configs.find(c => c.key === 'bank_account_name' && !c.branch_id);
+      return globalConfig?.value || 'ธนานนท์ พรมพักตร์';
+    })();
     
-    // คำนวณวันที่ครบกำหนด
-    const dueDateObj = payment.due_date ? parseISO(payment.due_date) : null;
-    const dueDateDay = dueDateObj ? dueDateObj.getDate() : null;
+    const lateFeeAmount = lateFee || 0;
+    const originalAmount = (payment.total_amount || 0) - lateFeeAmount;
+    const totalAmount = payment.total_amount || 0;
 
-    // สร้างข้อความค่าปรับแบบระบุวันที่จริง
-    let tierText = '';
-    if (tiersEnabled && configs && dueDateDay) {
-      const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === selectedBranchId);
-      const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
-      const tiersConfig = branchTiersConfig || globalTiersConfig;
-      
-      if (tiersConfig?.value) {
-        try {
-          const tiers = JSON.parse(tiersConfig.value);
-          tierText = '\n\n⚠️ อัตราค่าปรับล่าช้า:\n' + tiers.map((tier, idx) => {
-            const startDay = dueDateDay + tier.days_from;
-            const isLastTier = idx === tiers.length - 1;
-            
-            let dateRange;
-            if (isLastTier || !tier.days_to) {
-              dateRange = `วันที่ ${startDay} เป็นต้นไป`;
-            } else {
-              const endDay = dueDateDay + tier.days_to;
-              dateRange = `วันที่ ${startDay}-${endDay}`;
-            }
-            return `• ${dateRange}: ${tier.fee_per_day} บาท/วัน`;
-          }).join('\n');
-        } catch (e) {
-          // ไม่แสดงถ้า parse ไม่ได้
-        }
+    if (selectedTemplate === 'overdue') {
+      let message = `แจ้งเตือนค่าเช่าเกินกำหนด\n\n`;
+      message += `${buildingName}\n`;
+      message += `คุณ ${tenant?.full_name} ห้อง ${roomNum}\n`;
+      message += `ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
+      if (lateFeeAmount > 0) {
+        message += `\nค่าปรับล่าช้า: ${lateFeeAmount.toLocaleString()} บาท`;
       }
-    }
-
-    if (selectedTemplate === 'advance') {
-      return `สวัสดีค่ะ 😊\n\nขอแจ้งเตือนค่าเช่าห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท\n📅 ครบกำหนดชำระ: ${dueDate}${tierText ? tierText + '\n' : '\n'}\nกรุณาเตรียมชำระภายในกำหนดนะคะ 🙏`;
-    } else if (selectedTemplate === 'overdue') {
-      const lateFeeText = lateFee > 0 ? `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท${tiersEnabled ? ' (ขั้นบันได)' : ''}\n💵 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท` : '';
-      return `เรียนคุณผู้เช่า 🙏\n\n🔴 แจ้งเตือนเกินกำหนดชำระ\nห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท${lateFeeText}\n⏰ เกินกำหนดมาแล้ว: ${daysOverdue} วัน${tierText}\n\nกรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}`;
+      message += `\nรวมทั้งสิ้น: ${totalAmount.toLocaleString()} บาท`;
+      message += `\nเกินกำหนดมาแล้ว ${daysOverdue} วัน\n\n`;
+      message += `กรุณาชำระโดยด่วน${lateFeeAmount > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
+      message += `โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
+      message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
+      return message;
     } else {
-      return `สวัสดีค่ะ 😊\n\n📅 ถึงกำหนดชำระค่าเช่าแล้ว\nห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท\n📅 ครบกำหนด: ${dueDate}${tierText}\n\nกรุณาชำระภายในวันนี้นะคะ 🙏`;
+      // ข้อความปกติ (advance/due_date) - ยังคงเดิม
+      const amount = totalAmount.toLocaleString();
+      const dueDate = payment.due_date ? format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A';
+      
+      if (selectedTemplate === 'advance') {
+        return `สวัสดีคะ\n\nขอแจ้งเตือนค่าเช่าห้อง ${roomNum}\nยอดเงิน: ${amount} บาท\nครบกำหนดชำระ: ${dueDate}\n\nกรุณาเตรียมชำระภายในกำหนดนะคะ`;
+      } else {
+        return `ถึงกำหนดชำระค่าเช่าแล้ว\nห้อง ${roomNum}\nยอดเงิน: ${amount} บาท\nครบกำหนด: ${dueDate}\n\nกรุณาชำระภายในวันนี้นะคะ`;
+      }
     }
   };
 
