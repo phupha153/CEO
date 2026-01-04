@@ -79,26 +79,34 @@ export default function Announcements() {
     enabled: !!selectedBranchId,
   });
 
-  const { data: rooms = [] } = useQuery({
+  const { data: rooms = [], refetch: refetchRooms } = useQuery({
     queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
+      console.log('🔄 Fetching rooms for branch:', selectedBranchId);
       const allRooms = await base44.entities.Room.list();
-      return allRooms.filter(room => room.branch_id === selectedBranchId);
+      const result = allRooms.filter(room => room.branch_id === selectedBranchId);
+      console.log('✅ Loaded rooms:', result.length);
+      return result;
     },
-    staleTime: 30 * 1000, // 30 วินาที
+    staleTime: 30 * 1000,
     refetchOnWindowFocus: false,
+    enabled: !!selectedBranchId,
   });
 
-  const { data: bookings = [] } = useQuery({
+  const { data: bookings = [], refetch: refetchBookings } = useQuery({
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
+      console.log('🔄 Fetching bookings for branch:', selectedBranchId);
       const allBookings = await base44.entities.Booking.list();
-      return allBookings.filter(b => b.branch_id === selectedBranchId);
+      const result = allBookings.filter(b => b.branch_id === selectedBranchId);
+      console.log('✅ Loaded bookings:', result.length);
+      return result;
     },
-    staleTime: 30 * 1000, // 30 วินาที
+    staleTime: 30 * 1000,
     refetchOnWindowFocus: false,
+    enabled: !!selectedBranchId,
   });
 
   // สร้าง Map ของ tenant โดย line_user_id และ facebook_user_id
@@ -315,13 +323,19 @@ export default function Announcements() {
     setSelectedConversation(null);
   }, [selectedBranchId]);
 
-  // ⭐ Refetch tenants เมื่อเปลี่ยนไปที่ tab chat
+  // ⭐ Refetch ทั้ง tenants, rooms, bookings เมื่อเปลี่ยนไปที่ tab chat
   useEffect(() => {
     if (activeTab === 'chat') {
-      console.log('🔄 Switched to chat tab - refetching tenants...');
-      refetchTenants();
+      console.log('🔄 Switched to chat tab - refetching all data...');
+      Promise.all([
+        refetchTenants(),
+        refetchRooms(),
+        refetchBookings()
+      ]).then(() => {
+        console.log('✅ All data refetched for chat');
+      });
     }
-  }, [activeTab, refetchTenants]);
+  }, [activeTab, refetchTenants, refetchRooms, refetchBookings]);
 
   // ส่งข้อความตอบกลับใน chat
   const handleSendChatMessage = async (content) => {
