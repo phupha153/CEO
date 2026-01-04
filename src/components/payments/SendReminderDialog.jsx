@@ -48,17 +48,17 @@ export default function SendReminderDialog({
   const templates = [
     {
       id: 'advance',
-      name: '📢 แจ้งเตือนล่วงหน้า',
+      name: 'แจ้งเตือนล่วงหน้า',
       color: 'from-purple-500 to-indigo-500',
     },
     {
       id: 'due_date',
-      name: '📅 ครบกำหนด',
+      name: 'ครบกำหนด',
       color: 'from-blue-500 to-cyan-500',
     },
     {
       id: 'overdue',
-      name: '🔴 เกินกำหนด',
+      name: 'เกินกำหนด',
       color: 'from-red-500 to-orange-500',
     }
   ];
@@ -210,7 +210,7 @@ export default function SendReminderDialog({
                     
                     return (
                       <div className="mt-2 space-y-1">
-                        <p className="text-xs font-semibold text-red-800">⚠️ อัตราค่าปรับ:</p>
+                        <p className="text-xs font-semibold text-red-800">อัตราค่าปรับ:</p>
                         {tiers.map((tier, idx) => {
                           const startDay = dueDateDay + tier.days_from;
                           const isLastTier = idx === tiers.length - 1;
@@ -251,7 +251,7 @@ export default function SendReminderDialog({
             className="bg-white border-slate-200 resize-none"
             placeholder="แก้ไขข้อความได้ตามต้องการ..."
           />
-          <p className="text-xs text-slate-500">💡 สามารถแก้ไขข้อความได้ตามต้องการ</p>
+          <p className="text-xs text-slate-500">สามารถแก้ไขข้อความได้ตามต้องการ</p>
         </div>
 
         {/* Actions */}
