@@ -3770,8 +3770,11 @@ export default function Settings() {
                           // กรองเฉพาะผู้ใช้ที่มีสิทธิ์ในสาขาที่เลือกอยู่
                           if (selectedBranch) {
                             const userBranches = user.accessible_branches || [];
-                            // ถ้าผู้ใช้คนนี้ไม่มีสิทธิ์ในสาขาที่เลือก = ไม่แสดง
-                            if (!userBranches.includes(selectedBranch.id)) return false;
+                            const branch = branches.find(b => b.id === selectedBranch.id);
+                            const isOwner = branch && (user.email === branch.owner_id || user.email === branch.created_by);
+                            
+                            // แสดงถ้า: เป็น owner ของสาขา หรือ อยู่ใน accessible_branches
+                            if (!isOwner && !userBranches.includes(selectedBranch.id)) return false;
                           }
                           
                           return true;
@@ -3915,9 +3918,13 @@ export default function Settings() {
                       {users.filter(user => {
                         const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
                         if (userRole === 'owner' && role === 'developer') return false;
+                        
                         if (selectedBranch) {
                           const userBranches = user.accessible_branches || [];
-                          if (!userBranches.includes(selectedBranch.id)) return false;
+                          const branch = branches.find(b => b.id === selectedBranch.id);
+                          const isOwner = branch && (user.email === branch.owner_id || user.email === branch.created_by);
+                          
+                          if (!isOwner && !userBranches.includes(selectedBranch.id)) return false;
                         }
                         return true;
                       }).length === 0 && (
