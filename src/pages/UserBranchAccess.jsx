@@ -48,6 +48,13 @@ export default function UserBranchAccess() {
 
   const userRole = React.useMemo(() => currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee'), [currentUser]);
   const isDeveloper = userRole === 'developer';
+
+  // ⭐ เฉพาะ Developer เท่านั้นที่เข้าถึงหน้านี้ได้
+  useEffect(() => {
+    if (!userLoading && currentUser && !isDeveloper) {
+      navigate(createPageUrl('Dashboard'), { replace: true });
+    }
+  }, [userLoading, currentUser, isDeveloper, navigate]);
   // Developer เห็นทุกสาขา (ไม่สนใจ accessible_branches)
   const userAccessibleBranches = React.useMemo(() => {
     return currentUser?.accessible_branches || [];
