@@ -693,11 +693,30 @@ export default function Announcements() {
                     onSendMessage={handleSendChatMessage}
                     onRefresh={async () => {
                       console.log('🔄 Announcements: Starting refresh...');
-                      // ⭐ refetch ทันที
+
+                      // ⭐ Refetch tenants และรอให้เสร็จ
                       await refetchTenants();
+
+                      // ⭐ Force invalidate และรอให้ reload จริงๆ
+                      await queryClient.invalidateQueries(['tenants', selectedBranchId]);
+
+                      // ⭐ รอให้ cache อัปเดต
+                      await new Promise(r => setTimeout(r, 300));
+
                       console.log('✅ Announcements: Tenants refetched, count:', tenants.length);
-                      // Force re-render by updating query cache
-                      queryClient.invalidateQueries(['tenants', selectedBranchId]);
+
+                      // ⭐ บังคับให้ re-select conversation เพื่อ lookup tenant ใหม่
+                      if (selectedConversation) {
+                        const conversationKey = selectedConversation.line_user_id || selectedConversation.facebook_user_id;
+                        const updatedConv = conversations.find(c => 
+                          c.line_user_id === conversationKey || c.facebook_user_id === conversationKey
+                        );
+
+                        if (updatedConv) {
+                          console.log('🔄 Re-selecting conversation to update tenant reference');
+                          setSelectedConversation({...updatedConv});
+                        }
+                      }
                     }}
                     onLinkTenant={async (lineUserId, tenantId) => {
                     // ตอนนี้ส่ง tenantId มาตรงๆ แล้ว (ไม่ใช่ roomId)
