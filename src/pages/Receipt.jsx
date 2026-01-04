@@ -683,7 +683,7 @@ export default function Receipt() {
                   )}
                 </div>
                 <p className="text-xs text-slate-600">
-                  ผู้รับเงิน: {receiptData.recipient?.receiver_name || receiptData.recipient?.lessor_name || receiptData.recipient?.building_name || '________________'}
+                  ผู้รับเงิน: {receiptData.recipient?.lessor_name || receiptData.recipient?.building_name || '________________'}
                 </p>
               </div>
             </div>
