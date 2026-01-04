@@ -460,16 +460,19 @@ export default function ChatWindow({
 
                       setLinking(true);
                       try {
+                        console.log('🔓 Unlinking tenant:', tenant.id, 'from', platform);
+
                         // อัพเดท tenant โดยลบ line_user_id หรือ facebook_user_id
                         const updateData = conversation.facebook_user_id 
                           ? { facebook_user_id: null }
                           : { line_user_id: null };
-                        
+
                         await base44.entities.Tenant.update(tenant.id, updateData);
                         toast.success(`ยกเลิกการเชื่อมต่อ ${platform} สำเร็จ`);
                         setShowProfile(false);
-                        
-                        // ⭐ Refresh เฉพาะ tenants
+
+                        console.log('✅ Unlinked - refreshing data...');
+                        // ⭐ Refresh ทุกอย่างเพื่อให้ UI อัพเดท
                         if (onRefresh) await onRefresh();
                       } catch (err) {
                         console.error('Unlink error:', err);

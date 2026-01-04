@@ -731,60 +731,20 @@ export default function Announcements() {
                   bookings={bookings}
                   onSendMessage={handleSendChatMessage}
                   onRefresh={async () => {
-                    console.log('🔄 ChatWindow refresh triggered');
-                    await refetchTenants();
-                    console.log('✅ Tenants refetched, new count:', tenants.length);
+                    console.log('🔄 ChatWindow refresh triggered - refetching all data...');
+                    await Promise.all([
+                      refetchTenants(),
+                      queryClient.invalidateQueries(['lineMessages', selectedBranchId]),
+                      queryClient.invalidateQueries(['facebookMessages', selectedBranchId])
+                    ]);
+                    console.log('✅ All data refetched');
                   }}
                   onLinkTenant={async (lineUserId, tenantId) => {
-                    // ตอนนี้ส่ง tenantId มาตรงๆ แล้ว (ไม่ใช่ roomId)
-                    const targetTenant = tenants.find(t => t.id === tenantId);
-                    if (!targetTenant) {
-                      toast.error('ไม่พบผู้เช่า');
-                      return;
-                    }
-
-                    // อัพเดท tenant ด้วย line_user_id
-                    await base44.entities.Tenant.update(targetTenant.id, {
-                      line_user_id: lineUserId
-                    });
-
-                    toast.success(`เชื่อมต่อ LINE กับ ${targetTenant.full_name} สำเร็จ`);
-                    await refetchTenants();
-                    queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
+                    // ไม่ได้ใช้แล้ว - logic ถูกย้ายไป ChatWindow
                   }}
                   onUnlinkTenant={async (tenantId) => {
-                    try {
-                      console.log('Unlinking tenant:', tenantId);
-                      await base44.entities.Tenant.update(tenantId, {
-                        line_user_id: null
-                      });
-                      
-                      // ⭐ เคลียร์ selectedConversation ทันทีเพื่อบังคับ re-render
-                      const currentLineUserId = selectedConversation?.line_user_id;
-                      setSelectedConversation(null);
-                      
-                      // Refetch ทันทีเพื่อ update UI
-                      await refetchTenants();
-                      await queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
-                      await queryClient.refetchQueries(['tenants', selectedBranchId]);
-                      
-                      // ⭐ เลือก conversation กลับมาใหม่ (ถ้ายังมี) เพื่อให้ tenant เป็น null
-                      if (currentLineUserId) {
-                        // รอให้ data อัปเดตก่อน
-                        setTimeout(() => {
-                          const updatedConv = conversations.find(c => c.line_user_id === currentLineUserId);
-                          if (updatedConv) {
-                            setSelectedConversation({...updatedConv, tenant_id: null});
-                          }
-                        }, 500);
-                      }
-                      
-                      toast.success('ยกเลิกการเชื่อมต่อ LINE สำเร็จ');
-                    } catch (error) {
-                      console.error('Unlink error:', error);
-                      toast.error('ยกเลิกการเชื่อมต่อไม่สำเร็จ: ' + error.message);
-                      }
-                      }}
+                    // ไม่ได้ใช้แล้ว - logic ถูกย้ายไป ChatWindow
+                  }}
                       loading={messagesLoading}
                       />
                       )}
