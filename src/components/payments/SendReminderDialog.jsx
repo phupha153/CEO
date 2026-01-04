@@ -101,11 +101,21 @@ export default function SendReminderDialog({
       }
     }
 
+    // ⭐ ดึงข้อมูลธนาคารจาก Config
+    const branchBankName = configs?.find(c => c.key === 'bank_name' && c.branch_id === selectedBranchId)?.value ||
+                           configs?.find(c => c.key === 'bank_name' && !c.branch_id)?.value || 'กสิกรไทย';
+    const branchBankAccount = configs?.find(c => c.key === 'bank_account_number' && c.branch_id === selectedBranchId)?.value ||
+                              configs?.find(c => c.key === 'bank_account_number' && !c.branch_id)?.value || '0722835522';
+    const branchBankAccountName = configs?.find(c => c.key === 'bank_account_name' && c.branch_id === selectedBranchId)?.value ||
+                                  configs?.find(c => c.key === 'bank_account_name' && !c.branch_id)?.value || 'ธนานนท์ พรมพักตร์';
+    const branchBuildingName = configs?.find(c => c.key === 'building_name' && c.branch_id === selectedBranchId)?.value ||
+                               configs?.find(c => c.key === 'building_name' && !c.branch_id)?.value || 'W RESIDENTS';
+
     if (selectedTemplate === 'advance') {
       return `สวัสดีค่ะ 😊\n\nขอแจ้งเตือนค่าเช่าห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท\n📅 ครบกำหนดชำระ: ${dueDate}${tierText ? tierText + '\n' : '\n'}\nกรุณาเตรียมชำระภายในกำหนดนะคะ 🙏`;
     } else if (selectedTemplate === 'overdue') {
-      const lateFeeText = lateFee > 0 ? `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท${tiersEnabled ? ' (ขั้นบันได)' : ''}\n💵 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท` : '';
-      return `เรียนคุณผู้เช่า 🙏\n\n🔴 แจ้งเตือนเกินกำหนดชำระ\nห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท${lateFeeText}\n⏰ เกินกำหนดมาแล้ว: ${daysOverdue} วัน${tierText}\n\nกรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}`;
+      const lateFeeText = lateFee > 0 ? `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท${tiersEnabled ? ' (ขั้นบันได)' : ''}\n💰 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท` : '';
+      return `🔴 แจ้งเตือนเกินกำหนดชำระ\n\n${branchBuildingName}\nคุณ ${tenant?.full_name || 'N/A'} ห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท${lateFeeText}\n⏰ เกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\nกรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccount}\nชื่อบัญชี: ${branchBankAccountName}\n\nกรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
     } else {
       return `สวัสดีค่ะ 😊\n\n📅 ถึงกำหนดชำระค่าเช่าแล้ว\nห้อง ${roomNum}\n💰 ยอดเงิน: ${amount} บาท\n📅 ครบกำหนด: ${dueDate}${tierText}\n\nกรุณาชำระภายในวันนี้นะคะ 🙏`;
     }
