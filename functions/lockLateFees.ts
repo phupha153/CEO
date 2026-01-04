@@ -32,6 +32,24 @@ Deno.serve(async (req) => {
         for (const branch of allBranches) {
             console.log(`\n📍 Processing branch: ${branch.branch_name} (${branch.id.substring(0, 12)}...)`);
 
+            // ⭐ ตรวจสอบสถานะแพ็กเกจของเจ้าของสาขา
+            let branchOwnerStatus = null;
+            try {
+                const ownerUser = await base44.asServiceRole.entities.User.filter({ email: branch.owner_id });
+                if (ownerUser && ownerUser.length > 0) {
+                    branchOwnerStatus = ownerUser[0].plan_status;
+                    console.log(`  👤 Owner status: ${branchOwnerStatus}`);
+                }
+            } catch (e) {
+                console.warn(`  ⚠️ Could not check owner status: ${e.message}`);
+            }
+
+            // ⭐ ข้าม branch ถ้าเจ้าของหมดอายุ
+            if (branchOwnerStatus && branchOwnerStatus !== 'active' && branchOwnerStatus !== 'trial') {
+                console.log(`  ⏭️ SKIP: Branch owner expired (status: ${branchOwnerStatus})`);
+                continue;
+            }
+
             const branchResult = {
                 branch_id: branch.id,
                 branch_name: branch.branch_name,
@@ -42,49 +60,26 @@ Deno.serve(async (req) => {
             };
 
             try {
-                // ดึงบิลที่ยังไม่ชำระครบและเกินกำหนดของสาขานี้ (batch 500)
-                let allBranchPayments = [];
-                let skip = 0;
-                const batchSize = 500;
-                let hasMore = true;
-
-                while (hasMore) {
-                    console.log(`  📦 Fetching batch: skip=${skip}, limit=${batchSize}`);
-                    
-                    // ใช้ filter แทน list เพื่อระบุเงื่อนไข
-                    const payments = await base44.asServiceRole.entities.Payment.filter(
-                        { branch_id: branch.id },
-                        '-created_date',
-                        batchSize
-                    );
-
-                    if (!payments || payments.length === 0) {
-                        hasMore = false;
-                        break;
+                // ดึงบิลที่ยังไม่ชำระครบของสาขานี้
+                console.log(`  📦 Fetching payments for branch...`);
+                
+                const allPayments = await base44.asServiceRole.entities.Payment.filter(
+                    { 
+                        branch_id: branch.id
                     }
+                );
 
-                    // Filter เฉพาะบิลที่ยังไม่ชำระครบและมี due_date
-                    const branchPayments = payments.filter(p => 
-                        p.status !== 'paid' &&
-                        p.due_date
-                    );
-                    
-                    allBranchPayments.push(...branchPayments);
+                // Filter เฉพาะบิลที่ยังไม่ชำระครบและมี due_date
+                const unpaidPayments = allPayments.filter(p => 
+                    p.status !== 'paid' && p.due_date
+                );
 
-                    // หยุดถ้าได้ครบแล้ว
-                    if (payments.length < batchSize) {
-                        hasMore = false;
-                    } else {
-                        skip += batchSize;
-                    }
-                }
-
-                console.log(`  🔍 Total unpaid payments for branch: ${allBranchPayments.length}`);
+                console.log(`  🔍 Found ${unpaidPayments.length} unpaid payments`);
 
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
 
-                for (const payment of allBranchPayments) {
+                for (const payment of unpaidPayments) {
                         branchResult.processed++;
 
                         try {
