@@ -410,7 +410,7 @@ Deno.serve(async (req) => {
                     message += `\n⏰ เกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
                     message += `กรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
                     message += `💳 โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
-                    message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
+                    message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
 
                 } else if (template === 'due_date') {
                     // --- CASE 2: ครบกำหนด (ไม่มีลิงก์) ---
@@ -444,7 +444,7 @@ Deno.serve(async (req) => {
                     message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
 
                 } else {
-                    // --- CASE 3: ปกติ (Advance/General) - มีลิงก์ ---
+                    // --- CASE 3: ปกติ (Advance/General) - มีลิงก์ + ธนาคาร ---
                     const frontendUrl = Deno.env.get('FRONTEND_URL');
                     const invoiceLink = frontendUrl ? `${frontendUrl}/publicinvoice?id=${payment.id}` : null;
 
