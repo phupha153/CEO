@@ -137,21 +137,6 @@ export default function BranchSelection() {
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   
-  console.log('🔍 BranchSelection Debug:', {
-    userRole,
-    isDeveloper: userRole === 'developer',
-    isOwner: userRole === 'owner',
-    canSeeBranchManagementButton: userRole === 'developer' || userRole === 'owner',
-    currentUser: currentUser?.email,
-    customRole: currentUser?.custom_role,
-    role: currentUser?.role,
-    hasAccessibleBranchesSet,
-    accessibleBranches: userAccessibleBranches,
-    filteredBranchesCount: filteredBranches.length,
-    totalBranchesCount: branches.length,
-    ownedBranches: branches.filter(b => b.owner_id === currentUser?.email).length
-  });
-  
   // ⭐ Security Fix: กรองสาขาตามสิทธิ์
   const userAccessibleBranches = currentUser?.accessible_branches;
   const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
@@ -178,6 +163,21 @@ export default function BranchSelection() {
     // Employee/Manager ที่ไม่มี accessible_branches = ไม่เห็นสาขาใดเลย
     return [];
   }, [branches, userRole, hasAccessibleBranchesSet, userAccessibleBranches, currentUser?.email]);
+
+  console.log('🔍 BranchSelection Debug:', {
+    userRole,
+    isDeveloper: userRole === 'developer',
+    isOwner: userRole === 'owner',
+    canSeeBranchManagementButton: userRole === 'developer' || userRole === 'owner',
+    currentUser: currentUser?.email,
+    customRole: currentUser?.custom_role,
+    role: currentUser?.role,
+    hasAccessibleBranchesSet,
+    accessibleBranches: userAccessibleBranches,
+    filteredBranchesCount: filteredBranches.length,
+    totalBranchesCount: branches.length,
+    ownedBranches: branches.filter(b => b.owner_id === currentUser?.email).length
+  });
 
   const { data: crmPackages } = useQuery({
     queryKey: ['crmPackages'],
