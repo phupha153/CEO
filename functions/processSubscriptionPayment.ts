@@ -635,49 +635,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ⭐⭐⭐ ส่งข้อมูลไปยัง CRM ผ่าน sendSubscriptionToCRM function
-    try {
-      console.log('📤 Sending subscription data to CRM...');
-      
-      const crmPayload = {
-        customer_email: user_email || user.email,
-        customer_name: user_name || user.full_name,
-        package_id: package_id,
-        package_name: package_name,
-        subscription_start_date: startDate.toISOString().split('T')[0],
-        subscription_end_date: endDate.toISOString().split('T')[0],
-        duration_months: parseInt(duration_months),
-        price_per_month: parseFloat(price_per_month),
-        total_amount: parseFloat(total_amount),
-        original_amount: original_amount ? parseFloat(original_amount) : parseFloat(total_amount),
-        discount_code: discount_code || null,
-        discount_amount: discount_amount ? parseFloat(discount_amount) : 0,
-        verified_amount: slipAmount,
-        payment_date: new Date().toISOString().split('T')[0],
-        slip_url: slip_url,
-        sender_name: senderName,
-        sender_account: senderAccount,
-        receiver_account: receiverAccount || receiverProxyAccount,
-        receiver_name: receiverName,
-        app_mode: appMode,
-        branch_ids: (appMode === 'multi_tenant' && targetBranchIds) ? targetBranchIds : null,
-        branch_id: branch_id || null,
-        test_mode: testModeEnabled
-      };
-
-      console.log('📤 CRM Payload:', JSON.stringify(crmPayload, null, 2));
-
-      const crmResponse = await base44.asServiceRole.functions.invoke('sendSubscriptionToCRM', crmPayload);
-      
-      if (crmResponse.data?.success) {
-        console.log('✅ CRM notified successfully');
-      } else {
-        console.warn('⚠️ CRM notification failed:', crmResponse.data?.error || 'Unknown error');
-      }
-    } catch (crmError) {
-      console.error('❌ CRM notification error:', crmError.message);
-      // ไม่ block การทำงานหลัก ถ้า CRM fail
-    }
+    // ⭐ ปิดการส่งข้อมูลไป CRM
 
     try {
       if (user.line_user_id) {
