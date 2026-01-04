@@ -2050,7 +2050,9 @@ ${JSON.stringify(bookingsData, null, 2)}
   };
 
   const toggleSelectAllInPage = () => {
-    const pagePaymentIds = paginatedPayments.map(p => p.id);
+    // ⭐ รองรับทุก view mode
+    const currentViewPayments = viewMode === 'room' ? roomViewPayments : paginatedPayments;
+    const pagePaymentIds = currentViewPayments.map(p => p.id);
     const allSelectedOnPage = pagePaymentIds.every(id => selectedPaymentIds.includes(id));
 
     if (allSelectedOnPage) {
