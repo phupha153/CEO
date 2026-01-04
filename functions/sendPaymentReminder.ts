@@ -100,6 +100,7 @@ async function getLineToken(base44, branchId = null) {
     }
 }
 
+// ⭐ V2.1 - Fixed: Invoice links removed from overdue/due_date templates
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
