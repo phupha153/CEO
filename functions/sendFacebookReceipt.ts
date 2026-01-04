@@ -275,16 +275,16 @@ Deno.serve(async (req) => {
             day: 'numeric'
         }) : '-';
 
-        let message = `🏠 ${config.buildingName}\n`;
+        let message = `${config.buildingName}\n`;
         message += `ใบเสร็จรับเงิน\n\n`;
         message += `━━━━━━━━━━━━━━━━━━━━\n`;
         message += `เลขที่: REC-${payment.id.slice(0, 8).toUpperCase()}\n`;
         message += `วันที่: ${paymentDateText}\n`;
         message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-        message += `👤 ผู้เช่า: ${tenant.full_name}\n`;
-        message += `🏠 ห้อง: ${room?.room_number || 'N/A'}\n`;
-        message += `📱 เบอร์: ${tenant.phone}\n\n`;
-        message += `📋 รายการ:\n`;
+        message += `ผู้เช่า: ${tenant.full_name}\n`;
+        message += `ห้อง: ${room?.room_number || 'N/A'}\n`;
+        message += `เบอร์: ${tenant.phone}\n\n`;
+        message += `รายการ:\n`;
         
         if (payment.rent_amount > 0) {
             message += `  ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
@@ -309,13 +309,12 @@ Deno.serve(async (req) => {
         }
         
         message += `\n━━━━━━━━━━━━━━━━━━━━\n`;
-        message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
+        message += `รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
         message += `(${numberToThaiText(payment.total_amount)})\n`;
         message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-        message += `✅ ชำระเงินเรียบร้อยแล้ว\n\n`;
+        message += `ชำระเงินเรียบร้อยแล้ว\n\n`;
         message += `ขอบคุณที่ชำระเงินตรงเวลา\n`;
         message += `ผู้รับเงิน: ${config.lessorName}\n\n`;
-        message += `📄 ดูใบเสร็จรูปภาพ:\n${payment.receipt_image_url}\n\n`;
         message += `เอกสารนี้สร้างโดยระบบอัตโนมัติ\nกรุณาเก็บใบเสร็จนี้ไว้เป็นหลักฐาน`;
 
         console.log('📤 Sending Facebook message to:', tenant.facebook_user_id);
