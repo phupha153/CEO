@@ -390,14 +390,12 @@ export default function PublicInvoice() {
                       <p className="font-medium text-slate-800">{invoiceData.recipient.company_name}</p>
                       {invoiceData.recipient.tax_id && <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.tax_id}</p>}
                       <p>{invoiceData.recipient?.company_address || invoiceData.recipient?.building_address}</p>
-                      {invoiceData.recipient?.company_phone && <p>เบอร์ติดต่อ: {invoiceData.recipient.company_phone}</p>}
                     </>
                   ) : (
                     <>
                       <p className="font-medium text-slate-800">{invoiceData.recipient?.lessor_name || invoiceData.recipient?.building_name}</p>
                       {invoiceData.recipient?.lessor_id && <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.lessor_id}</p>}
                       <p>{invoiceData.recipient?.lessor_address || invoiceData.recipient?.building_address}</p>
-                      {invoiceData.recipient?.building_phone && <p>เบอร์ติดต่อ: {invoiceData.recipient.building_phone}</p>}
                     </>
                   )}
                 </div>
