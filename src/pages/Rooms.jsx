@@ -1713,37 +1713,13 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             <CardContent className="p-2.5 md:p-3.5 space-y-1.5 md:space-y-2.5 relative">
               <div className="flex gap-2 items-start">
                 <div className="flex-1">
-                  {userRole === 'developer' ? (
-                    <AISearchBox
-                      searchQuery={searchQuery}
-                      onSearchChange={setSearchQuery}
-                      onAISearch={handleAISearch}
-                      aiSearching={aiSearching}
-                      placeholder="ค้นหาห้อง หรือถามเช่น 'ห้องว่างชั้น 5' 'ห้องที่มีแอร์' 'ห้องราคาถูกที่สุด'"
-                    />
-                  ) : (
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400 pointer-events-none z-10" />
-                      <Input
-                        type="text"
-                        placeholder="ค้นหาห้อง..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 md:pl-12 h-9 md:h-12 rounded-xl md:rounded-2xl bg-white border-slate-200 shadow-sm text-sm md:text-base"
-                      />
-                      {searchQuery && (
-                        <Button
-                          type="button"
-                          onClick={() => setSearchQuery('')}
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 md:h-8 md:w-8 hover:bg-slate-100 rounded-lg"
-                        >
-                          <X className="w-3 h-3 md:w-4 md:h-4 text-slate-500" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
+                  <AISearchBox
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    onAISearch={handleAISearch}
+                    aiSearching={aiSearching}
+                    placeholder="ค้นหาห้อง หรือถามเช่น 'ห้องว่างชั้น 5' 'ห้องที่มีแอร์' 'ห้องราคาถูกที่สุด'"
+                  />
                 </div>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -1915,7 +1891,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 </Popover>
               </div>
 
-              {userRole === 'developer' && aiAction && (
+              {aiAction && (
                 <AIActionConfirmation
                   action={aiAction}
                   onConfirm={handleConfirmAIAction}
@@ -1929,7 +1905,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 />
               )}
 
-              {userRole === 'developer' && aiResult && !aiAction && (
+              {aiResult && !aiAction && (
                 <AIResultCard aiResult={aiResult}>
                   {/* แสดงห้องที่จะถูกแก้ไข (กรณี update) */}
 ...
@@ -3208,9 +3184,9 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             </DialogContent>
           </Dialog>
 
-          {/* Floating Bulk AI Action Bar - เฉพาะ Developer */}
+          {/* Floating Bulk AI Action Bar */}
           <AnimatePresence>
-            {userRole === 'developer' && selectedRooms.length > 0 && (
+            {selectedRooms.length > 0 && (
               <motion.div
                 initial={{ y: 100, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
