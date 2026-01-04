@@ -472,31 +472,9 @@ Deno.serve(async (req) => {
 
                     message += `โอนเงินได้ที่: ${bankName} ${bankAccountNumber} (${bankAccountName})\n\n`;
                 }
-            }
-
-            // ⭐ สร้างลิงก์ Public Invoice/Receipt
-            const frontendUrl = getConfigValue('frontend_url', branchId) || Deno.env.get('FRONTEND_URL');
-
-            if (frontendUrl) {
-                let documentLink = '';
-                
-                if (payment.status === 'paid') {
-                    documentLink = `${frontendUrl}/publicreceipt?id=${payment.id}`;
-                    console.log(`📄 Receipt link: ${documentLink}`);
-                } else {
-                    documentLink = `${frontendUrl}/publicinvoice?id=${payment.id}`;
-                    console.log(`📄 Invoice link: ${documentLink}`);
                 }
 
-                // ⭐ ส่งลิงก์เฉพาะ template ปกติ (ไม่ใช่ due_date หรือ overdue)
-                if (template !== 'due_date' && template !== 'overdue') {
-                    message += `\n\nดูเอกสาร: ${documentLink}`;
-                    message += `\n\nกรุณาส่งหลักฐานการโอนหลังชำระเงิน\n`;
-                    message += `ขอบคุณครับ`;
-                }
-            }
-
-            recipients.push({
+                recipients.push({
                 lineUserId: tenant.line_user_id || null,
                 facebookUserId: tenant.facebook_user_id || null,
                 message: message,
