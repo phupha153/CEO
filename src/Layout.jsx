@@ -537,14 +537,27 @@ export default function Layout({ children, currentPageName }) {
         // ⭐ Sync role จาก CRM (ถ้ามี role ส่งกลับมา)
         if (data.hasAccess && data.role && currentUser) {
           const currentRole = currentUser.custom_role || (currentUser.role === 'admin' ? 'owner' : 'employee');
+          console.log('🔄 Role Sync Check:', {
+            email: currentUser.email,
+            currentRole,
+            crmRole: data.role,
+            needsUpdate: currentRole !== data.role
+          });
+          
           if (currentRole !== data.role) {
             try {
+              console.log('⚡ Updating role from', currentRole, 'to', data.role);
               await base44.entities.User.update(currentUser.id, { custom_role: data.role });
               console.log('✅ Synced role from CRM:', data.role);
-              queryClient.invalidateQueries(['currentUser']);
+              
+              // ⭐ Force refetch user data
+              await queryClient.invalidateQueries(['currentUser']);
+              await queryClient.refetchQueries(['currentUser']);
             } catch (error) {
-              console.error('Failed to sync role from CRM:', error);
+              console.error('❌ Failed to sync role from CRM:', error);
             }
+          } else {
+            console.log('✓ Role already matches - no update needed');
           }
         }
 
