@@ -943,18 +943,12 @@ export default function PaymentsPage() {
     [filteredPayments, getEffectiveStatus]
   );
 
-  const tenantsWithLine = useMemo(() => {
-    if (!allPaymentsForCounting || allPaymentsForCounting.length === 0) return 0;
-    
-    return allPaymentsForCounting.filter(p => {
-      const status = getEffectiveStatus(p);
-      if (status !== 'pending' && status !== 'overdue') return false;
-      if (p.bill_sent_date) return false;
-      
-      const tenant = tenantsMap.get(p.tenant_id);
-      return tenant && (tenant.line_user_id || tenant.facebook_user_id);
-    }).length;
-  }, [allPaymentsForCounting, tenantsMap, getEffectiveStatus]);
+  const tenantsWithLine = useMemo(() => 
+    pendingOverduePayments.filter(p => 
+      (p.tenant_line_user_id || p.tenant_facebook_user_id) && !p.bill_sent_date
+    ).length,
+    [pendingOverduePayments]
+  );
 
   // ✅ Count from server-returned data
   const testPaymentsCount = useMemo(() => 
@@ -1570,21 +1564,13 @@ export default function PaymentsPage() {
       return;
     }
 
-    // ส่งทุกห้อง - นับจากบิลทั้งหมดที่ยังไม่ส่ง (ไม่สนใจ date filter)
-    const allUnsentPayments = allPaymentsForCounting.filter(p => {
-      const status = getEffectiveStatus(p);
-      if (status !== 'pending' && status !== 'overdue') return false;
-      if (p.bill_sent_date) return false;
-      
-      const tenant = tenantsMap.get(p.tenant_id);
-      return tenant && (tenant.line_user_id || tenant.facebook_user_id);
-    });
+    // ส่งทุกห้อง - ใช้ confirm เหมือนเดิม
+    const paymentsToSend = pendingOverduePayments.filter(p => 
+      (p.tenant_line_user_id || p.tenant_facebook_user_id) && !p.bill_sent_date
+    );
     
-    const roomsList = allUnsentPayments
-      .map(p => {
-        const room = roomsMap.get(p.room_id);
-        return room?.room_number || 'N/A';
-      })
+    const roomsList = paymentsToSend
+      .map(p => p.room_number || 'N/A')
       .sort((a, b) => a.localeCompare(b, 'th', { numeric: true }))
       .join(', ');
     
