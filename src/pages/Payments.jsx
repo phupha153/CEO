@@ -1127,7 +1127,13 @@ export default function PaymentsPage() {
       setAiAction(null);
       setSearchQuery('');
       
-      queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
+      // ⭐ รีเฟรชข้อมูลทุก query รวมถึง room view
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-room-view'] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
+      ]);
       
       // บันทึก log
       const room = rooms.find(r => r.id === deletedPayment.room_id);
@@ -2243,7 +2249,19 @@ Return JSON.`;
           await Promise.all(promises);
         }
         
-        queryClient.invalidateQueries(['payments', selectedBranchId]);
+        // ⭐ รีเฟรชทุก query รวม room view
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
+          queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
+          queryClient.invalidateQueries({ queryKey: ['payments-room-view'] }),
+          queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
+        ]);
+        
+        // ⭐ รีเซ็ต AI
+        setAiResult(null);
+        setAiAction(null);
+        setSearchQuery('');
+        
         setSelectedPaymentIds([]);
         setBulkAIResult(null);
         setBulkAIQuery('');
