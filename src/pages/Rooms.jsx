@@ -1726,9 +1726,9 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       />
 
       <div className="px-4 md:px-8 py-6 relative z-10">
-        <div className="max-w-7xl mx-auto space-y-4">
-          <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg rounded-2xl">            
-            <CardContent className="p-3 md:p-4 space-y-2 md:space-y-3 relative">
+        <div className="max-w-7xl mx-auto space-y-3">
+          <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg rounded-xl">            
+            <CardContent className="p-2.5 md:p-3.5 space-y-1.5 md:space-y-2.5 relative">
               <AISearchBox
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
