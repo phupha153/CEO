@@ -275,47 +275,42 @@ Deno.serve(async (req) => {
             day: 'numeric'
         }) : '-';
 
-        let message = `🏠 ${config.buildingName}\n`;
-        message += `ใบเสร็จรับเงิน\n\n`;
-        message += `━━━━━━━━━━━━━━━━━━━━\n`;
+        let message = `ใบเสร็จรับเงิน\n\n`;
+        message += `${config.buildingName}\n`;
         message += `เลขที่: REC-${payment.id.slice(0, 8).toUpperCase()}\n`;
-        message += `วันที่: ${paymentDateText}\n`;
-        message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-        message += `👤 ผู้เช่า: ${tenant.full_name}\n`;
-        message += `🏠 ห้อง: ${room?.room_number || 'N/A'}\n`;
-        message += `📱 เบอร์: ${tenant.phone}\n\n`;
-        message += `📋 รายการ:\n`;
+        message += `วันที่: ${paymentDateText}\n\n`;
+        message += `ผู้เช่า: ${tenant.full_name}\n`;
+        message += `ห้อง: ${room?.room_number || 'N/A'}\n`;
+        message += `เบอร์: ${tenant.phone}\n\n`;
+        message += `รายการ:\n`;
         
         if (payment.rent_amount > 0) {
-            message += `  ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+            message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
         }
         if (payment.electricity_amount > 0) {
-            message += `  ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
+            message += `ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
         }
         if (payment.water_amount > 0) {
-            message += `  ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
+            message += `ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
         }
         if (payment.internet_amount > 0) {
-            message += `  ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
+            message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
         }
         if (payment.common_fee_amount > 0) {
-            message += `  ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
+            message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
         }
         if (payment.parking_fee_amount > 0) {
-            message += `  ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
+            message += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
         }
         if (payment.other_amount > 0) {
-            message += `  ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
+            message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
         }
         
-        message += `\n━━━━━━━━━━━━━━━━━━━━\n`;
-        message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
-        message += `(${numberToThaiText(payment.total_amount)})\n`;
-        message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
-        message += `✅ ชำระเงินเรียบร้อยแล้ว\n\n`;
+        message += `\nรวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
+        message += `(${numberToThaiText(payment.total_amount)})\n\n`;
+        message += `ชำระเงินเรียบร้อยแล้ว\n\n`;
         message += `ขอบคุณที่ชำระเงินตรงเวลา\n`;
         message += `ผู้รับเงิน: ${config.lessorName}\n\n`;
-        message += `📄 ดูใบเสร็จรูปภาพ:\n${payment.receipt_image_url}\n\n`;
         message += `เอกสารนี้สร้างโดยระบบอัตโนมัติ\nกรุณาเก็บใบเสร็จนี้ไว้เป็นหลักฐาน`;
 
         console.log('📤 Sending Facebook message to:', tenant.facebook_user_id);
