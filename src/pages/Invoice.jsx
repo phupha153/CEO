@@ -151,7 +151,7 @@ export default function Invoice() {
 
   // ⭐ คำนวณค่าปรับสำหรับบิลที่ยังไม่ชำระ (real-time)
   // ถ้าชำระแล้ว จะใช้ค่าที่ lock ไว้จาก DB
-  const calculatedLateFee = calculateLateFee(invoiceData, configs, invoiceData.branch_id);
+  const calculatedLateFee = configs.length > 0 ? calculateLateFee(invoiceData, configs, invoiceData.branch_id) : 0;
   const displayLateFee = calculatedLateFee;
 
   const handleDownload = () => {
