@@ -118,9 +118,9 @@ export default function SendReminderDialog({
       const dueDate = payment.due_date ? format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A';
       
       if (selectedTemplate === 'advance') {
-        return `สวัสดีคะ\n\nขอแจ้งเตือนค่าเช่าห้อง ${roomNum}\nยอดเงิน: ${amount} บาท\nครบกำหนดชำระ: ${dueDate}\n\nกรุณาเตรียมชำระภายในกำหนดนะคะ`;
+        return `${buildingName} - แจ้งเตือนค่าเช่า\n\nคุณ ${tenant?.full_name}\nห้อง ${roomNum}\n\nยอดเงิน: ${amount} บาท\nครบกำหนดชำระ: ${dueDate}\n\nกรุณาเตรียมชำระภายในกำหนด\n\nโอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\nกรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
       } else {
-        return `ถึงกำหนดชำระค่าเช่าแล้ว\nห้อง ${roomNum}\nยอดเงิน: ${amount} บาท\nครบกำหนด: ${dueDate}\n\nกรุณาชำระภายในวันนี้นะคะ`;
+        return `${buildingName}\n\nวันนี้ครบกำหนดชำระค่าเช่า\nคุณ ${tenant?.full_name}\nห้อง ${roomNum}\n\nยอดเงิน: ${amount} บาท\nครบกำหนด: ${dueDate}\n\nกรุณาชำระภายในวันนี้\n\nโอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\nกรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
       }
     }
   };
