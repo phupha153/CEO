@@ -706,7 +706,7 @@ export default function Receipt() {
 
             {/* Payment Method & Notes - แบบเรียบง่าย */}
             <div className="mb-3 text-xs text-slate-500">
-              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {receiptData.bank.name} | {receiptData.bank.account_number} • ใบเสร็จนี้ออกให้เป็นหลักฐานการรับเงินเรียบร้อยแล้ว
+              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {receiptData.bank.name} | {receiptData.bank.account_number} ({receiptData.bank.account_name}) • ใบเสร็จนี้ออกให้เป็นหลักฐานการรับเงินเรียบร้อยแล้ว
             </div>
 
             {/* Signature Section - เฉพาะผู้รับเงิน */}

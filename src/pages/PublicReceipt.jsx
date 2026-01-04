@@ -482,7 +482,7 @@ export default function PublicReceipt() {
             </div>
 
             <div className="mb-3 text-xs text-slate-500">
-              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {receiptData.bank?.name} | {receiptData.bank?.account_number} • ใบเสร็จนี้ออกให้เป็นหลักฐานการรับเงินเรียบร้อยแล้ว
+              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {receiptData.bank?.name} | {receiptData.bank?.account_number} ({receiptData.bank?.account_name}) • ใบเสร็จนี้ออกให้เป็นหลักฐานการรับเงินเรียบร้อยแล้ว
             </div>
 
             <div className="flex justify-center mt-5 pt-3 border-t border-slate-200">
