@@ -15,7 +15,17 @@ export function calculateLateFee(payment, configs, branchId) {
         return payment.late_fee_amount || 0;
     }
     
-    // ⭐ ถ้ายังไม่ชำระ → คำนวณใหม่ทุกครั้ง (เพื่อให้ค่าปรับเพิ่มตามจำนวนวันล่าช้า)
+    // ⭐ เช็คว่าคำนวณวันนี้แล้วหรือยัง (ป้องกันคำนวณซ้ำ)
+    if (payment.late_fee_last_calculated) {
+        const lastCalcDate = new Date(payment.late_fee_last_calculated);
+        lastCalcDate.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (lastCalcDate.getTime() === today.getTime()) {
+            return payment.late_fee_amount || 0; // ✅ ใช้ค่าเดิม
+        }
+    }
 
     try {
         const dueDate = parseISO(payment.due_date);

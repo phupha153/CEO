@@ -283,20 +283,20 @@ Deno.serve(async (req) => {
             let calculatedLateFee = 0;
 
             if (daysOverdue > 0) {
-                // ⭐ เช็คว่าอัปเดตค่าปรับไปแล้วในวันนี้หรือยัง (ใช้ updated_date)
+                // ⭐ เช็คว่าคำนวณค่าปรับไปแล้วในวันนี้หรือยัง
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 
                 let shouldRecalculate = true;
-                if (payment.updated_date) {
-                    const updatedDate = new Date(payment.updated_date);
-                    updatedDate.setHours(0, 0, 0, 0);
+                if (payment.late_fee_last_calculated) {
+                    const lastCalcDate = new Date(payment.late_fee_last_calculated);
+                    lastCalcDate.setHours(0, 0, 0, 0);
                     
-                    // ถ้าอัปเดตวันนี้แล้ว และมีค่าปรับอยู่ → ใช้ค่าเดิม (ไม่คำนวณซ้ำ)
-                    if (updatedDate.getTime() === today.getTime() && payment.late_fee_amount > 0) {
+                    // ถ้าคำนวณวันนี้แล้ว → ใช้ค่าเดิม (ไม่คำนวณซ้ำ)
+                    if (lastCalcDate.getTime() === today.getTime() && payment.late_fee_amount > 0) {
                         shouldRecalculate = false;
                         calculatedLateFee = payment.late_fee_amount;
-                        console.log(`   ♻️ Reusing late fee: ${calculatedLateFee} บาท (already updated today)`);
+                        console.log(`   ♻️ Reusing late fee: ${calculatedLateFee} บาท (already calculated today)`);
                     }
                 }
 
@@ -348,7 +348,8 @@ Deno.serve(async (req) => {
                         await base44.asServiceRole.entities.Payment.update(payment.id, {
                             late_fee_amount: calculatedLateFee,
                             total_amount: newTotalAmount,
-                            status: 'overdue'
+                            status: 'overdue',
+                            late_fee_last_calculated: new Date().toISOString()
                         });
 
                         payment.late_fee_amount = calculatedLateFee;
