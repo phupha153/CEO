@@ -1606,26 +1606,14 @@ async function sendWelcomeMessage(base44, lineUserId, branchId = null, replyToke
 }
 
 async function sendConfirmationMessage(base44, lineUserId, tenant, branch, replyToken = null) {
-    // ⭐ หาหมายเลขห้องจาก booking
-    let roomNumber = 'ไม่ทราบ';
-    try {
-        const bookings = await base44.asServiceRole.entities.Booking.filter({ tenant_id: tenant.id, status: 'active' });
-        const activeBooking = Array.isArray(bookings) ? bookings[0] : bookings;
-        
-        if (activeBooking) {
-            const rooms = await base44.asServiceRole.entities.Room.filter({ id: activeBooking.room_id });
-            const room = Array.isArray(rooms) ? rooms[0] : rooms;
-            if (room) roomNumber = room.room_number;
-        }
-    } catch (e) {
-        console.log('⚠️ Could not fetch room number:', e.message);
+    let confirmText = `✅ เชื่อมโยงบัญชีสำเร็จ!\n\n`;
+    confirmText += `👤 ชื่อ: ${tenant.full_name}\n`;
+    confirmText += `📱 เบอร์: ${tenant.phone}\n`;
+    if (branch) {
+        confirmText += `🏢 สาขา: ${branch.branch_name}\n`;
     }
-    
-    let confirmText = `✅ ยืนยันตัวตนสำเร็จ!\n\n`;
-    confirmText += `ยินดีต้อนรับ คุณ${tenant.full_name} (ห้อง ${roomNumber}) ครับ ข้อมูลเชื่อมต่อเรียบร้อย ต่อไปรอรับบิลและข่าวสารทางนี้ได้เลยครับ 📄\n\n`;
-    confirmText += `📸 ส่งสลิปค่าเช่าผ่านทางนี้ได้เลย\n`;
-    confirmText += `🔧 หากต้องการแจ้งซ่อม พิมพ์ "แจ้งซ่อม" ส่งมาในแชทนี้ได้เลย\n`;
-    confirmText += `ขอบคุณที่ให้เราดูแลครับ 🙏`;
+    confirmText += `\n📸 ส่งรูปสลิปเพื่อชำระค่าเช่าได้เลยค่ะ\n`;
+    confirmText += `🔧 แจ้งซ่อม: พิมพ์ "แจ้งซ่อม" แล้วตามด้วยรายละเอียดปัญหา`;
 
     await sendMessage(base44, lineUserId, confirmText, tenant.branch_id, replyToken);
 }

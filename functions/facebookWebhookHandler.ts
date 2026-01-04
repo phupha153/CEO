@@ -359,29 +359,7 @@ async function handleRegistration(base44, senderPsid, phoneNumber, branchCode) {
 
         if (match) {
             await base44.asServiceRole.entities.Tenant.update(match.id, { facebook_user_id: senderPsid });
-            
-            // ⭐ หาหมายเลขห้องจาก booking
-            let roomNumber = 'ไม่ทราบ';
-            try {
-                const tenantBookings = await base44.asServiceRole.entities.Booking.filter({ tenant_id: match.id, status: 'active' });
-                const activeBooking = Array.isArray(tenantBookings) ? tenantBookings[0] : tenantBookings;
-                
-                if (activeBooking) {
-                    const tenantRooms = await base44.asServiceRole.entities.Room.filter({ id: activeBooking.room_id });
-                    const room = Array.isArray(tenantRooms) ? tenantRooms[0] : tenantRooms;
-                    if (room) roomNumber = room.room_number;
-                }
-            } catch (e) {
-                console.log('⚠️ Could not fetch room number:', e.message);
-            }
-            
-            let confirmText = `✅ ยืนยันตัวตนสำเร็จ!\n\n`;
-            confirmText += `ยินดีต้อนรับ คุณ${match.full_name} (ห้อง ${roomNumber}) ครับ ข้อมูลเชื่อมต่อเรียบร้อย ต่อไปรอรับบิลและข่าวสารทางนี้ได้เลยครับ 📄\n\n`;
-            confirmText += `📸 ส่งสลิปค่าเช่าผ่านทางนี้ได้เลย\n`;
-            confirmText += `🔧 หากต้องการแจ้งซ่อม พิมพ์ "แจ้งซ่อม" ส่งมาในแชทนี้ได้เลย\n`;
-            confirmText += `ขอบคุณที่ให้เราดูแลครับ 🙏`;
-            
-            await sendFacebookMessage(base44, senderPsid, confirmText, match.branch_id);
+            await sendFacebookMessage(base44, senderPsid, `✅ ลงทะเบียนสำเร็จ!\nยินดีต้อนรับคุณ ${match.full_name}`, match.branch_id);
         } else {
             await sendFacebookMessage(base44, senderPsid, `❌ ไม่พบข้อมูลเบอร์ ${phoneNumber} ในระบบ`, null);
         }
@@ -509,24 +487,7 @@ async function handleNameRegistration(base44, senderPsid, nameQuery) {
             }
             
             await base44.asServiceRole.entities.Tenant.update(tenant.id, { facebook_user_id: senderPsid });
-            
-            // ⭐ หาหมายเลขห้องจาก booking
-            let roomNumber = 'ไม่ทราบ';
-            try {
-                const activeBooking = bookings.find(b => b.tenant_id === tenant.id && b.status === 'active');
-                const room = activeBooking ? rooms.find(r => r.id === activeBooking.room_id) : null;
-                if (room) roomNumber = room.room_number;
-            } catch (e) {
-                console.log('⚠️ Could not fetch room number:', e.message);
-            }
-            
-            let confirmText = `✅ ยืนยันตัวตนสำเร็จ!\n\n`;
-            confirmText += `ยินดีต้อนรับ คุณ${match.full_name} (ห้อง ${roomNumber}) ครับ ข้อมูลเชื่อมต่อเรียบร้อย ต่อไปรอรับบิลและข่าวสารทางนี้ได้เลยครับ 📄\n\n`;
-            confirmText += `📸 ส่งสลิปค่าเช่าผ่านทางนี้ได้เลย\n`;
-            confirmText += `🔧 หากต้องการแจ้งซ่อม พิมพ์ "แจ้งซ่อม" ส่งมาในแชทนี้ได้เลย\n`;
-            confirmText += `ขอบคุณที่ให้เราดูแลครับ 🙏`;
-            
-            await sendFacebookMessage(base44, senderPsid, confirmText, match.branch_id);
+            await sendFacebookMessage(base44, senderPsid, `✅ ลงทะเบียนสำเร็จ!\nยินดีต้อนรับคุณ ${tenant.full_name}`, tenant.branch_id);
             return;
         }
         
