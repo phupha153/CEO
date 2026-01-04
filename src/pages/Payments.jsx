@@ -4212,10 +4212,6 @@ Return JSON.`;
                                        </CardContent>
                                        </Card>
                                        )}
-                                       </>
-                                       )}
-            </>
-          )}
 
           {totalPages > 1 && (
             <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
