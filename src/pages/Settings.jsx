@@ -1951,7 +1951,7 @@ export default function Settings() {
                               // ดึง max_users จาก crmPackageInfo หรือใช้ 1 ถ้าเป็น trial
                               const maxUsers = isTrialMode ? 1 : crmPackageInfo?.max_users;
                               const hasLimit = maxUsers !== null && maxUsers !== undefined && maxUsers > 0;
-                              const usagePercent = hasLimit ? Math.min((totalUsersInMyBranches / maxUsers) * 100, 100) : 10;
+                              const usagePercent = hasLimit ? Math.min((totalUsersInSelectedBranch / maxUsers) * 100, 100) : 10;
 
                               return (
                                 <div className="space-y-4">
