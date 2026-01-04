@@ -37,6 +37,7 @@ export default function UserBranchAccess() {
     isTrialMode: true,
     pricePerMonth: 0
   });
+  const [deletingPackage, setDeletingPackage] = useState(false);
 
 
   const queryClient = useQueryClient();
@@ -258,36 +259,36 @@ export default function UserBranchAccess() {
       };
       
       const updateResult = await base44.entities.User.update(userId, updateData);
-
-      // 2. Sync to CRM
-      const pkg = crmPackages?.packages?.find(p => p.id === packageData.packageId);
-      const packageName = packageData.isTrialMode 
-        ? 'Trial' 
-        : (pkg?.package_name?.name || pkg?.package_name || packageData.packageId);
-
-      await base44.functions.invoke('sendSubscriptionToCRM', {
-        user_email: targetUser.email,
-        user_name: targetUser.full_name,
-        package_id: packageData.isTrialMode ? 'trial' : packageData.packageId,
-        package_name: packageName,
-        subscription_start_date: packageData.startDate,
-        subscription_end_date: packageData.endDate,
-        price_per_month: packageData.isTrialMode ? 0 : packageData.pricePerMonth,
-        total_price: packageData.isTrialMode ? 0 : packageData.pricePerMonth,
-        status: packageData.isTrialMode ? 'trial' : 'active',
-        app_mode: 'multi_tenant',
-        is_free: packageData.isTrialMode
-      });
-
       return updateResult;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['users']);
-      toast.success('✅ บันทึกและส่งข้อมูลไป CRM สำเร็จ');
+      toast.success('✅ บันทึกแพ็กเกจสำเร็จ');
       setShowPackageDialog(false);
     },
     onError: (error) => {
       toast.error('เกิดข้อผิดพลาด: ' + error.message);
+    }
+  });
+
+  const deletePackageMutation = useMutation({
+    mutationFn: async ({ userId }) => {
+      await base44.entities.User.update(userId, {
+        plan_status: null,
+        trial_ends_at: null,
+        subscription_end_date: null,
+        package_id: null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['users']);
+      toast.success('ลบแพ็กเกจสำเร็จ');
+      setShowPackageDialog(false);
+      setDeletingPackage(false);
+    },
+    onError: (error) => {
+      toast.error('เกิดข้อผิดพลาด: ' + error.message);
+      setDeletingPackage(false);
     }
   });
 
@@ -1100,27 +1101,47 @@ export default function UserBranchAccess() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-4 border-t">
-                    <Button variant="outline" onClick={() => setShowPackageDialog(false)}>
-                      ยกเลิก
-                    </Button>
-                    <Button
-                      onClick={handlePackageSubmit}
-                      disabled={savePackageMutation.isPending}
-                      className="bg-gradient-to-r from-green-600 to-emerald-600"
+                  <div className="flex justify-between gap-2 pt-4 border-t">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        if (confirm(`ยืนยันการลบแพ็กเกจของ ${selectedUser?.full_name}?`)) {
+                          setDeletingPackage(true);
+                          deletePackageMutation.mutate({ userId: selectedUser.id });
+                        }
+                      }}
+                      disabled={deletePackageMutation.isPending || !selectedUser?.plan_status}
+                      className="text-red-600 hover:bg-red-50 border-red-300"
                     >
-                      {savePackageMutation.isPending ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          กำลังบันทึก...
-                        </>
+                      {deletePackageMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                       ) : (
-                        <>
-                          <Check className="w-4 h-4 mr-2" />
-                          บันทึก
-                        </>
+                        <Trash2 className="w-4 h-4 mr-1" />
                       )}
+                      ลบแพ็กเกจ
                     </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => setShowPackageDialog(false)}>
+                        ยกเลิก
+                      </Button>
+                      <Button
+                        onClick={handlePackageSubmit}
+                        disabled={savePackageMutation.isPending}
+                        className="bg-gradient-to-r from-green-600 to-emerald-600"
+                      >
+                        {savePackageMutation.isPending ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            กำลังบันทึก...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4 mr-2" />
+                            บันทึก
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
