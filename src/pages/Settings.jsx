@@ -3746,18 +3746,13 @@ export default function Settings() {
                           เลือกบทบาท จัดการสิทธิ์การเข้าถึง และกำหนดสาขาที่ผู้ใช้สามารถเข้าถึงได้
                         </p>
                       </div>
-                      {(() => {
-                        const isTrialMode = currentUser?.plan_status === 'trial';
-                        return !isTrialMode && (
-                          <Button
-                            onClick={() => setShowAddEmployeeDialog(true)}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600"
-                          >
-                            <UserPlus className="w-4 h-4 mr-2" />
-                            เพิ่มพนักงาน
-                          </Button>
-                        );
-                      })()}
+                      <Button
+                        onClick={() => setShowAddEmployeeDialog(true)}
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600"
+                      >
+                        <UserPlus className="w-4 h-4 mr-2" />
+                        เพิ่มพนักงาน
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -3944,18 +3939,13 @@ export default function Settings() {
                               <p className="text-sm text-slate-600 mb-6">
                                 เพิ่มพนักงานเพื่อจัดการงานร่วมกันและกำหนดสิทธิ์การใช้งาน
                               </p>
-                              {(() => {
-                                const isTrialMode = currentUser?.plan_status === 'trial';
-                                return !isTrialMode && (
-                                  <Button
-                                    onClick={() => setShowAddEmployeeDialog(true)}
-                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg px-8 py-6"
-                                  >
-                                    <UserPlus className="w-5 h-5 mr-2" />
-                                    เพิ่มพนักงานคนแรก
-                                  </Button>
-                                );
-                              })()}
+                              <Button
+                                onClick={() => setShowAddEmployeeDialog(true)}
+                                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg px-8 py-6"
+                              >
+                                <UserPlus className="w-5 h-5 mr-2" />
+                                เพิ่มพนักงานคนแรก
+                              </Button>
                             </motion.div>
                           </div>
                         )}
