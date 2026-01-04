@@ -180,7 +180,7 @@ export default function ReportsPage() {
 
       try {
         const dueDate = parseISO(payment.due_date);
-        const today = getCurrentDate;
+        const today = getCurrentDate; // This is already a Date object from useMemo
 
         if (isNaN(dueDate.getTime()) || isNaN(today.getTime())) {
           cache.set(payment.id, 0);
