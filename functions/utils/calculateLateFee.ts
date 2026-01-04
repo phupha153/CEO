@@ -15,10 +15,7 @@ export function calculateLateFee(payment, configs, branchId) {
         return payment.late_fee_amount || 0;
     }
     
-    // ⭐ ถ้ายังไม่ชำระ แต่มีค่าปรับบันทึกไว้แล้ว ให้ใช้ตามที่บันทึก
-    if (payment.late_fee_amount && payment.late_fee_amount > 0) {
-        return payment.late_fee_amount;
-    }
+    // ⭐ ถ้ายังไม่ชำระ → คำนวณใหม่ทุกครั้ง (เพื่อให้ค่าปรับเพิ่มตามจำนวนวันล่าช้า)
 
     try {
         const dueDate = parseISO(payment.due_date);
