@@ -146,18 +146,23 @@ export default function BranchSelection() {
     // Developer = เห็นทุกสาขา
     if (userRole === 'developer') return branches;
 
-    // ถ้ามี accessible_branches set แล้ว (ไม่ว่าจะ [] หรือมีค่า) = ใช้ลิสต์นั้น
-    if (hasAccessibleBranchesSet) {
-      return branches.filter(branch => userAccessibleBranches.includes(branch.id));
-    }
-
-    // ถ้าไม่มี accessible_branches set (null/undefined)
-    // Owner = เห็นสาขาที่ตัวเองเป็นเจ้าของ (owner_id หรือ created_by)
+    // ⭐ Owner พิเศษ: ถ้าไม่มี accessible_branches หรือเป็น [] = เห็นสาขาที่ตัวเองเป็นเจ้าของทั้งหมด
     if (userRole === 'owner') {
+      // ถ้ามี accessible_branches set และมีค่า = ใช้ลิสต์นั้น
+      if (hasAccessibleBranchesSet && userAccessibleBranches.length > 0) {
+        return branches.filter(branch => userAccessibleBranches.includes(branch.id));
+      }
+      
+      // ถ้าไม่มี accessible_branches หรือเป็น [] = เห็นสาขาที่ตัวเองเป็นเจ้าของ
       return branches.filter(branch => 
         branch.owner_id === currentUser?.email || 
         branch.created_by === currentUser?.email
       );
+    }
+
+    // Employee/Manager = ต้องมี accessible_branches set
+    if (hasAccessibleBranchesSet) {
+      return branches.filter(branch => userAccessibleBranches.includes(branch.id));
     }
 
     // Employee/Manager ที่ไม่มี accessible_branches = ไม่เห็นสาขาใดเลย
