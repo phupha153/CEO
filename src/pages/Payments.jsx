@@ -2947,7 +2947,9 @@ Return JSON.`;
               <p className="text-xl font-semibold text-slate-800">ไม่พบรายการชำระเงิน</p>
               <p className="text-slate-600">ลองเปลี่ยนช่วงเวลาหรือสถานะการค้นหา</p>
             </div>
-          ) : viewMode === 'card' && (
+          ) : null}
+
+          {viewMode === 'card' && paginatedPayments.length > 0 && (
                 <div className="grid grid-cols-1 gap-4 relative">
                   {paymentsFetching && (
                     <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
@@ -4212,8 +4214,6 @@ Return JSON.`;
                                        </CardContent>
                                        </Card>
                                        )}
-            </>
-          )}
 
           {totalPages > 1 && (
             <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
