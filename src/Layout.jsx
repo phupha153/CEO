@@ -482,6 +482,18 @@ export default function Layout({ children, currentPageName }) {
     queryFn: async () => {
       const user = await base44.auth.me();
       setRetryCount(0);
+
+      // ⭐ Auto-set owner role สำหรับผู้ใช้ครั้งแรก
+      if (user && !user.custom_role && user.role === 'admin') {
+        try {
+          await base44.entities.User.update(user.id, { custom_role: 'owner' });
+          user.custom_role = 'owner';
+          console.log('✅ Auto-set custom_role = owner (admin user without custom_role)');
+        } catch (error) {
+          console.error('Failed to auto-set owner role:', error);
+        }
+      }
+
       return user;
     },
     retry: 2,
@@ -491,7 +503,7 @@ export default function Layout({ children, currentPageName }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    enabled: isOnline && !isPublicPage, // ⭐ ไม่โหลดถ้าเป็นหน้า public
+    enabled: isOnline && !isPublicPage,
     networkMode: 'online',
     onError: () => setRetryCount(prev => prev + 1),
     placeholderData: (previousData) => previousData,
