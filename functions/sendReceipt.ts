@@ -204,46 +204,20 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // ✅ สร้างรูปใบเสร็จใหม่ทุกครั้ง เพื่อให้ข้อมูลตรงกับแอปเสมอ
-        console.log('🔄 Generating fresh receipt image...');
+        // ⭐ สร้างลิงก์ PublicReceipt แทนการสร้างรูป
+        const frontendUrl = getConfig('frontend_url') || Deno.env.get('FRONTEND_URL');
         
-        try {
-            // ⭐ ลบ receipt_image_url เก่าออกก่อนเพื่อบังคับสร้างใหม่
-            if (payment.receipt_image_url) {
-                await base44.asServiceRole.entities.Payment.update(paymentId, {
-                    receipt_image_url: null
-                });
-                console.log('🗑️ Cleared old receipt_image_url');
-            }
-            
-            const generateResponse = await base44.asServiceRole.functions.invoke('generateReceiptImage', {
-                paymentId: paymentId
-            });
-
-            console.log('generateReceiptImage response:', generateResponse.data);
-
-            if (generateResponse.data.success && generateResponse.data.receipt_image_url) {
-                // อัพเดท payment object ด้วย URL ที่ได้
-                payment.receipt_image_url = generateResponse.data.receipt_image_url;
-                console.log('✅ Receipt image generated:', payment.receipt_image_url);
-            } else {
-                console.error('❌ Failed to generate receipt image:', generateResponse.data);
-                return Response.json({ 
-                    success: false,
-                    error: 'ไม่สามารถสร้างรูปใบเสร็จได้',
-                    message: generateResponse.data.error || 'Unknown error',
-                    details: generateResponse.data
-                }, { status: 500 });
-            }
-        } catch (genError) {
-            console.error('❌ Error calling generateReceiptImage:', genError);
+        if (!frontendUrl) {
+            console.error('❌ Missing FRONTEND_URL config');
             return Response.json({ 
                 success: false,
-                error: 'เกิดข้อผิดพลาดในการสร้างรูปใบเสร็จ',
-                message: genError.message,
-                stack: genError.stack
+                error: 'ระบบยังไม่ได้ตั้งค่า FRONTEND_URL',
+                message: 'Please set frontend_url in Config or FRONTEND_URL environment variable'
             }, { status: 500 });
         }
+
+        const receiptLink = `${frontendUrl}/publicreceipt?id=${payment.id}`;
+        console.log(`📄 Receipt link: ${receiptLink}`);
 
         // ⭐ ดึง tenant โดยตรงจาก tenant_id ก่อน (วิธีที่เชื่อถือได้ที่สุด)
         console.log('📥 Fetching tenant directly by ID:', payment.tenant_id);
@@ -569,8 +543,8 @@ Deno.serve(async (req) => {
                             type: "button",
                             action: {
                                 type: "uri",
-                                label: "💾 ดาวน์โหลดใบเสร็จ (รูปภาพ)",
-                                uri: payment.receipt_image_url
+                                label: "📄 ดูใบเสร็จฉบับเต็ม",
+                                uri: receiptLink
                             },
                             style: "primary",
                             color: "#2563eb"
