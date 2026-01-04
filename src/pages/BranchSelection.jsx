@@ -147,15 +147,32 @@ export default function BranchSelection() {
     role: currentUser?.role
   });
   
-  // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้
+  // ⭐ Security Fix: กรองสาขาตามสิทธิ์
   const userAccessibleBranches = currentUser?.accessible_branches;
-
-  // กรองสาขาตามสิทธิ์: ถ้ามี accessible_branches (ไม่ว่าจะ [] หรือมีค่า) ให้กรองตามนั้น, ถ้าเป็น null/undefined ให้เห็นทุกสาขา
   const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
-  const canViewAllBranches = !hasAccessibleBranchesSet;
-  const filteredBranches = canViewAllBranches
-    ? branches
-    : branches.filter(branch => userAccessibleBranches && userAccessibleBranches.includes(branch.id));
+
+  // ⭐ กรองสาขาตาม role และ accessible_branches
+  const filteredBranches = React.useMemo(() => {
+    // Developer = เห็นทุกสาขา
+    if (userRole === 'developer') return branches;
+
+    // ถ้ามี accessible_branches set แล้ว (ไม่ว่าจะ [] หรือมีค่า) = ใช้ลิสต์นั้น
+    if (hasAccessibleBranchesSet) {
+      return branches.filter(branch => userAccessibleBranches.includes(branch.id));
+    }
+
+    // ถ้าไม่มี accessible_branches set (null/undefined)
+    // Owner = เห็นสาขาที่ตัวเองเป็นเจ้าของ (owner_id หรือ created_by)
+    if (userRole === 'owner') {
+      return branches.filter(branch => 
+        branch.owner_id === currentUser?.email || 
+        branch.created_by === currentUser?.email
+      );
+    }
+
+    // Employee/Manager ที่ไม่มี accessible_branches = ไม่เห็นสาขาใดเลย
+    return [];
+  }, [branches, userRole, hasAccessibleBranchesSet, userAccessibleBranches, currentUser?.email]);
 
   const { data: crmPackages } = useQuery({
     queryKey: ['crmPackages'],
