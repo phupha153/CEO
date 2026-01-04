@@ -415,10 +415,10 @@ export default function ChatWindow({
                         
                         await base44.entities.Tenant.update(tenant.id, updateData);
                         toast.success(`ยกเลิกการเชื่อมต่อ ${platform} สำเร็จ`);
-                        
-                        // รีเฟรชข้อมูลและปิด profile panel
-                        if (onRefresh) onRefresh();
                         setShowProfile(false);
+                        
+                        // ⭐ Refresh เฉพาะ tenants
+                        if (onRefresh) await onRefresh();
                       } catch (err) {
                         console.error('Unlink error:', err);
                         toast.error('ยกเลิกการเชื่อมต่อไม่สำเร็จ');
@@ -574,8 +574,10 @@ export default function ChatWindow({
                           const platform = conversation.facebook_user_id ? 'Facebook' : 'LINE';
                           toast.success(`เชื่อมต่อ ${platform} สำเร็จ`);
                           setSelectedRoomId('');
+                          setShowProfile(false);
                           
-                          if (onRefresh) onRefresh();
+                          // ⭐ Refresh เฉพาะ tenants
+                          if (onRefresh) await onRefresh();
                         } catch (error) {
                           console.error('Link error:', error);
                           toast.error('เชื่อมต่อไม่สำเร็จ: ' + error.message);
