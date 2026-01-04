@@ -218,107 +218,109 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                 </p>
               </div>
               
-              <ScrollArea className="flex-1 border rounded-lg">
-                <div className="relative">
+              <div className="border rounded-lg overflow-hidden bg-white">
+                <ScrollArea className="h-[450px]">
                   {/* Group by floor for better visualization */}
                   {Array.from(new Set(generatedRooms.map(r => r.floor))).sort((a,b) => a - b).map(floor => (
                     <div key={floor} className="mb-0">
-                      <div className="bg-slate-100 px-4 py-2 font-bold text-slate-700 border-y sticky top-0 z-10">
+                      <div className="bg-slate-100 px-4 py-2 font-bold text-slate-700 border-b sticky top-0 z-10">
                         ชั้น {floor}
                       </div>
-                      <Table>
-                        <TableHeader className="bg-slate-50 hidden">
-                          <TableRow>
-                            <TableHead className="w-[100px]">เลขห้อง</TableHead>
-                            <TableHead className="w-[80px]">ชั้น</TableHead>
-                            <TableHead className="w-[120px]">ประเภท</TableHead>
-                            <TableHead className="w-[120px]">ราคา</TableHead>
-                            <TableHead className="w-[100px]">ขนาด</TableHead>
-                            <TableHead className="w-[100px]">ค่าน้ำ</TableHead>
-                            <TableHead className="w-[100px]">ค่าไฟ</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {generatedRooms.map((room, globalIndex) => {
-                            if (room.floor !== floor) return null;
-                            return (
-                              <TableRow key={globalIndex}>
-                                <TableCell className="w-[100px]">
-                                  <Input 
-                                    value={room.room_number} 
-                                    onChange={(e) => handleRoomChange(globalIndex, 'room_number', e.target.value)}
-                                    className="h-8"
-                                    placeholder="เลขห้อง"
-                                  />
-                                </TableCell>
-                                <TableCell className="w-[80px]">
-                                  <Input 
-                                    type="number"
-                                    value={room.floor} 
-                                    onChange={(e) => handleRoomChange(globalIndex, 'floor', e.target.value)}
-                                    className="h-8"
-                                    placeholder="ชั้น"
-                                  />
-                                </TableCell>
-                                <TableCell className="w-[120px]">
-                                  <Select 
-                                    value={room.room_type} 
-                                    onValueChange={(v) => handleRoomChange(globalIndex, 'room_type', v)}
-                                  >
-                                    <SelectTrigger className="h-8">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="monthly">รายเดือน</SelectItem>
-                                      <SelectItem value="daily">รายวัน</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </TableCell>
-                                <TableCell className="w-[120px]">
-                                  <Input 
-                                    type="number"
-                                    value={room.price} 
-                                    onChange={(e) => handleRoomChange(globalIndex, 'price', e.target.value)}
-                                    className="h-8"
-                                    placeholder="ราคา"
-                                  />
-                                </TableCell>
-                                <TableCell className="w-[100px]">
-                                  <Input 
-                                    type="number"
-                                    value={room.size} 
-                                    placeholder="ขนาด"
-                                    onChange={(e) => handleRoomChange(globalIndex, 'size', e.target.value)}
-                                    className="h-8"
-                                  />
-                                </TableCell>
-                                <TableCell className="w-[100px]">
-                                  <Input 
-                                    type="number"
-                                    value={room.water_rate} 
-                                    placeholder="น้ำ(กลาง)"
-                                    onChange={(e) => handleRoomChange(globalIndex, 'water_rate', e.target.value)}
-                                    className="h-8"
-                                  />
-                                </TableCell>
-                                <TableCell className="w-[100px]">
-                                  <Input 
-                                    type="number"
-                                    value={room.electricity_rate} 
-                                    placeholder="ไฟ(กลาง)"
-                                    onChange={(e) => handleRoomChange(globalIndex, 'electricity_rate', e.target.value)}
-                                    className="h-8"
-                                  />
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader className="bg-slate-50">
+                            <TableRow>
+                              <TableHead className="min-w-[100px] sticky left-0 bg-slate-50 z-10">เลขห้อง</TableHead>
+                              <TableHead className="min-w-[80px]">ชั้น</TableHead>
+                              <TableHead className="min-w-[120px]">ประเภท</TableHead>
+                              <TableHead className="min-w-[120px]">ราคา</TableHead>
+                              <TableHead className="min-w-[100px]">ขนาด (ตร.ม.)</TableHead>
+                              <TableHead className="min-w-[100px]">ค่าน้ำ/หน่วย</TableHead>
+                              <TableHead className="min-w-[100px]">ค่าไฟ/หน่วย</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {generatedRooms.map((room, globalIndex) => {
+                              if (room.floor !== floor) return null;
+                              return (
+                                <TableRow key={globalIndex} className="hover:bg-blue-50/50">
+                                  <TableCell className="min-w-[100px] sticky left-0 bg-white z-10">
+                                    <Input 
+                                      value={room.room_number} 
+                                      onChange={(e) => handleRoomChange(globalIndex, 'room_number', e.target.value)}
+                                      className="h-8"
+                                      placeholder="เลขห้อง"
+                                    />
+                                  </TableCell>
+                                  <TableCell className="min-w-[80px]">
+                                    <Input 
+                                      type="number"
+                                      value={room.floor} 
+                                      onChange={(e) => handleRoomChange(globalIndex, 'floor', e.target.value)}
+                                      className="h-8"
+                                      placeholder="ชั้น"
+                                    />
+                                  </TableCell>
+                                  <TableCell className="min-w-[120px]">
+                                    <Select 
+                                      value={room.room_type} 
+                                      onValueChange={(v) => handleRoomChange(globalIndex, 'room_type', v)}
+                                    >
+                                      <SelectTrigger className="h-8">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="monthly">รายเดือน</SelectItem>
+                                        <SelectItem value="daily">รายวัน</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </TableCell>
+                                  <TableCell className="min-w-[120px]">
+                                    <Input 
+                                      type="number"
+                                      value={room.price} 
+                                      onChange={(e) => handleRoomChange(globalIndex, 'price', e.target.value)}
+                                      className="h-8"
+                                      placeholder="ราคา"
+                                    />
+                                  </TableCell>
+                                  <TableCell className="min-w-[100px]">
+                                    <Input 
+                                      type="number"
+                                      value={room.size} 
+                                      placeholder="ขนาด"
+                                      onChange={(e) => handleRoomChange(globalIndex, 'size', e.target.value)}
+                                      className="h-8"
+                                    />
+                                  </TableCell>
+                                  <TableCell className="min-w-[100px]">
+                                    <Input 
+                                      type="number"
+                                      value={room.water_rate} 
+                                      placeholder="น้ำ(กลาง)"
+                                      onChange={(e) => handleRoomChange(globalIndex, 'water_rate', e.target.value)}
+                                      className="h-8"
+                                    />
+                                  </TableCell>
+                                  <TableCell className="min-w-[100px]">
+                                    <Input 
+                                      type="number"
+                                      value={room.electricity_rate} 
+                                      placeholder="ไฟ(กลาง)"
+                                      onChange={(e) => handleRoomChange(globalIndex, 'electricity_rate', e.target.value)}
+                                      className="h-8"
+                                    />
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   ))}
-                </div>
-              </ScrollArea>
+                </ScrollArea>
+              </div>
             </div>
           )}
         </div>
