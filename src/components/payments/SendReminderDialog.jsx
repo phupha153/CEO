@@ -264,7 +264,10 @@ export default function SendReminderDialog({
           </Button>
           <Button
             className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+
               if (!customMessage.trim()) {
                 toast.error('กรุณาใส่ข้อความ');
                 return;
@@ -273,6 +276,7 @@ export default function SendReminderDialog({
               onConfirm(selectedTemplate, customMessage);
             }}
             disabled={!customMessage.trim() || isSending}
+            type="button"
           >
             {isSending ? (
               <>
