@@ -173,7 +173,8 @@ Deno.serve(async (req) => {
                 company_registration_number: getConfigValue('company_registration_number') || '',
                 company_phone: getConfigValue('company_phone') || '',
                 company_address: getConfigValue('company_address') || '',
-                account_name: configData.bank_account_name || ''
+                account_name: configData.bank_account_name || '',
+                receiver_name: getConfigValue('receiver_name') || ''
             },
             configs: relevantConfigs  // ⭐ ส่ง configs กลับไปด้วย
         };
