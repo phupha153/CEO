@@ -468,16 +468,24 @@ export default function ChatWindow({
                       value={selectedRoomId}
                       onChange={(e) => setSelectedRoomId(e.target.value)}
                       className="w-full text-sm border rounded-lg px-3 py-2"
+                      disabled={!tenants || tenants.length === 0 || !rooms || rooms.length === 0}
                     >
-                      <option value="">-- เลือกห้อง --</option>
+                      <option value="">
+                        {!tenants || tenants.length === 0 ? '⏳ กำลังโหลดผู้เช่า...' : '-- เลือกห้อง --'}
+                      </option>
                     {(() => {
+                      // ⭐ ถ้าข้อมูลยังไม่พร้อม ไม่แสดงตัวเลือก
+                      if (!tenants || tenants.length === 0 || !rooms || rooms.length === 0 || !bookings) {
+                        return null;
+                      }
+
                       // ⭐ กรองผู้เช่าที่ยังไม่มี LINE หรือ Facebook (ตาม platform ที่กำลังใช้)
                       const isFacebook = !!conversation.facebook_user_id;
                       const tenantsWithoutPlatform = tenants.filter(t => {
                         if (t.status === 'moved_out') return false;
                         return isFacebook ? !t.facebook_user_id : !t.line_user_id;
                       });
-                      
+
                       // สร้าง Map ของ tenant กับห้องจาก bookings
                       const tenantRoomMap = {};
                       bookings
@@ -488,7 +496,7 @@ export default function ChatWindow({
                             tenantRoomMap[booking.tenant_id] = room.room_number;
                           }
                         });
-                      
+
                       return tenantsWithoutPlatform
                         .map(tenant => {
                           const roomNumber = tenant.room_number || tenantRoomMap[tenant.id];

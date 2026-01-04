@@ -45,63 +45,56 @@ export default function Announcements() {
   const selectedBranchId = localStorage.getItem('selected_branch_id');
   const selectedBranchName = localStorage.getItem('selected_branch_name');
 
-  const { data: tenants = [], refetch: refetchTenants } = useQuery({
+  // ⭐ โหลดข้อมูลผู้เช่า ห้อง และการจองทันทีเมื่อเปิดหน้า
+  const { data: tenants = [], refetch: refetchTenants, isLoading: tenantsLoading } = useQuery({
     queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allTenants = await base44.entities.Tenant.list();
-      // เพิ่ม room_number สำหรับ tenant ที่ยังไม่มี
-      const rooms = await base44.entities.Room.list();
-      const bookings = await base44.entities.Booking.list();
-      
-      return allTenants
-        .filter(tenant => tenant.branch_id === selectedBranchId)
-        .map(tenant => {
-          if (!tenant.room_number) {
-            const activeBooking = bookings.find(b => b.tenant_id === tenant.id && b.status === 'active');
-            if (activeBooking) {
-              const room = rooms.find(r => r.id === activeBooking.room_id);
-              if (room?.room_number) {
-                return { ...tenant, room_number: room.room_number };
-              }
-            }
-          }
-          return tenant;
-        });
+      const allTenants = await base44.entities.Tenant.filter({ branch_id: selectedBranchId });
+      console.log('✅ Loaded tenants:', allTenants.length);
+      return allTenants;
     },
-    staleTime: 30 * 1000, // 30 วินาที
+    staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
+    enabled: !!selectedBranchId,
   });
 
-  const { data: rooms = [] } = useQuery({
+  const { data: rooms = [], isLoading: roomsLoading } = useQuery({
     queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allRooms = await base44.entities.Room.list();
-      return allRooms.filter(room => room.branch_id === selectedBranchId);
+      const allRooms = await base44.entities.Room.filter({ branch_id: selectedBranchId });
+      console.log('✅ Loaded rooms:', allRooms.length);
+      return allRooms;
     },
-    staleTime: 30 * 1000, // 30 วินาที
+    staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
+    enabled: !!selectedBranchId,
   });
 
-  const { data: bookings = [] } = useQuery({
+  const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allBookings = await base44.entities.Booking.list();
-      return allBookings.filter(b => b.branch_id === selectedBranchId);
+      const allBookings = await base44.entities.Booking.filter({ branch_id: selectedBranchId });
+      console.log('✅ Loaded bookings:', allBookings.length);
+      return allBookings;
     },
-    staleTime: 30 * 1000, // 30 วินาที
+    staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
+    enabled: !!selectedBranchId,
   });
 
   // สร้าง Map ของ tenant โดย line_user_id และ facebook_user_id
-  const tenantsMap = {};
-  tenants.forEach(t => {
-    if (t.line_user_id) tenantsMap[t.line_user_id] = t;
-    if (t.facebook_user_id) tenantsMap[t.facebook_user_id] = t;
-    if (t.id) tenantsMap[t.id] = t;
-  });
+  const tenantsMap = React.useMemo(() => {
+    const map = {};
+    tenants.forEach(t => {
+      if (t.line_user_id) map[t.line_user_id] = t;
+      if (t.facebook_user_id) map[t.facebook_user_id] = t;
+      if (t.id) map[t.id] = t;
+    });
+    return map;
+  }, [tenants]);
 
   // ดึงข้อความ LINE + Facebook เฉพาะสาขานี้
   const { data: lineMessages = [], isLoading: messagesLoading, error: messagesError } = useQuery({
@@ -657,30 +650,38 @@ export default function Announcements() {
                 
                 {/* Chat Window - แสดง/ซ่อนตาม state บน mobile */}
                 <div className={`flex-1 ${showChatWindow ? 'block' : 'hidden md:block'}`}>
-                  <ChatWindow
-                    key={`${selectedConversation?.line_user_id}-${selectedConversation?.facebook_user_id}-${tenants.length}`}
-                    conversation={selectedConversation}
-                    messages={selectedMessages}
-                    onBack={() => setShowChatWindow(false)} // ปุ่มย้อนกลับบน mobile
-                    tenant={selectedConversation ? (
-                    // ⭐ หา tenant ที่มี line_user_id หรือ facebook_user_id ตรงกับ conversation
-                    tenants.find(t => 
-                      t.line_user_id === selectedConversation.line_user_id ||
-                      t.facebook_user_id === selectedConversation.facebook_user_id
-                    ) ||
-                    tenantsMap[selectedConversation.tenant_id] ||
-                    tenantsMap[selectedConversation.line_user_id] ||
-                    tenantsMap[selectedConversation.facebook_user_id]
-                  ) : null}
-                  tenants={tenants}
-                  rooms={rooms}
-                  bookings={bookings}
-                  onSendMessage={handleSendChatMessage}
-                  onRefresh={async () => {
-                    // ⭐ refetch ทันที
-                    await refetchTenants();
-                  }}
-                  onLinkTenant={async (lineUserId, tenantId) => {
+                  {tenantsLoading || roomsLoading || bookingsLoading ? (
+                    <div className="flex items-center justify-center h-full bg-slate-50">
+                      <div className="text-center">
+                        <Loader2 className="w-8 h-8 animate-spin text-slate-400 mx-auto mb-2" />
+                        <p className="text-sm text-slate-600">กำลังโหลดข้อมูล...</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <ChatWindow
+                      key={`${selectedConversation?.line_user_id}-${selectedConversation?.facebook_user_id}-${tenants.length}-${rooms.length}-${bookings.length}`}
+                      conversation={selectedConversation}
+                      messages={selectedMessages}
+                      onBack={() => setShowChatWindow(false)} // ปุ่มย้อนกลับบน mobile
+                      tenant={selectedConversation ? (
+                      // ⭐ หา tenant ที่มี line_user_id หรือ facebook_user_id ตรงกับ conversation
+                      tenants.find(t => 
+                        t.line_user_id === selectedConversation.line_user_id ||
+                        t.facebook_user_id === selectedConversation.facebook_user_id
+                      ) ||
+                      tenantsMap[selectedConversation.tenant_id] ||
+                      tenantsMap[selectedConversation.line_user_id] ||
+                      tenantsMap[selectedConversation.facebook_user_id]
+                    ) : null}
+                    tenants={tenants}
+                    rooms={rooms}
+                    bookings={bookings}
+                    onSendMessage={handleSendChatMessage}
+                    onRefresh={async () => {
+                      // ⭐ refetch ทันที
+                      await refetchTenants();
+                    }}
+                    onLinkTenant={async (lineUserId, tenantId) => {
                     // ตอนนี้ส่ง tenantId มาตรงๆ แล้ว (ไม่ใช่ roomId)
                     const targetTenant = tenants.find(t => t.id === tenantId);
                     if (!targetTenant) {
@@ -731,11 +732,12 @@ export default function Announcements() {
                     }
                   }}
                     loading={messagesLoading}
-                  />
-                </div>
-              </div>
-            </Card>
-          </TabsContent>
+                    />
+                    )}
+                    </div>
+                    </div>
+                    </Card>
+                    </TabsContent>
 
           {/* Broadcast Tab */}
           <TabsContent value="broadcast" className="mt-0">
