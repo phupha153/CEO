@@ -350,24 +350,34 @@ Deno.serve(async (req) => {
         console.log(`📋 Remaining for next round: ${totalRemaining}`);
         console.log(`⏭️ Skipped (disabled branches or sent today): ${skippedCount}`);
 
-        // ⭐ ดึง tenant และ room เฉพาะที่จำเป็น (ก่อนสร้าง invoice)
+        // ⭐ ดึง tenant และ room แบบ BATCH (ป้องกัน N+1 queries)
         const uniqueTenantIds = [...new Set(paymentsToProcess.map(p => p.tenant_id).filter(id => id))];
         const uniqueRoomIds = [...new Set(paymentsToProcess.map(p => p.room_id).filter(id => id))];
         
-        console.log(`📥 Fetching ${uniqueTenantIds.length} tenants and ${uniqueRoomIds.length} rooms...`);
+        console.log(`📥 Fetching ${uniqueTenantIds.length} tenants and ${uniqueRoomIds.length} rooms (BATCH MODE)...`);
         
-        const [tenantsBatch, roomsBatch] = await Promise.all([
-            uniqueTenantIds.length > 0 
-                ? Promise.all(uniqueTenantIds.map(id => 
-                    base44.asServiceRole.entities.Tenant.filter({ id }).catch(() => null)
-                  )).then(results => results.flat().filter(Boolean))
-                : [],
-            uniqueRoomIds.length > 0
-                ? Promise.all(uniqueRoomIds.map(id => 
-                    base44.asServiceRole.entities.Room.filter({ id }).catch(() => null)
-                  )).then(results => results.flat().filter(Boolean))
-                : []
-        ]);
+        // ⚡ OPTIMIZED: ใช้ filter ครั้งเดียว แทนการ loop (ลด queries จาก N → 1)
+        const BATCH_CHUNK_SIZE = 100;
+        const tenantsBatch = [];
+        const roomsBatch = [];
+        
+        // Fetch tenants in chunks
+        for (let i = 0; i < uniqueTenantIds.length; i += BATCH_CHUNK_SIZE) {
+            const chunk = uniqueTenantIds.slice(i, i + BATCH_CHUNK_SIZE);
+            const results = await base44.asServiceRole.entities.Tenant.filter({
+                id: { $in: chunk }
+            }).catch(() => []);
+            tenantsBatch.push(...results);
+        }
+        
+        // Fetch rooms in chunks
+        for (let i = 0; i < uniqueRoomIds.length; i += BATCH_CHUNK_SIZE) {
+            const chunk = uniqueRoomIds.slice(i, i + BATCH_CHUNK_SIZE);
+            const results = await base44.asServiceRole.entities.Room.filter({
+                id: { $in: chunk }
+            }).catch(() => []);
+            roomsBatch.push(...results);
+        }
 
         const tenantMap = new Map(tenantsBatch.map(t => [t.id, t]));
         const roomMap = new Map(roomsBatch.map(r => [r.id, r]));
@@ -386,12 +396,25 @@ Deno.serve(async (req) => {
         }
 
         // ⭐⭐⭐ ขั้นตอนที่ 1: คำนวณและอัปเดตค่าปรับก่อน (ต้องทำก่อนสร้างรูป)
-        console.log(`\n💰 ========== STEP 1: CALCULATING LATE FEES ==========`);
+        console.log(`\n💰 ========== STEP 1: CALCULATING LATE FEES (PRODUCTION-GRADE) ==========`);
+        const todayDateStr = new Date().toISOString().split('T')[0];
+        let feeCalculated = 0;
+        let feeSkipped = 0;
+        
         for (const payment of paymentsToProcess) {
             const dueDate = startOfDay(parseISO(payment.due_date));
             const daysOverdue = differenceInDays(today, dueDate);
 
             if (daysOverdue <= 0) continue;
+
+            // ⭐ PRODUCTION-GRADE: เช็คว่าคำนวณวันนี้แล้วหรือยัง (ป้องกันคำนวณซ้ำ)
+            const lastCalcDate = payment.late_fee_last_calculated?.split('T')[0];
+            if (lastCalcDate === todayDateStr && payment.late_fee_amount > 0) {
+                const room = roomMap.get(payment.room_id);
+                console.log(`⏭️ SKIP ${payment.id.substring(0,8)} (ห้อง ${room?.room_number}): Already calculated today (${payment.late_fee_amount} บาท)`);
+                feeSkipped++;
+                continue;
+            }
 
             const branchId = payment.branch_id;
             let lateFee = 0;
@@ -444,22 +467,38 @@ Deno.serve(async (req) => {
 
             console.log(`💰 Payment ${payment.id.substring(0,8)} (ห้อง ${room?.room_number}): ${daysOverdue} วัน → ค่าปรับ ${lateFee} บาท ${hasLateFeeChanged ? '(เปลี่ยนแปลง)' : '(เท่าเดิม)'}`);
 
-            // อัปเดต database
-            await base44.asServiceRole.entities.Payment.update(payment.id, {
-                status: 'overdue',
-                late_fee_amount: lateFee,
-                total_amount: newTotalAmount
-            });
+            // ⭐ PRODUCTION-GRADE: อัปเดตเฉพาะเมื่อค่าปรับเปลี่ยนแปลง + บันทึก timestamp
+            if (hasLateFeeChanged || payment.status !== 'overdue') {
+                await base44.asServiceRole.entities.Payment.update(payment.id, {
+                    status: 'overdue',
+                    late_fee_amount: lateFee,
+                    total_amount: newTotalAmount,
+                    late_fee_last_calculated: new Date().toISOString()
+                });
+                feeCalculated++;
+                console.log(`   ✅ DB Updated with timestamp`);
+            } else {
+                console.log(`   ⏭️ No change - updating timestamp only`);
+                await base44.asServiceRole.entities.Payment.update(payment.id, {
+                    late_fee_last_calculated: new Date().toISOString()
+                });
+            }
 
             // อัปเดต payment object ในหน่วยความจำ
             payment.late_fee_amount = lateFee;
             payment.total_amount = newTotalAmount;
             payment.status = 'overdue';
+            payment.late_fee_last_calculated = new Date().toISOString();
 
             await delay(200);
         }
         
-        console.log(`✅ Late fees calculated and updated for ${paymentsToProcess.length} payments`);
+        console.log(`\n📊 LATE FEE CALCULATION SUMMARY:`);
+        console.log(`   - Calculated: ${feeCalculated}`);
+        console.log(`   - Skipped (already done today): ${feeSkipped}`);
+        console.log(`   - Total processed: ${paymentsToProcess.length}`);
+        
+        console.log(`✅ STEP 1 COMPLETE: ${feeCalculated} calculated, ${feeSkipped} skipped (already done today)`);
 
         // ⭐ ขั้นตอนที่ 2: สร้างใบแจ้งหนี้ (หลังจากคำนวณค่าปรับแล้ว)
         console.log(`\n🖼️ ========== STEP 2: INVOICE GENERATION ==========`);
@@ -912,6 +951,8 @@ Deno.serve(async (req) => {
             testMode: !!testLineUserId,
             enabledBranches: enabledBranches,
             skippedDueToDisabled: skippedCount,
+            lateFeeCalculated: feeCalculated,
+            lateFeeSkipped: feeSkipped,
             invoicesGenerated: invoicesGenerated,
             invoicesFailed: invoicesFailed,
             invoiceGenerationDetails: invoiceGenerationDetails,
