@@ -666,14 +666,17 @@ export default function Announcements() {
                       tenant={(() => {
                         if (!selectedConversation) return null;
 
-                        // ⭐ หา tenant ที่มี line_user_id หรือ facebook_user_id ตรงกับ conversation
-                        const foundTenant = tenants.find(t => 
-                          t.line_user_id === selectedConversation.line_user_id ||
-                          t.facebook_user_id === selectedConversation.facebook_user_id
-                        ) ||
-                        tenantsMap[selectedConversation.tenant_id] ||
-                        tenantsMap[selectedConversation.line_user_id] ||
-                        tenantsMap[selectedConversation.facebook_user_id];
+                        // ⭐ หา tenant ที่มี line_user_id หรือ facebook_user_id ตรงกับ conversation **จริงๆ**
+                        const foundTenant = tenants.find(t => {
+                          // ต้อง match กับ platform ที่ใช้งานจริงๆ
+                          if (selectedConversation.line_user_id) {
+                            return t.line_user_id === selectedConversation.line_user_id;
+                          }
+                          if (selectedConversation.facebook_user_id) {
+                            return t.facebook_user_id === selectedConversation.facebook_user_id;
+                          }
+                          return false;
+                        });
 
                         console.log('🔍 Announcements: Finding tenant for conversation:', {
                           conversationLineId: selectedConversation.line_user_id,
@@ -682,10 +685,11 @@ export default function Announcements() {
                           foundTenantName: foundTenant?.full_name,
                           foundTenantLineId: foundTenant?.line_user_id,
                           foundTenantFacebookId: foundTenant?.facebook_user_id,
+                          matched: !!foundTenant,
                           totalTenants: tenants.length
                         });
 
-                        return foundTenant;
+                        return foundTenant || null;
                       })()}
                     tenants={tenants}
                     rooms={rooms}
