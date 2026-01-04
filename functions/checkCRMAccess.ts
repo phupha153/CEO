@@ -60,20 +60,24 @@ Deno.serve(async (req) => {
       });
       
       if (employees && employees.length > 0) {
+        const crmRole = employees[0].custom_role || employees[0].role || 'owner';
         console.log('✅ Found in CRM Employee table:', userEmail);
+        console.log('🔑 CRM Role:', crmRole, '| Full Data:', employees[0]);
         return Response.json({ 
           hasAccess: true,
           email: userEmail,
-          role: employees[0].custom_role || 'owner', // ⭐ ส่ง role กลับมาด้วย
+          role: crmRole, // ⭐ ส่ง role กลับมาด้วย
           message: '✅ พบข้อมูลใน Employee Table ของ CRM',
           source: 'employee_table',
           employee: {
             full_name: employees[0].full_name,
-            custom_role: employees[0].custom_role
+            custom_role: employees[0].custom_role,
+            role: employees[0].role
           },
           debug: {
             ...debugInfo,
-            employeeCount: employees.length
+            employeeCount: employees.length,
+            extractedRole: crmRole
           }
         });
       }
@@ -119,11 +123,21 @@ Deno.serve(async (req) => {
     const crmData = await crmResponse.json();
 
     console.log('📊 CRM Raw Response:', JSON.stringify(crmData, null, 2));
+    
+    // ⭐ เช็ค structure ที่ CRM ส่งมา
+    if (crmData?.employee) {
+      console.log('🔍 CRM sent nested employee:', crmData.employee);
+    }
 
-    // ⭐ CRM อาจส่งกลับมาเป็น "users", "employees", หรือ "customers"
+    // ⭐ CRM อาจส่งกลับมาเป็น "users", "employees", "customers" หรือ nested "employee"
     const users = crmData?.users || [];
     const employees = crmData?.employees || [];
     const customers = crmData?.customers || [];
+    
+    // ⭐ ถ้า CRM ส่งมาแบบ nested {employee: {...}} (single object)
+    if (crmData?.employee) {
+      employees.push(crmData.employee);
+    }
 
     // รวมทั้งหมด
     const allUsers = [...users, ...employees, ...customers];
@@ -148,14 +162,19 @@ Deno.serve(async (req) => {
 
     if (foundUser) {
       console.log('✅ Found in CRM API:', userEmail);
+      console.log('🔑 CRM User Data:', foundUser);
     } else {
       console.log('❌ NOT FOUND in CRM - Email:', userEmail);
     }
 
+    // ⭐ ดึง role จาก custom_role หรือ role (รองรับทั้ง 2 field)
+    const crmRole = foundUser?.custom_role || foundUser?.role || 'owner';
+    console.log('🎯 Extracted Role:', crmRole, '| From:', foundUser ? 'custom_role=' + foundUser.custom_role + ', role=' + foundUser.role : 'N/A');
+
     return Response.json({ 
       hasAccess: !!foundUser,
       email: userEmail,
-      role: foundUser?.custom_role || 'owner', // ⭐ ส่ง role จาก CRM
+      role: crmRole, // ⭐ ส่ง role จาก CRM (รองรับทั้ง custom_role และ role)
       message: foundUser 
         ? '✅ พบข้อมูลใน CRM API' 
         : '⚠️ ไม่พบอีเมลในระบบ CRM - กรุณาติดต่อผู้ดูแลระบบเพื่อเพิ่มสิทธิ์',
@@ -168,7 +187,9 @@ Deno.serve(async (req) => {
         allEmails: allUsers.map(u => u.email),
         crmResponseOk: crmResponse.ok,
         crmRawData: crmData,
-        searchingFor: userEmail.toLowerCase()
+        searchingFor: userEmail.toLowerCase(),
+        extractedRole: crmRole,
+        foundUserData: foundUser
       }
     });
 
