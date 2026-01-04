@@ -400,6 +400,7 @@ Deno.serve(async (req) => {
 
                 if (template === 'overdue') {
                     // --- CASE 1: เกินกำหนด (ไม่มีลิงก์) ---
+                    console.log(`📝 Using OVERDUE template (NO LINK) for payment ${payment.id}`);
                     message = `🔴 แจ้งเตือนเกินกำหนดชำระ\n\n`;
                     message += `${buildingName}\n`;
                     message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
@@ -415,6 +416,7 @@ Deno.serve(async (req) => {
 
                 } else if (template === 'due_date') {
                     // --- CASE 2: ครบกำหนด (ไม่มีลิงก์) ---
+                    console.log(`📝 Using DUE_DATE template (NO LINK) for payment ${payment.id}`);
                     message = `📅 แจ้งเตือนค่าเช่า (ครบกำหนดวันนี้)\n\n`;
                     message += `${buildingName}\n`;
                     message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n\n`;
@@ -446,8 +448,10 @@ Deno.serve(async (req) => {
 
                 } else {
                     // --- CASE 3: ปกติ (Advance/General) - มีลิงก์ + ธนาคาร ---
+                    console.log(`📝 Using ADVANCE/GENERAL template (WITH LINK) for payment ${payment.id}`);
                     const frontendUrl = Deno.env.get('FRONTEND_URL');
                     const invoiceLink = frontendUrl ? `${frontendUrl}/publicinvoice?id=${payment.id}` : null;
+                    console.log(`🔗 Invoice link generated: ${invoiceLink || 'N/A'}`);
 
                     message = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
                     message += `สวัสดีคุณ ${tenant.full_name}\n`;
