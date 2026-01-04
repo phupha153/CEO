@@ -77,12 +77,12 @@ export default function TrialExpiredPage() {
               </Button>
 
               <Button
-                onClick={() => navigate(createPageUrl('Welcome'))}
+                onClick={() => navigate(createPageUrl('PackageSelection'))}
                 variant="outline"
                 className="w-full py-6 text-lg font-semibold rounded-2xl"
               >
-                <RefreshCw className="w-5 h-5 mr-2" />
-                กลับหน้าหลัก
+                <Package className="w-5 h-5 mr-2" />
+                เลือกแพ็กเกจ
               </Button>
 
 
