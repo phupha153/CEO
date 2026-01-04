@@ -13,6 +13,11 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
       return;
     }
 
+    // ⭐ รีเซ็ต AI state
+    if (window.resetPaymentsAI) {
+      window.resetPaymentsAI();
+    }
+
     setGenerating(true);
     try {
       toast.info('กำลังสร้างบิลประจำเดือน...', { duration: 3000 });
