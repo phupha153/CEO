@@ -19,7 +19,7 @@ import { useNavigate } from "react-router-dom";
 import AddEmployeeDialog from "../components/settings/AddEmployeeDialog";
 import PageHeader from "../components/shared/PageHeader";
 
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO, differenceInDays, startOfDay } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { createPageUrl } from "@/utils";
 
@@ -601,8 +601,18 @@ export default function Settings() {
   const getDaysRemaining = () => {
     if (!activeSubscription?.subscription_end_date) return null;
     try {
-      const endDate = parseISO(activeSubscription.subscription_end_date);
-      return differenceInDays(endDate, new Date());
+      const endDate = startOfDay(parseISO(activeSubscription.subscription_end_date));
+      const today = startOfDay(new Date());
+      const days = differenceInDays(endDate, today);
+      
+      console.log('🔍 Trial Days Calculation (Settings):', {
+        endDate: endDate.toISOString(),
+        today: today.toISOString(),
+        daysRemaining: days,
+        rawEndDate: activeSubscription.subscription_end_date
+      });
+      
+      return Math.max(0, days);
     } catch (e) {
       console.error("Error parsing subscription end date:", e);
       return null;

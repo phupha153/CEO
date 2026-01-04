@@ -1173,25 +1173,24 @@ export default function Layout({ children, currentPageName }) {
 
     if (planStatus === 'trial' && trialEndsAt) {
       try {
-        const trialEndDate = parseISO(trialEndsAt);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const trialEndDate = startOfDay(parseISO(trialEndsAt));
+        const today = startOfDay(new Date());
         const daysRemaining = differenceInDays(trialEndDate, today);
         
         if (daysRemaining >= 0) {
-          return (
-            <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Crown className="w-5 h-5" />
-                <div>
-                  <p className="font-semibold text-sm">
-                    🎉 {isOwner ? 'กำลังทดลองใช้งาน' : `แพ็กเกจของ ${branchOwnerStatus?.owner_name || 'เจ้าของ'}`}
-                  </p>
-                  <p className="text-xs opacity-90">เหลืออีก {daysRemaining} วัน</p>
-                </div>
-              </div>
-            </div>
-          );
+        return (
+        <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+        <Crown className="w-5 h-5" />
+        <div>
+          <p className="font-semibold text-sm">
+            🎉 {isOwner ? 'กำลังทดลองใช้งาน' : `แพ็กเกจของ ${branchOwnerStatus?.owner_name || 'เจ้าของ'}`}
+          </p>
+          <p className="text-xs opacity-90">เหลืออีก {Math.max(0, daysRemaining)} วัน</p>
+        </div>
+        </div>
+        </div>
+        );
         }
       } catch {}
     }
@@ -1200,9 +1199,8 @@ export default function Layout({ children, currentPageName }) {
       const activeSub = appSubscriptions.find(s => s.status === 'active');
       if (activeSub && activeSub.subscription_end_date) {
         try {
-          const endDate = parseISO(activeSub.subscription_end_date);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
+          const endDate = startOfDay(parseISO(activeSub.subscription_end_date));
+          const today = startOfDay(new Date());
           const daysLeft = differenceInDays(endDate, today);
           
           if (daysLeft >= 0 && daysLeft < 30) {
@@ -1284,6 +1282,28 @@ export default function Layout({ children, currentPageName }) {
         </motion.div>
       </div>
     );
+  }
+
+  // ⭐ Normalize วันที่ด้วย startOfDay เพื่อให้คำนวณวันคงเหลือได้แม่นยำ (ไม่ขึ้นกับเวลาในวัน)
+  const trialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
+  const planStatus = branchOwnerStatus?.plan_status || currentUser.plan_status || 'trial';
+
+  if (planStatus === 'trial' && trialEndsAt) {
+    try {
+      const trialEndDate = startOfDay(parseISO(trialEndsAt));
+      const today = startOfDay(new Date());
+      const daysRemaining = differenceInDays(trialEndDate, today);
+
+      // Log สำหรับ debug
+      console.log('🔍 Trial Days Calculation (Layout):', {
+        trialEndDate: trialEndDate.toISOString(),
+        today: today.toISOString(),
+        daysRemaining,
+        rawTrialEndsAt: trialEndsAt
+      });
+    } catch (error) {
+      console.error('Error calculating trial days:', error);
+    }
   }
 
   // Check if onboarding tutorial should be shown
