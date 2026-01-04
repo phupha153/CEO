@@ -625,7 +625,8 @@ Deno.serve(async (req) => {
                 let paymentDate = null;
                 const currentPrepaid = tenant?.prepaid_balance || 0;
 
-                if (currentPrepaid >= totalAmount) {
+                // ⭐ ชำระ prepaid เฉพาะเมื่อบิลเป็นบวก และมีเงินเพียงพอ
+                if (totalAmount > 0 && currentPrepaid >= totalAmount) {
                     status = 'paid';
                     paymentDate = now.toISOString();
                     // ⭐ เก็บจำนวนที่หักแทนที่จะเป็น newBalance (แก้ race condition)
