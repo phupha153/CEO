@@ -42,7 +42,8 @@ Deno.serve(async (req) => {
             };
 
             try {
-                // ดึงบิลที่ยังไม่ชำระครบและเกินกำหนด (batch 500)
+                // ดึงบิลที่ยังไม่ชำระครบและเกินกำหนดของสาขานี้ (batch 500)
+                let allBranchPayments = [];
                 let skip = 0;
                 const batchSize = 500;
                 let hasMore = true;
@@ -50,10 +51,11 @@ Deno.serve(async (req) => {
                 while (hasMore) {
                     console.log(`  📦 Fetching batch: skip=${skip}, limit=${batchSize}`);
                     
-                    const payments = await base44.asServiceRole.entities.Payment.list(
-                        '-created_date', 
-                        batchSize, 
-                        skip
+                    // ใช้ filter แทน list เพื่อระบุเงื่อนไข
+                    const payments = await base44.asServiceRole.entities.Payment.filter(
+                        { branch_id: branch.id },
+                        '-created_date',
+                        batchSize
                     );
 
                     if (!payments || payments.length === 0) {
@@ -61,19 +63,28 @@ Deno.serve(async (req) => {
                         break;
                     }
 
-                    // Filter เฉพาะสาขานี้ + ยังไม่ชำระครบ
+                    // Filter เฉพาะบิลที่ยังไม่ชำระครบและมี due_date
                     const branchPayments = payments.filter(p => 
-                        p.branch_id === branch.id && 
                         p.status !== 'paid' &&
                         p.due_date
                     );
+                    
+                    allBranchPayments.push(...branchPayments);
 
-                    console.log(`  🔍 Found ${branchPayments.length} unpaid payments in this batch`);
+                    // หยุดถ้าได้ครบแล้ว
+                    if (payments.length < batchSize) {
+                        hasMore = false;
+                    } else {
+                        skip += batchSize;
+                    }
+                }
 
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
+                console.log(`  🔍 Total unpaid payments for branch: ${allBranchPayments.length}`);
 
-                    for (const payment of branchPayments) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                for (const payment of allBranchPayments) {
                         branchResult.processed++;
 
                         try {
@@ -174,17 +185,6 @@ Deno.serve(async (req) => {
                             console.error(`  ❌ Error processing payment ${payment.id}:`, paymentError.message);
                         }
                     }
-
-                    skip += batchSize;
-                    if (payments.length < batchSize) {
-                        hasMore = false;
-                    }
-
-                    // ป้องกัน rate limit
-                    if (hasMore) {
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                    }
-                }
 
             } catch (branchError) {
                 branchResult.errors.push({
