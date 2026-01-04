@@ -74,6 +74,7 @@ export default function Invoice() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [configs, setConfigs] = useState([]);
+  const [configsLoaded, setConfigsLoaded] = useState(false);
 
   useEffect(() => {
     if (!paymentId) {
@@ -89,6 +90,7 @@ export default function Invoice() {
         // ⭐ ดึง configs เพื่อคำนวณค่าปรับ
         const configsData = await base44.entities.Config.list();
         setConfigs(configsData);
+        setConfigsLoaded(true);
         
         const response = await base44.functions.invoke('getPublicInvoice', {
           paymentId: paymentId
@@ -115,7 +117,7 @@ export default function Invoice() {
     fetchInvoice();
   }, [paymentId]);
 
-  if (loading) {
+  if (loading || !configsLoaded) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
         <Card className="p-6 text-center max-w-sm w-full">
@@ -151,8 +153,8 @@ export default function Invoice() {
 
   // ⭐ คำนวณค่าปรับสำหรับบิลที่ยังไม่ชำระ (real-time)
   // ถ้าชำระแล้ว จะใช้ค่าที่ lock ไว้จาก DB
-  const calculatedLateFee = calculateLateFee(invoiceData, configs, invoiceData.branch_id);
-  const displayLateFee = calculatedLateFee;
+  const calculatedLateFee = calculateLateFee(invoiceData, configs, invoiceData.branch_id) || 0;
+  const displayLateFee = isNaN(calculatedLateFee) ? 0 : calculatedLateFee;
 
   const handleDownload = () => {
     if (window.print) {
@@ -496,11 +498,17 @@ export default function Invoice() {
               <div className="flex justify-between items-center">
                 <div className="text-sm text-slate-600">
                   <span className="font-medium">ยอดเงินสุทธิ</span>
-                  <span className="ml-2">({numberToThaiText((invoiceData.total_amount || 0) + Math.max(0, displayLateFee - (invoiceData.late_fee_amount || 0)))})</span>
+                  {(() => {
+                    const totalAmount = (invoiceData.total_amount || 0) + Math.max(0, displayLateFee - (invoiceData.late_fee_amount || 0));
+                    return <span className="ml-2">({numberToThaiText(totalAmount)})</span>;
+                  })()}
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-lg font-bold text-slate-800">
-                    {((invoiceData.total_amount || 0) + Math.max(0, displayLateFee - (invoiceData.late_fee_amount || 0))).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                    {(() => {
+                      const totalAmount = (invoiceData.total_amount || 0) + Math.max(0, displayLateFee - (invoiceData.late_fee_amount || 0));
+                      return totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+                    })()}
                   </span>
                   {/* ตราประทับ */}
                   {isPaid ? (
