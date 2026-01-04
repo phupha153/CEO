@@ -177,14 +177,6 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
             const room = roomMap.get(payment.room_id);
             if (!tenant || (!tenant.line_user_id && !tenant.facebook_user_id)) continue;
 
-            // ⭐ สร้างลิงค์ Public Invoice
-            const frontendUrl = getConfig('frontend_url', branchId) || Deno.env.get('FRONTEND_URL');
-            if (!frontendUrl) {
-                console.error(`❌ Missing FRONTEND_URL for branch ${branchId}`);
-                continue;
-            }
-            const invoiceLink = `${frontendUrl}/publicinvoice?id=${payment.id}`;
-
             // --- 📝 MESSAGE BUILDER ---
             let message = `📢 ${branchConfigs.building} - แจ้งเตือนค่าเช่า\n\n`;
             message += `สวัสดีคุณ ${tenant.full_name}\nห้อง ${room?.room_number || 'N/A'}\n\n`;
@@ -204,7 +196,6 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
             message += `📅 ครบกำหนดชำระ: ${new Date(payment.due_date).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}\n`;
             message += `สถานะ: รอชำระ\n\n`;
             message += `💳 โอนเงินได้ที่:\n${branchConfigs.bankName} ${branchConfigs.accNum}\nชื่อ: ${branchConfigs.accName}\n\n`;
-            message += `📄 ดูเอกสาร: ${invoiceLink}\n\n`;
             message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
 
             recipients.push({
