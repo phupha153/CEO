@@ -341,7 +341,6 @@ export default function Receipt() {
 
             <div className="bg-yellow-100 p-3 rounded">
               <p className="font-bold mb-2">ค่าปรับที่คำนวณได้:</p>
-              <p>• คำนวณใหม่: {debugInfo.calculated_late_fee} บาท</p>
               <p>• แสดงในบิล: {debugInfo.display_late_fee} บาท</p>
             </div>
 
