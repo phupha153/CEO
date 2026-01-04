@@ -30,14 +30,24 @@ export default function SendReminderDialog({
   const [selectedTemplate, setSelectedTemplate] = useState(() => effectiveStatus === 'overdue' ? 'overdue' : 'advance');
   const [customMessage, setCustomMessage] = useState('');
 
-  // ⭐ เมื่อ effectiveStatus เปลี่ยน ให้อัปเดต selectedTemplate
+  // ⭐ เมื่อ dialog เปิด หรือ template เปลี่ยน ให้อัปเดตข้อความ
   useEffect(() => {
+    if (!open) return;
+    
+    // ตั้งค่า template ตาม status
     if (effectiveStatus === 'overdue') {
       setSelectedTemplate('overdue');
     } else {
       setSelectedTemplate('advance');
     }
   }, [effectiveStatus, open]);
+
+  // ⭐ สร้างข้อความทันทีที่เปิด dialog
+  useEffect(() => {
+    if (open && !customMessage) {
+      setCustomMessage(getDefaultMessage());
+    }
+  }, [open]);
 
   if (!payment) return null;
 
