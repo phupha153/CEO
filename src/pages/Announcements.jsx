@@ -112,8 +112,9 @@ export default function Announcements() {
       const branchMessages = await base44.entities.LineMessage.filter({ branch_id: selectedBranchId }, '-created_date', 500);
       return branchMessages;
     },
-    staleTime: 5 * 1000,
-    refetchInterval: 5 * 1000,
+    staleTime: 30 * 1000,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
     enabled: !!selectedBranchId,
   });
 
@@ -131,8 +132,9 @@ export default function Announcements() {
         return [];
       }
     },
-    staleTime: 5 * 1000,
-    refetchInterval: 5 * 1000,
+    staleTime: 30 * 1000,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
     enabled: !!selectedBranchId,
   });
 
@@ -143,7 +145,8 @@ export default function Announcements() {
       const history = await base44.entities.AnnouncementHistory.filter({ branch_id: selectedBranchId }, '-sent_date', 50);
       return history;
     },
-    staleTime: 30 * 1000,
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
     enabled: !!selectedBranchId,
   });
 
@@ -337,8 +340,9 @@ export default function Announcements() {
           sent_by: user?.email
         });
 
+        await new Promise(r => setTimeout(r, 500));
         queryClient.invalidateQueries(['facebookMessages', selectedBranchId]);
-      } else {
+        } else {
         // ส่งผ่าน LINE
         const response = await base44.functions.invoke('sendLineMessage', {
           to: selectedConversation.line_user_id,
@@ -362,8 +366,9 @@ export default function Announcements() {
           sent_by: user?.email
         });
 
+        await new Promise(r => setTimeout(r, 500));
         queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
-      }
+        }
 
       toast.success('ส่งข้อความสำเร็จ');
     } catch (error) {
