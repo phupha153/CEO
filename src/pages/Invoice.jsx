@@ -155,6 +155,19 @@ export default function Invoice() {
   // ถ้าชำระแล้ว จะใช้ค่าที่ lock ไว้จาก DB
   const calculatedLateFee = calculateLateFee(invoiceData, configs, invoiceData.branch_id) || 0;
   const displayLateFee = isNaN(calculatedLateFee) ? 0 : calculatedLateFee;
+  
+  console.log('🔍 [Invoice] Late Fee Calculation:', {
+    branchId: invoiceData.branch_id,
+    dueDate: invoiceData.due_date,
+    status: invoiceData.status,
+    isPaid,
+    isOverdue,
+    daysOverdue,
+    existingLateFee: invoiceData.late_fee_amount,
+    calculatedLateFee,
+    displayLateFee,
+    configsCount: configs.length
+  });
 
   const handleDownload = () => {
     if (window.print) {
