@@ -385,94 +385,14 @@ Deno.serve(async (req) => {
 
             console.log(`📝 Message template for payment ${payment.id}: "${template}", customMessage: ${!!customMessage}`);
 
+            // ⭐⭐⭐ CRITICAL: ใช้ customMessage จาก UI โดยตรง (ไม่สร้างใหม่)
             if (customMessage && customMessage.trim()) {
                 message = customMessage.trim();
-                message += `\n\nโอนเงินได้ที่: ${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}`;
+                console.log(`✅ Using custom message from UI (${message.length} chars)`);
             } else {
-                const roomNum = room?.room_number || 'N/A';
-                const lateFee = calculatedLateFee;
-                const originalAmount = payment.total_amount - (payment.late_fee_amount || 0);
-                const totalWithLateFee = originalAmount + lateFee;
-
-                const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', branchId, '0');
-                const feePerDay = parseFloat(lateFeePerDayConfig);
-
-                if (template === 'overdue') {
-                    // --- CASE 1: เกินกำหนด ---
-                    message = `แจ้งเตือนค่าเช่าเกินกำหนด\n\n`;
-                    message += `${buildingName}\n`;
-                    message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
-                    message += `ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
-                    if (lateFee > 0) {
-                        message += `\nค่าปรับล่าช้า: ${lateFee.toLocaleString()} บาท`;
-                    }
-                    message += `\nรวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
-                    message += `\nเกินกำหนดมาแล้ว ${daysOverdue} วัน\n\n`;
-                    message += `กรุณาชำระโดยด่วน${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
-                    message += `โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
-                    message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
-
-                } else if (template === 'due_date') {
-                    // --- CASE 2: ครบกำหนด ---
-                    message = `แจ้งเตือนค่าเช่า (ครบกำหนดวันนี้)\n\n`;
-                    message += `${buildingName}\n`;
-                    message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n\n`;
-                    
-                    // รายละเอียดค่าใช้จ่าย
-                    message += `รายละเอียดค่าใช้จ่าย:\n`;
-                    message += `━━━━━━━━━━━━━━━━━━━━\n`;
-                    
-                    if (payment.rent_amount >= 0) message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
-                    if (payment.electricity_amount >= 0) message += `ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-                    if (payment.water_amount >= 0) message += `ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
-                    if (payment.internet_amount > 0) message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
-                    if (payment.common_fee_amount > 0) message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
-                    if (payment.parking_fee_amount > 0) message += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
-                    if (payment.other_amount > 0) message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
-                    
-                    message += `━━━━━━━━━━━━━━━━━━━━\n`;
-                    message += `รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
-                    message += `(${numberToThaiText(payment.total_amount)})\n\n`;
-                    
-                    if (!isNaN(feePerDay) && feePerDay > 0) {
-                        message += `หากชำระหลังวันนี้ มีค่าปรับ ${feePerDay} บาท/วัน\n\n`;
-                    }
-                    
-                    message += `โอนเงินได้ที่:\n`;
-                    message += `${bankName} ${bankAccountNumber}\n`;
-                    message += `ชื่อ: ${bankAccountName}\n\n`;
-                    message += `กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ`;
-
-                } else {
-                    // --- CASE 3: ปกติ (Advance/General) ---
-                    message = `${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
-                    message += `สวัสดีคุณ ${tenant.full_name}\n`;
-                    message += `ห้อง ${roomNum}\n\n`;
-                    message += `รายละเอียดค่าใช้จ่าย:\n`;
-                    message += `━━━━━━━━━━━━━━━━━━━━\n`;
-
-                    if (payment.rent_amount >= 0) message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
-                    if (payment.electricity_amount >= 0) message += `ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-                    if (payment.water_amount >= 0) message += `ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
-                    if (payment.internet_amount > 0) message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
-                    if (payment.common_fee_amount > 0) message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
-                    if (payment.parking_fee_amount > 0) message += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
-                    if (payment.other_amount > 0) message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
-
-                    message += `━━━━━━━━━━━━━━━━━━━━\n`;
-                    message += `รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
-                    message += `(${numberToThaiText(payment.total_amount)})\n\n`;
-                    message += `ครบกำหนดชำระ: ${dueDateStr}\n`;
-
-                    if (daysOverdue > 0) {
-                        message += `สถานะ: ${statusText}\n\n`;
-                    } else {
-                        message += `สถานะ: ${statusText}\n\n`;
-                    }
-
-                    message += `โอนเงินได้ที่: ${bankName} ${bankAccountNumber} (${bankAccountName})\n\n`;
-                }
-                }
+                console.warn(`⚠️ No custom message provided - this should not happen from UI`);
+                message = `กรุณาระบุข้อความ`;
+            }
 
                 recipients.push({
                 lineUserId: tenant.line_user_id || null,
