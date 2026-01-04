@@ -691,28 +691,27 @@ Deno.serve(async (req) => {
             console.log(`   - latestPayment.invoice_image_url: ${latestPayment.invoice_image_url ? '✅ มี' : '❌ ไม่มี'}`);
 
             // สร้างข้อความแบบเดียวกับ sendPaymentReminder template='overdue'
-            let message = `🔴 แจ้งเตือนเกินกำหนดชำระ\n\n`;
+            let message = `แจ้งเตือนค่าเช่าเกินกำหนด\n\n`;
             message += `${branchBuildingName}\n`;
             message += `คุณ ${tenant.full_name} ห้อง ${roomNumber}\n`;
-            message += `💰 ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
+            message += `ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
             if (lateFee > 0) {
-                message += `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท`;
+                message += `\nค่าปรับล่าช้า: ${lateFee.toLocaleString()} บาท`;
             }
-            message += `\n💰 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
-            message += `\nเกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
+            message += `\nรวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
+            message += `\nเกินกำหนดมาแล้ว ${daysOverdue} วัน\n\n`;
 
-            // ⭐⭐⭐ เพิ่มลิงก์ใบแจ้งหนี้ (ตามแบบ sendAdvanceRemindersV4)
+            // ⭐ ข้ามการส่งลิงก์ใบแจ้งหนี้ (สร้างไว้ในฐานข้อมูลแล้ว แต่ไม่ส่งให้ผู้เช่า)
             const hasInvoiceUrl = latestPayment.invoice_image_url && latestPayment.invoice_image_url.trim() !== '';
             if (hasInvoiceUrl) {
-                message += `📄 ดูใบแจ้งหนี้: ${latestPayment.invoice_image_url}\n\n`;
-                console.log(`   ✅ INCLUDED invoice URL in message`);
+                console.log(`   ℹ️ Invoice exists but NOT included in message (as requested)`);
             } else {
-                console.log(`   ⚠️ NO invoice URL to include`);
+                console.log(`   ⚠️ NO invoice URL generated`);
             }
 
-            message += `กรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
-            message += `💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อบัญชี: ${branchBankAccountName}\n\n`;
-            message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
+            message += `กรุณาชำระโดยด่วน${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
+            message += `โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อบัญชี: ${branchBankAccountName}\n\n`;
+            message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
 
             console.log(`   📏 Final message length: ${message.length} chars`);
             console.log(`   📄 Message preview:\n${message.substring(0, 200)}...\n`);
