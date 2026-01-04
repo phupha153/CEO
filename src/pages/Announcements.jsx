@@ -701,6 +701,15 @@ export default function Announcements() {
                         tenantsMap[selectedConversation.facebook_user_id];
 
                         console.log('✅ Tenant found:', found?.full_name || 'null', 'Line ID:', found?.line_user_id, 'Facebook ID:', found?.facebook_user_id);
+                        
+                        // ⭐ Debug all tenants
+                        console.log('📋 All tenants:', tenants.map(t => ({
+                          id: t.id,
+                          name: t.full_name,
+                          line_id: t.line_user_id,
+                          facebook_id: t.facebook_user_id
+                        })));
+                        
                         return found || null;
                       })()}
                   tenants={tenants}

@@ -100,8 +100,28 @@ export default function ChatWindow({
                 src={conversation.line_picture_url || conversation.facebook_picture_url} 
                 alt="" 
                 className="w-10 h-10 rounded-full object-cover"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
               />
-            ) : (
+            ) : null}
+            <div 
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                conversation.line_picture_url || conversation.facebook_picture_url ? 'hidden' : ''
+              } ${
+                conversation.facebook_user_id 
+                  ? 'bg-gradient-to-br from-blue-500 to-blue-600' 
+                  : 'bg-gradient-to-br from-green-400 to-emerald-500'
+              }`}
+            >
+              {conversation.facebook_user_id ? (
+                <Facebook className="w-5 h-5 text-white" />
+              ) : (
+                <User className="w-5 h-5 text-white" />
+              )}
+            </div>
+            {false && (
               <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                 conversation.facebook_user_id 
                   ? 'bg-gradient-to-br from-blue-500 to-blue-600' 
@@ -317,8 +337,28 @@ export default function ChatWindow({
                     src={conversation.line_picture_url || conversation.facebook_picture_url} 
                     alt="" 
                     className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-slate-100"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
                   />
-                ) : (
+                ) : null}
+                <div 
+                  className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto border-4 border-white shadow-lg ${
+                    conversation.line_picture_url || conversation.facebook_picture_url ? 'hidden' : ''
+                  } ${
+                    conversation.facebook_user_id 
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-600'
+                      : 'bg-gradient-to-br from-green-400 to-emerald-500'
+                  }`}
+                >
+                  {conversation.facebook_user_id ? (
+                    <Facebook className="w-12 h-12 text-white" />
+                  ) : (
+                    <User className="w-12 h-12 text-white" />
+                  )}
+                </div>
+                {false && (
                   <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto border-4 border-white shadow-lg ${
                     conversation.facebook_user_id 
                       ? 'bg-gradient-to-br from-blue-500 to-blue-600'
