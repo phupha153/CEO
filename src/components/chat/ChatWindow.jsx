@@ -64,6 +64,22 @@ export default function ChatWindow({
     );
   }
 
+  // Debug: Log tenant and conversation state
+  useEffect(() => {
+    if (conversation) {
+      console.log('🔍 ChatWindow State:', {
+        conversationLineId: conversation.line_user_id,
+        conversationFacebookId: conversation.facebook_user_id,
+        conversationTenantId: conversation.tenant_id,
+        tenantId: tenant?.id,
+        tenantName: tenant?.full_name,
+        tenantLineId: tenant?.line_user_id,
+        tenantFacebookId: tenant?.facebook_user_id,
+        hasTenant: !!tenant
+      });
+    }
+  }, [conversation, tenant]);
+
   const displayName = tenant?.full_name || conversation.line_display_name || 'ไม่ทราบชื่อ';
 
   return (
@@ -403,6 +419,16 @@ export default function ChatWindow({
                     disabled={linking}
                     onClick={async () => {
                       const platform = conversation.facebook_user_id ? 'Facebook' : 'LINE';
+                      console.log('🔓 Unlink clicked:', {
+                        platform,
+                        tenantId: tenant?.id,
+                        tenantName: tenant?.full_name,
+                        lineUserId: conversation.line_user_id,
+                        facebookUserId: conversation.facebook_user_id,
+                        currentTenantLineId: tenant?.line_user_id,
+                        currentTenantFacebookId: tenant?.facebook_user_id
+                      });
+
                       const confirmed = window.confirm(`ต้องการยกเลิกการเชื่อมต่อ ${platform} ของผู้เช่านี้?`);
                       if (!confirmed) return;
 
@@ -413,14 +439,24 @@ export default function ChatWindow({
                           ? { facebook_user_id: null }
                           : { line_user_id: null };
                         
-                        await base44.entities.Tenant.update(tenant.id, updateData);
-                        toast.success(`ยกเลิกการเชื่อมต่อ ${platform} สำเร็จ`);
-                        setShowProfile(false);
+                        console.log('📤 Updating tenant:', tenant.id, 'with:', updateData);
                         
-                        // ⭐ Refresh เฉพาะ tenants
-                        if (onRefresh) await onRefresh();
+                        await base44.entities.Tenant.update(tenant.id, updateData);
+                        
+                        console.log('✅ Update successful');
+                        toast.success(`ยกเลิกการเชื่อมต่อ ${platform} สำเร็จ`);
+                        
+                        // ⭐ Refresh เฉพาะ tenants และรอให้เสร็จ
+                        if (onRefresh) {
+                          console.log('🔄 Calling onRefresh...');
+                          await onRefresh();
+                          console.log('✅ onRefresh completed');
+                        }
+                        
+                        // ปิด panel หลัง refresh เสร็จ
+                        setShowProfile(false);
                       } catch (err) {
-                        console.error('Unlink error:', err);
+                        console.error('❌ Unlink error:', err);
                         toast.error('ยกเลิกการเชื่อมต่อไม่สำเร็จ');
                       } finally {
                         setLinking(false);
