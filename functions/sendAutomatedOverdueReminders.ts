@@ -508,144 +508,14 @@ Deno.serve(async (req) => {
         
         console.log(`✅ STEP 1 COMPLETE: ${feeCalculated} calculated, ${feeSkipped} skipped (already done today)`);
 
-        // ⭐ ขั้นตอนที่ 2: สร้างใบแจ้งหนี้ (หลังจากคำนวณค่าปรับแล้ว)
-        console.log(`\n🖼️ ========== STEP 2: INVOICE GENERATION ==========`);
-        console.log(`🖼️ Checking and generating invoices for ${paymentsToProcess.length} payments...`);
-        let invoicesGenerated = 0;
-        let invoicesFailed = 0;
-        const invoiceGenerationDetails = [];
-        
-        for (const payment of paymentsToProcess) {
-            const room = roomMap.get(payment.room_id);
-            const tenant = tenantMap.get(payment.tenant_id);
-            const roomNumber = room?.room_number || 'N/A';
-            const tenantName = tenant?.full_name || 'N/A';
-            
-            console.log(`\n🔍 Payment ${payment.id.substring(0,8)} (ห้อง ${roomNumber} - ${tenantName}):`);
-            console.log(`   - invoice_image_url: ${payment.invoice_image_url ? 'มี' : 'ไม่มี'}`);
-            console.log(`   - invoice_data_hash: ${payment.invoice_data_hash || 'ไม่มี'}`);
-            console.log(`   - late_fee_amount: ${payment.late_fee_amount || 0} บาท`);
-            console.log(`   - total_amount: ${payment.total_amount || 0} บาท`);
-            
-            try {
-                // เช็คว่าต้องสร้างใบแจ้งหนี้ใหม่หรือไม่
-                let needsRegenerate = false;
-                let reason = '';
-                
-                if (!payment.invoice_image_url) {
-                    needsRegenerate = true;
-                    reason = 'ไม่มีรูปใบแจ้งหนี้';
-                    console.log(`   🆕 Reason: ${reason}`);
-                } else if (payment.invoice_data_hash) {
-                    const currentHash = generatePaymentHash(payment);
-                    console.log(`   🔑 Hash comparison: ${payment.invoice_data_hash.substring(0,12)} vs ${currentHash.substring(0,12)}`);
-                    if (currentHash !== payment.invoice_data_hash) {
-                        needsRegenerate = true;
-                        reason = 'ข้อมูลบิลเปลี่ยน (มีค่าปรับเพิ่ม)';
-                        console.log(`   🔄 Reason: ${reason}`);
-                    }
-                } else if (payment.late_fee_amount > 0) {
-                    needsRegenerate = true;
-                    reason = 'มีค่าปรับแต่ไม่มี hash';
-                    console.log(`   ⚠️ Reason: ${reason}`);
-                }
-                
-                if (needsRegenerate) {
-                    console.log(`   🔨 ACTION: Generating new invoice...`);
-                    
-                    await base44.asServiceRole.entities.Payment.update(payment.id, {
-                        invoice_image_status: 'generating'
-                    });
-                    
-                    const invoiceDataResult = await base44.asServiceRole.functions.invoke('getPublicInvoice', {
-                        paymentId: payment.id
-                    });
-                    
-                    if (!invoiceDataResult.data?.success || !invoiceDataResult.data?.invoice) {
-                        throw new Error('ไม่พบข้อมูลใบแจ้งหนี้');
-                    }
-                    
-                    const imageUrl = await generateInvoiceScreenshot(base44, payment.id, invoiceDataResult.data.invoice);
-                    
-                    if (imageUrl) {
-                        const newHash = generatePaymentHash(payment);
-                        await base44.asServiceRole.entities.Payment.update(payment.id, {
-                            invoice_image_url: imageUrl,
-                            invoice_image_status: 'completed',
-                            invoice_data_hash: newHash
-                        });
-                        
-                        // อัปเดต payment object ในหน่วยความจำ
-                        payment.invoice_image_url = imageUrl;
-                        payment.invoice_data_hash = newHash;
-                        
-                        invoicesGenerated++;
-                        invoiceGenerationDetails.push({
-                            paymentId: payment.id,
-                            roomNumber,
-                            tenantName,
-                            reason,
-                            imageUrl,
-                            success: true
-                        });
-                        console.log(`   ✅ SUCCESS: Invoice generated → ${imageUrl.substring(0, 50)}...`);
-                        console.log(`   📝 New hash: ${newHash.substring(0,12)}`);
-                        
-                        await delay(1200);
-                    }
-                } else {
-                    console.log(`   ⏭️ SKIP: มีรูปแล้วและ hash ตรงกัน`);
-                    invoiceGenerationDetails.push({
-                        paymentId: payment.id,
-                        roomNumber,
-                        tenantName,
-                        reason: 'มีรูปแล้ว',
-                        imageUrl: payment.invoice_image_url,
-                        skipped: true
-                    });
-                }
-            } catch (error) {
-                invoicesFailed++;
-                invoiceGenerationDetails.push({
-                    paymentId: payment.id,
-                    roomNumber,
-                    tenantName,
-                    error: error.message,
-                    success: false
-                });
-                console.error(`   ❌ FAILED: ${error.message}`);
-                
-                await base44.asServiceRole.entities.Payment.update(payment.id, {
-                    invoice_image_status: 'failed'
-                }).catch(() => {});
-            }
-        }
-        
-        console.log(`\n📊 ========== INVOICE GENERATION SUMMARY ==========`);
-        console.log(`   - Generated: ${invoicesGenerated}`);
-        console.log(`   - Failed: ${invoicesFailed}`);
-        console.log(`   - Skipped: ${paymentsToProcess.length - invoicesGenerated - invoicesFailed}`);
-
-
-        
-        // ⭐⭐⭐ ดึง payment ใหม่ทั้งหมดหลังคำนวณค่าปรับและสร้างรูป
-        console.log(`\n🔄 Refreshing payment data to get latest invoice URLs and late fees...`);
-        const paymentIds = paymentsToProcess.map(p => p.id);
-        const refreshedPaymentsArray = await Promise.all(
-            paymentIds.map(id => base44.asServiceRole.entities.Payment.filter({ id }).catch(() => null))
-        );
-        const refreshedPayments = refreshedPaymentsArray.flat().filter(Boolean);
-        const refreshedPaymentMap = new Map(refreshedPayments.map(p => [p.id, p]));
-        console.log(`✅ Refreshed ${refreshedPayments.length} payments with latest data`);
-
-        // ⭐ ขั้นตอนที่ 3: เตรียมข้อความสำหรับแต่ละบิล
-        console.log(`\n💬 ========== STEP 3: MESSAGE CREATION ==========`);
+        // ⭐ ขั้นตอนที่ 2: เตรียมข้อความสำหรับแต่ละบิล (ไม่สร้างรูป - ส่งแค่ลิงก์)
+        console.log(`\n💬 ========== STEP 2: MESSAGE CREATION ==========`);
         const recipients = [];
         const messageCreationDetails = [];
 
         for (const payment of paymentsToProcess) {
-            // ⭐⭐⭐ ใช้ payment ที่ refresh แล้ว (มี invoice_image_url และ late_fee_amount ล่าสุด)
-            const latestPayment = refreshedPaymentMap.get(payment.id) || payment;
+            // ⭐ ใช้ payment ปัจจุบัน (ไม่ต้อง refresh เพราะไม่มีการสร้างรูป)
+            const latestPayment = payment;
             
             const tenant = tenantMap.get(latestPayment.tenant_id);
             const room = roomMap.get(latestPayment.room_id);
@@ -720,8 +590,6 @@ Deno.serve(async (req) => {
                 paymentId: latestPayment.id,
                 roomNumber: roomNumber,
                 tenantName: tenant.full_name,
-                hasInvoiceUrl,
-                invoiceUrl: latestPayment.invoice_image_url || 'N/A',
                 messageLength: message.length,
                 lateFee: lateFee,
                 totalAmount: totalWithLateFee,
@@ -748,17 +616,14 @@ Deno.serve(async (req) => {
         
         console.log(`\n📋 ========== MESSAGE CREATION SUMMARY ==========`);
         console.log(`   - Total messages: ${recipients.length}`);
-        console.log(`   - With invoice URL: ${messageCreationDetails.filter(d => d.hasInvoiceUrl).length}`);
-        console.log(`   - Without invoice URL: ${messageCreationDetails.filter(d => !d.hasInvoiceUrl).length}`);
         console.log(`   - With late fee: ${messageCreationDetails.filter(d => d.lateFee > 0).length}`);
         console.log(`   - No late fee: ${messageCreationDetails.filter(d => d.lateFee === 0).length}`);
-        
+
         // แสดงตัวอย่างข้อความ 3 รายการแรก
         console.log(`\n📝 ========== MESSAGE EXAMPLES (first 3) ==========`);
         messageCreationDetails.slice(0, 3).forEach((detail, idx) => {
             const recipient = recipients[idx];
             console.log(`\n${idx + 1}. ห้อง ${detail.roomNumber} (${detail.tenantName}):`);
-            console.log(`   📊 Invoice URL: ${detail.hasInvoiceUrl ? '✅ มี' : '❌ ไม่มี'}`);
             console.log(`   💰 Late Fee: ${detail.lateFee} บาท`);
             console.log(`   💰 Total: ${detail.totalAmount} บาท`);
             console.log(`   📱 Channels: LINE=${detail.channels.line ? '✅' : '❌'}, FB=${detail.channels.facebook ? '✅' : '❌'}`);
@@ -960,9 +825,6 @@ Deno.serve(async (req) => {
             skippedDueToDisabled: skippedCount,
             lateFeeCalculated: feeCalculated,
             lateFeeSkipped: feeSkipped,
-            invoicesGenerated: invoicesGenerated,
-            invoicesFailed: invoicesFailed,
-            invoiceGenerationDetails: invoiceGenerationDetails,
             messageCreationDetails: messageCreationDetails,
             errors: sendErrors.length > 0 ? sendErrors : undefined,
             lineCount: lineRecipients.length,

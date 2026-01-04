@@ -475,29 +475,25 @@ Deno.serve(async (req) => {
             }
 
             // ⭐ สร้างลิงก์ Public Invoice/Receipt
-            // ⚠️ SECURITY: ต้องตั้งค่า frontend_url ใน Config หรือ FRONTEND_URL env variable
             const frontendUrl = getConfigValue('frontend_url', branchId) || Deno.env.get('FRONTEND_URL');
 
-            if (!frontendUrl) {
-                console.error(`❌ Missing frontend_url config for branch ${branchId}`);
-                throw new Error('FRONTEND_URL not configured. Please set frontend_url in Config or FRONTEND_URL environment variable.');
-            }
-            
-            let documentLink = '';
-            
-            if (payment.status === 'paid') {
-                documentLink = `${frontendUrl}/publicreceipt?id=${payment.id}`;
-                console.log(`📄 Receipt link: ${documentLink}`);
-            } else {
-                documentLink = `${frontendUrl}/publicinvoice?id=${payment.id}`;
-                console.log(`📄 Invoice link: ${documentLink}`);
-            }
+            if (frontendUrl) {
+                let documentLink = '';
+                
+                if (payment.status === 'paid') {
+                    documentLink = `${frontendUrl}/publicreceipt?id=${payment.id}`;
+                    console.log(`📄 Receipt link: ${documentLink}`);
+                } else {
+                    documentLink = `${frontendUrl}/publicinvoice?id=${payment.id}`;
+                    console.log(`📄 Invoice link: ${documentLink}`);
+                }
 
-            // ⭐ ส่งลิงก์เฉพาะ template ปกติ (ไม่ใช่ due_date หรือ overdue)
-            if (template !== 'due_date' && template !== 'overdue') {
-                message += `\n\nดูเอกสาร: ${documentLink}`;
-                message += `\n\nกรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
-                message += `ขอบคุณค่ะ`;
+                // ⭐ ส่งลิงก์เฉพาะ template ปกติ (ไม่ใช่ due_date หรือ overdue)
+                if (template !== 'due_date' && template !== 'overdue') {
+                    message += `\n\nดูเอกสาร: ${documentLink}`;
+                    message += `\n\nกรุณาส่งหลักฐานการโอนหลังชำระเงิน\n`;
+                    message += `ขอบคุณครับ`;
+                }
             }
 
             recipients.push({
