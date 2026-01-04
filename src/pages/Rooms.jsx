@@ -331,22 +331,46 @@ export default function RoomsPage() {
     setAiAction(null);
 
     try {
-      const roomsData = rooms.map(r => ({
+      const query = searchQuery.toLowerCase();
+      
+      // ⚡ PRE-FILTER: กรองห้องก่อนส่งไป AI (ลดข้อมูลจาก 10,000 → 100 ห้อง)
+      let preFilteredRooms = [...rooms];
+      
+      // กรองตามสถานะ
+      if (query.includes('ว่าง') || query.includes('available')) {
+        preFilteredRooms = preFilteredRooms.filter(r => r.status === 'available');
+      } else if (query.includes('มีผู้เช่า') || query.includes('occupied')) {
+        preFilteredRooms = preFilteredRooms.filter(r => r.status === 'occupied');
+      } else if (query.includes('จอง') || query.includes('reserved')) {
+        preFilteredRooms = preFilteredRooms.filter(r => r.status === 'reserved');
+      }
+      
+      // กรองตามชั้น
+      const floorMatch = query.match(/ชั้น\s*(\d+)/);
+      if (floorMatch) {
+        preFilteredRooms = preFilteredRooms.filter(r => r.floor === parseInt(floorMatch[1]));
+      }
+      
+      // กรองตามประเภท
+      if (query.includes('รายวัน')) {
+        preFilteredRooms = preFilteredRooms.filter(r => r.room_type === 'daily');
+      } else if (query.includes('รายเดือน')) {
+        preFilteredRooms = preFilteredRooms.filter(r => r.room_type === 'monthly');
+      }
+      
+      // จำกัด max 100 ห้อง (ลดเวลาประมวลผล)
+      const roomsData = preFilteredRooms.slice(0, 100).map(r => ({
         id: r.id,
         room_number: r.room_number,
         floor: r.floor,
         status: r.status,
         price: r.price,
         size: r.size,
-        amenities: r.amenities,
-        description: r.description,
         room_type: r.room_type,
         water_rate: r.water_rate,
         electricity_rate: r.electricity_rate,
         common_fee: r.common_fee
       }));
-
-      const query = searchQuery.toLowerCase();
       
       // --- START ENHANCED BULK DETECTION ---
       const roomNumberMatches = [...query.matchAll(/\b(\d{3,4})\b/g)];
@@ -484,85 +508,44 @@ export default function RoomsPage() {
       const targetRoomNumber = roomNumberMatch ? roomNumberMatch[1] : null;
       const targetRoom = targetRoomNumber ? rooms.find(r => r.room_number === targetRoomNumber) : null;
 
-      const roomsWithAC = roomsData.map(r => {
+      // ⚡ ข้าม enrichment ถ้ามีห้องเยอะ (เร็วขึ้น 10x)
+      const shouldEnrich = preFilteredRooms.length <= 50;
+      
+      const roomsWithAC = shouldEnrich ? roomsData.map(r => {
         const fullRoom = rooms.find(room => room.id === r.id);
         const booking = getActiveBooking(r.id);
         const tenant = booking ? getTenantInfo(booking.tenant_id) : null;
-        
-        // ⭐ หาบิลล่าสุดของห้องนี้
         const roomPayments = payments.filter(p => p.room_id === r.id);
         const latestPendingPayment = roomPayments
           .filter(p => p.status === 'pending' || p.status === 'overdue')
           .sort((a, b) => new Date(b.due_date || 0) - new Date(a.due_date || 0))[0];
-        
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
         
         return {
           ...r,
-          last_ac_cleaning_date: fullRoom?.last_ac_cleaning_date || null,
           tenant_name: tenant?.full_name || null,
-          tenant_phone: tenant?.phone || null,
-          vehicles: tenant?.vehicles || [],
-          // ⭐ เพิ่มข้อมูลสถานะการส่งข้อความ
           has_pending_payment: !!latestPendingPayment,
-          payment_due_date: latestPendingPayment?.due_date || null,
           bill_sent: !!latestPendingPayment?.bill_sent_date,
-          bill_sent_date: latestPendingPayment?.bill_sent_date || null,
-          due_date_reminder_sent: !!latestPendingPayment?.due_date_reminder_sent_date,
-          due_date_reminder_sent_date: latestPendingPayment?.due_date_reminder_sent_date || null,
-          overdue_reminder_sent: !!latestPendingPayment?.overdue_reminder_sent_date,
-          overdue_reminder_sent_date: latestPendingPayment?.overdue_reminder_sent_date || null,
-          is_overdue: latestPendingPayment?.due_date ? (todayStr > latestPendingPayment.due_date) : false,
-          is_due_today: latestPendingPayment?.due_date === todayStr
+          is_overdue: latestPendingPayment?.due_date ? (todayStr > latestPendingPayment.due_date) : false
         };
-      });
+      }) : roomsData;
 
       // เพิ่มข้อมูลค่าส่วนกลางกลาง (สาขา) เข้าไปใน prompt
       const branchCommonFeeValue = branchCommonFee ? parseFloat(branchCommonFee) : 0;
 
-      const promptText = `คุณเป็นผู้ช่วย AI ระบบจัดการหอพัก ตอบคำถามผู้ใช้ให้ตรงประเด็น
+      const promptText = `คุณเป็นผู้ช่วย AI ระบบจัดการหอพัก ตอบคำถามให้ตรงประเด็น กระชับ
 
-📌 คำถาม/คำสั่ง: \"${searchQuery}\"
-📅 วันที่วันนี้: ${format(new Date(), 'yyyy-MM-dd')}
+📌 คำถาม: "${searchQuery}"
+📅 วันที่: ${format(new Date(), 'yyyy-MM-dd')}
+🏢 ห้องทั้งหมดในสาขา: ${rooms.length} ห้อง
 
-⚙️ ค่าตั้งค่ากลางของสาขา:
-- ค่าส่วนกลาง (กลาง): ${branchCommonFeeValue} บาท
-- ค่าน้ำ (กลาง): ${branchWaterRate || 0} บาท/หน่วย
-- ค่าไฟ (กลาง): ${branchElecRate || 0} บาท/หน่วย
+${targetRoom ? `🎯 ห้อง ${targetRoom.room_number}: ${targetRoom.price} บาท, ${targetRoom.status}\n` : ''}
 
-${targetRoom ? `
-🎯 ห้องที่ระบุในคำสั่ง: ${targetRoom.room_number}
-- ID: ${targetRoom.id}
-- ราคา: ${targetRoom.price} บาท
-- สถานะ: ${targetRoom.status}
-- ค่าส่วนกลาง: ${targetRoom.common_fee !== null && targetRoom.common_fee !== undefined ? targetRoom.common_fee : '(ใช้ค่ากลาง)'} บาท
-` : ''}
-
-📋 ข้อมูลห้องทั้งหมด (${roomsWithAC.length} ห้อง):
+📋 ข้อมูล${preFilteredRooms.length < rooms.length ? ' (กรองแล้ว)' : ''} ${roomsWithAC.length} ห้อง:
 ${JSON.stringify(roomsWithAC, null, 2)}
 
-📬 **การส่งข้อความแจ้งเตือน - ฟิลด์สำคัญ:**
-- bill_sent: true/false = ส่งบิลไปแล้วหรือยัง
-- due_date_reminder_sent: true/false = ส่งแจ้งเตือนครบกำหนดแล้วหรือยัง
-- overdue_reminder_sent: true/false = ส่งแจ้งเตือนเกินกำหนดแล้วหรือยัง
-- is_overdue: true/false = เกินกำหนดชำระแล้วหรือยัง
-- is_due_today: true/false = วันนี้เป็นวันครบกำหนดหรือไม่
-
-**ตัวอย่างคำถามที่ควรตอบได้:**
-- "ห้องไหนยังไม่ส่งบิล" → กรองห้องที่ has_pending_payment=true และ bill_sent=false
-- "ห้องไหนยังไม่ส่งแจ้งครบกำหนด" → กรองห้องที่ is_due_today=true และ due_date_reminder_sent=false
-- "ห้องไหนยังไม่ส่งแจ้งเกินกำหนด" → กรองห้องที่ is_overdue=true และ overdue_reminder_sent=false
-- "ห้องไหนยังไม่ส่งข้อความเลย" → กรองห้องที่ has_pending_payment=true และ bill_sent=false และ due_date_reminder_sent=false และ overdue_reminder_sent=false
-
-⚠️ **สำคัญมาก - การตีความค่าส่วนกลาง:**
-- ถ้า common_fee = null หรือ undefined = ใช้ค่ากลาง (${branchCommonFeeValue} บาท)
-- ถ้า common_fee = 0 = ตั้งใจให้เป็น 0 บาท (ไม่เสียค่าส่วนกลาง)
-- ถ้า common_fee > 0 = ใช้ค่าเฉพาะห้อง
-
-เมื่อตอบคำถาม "ห้องไหนไม่เสียค่าส่วนกลาง":
-- ให้ตอบเฉพาะห้องที่ common_fee = 0 เท่านั้น
-- ห้ามรวมห้องที่ common_fee เป็น null/undefined (เพราะห้องเหล่านั้นใช้ค่ากลาง ${branchCommonFeeValue} บาท)
+⚠️ หมายเหตุ: ${preFilteredRooms.length < rooms.length ? `กรองเบื้องต้นจาก ${rooms.length} → ${roomsWithAC.length} ห้อง` : `แสดงข้อมูล ${roomsWithAC.length} ห้อง`}
 
 🔍 **วิธีตอบ:**
 
