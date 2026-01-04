@@ -1752,16 +1752,25 @@ export default function Settings() {
               <span className="hidden md:inline">รายงานปัญหา</span>
             </Button>
             {canManagePermissions && (() => {
-              // ⭐ เช็ค trial mode จาก currentUser.plan_status
               const isTrialMode = currentUser?.plan_status === 'trial';
+              const maxUsers = isTrialMode ? 1 : crmPackageInfo?.max_users;
+              const hasLimit = maxUsers !== null && maxUsers !== undefined && maxUsers > 0;
+              const isAtLimit = hasLimit && totalUsersInSelectedBranch >= maxUsers;
 
-              return !isTrialMode && (
+              return (
                 <Button
-                  onClick={() => setShowAddEmployeeDialog(true)}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600"
+                  onClick={() => {
+                    if (isAtLimit) {
+                      toast.error(`ครบจำนวนผู้ใช้แล้ว (${maxUsers} คน) - กรุณาอัปเกรดแพ็กเกจ`);
+                    } else {
+                      setShowAddEmployeeDialog(true);
+                    }
+                  }}
+                  disabled={isAtLimit}
+                  className={isAtLimit ? 'bg-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600'}
                 >
                   <UserPlus className="w-4 h-4 md:mr-2" />
-                  <span className="hidden md:inline">เพิ่มพนักงาน</span>
+                  <span className="hidden md:inline">เพิ่มพนักงาน {hasLimit && `(${totalUsersInSelectedBranch}/${maxUsers})`}</span>
                 </Button>
               );
             })()}
@@ -3746,13 +3755,29 @@ export default function Settings() {
                           เลือกบทบาท จัดการสิทธิ์การเข้าถึง และกำหนดสาขาที่ผู้ใช้สามารถเข้าถึงได้
                         </p>
                       </div>
-                      <Button
-                        onClick={() => setShowAddEmployeeDialog(true)}
-                        className="bg-gradient-to-r from-blue-600 to-indigo-600"
-                      >
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        เพิ่มพนักงาน
-                      </Button>
+                      {(() => {
+                        const isTrialMode = currentUser?.plan_status === 'trial';
+                        const maxUsers = isTrialMode ? 1 : crmPackageInfo?.max_users;
+                        const hasLimit = maxUsers !== null && maxUsers !== undefined && maxUsers > 0;
+                        const isAtLimit = hasLimit && totalUsersInSelectedBranch >= maxUsers;
+
+                        return (
+                          <Button
+                            onClick={() => {
+                              if (isAtLimit) {
+                                toast.error(`ครบจำนวนผู้ใช้แล้ว (${maxUsers} คน) - กรุณาอัปเกรดแพ็กเกจ`);
+                              } else {
+                                setShowAddEmployeeDialog(true);
+                              }
+                            }}
+                            disabled={isAtLimit}
+                            className={isAtLimit ? 'bg-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600'}
+                          >
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            เพิ่มพนักงาน {hasLimit && `(${totalUsersInSelectedBranch}/${maxUsers})`}
+                          </Button>
+                        );
+                      })()}
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -3939,13 +3964,29 @@ export default function Settings() {
                               <p className="text-sm text-slate-600 mb-6">
                                 เพิ่มพนักงานเพื่อจัดการงานร่วมกันและกำหนดสิทธิ์การใช้งาน
                               </p>
-                              <Button
-                                onClick={() => setShowAddEmployeeDialog(true)}
-                                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg px-8 py-6"
-                              >
-                                <UserPlus className="w-5 h-5 mr-2" />
-                                เพิ่มพนักงานคนแรก
-                              </Button>
+                              {(() => {
+                                const isTrialMode = currentUser?.plan_status === 'trial';
+                                const maxUsers = isTrialMode ? 1 : crmPackageInfo?.max_users;
+                                const hasLimit = maxUsers !== null && maxUsers !== undefined && maxUsers > 0;
+                                const isAtLimit = hasLimit && totalUsersInSelectedBranch >= maxUsers;
+
+                                return (
+                                  <Button
+                                    onClick={() => {
+                                      if (isAtLimit) {
+                                        toast.error(`ครบจำนวนผู้ใช้แล้ว (${maxUsers} คน) - กรุณาอัปเกรดแพ็กเกจ`);
+                                      } else {
+                                        setShowAddEmployeeDialog(true);
+                                      }
+                                    }}
+                                    disabled={isAtLimit}
+                                    className={isAtLimit ? 'bg-slate-400 cursor-not-allowed shadow-lg px-8 py-6' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg px-8 py-6'}
+                                  >
+                                    <UserPlus className="w-5 h-5 mr-2" />
+                                    เพิ่มพนักงานคนแรก
+                                  </Button>
+                                );
+                              })()}
                             </motion.div>
                           </div>
                         )}
