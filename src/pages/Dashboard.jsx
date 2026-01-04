@@ -448,7 +448,8 @@ export default function Dashboard() {
     // คำนวณยอดรวมค้างชำระ + ค่าปรับ
     const totalPendingAmount = allPendingPayments.reduce((sum, p) => {
       const baseAmount = p.total_amount || 0;
-      const lateFee = calculateLateFee(p);
+      // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
+      const lateFee = (p.late_fee_amount && p.late_fee_amount > 0) ? 0 : calculateLateFee(p);
       return sum + baseAmount + lateFee;
     }, 0);
 
