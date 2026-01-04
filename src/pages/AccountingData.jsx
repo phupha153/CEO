@@ -170,7 +170,7 @@ export default function AccountingData() {
     if (selectedBranchId && branches.length > 0) {
       const currentBranch = branches.find(b => b.id === selectedBranchId);
       if (currentBranch) {
-        setSelectedBranchName(currentBranch.name);
+        setSelectedBranchName(currentBranch.branch_name);
       } else {
         setSelectedBranchName('ไม่พบสาขา');
       }
