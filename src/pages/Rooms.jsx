@@ -1907,8 +1907,62 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
               {aiResult && !aiAction && (
                 <AIResultCard aiResult={aiResult}>
-                  {/* แสดงห้องที่จะถูกแก้ไข (กรณี update) */}
-...
+                  {aiResult.rooms && aiResult.rooms.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm font-semibold text-purple-800">ห้องที่พบ:</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {aiResult.rooms.map((aiRoom, idx) => {
+                          const roomData = rooms.find(r => r.id === aiRoom.room_id);
+                          if (!roomData) return null;
+                          
+                          const booking = getActiveBooking(roomData.id);
+                          const tenant = booking ? getTenantInfo(booking.tenant_id) : null;
+                          
+                          return (
+                            <motion.div
+                              key={idx}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: idx * 0.05 }}
+                            >
+                              <Card 
+                                className={`cursor-pointer hover:shadow-lg transition-all bg-gradient-to-br ${getRoomColor(roomData.status)} overflow-hidden`}
+                                onClick={() => handleRoomClick(roomData)}
+                              >
+                                <CardContent className="p-4 text-white">
+                                  <div className="flex items-start justify-between mb-2">
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <DoorOpen className="w-5 h-5" />
+                                        <p className="text-2xl font-bold">{aiRoom.room_number}</p>
+                                      </div>
+                                      <p className="text-sm opacity-90">ชั้น {aiRoom.floor}</p>
+                                    </div>
+                                    <Badge className="bg-white/20 text-white border-white/30">
+                                      {roomData.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
+                                    </Badge>
+                                  </div>
+                                  
+                                  <div className="space-y-1 text-sm opacity-90">
+                                    <p className="font-semibold text-lg">{roomData.price?.toLocaleString()} ฿</p>
+                                    {tenant ? (
+                                      <p className="truncate">👤 {tenant.full_name}</p>
+                                    ) : (
+                                      <p>✓ {getStatusLabel(roomData.status)}</p>
+                                    )}
+                                    {aiRoom.reason && (
+                                      <p className="text-xs border-t border-white/20 pt-2 mt-2 italic">
+                                        {aiRoom.reason}
+                                      </p>
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
                 </AIResultCard>
               )}
