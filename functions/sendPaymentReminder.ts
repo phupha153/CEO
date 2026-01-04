@@ -466,9 +466,9 @@ Deno.serve(async (req) => {
                 console.log(`📄 Invoice link: ${documentLink}`);
             }
 
-            message += `\n\nดูเอกสาร: ${documentLink}`;
-
+            // ⭐ ส่งลิงก์เฉพาะ template ปกติ (ไม่ใช่ due_date หรือ overdue)
             if (template !== 'due_date' && template !== 'overdue') {
+                message += `\n\nดูเอกสาร: ${documentLink}`;
                 message += `\n\nกรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
                 message += `ขอบคุณค่ะ`;
             }
