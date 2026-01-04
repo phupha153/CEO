@@ -901,7 +901,7 @@ export default function PaymentsPage() {
     };
   }, [filteredPayments, roomViewPayments, viewMode, getEffectiveStatus, calculateLateFee]);
 
-  // ⭐ นับจำนวนรายการแยกตาม viewMode
+  // ⭐ นับจำนวนรายการแยกตาม viewMode - ใช้ข้อมูลจริงที่แสดงบนหน้า
   const displayCounts = useMemo(() => {
     if (viewMode === 'room') {
       // Room View = นับจาก roomViewPayments
@@ -912,10 +912,15 @@ export default function PaymentsPage() {
         overdue: roomViewPayments.filter(p => getEffectiveStatus(p) === 'overdue').length,
       };
     } else {
-      // Card/Table View = ใช้ counts จาก backend
-      return statusCounts;
+      // Card/Table View = นับจาก filteredPayments (ข้อมูลจริงที่แสดง)
+      return {
+        all: filteredPayments.length,
+        paid: filteredPayments.filter(p => getEffectiveStatus(p) === 'paid').length,
+        pending: filteredPayments.filter(p => getEffectiveStatus(p) === 'pending').length,
+        overdue: filteredPayments.filter(p => getEffectiveStatus(p) === 'overdue').length,
+      };
     }
-  }, [viewMode, roomViewPayments, statusCounts, getEffectiveStatus]);
+  }, [viewMode, roomViewPayments, filteredPayments, getEffectiveStatus]);
 
   // ✅ Use enriched data from server (no lookup needed)
   const pendingOverduePayments = useMemo(() => 
