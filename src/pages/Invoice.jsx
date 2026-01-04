@@ -541,7 +541,7 @@ export default function Invoice() {
 
             {/* Payment Method & Notes - แบบเรียบง่าย */}
             <div className="mb-3 text-xs text-slate-500">
-              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {invoiceData.bank.name} | {invoiceData.bank.account_number} • {isPaid ? `ชำระเงินเรียบร้อยเมื่อ ${paymentDate}` : 'กรุณาชำระเงินภายในวันที่กำหนด'}
+              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {invoiceData.bank.name} | {invoiceData.bank.account_number} ({invoiceData.bank.account_name}) • {isPaid ? `ชำระเงินเรียบร้อยเมื่อ ${paymentDate}` : 'กรุณาชำระเงินภายในวันที่กำหนด'}
             </div>
 
             {/* Signature Section */}

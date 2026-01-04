@@ -475,7 +475,7 @@ export default function PublicInvoice() {
             </div>
 
             <div className="mb-3 text-xs text-slate-500">
-              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {invoiceData.bank?.name} | {invoiceData.bank?.account_number} • {isPaid ? `ชำระเงินเรียบร้อยเมื่อ ${paymentDate}` : 'กรุณาชำระเงินภายในวันที่กำหนด'}
+              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {invoiceData.bank?.name} | {invoiceData.bank?.account_number} ({invoiceData.bank?.account_name}) • {isPaid ? `ชำระเงินเรียบร้อยเมื่อ ${paymentDate}` : 'กรุณาชำระเงินภายในวันที่กำหนด'}
             </div>
 
             <div className="grid grid-cols-3 gap-4 mt-5 pt-3 border-t border-slate-200">
