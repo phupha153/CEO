@@ -682,23 +682,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
 
-  // ⭐ Auto-init trial เมื่อ user login ครั้งแรก
-  useEffect(() => {
-    if (!currentUser || isLoading) return;
-    
-    const initTrial = async () => {
-      if (!currentUser.trial_ends_at) {
-        try {
-          await base44.functions.invoke('initUserTrial');
-          await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-        } catch (error) {
-          console.error('Failed to init trial:', error);
-        }
-      }
-    };
-
-    initTrial();
-  }, [currentUser?.email, isLoading, queryClient]);
+  // ⭐ ยกเลิก Auto-init trial ที่ Layout - ให้สร้างเมื่อสร้างสาขาแรกแทน
 
   // ⭐ User-centric subscription check (ใช้ที่ effect แล้ว - ไม่ต้องใช้ตัวแปร subscriptionCheck อีก)
 
