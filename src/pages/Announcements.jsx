@@ -670,7 +670,11 @@ export default function Announcements() {
                   rooms={rooms}
                   bookings={bookings}
                   onSendMessage={handleSendChatMessage}
-                  onRefresh={() => queryClient.invalidateQueries(['lineMessages', selectedBranchId])}
+                  onRefresh={() => {
+                    queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
+                    queryClient.invalidateQueries(['rooms', selectedBranchId]);
+                    queryClient.invalidateQueries(['tenants', selectedBranchId]);
+                  }}
                   onLinkTenant={async (lineUserId, tenantId) => {
                     // ตอนนี้ส่ง tenantId มาตรงๆ แล้ว (ไม่ใช่ roomId)
                     const targetTenant = tenants.find(t => t.id === tenantId);
