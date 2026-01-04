@@ -30,24 +30,14 @@ export default function SendReminderDialog({
   const [selectedTemplate, setSelectedTemplate] = useState(() => effectiveStatus === 'overdue' ? 'overdue' : 'advance');
   const [customMessage, setCustomMessage] = useState('');
 
-  // ⭐ เมื่อ dialog เปิด หรือ template เปลี่ยน ให้อัปเดตข้อความ
+  // ⭐ เมื่อ effectiveStatus เปลี่ยน ให้อัปเดต selectedTemplate
   useEffect(() => {
-    if (!open) return;
-    
-    // ตั้งค่า template ตาม status
     if (effectiveStatus === 'overdue') {
       setSelectedTemplate('overdue');
     } else {
       setSelectedTemplate('advance');
     }
   }, [effectiveStatus, open]);
-
-  // ⭐ สร้างข้อความทันทีที่เปิด dialog
-  useEffect(() => {
-    if (open && !customMessage) {
-      setCustomMessage(getDefaultMessage());
-    }
-  }, [open]);
 
   if (!payment) return null;
 
@@ -264,10 +254,7 @@ export default function SendReminderDialog({
           </Button>
           <Button
             className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-
+            onClick={() => {
               if (!customMessage.trim()) {
                 toast.error('กรุณาใส่ข้อความ');
                 return;
@@ -276,7 +263,6 @@ export default function SendReminderDialog({
               onConfirm(selectedTemplate, customMessage);
             }}
             disabled={!customMessage.trim() || isSending}
-            type="button"
           >
             {isSending ? (
               <>
