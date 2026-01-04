@@ -69,8 +69,8 @@ export default function Announcements() {
           return tenant;
         });
     },
-    staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
+    staleTime: 1 * 1000, // ⭐ ลด cache
+    refetchOnMount: true, // ⭐ โหลดทุกครั้งที่เปิดหน้า
     refetchOnWindowFocus: false,
   });
 
@@ -92,7 +92,8 @@ export default function Announcements() {
       const allBookings = await base44.entities.Booking.list();
       return allBookings.filter(b => b.branch_id === selectedBranchId);
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 1 * 1000, // ⭐ ลด cache
+    refetchOnMount: true, // ⭐ โหลดทุกครั้งที่เปิดหน้า
   });
 
   // สร้าง Map ของ tenant โดย line_user_id และ facebook_user_id
@@ -670,10 +671,14 @@ export default function Announcements() {
                   rooms={rooms}
                   bookings={bookings}
                   onSendMessage={handleSendChatMessage}
-                  onRefresh={() => {
-                    queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
-                    queryClient.invalidateQueries(['rooms', selectedBranchId]);
-                    queryClient.invalidateQueries(['tenants', selectedBranchId]);
+                  onRefresh={async () => {
+                    await queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
+                    await queryClient.invalidateQueries(['rooms', selectedBranchId]);
+                    await queryClient.invalidateQueries(['tenants', selectedBranchId]);
+                    await queryClient.invalidateQueries(['bookings', selectedBranchId]);
+                    await queryClient.refetchQueries(['tenants', selectedBranchId]);
+                    await queryClient.refetchQueries(['rooms', selectedBranchId]);
+                    await queryClient.refetchQueries(['bookings', selectedBranchId]);
                   }}
                   onLinkTenant={async (lineUserId, tenantId) => {
                     // ตอนนี้ส่ง tenantId มาตรงๆ แล้ว (ไม่ใช่ roomId)
