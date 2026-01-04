@@ -45,16 +45,17 @@ export default function Announcements() {
   const selectedBranchId = localStorage.getItem('selected_branch_id');
   const selectedBranchName = localStorage.getItem('selected_branch_name');
 
-  const { data: tenants = [], refetch: refetchTenants } = useQuery({
+  const { data: tenants = [], refetch: refetchTenants, isLoading: tenantsLoading } = useQuery({
     queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
+      console.log('🔄 Fetching tenants for branch:', selectedBranchId);
       const allTenants = await base44.entities.Tenant.list();
       // เพิ่ม room_number สำหรับ tenant ที่ยังไม่มี
       const rooms = await base44.entities.Room.list();
       const bookings = await base44.entities.Booking.list();
       
-      return allTenants
+      const result = allTenants
         .filter(tenant => tenant.branch_id === selectedBranchId)
         .map(tenant => {
           if (!tenant.room_number) {
@@ -68,9 +69,14 @@ export default function Announcements() {
           }
           return tenant;
         });
+      
+      console.log('✅ Loaded tenants:', result.length);
+      return result;
     },
-    staleTime: 30 * 1000, // 30 วินาที
+    staleTime: 10 * 1000, // ลดเหลือ 10 วินาที
     refetchOnWindowFocus: false,
+    refetchOnMount: true, // ⭐ โหลดใหม่ทุกครั้งที่เข้าหน้า
+    enabled: !!selectedBranchId,
   });
 
   const { data: rooms = [] } = useQuery({
@@ -96,12 +102,16 @@ export default function Announcements() {
   });
 
   // สร้าง Map ของ tenant โดย line_user_id และ facebook_user_id
-  const tenantsMap = {};
-  tenants.forEach(t => {
-    if (t.line_user_id) tenantsMap[t.line_user_id] = t;
-    if (t.facebook_user_id) tenantsMap[t.facebook_user_id] = t;
-    if (t.id) tenantsMap[t.id] = t;
-  });
+  const tenantsMap = React.useMemo(() => {
+    const map = {};
+    tenants.forEach(t => {
+      if (t.line_user_id) map[t.line_user_id] = t;
+      if (t.facebook_user_id) map[t.facebook_user_id] = t;
+      if (t.id) map[t.id] = t;
+    });
+    console.log('🗺️ Tenants map created:', Object.keys(map).length, 'entries');
+    return map;
+  }, [tenants]);
 
   // ดึงข้อความ LINE + Facebook เฉพาะสาขานี้
   const { data: lineMessages = [], isLoading: messagesLoading, error: messagesError } = useQuery({
@@ -304,6 +314,14 @@ export default function Announcements() {
     setSearchTerm('');
     setSelectedConversation(null);
   }, [selectedBranchId]);
+
+  // ⭐ Refetch tenants เมื่อเปลี่ยนไปที่ tab chat
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      console.log('🔄 Switched to chat tab - refetching tenants...');
+      refetchTenants();
+    }
+  }, [activeTab, refetchTenants]);
 
   // ส่งข้อความตอบกลับใน chat
   const handleSendChatMessage = async (content) => {
