@@ -457,11 +457,11 @@ export default function Receipt() {
           .h-12 { height: 32px !important; }
         }
         
-        /* สำหรับหน้าจอ - ให้เห็นเป็น A4 */
+        /* สำหรับหน้าจอ - จำกัดความกว้าง */
         @media screen {
           .receipt-container {
-            width: 210mm;
-            min-height: 297mm;
+            max-width: 800px;
+            width: 100%;
           }
         }
       `}</style>

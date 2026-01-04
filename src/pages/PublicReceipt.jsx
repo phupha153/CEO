@@ -281,9 +281,8 @@ export default function PublicReceipt() {
         
         @media screen {
           .receipt-container {
-            max-width: 100%;
+            max-width: 800px;
             width: 100%;
-            padding: 0;
           }
           
           /* มือถือ - ขนาดเล็กลง */
