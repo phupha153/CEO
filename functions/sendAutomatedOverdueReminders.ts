@@ -745,7 +745,8 @@ Deno.serve(async (req) => {
             await Promise.all(
                 batch.map(id => 
                     base44.asServiceRole.entities.Payment.update(id, { 
-                        overdue_reminder_sent_date: now_iso
+                        overdue_reminder_sent_date: now_iso,
+                        bill_sent_date: now_iso
                     })
                         .catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
                 )
