@@ -48,17 +48,17 @@ export default function SendReminderDialog({
   const templates = [
     {
       id: 'advance',
-      name: 'แจ้งเตือนล่วงหน้า',
+      name: '📢 แจ้งเตือนล่วงหน้า',
       color: 'from-purple-500 to-indigo-500',
     },
     {
       id: 'due_date',
-      name: 'ครบกำหนด',
+      name: '📅 ครบกำหนด',
       color: 'from-blue-500 to-cyan-500',
     },
     {
       id: 'overdue',
-      name: 'เกินกำหนด',
+      name: '🔴 เกินกำหนด',
       color: 'from-red-500 to-orange-500',
     }
   ];
