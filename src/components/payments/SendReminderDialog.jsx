@@ -48,17 +48,17 @@ export default function SendReminderDialog({
   const templates = [
     {
       id: 'advance',
-      name: 'แจ้งเตือนล่วงหน้า',
+      name: '📢 แจ้งเตือนล่วงหน้า',
       color: 'from-purple-500 to-indigo-500',
     },
     {
       id: 'due_date',
-      name: 'ครบกำหนด',
+      name: '📅 ครบกำหนด',
       color: 'from-blue-500 to-cyan-500',
     },
     {
       id: 'overdue',
-      name: 'เกินกำหนด',
+      name: '🔴 เกินกำหนด',
       color: 'from-red-500 to-orange-500',
     }
   ];
@@ -118,9 +118,9 @@ export default function SendReminderDialog({
       const dueDate = payment.due_date ? format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A';
       
       if (selectedTemplate === 'advance') {
-        return `${buildingName} - แจ้งเตือนค่าเช่า\n\nคุณ ${tenant?.full_name}\nห้อง ${roomNum}\n\nยอดเงิน: ${amount} บาท\nครบกำหนดชำระ: ${dueDate}\n\nกรุณาเตรียมชำระภายในกำหนด\n\nโอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\nกรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
+        return `สวัสดีคะ\n\nขอแจ้งเตือนค่าเช่าห้อง ${roomNum}\nยอดเงิน: ${amount} บาท\nครบกำหนดชำระ: ${dueDate}\n\nกรุณาเตรียมชำระภายในกำหนดนะคะ`;
       } else {
-        return `${buildingName}\n\nวันนี้ครบกำหนดชำระค่าเช่า\nคุณ ${tenant?.full_name}\nห้อง ${roomNum}\n\nยอดเงิน: ${amount} บาท\nครบกำหนด: ${dueDate}\n\nกรุณาชำระภายในวันนี้\n\nโอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\nกรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
+        return `ถึงกำหนดชำระค่าเช่าแล้ว\nห้อง ${roomNum}\nยอดเงิน: ${amount} บาท\nครบกำหนด: ${dueDate}\n\nกรุณาชำระภายในวันนี้นะคะ`;
       }
     }
   };
@@ -210,7 +210,7 @@ export default function SendReminderDialog({
                     
                     return (
                       <div className="mt-2 space-y-1">
-                        <p className="text-xs font-semibold text-red-800">อัตราค่าปรับ:</p>
+                        <p className="text-xs font-semibold text-red-800">⚠️ อัตราค่าปรับ:</p>
                         {tiers.map((tier, idx) => {
                           const startDay = dueDateDay + tier.days_from;
                           const isLastTier = idx === tiers.length - 1;
@@ -251,7 +251,7 @@ export default function SendReminderDialog({
             className="bg-white border-slate-200 resize-none"
             placeholder="แก้ไขข้อความได้ตามต้องการ..."
           />
-          <p className="text-xs text-slate-500">สามารถแก้ไขข้อความได้ตามต้องการ</p>
+          <p className="text-xs text-slate-500">💡 สามารถแก้ไขข้อความได้ตามต้องการ</p>
         </div>
 
         {/* Actions */}

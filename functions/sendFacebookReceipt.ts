@@ -275,8 +275,8 @@ Deno.serve(async (req) => {
             day: 'numeric'
         }) : '-';
 
-        let message = `${config.buildingName}\n`;
-        message += `ใบเสร็จรับเงิน\n\n`;
+        let message = `ใบเสร็จรับเงิน\n\n`;
+        message += `${config.buildingName}\n`;
         message += `เลขที่: REC-${payment.id.slice(0, 8).toUpperCase()}\n`;
         message += `วันที่: ${paymentDateText}\n\n`;
         message += `ผู้เช่า: ${tenant.full_name}\n`;

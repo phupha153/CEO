@@ -437,127 +437,44 @@ Deno.serve(async (req) => {
             headerContents.push({ type: "text", text: `เลขผู้เสียภาษี: ${issuerTaxId}`, color: "#e0e7ff", size: "xs", align: "center", margin: "xs" });
         }
 
-        const flexMessage = {
-            type: "flex",
-            altText: `ใบเสร็จรับเงิน ${buildingName}`,
-            contents: {
-                type: "bubble",
-                size: "mega",
-                header: {
-                    type: "box",
-                    layout: "vertical",
-                    contents: [
-                        {
-                            type: "box",
-                            layout: "vertical",
-                            contents: [
-                                { type: "text", text: buildingName, color: "#ffffff", size: "xl", weight: "bold", align: "center" },
-                                { type: "text", text: "ใบเสร็จรับเงิน", color: "#ffffff", size: "md", align: "center", margin: "md" }
-                            ]
-                        }
-                    ],
-                    backgroundColor: "#2563eb",
-                    paddingTop: "20px",
-                    paddingBottom: "20px"
-                },
-                body: {
-                    type: "box",
-                    layout: "vertical",
-                    contents: [
-                        { type: "text", text: `เลขที่: REC-${payment.id.slice(0, 8).toUpperCase()}`, size: "xs", color: "#aaaaaa", margin: "md" },
-                        { type: "text", text: `วันที่: ${paymentDateText}`, size: "xs", color: "#aaaaaa", margin: "sm" },
-                        { type: "separator", margin: "lg" },
-                        {
-                            type: "box",
-                            layout: "vertical",
-                            margin: "lg",
-                            spacing: "sm",
-                            contents: [
-                                { type: "text", text: "ผู้เช่า", size: "sm", color: "#aaaaaa" },
-                                { type: "text", text: tenant.full_name, size: "md", weight: "bold", color: "#111111" },
-                                { type: "text", text: `ห้อง ${room?.room_number || 'N/A'}`, size: "sm", color: "#555555" },
-                                { type: "text", text: tenant.phone, size: "sm", color: "#555555" }
-                            ]
-                        },
-                        { type: "separator", margin: "lg" },
-                        {
-                            type: "box",
-                            layout: "vertical",
-                            margin: "lg",
-                            spacing: "sm",
-                            contents: [
-                                { type: "text", text: "รายการ", size: "sm", color: "#aaaaaa", weight: "bold" },
-                                ...items
-                            ]
-                        },
-                        { type: "separator", margin: "lg" },
-                        {
-                            type: "box",
-                            layout: "horizontal",
-                            margin: "lg",
-                            contents: [
-                                { type: "text", text: "รวมทั้งสิ้น", size: "md", color: "#111111", weight: "bold", flex: 0 },
-                                { type: "text", text: `${payment.total_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "xl", color: "#2563eb", weight: "bold", align: "end" }
-                            ]
-                        },
-                        {
-                            type: "box",
-                            layout: "vertical",
-                            margin: "sm",
-                            contents: [
-                                { type: "text", text: `(${numberToThaiText(payment.total_amount)})`, size: "sm", color: "#555555", align: "center", wrap: true }
-                            ]
-                        },
-                        {
-                            type: "box",
-                            layout: "vertical",
-                            margin: "lg",
-                            contents: [
-                                { type: "text", text: "✓ ชำระเงินเรียบร้อยแล้ว", size: "md", color: "#ffffff", weight: "bold", align: "center" }
-                            ],
-                            backgroundColor: "#10b981",
-                            cornerRadius: "md",
-                            paddingAll: "12px"
-                        },
-                        { type: "separator", margin: "lg" },
-                        {
-                            type: "box",
-                            layout: "vertical",
-                            margin: "lg",
-                            spacing: "xs",
-                            contents: [
-                                { type: "text", text: "ขอบคุณที่ชำระเงินตรงเวลา", size: "xs", color: "#aaaaaa", align: "center" },
-                                { type: "text", text: `ผู้รับเงิน: ${lessorName}`, size: "xs", color: "#aaaaaa", align: "center", margin: "sm" },
-                                { type: "text", text: "เอกสารนี้สร้างโดยระบบอัตโนมัติ", size: "xxs", color: "#aaaaaa", align: "center", margin: "sm" },
-                                { type: "text", text: "กรุณาเก็บใบเสร็จนี้ไว้เป็นหลักฐาน", size: "xxs", color: "#aaaaaa", align: "center", margin: "xs" }
-                            ]
-                        }
-                    ]
-                },
-                footer: {
-                    type: "box",
-                    layout: "vertical",
-                    contents: [
-                        {
-                            type: "button",
-                            action: {
-                                type: "uri",
-                                label: "📄 ดูใบเสร็จฉบับเต็ม",
-                                uri: receiptLink
-                            },
-                            style: "primary",
-                            color: "#2563eb"
-                        }
-                    ],
-                    spacing: "sm"
-                },
-                styles: {
-                    footer: {
-                        separator: false
-                    }
-                }
-            }
-        };
+        // ⭐ ใช้ข้อความธรรมดาแทน Flex Message
+        let message = `ใบเสร็จรับเงิน\n\n`;
+        message += `${config.buildingName}\n`;
+        message += `เลขที่: REC-${payment.id.slice(0, 8).toUpperCase()}\n`;
+        message += `วันที่: ${paymentDateText}\n\n`;
+        message += `ผู้เช่า: ${tenant.full_name}\n`;
+        message += `ห้อง: ${room?.room_number || 'N/A'}\n`;
+        message += `เบอร์: ${tenant.phone}\n\n`;
+        message += `รายการ:\n`;
+        
+        if (payment.rent_amount > 0) {
+            message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+        }
+        if (payment.electricity_amount > 0) {
+            message += `ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
+        }
+        if (payment.water_amount > 0) {
+            message += `ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
+        }
+        if (payment.internet_amount > 0) {
+            message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
+        }
+        if (payment.common_fee_amount > 0) {
+            message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
+        }
+        if (payment.parking_fee_amount > 0) {
+            message += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
+        }
+        if (payment.other_amount > 0) {
+            message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
+        }
+        
+        message += `\nรวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
+        message += `(${numberToThaiText(payment.total_amount)})\n\n`;
+        message += `ชำระเงินเรียบร้อยแล้ว\n\n`;
+        message += `ขอบคุณที่ชำระเงินตรงเวลา\n`;
+        message += `ผู้รับเงิน: ${lessorName}\n\n`;
+        message += `เอกสารนี้สร้างโดยระบบอัตโนมัติ\nกรุณาเก็บใบเสร็จนี้ไว้เป็นหลักฐาน`;
 
         console.log('📤 Sending LINE message to:', tenant.line_user_id);
 
@@ -569,7 +486,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
                 to: tenant.line_user_id,
-                messages: [flexMessage]
+                messages: [{ type: 'text', text: message }]
             })
         });
 

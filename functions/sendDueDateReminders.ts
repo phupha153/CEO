@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
                 message += `โอนเงินได้ที่:\n`;
                 message += `${branchBankName} ${branchBankAccountNumber}\n`;
                 message += `ชื่อบัญชี: ${branchBankAccountName}\n\n`;
-                message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
+                message += `กรุณาส่งสลิปหลังโอน\nขอบคุณครับ`;
 
                 recipients.push({
                     lineUserId: hasLine ? tenant.line_user_id : null,

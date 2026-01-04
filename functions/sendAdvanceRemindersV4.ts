@@ -177,17 +177,10 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
             const room = roomMap.get(payment.room_id);
             if (!tenant || (!tenant.line_user_id && !tenant.facebook_user_id)) continue;
 
-            // ⭐ สร้างลิงค์ Public Invoice
-            const frontendUrl = getConfig('frontend_url', branchId) || Deno.env.get('FRONTEND_URL');
-            if (!frontendUrl) {
-                console.error(`❌ Missing FRONTEND_URL for branch ${branchId}`);
-                continue;
-            }
-            const invoiceLink = `${frontendUrl}/publicinvoice?id=${payment.id}`;
-
             // --- 📝 MESSAGE BUILDER ---
-            let message = `${branchConfigs.building} - แจ้งเตือนค่าเช่า\n\n`;
-            message += `คุณ ${tenant.full_name}\nห้อง ${room?.room_number || 'N/A'}\n\n`;
+            let message = `แจ้งเตือนค่าเช่าล่วงหน้า\n\n`;
+            message += `${branchConfigs.building}\n`;
+            message += `คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n\n`;
             message += `รายละเอียดค่าใช้จ่าย:\n`;
             
             if (payment.rent_amount > 0) message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
