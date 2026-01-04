@@ -33,18 +33,6 @@ export default function ChatWindow({
   const [linking, setLinking] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // ⭐ Debug tenant data
-  useEffect(() => {
-    console.log('🔍 ChatWindow received props:', {
-      conversation_id: conversation?.line_user_id || conversation?.facebook_user_id,
-      tenant_id: tenant?.id,
-      tenant_name: tenant?.full_name,
-      tenants_count: tenants.length,
-      has_line_id: !!conversation?.line_user_id,
-      has_facebook_id: !!conversation?.facebook_user_id
-    });
-  }, [conversation, tenant, tenants.length]);
-
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -100,28 +88,8 @@ export default function ChatWindow({
                 src={conversation.line_picture_url || conversation.facebook_picture_url} 
                 alt="" 
                 className="w-10 h-10 rounded-full object-cover"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
-                }}
               />
-            ) : null}
-            <div 
-              className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                conversation.line_picture_url || conversation.facebook_picture_url ? 'hidden' : ''
-              } ${
-                conversation.facebook_user_id 
-                  ? 'bg-gradient-to-br from-blue-500 to-blue-600' 
-                  : 'bg-gradient-to-br from-green-400 to-emerald-500'
-              }`}
-            >
-              {conversation.facebook_user_id ? (
-                <Facebook className="w-5 h-5 text-white" />
-              ) : (
-                <User className="w-5 h-5 text-white" />
-              )}
-            </div>
-            {false && (
+            ) : (
               <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                 conversation.facebook_user_id 
                   ? 'bg-gradient-to-br from-blue-500 to-blue-600' 
@@ -337,28 +305,8 @@ export default function ChatWindow({
                     src={conversation.line_picture_url || conversation.facebook_picture_url} 
                     alt="" 
                     className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-slate-100"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
-                    }}
                   />
-                ) : null}
-                <div 
-                  className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto border-4 border-white shadow-lg ${
-                    conversation.line_picture_url || conversation.facebook_picture_url ? 'hidden' : ''
-                  } ${
-                    conversation.facebook_user_id 
-                      ? 'bg-gradient-to-br from-blue-500 to-blue-600'
-                      : 'bg-gradient-to-br from-green-400 to-emerald-500'
-                  }`}
-                >
-                  {conversation.facebook_user_id ? (
-                    <Facebook className="w-12 h-12 text-white" />
-                  ) : (
-                    <User className="w-12 h-12 text-white" />
-                  )}
-                </div>
-                {false && (
+                ) : (
                   <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto border-4 border-white shadow-lg ${
                     conversation.facebook_user_id 
                       ? 'bg-gradient-to-br from-blue-500 to-blue-600'
@@ -460,19 +408,16 @@ export default function ChatWindow({
 
                       setLinking(true);
                       try {
-                        console.log('🔓 Unlinking tenant:', tenant.id, 'from', platform);
-
                         // อัพเดท tenant โดยลบ line_user_id หรือ facebook_user_id
                         const updateData = conversation.facebook_user_id 
                           ? { facebook_user_id: null }
                           : { line_user_id: null };
-
+                        
                         await base44.entities.Tenant.update(tenant.id, updateData);
                         toast.success(`ยกเลิกการเชื่อมต่อ ${platform} สำเร็จ`);
                         setShowProfile(false);
-
-                        console.log('✅ Unlinked - refreshing data...');
-                        // ⭐ Refresh ทุกอย่างเพื่อให้ UI อัพเดท
+                        
+                        // ⭐ Refresh เฉพาะ tenants
                         if (onRefresh) await onRefresh();
                       } catch (err) {
                         console.error('Unlink error:', err);
