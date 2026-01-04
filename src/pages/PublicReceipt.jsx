@@ -469,8 +469,18 @@ export default function PublicReceipt() {
                 <p className="text-[10px] md:text-xs text-slate-600">ผู้อนุมัติ</p>
               </div>
               <div className="text-center">
-                <div className="h-8 md:h-12 border-b border-slate-300 mb-1"></div>
-                <p className="text-[10px] md:text-xs text-slate-600">ผู้รับเงิน</p>
+                <div className="h-8 md:h-12 flex items-center justify-center border-b border-slate-300 mb-1">
+                  {receiptData.recipient?.receiver_signature && (
+                    <img 
+                      src={receiptData.recipient.receiver_signature} 
+                      alt="ลายเซ็นผู้รับเงิน" 
+                      className="h-6 md:h-10 object-contain"
+                    />
+                  )}
+                </div>
+                <p className="text-[10px] md:text-xs text-slate-600">
+                  ผู้รับเงิน: {receiptData.recipient?.lessor_name || receiptData.recipient?.building_name || '________________'}
+                </p>
               </div>
             </div>
 
