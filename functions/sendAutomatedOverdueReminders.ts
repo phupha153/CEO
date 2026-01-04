@@ -583,6 +583,13 @@ Deno.serve(async (req) => {
             message += `โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อบัญชี: ${branchBankAccountName}\n\n`;
             message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
 
+            // ⭐ เพิ่มลิงก์ Public Invoice
+            if (frontendUrl) {
+                const invoiceLink = `${frontendUrl}/publicinvoice?id=${latestPayment.id}`;
+                message += `\n\nดูใบแจ้งหนี้: ${invoiceLink}`;
+                console.log(`   ✅ INCLUDED public invoice link`);
+            }
+
             console.log(`   📏 Final message length: ${message.length} chars`);
             console.log(`   📄 Message preview:\n${message.substring(0, 200)}...\n`);
 
