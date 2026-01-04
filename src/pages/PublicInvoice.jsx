@@ -352,7 +352,7 @@ export default function PublicInvoice() {
                     {invoiceData.recipient.tax_id && <p>เลขที่ผู้เสียภาษี: {invoiceData.recipient.tax_id}</p>}
                     {invoiceData.recipient.company_registration_number && <p>เลขทะเบียนนิติบุคคล: {invoiceData.recipient.company_registration_number}</p>}
                     <p>{invoiceData.recipient?.company_address || invoiceData.recipient?.building_address}</p>
-                    {invoiceData.recipient?.company_phone && <p>โทร: {invoiceData.recipient.company_phone}</p>}
+                    {invoiceData.recipient?.company_phone && <p>เบอร์ติดต่อ: {invoiceData.recipient.company_phone}</p>}
                   </>
                 ) : invoiceData.recipient?.lessor_name ? (
                   <>
