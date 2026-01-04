@@ -220,12 +220,15 @@ export default function BranchManagement() {
         console.error('Failed to update user branch access:', error);
       }
       
-      // ⭐ Init user trial ถ้ายังไม่มี
-      try {
-        await base44.functions.invoke('initUserTrial');
-        queryClient.invalidateQueries(['currentUser']);
-      } catch (error) {
-        console.error('Failed to init trial:', error);
+      // ⭐ Init user trial เฉพาะเมื่อสร้างสาขาแรกเท่านั้น
+      if (!currentUser.trial_ends_at && userOwnedBranches.length === 0) {
+        try {
+          await base44.functions.invoke('initUserTrial');
+          queryClient.invalidateQueries(['currentUser']);
+          console.log('✅ สร้าง Trial 30 วันสำเร็จ (สาขาแรก)');
+        } catch (error) {
+          console.error('Failed to init trial:', error);
+        }
       }
       
       setShowDialog(false);
