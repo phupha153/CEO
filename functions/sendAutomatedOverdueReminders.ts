@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import { differenceInDays, parseISO, startOfDay } from 'npm:date-fns@3.6.0';
+import { createPaymentReminderMessage } from './utils/messageTemplates.js';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -551,28 +552,27 @@ Deno.serve(async (req) => {
             const branchBankAccountName = getConfigValue('bank_account_name', 'ธนานนท์ พรมพักตร์', paymentBranchId);
             const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', paymentBranchId);
 
-            // ⭐⭐⭐ ใช้ latestPayment (ที่ refresh แล้ว) สำหรับค่าปรับและ invoice URL
             const lateFee = latestPayment.late_fee_amount || 0;
             const originalAmount = latestPayment.total_amount - lateFee;
             const totalWithLateFee = latestPayment.total_amount;
-            
+
             console.log(`   - latestPayment.late_fee_amount: ${latestPayment.late_fee_amount || 0} บาท`);
             console.log(`   - latestPayment.total_amount: ${latestPayment.total_amount || 0} บาท`);
-            console.log(`   - latestPayment.invoice_image_url: ${latestPayment.invoice_image_url ? '✅ มี' : '❌ ไม่มี'}`);
 
-            // สร้างข้อความแบบเดียวกับ sendPaymentReminder template='overdue'
-            let message = `แจ้งเตือนค่าเช่าเกินกำหนด\n\n`;
-            message += `${branchBuildingName}\n`;
-            message += `คุณ ${tenant.full_name} ห้อง ${roomNumber}\n`;
-            message += `ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
-            if (lateFee > 0) {
-                message += `\nค่าปรับล่าช้า: ${lateFee.toLocaleString()} บาท`;
-            }
-            message += `\nรวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
-            message += `\nเกินกำหนดมาแล้ว ${daysOverdue} วัน\n\n`;
-            message += `กรุณาชำระโดยด่วน${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
-            message += `โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อบัญชี: ${branchBankAccountName}\n\n`;
-            message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
+            // ⭐ ใช้ Central Template
+            const message = createPaymentReminderMessage({
+                template: 'overdue',
+                buildingName: branchBuildingName,
+                tenantName: tenant.full_name,
+                roomNumber: roomNumber,
+                originalAmount,
+                lateFee,
+                totalAmount: totalWithLateFee,
+                daysOverdue,
+                bankName: branchBankName,
+                bankAccountNumber: branchBankAccountNumber,
+                bankAccountName: branchBankAccountName
+            });
 
             console.log(`   📏 Final message length: ${message.length} chars`);
             console.log(`   📄 Message preview:\n${message.substring(0, 200)}...\n`);
