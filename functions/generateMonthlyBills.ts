@@ -628,9 +628,10 @@ Deno.serve(async (req) => {
                 if (currentPrepaid >= totalAmount) {
                     status = 'paid';
                     paymentDate = now.toISOString();
+                    // ⭐ เก็บจำนวนที่หักแทนที่จะเป็น newBalance (แก้ race condition)
                     updatesToProcess.push({
                         tenantId: tenant.id,
-                        newBalance: currentPrepaid - totalAmount
+                        deduction: totalAmount
                     });
                 }
 
@@ -710,22 +711,41 @@ Deno.serve(async (req) => {
         // 6. Update Prepaid Balances + Calculate Payment Scores
         if (updatesToProcess.length > 0) {
             console.log(`💰 Updating ${updatesToProcess.length} balances...`);
+
+            // ⭐ Group updates ตาม tenant_id เพื่อรวมยอดหักทั้งหมด (แก้ปัญหา race condition)
+            const groupedUpdates = {};
             for (const update of updatesToProcess) {
+                if (!groupedUpdates[update.tenantId]) {
+                    groupedUpdates[update.tenantId] = { totalDeduction: 0 };
+                }
+                groupedUpdates[update.tenantId].totalDeduction += update.deduction;
+            }
+
+            console.log(`📊 Grouped into ${Object.keys(groupedUpdates).length} unique tenants`);
+
+            // อัปเดต prepaid ครั้งเดียวต่อ tenant
+            for (const [tenantId, data] of Object.entries(groupedUpdates)) {
                 await retryOperation(async () => {
-                    await base44.asServiceRole.entities.Tenant.update(update.tenantId, {
-                        prepaid_balance: update.newBalance
+                    const tenant = tenants.find(t => t.id === tenantId);
+                    const currentBalance = tenant?.prepaid_balance || 0;
+                    const newBalance = currentBalance - data.totalDeduction;
+
+                    await base44.asServiceRole.entities.Tenant.update(tenantId, {
+                        prepaid_balance: newBalance
                     });
-                    
+
+                    console.log(`💰 Tenant ${tenantId.slice(0, 8)}: ${currentBalance} - ${data.totalDeduction} = ${newBalance}`);
+
                     // ⭐ คำนวณคะแนนอัตโนมัติหลังชำระผ่าน prepaid
                     try {
                         const response = await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
-                            tenant_id: update.tenantId
+                            tenant_id: tenantId
                         });
                         if (response.data?.success) {
-                            console.log(`✅ Score updated for tenant ${update.tenantId.slice(0, 8)}: avg=${response.data.avg_payment_score}`);
+                            console.log(`✅ Score updated: avg=${response.data.avg_payment_score}`);
                         }
                     } catch (scoreError) {
-                        console.warn(`⚠️ Failed to calculate scores for ${update.tenantId.slice(0, 8)}:`, scoreError.message);
+                        console.warn(`⚠️ Failed to calculate scores:`, scoreError.message);
                     }
                 });
                 await delay(100);
