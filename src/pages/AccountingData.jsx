@@ -800,8 +800,8 @@ export default function AccountingData() {
       const data = filteredPayments.map(payment => {
         const room = roomsMap.get(payment.room_id);
         const tenant = tenantsMap.get(payment.tenant_id);
-        const calculatedLateFee = calculateLateFee(payment, configs, selectedBranchId);
-        const displayLateFee = payment.late_fee_amount > 0 ? payment.late_fee_amount : calculatedLateFee;
+        const calcLateFee = calculateLateFee(payment, configs, selectedBranchId);
+        const displayLateFee = payment.late_fee_amount > 0 ? payment.late_fee_amount : calcLateFee;
         const totalWithLateFee = (payment.total_amount || 0) + (displayLateFee > payment.late_fee_amount ? displayLateFee - payment.late_fee_amount : 0);
         
         return {
@@ -852,8 +852,8 @@ export default function AccountingData() {
 
         const room = roomsMap.get(payment.room_id);
         const tenant = tenantsMap.get(payment.tenant_id);
-        const calculatedLateFee = calculateLateFee(payment, configs, selectedBranchId);
-        const displayLateFee = payment.late_fee_amount > 0 ? payment.late_fee_amount : calculatedLateFee;
+        const calcLateFee = calculateLateFee(payment, configs, selectedBranchId);
+        const displayLateFee = payment.late_fee_amount > 0 ? payment.late_fee_amount : calcLateFee;
         const totalWithLateFee = (payment.total_amount || 0) + (displayLateFee > payment.late_fee_amount ? displayLateFee - payment.late_fee_amount : 0);
         
         return {
@@ -983,8 +983,8 @@ export default function AccountingData() {
       const data = filteredInvoices.map(payment => {
         const room = roomsMap.get(payment.room_id);
         const tenant = tenantsMap.get(payment.tenant_id);
-        const calculatedLateFee = calculateLateFee(payment, configs, selectedBranchId);
-        const displayLateFee = payment.late_fee_amount > 0 ? payment.late_fee_amount : calculatedLateFee;
+        const calcLateFee = calculateLateFee(payment, configs, selectedBranchId);
+        const displayLateFee = payment.late_fee_amount > 0 ? payment.late_fee_amount : calcLateFee;
         const totalWithLateFee = (payment.total_amount || 0) + (displayLateFee > payment.late_fee_amount ? displayLateFee - payment.late_fee_amount : 0);
         
         return {
