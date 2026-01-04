@@ -318,44 +318,9 @@ Deno.serve(async (req) => {
         message += `📄 ดูใบเสร็จรูปภาพ:\n${payment.receipt_image_url}\n\n`;
         message += `เอกสารนี้สร้างโดยระบบอัตโนมัติ\nกรุณาเก็บใบเสร็จนี้ไว้เป็นหลักฐาน`;
 
-        console.log('📤 Sending Facebook message with image to:', tenant.facebook_user_id);
+        console.log('📤 Sending Facebook message to:', tenant.facebook_user_id);
 
-        // ส่งข้อความพร้อมรูปใบเสร็จ
         const fbResponse = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${config.pageAccessToken}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                recipient: { id: tenant.facebook_user_id },
-                message: { 
-                    attachment: {
-                        type: 'image',
-                        payload: {
-                            url: payment.receipt_image_url,
-                            is_reusable: true
-                        }
-                    }
-                },
-                messaging_type: 'MESSAGE_TAG',
-                tag: 'CONFIRMED_EVENT_UPDATE'
-            })
-        });
-
-        const fbResponseData = await fbResponse.json();
-        console.log('📨 Facebook API Response (Image):', fbResponseData);
-
-        if (!fbResponse.ok) {
-            console.error('❌ Failed to send Facebook image:', fbResponseData);
-            return Response.json({ 
-                success: false,
-                error: 'ส่งรูปใบเสร็จทาง Facebook ไม่สำเร็จ',
-                details: fbResponseData 
-            }, { status: fbResponse.status });
-        }
-
-        // ส่งข้อความตามหลัง
-        const fbTextResponse = await fetch(`https://graph.facebook.com/v18.0/me/messages?access_token=${config.pageAccessToken}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -368,14 +333,19 @@ Deno.serve(async (req) => {
             })
         });
 
-        const fbTextResponseData = await fbTextResponse.json();
-        console.log('📨 Facebook API Response (Text):', fbTextResponseData);
+        const fbResponseData = await fbResponse.json();
+        console.log('📨 Facebook API Response:', fbResponseData);
 
-        if (!fbTextResponse.ok) {
-            console.warn('⚠️ Failed to send text message (but image sent):', fbTextResponseData);
-        } else {
-            console.log('✅ Facebook text message sent successfully');
+        if (!fbResponse.ok) {
+            console.error('❌ Failed to send Facebook message:', fbResponseData);
+            return Response.json({ 
+                success: false,
+                error: 'ส่งข้อความ Facebook ไม่สำเร็จ',
+                details: fbResponseData 
+            }, { status: fbResponse.status });
         }
+
+        console.log('✅ Facebook message sent successfully');
 
         // ⭐⭐⭐ บันทึกข้อความขาออกลง FacebookMessage entity
         try {
