@@ -151,27 +151,8 @@ export default function Invoice() {
   const isOverdue = !isPaid && invoiceData.due_date && differenceInDays(new Date(), parseISO(invoiceData.due_date)) > 0;
   const daysOverdue = isOverdue ? differenceInDays(new Date(), parseISO(invoiceData.due_date)) : 0;
 
-  // ⭐ คำนวณค่าปรับโดยตรงที่ฝั่ง client
-  const displayLateFee = (() => {
-    // ถ้าชำระแล้ว ใช้ค่าที่ lock ไว้
-    if (isPaid) return invoiceData.late_fee_amount || 0;
-    
-    // ถ้ามีค่าปรับบันทึกไว้แล้ว ให้ใช้ตามนั้น
-    if (invoiceData.late_fee_amount && invoiceData.late_fee_amount > 0) {
-      return invoiceData.late_fee_amount;
-    }
-    
-    // ถ้ายังไม่เกินกำหนด return 0
-    if (!isOverdue || daysOverdue <= 0) return 0;
-    
-    // คำนวณค่าปรับใหม่สำหรับบิลที่ยังไม่ชำระและเกินกำหนด
-    const branchConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === invoiceData.branch_id);
-    const globalConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
-    const lateFeeConfig = branchConfig || globalConfig;
-    const lateFeePerDay = lateFeeConfig ? parseFloat(lateFeeConfig.value) : 0;
-    
-    return daysOverdue * lateFeePerDay;
-  })();
+  // ⭐ ใช้ค่าปรับที่ lock ไว้ในฐานข้อมูลโดยตรง (Cron Job จะอัปเดตให้)
+  const displayLateFee = invoiceData.late_fee_amount || 0;
 
   const handleDownload = () => {
     if (window.print) {
@@ -515,17 +496,11 @@ export default function Invoice() {
               <div className="flex justify-between items-center">
                 <div className="text-sm text-slate-600">
                   <span className="font-medium">ยอดเงินสุทธิ</span>
-                  {(() => {
-                    const totalAmount = (invoiceData.total_amount || 0) + Math.max(0, displayLateFee - (invoiceData.late_fee_amount || 0));
-                    return <span className="ml-2">({numberToThaiText(totalAmount)})</span>;
-                  })()}
+                  <span className="ml-2">({numberToThaiText(invoiceData.total_amount || 0)})</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-lg font-bold text-slate-800">
-                    {(() => {
-                      const totalAmount = (invoiceData.total_amount || 0) + Math.max(0, displayLateFee - (invoiceData.late_fee_amount || 0));
-                      return totalAmount.toLocaleString('th-TH', { minimumFractionDigits: 2 });
-                    })()}
+                    {(invoiceData.total_amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                   {/* ตราประทับ */}
                   {isPaid ? (
