@@ -283,78 +283,85 @@ Deno.serve(async (req) => {
             let calculatedLateFee = 0;
 
             if (daysOverdue > 0) {
-                // ⭐ เช็คว่าคำนวณค่าปรับไปแล้วในวันนี้หรือยัง
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                let shouldRecalculate = true;
-                if (payment.late_fee_last_calculated) {
-                    const lastCalcDate = new Date(payment.late_fee_last_calculated);
-                    lastCalcDate.setHours(0, 0, 0, 0);
+                // 🔒 เช็คว่า admin ล็อคค่าปรับไว้หรือไม่
+                if (payment.late_fee_locked === true) {
+                    calculatedLateFee = payment.late_fee_amount || 0;
+                    console.log(`   🔒 LOCKED by admin: ${calculatedLateFee} บาท (won't recalculate)`);
+                    // ไม่ต้องคำนวณใหม่ - ข้ามไปส่วนสร้างข้อความเลย
+                } else {
+                    // ⭐ เช็คว่าคำนวณค่าปรับไปแล้วในวันนี้หรือยัง
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
                     
-                    // ถ้าคำนวณวันนี้แล้ว → ใช้ค่าเดิม (ไม่คำนวณซ้ำ)
-                    if (lastCalcDate.getTime() === today.getTime() && payment.late_fee_amount > 0) {
-                        shouldRecalculate = false;
-                        calculatedLateFee = payment.late_fee_amount;
-                        console.log(`   ♻️ Reusing late fee: ${calculatedLateFee} บาท (already calculated today)`);
+                    let shouldRecalculate = true;
+                    if (payment.late_fee_last_calculated) {
+                        const lastCalcDate = new Date(payment.late_fee_last_calculated);
+                        lastCalcDate.setHours(0, 0, 0, 0);
+                        
+                        // ถ้าคำนวณวันนี้แล้ว → ใช้ค่าเดิม (ไม่คำนวณซ้ำ)
+                        if (lastCalcDate.getTime() === today.getTime() && payment.late_fee_amount > 0) {
+                            shouldRecalculate = false;
+                            calculatedLateFee = payment.late_fee_amount;
+                            console.log(`   ♻️ Reusing late fee: ${calculatedLateFee} บาท (already calculated today)`);
+                        }
                     }
-                }
 
-                if (shouldRecalculate) {
-                    const branchTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === branchId);
-                    const globalTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
-                    const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
-                    const tiersEnabled = tiersEnabledConfig?.value === 'true';
+                    if (shouldRecalculate) {
+                        const branchTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === branchId);
+                        const globalTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
+                        const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
+                        const tiersEnabled = tiersEnabledConfig?.value === 'true';
 
-                    if (tiersEnabled) {
-                        const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === branchId);
-                        const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
-                        const tiersConfig = branchTiersConfig || globalTiersConfig;
+                        if (tiersEnabled) {
+                            const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === branchId);
+                            const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
+                            const tiersConfig = branchTiersConfig || globalTiersConfig;
 
-                        if (tiersConfig?.value) {
-                            try {
-                                const tiers = JSON.parse(tiersConfig.value);
-                                for (const tier of tiers) {
-                                    const daysFrom = tier.days_from || 1;
-                                    const daysTo = tier.days_to || 999;
-                                    const feePerDay = parseFloat(tier.fee_per_day || 0);
-                                    if (daysOverdue >= daysFrom) {
-                                        const daysInTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
-                                        if (daysInTier > 0) calculatedLateFee += daysInTier * feePerDay;
+                            if (tiersConfig?.value) {
+                                try {
+                                    const tiers = JSON.parse(tiersConfig.value);
+                                    for (const tier of tiers) {
+                                        const daysFrom = tier.days_from || 1;
+                                        const daysTo = tier.days_to || 999;
+                                        const feePerDay = parseFloat(tier.fee_per_day || 0);
+                                        if (daysOverdue >= daysFrom) {
+                                            const daysInTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+                                            if (daysInTier > 0) calculatedLateFee += daysInTier * feePerDay;
+                                        }
+                                        if (daysOverdue <= daysTo) break;
                                     }
-                                    if (daysOverdue <= daysTo) break;
+                                } catch (e) {
+                                    console.error('Error parsing tiers:', e);
                                 }
-                            } catch (e) {
-                                console.error('Error parsing tiers:', e);
+                            }
+                        } else {
+                            const branchConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === branchId);
+                            const globalConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
+                            const config = branchConfig || globalConfig;
+                            const feePerDay = parseFloat(config?.value || '0');
+                            if (!isNaN(feePerDay) && feePerDay > 0) {
+                                calculatedLateFee = daysOverdue * feePerDay;
                             }
                         }
-                    } else {
-                        const branchConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === branchId);
-                        const globalConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
-                        const config = branchConfig || globalConfig;
-                        const feePerDay = parseFloat(config?.value || '0');
-                        if (!isNaN(feePerDay) && feePerDay > 0) {
-                            calculatedLateFee = daysOverdue * feePerDay;
+
+                        console.log(`   💰 Calculated late fee: ${calculatedLateFee} บาท (${daysOverdue} วัน)`);
+
+                        const oldLateFee = payment.late_fee_amount || 0;
+                        if (calculatedLateFee !== oldLateFee) {
+                            const originalAmount = payment.total_amount - oldLateFee;
+                            const newTotalAmount = originalAmount + calculatedLateFee;
+
+                            await base44.asServiceRole.entities.Payment.update(payment.id, {
+                                late_fee_amount: calculatedLateFee,
+                                total_amount: newTotalAmount,
+                                status: 'overdue',
+                                late_fee_last_calculated: new Date().toISOString()
+                            });
+
+                            payment.late_fee_amount = calculatedLateFee;
+                            payment.total_amount = newTotalAmount;
+                            payment.status = 'overdue';
                         }
-                    }
-
-                    console.log(`   💰 Calculated late fee: ${calculatedLateFee} บาท (${daysOverdue} วัน)`);
-
-                    const oldLateFee = payment.late_fee_amount || 0;
-                    if (calculatedLateFee !== oldLateFee) {
-                        const originalAmount = payment.total_amount - oldLateFee;
-                        const newTotalAmount = originalAmount + calculatedLateFee;
-
-                        await base44.asServiceRole.entities.Payment.update(payment.id, {
-                            late_fee_amount: calculatedLateFee,
-                            total_amount: newTotalAmount,
-                            status: 'overdue',
-                            late_fee_last_calculated: new Date().toISOString()
-                        });
-
-                        payment.late_fee_amount = calculatedLateFee;
-                        payment.total_amount = newTotalAmount;
-                        payment.status = 'overdue';
                     }
                 }
             }

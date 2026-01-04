@@ -407,7 +407,15 @@ Deno.serve(async (req) => {
 
             if (daysOverdue <= 0) continue;
 
-            // ⭐ PRODUCTION-GRADE: เช็คว่าคำนวณวันนี้แล้วหรือยัง (ป้องกันคำนวณซ้ำ)
+            // 🔒 LOCK 1: ถ้า admin ล็อคค่าปรับไว้ → skip
+            if (payment.late_fee_locked === true) {
+                const room = roomMap.get(payment.room_id);
+                console.log(`🔒 LOCKED ${payment.id.substring(0,8)} (ห้อง ${room?.room_number}): Admin locked at ${payment.late_fee_amount || 0} บาท`);
+                feeSkipped++;
+                continue;
+            }
+
+            // 🔒 LOCK 2: เช็คว่าคำนวณวันนี้แล้วหรือยัง (ป้องกันคำนวณซ้ำ)
             const lastCalcDate = payment.late_fee_last_calculated?.split('T')[0];
             if (lastCalcDate === todayDateStr && payment.late_fee_amount > 0) {
                 const room = roomMap.get(payment.room_id);

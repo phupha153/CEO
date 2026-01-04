@@ -106,6 +106,13 @@ Deno.serve(async (req) => {
                                 return;
                             }
 
+                            // 🔒 ถ้า admin ล็อคค่าปรับไว้ → skip
+                            if (payment.late_fee_locked === true) {
+                                branchResult.skipped++;
+                                console.log(`  🔒 Locked: payment ${payment.id.substring(0, 8)}... (late fee: ${payment.late_fee_amount || 0}฿)`);
+                                return;
+                            }
+
                             const dueDate = parseISO(payment.due_date);
                             const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
                             const daysOverdue = differenceInDays(today, dueDateStart);

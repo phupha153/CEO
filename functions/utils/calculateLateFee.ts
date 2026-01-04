@@ -10,8 +10,14 @@ import { parseISO, differenceInDays } from 'npm:date-fns';
 export function calculateLateFee(payment, configs, branchId) {
     if (!payment || !payment.due_date) return 0;
     
-    // ⭐ ถ้าชำระแล้ว ให้ใช้ค่าปรับที่บันทึกไว้
+    // 🔒 LOCK 1: ถ้าชำระแล้ว → ใช้ค่าปรับที่บันทึกไว้
     if (payment.status === 'paid') {
+        return payment.late_fee_amount || 0;
+    }
+    
+    // 🔒 LOCK 2: ถ้า admin ล็อคค่าปรับไว้ → ไม่คำนวณใหม่
+    if (payment.late_fee_locked === true) {
+        console.log(`🔒 Late fee LOCKED by admin: ${payment.late_fee_amount || 0} บาท`);
         return payment.late_fee_amount || 0;
     }
     
