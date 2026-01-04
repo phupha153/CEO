@@ -296,28 +296,15 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // 🔒 Security: Authentication Check
-        const user = await base44.auth.me();
-        if (!user) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+        // ⚠️ CRON JOB MODE: ไม่มี user session - ใช้ Service Role เท่านั้น
+        // ลบการเช็ค auth.me() ออก เพราะ cron job ไม่มี authenticated user
         
         let reqBody = {};
         try { reqBody = await req.json(); } catch(e) {}
         const { branch_id: specificBranchId, test_line_user_id: testLineUserId } = reqBody;
 
-        // 🔒 Security: Branch Access Check
-        if (specificBranchId) {
-            const userAccessibleBranches = user.accessible_branches;
-            const isDeveloper = user.custom_role === 'developer';
-            const isOwner = user.custom_role === 'owner';
-            
-            if (!isDeveloper && !isOwner) {
-                if (userAccessibleBranches && !userAccessibleBranches.includes(specificBranchId)) {
-                    return Response.json({ error: 'Branch access denied' }, { status: 403 });
-                }
-            }
-        }
+        // 🔒 CRON MODE: Skip user-based branch access check
+        // Cron jobs run as service role and process all enabled branches
 
         const allConfigs = await base44.asServiceRole.entities.Config.list();
         const getConfig = (key, branchId, defaultVal) => {
