@@ -1065,16 +1065,40 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
 
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg rounded-3xl">
             <CardContent className="p-6 md:p-8 space-y-6">
-              <AISearchBox
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onAISearch={handleAISearch}
-                onStopSearch={() => setAiSearching(false)}
-                aiSearching={aiSearching}
-                placeholder="ค้นหาการจอง หรือถามเช่น 'จองห้อง 101 วันที่ 25' 'ห้องว่างชั้น 3'"
-              />
+              {userRole === 'developer' ? (
+                <AISearchBox
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  onAISearch={handleAISearch}
+                  onStopSearch={() => setAiSearching(false)}
+                  aiSearching={aiSearching}
+                  placeholder="ค้นหาการจอง หรือถามเช่น 'จองห้อง 101 วันที่ 25' 'ห้องว่างชั้น 3'"
+                />
+              ) : (
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400 pointer-events-none z-10" />
+                  <Input
+                    type="text"
+                    placeholder="ค้นหาการจอง..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 md:pl-12 h-9 md:h-12 rounded-xl md:rounded-2xl bg-white border-slate-200 shadow-sm text-sm md:text-base"
+                  />
+                  {searchQuery && (
+                    <Button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 md:h-8 md:w-8 hover:bg-slate-100 rounded-lg"
+                    >
+                      <X className="w-3 h-3 md:w-4 md:h-4 text-slate-500" />
+                    </Button>
+                  )}
+                </div>
+              )}
 
-              {aiAction && (
+              {userRole === 'developer' && aiAction && (
                 <AIActionConfirmation
                   action={aiAction}
                   onConfirm={handleAIActionConfirm}
@@ -1085,7 +1109,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                 />
               )}
 
-              {aiResult && !aiAction && (
+              {userRole === 'developer' && aiResult && !aiAction && (
                 <AIResultCard aiResult={aiResult}>
                   {aiResult.rooms && aiResult.rooms.length > 0 && (
                     <div className="mt-3 space-y-2">
