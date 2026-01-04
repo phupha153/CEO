@@ -671,15 +671,15 @@ export default function Receipt() {
             {/* Signature Section - เฉพาะผู้รับเงิน */}
             <div className="flex justify-center mt-5 pt-3 border-t border-slate-200">
               <div className="text-center w-64">
-                <div className="h-12 md:h-16 flex items-center justify-center mb-1">
+                <div className="h-12 flex items-center justify-center mb-1">
                   {receiptData.recipient?.receiver_signature ? (
                     <img 
                       src={receiptData.recipient.receiver_signature} 
                       alt="ลายเซ็นผู้รับเงิน" 
-                      className="h-10 md:h-14 object-contain"
+                      className="h-10 object-contain"
                     />
                   ) : (
-                    <div className="h-10 md:h-12 w-full border-b border-slate-300"></div>
+                    <div className="h-10 w-full border-b border-slate-300"></div>
                   )}
                 </div>
                 <p className="text-xs text-slate-600">

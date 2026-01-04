@@ -458,17 +458,9 @@ export default function PublicReceipt() {
               <span className="font-medium text-slate-600">ชำระผ่าน:</span> {receiptData.bank?.name} | {receiptData.bank?.account_number} • ใบเสร็จนี้ออกให้เป็นหลักฐานการรับเงินเรียบร้อยแล้ว
             </div>
 
-            <div className="grid grid-cols-3 gap-2 md:gap-4 mt-3 md:mt-5 pt-2 md:pt-3 border-t border-slate-200">
-              <div className="text-center">
-                <div className="h-8 md:h-12 border-b border-slate-300 mb-1"></div>
-                <p className="text-[10px] md:text-xs text-slate-600">ผู้จัดทำ</p>
-              </div>
-              <div className="text-center">
-                <div className="h-8 md:h-12 border-b border-slate-300 mb-1"></div>
-                <p className="text-[10px] md:text-xs text-slate-600">ผู้อนุมัติ</p>
-              </div>
-              <div className="text-center">
-                <div className="h-8 md:h-12 flex items-center justify-center border-b border-slate-300 mb-1">
+            <div className="flex justify-center mt-3 md:mt-5 pt-2 md:pt-3 border-t border-slate-200">
+              <div className="text-center w-64">
+                <div className="h-8 md:h-12 flex items-center justify-center mb-1">
                   {receiptData.recipient?.receiver_signature && (
                     <img 
                       src={receiptData.recipient.receiver_signature} 
