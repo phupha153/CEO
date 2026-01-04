@@ -359,35 +359,7 @@ async function handleRegistration(base44, senderPsid, phoneNumber, branchCode) {
 
         if (match) {
             await base44.asServiceRole.entities.Tenant.update(match.id, { facebook_user_id: senderPsid });
-            
-            // ⭐ หาเลขห้องจาก booking
-            let roomNumber = null;
-            try {
-                const allBookings = await base44.asServiceRole.entities.Booking.filter({ 
-                    tenant_id: match.id,
-                    status: 'active'
-                });
-                const activeBooking = Array.isArray(allBookings) ? allBookings[0] : allBookings;
-                
-                if (activeBooking?.room_id) {
-                    const allRooms = await base44.asServiceRole.entities.Room.filter({ id: activeBooking.room_id });
-                    const room = Array.isArray(allRooms) ? allRooms[0] : allRooms;
-                    roomNumber = room?.room_number;
-                }
-            } catch (e) {
-                console.log('⚠️ Could not fetch room number:', e.message);
-            }
-            
-            let confirmText = `✅ ยืนยันตัวตนสำเร็จ!\n\n`;
-            confirmText += `ยินดีต้อนรับ คุณ${match.full_name}`;
-            if (roomNumber) {
-                confirmText += ` (ห้อง ${roomNumber})`;
-            }
-            confirmText += ` ครับ ข้อมูลเชื่อมต่อเรียบร้อย ต่อไปรอรับบิลและข่าวสารทางนี้ได้เลยครับ 📄\n\n`;
-            confirmText += `🛠 หากต้องการแจ้งซ่อม พิมพ์ "แจ้งซ่อม" ส่งมาในแชทนี้ได้เลย\n`;
-            confirmText += `ขอบคุณที่ให้เราดูแลครับ 🙏`;
-            
-            await sendFacebookMessage(base44, senderPsid, confirmText, match.branch_id);
+            await sendFacebookMessage(base44, senderPsid, `✅ ลงทะเบียนสำเร็จ!\nยินดีต้อนรับคุณ ${match.full_name}`, match.branch_id);
         } else {
             await sendFacebookMessage(base44, senderPsid, `❌ ไม่พบข้อมูลเบอร์ ${phoneNumber} ในระบบ`, null);
         }
@@ -515,35 +487,7 @@ async function handleNameRegistration(base44, senderPsid, nameQuery) {
             }
             
             await base44.asServiceRole.entities.Tenant.update(tenant.id, { facebook_user_id: senderPsid });
-            
-            // ⭐ หาเลขห้องจาก booking
-            let roomNumber = null;
-            try {
-                const allBookings = await base44.asServiceRole.entities.Booking.filter({ 
-                    tenant_id: tenant.id,
-                    status: 'active'
-                });
-                const activeBooking = Array.isArray(allBookings) ? allBookings[0] : allBookings;
-                
-                if (activeBooking?.room_id) {
-                    const allRooms = await base44.asServiceRole.entities.Room.filter({ id: activeBooking.room_id });
-                    const room = Array.isArray(allRooms) ? allRooms[0] : allRooms;
-                    roomNumber = room?.room_number;
-                }
-            } catch (e) {
-                console.log('⚠️ Could not fetch room number:', e.message);
-            }
-            
-            let confirmText = `✅ ยืนยันตัวตนสำเร็จ!\n\n`;
-            confirmText += `ยินดีต้อนรับ คุณ${tenant.full_name}`;
-            if (roomNumber) {
-                confirmText += ` (ห้อง ${roomNumber})`;
-            }
-            confirmText += ` ครับ ข้อมูลเชื่อมต่อเรียบร้อย ต่อไปรอรับบิลและข่าวสารทางนี้ได้เลยครับ 📄\n\n`;
-            confirmText += `🛠 หากต้องการแจ้งซ่อม พิมพ์ "แจ้งซ่อม" ส่งมาในแชทนี้ได้เลย\n`;
-            confirmText += `ขอบคุณที่ให้เราดูแลครับ 🙏`;
-            
-            await sendFacebookMessage(base44, senderPsid, confirmText, tenant.branch_id);
+            await sendFacebookMessage(base44, senderPsid, `✅ ลงทะเบียนสำเร็จ!\nยินดีต้อนรับคุณ ${tenant.full_name}`, tenant.branch_id);
             return;
         }
         
