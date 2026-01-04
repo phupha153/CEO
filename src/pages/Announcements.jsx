@@ -730,54 +730,54 @@ export default function Announcements() {
           {/* Broadcast Tab */}
           <TabsContent value="broadcast" className="mt-0">
             <div className="max-w-4xl mx-auto space-y-6">
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-xl">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm mb-1">ผู้เช่าทั้งหมด (สาขานี้)</p>
-                    <p className="text-3xl font-bold">{tenants.length}</p>
+          {/* Stats - ปรับให้กระชับสำหรับมือถือ */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+            <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
+              <CardContent className="p-3 md:p-4">
+                <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between">
+                  <div className="text-center md:text-left">
+                    <p className="text-blue-100 text-xs mb-0.5">ทั้งหมด</p>
+                    <p className="text-2xl md:text-3xl font-bold">{tenants.length}</p>
                   </div>
-                  <Users className="w-12 h-12 text-blue-200" />
+                  <Users className="w-6 h-6 md:w-10 md:h-10 text-blue-200 mt-1 md:mt-0" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-xl">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-100 text-sm mb-1">ลงทะเบียน LINE</p>
-                    <p className="text-3xl font-bold">{tenantsWithLine.length}</p>
+            <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg">
+              <CardContent className="p-3 md:p-4">
+                <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between">
+                  <div className="text-center md:text-left">
+                    <p className="text-green-100 text-xs mb-0.5">LINE</p>
+                    <p className="text-2xl md:text-3xl font-bold">{tenantsWithLine.length}</p>
                   </div>
-                  <svg className="w-12 h-12 text-green-200" viewBox="0 0 24 24" fill="currentColor">
+                  <svg className="w-6 h-6 md:w-10 md:h-10 text-green-200 mt-1 md:mt-0" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.193 0-.378-.09-.503-.234l-1.89-2.181v1.787c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.27.173-.51.43-.595.063-.021.13-.03.196-.03.195 0 .38.089.503.234l1.89 2.181V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.001zm-5.741 0c0 .346-.282.63-.63.63-.345 0-.627-.284-.627-.63V8.108c0-.345.282-.63.63-.63.346 0 .63.285.63.63v4.771h-.003zm-2.466.63H4.917c-.345 0-.63-.285-.63-.63V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629z"/>
                   </svg>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-xl">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm mb-1">ลงทะเบียน Facebook</p>
-                    <p className="text-3xl font-bold">{tenantsWithFacebook.length}</p>
+            <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg">
+              <CardContent className="p-3 md:p-4">
+                <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between">
+                  <div className="text-center md:text-left">
+                    <p className="text-blue-100 text-xs mb-0.5">Facebook</p>
+                    <p className="text-2xl md:text-3xl font-bold">{tenantsWithFacebook.length}</p>
                   </div>
-                  <Facebook className="w-12 h-12 text-blue-200" />
+                  <Facebook className="w-6 h-6 md:w-10 md:h-10 text-blue-200 mt-1 md:mt-0" />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-xl">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-orange-100 text-sm mb-1">ยังไม่ลงทะเบียน</p>
-                    <p className="text-3xl font-bold">{tenants.length - tenantsWithMessaging.length}</p>
+            <Card className="bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-lg">
+              <CardContent className="p-3 md:p-4">
+                <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between">
+                  <div className="text-center md:text-left">
+                    <p className="text-orange-100 text-xs mb-0.5">ยังไม่ลงทะเบียน</p>
+                    <p className="text-2xl md:text-3xl font-bold">{tenants.length - tenantsWithMessaging.length}</p>
                   </div>
-                  <XCircle className="w-12 h-12 text-orange-200" />
+                  <XCircle className="w-6 h-6 md:w-10 md:h-10 text-orange-200 mt-1 md:mt-0" />
                 </div>
               </CardContent>
             </Card>
@@ -839,96 +839,96 @@ export default function Announcements() {
             </Card>
           )}
 
-          {/* Templates */}
-          <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-lg">📋 แม่แบบข้อความ</CardTitle>
+          {/* Templates - กระชับสำหรับมือถือ */}
+          <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
+            <CardHeader className="p-3 md:p-6">
+              <CardTitle className="text-base md:text-lg">📋 แม่แบบข้อความ</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <CardContent className="p-3 md:p-6 pt-0">
+              <div className="grid grid-cols-2 gap-2">
                 {templates.map((template, index) => (
                   <Button
                     key={index}
                     variant="outline"
-                    className="h-auto py-6 flex items-center justify-center"
+                    className="h-auto py-3 px-2 md:py-4 md:px-4 flex items-center justify-center text-xs md:text-sm"
                     onClick={() => setMessage(template.message)}
                     disabled={sending}
                   >
-                    <p className="font-semibold text-base">{template.label}</p>
+                    <p className="font-medium text-center leading-tight">{template.label}</p>
                   </Button>
                 ))}
               </div>
             </CardContent>
           </Card>
 
-          {/* Selection & Message Form */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Selection & Message Form - แยกคอลัมน์ mobile */}
+          <div className="space-y-3 md:space-y-4">
             {/* Recipients Selection */}
-            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl lg:col-span-1">
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Users className="w-5 h-5 text-blue-600" />
+            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
+              <CardHeader className="p-3 md:p-6">
+                <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                  <Users className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
                   ผู้รับข้อความ
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex flex-col gap-3">
-                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-slate-50 transition-colors bg-white">
+              <CardContent className="p-3 md:p-6 pt-0 space-y-3">
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2 p-2 md:p-3 rounded-lg border cursor-pointer hover:bg-slate-50 transition-colors bg-white">
                     <input
                       type="radio"
                       name="targetType"
                       checked={targetType === 'all'}
                       onChange={() => setTargetType('all')}
-                      className="w-4 h-4 text-blue-600"
+                      className="w-4 h-4 text-blue-600 flex-shrink-0"
                     />
-                    <div className="flex-1">
-                      <span className="font-medium text-slate-800">ส่งหาทุกคน</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-sm text-slate-800">ส่งหาทุกคน</span>
                       <p className="text-xs text-slate-500">
-                        ผู้เช่าที่มี LINE ทั้งหมด ({tenantsWithLine.length} คน)
+                        ({tenantsWithLine.length} คน)
                       </p>
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-slate-50 transition-colors bg-white">
+                  <label className="flex items-center gap-2 p-2 md:p-3 rounded-lg border cursor-pointer hover:bg-slate-50 transition-colors bg-white">
                     <input
                       type="radio"
                       name="targetType"
                       checked={targetType === 'individual'}
                       onChange={() => setTargetType('individual')}
-                      className="w-4 h-4 text-blue-600"
+                      className="w-4 h-4 text-blue-600 flex-shrink-0"
                     />
-                    <div className="flex-1">
-                      <span className="font-medium text-slate-800">เลือกรายบุคคล</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="font-medium text-sm text-slate-800">เลือกรายบุคคล</span>
                       <p className="text-xs text-slate-500">
-                        เลือกเฉพาะบางคนที่ต้องการ ({selectedTenants.size} คน)
+                        ({selectedTenants.size} คน)
                       </p>
                     </div>
                   </label>
                 </div>
 
                 {targetType === 'individual' && (
-                  <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-3 pt-2">
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-200 space-y-2 pt-2">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <Input
-                        placeholder="ค้นหาชื่อ หรือเลขห้อง..."
+                        placeholder="ค้นหา..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9"
+                        className="pl-8 h-9 text-sm"
                       />
                     </div>
 
                     <div className="flex justify-between items-center text-xs px-1">
-                      <span className="text-slate-500">เลือกแล้ว {selectedTenants.size} คน</span>
+                      <span className="text-slate-500">เลือก {selectedTenants.size} คน</span>
                       <button 
                         onClick={handleToggleAll}
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 hover:underline font-medium"
                       >
-                        {selectedTenants.size === tenantsWithLine.length ? 'ยกเลิกทั้งหมด' : 'เลือกทั้งหมด'}
+                        {selectedTenants.size === tenantsWithLine.length ? 'ยกเลิก' : 'ทั้งหมด'}
                       </button>
                     </div>
 
-                    <div className="border rounded-lg overflow-hidden max-h-[400px] overflow-y-auto bg-white">
+                    <div className="border rounded-lg overflow-hidden max-h-[300px] overflow-y-auto bg-white">
                       {tenantsWithLine
                         .filter(t => 
                           t.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -937,20 +937,20 @@ export default function Announcements() {
                         .map(tenant => (
                         <label 
                           key={tenant.id} 
-                          className="flex items-center gap-3 p-3 hover:bg-slate-50 border-b last:border-0 cursor-pointer transition-colors"
+                          className="flex items-center gap-2 p-2 hover:bg-slate-50 border-b last:border-0 cursor-pointer transition-colors"
                         >
                           <input
                             type="checkbox"
                             checked={selectedTenants.has(tenant.id)}
                             onChange={() => handleToggleTenant(tenant.id)}
-                            className="w-4 h-4 text-blue-600 rounded border-slate-300"
+                            className="w-4 h-4 text-blue-600 rounded border-slate-300 flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-center">
-                              <p className="font-medium text-sm text-slate-800 truncate">{tenant.full_name}</p>
+                            <div className="flex justify-between items-center gap-2">
+                              <p className="font-medium text-xs md:text-sm text-slate-800 truncate">{tenant.full_name}</p>
                               {tenant.room_number && (
-                                <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200">
-                                  ห้อง {tenant.room_number}
+                                <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200 flex-shrink-0">
+                                  {tenant.room_number}
                                 </Badge>
                               )}
                             </div>
@@ -958,7 +958,7 @@ export default function Announcements() {
                         </label>
                       ))}
                       {tenantsWithLine.length === 0 && (
-                        <div className="p-4 text-center text-slate-500 text-sm">
+                        <div className="p-3 text-center text-slate-500 text-xs">
                           ไม่พบผู้เช่าที่มี LINE
                         </div>
                       )}
@@ -969,38 +969,38 @@ export default function Announcements() {
             </Card>
 
             {/* Message Form */}
-            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl lg:col-span-2">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">✍️ พิมพ์ข้อความ</CardTitle>
+            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
+              <CardHeader className="p-3 md:p-6 flex flex-row items-center justify-between">
+                <CardTitle className="text-base md:text-lg">✍️ พิมพ์ข้อความ</CardTitle>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setShowAIDialog(true)}
-                  className="bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border-purple-200 hover:from-purple-100 hover:to-pink-100"
+                  className="bg-gradient-to-r from-purple-50 to-pink-50 text-purple-700 border-purple-200 hover:from-purple-100 hover:to-pink-100 text-xs h-8"
                 >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  AI ช่วยเขียน
+                  <Sparkles className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                  <span className="hidden md:inline">AI ช่วยเขียน</span>
                 </Button>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-3 md:p-6 pt-0 space-y-3">
                 <div>
-                  <Label>ข้อความที่ต้องการส่ง *</Label>
+                  <Label className="text-xs md:text-sm">ข้อความที่ต้องการส่ง *</Label>
                   <Textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
-                    rows={12}
+                    rows={8}
                     placeholder="พิมพ์ข้อความประกาศที่ต้องการส่ง..."
-                    className="mt-2 font-sans"
+                    className="mt-1 font-sans text-sm"
                     disabled={sending || !selectedBranchId}
                   />
-                  <p className="text-xs text-slate-500 mt-2">
-                    💡 สามารถใช้อีโมจิและขึ้นบรรทัดใหม่ได้ตามต้องการ
+                  <p className="text-xs text-slate-500 mt-1.5">
+                    💡 ใช้อีโมจิและขึ้นบรรทัดใหม่ได้
                   </p>
                 </div>
 
-                <div className="flex justify-between items-center pt-4 border-t">
-                  <div className="text-sm text-slate-600">
-                    จะส่งไปยัง: <span className="font-bold text-blue-600">
+                <div className="flex justify-between items-center pt-2 border-t">
+                  <div className="text-xs md:text-sm text-slate-600">
+                    ส่งไปยัง: <span className="font-bold text-blue-600">
                       {targetType === 'all' ? tenantsWithLine.length : selectedTenants.size} คน
                     </span>
                   </div>
@@ -1051,60 +1051,56 @@ export default function Announcements() {
             </Card>
           )}
 
-          {/* Info Card */}
+          {/* Info Card - กระชับสำหรับมือถือ */}
           <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-4">
-              <h4 className="font-semibold text-blue-900 mb-2">📌 หมายเหตุ</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• ระบบจะส่งข้อความไปยังผู้เช่าที่ลงทะเบียน LINE เท่านั้น</li>
-                <li>• การส่งข้อความจะดำเนินการแบบกลุ่มและอาจใช้เวลาขึ้นอยู่กับจำนวนผู้รับ</li>
-                <li>• ระบบจะลองส่งซ้ำอัตโนมัติ 3 ครั้งหากส่งไม่สำเร็จ</li>
-                <li>• หากต้องการให้ผู้เช่าลงทะเบียน LINE ให้แจ้งให้แอด Official Account และส่งข้อความมาก่อน</li>
-                <li>• ข้อความที่ส่งจะปรากฏในแชท LINE ของผู้เช่าทันที</li>
+            <CardContent className="p-3 md:p-4">
+              <h4 className="font-semibold text-blue-900 mb-1.5 text-sm md:text-base">📌 หมายเหตุ</h4>
+              <ul className="text-xs md:text-sm text-blue-800 space-y-0.5 md:space-y-1">
+                <li>• ส่งเฉพาะผู้เช่าที่ลงทะเบียน LINE</li>
+                <li>• ใช้เวลาตามจำนวนผู้รับ</li>
+                <li>• ลองส่งซ้ำอัตโนมัติ 3 ครั้ง</li>
+                <li className="hidden md:list-item">• หากต้องการให้ผู้เช่าลงทะเบียน LINE ให้แจ้งให้แอด Official Account และส่งข้อความมาก่อน</li>
+                <li className="hidden md:list-item">• ข้อความที่ส่งจะปรากฏในแชท LINE ของผู้เช่าทันที</li>
               </ul>
             </CardContent>
           </Card>
 
-          {/* ประวัติการส่งประกาศ */}
+          {/* ประวัติการส่งประกาศ - กระชับสำหรับมือถือ */}
           {announcementHistory.length > 0 && (
-            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-lg">📜 ประวัติการส่งประกาศ</CardTitle>
+            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
+              <CardHeader className="p-3 md:p-6">
+                <CardTitle className="text-base md:text-lg">📜 ประวัติการส่ง</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
+              <CardContent className="p-3 md:p-6 pt-0">
+                <div className="space-y-2">
                   {announcementHistory.map((history) => (
                     <div 
                       key={history.id}
-                      className="p-4 rounded-lg border bg-white hover:shadow-md transition-shadow"
+                      className="p-2 md:p-3 rounded-lg border bg-white hover:shadow-md transition-shadow"
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-slate-800 line-clamp-2">
+                      <div className="flex items-start justify-between mb-1.5 gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs md:text-sm font-medium text-slate-800 line-clamp-2">
                             {history.message}
                           </p>
                         </div>
                         <Badge 
                           variant={history.failed_count === 0 ? 'default' : 'secondary'}
-                          className={history.failed_count === 0 ? 'bg-green-500' : 'bg-orange-500'}
+                          className={`${history.failed_count === 0 ? 'bg-green-500' : 'bg-orange-500'} text-xs flex-shrink-0`}
                         >
                           {history.success_count}/{history.recipient_count}
                         </Badge>
                       </div>
                       
-                      <div className="flex items-center justify-between text-xs text-slate-500">
-                        <div className="flex items-center gap-3">
-                          <span>📅 {new Date(history.sent_date).toLocaleDateString('th-TH', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}</span>
-                          <span>👤 {history.sent_by || 'ไม่ระบุ'}</span>
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {history.target_type === 'all' ? 'ทุกคน' : 'เลือกเอง'}
+                      <div className="flex items-center justify-between text-xs text-slate-500 gap-2">
+                        <span className="truncate">📅 {new Date(history.sent_date).toLocaleDateString('th-TH', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}</span>
+                        <Badge variant="outline" className="text-xs flex-shrink-0">
+                          {history.target_type === 'all' ? 'ทุกคน' : 'เลือก'}
                         </Badge>
                       </div>
                     </div>
