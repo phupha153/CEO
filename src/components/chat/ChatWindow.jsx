@@ -33,6 +33,18 @@ export default function ChatWindow({
   const [linking, setLinking] = useState(false);
   const messagesEndRef = useRef(null);
 
+  // ⭐ Debug tenant data
+  useEffect(() => {
+    console.log('🔍 ChatWindow received props:', {
+      conversation_id: conversation?.line_user_id || conversation?.facebook_user_id,
+      tenant_id: tenant?.id,
+      tenant_name: tenant?.full_name,
+      tenants_count: tenants.length,
+      has_line_id: !!conversation?.line_user_id,
+      has_facebook_id: !!conversation?.facebook_user_id
+    });
+  }, [conversation, tenant, tenants.length]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);

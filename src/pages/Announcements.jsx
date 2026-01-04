@@ -670,28 +670,47 @@ export default function Announcements() {
                 
                 {/* Chat Window - แสดง/ซ่อนตาม state บน mobile */}
                 <div className={`flex-1 ${showChatWindow ? 'block' : 'hidden md:block'}`}>
-                  <ChatWindow
-                    key={`${selectedConversation?.line_user_id}-${selectedConversation?.facebook_user_id}-${tenants.length}`}
-                    conversation={selectedConversation}
-                    messages={selectedMessages}
-                    onBack={() => setShowChatWindow(false)} // ปุ่มย้อนกลับบน mobile
-                    tenant={selectedConversation ? (
-                    // ⭐ หา tenant ที่มี line_user_id หรือ facebook_user_id ตรงกับ conversation
-                    tenants.find(t => 
-                      t.line_user_id === selectedConversation.line_user_id ||
-                      t.facebook_user_id === selectedConversation.facebook_user_id
-                    ) ||
-                    tenantsMap[selectedConversation.tenant_id] ||
-                    tenantsMap[selectedConversation.line_user_id] ||
-                    tenantsMap[selectedConversation.facebook_user_id]
-                  ) : null}
+                  {tenantsLoading ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+                    </div>
+                  ) : (
+                    <ChatWindow
+                      key={`${selectedConversation?.line_user_id}-${selectedConversation?.facebook_user_id}-${tenants.length}-${tenantsLoading}`}
+                      conversation={selectedConversation}
+                      messages={selectedMessages}
+                      onBack={() => setShowChatWindow(false)} // ปุ่มย้อนกลับบน mobile
+                      tenant={(() => {
+                        if (!selectedConversation) return null;
+
+                        // ⭐ Debug tenant matching
+                        console.log('🔍 Finding tenant for conversation:', {
+                          line_user_id: selectedConversation.line_user_id,
+                          facebook_user_id: selectedConversation.facebook_user_id,
+                          tenant_id: selectedConversation.tenant_id,
+                          total_tenants: tenants.length,
+                          tenants_map_size: Object.keys(tenantsMap).length
+                        });
+
+                        const found = tenants.find(t => 
+                          t.line_user_id === selectedConversation.line_user_id ||
+                          t.facebook_user_id === selectedConversation.facebook_user_id
+                        ) ||
+                        tenantsMap[selectedConversation.tenant_id] ||
+                        tenantsMap[selectedConversation.line_user_id] ||
+                        tenantsMap[selectedConversation.facebook_user_id];
+
+                        console.log('✅ Tenant found:', found?.full_name || 'null', 'Line ID:', found?.line_user_id, 'Facebook ID:', found?.facebook_user_id);
+                        return found || null;
+                      })()}
                   tenants={tenants}
                   rooms={rooms}
                   bookings={bookings}
                   onSendMessage={handleSendChatMessage}
                   onRefresh={async () => {
-                    // ⭐ refetch ทันที
+                    console.log('🔄 ChatWindow refresh triggered');
                     await refetchTenants();
+                    console.log('✅ Tenants refetched, new count:', tenants.length);
                   }}
                   onLinkTenant={async (lineUserId, tenantId) => {
                     // ตอนนี้ส่ง tenantId มาตรงๆ แล้ว (ไม่ใช่ roomId)
