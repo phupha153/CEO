@@ -653,6 +653,7 @@ export default function Announcements() {
                 {/* Chat Window - แสดง/ซ่อนตาม state บน mobile */}
                 <div className={`flex-1 ${showChatWindow ? 'block' : 'hidden md:block'}`}>
                   <ChatWindow
+                    key={`${selectedConversation?.line_user_id}-${selectedConversation?.facebook_user_id}-${tenants.length}`}
                     conversation={selectedConversation}
                     messages={selectedMessages}
                     onBack={() => setShowChatWindow(false)} // ปุ่มย้อนกลับบน mobile
@@ -671,7 +672,7 @@ export default function Announcements() {
                   bookings={bookings}
                   onSendMessage={handleSendChatMessage}
                   onRefresh={async () => {
-                    // ⭐ refetch เฉพาะข้อมูลที่จำเป็น (ไม่ invalidate ทุกอย่าง)
+                    // ⭐ refetch ทันที
                     await refetchTenants();
                   }}
                   onLinkTenant={async (lineUserId, tenantId) => {
