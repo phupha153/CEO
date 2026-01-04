@@ -144,7 +144,12 @@ export default function BranchSelection() {
     canSeeBranchManagementButton: userRole === 'developer' || userRole === 'owner',
     currentUser: currentUser?.email,
     customRole: currentUser?.custom_role,
-    role: currentUser?.role
+    role: currentUser?.role,
+    hasAccessibleBranchesSet,
+    accessibleBranches: userAccessibleBranches,
+    filteredBranchesCount: filteredBranches.length,
+    totalBranchesCount: branches.length,
+    ownedBranches: branches.filter(b => b.owner_id === currentUser?.email).length
   });
   
   // ⭐ Security Fix: กรองสาขาตามสิทธิ์
