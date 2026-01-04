@@ -156,10 +156,6 @@ export default function ChatWindow({
           onClick={() => {
             console.log('🔍 Toggle Profile:', !showProfile, 'Tenant:', tenant?.full_name, 'Facebook ID:', conversation.facebook_user_id);
             setShowProfile(!showProfile);
-            // ⭐ Force refresh ข้อมูลทันทีตอนเปิด Profile
-            if (!showProfile && onRefresh) {
-              onRefresh();
-            }
           }}
           className="hover:bg-slate-100"
         >

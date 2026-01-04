@@ -69,8 +69,7 @@ export default function Announcements() {
           return tenant;
         });
     },
-    staleTime: 1 * 1000, // ⭐ ลด cache
-    refetchOnMount: true, // ⭐ โหลดทุกครั้งที่เปิดหน้า
+    staleTime: 30 * 1000, // 30 วินาที
     refetchOnWindowFocus: false,
   });
 
@@ -81,8 +80,8 @@ export default function Announcements() {
       const allRooms = await base44.entities.Room.list();
       return allRooms.filter(room => room.branch_id === selectedBranchId);
     },
-    staleTime: 1 * 1000, // ⭐ ลด cache เหลือ 1 วินาที
-    refetchOnMount: true, // ⭐ โหลดทุกครั้งที่เปิดหน้า
+    staleTime: 30 * 1000, // 30 วินาที
+    refetchOnWindowFocus: false,
   });
 
   const { data: bookings = [] } = useQuery({
@@ -92,8 +91,8 @@ export default function Announcements() {
       const allBookings = await base44.entities.Booking.list();
       return allBookings.filter(b => b.branch_id === selectedBranchId);
     },
-    staleTime: 1 * 1000, // ⭐ ลด cache
-    refetchOnMount: true, // ⭐ โหลดทุกครั้งที่เปิดหน้า
+    staleTime: 30 * 1000, // 30 วินาที
+    refetchOnWindowFocus: false,
   });
 
   // สร้าง Map ของ tenant โดย line_user_id และ facebook_user_id
@@ -672,13 +671,8 @@ export default function Announcements() {
                   bookings={bookings}
                   onSendMessage={handleSendChatMessage}
                   onRefresh={async () => {
-                    await queryClient.invalidateQueries(['lineMessages', selectedBranchId]);
-                    await queryClient.invalidateQueries(['rooms', selectedBranchId]);
-                    await queryClient.invalidateQueries(['tenants', selectedBranchId]);
-                    await queryClient.invalidateQueries(['bookings', selectedBranchId]);
-                    await queryClient.refetchQueries(['tenants', selectedBranchId]);
-                    await queryClient.refetchQueries(['rooms', selectedBranchId]);
-                    await queryClient.refetchQueries(['bookings', selectedBranchId]);
+                    // ⭐ refetch เฉพาะข้อมูลที่จำเป็น (ไม่ invalidate ทุกอย่าง)
+                    await refetchTenants();
                   }}
                   onLinkTenant={async (lineUserId, tenantId) => {
                     // ตอนนี้ส่ง tenantId มาตรงๆ แล้ว (ไม่ใช่ roomId)
