@@ -668,19 +668,13 @@ export default function Receipt() {
               <span className="font-medium text-slate-600">ชำระผ่าน:</span> {receiptData.bank.name} | {receiptData.bank.account_number} • ใบเสร็จนี้ออกให้เป็นหลักฐานการรับเงินเรียบร้อยแล้ว
             </div>
 
-            {/* Signature Section */}
-            <div className="grid grid-cols-3 gap-4 mt-5 pt-3 border-t border-slate-200">
-              <div className="text-center">
+            {/* Signature Section - เฉพาะผู้รับเงิน */}
+            <div className="flex justify-center mt-5 pt-3 border-t border-slate-200">
+              <div className="text-center w-64">
                 <div className="h-12 border-b border-slate-300 mb-1"></div>
-                <p className="text-xs text-slate-600">ผู้จัดทำ</p>
-              </div>
-              <div className="text-center">
-                <div className="h-12 border-b border-slate-300 mb-1"></div>
-                <p className="text-xs text-slate-600">ผู้อนุมัติ</p>
-              </div>
-              <div className="text-center">
-                <div className="h-12 border-b border-slate-300 mb-1"></div>
-                <p className="text-xs text-slate-600">ผู้รับเงิน</p>
+                <p className="text-xs text-slate-600">
+                  ผู้รับเงิน: {receiptData.recipient?.receiver_name || receiptData.recipient?.lessor_name || receiptData.recipient?.building_name || '________________'}
+                </p>
               </div>
             </div>
 
