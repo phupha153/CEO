@@ -333,6 +333,12 @@ export default function RoomsPage() {
     try {
       const query = searchQuery.toLowerCase();
       
+      // ⚡ Parse ค่าต่างๆ ก่อน (ใช้ซ้ำได้ทั้ง pre-filter และ bulk command)
+      const floorMatch = query.match(/ชั้น\s*(\d+)/);
+      const targetFloor = floorMatch ? parseInt(floorMatch[1]) : null;
+      const roomNumberMatches = [...query.matchAll(/\b(\d{3,4})\b/g)];
+      const targetRoomNumbers = roomNumberMatches.map(match => match[1]);
+      
       // ⚡ PRE-FILTER: กรองห้องก่อนส่งไป AI (ลดข้อมูลจาก 10,000 → 100 ห้อง)
       let preFilteredRooms = [...rooms];
       
@@ -346,9 +352,8 @@ export default function RoomsPage() {
       }
       
       // กรองตามชั้น
-      const floorMatch = query.match(/ชั้น\s*(\d+)/);
-      if (floorMatch) {
-        preFilteredRooms = preFilteredRooms.filter(r => r.floor === parseInt(floorMatch[1]));
+      if (targetFloor) {
+        preFilteredRooms = preFilteredRooms.filter(r => r.floor === targetFloor);
       }
       
       // กรองตามประเภท
@@ -373,15 +378,9 @@ export default function RoomsPage() {
       }));
       
       // --- START ENHANCED BULK DETECTION ---
-      const roomNumberMatches = [...query.matchAll(/\b(\d{3,4})\b/g)];
-      const targetRoomNumbers = roomNumberMatches.map(match => match[1]);
-
       const isRoomTypeFilter = query.includes('ห้องรายวัน') || query.includes('ห้องรายเดือน');
       const isBulkCommand = query.includes('ทุกห้อง') || query.includes('ทั้งหมด') || query.includes('หลายห้อง') || targetRoomNumbers.length > 1 || isRoomTypeFilter;
       const hasException = query.includes('ยกเว้น') || query.includes('ไม่รวม') || query.includes('เว้น');
-      
-      const floorMatch = query.match(/ชั้น\s*(\d+)/);
-      const targetFloor = floorMatch ? parseInt(floorMatch[1]) : null;
       
       let exceptRoomNumbers = [];
       if (hasException) {
