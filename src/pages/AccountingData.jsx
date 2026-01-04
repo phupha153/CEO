@@ -597,10 +597,23 @@ export default function AccountingData() {
   // Mutation สำหรับคืนเงินมัดจำ
   const returnDepositMutation = useMutation({
     mutationFn: async ({ bookingId, returnAmount, notes }) => {
+      const booking = bookings.find(b => b.id === bookingId);
+      
       // อัปเดตสถานะ booking เป็น completed
       await base44.entities.Booking.update(bookingId, {
         status: 'completed',
-        notes: `${notes || ''}\nคืนเงินมัดจำ: ${format(new Date(), 'd/M/yyyy HH:mm', { locale: th })} จำนวน ${returnAmount} บาท` // Changed to show amount in notes
+        notes: `${notes || ''}\nคืนเงินมัดจำ: ${format(new Date(), 'd/M/yyyy HH:mm', { locale: th })} จำนวน ${returnAmount} บาท`
+      });
+
+      // บันทึกค่าใช้จ่ายการคืนเงินมัดจำ
+      await base44.entities.Expense.create({
+        branch_id: selectedBranchId,
+        title: `คืนเงินมัดจำ - ห้อง ${roomsMap.get(booking?.room_id)?.room_number || 'N/A'}`,
+        amount: returnAmount,
+        category: 'refund_deposit',
+        date: format(new Date(), 'yyyy-MM-dd'),
+        description: `คืนเงินมัดจำให้ ${tenantsMap.get(booking?.tenant_id)?.full_name || 'ผู้เช่า'}${notes ? ` - ${notes}` : ''}`,
+        notes: `Booking ID: ${bookingId}`
       });
       
       return { bookingId, returnAmount, notes };
@@ -631,8 +644,9 @@ export default function AccountingData() {
       }
 
       queryClient.invalidateQueries(['bookings']);
+      queryClient.invalidateQueries(['expenses', selectedBranchId]);
       queryClient.invalidateQueries(['activityLogs']);
-      toast.success('คืนเงินมัดจำสำเร็จ');
+      toast.success('คืนเงินมัดจำและบันทึกค่าใช้จ่ายสำเร็จ');
       setShowDepositReturnDialog(false);
       setSelectedDeposit(null);
       setReturnAmount('');

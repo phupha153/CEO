@@ -70,6 +70,12 @@ export default function TenantsPage() {
   const [showDevPanel, setShowDevPanel] = useState(false);
   const [creatingRatings, setCreatingRatings] = useState(false);
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+  const [showMoveOutDialog, setShowMoveOutDialog] = useState(false);
+  const [moveOutData, setMoveOutData] = useState({
+    returnDeposit: true,
+    depositAmount: '',
+    depositNotes: ''
+  });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1005,7 +1011,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
   });
 
   const moveOutMutation = useMutation({
-    mutationFn: async (tenant) => {
+    mutationFn: async ({ tenant, returnDeposit, depositAmount, depositNotes }) => {
       if (!canEdit) throw new Error('คุณไม่มีสิทธิ์แก้ไขข้อมูลผู้เช่า');
 
       // 1. Update tenant status to 'moved_out' and clear LINE connection
@@ -1031,18 +1037,34 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
         for(const contract of relatedContracts) {
           await base44.entities.Contract.update(contract.id, { status: 'terminated' });
         }
+
+        // 3. บันทึกค่าใช้จ่ายการคืนเงินมัดจำ (ถ้าเลือก)
+        if (returnDeposit && depositAmount > 0 && booking.deposit_amount > 0) {
+          const room = rooms.find(r => r.id === booking.room_id);
+          await base44.entities.Expense.create({
+            branch_id: selectedBranchId,
+            title: `คืนเงินมัดจำ - ห้อง ${room?.room_number || 'N/A'}`,
+            amount: depositAmount,
+            category: 'refund_deposit',
+            date: format(new Date(), 'yyyy-MM-dd'),
+            description: `คืนเงินมัดจำให้ ${tenant.full_name}${depositNotes ? ` - ${depositNotes}` : ''}`,
+            notes: `Booking ID: ${booking.id}`
+          });
+        }
       }
       
       return tenant;
     },
-    onSuccess: (tenant) => {
+    onSuccess: (tenant, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tenants', selectedBranchId] });
       queryClient.invalidateQueries({ queryKey: ['bookings', selectedBranchId] });
       queryClient.invalidateQueries({ queryKey: ['rooms', selectedBranchId] });
       queryClient.invalidateQueries({ queryKey: ['contracts', selectedBranchId] });
+      queryClient.invalidateQueries({ queryKey: ['expenses', selectedBranchId] });
       setShowDetailDialog(false);
       setShowDialog(false);
-      toast.success(`ดำเนินการย้ายออกสำหรับ ${tenant.full_name} สำเร็จ`);
+      setShowMoveOutDialog(false);
+      toast.success(`ดำเนินการย้ายออกสำหรับ ${tenant.full_name} สำเร็จ${variables.returnDeposit ? ' (รวมคืนเงินมัดจำ)' : ''}`);
     },
     onError: (error) => {
       toast.error(error.message || 'เกิดข้อผิดพลาดในการย้ายออก');
@@ -3532,24 +3554,21 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          if (confirm(`ยืนยันการย้ายออกของ ${selectedTenant.full_name}? การดำเนินการนี้จะทำให้สัญญาทั้งหมดของผู้เช่าสิ้นสุดลง`)) {
-                            moveOutMutation.mutate(selectedTenant);
-                          }
+                          // หาเงินมัดจำจาก active bookings
+                          const activeBookings = getActiveBookings(selectedTenant.id);
+                          const totalDeposit = activeBookings.reduce((sum, b) => sum + (b.deposit_amount || 0), 0);
+                          setMoveOutData({
+                            returnDeposit: totalDeposit > 0,
+                            depositAmount: totalDeposit.toString(),
+                            depositNotes: ''
+                          });
+                          setShowMoveOutDialog(true);
                         }}
                         disabled={moveOutMutation.isPending}
                         className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                       >
-                        {moveOutMutation.isPending ? (
-                            <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                กำลังดำเนินการ...
-                            </>
-                        ) : (
-                            <>
-                                <LogOut className="w-4 h-4 mr-2" />
-                                ย้ายออก
-                            </>
-                        )}
+                        <LogOut className="w-4 h-4 mr-2" />
+                        ย้ายออก
                       </Button>
                     )}
                     {canEdit && (
@@ -4275,18 +4294,20 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                         type="button"
                         variant="outline"
                         onClick={() => {
-                          if (confirm(`ยืนยันการย้ายออกของ ${editingTenant.full_name}? การดำเนินการนี้จะทำให้สัญญาทั้งหมดของผู้เช่าสิ้นสุดลง`)) {
-                            moveOutMutation.mutate(editingTenant);
-                          }
+                          // หาเงินมัดจำจาก active bookings
+                          const activeBookings = getActiveBookings(editingTenant.id);
+                          const totalDeposit = activeBookings.reduce((sum, b) => sum + (b.deposit_amount || 0), 0);
+                          setMoveOutData({
+                            returnDeposit: totalDeposit > 0,
+                            depositAmount: totalDeposit.toString(),
+                            depositNotes: ''
+                          });
+                          setShowMoveOutDialog(true);
                         }}
                         disabled={moveOutMutation.isPending}
                         className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
                       >
-                        {moveOutMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                            <LogOut className="w-4 h-4 mr-2" />
-                        )}
+                        <LogOut className="w-4 h-4 mr-2" />
                         ย้ายออก
                       </Button>
                     )}
@@ -4594,6 +4615,127 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowRestoreDialog(false)}>
               ปิด
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move Out Dialog */}
+      <Dialog open={showMoveOutDialog} onOpenChange={setShowMoveOutDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LogOut className="w-5 h-5 text-orange-600" />
+              ย้ายออกและคืนเงินมัดจำ
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {selectedTenant && (
+              <div className="bg-slate-50 rounded-lg p-4">
+                <p className="text-sm">
+                  <span className="text-slate-600">ผู้เช่า: </span>
+                  <span className="font-semibold">{selectedTenant.full_name}</span>
+                </p>
+                <p className="text-sm">
+                  <span className="text-slate-600">เงินมัดจำทั้งหมด: </span>
+                  <span className="font-semibold text-blue-600">
+                    {parseFloat(moveOutData.depositAmount || 0).toLocaleString()} ฿
+                  </span>
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 bg-green-50 rounded-lg p-3 border border-green-200">
+                <input
+                  type="checkbox"
+                  id="returnDeposit"
+                  checked={moveOutData.returnDeposit}
+                  onChange={(e) => setMoveOutData({...moveOutData, returnDeposit: e.target.checked})}
+                  className="w-5 h-5 rounded border-green-300 text-green-600 focus:ring-green-500"
+                />
+                <Label htmlFor="returnDeposit" className="text-sm font-semibold text-green-900 cursor-pointer flex-1">
+                  💰 คืนเงินมัดจำ
+                </Label>
+              </div>
+
+              {moveOutData.returnDeposit && (
+                <div className="space-y-3 pl-2">
+                  <div>
+                    <Label className="text-sm">จำนวนเงินที่คืน (บาท) *</Label>
+                    <Input
+                      type="number"
+                      value={moveOutData.depositAmount}
+                      onChange={(e) => setMoveOutData({...moveOutData, depositAmount: e.target.value})}
+                      placeholder="0"
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">
+                      สามารถคืนน้อยกว่าเงินมัดจำได้ (กรณีหักค่าเสียหาย)
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm">หมายเหตุ</Label>
+                    <Input
+                      value={moveOutData.depositNotes}
+                      onChange={(e) => setMoveOutData({...moveOutData, depositNotes: e.target.value})}
+                      placeholder="เช่น หักค่าซ่อมแซม 500 บาท"
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Card className="bg-yellow-50 border-yellow-200">
+              <CardContent className="p-3">
+                <p className="text-sm text-yellow-800">
+                  <span className="font-semibold">⚠️ คำเตือน:</span> การย้ายออกจะทำให้สัญญาทั้งหมดของผู้เช่าสิ้นสุดลง
+                  {moveOutData.returnDeposit && ' และบันทึกค่าใช้จ่ายการคืนเงินมัดจำ'}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowMoveOutDialog(false);
+                setMoveOutData({ returnDeposit: true, depositAmount: '', depositNotes: '' });
+              }}
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              onClick={() => {
+                if (moveOutData.returnDeposit && (!moveOutData.depositAmount || parseFloat(moveOutData.depositAmount) <= 0)) {
+                  toast.error('กรุณาระบุจำนวนเงินที่คืน');
+                  return;
+                }
+                moveOutMutation.mutate({
+                  tenant: selectedTenant || editingTenant,
+                  returnDeposit: moveOutData.returnDeposit,
+                  depositAmount: parseFloat(moveOutData.depositAmount || 0),
+                  depositNotes: moveOutData.depositNotes
+                });
+              }}
+              disabled={moveOutMutation.isPending}
+              className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+            >
+              {moveOutMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  กำลังดำเนินการ...
+                </>
+              ) : (
+                <>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  ยืนยันย้ายออก
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
