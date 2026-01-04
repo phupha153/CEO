@@ -1729,13 +1729,185 @@ ${JSON.stringify(roomsWithAC, null, 2)}
         <div className="max-w-7xl mx-auto space-y-3">
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg rounded-xl">            
             <CardContent className="p-2.5 md:p-3.5 space-y-1.5 md:space-y-2.5 relative">
-              <AISearchBox
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                onAISearch={handleAISearch}
-                aiSearching={aiSearching}
-                placeholder="ค้นหาห้อง หรือถามเช่น 'ห้องว่างชั้น 5' 'ห้องที่มีแอร์' 'ห้องราคาถูกที่สุด'"
-              />
+              <div className="flex gap-2 items-start">
+                <div className="flex-1">
+                  <AISearchBox
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    onAISearch={handleAISearch}
+                    aiSearching={aiSearching}
+                    placeholder="ค้นหาห้อง หรือถามเช่น 'ห้องว่างชั้น 5' 'ห้องที่มีแอร์' 'ห้องราคาถูกที่สุด'"
+                  />
+                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-9 md:h-12 px-3 md:px-4 rounded-xl md:rounded-2xl bg-white/60 backdrop-blur-xl shadow-md border-white/70 flex items-center gap-2"
+                    >
+                      <CheckSquare className="w-4 h-4" />
+                      <span className="hidden md:inline text-sm">สถานะ</span>
+                      {selectedStatuses.length > 0 && (
+                        <Badge className="bg-blue-500 text-white h-5 px-1.5 text-xs">
+                          {selectedStatuses.length}
+                        </Badge>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 md:w-80 p-3 md:p-4 bg-white/95 backdrop-blur-2xl border-white/80 rounded-xl md:rounded-2xl shadow-2xl" align="end">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between mb-3 md:mb-4">
+                        <h4 className="font-bold text-slate-800 text-sm md:text-base">เลือกสถานะ</h4>
+                        {selectedStatuses.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedStatuses([])}
+                            className="h-7 md:h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50/50 rounded-lg px-2"
+                          >
+                            ล้าง
+                          </Button>
+                        )}
+                      </div>
+
+                      <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-green-50/70 cursor-pointer transition-all">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
+                          selectedStatuses.includes('available')
+                            ? 'bg-gradient-to-br from-green-500 to-emerald-500 border-green-600 shadow-lg'
+                            : 'bg-white/80 border-slate-300'
+                        }`}>
+                          {selectedStatuses.includes('available') && (
+                            <Check className="w-4 h-4 text-white" />
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={selectedStatuses.includes('available')}
+                          onChange={() => toggleStatus('available')}
+                          className="sr-only"
+                        />
+                        <span className="text-sm text-slate-700 font-medium">ว่าง</span>
+                      </label>
+
+                      <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50/70 cursor-pointer transition-all">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
+                          selectedStatuses.includes('occupied')
+                            ? 'bg-gradient-to-br from-blue-500 to-indigo-500 border-blue-600 shadow-lg'
+                            : 'bg-white/80 border-slate-300'
+                        }`}>
+                          {selectedStatuses.includes('occupied') && (
+                            <Check className="w-4 h-4 text-white" />
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={selectedStatuses.includes('occupied')}
+                          onChange={() => toggleStatus('occupied')}
+                          className="sr-only"
+                        />
+                        <span className="text-sm text-slate-700 font-medium">มีผู้เช่า</span>
+                      </label>
+
+                      <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-orange-50/70 cursor-pointer transition-all">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
+                          selectedStatuses.includes('reserved')
+                            ? 'bg-gradient-to-br from-orange-500 to-amber-500 border-orange-600 shadow-lg'
+                            : 'bg-white/80 border-slate-300'
+                        }`}>
+                          {selectedStatuses.includes('reserved') && (
+                            <Check className="w-4 h-4 text-white" />
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={selectedStatuses.includes('reserved')}
+                          onChange={() => toggleStatus('reserved')}
+                          className="sr-only"
+                        />
+                        <span className="text-sm text-slate-700 font-medium">จอง</span>
+                      </label>
+
+                      <div className="border-t border-slate-200/50 my-3"></div>
+
+                      <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-red-50/70 cursor-pointer transition-all">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
+                          selectedStatuses.includes('expiring_soon')
+                            ? 'bg-gradient-to-br from-red-500 to-pink-500 border-red-600 shadow-lg'
+                            : 'bg-white/80 border-slate-300'
+                        }`}>
+                          {selectedStatuses.includes('expiring_soon') && (
+                            <Check className="w-4 h-4 text-white" />
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={selectedStatuses.includes('expiring_soon')}
+                          onChange={() => toggleStatus('expiring_soon')}
+                          className="sr-only"
+                        />
+                        <span className="text-sm text-slate-700 font-medium">ใกล้หมดสัญญา</span>
+                      </label>
+
+                      <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-yellow-50/70 cursor-pointer transition-all">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
+                          selectedStatuses.includes('near_payment')
+                            ? 'bg-gradient-to-br from-yellow-500 to-orange-400 border-yellow-600 shadow-lg'
+                            : 'bg-white/80 border-slate-300'
+                        }`}>
+                          {selectedStatuses.includes('near_payment') && (
+                            <Check className="w-4 h-4 text-white" />
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={selectedStatuses.includes('near_payment')}
+                          onChange={() => toggleStatus('near_payment')}
+                          className="sr-only"
+                        />
+                        <span className="text-sm text-slate-700 font-medium">ใกล้ชำระ</span>
+                      </label>
+
+                      <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-red-50/70 cursor-pointer transition-all">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
+                          selectedStatuses.includes('payment_overdue')
+                            ? 'bg-gradient-to-br from-red-600 to-red-500 border-red-700 shadow-lg'
+                            : 'bg-white/80 border-slate-300'
+                        }`}>
+                          {selectedStatuses.includes('payment_overdue') && (
+                            <Check className="w-4 h-4 text-white" />
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={selectedStatuses.includes('payment_overdue')}
+                          onChange={() => toggleStatus('payment_overdue')}
+                          className="sr-only"
+                        />
+                        <span className="text-sm text-slate-700 font-medium">เกินกำหนด</span>
+                      </label>
+
+                      <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-cyan-50/70 cursor-pointer transition-all">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
+                          selectedStatuses.includes('ac_cleaning')
+                            ? 'bg-gradient-to-br from-cyan-500 to-blue-400 border-cyan-600 shadow-lg'
+                            : 'bg-white/80 border-slate-300'
+                        }`}>
+                          {selectedStatuses.includes('ac_cleaning') && (
+                            <Check className="w-4 h-4 text-white" />
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={selectedStatuses.includes('ac_cleaning')}
+                          onChange={() => toggleStatus('ac_cleaning')}
+                          className="sr-only"
+                        />
+                        <span className="text-sm text-slate-700 font-medium">แอร์ต้องล้าง</span>
+                      </label>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
 
               {aiAction && (
                 <AIActionConfirmation
@@ -1754,337 +1926,16 @@ ${JSON.stringify(roomsWithAC, null, 2)}
               {aiResult && !aiAction && (
                 <AIResultCard aiResult={aiResult}>
                   {/* แสดงห้องที่จะถูกแก้ไข (กรณี update) */}
-                  {aiResult.action_type === 'update' && aiResult.room_id && aiResult.changes && (
-                    <div className="mt-4 space-y-3">
-                      <p className="text-sm font-bold text-purple-900">📝 ห้องที่จะถูกแก้ไข:</p>
-                      {(() => {
-                        const targetRoom = rooms.find(r => r.id === aiResult.room_id);
-                        if (!targetRoom) return <p className="text-red-600">ไม่พบห้อง</p>;
-                        
-                        return (
-                          <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl p-4">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
-                                <span className="text-2xl font-bold">{targetRoom.room_number}</span>
-                              </div>
-                              <div>
-                                <h3 className="text-xl font-bold">ห้อง {targetRoom.room_number}</h3>
-                                <p className="text-sm text-white/80">ชั้น {targetRoom.floor} • {targetRoom.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="bg-white/10 rounded-lg p-3 space-y-2">
-                              <p className="text-sm font-semibold text-white/90">รายการที่จะเปลี่ยนแปลง:</p>
-                              {Object.entries(aiResult.changes).map(([field, change]) => (
-                                <div key={field} className="flex items-center gap-2 text-sm">
-                                  <span className="text-white/80">{change.label}:</span>
-                                  <span className="line-through text-red-300">{change.old || '-'}</span>
-                                  <span className="text-white/60">→</span>
-                                  <span className="font-bold text-green-300">{change.new}</span>
-                                  {(field.includes('rate') || field.includes('fee') || field === 'price') && <span className="text-white/60">บาท</span>}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
-                  
-                  {/* แสดงห้องที่แนะนำ (กรณี view/search) */}
-                  {aiResult.rooms && aiResult.rooms.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-sm font-semibold text-purple-900">ห้องที่แนะนำ:</p>
-                      {aiResult.rooms.map((room, idx) => {
-                        const roomData = rooms.find(r => r.id === room.room_id);
-                        const booking = roomData ? getActiveBooking(roomData.id) : null;
-                        const tenant = booking ? getTenantInfo(booking.tenant_id) : null;
-                        
-                        return (
-                          <div key={idx} className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-purple-200/60 hover:shadow-lg transition-all cursor-pointer hover:scale-[1.02]" onClick={() => roomData && handleRoomClick(roomData)}>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <DoorOpen className="w-5 h-5 text-purple-600" />
-                                  <span className="font-semibold text-slate-800 text-base">
-                                    ห้อง {room.room_number} (ชั้น {room.floor})
-                                  </span>
-                                  {roomData?.status === 'available' && (
-                                    <Badge className="bg-green-100 text-green-700 text-xs">ว่าง</Badge>
-                                  )}
-                                  {roomData?.status === 'occupied' && (
-                                    <Badge className="bg-blue-100 text-blue-700 text-xs">มีผู้เช่า</Badge>
-                                  )}
-                                </div>
-                                <p className="text-sm text-slate-600 mb-2">{room.reason}</p>
-                                {roomData && (
-                                  <div className="text-xs text-slate-500 space-y-0.5">
-                                    <p>ราคา: {roomData.price?.toLocaleString()} บาท/{roomData.room_type === 'monthly' ? 'เดือน' : 'วัน'}</p>
-                                    {roomData.size && <p>ขนาด: {roomData.size} ตร.ม.</p>}
-                                    {roomData.amenities && roomData.amenities.length > 0 && (
-                                      <p>สิ่งอำนวยความสะดวก: {roomData.amenities.slice(0, 3).join(', ')}{roomData.amenities.length > 3 ? '...' : ''}</p>
-                                    )}
-                                    {tenant && (
-                                      <p className="text-blue-600 font-semibold">ผู้เช่า: {tenant.full_name}</p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+...
                   )}
                 </AIResultCard>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                <div>
-                  <Label className="text-xs md:text-sm mb-2 block font-semibold text-slate-700">กรองตามชั้น</Label>
-                  <Select value={selectedFloor} onValueChange={(value) => { setSelectedFloor(value); setCurrentPage(1); }}>
-                    <SelectTrigger className="h-9 md:h-10 rounded-xl text-sm bg-white/60 backdrop-blur-xl shadow-md border-white/70">
-                      <SelectValue placeholder="ทุกชั้น" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white/95 backdrop-blur-2xl border-white/80 rounded-xl">
-                      <SelectItem value="all">ทุกชั้น</SelectItem>
-                      {availableFloors.map(floor => (
-                        <SelectItem key={floor} value={floor.toString()}>
-                          ชั้น {floor}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex flex-col justify-end">
-                  <div className="flex justify-between items-center mb-2">
-                    <Label className="text-xs md:text-sm font-semibold text-slate-700">
-                      สถานะห้อง {selectedStatuses.length > 0 && `(${selectedStatuses.length})`}
-                    </Label>
-                  </div>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full h-9 md:h-10 justify-between rounded-xl text-sm bg-white/60 backdrop-blur-xl shadow-md border-white/70"
-                      >
-                        <span className="text-xs md:text-sm font-medium">
-                          {selectedStatuses.length === 0 
-                            ? 'ทุกสถานะ' 
-                            : `เลือกแล้ว ${selectedStatuses.length} สถานะ`}
-                        </span>
-                        <ChevronRight className="w-3 h-3 md:w-4 md:h-4 ml-2 rotate-90" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-72 md:w-80 p-3 md:p-4 bg-white/95 backdrop-blur-2xl border-white/80 rounded-xl md:rounded-2xl shadow-2xl" align="end">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between mb-3 md:mb-4">
-                          <h4 className="font-bold text-slate-800 text-sm md:text-base">เลือกสถานะ</h4>
-                          {selectedStatuses.length > 0 && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setSelectedStatuses([])}
-                              className="h-7 md:h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50/50 rounded-lg px-2"
-                            >
-                              ล้าง
-                            </Button>
-                          )}
-                        </div>
-
-                        <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-green-50/70 cursor-pointer transition-all">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                            selectedStatuses.includes('available')
-                              ? 'bg-gradient-to-br from-green-500 to-emerald-500 border-green-600 shadow-lg'
-                              : 'bg-white/80 border-slate-300'
-                          }`}>
-                            {selectedStatuses.includes('available') && (
-                              <Check className="w-4 h-4 text-white" />
-                            )}
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={selectedStatuses.includes('available')}
-                            onChange={() => toggleStatus('available')}
-                            className="sr-only"
-                          />
-                          <span className="text-sm text-slate-700 font-medium">ว่าง</span>
-                        </label>
-
-                        <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50/70 cursor-pointer transition-all">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                            selectedStatuses.includes('occupied')
-                              ? 'bg-gradient-to-br from-blue-500 to-indigo-500 border-blue-600 shadow-lg'
-                              : 'bg-white/80 border-slate-300'
-                          }`}>
-                            {selectedStatuses.includes('occupied') && (
-                              <Check className="w-4 h-4 text-white" />
-                            )}
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={selectedStatuses.includes('occupied')}
-                            onChange={() => toggleStatus('occupied')}
-                            className="sr-only"
-                          />
-                          <span className="text-sm text-slate-700 font-medium">มีผู้เช่า</span>
-                        </label>
-
-                        <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-orange-50/70 cursor-pointer transition-all">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                            selectedStatuses.includes('reserved')
-                              ? 'bg-gradient-to-br from-orange-500 to-amber-500 border-orange-600 shadow-lg'
-                              : 'bg-white/80 border-slate-300'
-                          }`}>
-                            {selectedStatuses.includes('reserved') && (
-                              <Check className="w-4 h-4 text-white" />
-                            )}
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={selectedStatuses.includes('reserved')}
-                            onChange={() => toggleStatus('reserved')}
-                            className="sr-only"
-                          />
-                          <span className="text-sm text-slate-700 font-medium">จอง</span>
-                        </label>
-
-                        <div className="border-t border-slate-200/50 my-3"></div>
-
-                        <h4 className="font-bold text-slate-800 mb-2 text-xs uppercase tracking-wider">ประเภทห้อง</h4>
-                        
-                        <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50/70 cursor-pointer transition-all">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                            selectedRoomType === 'monthly'
-                              ? 'bg-gradient-to-br from-blue-500 to-indigo-500 border-blue-600 shadow-lg'
-                              : 'bg-white/80 border-slate-300'
-                          }`}>
-                            {selectedRoomType === 'monthly' && (
-                              <Check className="w-4 h-4 text-white" />
-                            )}
-                          </div>
-                          <input
-                            type="radio"
-                            name="roomType"
-                            checked={selectedRoomType === 'monthly'}
-                            onChange={() => setSelectedRoomType(selectedRoomType === 'monthly' ? 'all' : 'monthly')}
-                            className="sr-only"
-                          />
-                          <span className="text-sm text-slate-700 font-medium">รายเดือน</span>
-                        </label>
-
-                        <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-orange-50/70 cursor-pointer transition-all">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                            selectedRoomType === 'daily'
-                              ? 'bg-gradient-to-br from-orange-500 to-amber-500 border-orange-600 shadow-lg'
-                              : 'bg-white/80 border-slate-300'
-                          }`}>
-                            {selectedRoomType === 'daily' && (
-                              <Check className="w-4 h-4 text-white" />
-                            )}
-                          </div>
-                          <input
-                            type="radio"
-                            name="roomType"
-                            checked={selectedRoomType === 'daily'}
-                            onChange={() => setSelectedRoomType(selectedRoomType === 'daily' ? 'all' : 'daily')}
-                            className="sr-only"
-                          />
-                          <span className="text-sm text-slate-700 font-medium">รายวัน</span>
-                        </label>
-
-                        <div className="border-t border-slate-200/50 my-3"></div>
-
-                        <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-red-50/70 cursor-pointer transition-all">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                            selectedStatuses.includes('expiring_soon')
-                              ? 'bg-gradient-to-br from-red-500 to-pink-500 border-red-600 shadow-lg'
-                              : 'bg-white/80 border-slate-300'
-                          }`}>
-                            {selectedStatuses.includes('expiring_soon') && (
-                              <Check className="w-4 h-4 text-white" />
-                            )}
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={selectedStatuses.includes('expiring_soon')}
-                            onChange={() => toggleStatus('expiring_soon')}
-                            className="sr-only"
-                          />
-                          <span className="text-sm text-slate-700 font-medium">ใกล้หมดสัญญา</span>
-                        </label>
-
-                        <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-yellow-50/70 cursor-pointer transition-all">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                            selectedStatuses.includes('near_payment')
-                              ? 'bg-gradient-to-br from-yellow-500 to-orange-400 border-yellow-600 shadow-lg'
-                              : 'bg-white/80 border-slate-300'
-                          }`}>
-                            {selectedStatuses.includes('near_payment') && (
-                              <Check className="w-4 h-4 text-white" />
-                            )}
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={selectedStatuses.includes('near_payment')}
-                            onChange={() => toggleStatus('near_payment')}
-                            className="sr-only"
-                          />
-                          <span className="text-sm text-slate-700 font-medium">ใกล้ชำระ</span>
-                        </label>
-
-                        <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-red-50/70 cursor-pointer transition-all">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                            selectedStatuses.includes('payment_overdue')
-                              ? 'bg-gradient-to-br from-red-600 to-red-500 border-red-700 shadow-lg'
-                              : 'bg-white/80 border-slate-300'
-                          }`}>
-                            {selectedStatuses.includes('payment_overdue') && (
-                              <Check className="w-4 h-4 text-white" />
-                            )}
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={selectedStatuses.includes('payment_overdue')}
-                            onChange={() => toggleStatus('payment_overdue')}
-                            className="sr-only"
-                          />
-                          <span className="text-sm text-slate-700 font-medium">เกินกำหนด</span>
-                        </label>
-
-                        <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-cyan-50/70 cursor-pointer transition-all">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all ${
-                            selectedStatuses.includes('ac_cleaning')
-                              ? 'bg-gradient-to-br from-cyan-500 to-blue-400 border-cyan-600 shadow-lg'
-                              : 'bg-white/80 border-slate-300'
-                          }`}>
-                            {selectedStatuses.includes('ac_cleaning') && (
-                              <Check className="w-4 h-4 text-white" />
-                            )}
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={selectedStatuses.includes('ac_cleaning')}
-                            onChange={() => toggleStatus('ac_cleaning')}
-                            className="sr-only"
-                          />
-                          <span className="text-sm text-slate-700 font-medium">แอร์ต้องล้าง</span>
-                        </label>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-
-              {(debouncedSearch || selectedFloor !== 'all' || selectedRoomType !== 'all' || selectedStatuses.length > 0) && (
+              {(debouncedSearch || selectedRoomType !== 'all' || selectedStatuses.length > 0) && (
                 <div className="flex items-center gap-1.5 md:gap-2 flex-wrap pt-2 border-t border-white/50">
                   <span className="text-[10px] md:text-xs text-slate-600 font-semibold">กรอง:</span>
                   {debouncedSearch && (
                     <Badge variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200/60 text-[10px] md:text-xs py-0 h-5">ค้นหา: {debouncedSearch}</Badge>
-                  )}
-                  {selectedFloor !== 'all' && (
-                    <Badge variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200/60 text-[10px] md:text-xs py-0 h-5">ชั้น {selectedFloor}</Badge>
                   )}
                   {selectedRoomType !== 'all' && (
                     <Badge variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200/60 text-[10px] md:text-xs py-0 h-5">{selectedRoomType === 'monthly' ? 'รายเดือน' : 'รายวัน'}</Badge>
@@ -2097,7 +1948,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                     size="sm"
                     onClick={() => {
                       setSearchQuery('');
-                      setSelectedFloor('all');
                       setSelectedRoomType('all');
                       setSelectedStatuses([]);
                       setCurrentPage(1);
