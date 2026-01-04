@@ -57,6 +57,8 @@ export default function PaymentsPage() {
     to: endOfMonth(new Date())
   });
   const [searchQuery, setSearchQuery] = useState('');
+  const [quickSearchRoom, setQuickSearchRoom] = useState('');
+  const [quickSearchTenant, setQuickSearchTenant] = useState('');
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('payments_view_mode') || 'room';
   });
@@ -865,18 +867,33 @@ export default function PaymentsPage() {
     return payment.status || 'pending';
   }, [currentDateMemo]);
 
-  // ✅ Server-side filtering ทำแล้ว - ไม่ต้อง filter ซ้อนอีก
+  // ✅ Server-side filtering + Quick Search (Client-side)
   const filteredPayments = useMemo(() => {
     if (!payments || payments.length === 0) return [];
+    
+    let result = payments;
     
     // ถ้ามี AI result ให้กรองเพิ่ม
     if (aiResult && aiResult.payments && aiResult.payments.length > 0) {
       const aiPaymentIds = new Set(aiResult.payments.map(p => p.payment_id));
-      return payments.filter(payment => aiPaymentIds.has(payment.id));
+      result = result.filter(payment => aiPaymentIds.has(payment.id));
     }
     
-    return payments;
-  }, [payments, aiResult]);
+    // ⭐ Quick Search Filter (Client-side)
+    if (quickSearchRoom.trim()) {
+      result = result.filter(p => 
+        p.room_number?.toLowerCase().includes(quickSearchRoom.toLowerCase())
+      );
+    }
+    
+    if (quickSearchTenant.trim()) {
+      result = result.filter(p => 
+        p.tenant_name?.toLowerCase().includes(quickSearchTenant.toLowerCase())
+      );
+    }
+    
+    return result;
+  }, [payments, aiResult, quickSearchRoom, quickSearchTenant]);
 
   // ✅ Pagination ทำที่ server แล้ว
   const totalPages = paymentsResponse?.totalPages || 1;
@@ -884,7 +901,7 @@ export default function PaymentsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [dateRangeType, customRange, statusFilter, searchQuery, aiResult]);
+  }, [dateRangeType, customRange, statusFilter, searchQuery, aiResult, quickSearchRoom, quickSearchTenant]);
 
   // ✅ Removed separate counts query - now from backend
 
@@ -2327,11 +2344,17 @@ Return JSON.`;
               <div className="relative">
                 <AISearchBox
                   searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
+                  onSearchChange={(value) => {
+                    setSearchQuery(value);
+                    if (value) {
+                      setQuickSearchRoom('');
+                      setQuickSearchTenant('');
+                    }
+                  }}
                   onAISearch={handleAISearch}
                   onStopSearch={handleStopAISearch}
                   aiSearching={aiSearching}
-                  placeholder="ค้นหาการชำระเงิน หรือถามเช่น 'สร้างบิลห้อง 101' 'รายการค้างชำระ'"
+                  placeholder="ถาม AI เช่น 'สร้างบิลห้อง 101' 'รายการค้างชำระ' 'ห้องไหนยังไม่จ่าย'"
                 />
 
                 {aiSearching && (
@@ -2701,6 +2724,79 @@ Return JSON.`;
               )}
             </div>
           </div>
+
+          {/* ⭐ Quick Search - 2 ช่อง */}
+          <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="relative">
+                  <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    placeholder="ค้นหาหมายเลขห้อง... (เช่น 101)"
+                    value={quickSearchRoom}
+                    onChange={(e) => {
+                      setQuickSearchRoom(e.target.value);
+                      if (e.target.value || quickSearchTenant) {
+                        setAiResult(null);
+                        setSearchQuery('');
+                      }
+                    }}
+                    className="pl-10 bg-white border-slate-300"
+                  />
+                  {quickSearchRoom && (
+                    <button
+                      onClick={() => setQuickSearchRoom('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full"
+                    >
+                      <X className="w-4 h-4 text-slate-400" />
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <Input
+                    placeholder="ค้นหาชื่อผู้เช่า... (เช่น สมชาย)"
+                    value={quickSearchTenant}
+                    onChange={(e) => {
+                      setQuickSearchTenant(e.target.value);
+                      if (e.target.value || quickSearchRoom) {
+                        setAiResult(null);
+                        setSearchQuery('');
+                      }
+                    }}
+                    className="pl-10 bg-white border-slate-300"
+                  />
+                  {quickSearchTenant && (
+                    <button
+                      onClick={() => setQuickSearchTenant('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded-full"
+                    >
+                      <X className="w-4 h-4 text-slate-400" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {(quickSearchRoom || quickSearchTenant) && (
+                <div className="flex items-center gap-2 mt-3">
+                  <Badge className="bg-blue-100 text-blue-700">
+                    พบ {filteredPayments.length} รายการ
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setQuickSearchRoom('');
+                      setQuickSearchTenant('');
+                    }}
+                    className="text-slate-600 hover:text-slate-800"
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    ล้างตัวกรอง
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <motion.div
