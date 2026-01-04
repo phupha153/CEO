@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import { createPaymentReminderMessage } from './utils/messageTemplates.js';
 
 function numberToThaiText(number) {
     if (!number || number === 0) return 'ศูนย์บาทถ้วน';
@@ -281,34 +280,51 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // ⭐ ใช้ Central Template เหมือนกันทุกที่
+            // คำนวณค่าปรับ
             const lateFee = payment.late_fee_amount || 0;
             const originalAmount = payment.total_amount - lateFee;
             const totalWithLateFee = payment.total_amount;
 
-            const message = createPaymentReminderMessage({
-                template: daysOverdue > 0 ? 'overdue' : 'advance',
-                buildingName: config.buildingName,
-                tenantName: tenant.full_name,
-                roomNumber: room?.room_number || 'N/A',
-                originalAmount,
-                lateFee,
-                totalAmount: totalWithLateFee,
-                daysOverdue,
-                bankName: config.bankName,
-                bankAccountNumber: config.bankAccountNumber,
-                bankAccountName: config.bankAccountName,
-                // รายละเอียด
-                rentAmount: payment.rent_amount || 0,
-                waterUnits: payment.water_units || 0,
-                waterAmount: payment.water_amount || 0,
-                electricityUnits: payment.electricity_units || 0,
-                electricityAmount: payment.electricity_amount || 0,
-                internetAmount: payment.internet_amount || 0,
-                commonFeeAmount: payment.common_fee_amount || 0,
-                parkingFeeAmount: payment.parking_fee_amount || 0,
-                otherAmount: payment.other_amount || 0
-            });
+            let message = '';
+            
+            if (daysOverdue > 0) {
+                // แจ้งเตือนเกินกำหนด
+                message = `แจ้งเตือนค่าเช่าเกินกำหนด\n\n`;
+                message += `${config.buildingName}\n`;
+                message += `คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n`;
+                message += `ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
+                if (lateFee > 0) {
+                    message += `\nค่าปรับล่าช้า: ${lateFee.toLocaleString()} บาท`;
+                }
+                message += `\nรวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
+                message += `\nเกินกำหนดมาแล้ว ${daysOverdue} วัน\n\n`;
+                message += `กรุณาชำระโดยด่วน${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
+                message += `โอนเงินได้ที่:\n${config.bankName} ${config.bankAccountNumber}\nชื่อบัญชี: ${config.bankAccountName}\n\n`;
+                message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
+            } else {
+                // แจ้งเตือนปกติ
+                message = `${config.buildingName} - แจ้งเตือนค่าเช่า\n\n`;
+                message += `สวัสดีคุณ ${tenant.full_name}\n`;
+                message += `ห้อง ${room?.room_number || 'N/A'}\n\n`;
+                message += `รายละเอียดค่าใช้จ่าย:\n`;
+                message += `━━━━━━━━━━━━━━━━━━━━\n`;
+                
+                if (payment.rent_amount >= 0) message += `ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+                if (payment.electricity_amount >= 0) message += `ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
+                if (payment.water_amount >= 0) message += `ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
+                if (payment.internet_amount > 0) message += `ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
+                if (payment.common_fee_amount > 0) message += `ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
+                if (payment.parking_fee_amount > 0) message += `ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
+                if (payment.other_amount > 0) message += `ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
+                
+                message += `━━━━━━━━━━━━━━━━━━━━\n`;
+                message += `รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
+                message += `(${numberToThaiText(payment.total_amount)})\n\n`;
+                message += `ครบกำหนดชำระ: ${dueDateStr}\n`;
+                message += `สถานะ: ${statusText}\n\n`;
+                message += `โอนเงินได้ที่: ${config.bankName} ${config.bankAccountNumber} (${config.bankAccountName})\n\n`;
+                message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
+            }
 
             // ส่งข้อความ (ส่ง base44 และ branchId เพื่อบันทึกข้อความ)
             const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, tenant.facebook_user_id, message, payment.branch_id, user?.email || 'system');
