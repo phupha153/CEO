@@ -150,10 +150,24 @@ export default function Receipt() {
     
     setDownloading(true);
     try {
+      // รอให้รูปภาพโหลดเสร็จทั้งหมด
+      const images = receiptRef.current.getElementsByTagName('img');
+      await Promise.all(
+        Array.from(images).map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = resolve; // ไม่ reject เพื่อให้ดำเนินการต่อได้
+          });
+        })
+      );
+
       const canvas = await html2canvas(receiptRef.current, {
         scale: 2,
         backgroundColor: '#ffffff',
-        logging: false
+        logging: false,
+        useCORS: true,
+        allowTaint: true
       });
       
       const link = document.createElement('a');
