@@ -984,7 +984,8 @@ export default function PaymentsPage() {
     const globalPayDayConfig = configs.find(c => c.key === 'pay_day' && !c.branch_id);
     const payDay = branchPayDayConfig ? parseInt(branchPayDayConfig.value) : (globalPayDayConfig ? parseInt(globalPayDayConfig.value) : 5);
 
-    const now = new Date();
+    // ⭐ ใช้ currentDateMemo แทน new Date() เพื่อให้รองรับ test_current_date
+    const now = getCurrentDate();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
@@ -1013,7 +1014,7 @@ export default function PaymentsPage() {
     }
 
     return count;
-  }, [rooms, bookings, allPaymentsForCounting, configs, selectedBranchId]);
+  }, [rooms, bookings, allPaymentsForCounting, configs, selectedBranchId, currentDateMemo]);
 
   const dateRangeLabel = () => {
     switch(dateRangeType) {
