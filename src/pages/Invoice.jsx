@@ -408,13 +408,14 @@ export default function Invoice() {
                     {invoiceData.recipient.tax_id && <p>เลขที่ผู้เสียภาษี: {invoiceData.recipient.tax_id}</p>}
                     {invoiceData.recipient.company_registration_number && <p>เลขทะเบียนนิติบุคคล: {invoiceData.recipient.company_registration_number}</p>}
                     <p>{invoiceData.recipient?.company_address || invoiceData.recipient?.building_address}</p>
-                    {invoiceData.recipient?.building_phone && <p>โทร: {invoiceData.recipient.building_phone}</p>}
+                    {invoiceData.recipient?.company_phone && <p>โทร: {invoiceData.recipient.company_phone}</p>}
                   </>
                 ) : invoiceData.recipient?.lessor_name ? (
                   <>
                     <p className="font-medium text-slate-800">{invoiceData.recipient.lessor_name}</p>
+                    {invoiceData.recipient.lessor_id && <p>เลขบัตรประชาชน: {invoiceData.recipient.lessor_id}</p>}
                     <p>{invoiceData.recipient?.lessor_address || invoiceData.recipient?.building_address}</p>
-                    {invoiceData.recipient?.building_phone && <p>โทร: {invoiceData.recipient.building_phone}</p>}
+                    {invoiceData.recipient?.lessor_phone && <p>โทร: {invoiceData.recipient.lessor_phone}</p>}
                   </>
                 ) : invoiceData.recipient?.building_address ? (
                   <>
