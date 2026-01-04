@@ -297,7 +297,17 @@ Deno.serve(async (req) => {
                 daysOverdue,
                 bankName: config.bankName,
                 bankAccountNumber: config.bankAccountNumber,
-                bankAccountName: config.bankAccountName
+                bankAccountName: config.bankAccountName,
+                // รายละเอียด
+                rentAmount: payment.rent_amount || 0,
+                waterUnits: payment.water_units || 0,
+                waterAmount: payment.water_amount || 0,
+                electricityUnits: payment.electricity_units || 0,
+                electricityAmount: payment.electricity_amount || 0,
+                internetAmount: payment.internet_amount || 0,
+                commonFeeAmount: payment.common_fee_amount || 0,
+                parkingFeeAmount: payment.parking_fee_amount || 0,
+                otherAmount: payment.other_amount || 0
             });
 
             // ส่งข้อความ (ส่ง base44 และ branchId เพื่อบันทึกข้อความ)

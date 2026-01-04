@@ -559,7 +559,7 @@ Deno.serve(async (req) => {
             console.log(`   - latestPayment.late_fee_amount: ${latestPayment.late_fee_amount || 0} บาท`);
             console.log(`   - latestPayment.total_amount: ${latestPayment.total_amount || 0} บาท`);
 
-            // ⭐ ใช้ Central Template
+            // ⭐ ใช้ Central Template พร้อมรายละเอียด
             const message = createPaymentReminderMessage({
                 template: 'overdue',
                 buildingName: branchBuildingName,
@@ -571,7 +571,17 @@ Deno.serve(async (req) => {
                 daysOverdue,
                 bankName: branchBankName,
                 bankAccountNumber: branchBankAccountNumber,
-                bankAccountName: branchBankAccountName
+                bankAccountName: branchBankAccountName,
+                // รายละเอียด
+                rentAmount: latestPayment.rent_amount || 0,
+                waterUnits: latestPayment.water_units || 0,
+                waterAmount: latestPayment.water_amount || 0,
+                electricityUnits: latestPayment.electricity_units || 0,
+                electricityAmount: latestPayment.electricity_amount || 0,
+                internetAmount: latestPayment.internet_amount || 0,
+                commonFeeAmount: latestPayment.common_fee_amount || 0,
+                parkingFeeAmount: latestPayment.parking_fee_amount || 0,
+                otherAmount: latestPayment.other_amount || 0
             });
 
             console.log(`   📏 Final message length: ${message.length} chars`);

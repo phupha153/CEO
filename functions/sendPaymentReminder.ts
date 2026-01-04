@@ -395,7 +395,7 @@ Deno.serve(async (req) => {
                 message = customMessage.trim();
                 message += `\n\nโอนเงินได้ที่: ${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}`;
             } else {
-                // ⭐ เรียกใช้ Central Template
+                // ⭐ เรียกใช้ Central Template พร้อมรายละเอียด
                 message = createPaymentReminderMessage({
                     template: template || 'advance',
                     buildingName,
@@ -407,7 +407,17 @@ Deno.serve(async (req) => {
                     daysOverdue,
                     bankName,
                     bankAccountNumber,
-                    bankAccountName
+                    bankAccountName,
+                    // รายละเอียด
+                    rentAmount: payment.rent_amount || 0,
+                    waterUnits: payment.water_units || 0,
+                    waterAmount: payment.water_amount || 0,
+                    electricityUnits: payment.electricity_units || 0,
+                    electricityAmount: payment.electricity_amount || 0,
+                    internetAmount: payment.internet_amount || 0,
+                    commonFeeAmount: payment.common_fee_amount || 0,
+                    parkingFeeAmount: payment.parking_fee_amount || 0,
+                    otherAmount: payment.other_amount || 0
                 });
             }
 
