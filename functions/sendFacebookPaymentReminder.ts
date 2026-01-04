@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
             
             for (const recipient of passedRecipients) {
                 const facebookUserId = recipient.facebookUserId;
-                const message = recipient.message;
+                const message = recipient.message; // ⭐ ใช้ message ที่ caller ส่งมา (ไม่สร้างใหม่)
                 const branchId = recipient.metadata?.branchId;
                 
                 console.log(`📋 Recipient: facebookUserId=${facebookUserId}, branchId=${branchId}, messageLength=${message?.length || 0}`);
@@ -280,69 +280,12 @@ Deno.serve(async (req) => {
                 });
             }
 
-            let message = `🏠 ${config.buildingName} - แจ้งเตือนค่าเช่า\n\n`;
-            message += `สวัสดีคุณ ${tenant.full_name}\n`;
-            message += `ห้อง ${room?.room_number || 'N/A'}\n\n`;
-            message += `📋 รายละเอียดค่าใช้จ่าย:\n`;
-            message += `━━━━━━━━━━━━━━━━━━━━\n`;
-            
-            if (payment.rent_amount > 0) {
-                message += `🏠 ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
-            }
-            if (payment.electricity_amount > 0) {
-                message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-            }
-            if (payment.water_amount > 0) {
-                message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
-            }
-            if (payment.internet_amount > 0) {
-                message += `📡 ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
-            }
-            if (payment.other_amount > 0) {
-                message += `📌 ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
-            }
-            
-            message += `━━━━━━━━━━━━━━━━━━━━\n`;
-            message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
-            message += `(${numberToThaiText(payment.total_amount)})\n\n`;
-            message += `📅 ครบกำหนดชำระ: ${dueDateStr}\n`;
-            
-            if (daysOverdue > 0) {
-                message += `⚠️ สถานะ: ${statusText}\n\n`;
-            } else {
-                message += `✅ สถานะ: ${statusText}\n\n`;
-            }
-            
-            message += `💳 โอนเงินได้ที่:\n`;
-            message += `ธนาคาร: ${config.bankName}\n`;
-            message += `เลขบัญชี: ${config.bankAccountNumber}\n`;
-            message += `ชื่อบัญชี: ${config.bankAccountName}\n\n`;
+            // ⭐ ไม่สร้างข้อความใหม่ - ใช้ message ที่ส่งมาจาก caller
+            // (ส่วนนี้จะถูกข้าม เพราะ passedRecipients มี message มาแล้ว)
 
-            // สร้างรูปใบแจ้งหนี้
-            let invoiceImageUrl = payment.invoice_image_url;
-            if (!invoiceImageUrl) {
-                try {
-                    console.log(`🖼️ Generating invoice image for payment ${payment.id}...`);
-                    const invoiceResult = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
-                        paymentId: payment.id
-                    });
-                    if (invoiceResult.data?.success && invoiceResult.data?.invoice_image_url) {
-                        invoiceImageUrl = invoiceResult.data.invoice_image_url;
-                    }
-                } catch (invoiceError) {
-                    console.error(`❌ Error generating invoice image:`, invoiceError);
-                }
-            }
-
-            if (invoiceImageUrl) {
-                message += `📄 ดูใบแจ้งหนี้: ${invoiceImageUrl}\n\n`;
-            }
-
-            message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\n`;
-            message += `ขอบคุณค่ะ 🙏`;
-
-            // ส่งข้อความ (ส่ง base44 และ branchId เพื่อบันทึกข้อความ)
-            const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, tenant.facebook_user_id, message, payment.branch_id, user?.email || 'system');
+            // ⭐ ส่งข้อความที่ส่งมาจาก caller (ไม่สร้างใหม่)
+            console.log(`📤 Sending Facebook message (${message.length} chars)...`);
+            const sendResult = await sendFacebookMessage(base44, config.pageAccessToken, facebookUserId, message, branchId, user?.email || 'system');
             
             if (sendResult.success) {
                 results.success++;
