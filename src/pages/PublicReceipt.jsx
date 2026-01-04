@@ -284,36 +284,21 @@ export default function PublicReceipt() {
             max-width: 800px;
             width: 100%;
           }
-          
-          /* มือถือ - ขนาดเล็กลง */
-          @media (max-width: 768px) {
-            .receipt-card > div {
-              padding: 12px !important;
-            }
-            
-            h1, h2, h3 { font-size: 14px !important; }
-            p, span, td, th { font-size: 11px !important; }
-            .text-lg { font-size: 14px !important; }
-            .text-xl { font-size: 16px !important; }
-            .text-xs { font-size: 10px !important; }
-            .text-sm { font-size: 11px !important; }
-            
-            .w-10 { width: 32px !important; }
-            .h-10 { height: 32px !important; }
-            .h-12 { height: 40px !important; }
-          }
         }
       `}</style>
 
       <div className="print:hidden bg-white border-b shadow-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex justify-end items-center gap-2">
           <Button
-            onClick={() => window.print()}
+            onClick={() => {
+              console.log('Print button clicked');
+              setTimeout(() => window.print(), 100);
+            }}
             size="sm"
             variant="default"
-            className="gap-2 text-xs bg-green-600 hover:bg-green-700"
+            className="gap-2 text-sm bg-green-600 hover:bg-green-700 px-4 py-2 active:scale-95 transition-transform"
           >
-            <Download className="w-3 h-3" />
+            <Download className="w-4 h-4" />
             พิมพ์ / บันทึก PDF
           </Button>
         </div>

@@ -505,12 +505,15 @@ export default function Receipt() {
               </a>
             )}
             <Button
-              onClick={handlePrint}
+              onClick={() => {
+                console.log('Print button clicked');
+                setTimeout(() => window.print(), 100);
+              }}
               size="sm"
               variant="default"
-              className="gap-2 text-xs bg-blue-600 hover:bg-blue-700"
+              className="gap-2 text-sm bg-blue-600 hover:bg-blue-700 px-4 py-2 active:scale-95 transition-transform"
             >
-              <Download className="w-3 h-3" />
+              <Download className="w-4 h-4" />
               พิมพ์ / บันทึก PDF
             </Button>
           </div>
