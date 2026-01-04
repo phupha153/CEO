@@ -1105,12 +1105,14 @@ export default function UserBranchAccess() {
                     <Button 
                       variant="outline" 
                       onClick={() => {
-                        if (confirm(`ยืนยันการลบแพ็กเกจของ ${selectedUser?.full_name}?`)) {
+                        const currentMode = packageForm.isTrialMode ? 'Trial' : 'Paid';
+                        const confirmMsg = `ยืนยันการลบแพ็กเกจ (${currentMode}) ของ ${selectedUser?.full_name}?\n\nการลบจะทำให้ผู้ใช้ไม่สามารถเข้าใช้งานระบบได้`;
+                        if (confirm(confirmMsg)) {
                           setDeletingPackage(true);
                           deletePackageMutation.mutate({ userId: selectedUser.id });
                         }
                       }}
-                      disabled={deletePackageMutation.isPending || !selectedUser?.plan_status}
+                      disabled={deletePackageMutation.isPending}
                       className="text-red-600 hover:bg-red-50 border-red-300"
                     >
                       {deletePackageMutation.isPending ? (
