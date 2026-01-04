@@ -1610,9 +1610,9 @@ async function sendConfirmationMessage(base44, lineUserId, tenant, branch, reply
     confirmText += `👤 ชื่อ: ${tenant.full_name}\n`;
     confirmText += `📱 เบอร์: ${tenant.phone}\n`;
     if (branch) {
-        confirmText += `🏢 ตึก: ${branch.branch_name}\n`;
+        confirmText += `🏢 สาขา: ${branch.branch_name}\n`;
     }
-    confirmText += `\n📸 ส่งรูปสลิปค่าเช่าผ่านทางนี้ได้เลย\n`;
+    confirmText += `\n📸 ส่งรูปสลิปเพื่อชำระค่าเช่าได้เลยค่ะ\n`;
     confirmText += `🔧 แจ้งซ่อม: พิมพ์ "แจ้งซ่อม" แล้วตามด้วยรายละเอียดปัญหา`;
 
     await sendMessage(base44, lineUserId, confirmText, tenant.branch_id, replyToken);
