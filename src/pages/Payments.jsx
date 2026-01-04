@@ -2061,7 +2061,9 @@ ${JSON.stringify(bookingsData, null, 2)}
   };
 
   const selectAllFilteredPayments = () => {
-    const allFilteredIds = filteredPayments.map(p => p.id);
+    // ⭐ เลือกจากข้อมูลที่ถูกต้องตาม viewMode
+    const paymentsToSelect = viewMode === 'room' ? roomViewPayments : filteredPayments;
+    const allFilteredIds = paymentsToSelect.map(p => p.id);
     setSelectedPaymentIds(allFilteredIds);
     toast.success(`เลือกแล้ว ${allFilteredIds.length} รายการทั้งหมด`, { duration: 2000 });
   };
@@ -2601,10 +2603,10 @@ Return JSON.`;
                   size="sm"
                   onClick={selectAllFilteredPayments}
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md px-4 py-2 h-auto"
-                  disabled={filteredPayments.length === 0}
+                  disabled={(viewMode === 'room' ? roomViewPayments : filteredPayments).length === 0}
                 >
                   <CheckSquare className="w-5 h-5 mr-2" />
-                  <span className="font-semibold">เลือกทุกรายการ ({filteredPayments.length})</span>
+                  <span className="font-semibold">เลือกทุกรายการ ({(viewMode === 'room' ? roomViewPayments : filteredPayments).length})</span>
                 </Button>
               )}
             </div>
