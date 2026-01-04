@@ -3745,40 +3745,13 @@ export default function Settings() {
               {canManagePermissions && activeTab === 'permissions' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
                   <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          <Shield className="w-5 h-5 text-orange-600" />
-                          จัดการสิทธิ์ผู้ใช้งาน
-                        </CardTitle>
-                        <p className="text-sm text-slate-600 mt-2">
-                          เลือกบทบาท จัดการสิทธิ์การเข้าถึง และกำหนดสาขาที่ผู้ใช้สามารถเข้าถึงได้
-                        </p>
-                      </div>
-                      {(() => {
-                        const isTrialMode = currentUser?.plan_status === 'trial';
-                        const maxUsers = isTrialMode ? 1 : crmPackageInfo?.max_users;
-                        const hasLimit = maxUsers !== null && maxUsers !== undefined && maxUsers > 0;
-                        const isAtLimit = hasLimit && totalUsersInSelectedBranch >= maxUsers;
-
-                        return (
-                          <Button
-                            onClick={() => {
-                              if (isAtLimit) {
-                                toast.error(`ครบจำนวนผู้ใช้แล้ว (${maxUsers} คน) - กรุณาอัปเกรดแพ็กเกจ`);
-                              } else {
-                                setShowAddEmployeeDialog(true);
-                              }
-                            }}
-                            disabled={isAtLimit}
-                            className={isAtLimit ? 'bg-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600'}
-                          >
-                            <UserPlus className="w-4 h-4 mr-2" />
-                            เพิ่มพนักงาน {hasLimit && `(${totalUsersInSelectedBranch}/${maxUsers})`}
-                          </Button>
-                        );
-                      })()}
-                    </div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-orange-600" />
+                      จัดการสิทธิ์ผู้ใช้งาน
+                    </CardTitle>
+                    <p className="text-sm text-slate-600 mt-2">
+                      เลือกบทบาท จัดการสิทธิ์การเข้าถึง และกำหนดสาขาที่ผู้ใช้สามารถเข้าถึงได้
+                    </p>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
@@ -3825,51 +3798,51 @@ export default function Settings() {
                                 <div className="space-y-4">
                                   {/* ข้อมูลผู้ใช้และบทบาท */}
                                   <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-                                    <div className="flex items-center gap-3 flex-1">
-                                      <div className={`w-12 h-12 bg-gradient-to-br ${badge.color} rounded-full flex items-center justify-center flex-shrink-0 ${isPending ? 'opacity-60' : ''}`}>
-                                        <span className="text-white font-semibold text-lg">
-                                          {user.full_name?.charAt(0) || 'U'}
-                                        </span>
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                          <p className="font-bold text-slate-800 text-lg truncate">{user.full_name || 'ไม่ระบุชื่อ'}</p>
-                                          {isPending && (
-                                            <Badge className="bg-amber-500 text-white text-xs">
-                                              กำลังรอเข้าใช้
-                                            </Badge>
-                                          )}
-                                        </div>
-                                        <p className="text-sm text-slate-500 truncate">{user.email}</p>
-                                        <div className="flex flex-wrap items-center gap-2 mt-1">
-                                          <Badge variant="outline" className="text-xs">
-                                            {currentPermissions.length} สิทธิ์
-                                          </Badge>
-                                          {canAccessAllBranches ? (
-                                            <Badge className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white">
-                                              เข้าถึงทุกสาขา
-                                            </Badge>
-                                          ) : (
-                                            <Badge variant="outline" className="text-xs">
-                                              {accessibleBranches.length} สาขา
-                                            </Badge>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
+                                   <div className="flex items-center gap-3 flex-1 min-w-0">
+                                     <div className={`w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br ${badge.color} rounded-full flex items-center justify-center flex-shrink-0 ${isPending ? 'opacity-60' : ''}`}>
+                                       <span className="text-white font-semibold text-sm md:text-lg">
+                                         {user.full_name?.charAt(0) || 'U'}
+                                       </span>
+                                     </div>
+                                     <div className="flex-1 min-w-0">
+                                       <div className="flex items-center gap-2 mb-1">
+                                         <p className="font-bold text-slate-800 text-sm md:text-lg truncate">{user.full_name || 'ไม่ระบุชื่อ'}</p>
+                                         {isPending && (
+                                           <Badge className="bg-amber-500 text-white text-xs flex-shrink-0">
+                                             รอเข้าใช้
+                                           </Badge>
+                                         )}
+                                       </div>
+                                       <p className="text-xs md:text-sm text-slate-500 truncate">{user.email}</p>
+                                       <div className="flex flex-wrap items-center gap-1.5 md:gap-2 mt-1">
+                                         <Badge variant="outline" className="text-xs">
+                                           {currentPermissions.length} สิทธิ์
+                                         </Badge>
+                                         {canAccessAllBranches ? (
+                                           <Badge className="text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+                                             ทุกสาขา
+                                           </Badge>
+                                         ) : (
+                                           <Badge variant="outline" className="text-xs">
+                                             {accessibleBranches.length} สาขา
+                                           </Badge>
+                                         )}
+                                       </div>
+                                     </div>
+                                   </div>
 
                                     {/* Role Selector */}
-                                    <div className="flex items-center gap-2 w-full md:w-auto">
-                                      <Label className="text-sm text-slate-600 whitespace-nowrap">บทบาท:</Label>
+                                    <div className="flex items-center gap-2 w-full md:w-auto flex-shrink-0">
+                                      <Label className="text-xs md:text-sm text-slate-600 whitespace-nowrap hidden md:inline">บทบาท:</Label>
                                       <Select
                                         value={role}
                                         onValueChange={(newRole) => handleRoleChange(user.id, newRole)}
                                       >
-                                        <SelectTrigger className="w-full md:w-[180px]">
+                                        <SelectTrigger className="w-full md:w-[160px] text-xs md:text-sm">
                                           <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                          <SelectItem value="owner">👑 เจ้าของหอพัก</SelectItem>
+                                          <SelectItem value="owner">👑 เจ้าของ</SelectItem>
                                           <SelectItem value="manager">👔 ผู้จัดการ</SelectItem>
                                           <SelectItem value="employee">👤 พนักงาน</SelectItem>
                                         </SelectContent>
@@ -3893,24 +3866,26 @@ export default function Settings() {
 
                                   {/* ปุ่มจัดการ */}
                                   <div className="flex flex-wrap gap-2">
-                                    <Button
-                                      type="button"
-                                      onClick={() => handleOpenPermissionsDialog(user)}
-                                      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 flex-1 md:flex-none"
-                                    >
-                                      <SettingsIcon className="w-4 h-4 mr-2" />
-                                      จัดการสิทธิ์ย่อย
-                                    </Button>
+                                   <Button
+                                     type="button"
+                                     onClick={() => handleOpenPermissionsDialog(user)}
+                                     className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
+                                   >
+                                     <SettingsIcon className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                                     <span className="hidden md:inline">จัดการสิทธิ์ย่อย</span>
+                                     <span className="md:hidden">สิทธิ์</span>
+                                   </Button>
 
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      onClick={() => handleOpenBranchAccessDialog(user)}
-                                      className="border-blue-600 text-blue-700 hover:bg-blue-50 flex-1 md:flex-none"
-                                    >
-                                      <Globe className="w-4 h-4 mr-2" />
-                                      จัดการสาขา
-                                    </Button>
+                                   <Button
+                                     type="button"
+                                     variant="outline"
+                                     onClick={() => handleOpenBranchAccessDialog(user)}
+                                     className="border-blue-600 text-blue-700 hover:bg-blue-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
+                                   >
+                                     <Globe className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                                     <span className="hidden md:inline">จัดการสาขา</span>
+                                     <span className="md:hidden">สาขา</span>
+                                   </Button>
 
                                     {(user.custom_role === 'developer' || currentPermissions.includes('settings_access_test_mode')) && (
                                       <Button
@@ -3922,10 +3897,11 @@ export default function Settings() {
                                           queryClient.invalidateQueries(['users']);
                                           toast.success('ลบสิทธิ์โหมดทดสอบแล้ว');
                                         }}
-                                        className="border-red-600 text-red-600 hover:bg-red-50 flex-1 md:flex-none"
+                                        className="border-red-600 text-red-600 hover:bg-red-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
                                       >
-                                        <X className="w-4 h-4 mr-2" />
-                                        ลบโหมดทดสอบ
+                                        <X className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                                        <span className="hidden md:inline">ลบโหมดทดสอบ</span>
+                                        <span className="md:hidden">ทดสอบ</span>
                                       </Button>
                                     )}
                                   </div>
