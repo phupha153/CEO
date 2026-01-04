@@ -218,25 +218,25 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                 </p>
               </div>
               
-              <div className="border rounded-lg overflow-hidden bg-white">
-                <ScrollArea className="h-[450px]">
+              <div className="border rounded-lg overflow-hidden bg-white h-[450px] flex flex-col">
+                <div className="overflow-auto flex-1">
                   {/* Group by floor for better visualization */}
                   {Array.from(new Set(generatedRooms.map(r => r.floor))).sort((a,b) => a - b).map(floor => (
                     <div key={floor} className="mb-0">
-                      <div className="bg-slate-100 px-4 py-2 font-bold text-slate-700 border-b sticky top-0 z-10">
+                      <div className="bg-slate-100 px-4 py-2 font-bold text-slate-700 border-b sticky top-0 z-20">
                         ชั้น {floor}
                       </div>
-                      <div className="overflow-x-auto">
+                      <div className="min-w-max">
                         <Table>
-                          <TableHeader className="bg-slate-50">
+                          <TableHeader className="bg-slate-50 sticky top-[42px] z-10">
                             <TableRow>
-                              <TableHead className="min-w-[100px] sticky left-0 bg-slate-50 z-10">เลขห้อง</TableHead>
-                              <TableHead className="min-w-[80px]">ชั้น</TableHead>
-                              <TableHead className="min-w-[120px]">ประเภท</TableHead>
-                              <TableHead className="min-w-[120px]">ราคา</TableHead>
-                              <TableHead className="min-w-[100px]">ขนาด (ตร.ม.)</TableHead>
-                              <TableHead className="min-w-[100px]">ค่าน้ำ/หน่วย</TableHead>
-                              <TableHead className="min-w-[100px]">ค่าไฟ/หน่วย</TableHead>
+                              <TableHead className="w-[100px] sticky left-0 bg-slate-50 z-10 border-r">เลขห้อง</TableHead>
+                              <TableHead className="w-[80px]">ชั้น</TableHead>
+                              <TableHead className="w-[120px]">ประเภท</TableHead>
+                              <TableHead className="w-[120px]">ราคา</TableHead>
+                              <TableHead className="w-[100px]">ขนาด (ตร.ม.)</TableHead>
+                              <TableHead className="w-[120px]">ค่าน้ำ/หน่วย</TableHead>
+                              <TableHead className="w-[120px]">ค่าไฟ/หน่วย</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -244,7 +244,7 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                               if (room.floor !== floor) return null;
                               return (
                                 <TableRow key={globalIndex} className="hover:bg-blue-50/50">
-                                  <TableCell className="min-w-[100px] sticky left-0 bg-white z-10">
+                                  <TableCell className="w-[100px] sticky left-0 bg-white z-10 border-r">
                                     <Input 
                                       value={room.room_number} 
                                       onChange={(e) => handleRoomChange(globalIndex, 'room_number', e.target.value)}
@@ -252,7 +252,7 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                                       placeholder="เลขห้อง"
                                     />
                                   </TableCell>
-                                  <TableCell className="min-w-[80px]">
+                                  <TableCell className="w-[80px]">
                                     <Input 
                                       type="number"
                                       value={room.floor} 
@@ -261,7 +261,7 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                                       placeholder="ชั้น"
                                     />
                                   </TableCell>
-                                  <TableCell className="min-w-[120px]">
+                                  <TableCell className="w-[120px]">
                                     <Select 
                                       value={room.room_type} 
                                       onValueChange={(v) => handleRoomChange(globalIndex, 'room_type', v)}
@@ -275,7 +275,7 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                                       </SelectContent>
                                     </Select>
                                   </TableCell>
-                                  <TableCell className="min-w-[120px]">
+                                  <TableCell className="w-[120px]">
                                     <Input 
                                       type="number"
                                       value={room.price} 
@@ -284,7 +284,7 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                                       placeholder="ราคา"
                                     />
                                   </TableCell>
-                                  <TableCell className="min-w-[100px]">
+                                  <TableCell className="w-[100px]">
                                     <Input 
                                       type="number"
                                       value={room.size} 
@@ -293,7 +293,7 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                                       className="h-8"
                                     />
                                   </TableCell>
-                                  <TableCell className="min-w-[100px]">
+                                  <TableCell className="w-[120px]">
                                     <Input 
                                       type="number"
                                       value={room.water_rate} 
@@ -302,7 +302,7 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                                       className="h-8"
                                     />
                                   </TableCell>
-                                  <TableCell className="min-w-[100px]">
+                                  <TableCell className="w-[120px]">
                                     <Input 
                                       type="number"
                                       value={room.electricity_rate} 
@@ -319,7 +319,7 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                       </div>
                     </div>
                   ))}
-                </ScrollArea>
+                </div>
               </div>
             </div>
           )}
