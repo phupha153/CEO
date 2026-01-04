@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Download, Loader2, AlertCircle, ArrowLeft, Clock, CheckCircle } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
-import { calculateLateFee } from "../functions/utils/calculateLateFeeClient";
+
 
 // ⭐ Note: ใช้ค่าปรับจาก backend (late_fee_amount) แทนการคำนวณเอง
 // Backend จะคำนวณและบันทึกค่าปรับไว้แล้วใน total_amount
