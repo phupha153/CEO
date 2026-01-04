@@ -63,96 +63,24 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     staleTime: 60 * 60 * 1000,
   });
 
-  // 🔒 Security: ใช้ getSecureData สำหรับข้อมูลสำคัญ
-  const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ['allPayments', 'notifications', 'secure', allowedBranchIds],
+  // 🚀 Optimization: ดึงข้อมูลทั้งหมดในครั้งเดียว (1 API call แทน 6 calls)
+  const { data: batchData, isLoading: paymentsLoading } = useQuery({
+    queryKey: ['notifications-batch', 'secure', allowedBranchIds],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Payment',
-        filters: {}, // backend จะกรองตาม user permissions
-        limit: 1000
-      });
-      return response.data.data;
+      const response = await base44.functions.invoke('getBatchNotifications', {});
+      return response.data;
     },
     enabled: isOpen && canLoadData,
-    staleTime: 0,
+    staleTime: 30 * 1000, // Cache 30 วินาที
     refetchOnMount: true,
   });
 
-  const { data: allRooms = [] } = useQuery({
-    queryKey: ['allRooms', 'notifications', 'secure', allowedBranchIds],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Room',
-        filters: {},
-        limit: 1000
-      });
-      return response.data.data;
-    },
-    enabled: isOpen && canLoadData,
-    staleTime: 0,
-    refetchOnMount: true,
-  });
-
-  const { data: allMaintenanceRequests = [] } = useQuery({
-    queryKey: ['allMaintenanceRequests', 'notifications', 'secure', allowedBranchIds],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'MaintenanceRequest',
-        filters: {},
-        limit: 500
-      });
-      return response.data.data;
-    },
-    enabled: isOpen && canLoadData,
-    staleTime: 0,
-    refetchOnMount: true,
-  });
-
-  const { data: allBookings = [] } = useQuery({
-    queryKey: ['allBookings', 'notifications', 'secure', allowedBranchIds],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Booking',
-        filters: {},
-        limit: 500
-      });
-      return response.data.data;
-    },
-    enabled: isOpen && canLoadData,
-    staleTime: 0,
-    refetchOnMount: true,
-  });
-
-  const { data: allMaterialDeliveries = [] } = useQuery({
-    queryKey: ['allMaterialDeliveries', 'notifications', 'secure', allowedBranchIds],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'MaterialDelivery',
-        filters: {},
-        limit: 500
-      });
-      return response.data.data;
-    },
-    enabled: isOpen && canLoadData,
-    staleTime: 0,
-    refetchOnMount: true,
-  });
-
-  const { data: allTenants = [] } = useQuery({
-    queryKey: ['allTenants', 'notifications', 'secure', allowedBranchIds],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Tenant',
-        filters: {},
-        limit: 500
-      });
-      return response.data.data;
-    },
-    enabled: isOpen && canLoadData,
-    staleTime: 0,
-    refetchOnMount: true,
-  });
+  const allPayments = batchData?.payments || [];
+  const allRooms = batchData?.rooms || [];
+  const allMaintenanceRequests = batchData?.maintenance || [];
+  const allBookings = batchData?.bookings || [];
+  const allMaterialDeliveries = batchData?.deliveries || [];
+  const allTenants = batchData?.tenants || [];
 
   const { data: notificationConfigs = [] } = useQuery({
     queryKey: ['notificationConfigs'],
