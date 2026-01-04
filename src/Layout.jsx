@@ -482,18 +482,6 @@ export default function Layout({ children, currentPageName }) {
     queryFn: async () => {
       const user = await base44.auth.me();
       setRetryCount(0);
-
-      // ⭐ Auto-set owner role สำหรับผู้ใช้ครั้งแรก
-      if (user && !user.custom_role && user.role === 'admin') {
-        try {
-          await base44.entities.User.update(user.id, { custom_role: 'owner' });
-          user.custom_role = 'owner';
-          console.log('✅ Auto-set custom_role = owner (admin user without custom_role)');
-        } catch (error) {
-          console.error('Failed to auto-set owner role:', error);
-        }
-      }
-
       return user;
     },
     retry: 2,
@@ -510,7 +498,7 @@ export default function Layout({ children, currentPageName }) {
     throwOnError: false,
   });
 
-  // เช็คสิทธิ์กับ CRM (เช็คทุก 5 นาที + logout อัตโนมัติถ้าไม่มีสิทธิ์)
+  // เช็คสิทธิ์กับ CRM (เช็คทุก 5 นาที + logout อัตโนมัติถ้าไม่มีสิทธิ์ + sync role)
   const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError } = useQuery({
     queryKey: ['crmAccess', currentUser?.email],
     queryFn: async () => {
@@ -544,6 +532,20 @@ export default function Layout({ children, currentPageName }) {
           console.warn('🚫 CRM Access denied - Immediate logout:', currentUser.email);
           const welcomeUrl = window.location.origin + '/Welcome';
           base44.auth.logout(welcomeUrl);
+        }
+
+        // ⭐ Sync role จาก CRM (ถ้ามี role ส่งกลับมา)
+        if (data.hasAccess && data.role && currentUser) {
+          const currentRole = currentUser.custom_role || (currentUser.role === 'admin' ? 'owner' : 'employee');
+          if (currentRole !== data.role) {
+            try {
+              await base44.entities.User.update(currentUser.id, { custom_role: data.role });
+              console.log('✅ Synced role from CRM:', data.role);
+              queryClient.invalidateQueries(['currentUser']);
+            } catch (error) {
+              console.error('Failed to sync role from CRM:', error);
+            }
+          }
         }
 
         return data;

@@ -64,6 +64,7 @@ Deno.serve(async (req) => {
         return Response.json({ 
           hasAccess: true,
           email: userEmail,
+          role: employees[0].custom_role || 'owner', // ⭐ ส่ง role กลับมาด้วย
           message: '✅ พบข้อมูลใน Employee Table ของ CRM',
           source: 'employee_table',
           employee: {
@@ -141,23 +142,24 @@ Deno.serve(async (req) => {
     });
 
     // ⭐ เช็คจากทุก array
-    const userFound = allUsers.some(user => 
+    const foundUser = allUsers.find(user => 
       user.email?.toLowerCase() === userEmail.toLowerCase()
     );
 
-    if (userFound) {
+    if (foundUser) {
       console.log('✅ Found in CRM API:', userEmail);
     } else {
       console.log('❌ NOT FOUND in CRM - Email:', userEmail);
     }
 
     return Response.json({ 
-      hasAccess: userFound,
+      hasAccess: !!foundUser,
       email: userEmail,
-      message: userFound 
+      role: foundUser?.custom_role || 'owner', // ⭐ ส่ง role จาก CRM
+      message: foundUser 
         ? '✅ พบข้อมูลใน CRM API' 
         : '⚠️ ไม่พบอีเมลในระบบ CRM - กรุณาติดต่อผู้ดูแลระบบเพื่อเพิ่มสิทธิ์',
-      source: userFound ? 'customer_api' : null,
+      source: foundUser ? 'customer_api' : null,
       debug: {
         ...debugInfo,
         totalUsers: users.length,
