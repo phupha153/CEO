@@ -527,6 +527,44 @@ export default function Settings() {
 
   const appMode = getConfigValue('app_mode', 'single_tenant');
 
+  // ⚡ Optimized: Pre-calculate users/branches counts using useMemo (moved to top-level)
+  const { usersInSelectedBranch, totalUsersInSelectedBranch, myOwnedBranches, totalBranchesInSystem } = useMemo(() => {
+    if (!selectedBranch || !currentUser) {
+      return { usersInSelectedBranch: [], totalUsersInSelectedBranch: 0, myOwnedBranches: [], totalBranchesInSystem: 0 };
+    }
+
+    // สร้าง Map สำหรับ O(1) lookup
+    const branchMap = new Map(branches.map(b => [b.id, b]));
+    const currentBranch = branchMap.get(selectedBranch.id);
+    
+    // นับ Users ในสาขาที่เลือก
+    const filteredUsers = users.filter(user => {
+      const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+      if (role === 'developer') return false;
+      
+      if (currentBranch && (user.email === currentBranch.owner_id || user.email === currentBranch.created_by)) {
+        return true;
+      }
+      
+      if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
+      return user.accessible_branches.includes(selectedBranch.id);
+    });
+    
+    const currentUserInList = users.some(u => u.email === currentUser.email);
+    const totalUsers = currentUserInList ? filteredUsers.length : filteredUsers.length + 1;
+    
+    // นับสาขาที่เป็นเจ้าของ
+    const ownerEmail = branchOwnerStatus?.owner_email || currentUser.email;
+    const ownedBranches = branches.filter(b => b.owner_id === ownerEmail || b.created_by === ownerEmail);
+    
+    return {
+      usersInSelectedBranch: filteredUsers,
+      totalUsersInSelectedBranch: totalUsers,
+      myOwnedBranches: ownedBranches,
+      totalBranchesInSystem: ownedBranches.length
+    };
+  }, [users, branches, selectedBranch?.id, currentUser?.email, branchOwnerStatus?.owner_email]);
+
   // ⭐ User-Centric Package Model - ดูจากเจ้าของสาขา
   const activeSubscription = (() => {
     if (!currentUser) return null;
@@ -1907,35 +1945,7 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // ⭐ Optimize: ใช้ useMemo + Map สำหรับ O(1) lookup
-                              const { usersInMyBranches, totalUsersInMyBranches } = React.useMemo(() => {
-                                // สร้าง Map สำหรับ branch lookup (O(1) แทน find)
-                                const branchMap = new Map(branches.map(b => [b.id, b]));
-                                const currentBranch = branchMap.get(selectedBranch?.id);
-                                
-                                // กรองผู้ใช้ในสาขาที่เลือก
-                                const filteredUsers = users.filter(user => {
-                                  const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
-                                  if (role === 'developer') return false;
-                                  
-                                  // Owner check
-                                  if (currentBranch && (user.email === currentBranch.owner_id || user.email === currentBranch.created_by)) {
-                                    return true;
-                                  }
-                                  
-                                  // Branch access check
-                                  if (!user.accessible_branches || user.accessible_branches.length === 0) return false;
-                                  return selectedBranch && user.accessible_branches.includes(selectedBranch.id);
-                                });
-                                
-                                // นับรวม currentUser ถ้ายังไม่อยู่ใน list
-                                const currentUserInList = users.some(u => u.email === currentUser?.email);
-                                const total = currentUserInList ? filteredUsers.length : filteredUsers.length + 1;
-                                
-                                return { usersInMyBranches: filteredUsers, totalUsersInMyBranches: total };
-                              }, [users, branches, selectedBranch?.id, currentUser?.email]);
-                              
-                              // ⭐ เช็ค trial mode จาก currentUser.plan_status
+                              // ⚡ ใช้ค่าจาก top-level useMemo (ไม่ใช้ hook ใน IIFE)
                               const isTrialMode = currentUser?.plan_status === 'trial';
                               
                               // ดึง max_users จาก crmPackageInfo หรือใช้ 1 ถ้าเป็น trial
@@ -1948,7 +1958,7 @@ export default function Settings() {
                                   <div className="flex items-center justify-between">
                                     <span className="text-sm text-slate-600">ผู้ใช้งานทั้งหมด</span>
                                     <span className="text-2xl font-bold text-blue-600">
-                                      {totalUsersInMyBranches} {hasLimit && `/ ${maxUsers}`}
+                                      {totalUsersInSelectedBranch} {hasLimit && `/ ${maxUsers}`}
                                     </span>
                                   </div>
                                   <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
@@ -1958,20 +1968,20 @@ export default function Settings() {
                                     />
                                   </div>
                                   <p className="text-xs text-slate-500">
-                                    {isTrialMode ? `จำกัด ${maxUsers} ผู้ใช้ในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInMyBranches)} ที่นั่ง`}
+                                    {isTrialMode ? `จำกัด ${maxUsers} ผู้ใช้ในโหมดทดลอง` : !hasLimit ? 'ไม่จำกัดจำนวนผู้ใช้' : `เหลือ ${Math.max(0, maxUsers - totalUsersInSelectedBranch)} ที่นั่ง`}
                                   </p>
 
-                                  {usersInMyBranches.length > 0 && (
+                                  {usersInSelectedBranch.length > 0 && (
                                     <div className="pt-3 border-t border-slate-200 space-y-1">
                                       <p className="text-xs font-semibold text-slate-700 mb-2">รายชื่อผู้ใช้ในสาขา:</p>
-                                      {usersInMyBranches.slice(0, 5).map(user => (
+                                      {usersInSelectedBranch.slice(0, 5).map(user => (
                                         <div key={user.id} className="text-xs text-slate-600 flex items-center gap-1">
                                           <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                                           {user.full_name || user.email}
                                         </div>
                                       ))}
-                                      {usersInMyBranches.length > 5 && (
-                                        <p className="text-xs text-slate-500 italic">และอีก {usersInMyBranches.length - 5} คน</p>
+                                      {usersInSelectedBranch.length > 5 && (
+                                        <p className="text-xs text-slate-500 italic">และอีก {usersInSelectedBranch.length - 5} คน</p>
                                       )}
                                     </div>
                                   )}
@@ -1990,19 +2000,7 @@ export default function Settings() {
                           </CardHeader>
                           <CardContent>
                             {(() => {
-                              // ⭐ Optimize: ใช้ useMemo สำหรับนับสาขา
-                              const { myOwnedBranches, totalBranchesInSystem } = React.useMemo(() => {
-                                const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
-                                const ownedBranches = branches.filter(b => 
-                                  b.owner_id === ownerEmail || b.created_by === ownerEmail
-                                );
-                                return { 
-                                  myOwnedBranches: ownedBranches, 
-                                  totalBranchesInSystem: ownedBranches.length 
-                                };
-                              }, [branches, branchOwnerStatus?.owner_email, currentUser?.email]);
-                              
-                              // ⭐ เช็ค trial mode จาก currentUser.plan_status
+                              // ⚡ ใช้ค่าจาก top-level useMemo
                               const isTrialMode = currentUser?.plan_status === 'trial';
                               
                               // ดึง max_branches จาก crmPackageInfo หรือใช้ 1 ถ้าเป็น trial
