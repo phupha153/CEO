@@ -11,6 +11,7 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import { useQuery } from "@tanstack/react-query";
 
 export default function SendReminderDialog({
   open,
@@ -63,40 +64,25 @@ export default function SendReminderDialog({
     }
   ];
 
+  // ⭐ ใช้ Central Template
   const getDefaultMessage = () => {
     const roomNum = room?.room_number || 'N/A';
-    const buildingName = (() => {
-      if (!configs || !selectedBranchId) return 'W RESIDENTS';
-      const branchConfig = configs.find(c => c.key === 'building_name' && c.branch_id === selectedBranchId);
-      if (branchConfig) return branchConfig.value;
-      const globalConfig = configs.find(c => c.key === 'building_name' && !c.branch_id);
-      return globalConfig?.value || 'W RESIDENTS';
-    })();
-    const bankName = (() => {
-      if (!configs || !selectedBranchId) return 'กสิกร';
-      const branchConfig = configs.find(c => c.key === 'bank_name' && c.branch_id === selectedBranchId);
-      if (branchConfig) return branchConfig.value;
-      const globalConfig = configs.find(c => c.key === 'bank_name' && !c.branch_id);
-      return globalConfig?.value || 'กสิกร';
-    })();
-    const bankAccountNumber = (() => {
-      if (!configs || !selectedBranchId) return '0722835522';
-      const branchConfig = configs.find(c => c.key === 'bank_account_number' && c.branch_id === selectedBranchId);
-      if (branchConfig) return branchConfig.value;
-      const globalConfig = configs.find(c => c.key === 'bank_account_number' && !c.branch_id);
-      return globalConfig?.value || '0722835522';
-    })();
-    const bankAccountName = (() => {
-      if (!configs || !selectedBranchId) return 'ธนานนท์ พรมพักตร์';
-      const branchConfig = configs.find(c => c.key === 'bank_account_name' && c.branch_id === selectedBranchId);
-      if (branchConfig) return branchConfig.value;
-      const globalConfig = configs.find(c => c.key === 'bank_account_name' && !c.branch_id);
-      return globalConfig?.value || 'ธนานนท์ พรมพักตร์';
-    })();
-    
     const lateFeeAmount = lateFee || 0;
     const originalAmount = (payment.total_amount || 0) - lateFeeAmount;
     const totalAmount = payment.total_amount || 0;
+
+    const getConfigValue = (key, defaultValue) => {
+      if (!configs || !selectedBranchId) return defaultValue;
+      const branchConfig = configs.find(c => c.key === key && c.branch_id === selectedBranchId);
+      if (branchConfig) return branchConfig.value;
+      const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+      return globalConfig?.value || defaultValue;
+    };
+
+    const buildingName = getConfigValue('building_name', 'W RESIDENTS');
+    const bankName = getConfigValue('bank_name', 'กสิกร');
+    const bankAccountNumber = getConfigValue('bank_account_number', '0722835522');
+    const bankAccountName = getConfigValue('bank_account_name', 'ธนานนท์ พรมพักตร์');
 
     if (selectedTemplate === 'overdue') {
       let message = `แจ้งเตือนค่าเช่าเกินกำหนด\n\n`;
@@ -112,16 +98,23 @@ export default function SendReminderDialog({
       message += `โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
       message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
       return message;
+    } else if (selectedTemplate === 'due_date') {
+      let message = `แจ้งเตือนค่าเช่า (ครบกำหนดวันนี้)\n\n`;
+      message += `${buildingName}\n`;
+      message += `คุณ ${tenant?.full_name} ห้อง ${roomNum}\n`;
+      message += `ยอดเงิน: ${totalAmount.toLocaleString()} บาท\n\n`;
+      message += `โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
+      message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
+      return message;
     } else {
-      // ข้อความปกติ (advance/due_date) - ยังคงเดิม
-      const amount = totalAmount.toLocaleString();
-      const dueDate = payment.due_date ? format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A';
-      
-      if (selectedTemplate === 'advance') {
-        return `สวัสดีคะ\n\nขอแจ้งเตือนค่าเช่าห้อง ${roomNum}\nยอดเงิน: ${amount} บาท\nครบกำหนดชำระ: ${dueDate}\n\nกรุณาเตรียมชำระภายในกำหนดนะคะ`;
-      } else {
-        return `ถึงกำหนดชำระค่าเช่าแล้ว\nห้อง ${roomNum}\nยอดเงิน: ${amount} บาท\nครบกำหนด: ${dueDate}\n\nกรุณาชำระภายในวันนี้นะคะ`;
-      }
+      // advance
+      let message = `${buildingName} - แจ้งเตือนค่าเช่าล่วงหน้า\n\n`;
+      message += `สวัสดีคุณ ${tenant?.full_name}\n`;
+      message += `ห้อง ${roomNum}\n`;
+      message += `ยอดเงิน: ${totalAmount.toLocaleString()} บาท\n\n`;
+      message += `โอนเงินได้ที่: ${bankName} ${bankAccountNumber} (${bankAccountName})\n\n`;
+      message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
+      return message;
     }
   };
 
