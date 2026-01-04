@@ -496,11 +496,11 @@ export default function Invoice() {
               <div className="flex justify-between items-center">
                 <div className="text-sm text-slate-600">
                   <span className="font-medium">ยอดเงินสุทธิ</span>
-                  <span className="ml-2">({numberToThaiText((invoiceData.total_amount || 0) + (displayLateFee - (invoiceData.late_fee_amount || 0)))})</span>
+                  <span className="ml-2">({numberToThaiText((invoiceData.total_amount || 0) + Math.max(0, displayLateFee - (invoiceData.late_fee_amount || 0)))})</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-lg font-bold text-slate-800">
-                    {((invoiceData.total_amount || 0) + (displayLateFee - (invoiceData.late_fee_amount || 0))).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                    {((invoiceData.total_amount || 0) + Math.max(0, displayLateFee - (invoiceData.late_fee_amount || 0))).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                   {/* ตราประทับ */}
                   {isPaid ? (
