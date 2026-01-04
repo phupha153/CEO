@@ -550,9 +550,9 @@ export default function Layout({ children, currentPageName }) {
               await base44.entities.User.update(currentUser.id, { custom_role: data.role });
               console.log('✅ Synced role from CRM:', data.role);
               
-              // ⭐ Force refetch user data
-              await queryClient.invalidateQueries(['currentUser']);
-              await queryClient.refetchQueries(['currentUser']);
+              // ⭐ Force reload เพื่อให้ role เปลี่ยนทันทีทุก component
+              console.log('🔄 Reloading page to apply new role...');
+              window.location.reload();
             } catch (error) {
               console.error('❌ Failed to sync role from CRM:', error);
             }
