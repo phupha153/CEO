@@ -415,12 +415,12 @@ export default function Invoice() {
                     <p className="font-medium text-slate-800">{invoiceData.recipient.lessor_name}</p>
                     {invoiceData.recipient.lessor_id && <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.lessor_id}</p>}
                     <p>{invoiceData.recipient?.lessor_address || invoiceData.recipient?.building_address}</p>
-                    {invoiceData.recipient?.lessor_phone && <p>เบอร์ติดต่อ: {invoiceData.recipient.lessor_phone}</p>}
+                    {invoiceData.recipient?.building_phone && <p>เบอร์ติดต่อ: {invoiceData.recipient.building_phone}</p>}
                   </>
                 ) : invoiceData.recipient?.building_address ? (
                   <>
                     <p>{invoiceData.recipient.building_address}</p>
-                    {invoiceData.recipient?.building_phone && <p>โทร: {invoiceData.recipient.building_phone}</p>}
+                    {invoiceData.recipient?.building_phone && <p>เบอร์ติดต่อ: {invoiceData.recipient.building_phone}</p>}
                   </>
                 ) : null}
               </div>
@@ -446,8 +446,21 @@ export default function Invoice() {
               <div className="border border-slate-200 rounded p-2">
                 <h3 className="font-semibold text-slate-700 text-xs mb-1">ผู้รับเงิน</h3>
                 <div className="text-xs text-slate-600 space-y-0.5">
-                  <p className="font-medium text-slate-800">{invoiceData.bank?.account_name || invoiceData.recipient?.lessor_name || invoiceData.recipient?.building_name}</p>
-                  <p>{invoiceData.recipient?.lessor_address || invoiceData.recipient?.building_address}</p>
+                  {invoiceData.recipient?.company_name ? (
+                    <>
+                      <p className="font-medium text-slate-800">{invoiceData.recipient.company_name}</p>
+                      {invoiceData.recipient.tax_id && <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.tax_id}</p>}
+                      <p>{invoiceData.recipient?.company_address || invoiceData.recipient?.building_address}</p>
+                      {invoiceData.recipient?.company_phone && <p>เบอร์ติดต่อ: {invoiceData.recipient.company_phone}</p>}
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium text-slate-800">{invoiceData.recipient?.lessor_name || invoiceData.recipient?.building_name}</p>
+                      {invoiceData.recipient?.lessor_id && <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.lessor_id}</p>}
+                      <p>{invoiceData.recipient?.lessor_address || invoiceData.recipient?.building_address}</p>
+                      {invoiceData.recipient?.building_phone && <p>เบอร์ติดต่อ: {invoiceData.recipient.building_phone}</p>}
+                    </>
+                  )}
                 </div>
               </div>
 
