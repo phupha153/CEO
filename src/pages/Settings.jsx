@@ -3766,7 +3766,6 @@ export default function Settings() {
                         .filter(user => {
                           const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
                           if (userRole === 'owner' && role === 'developer') return false;
-                          if (user.id === currentUser?.id) return false;
                           
                           // กรองเฉพาะผู้ใช้ที่มีสิทธิ์ในสาขาที่เลือกอยู่
                           if (selectedBranch) {
@@ -3916,12 +3915,41 @@ export default function Settings() {
                       {users.filter(user => {
                         const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
                         if (userRole === 'owner' && role === 'developer') return false;
-                        if (user.id === currentUser?.id) return false;
+                        if (selectedBranch) {
+                          const userBranches = user.accessible_branches || [];
+                          if (!userBranches.includes(selectedBranch.id)) return false;
+                        }
                         return true;
                       }).length === 0 && (
-                          <div className="text-center py-8 text-slate-500">
-                            <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                            <p>ไม่พบผู้ใช้งานที่สามารถจัดการสิทธิ์ได้</p>
+                          <div className="text-center py-16">
+                            <motion.div
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="max-w-md mx-auto"
+                            >
+                              <div className="relative mb-6">
+                                <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-indigo-400/20 rounded-full blur-2xl" />
+                                <div className="relative w-24 h-24 mx-auto bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-xl">
+                                  <Users className="w-12 h-12 text-white" />
+                                </div>
+                              </div>
+                              <h3 className="text-xl font-bold text-slate-800 mb-2">ยังไม่มีพนักงานในสาขานี้</h3>
+                              <p className="text-sm text-slate-600 mb-6">
+                                เพิ่มพนักงานเพื่อจัดการงานร่วมกันและกำหนดสิทธิ์การใช้งาน
+                              </p>
+                              {(() => {
+                                const isTrialMode = currentUser?.plan_status === 'trial';
+                                return !isTrialMode && (
+                                  <Button
+                                    onClick={() => setShowAddEmployeeDialog(true)}
+                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg px-8 py-6"
+                                  >
+                                    <UserPlus className="w-5 h-5 mr-2" />
+                                    เพิ่มพนักงานคนแรก
+                                  </Button>
+                                );
+                              })()}
+                            </motion.div>
                           </div>
                         )}
                     </div>
