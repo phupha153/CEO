@@ -83,6 +83,18 @@ export default function PaymentsPage() {
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [longPressTarget, setLongPressTarget] = useState(null);
 
+  // ⭐ Expose reset function to window for GenerateMonthlyBillsButton
+  useEffect(() => {
+    window.resetPaymentsAI = () => {
+      setAiResult(null);
+      setAiAction(null);
+      setSearchQuery('');
+    };
+    return () => {
+      delete window.resetPaymentsAI;
+    };
+  }, []);
+
   // ⭐ Escape key handler เพื่อยกเลิก selection mode
   useEffect(() => {
     if (!isSelectionMode) return;
@@ -1110,6 +1122,11 @@ export default function PaymentsPage() {
       return payment;
     },
     onSuccess: async (deletedPayment) => {
+      // ⭐ รีเซ็ต AI state เมื่อลบการชำระเงิน
+      setAiResult(null);
+      setAiAction(null);
+      setSearchQuery('');
+      
       queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
       
       // บันทึก log
