@@ -1731,7 +1731,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-pink-300/30 via-purple-300/30 to-blue-300/30 rounded-full blur-3xl" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-blue-300/20 to-pink-300/20 rounded-full blur-2xl" />
             
-            <CardContent className="p-6 md:p-8 space-y-6 relative">
+            <CardContent className="p-3 md:p-4 space-y-3 relative">
               <AISearchBox
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -2081,19 +2081,19 @@ ${JSON.stringify(roomsWithAC, null, 2)}
               </div>
 
               {(debouncedSearch || selectedFloor !== 'all' || selectedRoomType !== 'all' || selectedStatuses.length > 0) && (
-                <div className="flex items-center gap-2 flex-wrap pt-4 border-t border-white/50">
-                  <span className="text-sm text-slate-700 font-semibold">กรองโดย:</span>
+                <div className="flex items-center gap-1.5 md:gap-2 flex-wrap pt-2 border-t border-white/50">
+                  <span className="text-[10px] md:text-xs text-slate-600 font-semibold">กรอง:</span>
                   {debouncedSearch && (
-                    <Badge variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200/60">ค้นหา: {debouncedSearch}</Badge>
+                    <Badge variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200/60 text-[10px] md:text-xs py-0 h-5">ค้นหา: {debouncedSearch}</Badge>
                   )}
                   {selectedFloor !== 'all' && (
-                    <Badge variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200/60">ชั้น {selectedFloor}</Badge>
+                    <Badge variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200/60 text-[10px] md:text-xs py-0 h-5">ชั้น {selectedFloor}</Badge>
                   )}
                   {selectedRoomType !== 'all' && (
-                    <Badge variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200/60">ประเภท: {selectedRoomType === 'monthly' ? 'รายเดือน' : 'รายวัน'}</Badge>
+                    <Badge variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200/60 text-[10px] md:text-xs py-0 h-5">{selectedRoomType === 'monthly' ? 'รายเดือน' : 'รายวัน'}</Badge>
                   )}
                   {selectedStatuses.map(status => (
-                    <Badge key={status} variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200/60">{getStatusLabel(status)}</Badge>
+                    <Badge key={status} variant="outline" className="bg-white/80 backdrop-blur-sm border-slate-200/60 text-[10px] md:text-xs py-0 h-5">{getStatusLabel(status)}</Badge>
                   ))}
                   <Button
                     variant="ghost"
@@ -2105,9 +2105,9 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       setSelectedStatuses([]);
                       setCurrentPage(1);
                     }}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50/50 text-xs rounded-lg"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50/50 text-[10px] md:text-xs rounded-lg h-5 px-2"
                   >
-                    ล้างทั้งหมด
+                    ล้าง
                   </Button>
                 </div>
               )}
