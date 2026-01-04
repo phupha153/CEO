@@ -881,7 +881,7 @@ export default function PaymentsPage() {
       return paymentsToSum.reduce((sum, p) => {
         const baseAmount = parseFloat(p.total_amount) || 0;
         // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
-        const lateFee = p.late_fee_amount ? 0 : calculateLateFee(p);
+        const lateFee = (p.late_fee_amount && p.late_fee_amount > 0) ? 0 : calculateLateFee(p);
         if (isNaN(baseAmount) || isNaN(lateFee)) {
           console.error('Invalid amount for payment:', p.id, { baseAmount, lateFee });
           return sum;
