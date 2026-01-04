@@ -760,11 +760,12 @@ export default function Announcements() {
                     } catch (error) {
                       console.error('Unlink error:', error);
                       toast.error('ยกเลิกการเชื่อมต่อไม่สำเร็จ: ' + error.message);
-                    }
-                  }}
-                    loading={messagesLoading}
-                  />
-                </div>
+                      }
+                      }}
+                      loading={messagesLoading}
+                      />
+                      )}
+                      </div>
               </div>
             </Card>
           </TabsContent>
