@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Download, Loader2, CheckCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { base44 } from "@/api/base44Client";
+import html2canvas from "html2canvas";
 
 // ⭐ Note: calculateLateFee ถูกย้ายไปยัง backend utility แล้ว
 // Frontend ใช้ค่าปรับที่คำนวณจาก backend ผ่าน invoice data
@@ -71,6 +72,8 @@ export default function PublicReceipt() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [configs, setConfigs] = useState([]);
+  const [downloading, setDownloading] = useState(false);
+  const receiptRef = useRef(null);
 
   useEffect(() => {
     if (!paymentId) {
@@ -133,6 +136,29 @@ export default function PublicReceipt() {
   const paymentDate = receiptData.payment_date 
     ? format(parseISO(receiptData.payment_date), 'd MMMM yyyy', { locale: th })
     : format(new Date(), 'd MMMM yyyy', { locale: th });
+
+  const handleDownloadImage = async () => {
+    if (!receiptRef.current || downloading) return;
+
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+
+      const link = document.createElement('a');
+      link.download = `ใบเสร็จ-${receiptNumber}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Error generating image:', error);
+      alert('ดาวน์โหลดไม่สำเร็จ กรุณาลองอีกครั้ง');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   // ⭐ ใช้ค่าปรับจาก backend (คำนวณแล้ว)
   const displayLateFee = receiptData.late_fee_amount || 0;
@@ -290,22 +316,24 @@ export default function PublicReceipt() {
       <div className="print:hidden bg-white border-b shadow-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex justify-end items-center gap-2">
           <Button
-            onClick={() => {
-              console.log('Print button clicked');
-              setTimeout(() => window.print(), 100);
-            }}
+            onClick={handleDownloadImage}
             size="sm"
             variant="default"
             className="gap-2 text-sm bg-green-600 hover:bg-green-700 px-4 py-2 active:scale-95 transition-transform"
+            disabled={downloading}
           >
-            <Download className="w-4 h-4" />
-            พิมพ์ / บันทึก PDF
+            {downloading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            {downloading ? 'กำลังสร้างรูป...' : 'ดาวน์โหลดรูปภาพ'}
           </Button>
         </div>
       </div>
 
       <div className="receipt-container mx-auto p-8 print:p-0">
-        <div className="receipt-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden">
+        <div ref={receiptRef} className="receipt-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden">
           <div className="p-8 print:p-5">
             <div className="mb-4 pb-3 border-b border-slate-200">
               <div className="flex items-start justify-between">

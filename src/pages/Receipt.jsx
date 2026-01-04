@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Download, Loader2, CheckCircle, RefreshCw, Building2, Users, ArrowLeft } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
+import html2canvas from "html2canvas";
 import {
   Dialog,
   DialogContent,
@@ -79,6 +80,8 @@ export default function Receipt() {
   const [error, setError] = useState(null);
   const [configs, setConfigs] = useState([]);
   const [showDebug, setShowDebug] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const receiptRef = useRef(null);
 
   const fetchReceipt = async () => {
     if (!paymentId) {
@@ -142,8 +145,27 @@ export default function Receipt() {
     fetchReceipt();
   }, [paymentId]);
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownloadImage = async () => {
+    if (!receiptRef.current || downloading) return;
+    
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false
+      });
+      
+      const link = document.createElement('a');
+      link.download = `ใบเสร็จ-${receiptNumber}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Error generating image:', error);
+      alert('ดาวน์โหลดไม่สำเร็จ กรุณาลองอีกครั้ง');
+    } finally {
+      setDownloading(false);
+    }
   };
 
   if (loading) {
@@ -505,16 +527,18 @@ export default function Receipt() {
               </a>
             )}
             <Button
-              onClick={() => {
-                console.log('Print button clicked');
-                setTimeout(() => window.print(), 100);
-              }}
+              onClick={handleDownloadImage}
               size="sm"
               variant="default"
               className="gap-2 text-sm bg-blue-600 hover:bg-blue-700 px-4 py-2 active:scale-95 transition-transform"
+              disabled={downloading}
             >
-              <Download className="w-4 h-4" />
-              พิมพ์ / บันทึก PDF
+              {downloading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {downloading ? 'กำลังสร้างรูป...' : 'ดาวน์โหลดรูปภาพ'}
             </Button>
           </div>
         </div>
@@ -522,7 +546,7 @@ export default function Receipt() {
 
       {/* Receipt Content - ปรับให้พอดี A4 */}
       <div className="receipt-container mx-auto p-4 md:p-8 print:p-0">
-        <div className="receipt-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden">
+        <div ref={receiptRef} className="receipt-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden">
           <div className="p-8 print:p-5">
             {/* Header Section */}
             <div className="mb-4 pb-3 border-b border-slate-200">
