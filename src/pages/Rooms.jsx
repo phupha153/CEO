@@ -1842,11 +1842,11 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 </AIResultCard>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 <div>
-                  <Label className="text-sm mb-3 block font-semibold text-slate-700">กรองตามชั้น</Label>
+                  <Label className="text-xs md:text-sm mb-2 block font-semibold text-slate-700">กรองตามชั้น</Label>
                   <Select value={selectedFloor} onValueChange={(value) => { setSelectedFloor(value); setCurrentPage(1); }}>
-                    <SelectTrigger className="h-12 rounded-2xl bg-white/60 backdrop-blur-xl shadow-lg border-white/70">
+                    <SelectTrigger className="h-9 md:h-10 rounded-xl text-sm bg-white/60 backdrop-blur-xl shadow-md border-white/70">
                       <SelectValue placeholder="ทุกชั้น" />
                     </SelectTrigger>
                     <SelectContent className="bg-white/95 backdrop-blur-2xl border-white/80 rounded-xl">
@@ -1861,8 +1861,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 </div>
 
                 <div className="flex flex-col justify-end">
-                  <div className="flex justify-between items-center mb-3">
-                    <Label className="text-sm font-semibold text-slate-700">
+                  <div className="flex justify-between items-center mb-2">
+                    <Label className="text-xs md:text-sm font-semibold text-slate-700">
                       สถานะห้อง {selectedStatuses.length > 0 && `(${selectedStatuses.length})`}
                     </Label>
                   </div>
@@ -1870,28 +1870,28 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full h-12 justify-between rounded-2xl bg-white/60 backdrop-blur-xl shadow-lg border-white/70"
+                        className="w-full h-9 md:h-10 justify-between rounded-xl text-sm bg-white/60 backdrop-blur-xl shadow-md border-white/70"
                       >
-                        <span className="text-sm font-medium">
+                        <span className="text-xs md:text-sm font-medium">
                           {selectedStatuses.length === 0 
                             ? 'ทุกสถานะ' 
                             : `เลือกแล้ว ${selectedStatuses.length} สถานะ`}
                         </span>
-                        <ChevronRight className="w-4 h-4 ml-2 rotate-90" />
+                        <ChevronRight className="w-3 h-3 md:w-4 md:h-4 ml-2 rotate-90" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-80 p-4 bg-white/95 backdrop-blur-2xl border-white/80 rounded-2xl shadow-2xl" align="end">
+                    <PopoverContent className="w-72 md:w-80 p-3 md:p-4 bg-white/95 backdrop-blur-2xl border-white/80 rounded-xl md:rounded-2xl shadow-2xl" align="end">
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between mb-4">
-                          <h4 className="font-bold text-slate-800">เลือกสถานะ</h4>
+                        <div className="flex items-center justify-between mb-3 md:mb-4">
+                          <h4 className="font-bold text-slate-800 text-sm md:text-base">เลือกสถานะ</h4>
                           {selectedStatuses.length > 0 && (
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => setSelectedStatuses([])}
-                              className="h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50/50 rounded-lg"
+                              className="h-7 md:h-8 text-xs text-red-600 hover:text-red-700 hover:bg-red-50/50 rounded-lg px-2"
                             >
-                              ล้างทั้งหมด
+                              ล้าง
                             </Button>
                           )}
                         </div>
@@ -2139,37 +2139,37 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             </Button>
           </div>
 
-          <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
-            <CardContent className="p-4">
-              <div className="flex flex-wrap gap-3 md:gap-4 items-center text-xs md:text-sm">
-                <span className="font-semibold text-slate-700">สถานะห้อง:</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 md:w-4 md:h-4 rounded bg-gradient-to-r from-green-500 to-emerald-600"></div>
+          <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-lg rounded-xl md:rounded-2xl overflow-hidden">
+            <CardContent className="p-2 md:p-3">
+              <div className="flex flex-wrap gap-2 md:gap-3 items-center text-[10px] md:text-xs">
+                <span className="font-semibold text-slate-700 text-xs hidden md:inline">สถานะห้อง:</span>
+                <div className="flex items-center gap-1 md:gap-1.5">
+                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded bg-gradient-to-r from-green-500 to-emerald-600"></div>
                   <span className="text-slate-600">ว่าง</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 md:w-4 md:h-4 rounded bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                <div className="flex items-center gap-1 md:gap-1.5">
+                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded bg-gradient-to-r from-blue-500 to-indigo-600"></div>
                   <span className="text-slate-600">มีผู้เช่า</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 md:w-4 md:h-4 rounded bg-gradient-to-r from-orange-500 to-amber-600"></div>
+                <div className="flex items-center gap-1 md:gap-1.5">
+                  <div className="w-2.5 h-2.5 md:w-3 md:h-3 rounded bg-gradient-to-r from-orange-500 to-amber-600"></div>
                   <span className="text-slate-600">จอง</span>
                 </div>
-                <div className="flex items-center gap-1 md:gap-2">
-                  <AlertTriangle className="w-3 h-3 md:w-4 md:h-4 text-red-500" />
-                  <span className="text-slate-600">ใกล้หมดสัญญา</span>
+                <div className="flex items-center gap-1">
+                  <AlertTriangle className="w-2.5 h-2.5 md:w-3 md:h-3 text-red-500" />
+                  <span className="text-slate-600">หมดสัญญา</span>
                 </div>
-                <div className="flex items-center gap-1 md:gap-2">
-                  <Clock className="w-3 h-3 md:w-4 md:h-4 text-yellow-500" />
+                <div className="flex items-center gap-1">
+                  <Clock className="w-2.5 h-2.5 md:w-3 md:h-3 text-yellow-500" />
                   <span className="text-slate-600">ใกล้ชำระ</span>
                 </div>
-                <div className="flex items-center gap-1 md:gap-2">
-                  <DollarSign className="w-3 h-3 md:w-4 md:h-4 text-red-500" />
+                <div className="flex items-center gap-1">
+                  <DollarSign className="w-2.5 h-2.5 md:w-3 md:h-3 text-red-500" />
                   <span className="text-slate-600">เกินกำหนด</span>
                 </div>
-                <div className="flex items-center gap-1 md:gap-2">
-                  <Wind className="w-3 h-3 md:w-4 md:h-4 text-cyan-500" />
-                  <span className="text-slate-600">แอร์ต้องล้าง</span>
+                <div className="flex items-center gap-1">
+                  <Wind className="w-2.5 h-2.5 md:w-3 md:h-3 text-cyan-500" />
+                  <span className="text-slate-600">แอร์</span>
                 </div>
               </div>
             </CardContent>
