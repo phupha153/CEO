@@ -137,9 +137,15 @@ Deno.serve(async (req) => {
 
         // กรองบิลที่ยังไม่ได้ส่งแจ้งเตือนวันครบกำหนด และสาขาเปิดใช้งาน
         const dueToday = allPayments.filter(p => {
-            // ⭐ เช็คเฉพาะว่าส่งแจ้งเตือนวันครบกำหนดไปแล้วหรือยัง (ไม่เช็ค advance_reminder)
-            if (p.due_date_reminder_sent_date) return false;
-            if (!enabledBranches.includes(p.branch_id)) return false;
+            // ⭐ เช็คแบบเข้มงวด - ป้องกันส่งซ้ำ
+            if (p.due_date_reminder_sent_date) {
+                console.log(`⏭️ Skip payment ${p.id} - due date reminder already sent at ${p.due_date_reminder_sent_date}`);
+                return false;
+            }
+            if (!enabledBranches.includes(p.branch_id)) {
+                console.log(`⏭️ Skip payment ${p.id} - branch ${p.branch_id} disabled`);
+                return false;
+            }
             return true;
         });
         
@@ -201,13 +207,35 @@ Deno.serve(async (req) => {
                 const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', paymentBranchId);
                 const branchLateFeePerDay = parseFloat(getConfigValue('late_payment_fee_per_day', '0', paymentBranchId));
 
+                // ⭐ ดึงค่าปรับแบบขั้นบันได (ถ้ามี)
+                const lateFeeStructureConfig = configs.find(c => 
+                    c.key === 'late_fee_structure' && c.branch_id === paymentBranchId
+                );
+                let lateFeeStructure = null;
+                if (lateFeeStructureConfig?.value) {
+                    try {
+                        lateFeeStructure = JSON.parse(lateFeeStructureConfig.value);
+                    } catch {}
+                }
+
                 // ⭐ ข้อความสั้นกระชับ - วันครบกำหนดชำระ
                 let message = `⏰ วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
                 message += `🏠 ${branchBuildingName}\n`;
                 message += `👤 คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n`;
                 message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
                 
-                if (branchLateFeePerDay > 0) {
+                // ⭐ แจ้งค่าปรับแบบขั้นบันได (ถ้ามี)
+                if (lateFeeStructure && Array.isArray(lateFeeStructure) && lateFeeStructure.length > 0) {
+                    message += `⚠️ ค่าปรับชำระล่าช้า:\n`;
+                    lateFeeStructure.forEach((tier, idx) => {
+                        if (tier.days_start && tier.days_end) {
+                            message += `   ${tier.days_start}-${tier.days_end} วัน: ${tier.fee_per_day} บาท/วัน\n`;
+                        } else if (tier.days_start) {
+                            message += `   ${tier.days_start}+ วัน: ${tier.fee_per_day} บาท/วัน\n`;
+                        }
+                    });
+                    message += `\n`;
+                } else if (branchLateFeePerDay > 0) {
                     message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน\n\n`;
                 }
                 
