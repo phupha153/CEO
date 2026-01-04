@@ -3746,6 +3746,18 @@ export default function Settings() {
                           เลือกบทบาท จัดการสิทธิ์การเข้าถึง และกำหนดสาขาที่ผู้ใช้สามารถเข้าถึงได้
                         </p>
                       </div>
+                      {(() => {
+                        const isTrialMode = currentUser?.plan_status === 'trial';
+                        return !isTrialMode && (
+                          <Button
+                            onClick={() => setShowAddEmployeeDialog(true)}
+                            className="bg-gradient-to-r from-blue-600 to-indigo-600"
+                          >
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            เพิ่มพนักงาน
+                          </Button>
+                        );
+                      })()}
                     </div>
                   </CardHeader>
                   <CardContent>
