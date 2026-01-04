@@ -35,60 +35,121 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   const showAllBranches = userRole === 'developer' || userRole === 'owner';
   const canDelete = userRole === 'developer' || userRole === 'owner';
 
+  // 🔒 Security: คำนวณสาขาที่มีสิทธิ์เข้าถึง
+  const allowedBranchIds = useMemo(() => {
+    if (userRole === 'developer') return null; // null = ทุกสาขา
+    
+    // Owner = สาขาที่เป็น owner_id
+    if (userRole === 'owner') {
+      return null; // จะกรองใน backend ด้วย owner_id
+    }
+    
+    // Employee/Manager = เฉพาะ accessible_branches
+    if (userAccessibleBranches && userAccessibleBranches.length > 0) {
+      return userAccessibleBranches;
+    }
+    
+    // ถ้าไม่มีสิทธิ์เลย = block
+    return [];
+  }, [userRole, userAccessibleBranches]);
+
+  // 🔒 Block queries ถ้าไม่มีสิทธิ์เลย
+  const canLoadData = allowedBranchIds === null || allowedBranchIds.length > 0;
+
   const { data: branches = [] } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
-    enabled: showAllBranches && isOpen,
+    enabled: showAllBranches && isOpen && canLoadData,
     staleTime: 60 * 60 * 1000,
   });
 
+  // 🔒 Security: ใช้ getSecureData สำหรับข้อมูลสำคัญ
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
-    queryKey: ['allPayments', 'notifications'],
+    queryKey: ['allPayments', 'notifications', 'secure', allowedBranchIds],
     queryFn: async () => {
-      // ใช้ filter แทน list เพื่อให้ได้ข้อมูลเหมือนหน้า Payments
-      return await base44.entities.Payment.filter({});
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Payment',
+        filters: {}, // backend จะกรองตาม user permissions
+        limit: 1000
+      });
+      return response.data.data;
     },
-    enabled: isOpen,
+    enabled: isOpen && canLoadData,
     staleTime: 0,
     refetchOnMount: true,
   });
 
   const { data: allRooms = [] } = useQuery({
-    queryKey: ['allRooms', 'notifications'],
-    queryFn: async () => await base44.entities.Room.filter({}),
-    enabled: isOpen,
+    queryKey: ['allRooms', 'notifications', 'secure', allowedBranchIds],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Room',
+        filters: {},
+        limit: 1000
+      });
+      return response.data.data;
+    },
+    enabled: isOpen && canLoadData,
     staleTime: 0,
     refetchOnMount: true,
   });
 
   const { data: allMaintenanceRequests = [] } = useQuery({
-    queryKey: ['allMaintenanceRequests', 'notifications'],
-    queryFn: async () => await base44.entities.MaintenanceRequest.filter({}),
-    enabled: isOpen,
+    queryKey: ['allMaintenanceRequests', 'notifications', 'secure', allowedBranchIds],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'MaintenanceRequest',
+        filters: {},
+        limit: 500
+      });
+      return response.data.data;
+    },
+    enabled: isOpen && canLoadData,
     staleTime: 0,
     refetchOnMount: true,
   });
 
   const { data: allBookings = [] } = useQuery({
-    queryKey: ['allBookings', 'notifications'],
-    queryFn: async () => await base44.entities.Booking.filter({}),
-    enabled: isOpen,
+    queryKey: ['allBookings', 'notifications', 'secure', allowedBranchIds],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Booking',
+        filters: {},
+        limit: 500
+      });
+      return response.data.data;
+    },
+    enabled: isOpen && canLoadData,
     staleTime: 0,
     refetchOnMount: true,
   });
 
   const { data: allMaterialDeliveries = [] } = useQuery({
-    queryKey: ['allMaterialDeliveries', 'notifications'],
-    queryFn: async () => await base44.entities.MaterialDelivery.filter({}),
-    enabled: isOpen,
+    queryKey: ['allMaterialDeliveries', 'notifications', 'secure', allowedBranchIds],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'MaterialDelivery',
+        filters: {},
+        limit: 500
+      });
+      return response.data.data;
+    },
+    enabled: isOpen && canLoadData,
     staleTime: 0,
     refetchOnMount: true,
   });
 
   const { data: allTenants = [] } = useQuery({
-    queryKey: ['allTenants', 'notifications'],
-    queryFn: async () => await base44.entities.Tenant.filter({}),
-    enabled: isOpen,
+    queryKey: ['allTenants', 'notifications', 'secure', allowedBranchIds],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Tenant',
+        filters: {},
+        limit: 500
+      });
+      return response.data.data;
+    },
+    enabled: isOpen && canLoadData,
     staleTime: 0,
     refetchOnMount: true,
   });
