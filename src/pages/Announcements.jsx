@@ -81,7 +81,8 @@ export default function Announcements() {
       const allRooms = await base44.entities.Room.list();
       return allRooms.filter(room => room.branch_id === selectedBranchId);
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 1 * 1000, // ⭐ ลด cache เหลือ 1 วินาที
+    refetchOnMount: true, // ⭐ โหลดทุกครั้งที่เปิดหน้า
   });
 
   const { data: bookings = [] } = useQuery({
