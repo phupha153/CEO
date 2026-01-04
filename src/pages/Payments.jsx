@@ -397,13 +397,12 @@ export default function PaymentsPage() {
     refetchOnWindowFocus: false,
   });
 
-  // ⭐ Auto-update room view month when configs load - ใช้เดือนปัจจุบันเสมอ
+  // ⭐ Set initial room view month once (don't override user selection)
   useEffect(() => {
     if (!configs || configs.length === 0 || !selectedBranchId) return;
     
-    const now = new Date();
-    setRoomViewMonth(format(now, 'yyyy-MM'));
-  }, [configs, selectedBranchId]);
+    // ⭐ ไม่ set ซ้ำถ้า user เลือกเดือนไว้แล้ว - set เฉพาะครั้งแรก
+  }, []);
 
   const isDataFetching = paymentsFetching || bookingsFetching || roomsFetching || tenantsFetching;
 
