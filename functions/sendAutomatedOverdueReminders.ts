@@ -407,7 +407,7 @@ Deno.serve(async (req) => {
 
             if (daysOverdue <= 0) continue;
 
-            // 🔒 LOCK 1: ถ้า admin ล็อคค่าปรับไว้ → skip
+            // 🔒 LOCK 1: ถ้า admin ล็อคค่าปรับไว้ → skip (ไม่คำนวณทับ)
             if (payment.late_fee_locked === true) {
                 const room = roomMap.get(payment.room_id);
                 console.log(`🔒 LOCKED ${payment.id.substring(0,8)} (ห้อง ${room?.room_number}): Admin locked at ${payment.late_fee_amount || 0} บาท`);
