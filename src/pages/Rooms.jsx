@@ -2376,6 +2376,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       type="number"
                       value={formData.floor}
                       onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
                       required
                     />
                   </div>
@@ -2400,6 +2401,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       type="number"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
                       required
                     />
                   </div>
@@ -2425,6 +2427,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       type="number"
                       value={formData.size}
                       onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
                     />
                   </div>
                 </div>
@@ -2437,6 +2440,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       placeholder={branchWaterRate ? `${branchWaterRate} (ค่ากลาง)` : "0"}
                       value={formData.water_rate}
                       onChange={(e) => setFormData({ ...formData, water_rate: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
                     />
                   </div>
                   <div>
@@ -2446,6 +2450,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       placeholder={branchElecRate ? `${branchElecRate} (ค่ากลาง)` : "0"}
                       value={formData.electricity_rate}
                       onChange={(e) => setFormData({ ...formData, electricity_rate: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
                     />
                   </div>
                   <div>
@@ -2455,6 +2460,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       placeholder={branchCommonFee ? `${branchCommonFee} (ค่ากลาง)` : "0"}
                       value={formData.common_fee}
                       onChange={(e) => setFormData({ ...formData, common_fee: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
                     />
                   </div>
                 </div>
@@ -2489,6 +2495,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             newFees[index].amount = parseFloat(e.target.value);
                             setFormData({ ...formData, other_monthly_fees: newFees });
                           }}
+                          onWheel={(e) => e.target.blur()}
                           placeholder="0"
                         />
                       </div>
@@ -3338,6 +3345,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                   type="number"
                   value={renewMonths}
                   onChange={(e) => setRenewMonths(parseInt(e.target.value) || 1)}
+                  onWheel={(e) => e.target.blur()}
                   min="1"
                   className="w-full"
                 />
