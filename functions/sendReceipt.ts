@@ -204,21 +204,6 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // ⭐ สร้างลิงก์ PublicReceipt แทนการสร้างรูป
-        const frontendUrl = getConfig('frontend_url') || Deno.env.get('FRONTEND_URL');
-        
-        if (!frontendUrl) {
-            console.error('❌ Missing FRONTEND_URL config');
-            return Response.json({ 
-                success: false,
-                error: 'ระบบยังไม่ได้ตั้งค่า FRONTEND_URL',
-                message: 'Please set frontend_url in Config or FRONTEND_URL environment variable'
-            }, { status: 500 });
-        }
-
-        const receiptLink = `${frontendUrl}/publicreceipt?id=${payment.id}`;
-        console.log(`📄 Receipt link: ${receiptLink}`);
-
         // ⭐ ดึง tenant โดยตรงจาก tenant_id ก่อน (วิธีที่เชื่อถือได้ที่สุด)
         console.log('📥 Fetching tenant directly by ID:', payment.tenant_id);
         let tenant = null;
@@ -311,6 +296,20 @@ Deno.serve(async (req) => {
             const globalConfig = configs.find(c => c.key === key && !c.branch_id);
             return globalConfig ? globalConfig.value : defaultValue;
         };
+
+        // ⭐ สร้างลิงก์ PublicReceipt
+        const frontendUrl = getConfig('frontend_url', null) || Deno.env.get('FRONTEND_URL');
+        
+        if (!frontendUrl) {
+            console.error('❌ Missing FRONTEND_URL config');
+            return Response.json({ 
+                success: false,
+                error: 'ระบบยังไม่ได้ตั้งค่า FRONTEND_URL'
+            }, { status: 500 });
+        }
+
+        const receiptLink = `${frontendUrl}/publicreceipt?id=${payment.id}`;
+        console.log(`📄 Receipt link: ${receiptLink}`);
 
         const bankAccountName = getConfig('bank_account_name', 'ธนานนท์ พรมพักตร์');
         const lessorName = getConfig('lessor_name', bankAccountName);
