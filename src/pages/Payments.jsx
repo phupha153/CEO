@@ -2677,7 +2677,7 @@ Return JSON.`;
                   >
                     {totalAmounts.all.toLocaleString('th-TH')}
                   </motion.p>
-                  <p className="text-xs text-slate-500 mt-1">บาท ({filteredPayments.length} รายการ)</p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.all} รายการ)</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -2712,7 +2712,7 @@ Return JSON.`;
                   >
                     {totalAmounts.pending.toLocaleString('th-TH')}
                   </motion.p>
-                  <p className="text-xs text-slate-500 mt-1">บาท ({filteredPayments.filter(p => getEffectiveStatus(p) === 'pending').length} รายการ)</p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.pending} รายการ)</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -2747,7 +2747,7 @@ Return JSON.`;
                   >
                     {totalAmounts.overdue.toLocaleString('th-TH')}
                   </motion.p>
-                  <p className="text-xs text-slate-500 mt-1">บาท ({filteredPayments.filter(p => getEffectiveStatus(p) === 'overdue').length} รายการ)</p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.overdue} รายการ)</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -2782,7 +2782,7 @@ Return JSON.`;
                   >
                     {totalAmounts.paid.toLocaleString('th-TH')}
                   </motion.p>
-                  <p className="text-xs text-slate-500 mt-1">บาท ({filteredPayments.filter(p => getEffectiveStatus(p) === 'paid').length} รายการ)</p>
+                  <p className="text-xs text-slate-500 mt-1">บาท ({statusCounts.paid} รายการ)</p>
                 </CardContent>
               </Card>
             </motion.div>
