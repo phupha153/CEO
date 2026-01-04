@@ -2845,21 +2845,8 @@ Return JSON.`;
             </div>
           </div>
 
-          {paymentsLoading && payments.length === 0 ? (
-            <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
-              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-              <p className="text-xl font-semibold text-slate-800">กำลังโหลดข้อมูล...</p>
-            </div>
-          ) : paginatedPayments.length === 0 && viewMode !== 'room' ? (
-            <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
-              <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-              <p className="text-xl font-semibold text-slate-800">ไม่พบรายการชำระเงิน</p>
-              <p className="text-slate-600">ลองเปลี่ยนช่วงเวลาหรือสถานะการค้นหา</p>
-            </div>
-          ) : (
-            <>
-              {/* Filters for Card & Table View */}
-              {viewMode !== 'room' && (
+          {/* Filters for Card & Table View - แสดงเสมอ */}
+          {viewMode !== 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
                   <CardContent className="p-4">
                     <div className="flex flex-wrap items-center gap-3">
@@ -2949,7 +2936,18 @@ Return JSON.`;
                 </Card>
               )}
 
-              {viewMode === 'card' && (
+          {paymentsLoading && payments.length === 0 ? (
+            <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
+              <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-xl font-semibold text-slate-800">กำลังโหลดข้อมูล...</p>
+            </div>
+          ) : paginatedPayments.length === 0 && viewMode !== 'room' ? (
+            <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
+              <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+              <p className="text-xl font-semibold text-slate-800">ไม่พบรายการชำระเงิน</p>
+              <p className="text-slate-600">ลองเปลี่ยนช่วงเวลาหรือสถานะการค้นหา</p>
+            </div>
+          ) : viewMode === 'card' && (
                 <div className="grid grid-cols-1 gap-4 relative">
                   {paymentsFetching && (
                     <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
