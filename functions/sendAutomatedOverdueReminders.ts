@@ -256,37 +256,14 @@ Deno.serve(async (req) => {
             });
         }
 
-        // 2. Helper function สำหรับดึงข้อมูลแบบ pagination
-        async function fetchAllWithPagination(entity, filter = null, batchSize = 5000) {
-            let allData = [];
-            let skip = 0;
-            let hasMore = true;
-            
-            while (hasMore) {
-                const batch = filter 
-                    ? await entity.filter(filter, '-created_date', batchSize, skip)
-                    : await entity.list('-created_date', batchSize, skip);
-                    
-                if (!Array.isArray(batch) || batch.length === 0) {
-                    hasMore = false;
-                } else {
-                    allData = allData.concat(batch);
-                    skip += batch.length;
-                    if (batch.length < batchSize) {
-                        hasMore = false;
-                    }
-                }
-            }
-            return allData;
-        }
-
         // 3. ดึงข้อมูลแบบกรองเฉพาะที่จำเป็น - filter status ตั้งแต่ query
         console.log('🔍 Fetching filtered overdue payments...');
         console.log('⭐ Using NEW VERSION with STEP 1+2+3 (late fee calc + invoice gen + messaging)');
 
         const today = startOfDay(new Date());
 
-        // ⭐ ดึงเฉพาะ payment ที่ยังไม่ชำระ (pending/overdue) - ลด memory/network
+        // ⭐ ดึงเฉพาะ payment ที่ยังไม่ชำระ (pending/overdue) - ใช้ limit*2 แทน fetchAll
+        // ⚡ ใช้ limit*2 เพื่อให้มีพอกรองหลังจากเช็ค overdue_reminder_sent_date
         const paymentFilter = {
             status: 'pending'  // ดึงเฉพาะที่ยังไม่จ่าย
         };
@@ -295,7 +272,7 @@ Deno.serve(async (req) => {
             paymentFilter.branch_id = targetBranchId;
         }
 
-        let pendingPayments = await fetchAllWithPagination(base44.asServiceRole.entities.Payment, paymentFilter);
+        let pendingPayments = await base44.asServiceRole.entities.Payment.filter(paymentFilter, '-created_date', limit * 2);
 
         // เพิ่มเช็ค status='overdue' ด้วย (กรณีที่ระบบตั้งเป็น overdue แล้ว)
         const overdueFilter = {
@@ -305,7 +282,7 @@ Deno.serve(async (req) => {
             overdueFilter.branch_id = targetBranchId;
         }
 
-        const overdueByStatus = await fetchAllWithPagination(base44.asServiceRole.entities.Payment, overdueFilter);
+        const overdueByStatus = await base44.asServiceRole.entities.Payment.filter(overdueFilter, '-created_date', limit * 2);
         const allUnpaidPayments = [...pendingPayments, ...overdueByStatus];
 
         console.log(`📊 Fetched ${allUnpaidPayments.length} unpaid payments (pending+overdue)`);
@@ -737,7 +714,7 @@ Deno.serve(async (req) => {
         // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ - ลด batch size เพื่อหลีกเลี่ยง rate limit
         console.log(`📝 Updating sent_date for ${successfulPaymentIds.size} successful payments...`);
         const now_iso = new Date().toISOString();
-        const updateBatchSize = 10; // ลดจาก 50 เป็น 10
+        const updateBatchSize = 100; // เพิ่มเป็น 100 เพื่อเพิ่มประสิทธิภาพ
         const paymentIdsArray = Array.from(successfulPaymentIds);
         
         for (let i = 0; i < paymentIdsArray.length; i += updateBatchSize) {
