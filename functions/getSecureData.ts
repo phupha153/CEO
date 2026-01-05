@@ -28,7 +28,14 @@ Deno.serve(async (req) => {
     }
 
     // ⭐ ตรวจสอบสถานะ trial ของ user
-    const userRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+    const userRole = user.custom_role || (user.role === 'admin' ? 'developer' : 'employee');
+    
+    console.log('🔍 getSecureData - User Role Check:', {
+      email: user.email,
+      base_role: user.role,
+      custom_role: user.custom_role,
+      calculated_role: userRole
+    });
     
     // Developer ไม่ต้องเช็ค trial
     if (userRole !== 'developer') {
@@ -55,11 +62,20 @@ Deno.serve(async (req) => {
     const accessibleBranches = user.accessible_branches;
 
     // Developer ที่ไม่มี accessible_branches = เข้าถึงทุกสาขา
-    const canAccessAllBranches = userRole === 'developer' && (!accessibleBranches || accessibleBranches.length === 0);
+    // Owner ที่ไม่มี accessible_branches = เข้าถึงทุกสาขา (ของตัวเอง)
+    const canAccessAllBranches = (userRole === 'developer' || userRole === 'owner') && (!accessibleBranches || accessibleBranches.length === 0);
+
+    console.log('🔍 getSecureData - Access Check:', {
+      userRole,
+      accessibleBranches,
+      canAccessAllBranches,
+      requested_branch_id: filters.branch_id
+    });
 
     // ถ้ามี branch_id ใน filters ให้เช็คสิทธิ์
     if (filters.branch_id && !canAccessAllBranches) {
       if (!accessibleBranches || !accessibleBranches.includes(filters.branch_id)) {
+        console.error('❌ Access denied - User:', user.email, 'Role:', userRole, 'Requested branch:', filters.branch_id, 'Accessible:', accessibleBranches);
         return Response.json({ error: 'Access denied to this branch' }, { status: 403 });
       }
     }
