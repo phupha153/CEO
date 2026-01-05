@@ -47,6 +47,7 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
     const floors = parseInt(config.floors);
     const roomsPerFloor = parseInt(config.roomsPerFloor);
     const startFloor = parseInt(config.floorStart) || 1;
+    const startRoom = parseInt(config.roomStart) || 1;
     const price = parseFloat(config.price) || 0;
 
     if (!floors || !roomsPerFloor) {
@@ -57,9 +58,10 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
     const rooms = [];
     for (let f = 0; f < floors; f++) {
       const floorNum = startFloor + f;
-      for (let r = 1; r <= roomsPerFloor; r++) {
+      for (let r = 0; r < roomsPerFloor; r++) {
+        const roomInFloor = startRoom + r;
         // Room Number Format: Floor + 2 digit room (e.g., 101, 102... 201)
-        const roomNum = `${floorNum}${r.toString().padStart(2, '0')}`;
+        const roomNum = `${floorNum}${roomInFloor.toString().padStart(2, '0')}`;
         
         rooms.push({
           room_number: roomNum,
@@ -187,6 +189,15 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label>เลขห้องเริ่มต้น (ต่อชั้น)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="ปกติเริ่มที่ 1" 
+                    value={config.roomStart}
+                    onChange={(e) => setConfig({...config, roomStart: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>ประเภทห้อง (ค่าเริ่มต้น)</Label>
                   <Select 
                     value={config.roomType} 
@@ -214,8 +225,9 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
 
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800">
                 <p className="font-semibold mb-1">💡 ตัวอย่างการสร้าง</p>
-                <p>ถ้าเลือก 5 ชั้น, 10 ห้องต่อชั้น, เริ่มชั้น 1:</p>
+                <p>ถ้าเลือก 5 ชั้น, 10 ห้องต่อชั้น, เริ่มชั้น 1, เริ่มห้อง 1:</p>
                 <p>ระบบจะสร้างห้องเลขที่ 101-110, 201-210, ..., 501-510</p>
+                <p className="mt-1">ถ้าเริ่มห้อง 2: จะได้ 102-111, 202-211, ..., 502-511</p>
               </div>
             </div>
           ) : (
