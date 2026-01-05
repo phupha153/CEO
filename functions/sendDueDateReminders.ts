@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
 
                 // ⭐ ดึงค่าปรับแบบขั้นบันได (ถ้ามี)
                 const lateFeeStructureConfig = configs.find(c => 
-                    c.key === 'late_fee_structure' && c.branch_id === paymentBranchId
+                    c.key === 'late_fee_tiers' && c.branch_id === paymentBranchId
                 );
                 let lateFeeStructure = null;
                 if (lateFeeStructureConfig?.value) {
@@ -228,10 +228,10 @@ Deno.serve(async (req) => {
                 if (lateFeeStructure && Array.isArray(lateFeeStructure) && lateFeeStructure.length > 0) {
                     message += `⚠️ ค่าปรับชำระล่าช้า:\n`;
                     lateFeeStructure.forEach((tier, idx) => {
-                        if (tier.days_start && tier.days_end) {
-                            message += `   ${tier.days_start}-${tier.days_end} วัน: ${tier.fee_per_day} บาท/วัน\n`;
-                        } else if (tier.days_start) {
-                            message += `   ${tier.days_start}+ วัน: ${tier.fee_per_day} บาท/วัน\n`;
+                        if (tier.days_from !== undefined && tier.days_to !== undefined) {
+                            message += `   วันที่ ${tier.days_from}-${tier.days_to}: ${tier.fee_per_day} บาท/วัน\n`;
+                        } else if (tier.days_from !== undefined) {
+                            message += `   วันที่ ${tier.days_from}+: ${tier.fee_per_day} บาท/วัน\n`;
                         }
                     });
                     message += `\n`;
