@@ -72,7 +72,7 @@ function numberToThaiText(number) {
 
 export default function Receipt() {
   const [searchParams] = useSearchParams();
-  const paymentId = searchParams.get('paymentId');
+  const paymentId = searchParams.get("id") || searchParams.get("paymentId");
   const navigate = useNavigate();
 
   const [receiptData, setReceiptData] = useState(null);
