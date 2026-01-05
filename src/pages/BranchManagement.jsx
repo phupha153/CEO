@@ -364,12 +364,20 @@ export default function BranchManagement() {
     
     // เช็คจำนวนสาขาก่อนสร้าง
     if (!editingBranch) {
+      // ⭐ Auto-generate branch_code ถ้าไม่กรอก
+      let branchCode = formData.branch_code.trim();
+      if (!branchCode) {
+        const timestamp = Date.now().toString().slice(-6);
+        branchCode = `BR${timestamp}`;
+        console.log('🔄 Auto-generated branch_code:', branchCode);
+      }
+      
       // ⭐ เช็ค branch_code ซ้ำ
       const existingBranch = allBranches.find(b => 
-        b.branch_code.toLowerCase() === formData.branch_code.toLowerCase()
+        b.branch_code.toLowerCase() === branchCode.toLowerCase()
       );
       if (existingBranch) {
-        toast.error(`รหัสสาขา "${formData.branch_code}" มีอยู่แล้ว กรุณาใช้รหัสอื่น`);
+        toast.error(`รหัสสาขา "${branchCode}" มีอยู่แล้ว กรุณาใช้รหัสอื่น`);
         return;
       }
       
@@ -377,6 +385,9 @@ export default function BranchManagement() {
         toast.error(`Trial ใช้งานได้ 1 สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด`);
         return;
       }
+      
+      // ⭐ อัปเดต formData ด้วย branch_code ที่สร้างขึ้น
+      formData.branch_code = branchCode;
     }
     
     setIsSubmitting(true); // ⭐ ล็อคปุ่ม
@@ -739,13 +750,15 @@ export default function BranchManagement() {
                     />
                   </div>
                   <div>
-                    <Label>รหัสสาขา *</Label>
+                    <Label>รหัสสาขา (ถ้าไม่กรอกจะสร้างอัตโนมัติ)</Label>
                     <Input
                       value={formData.branch_code}
                       onChange={(e) => setFormData({ ...formData, branch_code: e.target.value })}
-                      required
                       placeholder="WR-SRG01"
                     />
+                    <p className="text-xs text-slate-500 mt-1">
+                      ไม่บังคับ - ถ้าไม่กรอกระบบจะสร้างรหัสให้อัตโนมัติ
+                    </p>
                   </div>
                 </div>
 

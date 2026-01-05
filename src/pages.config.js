@@ -5,11 +5,16 @@ import ActivityLog from './pages/ActivityLog';
 import AllBranchesDashboard from './pages/AllBranchesDashboard';
 import Announcements from './pages/Announcements';
 import BookingReceipt from './pages/BookingReceipt';
+import Bookings from './pages/Bookings';
 import BranchManagement from './pages/BranchManagement';
+import BranchSelection from './pages/BranchSelection';
+import ContractEditor from './pages/ContractEditor';
 import ContractTemplate from './pages/ContractTemplate';
+import Contracts from './pages/Contracts';
 import CronJobDashboard from './pages/CronJobDashboard';
 import CronJobSettings from './pages/CronJobSettings';
 import CustomTestDataGenerator from './pages/CustomTestDataGenerator';
+import Dashboard from './pages/Dashboard';
 import DataArchive from './pages/DataArchive';
 import DataLists from './pages/DataLists';
 import DeveloperGuide from './pages/DeveloperGuide';
@@ -21,6 +26,7 @@ import Home from './pages/Home';
 import Invoice from './pages/Invoice';
 import LineConnect from './pages/LineConnect';
 import Maintenance from './pages/Maintenance';
+import Materials from './pages/Materials';
 import MeterReadings from './pages/MeterReadings';
 import NoPackagePage from './pages/NoPackagePage';
 import NotificationSettings from './pages/NotificationSettings';
@@ -30,9 +36,11 @@ import PackageSelection from './pages/PackageSelection';
 import Payments from './pages/Payments';
 import PrintReceipts from './pages/PrintReceipts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import PublicInvoice from './pages/PublicInvoice';
 import PublicReceipt from './pages/PublicReceipt';
 import Receipt from './pages/Receipt';
 import Rooms from './pages/Rooms';
+import Settings from './pages/Settings';
 import SupportTickets from './pages/SupportTickets';
 import Tenants from './pages/Tenants';
 import TestInvoiceGeneration from './pages/TestInvoiceGeneration';
@@ -45,14 +53,6 @@ import UserBranchAccess from './pages/UserBranchAccess';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import Contracts from './pages/Contracts';
-import Dashboard from './pages/Dashboard';
-import Materials from './pages/Materials';
-import ContractEditor from './pages/ContractEditor';
-import Bookings from './pages/Bookings';
-import PublicInvoice from './pages/PublicInvoice';
-import BranchSelection from './pages/BranchSelection';
-import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -64,11 +64,16 @@ export const PAGES = {
     "AllBranchesDashboard": AllBranchesDashboard,
     "Announcements": Announcements,
     "BookingReceipt": BookingReceipt,
+    "Bookings": Bookings,
     "BranchManagement": BranchManagement,
+    "BranchSelection": BranchSelection,
+    "ContractEditor": ContractEditor,
     "ContractTemplate": ContractTemplate,
+    "Contracts": Contracts,
     "CronJobDashboard": CronJobDashboard,
     "CronJobSettings": CronJobSettings,
     "CustomTestDataGenerator": CustomTestDataGenerator,
+    "Dashboard": Dashboard,
     "DataArchive": DataArchive,
     "DataLists": DataLists,
     "DeveloperGuide": DeveloperGuide,
@@ -80,6 +85,7 @@ export const PAGES = {
     "Invoice": Invoice,
     "LineConnect": LineConnect,
     "Maintenance": Maintenance,
+    "Materials": Materials,
     "MeterReadings": MeterReadings,
     "NoPackagePage": NoPackagePage,
     "NotificationSettings": NotificationSettings,
@@ -89,9 +95,11 @@ export const PAGES = {
     "Payments": Payments,
     "PrintReceipts": PrintReceipts,
     "PrivacyPolicy": PrivacyPolicy,
+    "PublicInvoice": PublicInvoice,
     "PublicReceipt": PublicReceipt,
     "Receipt": Receipt,
     "Rooms": Rooms,
+    "Settings": Settings,
     "SupportTickets": SupportTickets,
     "Tenants": Tenants,
     "TestInvoiceGeneration": TestInvoiceGeneration,
@@ -104,14 +112,6 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "Contracts": Contracts,
-    "Dashboard": Dashboard,
-    "Materials": Materials,
-    "ContractEditor": ContractEditor,
-    "Bookings": Bookings,
-    "PublicInvoice": PublicInvoice,
-    "BranchSelection": BranchSelection,
-    "Settings": Settings,
 }
 
 export const pagesConfig = {
