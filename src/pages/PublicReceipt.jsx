@@ -357,29 +357,29 @@ export default function PublicReceipt() {
         </div>
       </div>
 
-      <div className="receipt-container mx-auto p-8 print:p-0">
+      <div className="receipt-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px]">
         <div ref={receiptRef} className="receipt-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden">
-          <div className="p-8 print:p-5">
-            <div className="mb-4 pb-3 border-b border-slate-200">
+          <div className="p-3 md:p-8 print:p-5">
+            <div className="mb-2 md:mb-4 pb-2 md:pb-3 border-b border-slate-200">
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 md:gap-2">
                   <img
                     src={buildingLogo}
                     alt={`${buildingName} Logo`}
-                    className="w-10 h-10 object-contain"
+                    className="w-7 h-7 md:w-10 md:h-10 object-contain"
                     onError={(e) => {
                       e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
                     }}
                   />
-                  <h1 className="text-lg font-bold text-slate-800">{buildingName}</h1>
+                  <h1 className="text-sm md:text-lg font-bold text-slate-800">{buildingName}</h1>
                 </div>
                 <div className="text-right">
-                  <h2 className="text-lg font-bold text-green-600">ใบเสร็จรับเงิน</h2>
-                  <p className="text-xs text-green-600">Receipt</p>
+                  <h2 className="text-sm md:text-lg font-bold text-green-600">ใบเสร็จรับเงิน</h2>
+                  <p className="text-[9px] md:text-xs text-green-600">Receipt</p>
                 </div>
               </div>
               
-              <div className="text-xs text-slate-600 mt-2 space-y-0.5">
+              <div className="text-[9px] md:text-xs text-slate-600 mt-1.5 md:mt-2 space-y-0 md:space-y-0.5">
                 {receiptData.recipient?.company_name ? (
                   <>
                     <p className="font-medium text-slate-800">{receiptData.recipient.company_name}</p>
@@ -404,21 +404,21 @@ export default function PublicReceipt() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-5 p-3 bg-slate-50 rounded-lg">
+            <div className="grid grid-cols-2 gap-2 md:gap-3 mb-2 md:mb-5 p-2 md:p-3 bg-slate-50 rounded-lg">
               <div>
-                <p className="text-xs text-slate-500 mb-1">เลขที่ใบเสร็จ</p>
-                <p className="font-bold text-slate-800">{receiptNumber}</p>
+                <p className="text-[9px] md:text-xs text-slate-500 mb-0.5 md:mb-1">เลขที่ใบเสร็จ</p>
+                <p className="font-bold text-[11px] md:text-base text-slate-800">{receiptNumber}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-slate-500 mb-1">วันที่ออก</p>
-                <p className="font-bold text-slate-800">{paymentDate}</p>
+                <p className="text-[9px] md:text-xs text-slate-500 mb-0.5 md:mb-1">วันที่ออก</p>
+                <p className="font-bold text-[11px] md:text-base text-slate-800">{paymentDate}</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="border border-slate-200 rounded p-2">
-                <h3 className="font-semibold text-slate-700 text-xs mb-1">ผู้รับเงิน</h3>
-                <div className="text-xs text-slate-600 space-y-0.5">
+            <div className="grid grid-cols-2 gap-1.5 md:gap-3 mb-2 md:mb-4">
+              <div className="border border-slate-200 rounded p-1.5 md:p-2">
+                <h3 className="font-semibold text-slate-700 text-[9px] md:text-xs mb-0.5 md:mb-1">ผู้รับเงิน</h3>
+                <div className="text-[8px] md:text-xs text-slate-600 space-y-0 md:space-y-0.5">
                   {receiptData.recipient?.company_name ? (
                     <>
                       <p className="font-medium text-slate-800">{receiptData.recipient.company_name}</p>
@@ -435,9 +435,9 @@ export default function PublicReceipt() {
                 </div>
               </div>
 
-              <div className="border border-slate-200 rounded p-2">
-                <h3 className="font-semibold text-slate-700 text-xs mb-1">ผู้จ่ายเงิน</h3>
-                <div className="text-xs text-slate-600 space-y-0.5">
+              <div className="border border-slate-200 rounded p-1.5 md:p-2">
+                <h3 className="font-semibold text-slate-700 text-[9px] md:text-xs mb-0.5 md:mb-1">ผู้จ่ายเงิน</h3>
+                <div className="text-[8px] md:text-xs text-slate-600 space-y-0 md:space-y-0.5">
                   <p className="font-medium text-slate-800">{receiptData.tenant?.full_name || 'ไม่ระบุ'}</p>
                   <p>ห้อง: {receiptData.room?.room_number || 'N/A'} | โทร: {receiptData.tenant?.phone || 'ไม่ระบุ'}</p>
                   <p>ที่อยู่: {receiptData.tenant?.address && receiptData.tenant.address !== 'ไม่ระบุ' && receiptData.tenant.address !== '-' ? receiptData.tenant.address : 'ไม่ระบุ'}</p>
@@ -445,27 +445,21 @@ export default function PublicReceipt() {
               </div>
             </div>
 
-            <div className="mb-5">
-              <table className="w-full text-sm border-collapse">
+            <div className="mb-2 md:mb-5">
+              <table className="w-full text-[9px] md:text-sm border-collapse">
                 <thead>
-                  <tr className="bg-slate-100 border-b-2 border-slate-300">
-                    <th className="text-left py-2.5 px-2 font-bold text-slate-700 w-12">ลำดับ</th>
-                    <th className="text-left py-2.5 px-2 font-bold text-slate-700">รายการ</th>
-                    <th className="text-center py-2.5 px-2 font-bold text-slate-700 w-18">จำนวน</th>
-                    <th className="text-right py-2.5 px-2 font-bold text-slate-700 w-26">ราคา/หน่วย</th>
-                    <th className="text-right py-2.5 px-2 font-bold text-slate-700 w-30">จำนวนเงิน</th>
+                  <tr className="bg-slate-100 border-b md:border-b-2 border-slate-300">
+                    <th className="text-left py-1 md:py-2.5 px-1 md:px-2 font-bold text-slate-700 w-6 md:w-12">ลำดับ</th>
+                    <th className="text-left py-1 md:py-2.5 px-1 md:px-2 font-bold text-slate-700">รายการ</th>
+                    <th className="text-right py-1 md:py-2.5 px-1 md:px-2 font-bold text-slate-700">จำนวนเงิน</th>
                   </tr>
                 </thead>
                 <tbody>
                   {lineItems.map((item, index) => (
-                    <tr key={index} className="border-b border-slate-200 hover:bg-slate-50">
-                      <td className="py-2 px-2 text-center text-slate-600">{index + 1}</td>
-                      <td className="py-2 px-2 text-slate-800">{item.name}</td>
-                      <td className="py-2 px-2 text-center text-slate-600">{item.quantity}</td>
-                      <td className="py-2 px-2 text-right text-slate-600">
-                        {(item.price || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="py-2 px-2 text-right font-bold text-slate-800">
+                    <tr key={index} className="border-b border-slate-200 md:hover:bg-slate-50">
+                      <td className="py-1 md:py-2 px-1 md:px-2 text-center text-slate-600">{index + 1}</td>
+                      <td className="py-1 md:py-2 px-1 md:px-2 text-slate-800">{item.name}</td>
+                      <td className="py-1 md:py-2 px-1 md:px-2 text-right font-bold text-slate-800">
                         {(item.total || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
@@ -474,47 +468,47 @@ export default function PublicReceipt() {
               </table>
             </div>
 
-            <div className="mb-4 border-t-2 border-slate-300 pt-3">
+            <div className="mb-2 md:mb-4 border-t-2 border-slate-300 pt-2 md:pt-3">
               <div className="flex justify-between items-center">
-                <div className="text-sm text-slate-600">
+                <div className="text-[9px] md:text-sm text-slate-600">
                   <span className="font-medium">ยอดเงินสุทธิ</span>
-                  <span className="ml-2">({numberToThaiText(receiptData.total_amount || 0)})</span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-lg font-bold text-slate-800">
+                <div className="flex items-center gap-2 md:gap-3">
+                  <span className="text-sm md:text-lg font-bold text-slate-800">
                     {(receiptData.total_amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
-                  <div className="border-2 border-green-600 rounded px-2.5 py-1 text-center transform rotate-[-3deg]">
-                    <p className="text-xs font-bold text-green-700">✓ ชำระแล้ว</p>
-                    <p className="text-[9px] text-green-600">{paymentDate}</p>
+                  <div className="border-2 border-green-600 rounded px-1.5 md:px-2.5 py-0.5 md:py-1 text-center transform rotate-[-3deg]">
+                    <p className="text-[9px] md:text-xs font-bold text-green-700">✓ ชำระ<span className="hidden md:inline">แล้ว</span></p>
+                    <p className="text-[8px] md:text-[9px] text-green-600 md:block hidden">{paymentDate}</p>
                   </div>
                 </div>
               </div>
+              <p className="text-[8px] md:text-xs text-slate-500 mt-1 md:mt-0 md:inline md:ml-2">({numberToThaiText(receiptData.total_amount || 0)})</p>
             </div>
 
-            <div className="mb-3 text-xs text-slate-500">
-              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {receiptData.bank?.name} | {receiptData.bank?.account_number} ({receiptData.bank?.account_name}) • ใบเสร็จนี้ออกให้เป็นหลักฐานการรับเงินเรียบร้อยแล้ว
+            <div className="mb-2 md:mb-3 text-[8px] md:text-xs text-slate-500 leading-tight">
+              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {receiptData.bank?.name}<span className="hidden md:inline"> | {receiptData.bank?.account_number} ({receiptData.bank?.account_name})</span>
             </div>
 
-            <div className="flex justify-center mt-5 pt-3 border-t border-slate-200">
-              <div className="text-center w-64">
-                <div className="h-12 flex items-center justify-center mb-1">
+            <div className="flex justify-center mt-2 md:mt-5 pt-2 md:pt-3 border-t border-slate-200">
+              <div className="text-center w-32 md:w-64">
+                <div className="h-8 md:h-12 flex items-center justify-center mb-0.5 md:mb-1">
                   {receiptData.recipient?.receiver_signature && (
                     <img 
                       src={receiptData.recipient.receiver_signature} 
                       alt="ลายเซ็นผู้รับเงิน" 
-                      className="h-10 object-contain"
+                      className="h-6 md:h-10 object-contain"
                     />
                   )}
                 </div>
-                <p className="text-xs text-slate-600">
+                <p className="text-[8px] md:text-xs text-slate-600">
                   ผู้รับเงิน: {receiptData.recipient?.lessor_name || receiptData.recipient?.building_name || '________________'}
                 </p>
               </div>
             </div>
 
-            <div className="pt-4 text-center">
-              <p className="text-xs text-slate-500">ขอบคุณที่ใช้บริการ {receiptData.recipient?.building_name || buildingName}</p>
+            <div className="pt-2 md:pt-4 text-center">
+              <p className="text-[8px] md:text-xs text-slate-500">ขอบคุณที่ใช้บริการ <span className="hidden md:inline">{receiptData.recipient?.building_name || buildingName}</span></p>
             </div>
           </div>
         </div>
