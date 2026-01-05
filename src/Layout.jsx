@@ -655,19 +655,26 @@ export default function Layout({ children, currentPageName }) {
         currentUserEmail: currentUser?.email,
         currentUserCustomRole: currentUser?.custom_role,
         isOnline,
-        isPublicPage
+        isPublicPage,
+        timestamp: new Date().toISOString()
       });
       return enabled;
     })(),
-    staleTime: 0, // ⚡ ปิด cache เพื่อ force refetch ทุกครั้ง
+    staleTime: 0,
     gcTime: 0,
     refetchInterval: false,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    retry: 1,
+    refetchOnMount: 'always', // ⚡ Force refetch ทุกครั้งที่ component mount
+    retry: 0, // ปิด retry เพื่อดู error ชัดเจน
     retryDelay: 500,
     throwOnError: false,
+    onSuccess: (data) => {
+      console.log('✅ CRM Query Success! Data:', data);
+    },
+    onError: (error) => {
+      console.error('❌ CRM Query Error:', error);
+    },
   });
 
   const { data: appSubscriptions = [] } = useQuery({
