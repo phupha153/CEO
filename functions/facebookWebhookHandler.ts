@@ -609,15 +609,7 @@ async function handleAttachments(base44, senderPsid, attachments, branchId, tena
                             return;
                         }
 
-                        if (diffPercent > 10) {
-                            await sendFacebookMessage(base44, senderPsid, 
-                                `❌ ยอดเงินไม่ตรง\n\n💰 ยอดที่ต้องชำระ: ${pendingPayment.total_amount.toLocaleString()} บาท\n💵 ยอดที่โอนมา: ${amount.toLocaleString()} บาท\n\nกรุณาตรวจสอบและโอนใหม่ค่ะ`,
-                                branchId
-                            );
-                            return;
-                        }
-                        
-                        // ⭐ เช็คชื่อบัญชี (ตัดคำนำหน้า)
+                        // ⭐ เช็คชื่อบัญชีก่อนเช็คยอด (ป้องกันรับสลิปที่โอนผิดบัญชี)
                         const configs = await base44.asServiceRole.entities.Config.list();
                         const getConfigValue = (key) => {
                             const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
@@ -653,6 +645,15 @@ async function handleAttachments(base44, senderPsid, attachments, branchId, tena
                                 notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ชื่อบัญชีไม่ตรง (${receiverName})`
                             });
                             await sendFacebookMessage(base44, senderPsid, '❌ ชื่อบัญชีไม่ตรง!\n\nกรุณาตรวจสอบหรือติดต่อเจ้าของหอพักค่ะ', branchId);
+                            return;
+                        }
+                        
+                        // เช็คยอดเงิน (หลังเช็คชื่อบัญชีแล้ว)
+                        if (diffPercent > 10) {
+                            await sendFacebookMessage(base44, senderPsid, 
+                                `❌ ยอดเงินไม่ตรง\n\n💰 ยอดที่ต้องชำระ: ${pendingPayment.total_amount.toLocaleString()} บาท\n💵 ยอดที่โอนมา: ${amount.toLocaleString()} บาท\n\nกรุณาตรวจสอบและโอนใหม่ค่ะ`,
+                                branchId
+                            );
                             return;
                         }
                         

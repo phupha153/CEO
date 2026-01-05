@@ -252,107 +252,7 @@ Deno.serve(async (req) => {
             const slipData = simpleData.data;
             const slipAmount = parseFloat(slipData.amount?.amount || 0);
             
-            // ⭐⭐⭐ คำนวณค่าปรับก่อนเช็คยอดเงิน (รองรับทั้งแบบปกติและแบบขั้นบันได)
-            const paymentDateObj = parseISO(slipData.transDate || new Date().toISOString().split('T')[0]);
-            const dueDateObj = parseISO(payment.due_date);
-            const daysLate = Math.floor((paymentDateObj - dueDateObj) / (1000 * 60 * 60 * 24));
-
-            let lateFeeAmount = 0;
-            if (daysLate > 0) {
-                const configs = await base44.asServiceRole.entities.Config.list();
-
-                // เช็คว่าใช้ค่าปรับแบบขั้นบันไดหรือไม่
-                const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (c.branch_id === payment.branch_id || !c.branch_id));
-                const tiersEnabled = tiersEnabledConfig?.value === 'true';
-
-                let usedTiers = false;
-
-                if (tiersEnabled) {
-                    // ใช้ค่าปรับแบบขั้นบันได
-                    const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && (c.branch_id === payment.branch_id || !c.branch_id));
-
-                    if (tiersConfig?.value) {
-                        try {
-                            const tiers = JSON.parse(tiersConfig.value);
-                            console.log(`📊 Using tiered late fees - Days late: ${daysLate}`);
-
-                            for (const tier of tiers) {
-                                const daysFrom = tier.days_from || 1;
-                                const daysTo = tier.days_to || 999;
-                                const feePerDay = parseFloat(tier.fee_per_day || 0);
-
-                                if (daysLate >= daysFrom) {
-                                    const daysInThisTier = Math.min(daysLate, daysTo) - daysFrom + 1;
-                                    if (daysInThisTier > 0) {
-                                        const tierFee = daysInThisTier * feePerDay;
-                                        lateFeeAmount += tierFee;
-                                        console.log(`  ➡️ Tier ${daysFrom}-${daysTo}: ${daysInThisTier} วัน × ${feePerDay}฿ = ${tierFee}฿`);
-                                    }
-                                }
-
-                                if (daysLate <= daysTo) break;
-                            }
-
-                            usedTiers = true;
-                            console.log(`⏰ Late payment (Tiers): ${daysLate} days → TOTAL ${lateFeeAmount} บาท`);
-                        } catch (e) {
-                            console.error('❌ Error parsing tiers, fallback to simple fee:', e);
-                        }
-                    }
-                }
-
-                // ถ้าไม่ได้เปิดใช้ขั้นบันได หรือ parse ไม่สำเร็จ → ใช้ค่าปรับแบบปกติ
-                if (!usedTiers) {
-                    const lateFeePerDayConfig = configs.find(c => c.key === 'late_fee_per_day' && (c.branch_id === payment.branch_id || !c.branch_id));
-                    const lateFeePerDay = parseFloat(lateFeePerDayConfig?.value || 0);
-                    lateFeeAmount = daysLate * lateFeePerDay;
-                    console.log(`⏰ Late payment (Simple): ${daysLate} days × ${lateFeePerDay} = ${lateFeeAmount} บาท`);
-                }
-            }
-
-            // ⭐ คำนวณยอดที่ต้องชำระจริง (รวมค่าปรับ)
-            const expectedAmount = parseFloat(payment.total_amount) + lateFeeAmount;
-            const currentPaid = parseFloat(payment.paid_amount || 0);
-            const totalPaid = currentPaid + slipAmount;
-
-            console.log('💰 Slip amount:', slipAmount);
-            console.log('💰 Expected amount (with late fee):', expectedAmount);
-            console.log('💰 Already paid:', currentPaid);
-            console.log('💰 Total paid:', totalPaid);
-            console.log('💰 Late fee:', lateFeeAmount);
-
-            // ตรวจสอบยอดเงิน (ยอมรับ ±5%)
-            if (totalPaid < expectedAmount * 0.95) {
-                // ดึงข้อมูลห้องเพื่อแสดงหมายเลขห้อง
-                const rooms = await base44.asServiceRole.entities.Room.list();
-                const room = rooms.find(r => r.id === payment.room_id);
-                const roomNumber = room?.room_number || 'ไม่ทราบ';
-                const shortfall = expectedAmount - totalPaid;
-
-                // อัปเดตยอดที่จ่ายไปแล้ว และเปลี่ยนสถานะเป็น partial_paid
-                await base44.asServiceRole.entities.Payment.update(paymentId, {
-                    status: 'partial_paid',
-                    paid_amount: totalPaid,
-                    payment_slip_url: uploadedSlipUrl,
-                    late_fee_amount: lateFeeAmount,
-                    total_amount: expectedAmount,
-                    notes: payment.notes ? 
-                        `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)` :
-                        `💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
-                });
-
-                return Response.json({ 
-                    success: true,
-                    message: `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n💵 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n   (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท\n\nกรุณาโอนส่วนที่ขาดและอัปโหลดสลิปใหม่`,
-                    partial_payment: true,
-                    paid_amount: totalPaid,
-                    expected_amount: expectedAmount,
-                    remaining_amount: shortfall,
-                    late_fee: lateFeeAmount
-                });
-            }
-
-            // ⭐ ตรวจสอบบัญชีปลายทาง (เช็คทั้งเลขบัญชีและชื่อบัญชี)
+            // ⭐⭐⭐ เช็คบัญชีปลายทางก่อนเช็คยอด (ป้องกันรับสลิปที่โอนผิดบัญชี)
             const configs = await base44.asServiceRole.entities.Config.list();
             const getConfigValue = (key) => {
                 // ⭐ หา config เฉพาะสาขาก่อน ถ้าไม่มีค่อย fallback ไป global
@@ -478,6 +378,103 @@ Deno.serve(async (req) => {
                     manual_review_required: true,
                     account_mismatch: !accountMatch,
                     name_mismatch: !nameMatch
+                });
+            }
+
+            // ⭐⭐⭐ คำนวณค่าปรับหลังเช็คชื่อบัญชีแล้ว
+            const paymentDateObj = parseISO(slipData.transDate || new Date().toISOString().split('T')[0]);
+            const dueDateObj = parseISO(payment.due_date);
+            const daysLate = Math.floor((paymentDateObj - dueDateObj) / (1000 * 60 * 60 * 24));
+
+            let lateFeeAmount = 0;
+            if (daysLate > 0) {
+                // เช็คว่าใช้ค่าปรับแบบขั้นบันไดหรือไม่
+                const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (c.branch_id === payment.branch_id || !c.branch_id));
+                const tiersEnabled = tiersEnabledConfig?.value === 'true';
+
+                let usedTiers = false;
+
+                if (tiersEnabled) {
+                    const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && (c.branch_id === payment.branch_id || !c.branch_id));
+
+                    if (tiersConfig?.value) {
+                        try {
+                            const tiers = JSON.parse(tiersConfig.value);
+                            console.log(`📊 Using tiered late fees - Days late: ${daysLate}`);
+
+                            for (const tier of tiers) {
+                                const daysFrom = tier.days_from || 1;
+                                const daysTo = tier.days_to || 999;
+                                const feePerDay = parseFloat(tier.fee_per_day || 0);
+
+                                if (daysLate >= daysFrom) {
+                                    const daysInThisTier = Math.min(daysLate, daysTo) - daysFrom + 1;
+                                    if (daysInThisTier > 0) {
+                                        const tierFee = daysInThisTier * feePerDay;
+                                        lateFeeAmount += tierFee;
+                                        console.log(`  ➡️ Tier ${daysFrom}-${daysTo}: ${daysInThisTier} วัน × ${feePerDay}฿ = ${tierFee}฿`);
+                                    }
+                                }
+
+                                if (daysLate <= daysTo) break;
+                            }
+
+                            usedTiers = true;
+                            console.log(`⏰ Late payment (Tiers): ${daysLate} days → TOTAL ${lateFeeAmount} บาท`);
+                        } catch (e) {
+                            console.error('❌ Error parsing tiers, fallback to simple fee:', e);
+                        }
+                    }
+                }
+
+                // ถ้าไม่ได้เปิดใช้ขั้นบันได หรือ parse ไม่สำเร็จ → ใช้ค่าปรับแบบปกติ
+                if (!usedTiers) {
+                    const lateFeePerDayConfig = configs.find(c => c.key === 'late_fee_per_day' && (c.branch_id === payment.branch_id || !c.branch_id));
+                    const lateFeePerDay = parseFloat(lateFeePerDayConfig?.value || 0);
+                    lateFeeAmount = daysLate * lateFeePerDay;
+                    console.log(`⏰ Late payment (Simple): ${daysLate} days × ${lateFeePerDay} = ${lateFeeAmount} บาท`);
+                }
+            }
+
+            // ⭐ คำนวณยอดที่ต้องชำระจริง (รวมค่าปรับ)
+            const expectedAmount = parseFloat(payment.total_amount) + lateFeeAmount;
+            const currentPaid = parseFloat(payment.paid_amount || 0);
+            const totalPaid = currentPaid + slipAmount;
+
+            console.log('💰 Slip amount:', slipAmount);
+            console.log('💰 Expected amount (with late fee):', expectedAmount);
+            console.log('💰 Already paid:', currentPaid);
+            console.log('💰 Total paid:', totalPaid);
+            console.log('💰 Late fee:', lateFeeAmount);
+
+            // ตรวจสอบยอดเงิน (ยอมรับ ±5%)
+            if (totalPaid < expectedAmount * 0.95) {
+                // ดึงข้อมูลห้องเพื่อแสดงหมายเลขห้อง
+                const rooms = await base44.asServiceRole.entities.Room.list();
+                const room = rooms.find(r => r.id === payment.room_id);
+                const roomNumber = room?.room_number || 'ไม่ทราบ';
+                const shortfall = expectedAmount - totalPaid;
+
+                // อัปเดตยอดที่จ่ายไปแล้ว และเปลี่ยนสถานะเป็น partial_paid
+                await base44.asServiceRole.entities.Payment.update(paymentId, {
+                    status: 'partial_paid',
+                    paid_amount: totalPaid,
+                    payment_slip_url: uploadedSlipUrl,
+                    late_fee_amount: lateFeeAmount,
+                    total_amount: expectedAmount,
+                    notes: payment.notes ? 
+                        `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)` :
+                        `💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
+                });
+
+                return Response.json({ 
+                    success: true,
+                    message: `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n💵 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n   (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท\n\nกรุณาโอนส่วนที่ขาดและอัปโหลดสลิปใหม่`,
+                    partial_payment: true,
+                    paid_amount: totalPaid,
+                    expected_amount: expectedAmount,
+                    remaining_amount: shortfall,
+                    late_fee: lateFeeAmount
                 });
             }
 

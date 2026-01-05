@@ -1207,112 +1207,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
-        // ⭐⭐⭐ คำนวณค่าปรับก่อนเช็คยอดเงิน (รองรับทั้งแบบปกติและแบบขั้นบันได)
-        const paymentDateObj = parseISO(transDate.split('T')[0]);
-        const dueDateObj = parseISO(pendingPayment.due_date);
-        const daysLate = differenceInDays(paymentDateObj, dueDateObj);
-        
-        let lateFeeAmount = 0;
-        if (daysLate > 0) {
-            // ⭐ ใช้ cache config แทนการโหลดใหม่
-            const now = Date.now();
-            let configs;
-            if (!configCache || (now - configCacheTime) > CONFIG_CACHE_DURATION) {
-                configs = await base44.asServiceRole.entities.Config.list();
-                configCache = configs;
-                configCacheTime = now;
-                console.log(`✅ Refreshed config cache (${configs.length} items)`);
-            } else {
-                configs = configCache;
-                console.log(`✅ Using cached config (${configs.length} items)`);
-            }
-            
-            // เช็คว่าใช้ค่าปรับแบบขั้นบันไดหรือไม่
-            const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (c.branch_id === branchId || !c.branch_id));
-            const tiersEnabled = tiersEnabledConfig?.value === 'true';
-            
-            let usedTiers = false;
-            
-            if (tiersEnabled) {
-                const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && (c.branch_id === branchId || !c.branch_id));
-                
-                if (tiersConfig?.value) {
-                    try {
-                        const tiers = JSON.parse(tiersConfig.value);
-                        console.log(`📊 Using tiered late fees - Days late: ${daysLate}`);
-                        
-                        for (const tier of tiers) {
-                            const daysFrom = tier.days_from || 1;
-                            const daysTo = tier.days_to || 999;
-                            const feePerDay = parseFloat(tier.fee_per_day || 0);
-                            
-                            if (daysLate >= daysFrom) {
-                                const daysInThisTier = Math.min(daysLate, daysTo) - daysFrom + 1;
-                                if (daysInThisTier > 0) {
-                                    const tierFee = daysInThisTier * feePerDay;
-                                    lateFeeAmount += tierFee;
-                                    console.log(`  ➡️ Tier ${daysFrom}-${daysTo}: ${daysInThisTier} วัน × ${feePerDay}฿ = ${tierFee}฿`);
-                                }
-                            }
-                            
-                            if (daysLate <= daysTo) break;
-                        }
-                        
-                        usedTiers = true;
-                        console.log(`⏰ Late payment (Tiers): ${daysLate} days → TOTAL ${lateFeeAmount} บาท`);
-                    } catch (e) {
-                        console.error('❌ Error parsing tiers, fallback to simple fee:', e);
-                    }
-                }
-            }
-            
-            // ถ้าไม่ได้เปิดใช้ขั้นบันได หรือ parse ไม่สำเร็จ → ใช้ค่าปรับแบบปกติ
-            if (!usedTiers) {
-                const lateFeePerDayConfig = configs.find(c => c.key === 'late_fee_per_day' && (c.branch_id === branchId || !c.branch_id));
-                const lateFeePerDay = parseFloat(lateFeePerDayConfig?.value || 0);
-                lateFeeAmount = daysLate * lateFeePerDay;
-                console.log(`⏰ Late payment (Simple): ${daysLate} days × ${lateFeePerDay} = ${lateFeeAmount} บาท`);
-            }
-        }
-        
-        // ⭐ คำนวณยอดที่ต้องชำระจริง (รวมค่าปรับ)
-        const expectedAmount = parseFloat(pendingPayment.total_amount) + lateFeeAmount;
-        const currentPaid = parseFloat(pendingPayment.paid_amount || 0);
-        const totalPaid = currentPaid + slipAmount;
-        
-        console.log(`💰 Expected Amount (with late fee): ${expectedAmount} บาท`);
-        console.log(`💰 Already Paid: ${currentPaid} บาท`);
-        console.log(`💰 This Payment: ${slipAmount} บาท`);
-        console.log(`💰 Total Paid: ${totalPaid} บาท`);
-
-        // ตรวจสอบยอดเงิน (ยอมรับ ±5%)
-        if (totalPaid < expectedAmount * 0.95) {
-            const shortfall = expectedAmount - totalPaid;
-            
-            // อัปเดตยอดที่จ่ายไปแล้ว และเปลี่ยนสถานะเป็น partial_paid
-            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
-                status: 'partial_paid',
-                paid_amount: totalPaid,
-                payment_slip_url: slipImageUrl,
-                late_fee_amount: lateFeeAmount,
-                total_amount: expectedAmount,
-                notes: `${pendingPayment.notes || ''}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
-            });
-            
-            await sendMessage(base44, lineUserId, 
-                `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n` +
-                `✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n` +
-                `💵 ยอดที่ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n⏰ รวมค่าปรับล่าช้า ${daysLate} วัน: ${lateFeeAmount.toLocaleString()} บาท` : ''}\n\n` +
-                `⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท\n\n` +
-                `กรุณาโอนส่วนที่ขาดและส่งสลิปใหม่ค่ะ 🙏`,
-                branchId,
-                replyToken
-            );
-            return;
-        }
-
-        // ⭐⭐⭐ ตรวจสอบชื่อบัญชีเท่านั้น (ไม่เช็คเลขบัญชี)
-        // ⭐ ใช้ cache config แทนการโหลดใหม่
+        // ⭐⭐⭐ เช็คชื่อบัญชีก่อนเช็คยอด (ป้องกันรับสลิปที่โอนผิดบัญชี)
         const now2 = Date.now();
         let configs;
         if (!configCache || (now2 - configCacheTime) > CONFIG_CACHE_DURATION) {
@@ -1385,26 +1280,25 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         console.log('  Name Match:', nameMatch);
 
-        if (!nameMatch) {
-            console.log('❌ NAME MISMATCH - Manual review required');
+        console.log(`💰 Slip Amount: ${slipAmount} บาท`);
 
-            const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
-            const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
-            const roomNumber = room?.room_number || 'ไม่ทราบ';
-
-            const errorMsg = `ชื่อบัญชีไม่ตรง (ตรวจพบ: ${receiverName}, ควรเป็น ${expectedAccountName})`;
-            const lineMessage = `❌ ชื่อบัญชีไม่ตรง!\n\nคุณโอนเข้า: ${receiverName}\nควรเป็น: ${expectedAccountName}\n\nกรุณาตรวจสอบหรือติดต่อเจ้าของหอพักค่ะ 🙏`;
-
+        if (slipAmount === 0) {
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 payment_slip_url: slipImageUrl,
-                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ระบบอ่านยอดไม่ได้`
             });
-
-            await sendMessage(base44, lineUserId, lineMessage, branchId, replyToken);
+            
+            await sendMessage(base44, lineUserId, 
+                `📸 ได้รับสลิปแล้ว!\n\n⚠️ รอเจ้าของหอพักตรวจสอบค่ะ`,
+                branchId,
+                replyToken
+            );
             return;
         }
 
-        console.log('✅ Name verification passed - Processing payment');
+        // ⭐⭐⭐ เช็คชื่อบัญชีก่อนเช็คยอด (ป้องกันรับสลิปที่โอนผิดบัญชี)
+        const now2 = Date.now();
+        let configs;
 
         // ⭐ ชำระครบแล้ว + บัญชีถูกต้อง
         await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
