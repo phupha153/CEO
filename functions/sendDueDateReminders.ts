@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
         // Parse request body to check for test mode and limit
         let testLineUserId = null;
         let targetBranchId = null;
-        let limit = 20; // จำนวนบิลสูงสุดที่จะส่งต่อครั้ง (default 20)
+        let limit = 50; // จำนวนบิลสูงสุดที่จะส่งต่อครั้ง (default 50)
         try {
             const text = await req.text();
             if (text) {
