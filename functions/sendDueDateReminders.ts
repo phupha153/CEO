@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
 
                 // ⭐ ข้อความสั้นกระชับ - วันครบกำหนดชำระ + ลิงก์ดูบิล
                 const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://your-app.base44.com';
-                const invoiceUrl = `${frontendUrl}/PublicInvoice?id=${payment.id}&branchId=${paymentBranchId}`;
+                const invoiceUrl = `${frontendUrl}publicinvoice?id=${payment.id}&branchId=${paymentBranchId}`;
 
                 let message = `⏰ วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
                 message += `🏠 ${branchBuildingName}\n`;
