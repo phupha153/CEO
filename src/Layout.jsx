@@ -1210,9 +1210,9 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // 🔒 FAIL-CLOSED: ถ้า CRM deny → BLOCK ทันที (ไม่มี grace period)
+  // 🔒 BLOCK เฉพาะเมื่อ CRM ตอบกลับชัดเจนว่า deny (ไม่ใช่ fallback)
   if (!isLoading && !crmAccessLoading && currentUser && 
-      crmAccess && crmAccess.hasAccess === false &&
+      crmAccess && crmAccess.hasAccess === false && !crmAccess.fallback &&
       currentPageName !== 'BranchSelection') {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 via-red-50 to-orange-50 overflow-hidden">
