@@ -25,14 +25,10 @@ Deno.serve(async (req) => {
     trialEndDate.setDate(today.getDate() + 30);
     trialEndDate.setHours(23, 59, 59, 999);
 
-    // Update user using entities API
-    const users = await base44.asServiceRole.entities.User.filter({ email: user.email });
-    if (users.length > 0) {
-      await base44.asServiceRole.entities.User.update(users[0].id, {
-        trial_ends_at: trialEndDate.toISOString().split('T')[0],
-        plan_status: 'trial'
-      });
-    }
+    await base44.asServiceRole.auth.updateUser(user.email, {
+      trial_ends_at: trialEndDate.toISOString().split('T')[0],
+      plan_status: 'trial'
+    });
 
     return Response.json({
       message: 'Trial period initialized successfully',
