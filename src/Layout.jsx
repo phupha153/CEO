@@ -504,12 +504,13 @@ export default function Layout({ children, currentPageName }) {
     throwOnError: false,
   });
 
-  // เช็คสิทธิ์กับ CRM (เช็คทุก 5 นาที + logout อัตโนมัติถ้าไม่มีสิทธิ์ + sync role)
+  // เช็คสิทธิ์กับ CRM (sync role ครั้งแรก, หลังจากนั้น cache นาน)
   const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError } = useQuery({
-    queryKey: ['crmAccess', currentUser?.email],
+    queryKey: ['crmAccess', currentUser?.email, currentUser?.custom_role],
     queryFn: async () => {
       console.log('🚀🚀🚀 CRM CHECK QUERY STARTED 🚀🚀🚀', {
         currentUserEmail: currentUser?.email,
+        currentUserCustomRole: currentUser?.custom_role,
         timestamp: new Date().toISOString()
       });
 
@@ -654,26 +655,27 @@ export default function Layout({ children, currentPageName }) {
         hasCurrentUser: !!currentUser,
         currentUserEmail: currentUser?.email,
         currentUserCustomRole: currentUser?.custom_role,
+        hasCustomRole: !!currentUser?.custom_role,
         isOnline,
         isPublicPage,
         timestamp: new Date().toISOString()
       });
       return enabled;
     })(),
-    staleTime: 0,
-    gcTime: 0,
+    staleTime: currentUser?.custom_role ? 60 * 60 * 1000 : 0, // ⭐ ถ้ามี role แล้ว cache 1 ชม., ไม่มีให้ refetch ทุกครั้ง
+    gcTime: currentUser?.custom_role ? 2 * 60 * 60 * 1000 : 0,
     refetchInterval: false,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true,
-    refetchOnMount: 'always', // ⚡ Force refetch ทุกครั้งที่ component mount
-    retry: 0, // ปิด retry เพื่อดู error ชัดเจน
+    refetchOnWindowFocus: !currentUser?.custom_role, // ⭐ Refetch เฉพาะถ้ายังไม่มี role
+    refetchOnMount: !currentUser?.custom_role, // ⭐ Refetch เฉพาะถ้ายังไม่มี role
+    retry: 1,
     retryDelay: 500,
     throwOnError: false,
     onSuccess: (data) => {
-      console.log('✅ CRM Query Success! Data:', data);
+      console.log('✅✅✅ CRM Query Success! Data:', data);
     },
     onError: (error) => {
-      console.error('❌ CRM Query Error:', error);
+      console.error('❌❌❌ CRM Query Error:', error);
     },
   });
 
