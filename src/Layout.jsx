@@ -837,7 +837,12 @@ export default function Layout({ children, currentPageName }) {
         currentPageName === 'ActivityLog' ||
         currentPageName === 'DataLists' ||
         currentPageName === 'UpdateMyBranches' ||
-        currentPageName === 'UserBranchAccess') {
+        currentPageName === 'UserBranchAccess' ||
+        currentPageName === 'PublicInvoice' ||
+        currentPageName === 'PublicReceipt' ||
+        currentPageName === 'Invoice' ||
+        currentPageName === 'Receipt' ||
+        currentPageName === 'Welcome') {
       console.log('✅ หน้านี้ไม่ต้องเลือกสาขา - อนุญาต');
       return;
     }
