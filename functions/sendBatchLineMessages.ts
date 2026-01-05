@@ -164,19 +164,7 @@ Deno.serve(async (req) => {
                     await delay(idx * delayBetweenMessages);
 
                     return await retryOperation(async () => {
-                        // ⭐ ถ้ามีรูปใบแจ้งหนี้ ให้ส่งรูปก่อน แล้วตามด้วยข้อความ
-                        const messages = [];
-                        
-                        if (recipient.invoiceImageUrl) {
-                            messages.push({
-                                type: "image",
-                                originalContentUrl: recipient.invoiceImageUrl,
-                                previewImageUrl: recipient.invoiceImageUrl
-                            });
-                        }
-                        
-                        messages.push({ type: 'text', text: recipient.message });
-                        
+                        const messages = [{ type: 'text', text: recipient.message }];
                         const response = await fetch('https://api.line.me/v2/bot/message/push', {
                             method: 'POST',
                             headers: {
