@@ -661,8 +661,8 @@ export default function Layout({ children, currentPageName }) {
     return globalConfig ? globalConfig.value : defaultValue;
   };
 
-  const buildingLogo = getConfigValue('building_logo', 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg');
-  const buildingName = getConfigValue('building_name', 'W RESIDENTS');
+  const buildingLogo = getConfigValue('building_logo', 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/58da6a306_DC4395DB-4B27-4859-85B3-4F2948654F9E.png');
+  const buildingName = getConfigValue('building_name', 'หลังหอพัก');
   const appMode = getConfigValue('app_mode', 'single_tenant'); // ดึงค่า app_mode
 
   // ⭐ กำหนด userRole, userPermissions, userAccessibleBranches, canAccessBranch
@@ -1396,7 +1396,7 @@ export default function Layout({ children, currentPageName }) {
                   alt={`${buildingName} Logo`}
                   className="relative w-full h-full object-contain rounded-xl"
                   onError={(e) => {
-                    e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
+                    e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/58da6a306_DC4395DB-4B27-4859-85B3-4F2948654F9E.png';
                   }}
                 />
               </div>
