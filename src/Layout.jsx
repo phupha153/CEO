@@ -486,13 +486,11 @@ export default function Layout({ children, currentPageName }) {
     },
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 60 * 60 * 1000, // ⭐ Cache 1 ชั่วโมง
-    gcTime: 2 * 60 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    refetchInterval: false,
-    refetchIntervalInBackground: false,
     enabled: isOnline && !isPublicPage,
     networkMode: 'online',
     onError: () => setRetryCount(prev => prev + 1),
@@ -500,16 +498,10 @@ export default function Layout({ children, currentPageName }) {
     throwOnError: false,
   });
 
-  // เช็คสิทธิ์กับ CRM (sync role ครั้งแรก, หลังจากนั้น cache นาน)
+  // เช็คสิทธิ์กับ CRM (เช็คทุก 5 นาที + logout อัตโนมัติถ้าไม่มีสิทธิ์ + sync role)
   const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError } = useQuery({
-    queryKey: ['crmAccess', currentUser?.email, currentUser?.custom_role],
+    queryKey: ['crmAccess', currentUser?.email],
     queryFn: async () => {
-      console.log('🚀🚀🚀 CRM CHECK QUERY STARTED 🚀🚀🚀', {
-        currentUserEmail: currentUser?.email,
-        currentUserCustomRole: currentUser?.custom_role,
-        timestamp: new Date().toISOString()
-      });
-
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
 
@@ -519,8 +511,6 @@ export default function Layout({ children, currentPageName }) {
         });
         clearTimeout(timeoutId);
         const data = response.data;
-
-        console.log('📦 Raw CRM Response:', data);
 
         // 🔒 FAIL-CLOSED: ถ้ามี error/timeout → DENY
         if (!data || data.error) {
@@ -545,19 +535,75 @@ export default function Layout({ children, currentPageName }) {
         }
 
         // ⭐ Sync role จาก CRM (ถ้ามี role ส่งกลับมา)
+        // 🔒 ยกเว้น: ถ้า user.role === 'admin' ใน Base44 = เป็น developer เสมอ ไม่ sync จาก CRM
         if (data.hasAccess && data.role && currentUser) {
-          if (data.email && currentUser.email !== data.email) return data;
-          if (currentUser.role === 'admin') return data;
+          console.log('🔍 CRM Role Sync - Full Debug:', {
+            crmResponse: data,
+            crmRole: data.role,
+            crmRoleType: typeof data.role,
+            currentUserRole: currentUser.role,
+            currentUserCustomRole: currentUser.custom_role,
+            currentUserId: currentUser.id,
+            currentUserEmail: currentUser.email
+          });
+
+          // ⭐ Admin users ใน Base44 = developer เสมอ ไม่ sync จาก CRM
+          if (currentUser.role === 'admin') {
+            console.log('🔒 Admin user detected - keeping as developer, not syncing from CRM');
+            return data;
+          }
 
           const currentRole = currentUser.custom_role || null;
-          const crmRole = data.role?.trim();
+          const crmRole = data.role;
+          
+          console.log('🔄 Role Sync Check (Detailed):', {
+            email: currentUser.email,
+            currentRole_before: currentRole,
+            currentRole_is_null: currentRole === null,
+            crmRole: crmRole,
+            crmRole_trimmed: crmRole?.trim(),
+            needsUpdate: currentRole !== crmRole,
+            willUpdate: !currentRole || currentRole !== crmRole
+          });
 
-          if (currentRole !== crmRole) {
-            await base44.entities.User.update(currentUser.id, { custom_role: crmRole });
-            await queryClient.invalidateQueries(['currentUser']);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            window.location.reload();
+          // ⭐ อัพเดทถ้า: (1) ไม่มี role เลย หรือ (2) role ไม่ตรงกับ CRM
+          if (!currentRole || currentRole !== crmRole) {
+            try {
+              console.log('⚡ UPDATING USER ROLE:', {
+                userId: currentUser.id,
+                from: currentRole || 'null',
+                to: crmRole,
+                updatePayload: { custom_role: crmRole }
+              });
+              
+              const updateResult = await base44.entities.User.update(currentUser.id, { custom_role: crmRole });
+              console.log('✅ Update API Response:', updateResult);
+              console.log('✅ Synced role from CRM:', crmRole);
+
+              // ⭐ Wait 1000ms ให้ database persist
+              await new Promise(resolve => setTimeout(resolve, 1000));
+
+              // ⭐ Force reload เพื่อให้ role เปลี่ยนทันทีทุก component
+              console.log('🔄 Reloading page to apply new role...');
+              window.location.reload();
+            } catch (error) {
+              console.error('❌ Failed to sync role from CRM:', error);
+              console.error('❌ Error details:', {
+                message: error.message,
+                stack: error.stack,
+                response: error.response
+              });
+            }
+          } else {
+            console.log('✓ Role already matches - no update needed:', { currentRole, crmRole });
           }
+        } else {
+          console.log('⚠️ Role sync skipped:', {
+            hasAccess: data?.hasAccess,
+            hasRole: !!data?.role,
+            hasCurrentUser: !!currentUser,
+            data_keys: data ? Object.keys(data) : []
+          });
         }
 
         return data;
@@ -569,13 +615,11 @@ export default function Layout({ children, currentPageName }) {
         return { hasAccess: false, reason: 'CRM error' };
       }
     },
-    enabled: !isLoading && !!currentUser && !currentUser?.custom_role && isOnline && !isPublicPage,
-    staleTime: Infinity, // ⭐ Check ครั้งเดียวตอน login
-    gcTime: Infinity,
+    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
+    staleTime: 60 * 60 * 1000, // ⚡ Cache 1 ชม. (ลดจาก 10 นาที)
     refetchInterval: false,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnWindowFocus: false, // ❌ ปิด auto-refetch (เช็คเฉพาะตอน mount)
     retry: 1,
     retryDelay: 500,
     throwOnError: false,
@@ -584,12 +628,10 @@ export default function Layout({ children, currentPageName }) {
   const { data: appSubscriptions = [] } = useQuery({
     queryKey: ['appSubscriptions'],
     queryFn: () => base44.entities.AppSubscription.list('-created_date', 1),
-    enabled: !!currentUser,
-    staleTime: Infinity,
-    gcTime: Infinity,
+    enabled: !isLoading && !!currentUser,
+    staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    refetchInterval: false,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     throwOnError: false,
@@ -600,16 +642,15 @@ export default function Layout({ children, currentPageName }) {
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
-    enabled: !!currentUser,
-    staleTime: Infinity, // ⭐ Cache ตลอด (แก้ไขผ่าน invalidate เท่านั้น)
-    gcTime: Infinity,
+    enabled: !isLoading && !!currentUser && isOnline,
+    staleTime: 24 * 60 * 60 * 1000, // 24 ชั่วโมง
+    gcTime: 48 * 60 * 60 * 1000, // 48 ชั่วโมง
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    networkMode: 'online',
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    refetchInterval: false,
-    refetchIntervalInBackground: false,
     placeholderData: (previousData) => previousData,
     throwOnError: false,
   });
@@ -617,15 +658,13 @@ export default function Layout({ children, currentPageName }) {
   const { data: configs = [], isLoading: configsLoading } = useQuery({
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
-    enabled: !!currentUser,
-    staleTime: Infinity, // ⭐ Cache ตลอด
-    gcTime: Infinity,
+    enabled: !isLoading && !!currentUser && isOnline,
+    staleTime: 24 * 60 * 60 * 1000, // 24 ชั่วโมง
+    gcTime: 48 * 60 * 60 * 1000, // 48 ชั่วโมง
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    refetchInterval: false,
-    refetchIntervalInBackground: false,
     placeholderData: (previousData) => previousData,
     throwOnError: false,
   });
@@ -801,6 +840,16 @@ export default function Layout({ children, currentPageName }) {
   }, [isLoading, currentUser, navigate, currentPageName, error]);
 
   useEffect(() => {
+    console.log('🔍 Layout Branch Check:', {
+      currentPageName,
+      hasUser: !!currentUser,
+      isLoading,
+      branchesLoading,
+      selectedBranch: selectedBranch?.id,
+      canAccessBranch,
+      branchesCount: branches.length
+    });
+
     if (!currentUser || isLoading || branchesLoading) return;
 
     // Pages that don't require a selected branch
@@ -812,10 +861,13 @@ export default function Layout({ children, currentPageName }) {
         currentPageName === 'DataLists' ||
         currentPageName === 'UpdateMyBranches' ||
         currentPageName === 'UserBranchAccess') {
+      console.log('✅ หน้านี้ไม่ต้องเลือกสาขา - อนุญาต');
       return;
     }
 
+    // If user has a selected branch but no access to it, clear and redirect
     if (selectedBranch && !canAccessBranch) {
+      console.log('🚫 ไม่มีสิทธิ์เข้าสาขานี้ - redirect');
       localStorage.removeItem('selected_branch_id');
       localStorage.removeItem('selected_branch_name');
       setSelectedBranch(null);
@@ -823,7 +875,9 @@ export default function Layout({ children, currentPageName }) {
       return;
     }
 
+    // If no branch is selected and there are branches available, redirect to branch selection
     if (!selectedBranch && branches.length > 0) {
+      console.log('⚠️ ไม่ได้เลือกสาขา - redirect ไป BranchSelection');
       navigate(createPageUrl('BranchSelection'), { replace: true });
     }
   }, [currentUser?.id, selectedBranch?.id, canAccessBranch, isLoading, branchesLoading, currentPageName, branches.length, navigate, userRole]);
@@ -1252,7 +1306,7 @@ export default function Layout({ children, currentPageName }) {
     );
   }
   
-
+  console.log('✅ Layout กำลัง render ปกติ', { currentPageName, selectedBranch: selectedBranch?.id });
 
   // If a branch is selected but user doesn't have access
   if (selectedBranch && !canAccessBranch) {

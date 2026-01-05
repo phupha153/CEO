@@ -28,14 +28,7 @@ Deno.serve(async (req) => {
     }
 
     // ⭐ ตรวจสอบสถานะ trial ของ user
-    const userRole = user.custom_role || (user.role === 'admin' ? 'developer' : 'employee');
-    
-    console.log('🔍 getSecureData - User Role Check:', {
-      email: user.email,
-      base_role: user.role,
-      custom_role: user.custom_role,
-      calculated_role: userRole
-    });
+    const userRole = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
     
     // Developer ไม่ต้องเช็ค trial
     if (userRole !== 'developer') {
@@ -62,51 +55,11 @@ Deno.serve(async (req) => {
     const accessibleBranches = user.accessible_branches;
 
     // Developer ที่ไม่มี accessible_branches = เข้าถึงทุกสาขา
-    // Owner ที่ไม่มี accessible_branches = เข้าถึงทุกสาขา (ของตัวเอง)
-    const canAccessAllBranches = (userRole === 'developer' || userRole === 'owner') && (!accessibleBranches || accessibleBranches.length === 0);
-
-    console.log('🔍 getSecureData - Access Check:', {
-      userRole,
-      accessibleBranches,
-      canAccessAllBranches,
-      requested_branch_id: filters.branch_id
-    });
+    const canAccessAllBranches = userRole === 'developer' && (!accessibleBranches || accessibleBranches.length === 0);
 
     // ถ้ามี branch_id ใน filters ให้เช็คสิทธิ์
     if (filters.branch_id && !canAccessAllBranches) {
-      // ⭐ Owner ที่ไม่มี accessible_branches = ให้เข้าถึงสาขาที่ตัวเองเป็นเจ้าของได้
-      if (!accessibleBranches || accessibleBranches.length === 0) {
-        if (userRole === 'owner') {
-          // ตรวจสอบว่าเป็นเจ้าของสาขานี้หรือไม่
-          const branches = await base44.asServiceRole.entities.Branch.filter({ id: filters.branch_id });
-          const branch = branches[0];
-          
-          if (!branch || (branch.owner_id !== user.email && branch.created_by !== user.email)) {
-            console.error('❌ Owner cannot access branch - Not the owner:', {
-              user: user.email,
-              branch_id: filters.branch_id,
-              branch_owner: branch?.owner_id,
-              branch_created_by: branch?.created_by
-            });
-            return Response.json({ error: 'Access denied to this branch' }, { status: 403 });
-          }
-          // ✅ เป็นเจ้าของสาขา - อนุญาต
-          console.log('✅ Owner access granted to own branch:', filters.branch_id);
-        } else {
-          console.error('❌ Access denied - No accessible branches:', {
-            user: user.email,
-            role: userRole,
-            requested_branch: filters.branch_id
-          });
-          return Response.json({ error: 'Access denied to this branch' }, { status: 403 });
-        }
-      } else if (!accessibleBranches.includes(filters.branch_id)) {
-        console.error('❌ Access denied - Branch not in accessible list:', {
-          user: user.email,
-          role: userRole,
-          requested_branch: filters.branch_id,
-          accessible: accessibleBranches
-        });
+      if (!accessibleBranches || !accessibleBranches.includes(filters.branch_id)) {
         return Response.json({ error: 'Access denied to this branch' }, { status: 403 });
       }
     }
