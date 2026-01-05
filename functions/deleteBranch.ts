@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 Deno.serve(async (req) => {
   // Clone request before SDK reads it
@@ -159,10 +159,13 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Delete branch error:', error);
     console.error('Error stack:', error.stack);
-    console.error('Error details:', JSON.stringify(error, null, 2));
+    
+    // ⭐ ส่ง error message ที่ละเอียดกว่า เพื่อ debug
     return Response.json({ 
       success: false,
-      error: error.message || 'ไม่สามารถลบสาขาได้'
+      error: error.message || 'ไม่สามารถลบสาขาได้',
+      details: error.stack,
+      errorName: error.name
     }, { status: 500 });
   }
 });
