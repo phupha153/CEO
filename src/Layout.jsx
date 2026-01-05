@@ -534,18 +534,36 @@ export default function Layout({ children, currentPageName }) {
           base44.auth.logout(welcomeUrl);
         }
 
+        console.log('🔍 CRM Response Received:', {
+          hasAccess: data?.hasAccess,
+          role: data?.role,
+          email: data?.email,
+          source: data?.source,
+          message: data?.message,
+          allKeys: data ? Object.keys(data) : []
+        });
+
         // ⭐ Sync role จาก CRM (ถ้ามี role ส่งกลับมา)
         // 🔒 ยกเว้น: ถ้า user.role === 'admin' ใน Base44 = เป็น developer เสมอ ไม่ sync จาก CRM
         if (data.hasAccess && data.role && currentUser) {
-          console.log('🔍 CRM Role Sync - Full Debug:', {
-            crmResponse: data,
+          console.log('🔍 CRM Role Sync - Detailed Analysis:', {
+            loginEmail: currentUser.email,
+            crmCheckedEmail: data.email,
+            emailsMatch: currentUser.email === data.email,
             crmRole: data.role,
-            crmRoleType: typeof data.role,
-            currentUserRole: currentUser.role,
+            currentUserBaseRole: currentUser.role,
             currentUserCustomRole: currentUser.custom_role,
-            currentUserId: currentUser.id,
-            currentUserEmail: currentUser.email
+            isAdminInBase44: currentUser.role === 'admin'
           });
+
+          // ⚠️ ตรวจสอบว่า email ตรงกันหรือไม่ (ป้องกันการ sync role คนอื่น)
+          if (data.email && currentUser.email !== data.email) {
+            console.warn('⚠️ Email mismatch - skipping role sync:', {
+              currentUserEmail: currentUser.email,
+              crmEmail: data.email
+            });
+            return data;
+          }
 
           // ⭐ Admin users ใน Base44 = developer เสมอ ไม่ sync จาก CRM
           if (currentUser.role === 'admin') {
@@ -554,55 +572,55 @@ export default function Layout({ children, currentPageName }) {
           }
 
           const currentRole = currentUser.custom_role || null;
-          const crmRole = data.role;
+          const crmRole = data.role?.trim();
           
-          console.log('🔄 Role Sync Check (Detailed):', {
-            email: currentUser.email,
-            currentRole_before: currentRole,
-            currentRole_is_null: currentRole === null,
+          console.log('🔄 Role Comparison:', {
+            currentRole: currentRole,
+            currentRoleType: typeof currentRole,
             crmRole: crmRole,
-            crmRole_trimmed: crmRole?.trim(),
-            needsUpdate: currentRole !== crmRole,
-            willUpdate: !currentRole || currentRole !== crmRole
+            crmRoleType: typeof crmRole,
+            areEqual: currentRole === crmRole,
+            shouldUpdate: !currentRole || currentRole !== crmRole
           });
 
-          // ⭐ อัพเดทถ้า: (1) ไม่มี role เลย หรือ (2) role ไม่ตรงกับ CRM
-          if (!currentRole || currentRole !== crmRole) {
+          // ⭐ อัพเดทเฉพาะเมื่อ role ไม่ตรงกัน
+          if (currentRole !== crmRole) {
             try {
-              console.log('⚡ UPDATING USER ROLE:', {
+              console.log('⚡⚡⚡ EXECUTING ROLE UPDATE ⚡⚡⚡');
+              console.log('Update Payload:', {
                 userId: currentUser.id,
-                from: currentRole || 'null',
-                to: crmRole,
-                updatePayload: { custom_role: crmRole }
+                email: currentUser.email,
+                fromRole: currentRole,
+                toRole: crmRole,
+                payload: { custom_role: crmRole }
               });
               
               const updateResult = await base44.entities.User.update(currentUser.id, { custom_role: crmRole });
-              console.log('✅ Update API Response:', updateResult);
-              console.log('✅ Synced role from CRM:', crmRole);
+              
+              console.log('✅✅✅ Update API Success! Response:', updateResult);
 
-              // ⭐ Wait 1000ms ให้ database persist
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              // ⭐ Invalidate queries ก่อน reload
+              await queryClient.invalidateQueries(['currentUser']);
+              
+              // ⭐ Wait 1.5 วิให้ database persist
+              await new Promise(resolve => setTimeout(resolve, 1500));
 
-              // ⭐ Force reload เพื่อให้ role เปลี่ยนทันทีทุก component
-              console.log('🔄 Reloading page to apply new role...');
+              console.log('🔄 Reloading page in 3...2...1...');
               window.location.reload();
             } catch (error) {
-              console.error('❌ Failed to sync role from CRM:', error);
-              console.error('❌ Error details:', {
-                message: error.message,
-                stack: error.stack,
-                response: error.response
-              });
+              console.error('❌❌❌ ROLE UPDATE FAILED ❌❌❌');
+              console.error('Error:', error);
+              console.error('Error Message:', error.message);
+              console.error('Error Stack:', error.stack);
             }
           } else {
-            console.log('✓ Role already matches - no update needed:', { currentRole, crmRole });
+            console.log('✓ Role matches - no update needed');
           }
         } else {
-          console.log('⚠️ Role sync skipped:', {
+          console.log('⚠️ Role sync skipped - Missing required data:', {
             hasAccess: data?.hasAccess,
             hasRole: !!data?.role,
-            hasCurrentUser: !!currentUser,
-            data_keys: data ? Object.keys(data) : []
+            hasCurrentUser: !!currentUser
           });
         }
 
