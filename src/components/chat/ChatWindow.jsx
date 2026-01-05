@@ -737,38 +737,38 @@ export default function ChatWindow({
                       เชื่อมต่อ {conversation.facebook_user_id ? 'Facebook' : 'LINE'}
                     </Button>
                   </div>
+                </div>
+              )}
 
-                  {/* ปุ่มเพิ่มผู้เช่า - แสดงตลอดเวลา */}
-                  <div className="mt-4 pt-4 border-t">
-                   <Button
-                     size="sm"
-                     className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-                     disabled={analyzingChat || messages.length === 0}
-                     onClick={handleAnalyzeChat}
-                   >
-                     {analyzingChat ? (
-                       <>
-                         <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                         กำลังวิเคราะห์...
-                       </>
-                     ) : (
-                       <>
-                         <UserPlus className="w-4 h-4 mr-2" />
-                         เพิ่มผู้เช่า
-                       </>
-                     )}
-                   </Button>
-                   <p className="text-xs text-slate-500 mt-2 text-center">
-                     AI จะวิเคราะห์ข้อความและเสนอข้อมูลให้
-                   </p>
-                  </div>
-                  </div>
+              {/* ปุ่มเพิ่มผู้เช่า - แสดงตลอดเวลา */}
+              <div className="mt-4 pt-4 border-t">
+                <Button
+                  size="sm"
+                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                  disabled={analyzingChat || messages.length === 0}
+                  onClick={handleAnalyzeChat}
+                >
+                  {analyzingChat ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      กำลังวิเคราะห์...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      เพิ่มผู้เช่า
+                    </>
                   )}
-                  </div>
-                  </div>
-                  </>,
-                  document.body
-                  )}
+                </Button>
+                <p className="text-xs text-slate-500 mt-2 text-center">
+                  AI จะวิเคราะห์ข้อความและเสนอข้อมูลให้
+                </p>
+              </div>
+            </div>
+          </div>
+          </>,
+          document.body
+          )}
 
                   {/* Add Tenant Dialog */}
                   <AddTenantDialog
