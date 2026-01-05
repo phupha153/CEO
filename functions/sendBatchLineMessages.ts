@@ -58,27 +58,36 @@ async function getLineToken(base44, configs, branchId = null) {
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
-        const user = await base44.auth.me();
-
-        if (!user) {
-            return Response.json({ error: 'Unauthorized' }, { status: 401 });
+        
+        // ⭐ เช็คว่าถูกเรียกจาก automated task (cron/service role) หรือไม่
+        let user = null;
+        let isAutomatedTask = false;
+        
+        try {
+            user = await base44.auth.me();
+        } catch (authError) {
+            // ถ้าไม่มี user auth → เป็น automated task (เช่น cron job)
+            console.log('🤖 Running as automated task (no user context)');
+            isAutomatedTask = true;
         }
 
-        // 🔒 Security: Plan Verification (SaaS Standard)
-        const planStatus = user.plan_status;
-        if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
-            return Response.json({ 
-                error: 'Subscription required', 
-                message: 'แพ็กเกจของคุณหมดอายุแล้ว กรุณาต่ออายุเพื่อใช้งานต่อ' 
-            }, { status: 402 });
-        }
-        if (planStatus === 'trial' && user.trial_ends_at) {
-            const trialEnd = new Date(user.trial_ends_at);
-            if (new Date() > trialEnd) {
+        // 🔒 Security: Plan Verification (เฉพาะเมื่อมี user context)
+        if (!isAutomatedTask && user) {
+            const planStatus = user.plan_status;
+            if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
                 return Response.json({ 
-                    error: 'Trial expired', 
-                    message: 'ช่วงทดลองใช้หมดอายุแล้ว กรุณาเลือกแพ็กเกจเพื่อใช้งานต่อ' 
+                    error: 'Subscription required', 
+                    message: 'แพ็กเกจของคุณหมดอายุแล้ว กรุณาต่ออายุเพื่อใช้งานต่อ' 
                 }, { status: 402 });
+            }
+            if (planStatus === 'trial' && user.trial_ends_at) {
+                const trialEnd = new Date(user.trial_ends_at);
+                if (new Date() > trialEnd) {
+                    return Response.json({ 
+                        error: 'Trial expired', 
+                        message: 'ช่วงทดลองใช้หมดอายุแล้ว กรุณาเลือกแพ็กเกจเพื่อใช้งานต่อ' 
+                    }, { status: 402 });
+                }
             }
         }
 
