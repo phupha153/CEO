@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
@@ -426,21 +426,22 @@ export default function Layout({ children, currentPageName }) {
       const newBranch = (branchId && branchName) ? { id: branchId, branch_name: branchName } : null;
       
       setSelectedBranch(prev => {
+        // 🔒 ป้องกัน unnecessary re-render - เช็คว่าเปลี่ยนจริงๆ หรือไม่
         if (!prev && !newBranch) return prev;
         if (!prev && newBranch) return newBranch;
-        if (prev && !newBranch) return newBranch;
+        if (prev && !newBranch) return null; // Changed from newBranch to null explicitly
         if (prev && newBranch && prev.id !== newBranch.id) return newBranch;
+        if (prev && newBranch && prev.id === newBranch.id && prev.branch_name === newBranch.branch_name) return prev; // ⭐ No change
         return prev;
       });
     };
 
     syncBranchFromStorage();
     window.addEventListener('storage', syncBranchFromStorage);
-    const interval = setInterval(syncBranchFromStorage, 500);
+    // ❌ ลบ interval - ใช้ storage event เพียงอย่างเดียว (cross-tab sync)
 
     return () => {
       window.removeEventListener('storage', syncBranchFromStorage);
-      clearInterval(interval);
     };
   }, []);
 
@@ -712,19 +713,29 @@ export default function Layout({ children, currentPageName }) {
   const appMode = getConfigValue('app_mode', 'single_tenant'); // ดึงค่า app_mode
 
   // ⭐ กำหนด userRole, userPermissions, userAccessibleBranches, canAccessBranch
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
-  const userPermissions = currentUser?.permissions || [];
+  // 🔒 useMemo เพื่อป้องกัน re-calculation ทุกครั้งที่ render
+  const userRole = useMemo(() => 
+    currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee'),
+    [currentUser?.custom_role, currentUser?.role]
+  );
   
-  // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้
-  const userAccessibleBranches = currentUser?.accessible_branches;
+  const userPermissions = useMemo(() => 
+    currentUser?.permissions || [],
+    [currentUser?.permissions]
+  );
+  
+  const userAccessibleBranches = useMemo(() => 
+    currentUser?.accessible_branches,
+    [currentUser?.accessible_branches]
+  );
 
-  // ถ้ามี accessible_branches set (ไม่ว่าจะ [] หรือมีค่า) ต้องเช็คว่าสาขาอยู่ในลิสต์หรือไม่
-  // ถ้าเป็น null/undefined และเป็น developer ให้เข้าได้ทุกสาขา
-  const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
+  // 🔒 useMemo เพื่อป้องกัน re-calculation
+  const hasAccessibleBranchesSet = useMemo(() => 
+    userAccessibleBranches !== null && userAccessibleBranches !== undefined,
+    [userAccessibleBranches]
+  );
 
-  // ⭐ Fallback: ถ้าไม่มี accessible_branches set เลย (null/undefined) 
-  // ให้เข้าได้ทุกสาขาที่ตัวเองเป็น owner (ดูจาก owner_id หรือ created_by)
-  const canAccessBranch = (() => {
+  const canAccessBranch = useMemo(() => {
     // Developer ที่ไม่มี accessible_branches set = เข้าได้ทุกสาขา
     if (userRole === 'developer' && !hasAccessibleBranchesSet) return true;
 
@@ -744,7 +755,7 @@ export default function Layout({ children, currentPageName }) {
     }
 
     return false;
-  })();
+  }, [userRole, hasAccessibleBranchesSet, selectedBranch, userAccessibleBranches, branches, currentUser?.email]);
 
   // ⭐ Feature access - Trial = full access, Active = full access, Owner = full access
   const hasFeature = (featureName) => {
@@ -968,9 +979,16 @@ export default function Layout({ children, currentPageName }) {
     return badges[role] || badges.employee;
   };
 
-  const visibleMenuItems = currentUser ? navigationItems.filter(canAccessMenuItem) : [];
-  // Admin items - show for both developer and owner
-  const visibleAdminItems = currentUser && (userRole === 'developer' || userRole === 'owner') ? adminOnlyItems.filter(canAccessMenuItem) : [];
+  // 🔒 useMemo เพื่อป้องกัน filter ซ้ำๆ
+  const visibleMenuItems = useMemo(() => 
+    currentUser ? navigationItems.filter(canAccessMenuItem) : [],
+    [currentUser, userRole, branches.length, branchesLoading, userAccessibleBranches]
+  );
+  
+  const visibleAdminItems = useMemo(() => 
+    currentUser && (userRole === 'developer' || userRole === 'owner') ? adminOnlyItems.filter(canAccessMenuItem) : [],
+    [currentUser, userRole]
+  );
 
   // Don't apply subscription check to these pages (public or critical admin pages)
   // Developer สามารถเข้าถึงทุกหน้าได้แม้แพ็กเกจหมดอายุ
