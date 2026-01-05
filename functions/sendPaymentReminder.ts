@@ -397,6 +397,17 @@ Deno.serve(async (req) => {
                 const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', branchId, '0');
                 const feePerDay = parseFloat(lateFeePerDayConfig);
 
+                // ⭐ ดึงค่าปรับแบบขั้นบันได (ถ้ามี)
+                const lateFeeStructureConfig = configs.find(c => 
+                    c.key === 'late_fee_structure' && c.branch_id === branchId
+                );
+                let lateFeeStructure = null;
+                if (lateFeeStructureConfig?.value) {
+                    try {
+                        lateFeeStructure = JSON.parse(lateFeeStructureConfig.value);
+                    } catch {}
+                }
+
                 if (template === 'overdue') {
                     // --- CASE 1: เกินกำหนด (ไม่มีลิงก์) ---
                     console.log(`📝 Using OVERDUE template (NO LINK) for payment ${payment.id}`);
@@ -436,7 +447,18 @@ Deno.serve(async (req) => {
                     message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
                     message += `(${numberToThaiText(payment.total_amount)})\n\n`;
                     
-                    if (!isNaN(feePerDay) && feePerDay > 0) {
+                    // ⭐ แจ้งค่าปรับแบบขั้นบันได (ถ้ามี)
+                    if (lateFeeStructure && Array.isArray(lateFeeStructure) && lateFeeStructure.length > 0) {
+                        message += `⚠️ ค่าปรับชำระล่าช้า:\n`;
+                        lateFeeStructure.forEach((tier) => {
+                            if (tier.days_start && tier.days_end) {
+                                message += `   วันที่ ${tier.days_start}-${tier.days_end}: ${tier.fee_per_day} บาท/วัน\n`;
+                            } else if (tier.days_start) {
+                                message += `   วันที่ ${tier.days_start} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
+                            }
+                        });
+                        message += `\n`;
+                    } else if (!isNaN(feePerDay) && feePerDay > 0) {
                         message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${feePerDay} บาท/วัน\n\n`;
                     }
                     
