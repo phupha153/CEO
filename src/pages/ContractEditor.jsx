@@ -109,8 +109,10 @@ export default function ContractEditor() {
   const { data: tenants = [] } = useQuery({
     queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
-      const allTenants = await base44.entities.Tenant.list('-created_date', 500);
-      return allTenants.filter(t => t.branch_id === selectedBranchId);
+      if (!selectedBranchId) return [];
+      const tenants = await base44.entities.Tenant.filter({ branch_id: selectedBranchId, status: 'active' }, '-created_date', 1000);
+      console.log('🔍 ContractEditor: Loaded tenants for branch', selectedBranchId, '- Total:', tenants.length);
+      return tenants;
     },
     enabled: !!selectedBranchId,
   });
@@ -118,8 +120,10 @@ export default function ContractEditor() {
   const { data: rooms = [] } = useQuery({
     queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
-      const allRooms = await base44.entities.Room.list('-room_number', 1000);
-      return allRooms.filter(r => r.branch_id === selectedBranchId);
+      if (!selectedBranchId) return [];
+      const rooms = await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 1000);
+      console.log('🔍 ContractEditor: Loaded rooms for branch', selectedBranchId, '- Total:', rooms.length);
+      return rooms;
     },
     enabled: !!selectedBranchId,
   });
@@ -132,8 +136,10 @@ export default function ContractEditor() {
   const { data: bookings = [] } = useQuery({
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
-      const allBookings = await base44.entities.Booking.list('-created_date', 500);
-      return allBookings.filter(b => b.branch_id === selectedBranchId);
+      if (!selectedBranchId) return [];
+      const bookings = await base44.entities.Booking.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
+      console.log('🔍 ContractEditor: Loaded bookings for branch', selectedBranchId, '- Total:', bookings.length);
+      return bookings;
     },
     enabled: !!selectedBranchId,
   });
