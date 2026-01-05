@@ -279,6 +279,15 @@ const adminOnlyItems = [
     requiredFeature: "settings_access_test_mode"
   },
   {
+    title: "จัดการประกาศ",
+    url: createPageUrl("BannerManagement"),
+    icon: Megaphone,
+    badge: "Dev",
+    showOnlyForDeveloper: true,
+    requiredPermission: "settings_access_test_mode",
+    requiredFeature: "settings_access_test_mode"
+  },
+  {
     title: "คู่มือ Developer",
     url: createPageUrl("DeveloperGuide"),
     icon: ScrollText,
