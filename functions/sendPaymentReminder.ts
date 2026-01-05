@@ -399,7 +399,7 @@ Deno.serve(async (req) => {
 
                 // ⭐ ดึงค่าปรับแบบขั้นบันได (ถ้ามี)
                 const lateFeeStructureConfig = configs.find(c => 
-                    c.key === 'late_fee_structure' && c.branch_id === branchId
+                    c.key === 'late_fee_tiers' && c.branch_id === branchId
                 );
                 let lateFeeStructure = null;
                 if (lateFeeStructureConfig?.value) {

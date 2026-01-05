@@ -229,9 +229,14 @@ Deno.serve(async (req) => {
                     message += `⚠️ ค่าปรับชำระล่าช้า:\n`;
                     lateFeeStructure.forEach((tier, idx) => {
                         if (tier.days_from !== undefined && tier.days_to !== undefined) {
-                            message += `   วันที่ ${tier.days_from}-${tier.days_to}: ${tier.fee_per_day} บาท/วัน\n`;
+                            // ถ้า days_to >= 999 แสดง "เป็นต้นไป"
+                            if (tier.days_to >= 999) {
+                                message += `   วันที่ ${tier.days_from} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
+                            } else {
+                                message += `   วันที่ ${tier.days_from}-${tier.days_to}: ${tier.fee_per_day} บาท/วัน\n`;
+                            }
                         } else if (tier.days_from !== undefined) {
-                            message += `   วันที่ ${tier.days_from}+: ${tier.fee_per_day} บาท/วัน\n`;
+                            message += `   วันที่ ${tier.days_from} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
                         }
                     });
                     message += `\n`;
