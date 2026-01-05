@@ -1124,7 +1124,7 @@ export default function Dashboard() {
             configs={configs}
           />
 
-          {(userRole === 'developer' || userRole === 'owner') && (
+          {userRole === 'developer' && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
               <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
                 <CardHeader className="pb-3">
