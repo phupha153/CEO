@@ -225,10 +225,85 @@ export default function BranchSelection() {
     onSuccess: async (newBranch, variables) => {
       queryClient.invalidateQueries(['branches']);
 
-      // ⭐ ไม่สร้าง config เริ่มต้นเลย - ให้ user กรอกเองในหน้าตั้งค่า
-      // เพื่อป้องกันปัญหาลายเซ็น/โลโก้/ค่าต่างๆ คัดลอกมาจากสาขาอื่น
-
-
+      // ⭐ บันทึกเฉพาะข้อมูลที่ user กรอกมาจริงๆ (ไม่ copy จากสาขาอื่น)
+      try {
+        const configsToCreate = [];
+        
+        // บันทึกข้อมูลพื้นฐานที่กรอกมา
+        if (variables.branch_name) {
+          configsToCreate.push({ 
+            key: 'building_name', 
+            value: variables.branch_name, 
+            value_type: 'string', 
+            description: 'ชื่อหอพัก', 
+            category: 'general',
+            branch_id: newBranch.id
+          });
+        }
+        
+        if (variables.address) {
+          configsToCreate.push({ 
+            key: 'building_address', 
+            value: variables.address, 
+            value_type: 'string', 
+            description: 'ที่อยู่หอพัก', 
+            category: 'general',
+            branch_id: newBranch.id
+          });
+        }
+        
+        if (variables.phone) {
+          configsToCreate.push({ 
+            key: 'building_phone', 
+            value: variables.phone, 
+            value_type: 'string', 
+            description: 'เบอร์โทรหอพัก', 
+            category: 'general',
+            branch_id: newBranch.id
+          });
+        }
+        
+        if (variables.manager_name) {
+          configsToCreate.push({ 
+            key: 'building_manager', 
+            value: variables.manager_name, 
+            value_type: 'string', 
+            description: 'ผู้ดูแลหอพัก', 
+            category: 'general',
+            branch_id: newBranch.id
+          });
+        }
+        
+        // บันทึก bill settings ถ้ากรอกมา
+        if (variables.bill_generation_day) {
+          configsToCreate.push({ 
+            key: 'bill_generation_day', 
+            value: variables.bill_generation_day, 
+            value_type: 'number', 
+            description: 'วันที่สร้างบิลอัตโนมัติ', 
+            category: 'billing',
+            branch_id: newBranch.id
+          });
+        }
+        
+        if (variables.payment_due_day) {
+          configsToCreate.push({ 
+            key: 'pay_day', 
+            value: variables.payment_due_day, 
+            value_type: 'number', 
+            description: 'วันครบกำหนดชำระเงิน', 
+            category: 'billing',
+            branch_id: newBranch.id
+          });
+        }
+        
+        if (configsToCreate.length > 0) {
+          await base44.entities.Config.bulkCreate(configsToCreate);
+          console.log(`✅ Created ${configsToCreate.length} configs for new branch`);
+        }
+      } catch (error) {
+        console.error('Failed to create configs:', error);
+      }
 
       queryClient.invalidateQueries(['configs']);
 
