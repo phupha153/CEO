@@ -77,10 +77,12 @@ export default function BranchSelection() {
       return data;
     },
     enabled: !!currentUser && !userLoading && userSuccess,
-    staleTime: 10 * 60 * 1000, // ⚡ Cache 10 นาที (ลด API calls)
-    refetchInterval: false, // ⚠️ ปิด auto-refetch (เช็คเฉพาะตอน reload)
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchInterval: false,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true, // ✅ เช็คใหม่เมื่อกลับมาที่หน้าต่าง
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
     retry: 1,
     retryDelay: 500,
     throwOnError: false,
@@ -94,16 +96,21 @@ export default function BranchSelection() {
     queryFn: () => base44.entities.Branch.list(),
     enabled: canLoadData && !!currentUser,
     retry: 2,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
     enabled: canLoadData && !!currentUser,
-    staleTime: 5 * 60 * 1000,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // ⭐ ดึงจำนวนห้องจริงจาก Room entity - ใช้ Backend
@@ -119,9 +126,10 @@ export default function BranchSelection() {
     },
     enabled: canLoadData && !!currentUser,
     retry: 2,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    staleTime: Infinity,
+    gcTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // นับจำนวนห้องต่อสาขา
