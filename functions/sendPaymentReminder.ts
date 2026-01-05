@@ -400,18 +400,18 @@ Deno.serve(async (req) => {
                 if (template === 'overdue') {
                     // --- CASE 1: เกินกำหนด (ไม่มีลิงก์) ---
                     console.log(`📝 Using OVERDUE template (NO LINK) for payment ${payment.id}`);
-                    message = `🔴 แจ้งเตือนเกินกำหนดชำระ\n\n`;
+                    message = `📢 แจ้งเตือนค่าเช่าเกินกำหนด\n\n`;
                     message += `${buildingName}\n`;
                     message += `คุณ ${tenant.full_name} ห้อง ${roomNum}\n`;
-                    message += `💰 ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
+                    message += `ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
                     if (lateFee > 0) {
-                        message += `\n⚠️ ค่าปรับล่าช้า: +${lateFee.toLocaleString()} บาท`;
-                        message += `\n💰 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
+                        message += `\nค่าปรับล่าช้า: ${lateFee.toLocaleString()} บาท`;
                     }
-                    message += `\n⏰ เกินกำหนดมาแล้ว: ${daysOverdue} วัน\n\n`;
-                    message += `กรุณาชำระโดยด่วนค่ะ${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
+                    message += `\nรวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
+                    message += `\nเกินกำหนดมาแล้ว ${daysOverdue} วัน\n\n`;
+                    message += `⚠️ ดำเนินการชำระยอดคงค้างดังกล่าว เพื่อเป็นการหยุดการคำนวณค่าปรับล่าช้าที่จะเพิ่มขึ้น\n\n`;
                     message += `💳 โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
-                    message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
+                    message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ 🙏`;
 
                 } else if (template === 'due_date') {
                     // --- CASE 2: ครบกำหนด (ไม่มีลิงก์) ---
