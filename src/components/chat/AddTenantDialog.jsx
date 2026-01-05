@@ -72,22 +72,31 @@ export default function AddTenantDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* แสดงข้อมูลการเชื่อมต่อ Platform */}
-          {conversation && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
-              <p className="text-sm font-semibold text-blue-900 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4" />
-                จะเชื่อมต่อกับ {conversation.facebook_user_id ? 'Facebook' : 'LINE'}
-              </p>
-              <div className="text-xs text-blue-700 font-mono bg-white/50 p-2 rounded break-all">
-                {conversation.facebook_user_id ? (
-                  <>Facebook ID: {conversation.facebook_user_id}</>
-                ) : (
-                  <>LINE ID: {conversation.line_user_id}</>
+          {/* แสดงข้อมูลที่จะบันทึก */}
+          <div className="space-y-2">
+            {conversation && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  จะเชื่อมต่อกับ {conversation.facebook_user_id ? 'Facebook' : 'LINE'}
+                </p>
+              </div>
+            )}
+            
+            {createBooking && formData.room_number && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm font-semibold text-green-900 flex items-center gap-2">
+                  <Home className="w-4 h-4" />
+                  จะสร้างสัญญาเช่าห้อง {formData.room_number}
+                </p>
+                {formData.check_in_date && (
+                  <p className="text-xs text-green-700 mt-1">
+                    วันเริ่มเช่า: {formData.check_in_date}
+                  </p>
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* ข้อมูลผู้เช่า */}
           <div className="space-y-3">
