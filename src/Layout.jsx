@@ -655,7 +655,9 @@ export default function Layout({ children, currentPageName }) {
   const getConfigValue = (key, defaultValue = '') => {
     if (selectedBranch) {
       const branchConfig = configs.find(c => c.key === key && c.branch_id === selectedBranch.id);
-      if (branchConfig) return branchConfig.value;
+      if (branchConfig && branchConfig.value && branchConfig.value.trim() !== '') {
+        return branchConfig.value;
+      }
     }
     const globalConfig = configs.find(c => c.key === key && !c.branch_id);
     return globalConfig ? globalConfig.value : defaultValue;
