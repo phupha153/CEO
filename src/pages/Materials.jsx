@@ -79,9 +79,9 @@ export default function Materials() {
   const userPermissions = currentUser?.permissions || [];
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
 
-  const canView = userRole === 'developer' || userPermissions.includes('maintenance_view');
-  const canAdd = userRole === 'developer' || userPermissions.includes('maintenance_add');
-  const canEdit = userRole === 'developer' || userPermissions.includes('maintenance_edit');
+  const canView = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('maintenance_view');
+  const canAdd = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('maintenance_add');
+  const canEdit = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('maintenance_edit');
 
   const retryConfig = {
     retry: 0,
