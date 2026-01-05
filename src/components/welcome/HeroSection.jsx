@@ -40,7 +40,8 @@ export default function HeroSection({ isAuthenticated, onCtaClick, buildingLogo,
           
           <p className="text-xl md:text-2xl text-slate-600 mb-10 leading-relaxed max-w-3xl mx-auto">
             ระบบจัดการหอพักอัตโนมัติที่ดูแลทุกอย่างให้คุณ<br />
-            ตั้งแต่การสร้างบิล ส่งแจ้งเตือน ไปจนถึงรายงานทางการเงิน
+            ตั้งแต่การสร้างบิล ส่งแจ้งเตือน ไปจนถึงรายงานทางการเงิน<br />
+            <span className="text-base text-slate-500 mt-2 inline-block">ติดต่อ: 095-593-9229</span>
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
