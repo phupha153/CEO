@@ -64,7 +64,7 @@ function numberToThaiText(number) {
 export default function PublicInvoice() {
   const [searchParams] = useSearchParams();
   const paymentId = searchParams.get("id") || searchParams.get("paymentId");
-  const branchId = searchParams.get("branch");
+  const branchId = searchParams.get("branchId") || searchParams.get("branch");
   const invoiceRef = useRef();
   
   const [invoiceData, setInvoiceData] = useState(null);
