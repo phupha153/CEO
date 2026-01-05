@@ -219,30 +219,30 @@ Deno.serve(async (req) => {
                 }
 
                 // ⭐ ข้อความสั้นกระชับ - วันครบกำหนดชำระ
-                let message = `วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
-                message += `${branchBuildingName}\n`;
-                message += `คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n`;
-                message += `ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
+                let message = `⏰ วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
+                message += ` ${branchBuildingName}\n`;
+                message += ` คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n`;
+                message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
                 
                 // ⭐ แจ้งค่าปรับแบบขั้นบันได (ถ้ามี)
                 if (lateFeeStructure && Array.isArray(lateFeeStructure) && lateFeeStructure.length > 0) {
-                    message += `ค่าปรับชำระล่าช้า:\n`;
+                    message += `⚠️ ค่าปรับชำระล่าช้า:\n`;
                     lateFeeStructure.forEach((tier, idx) => {
-                        if (tier.days_from !== undefined && tier.days_to !== undefined && tier.days_to < 999) {
+                        if (tier.days_from !== undefined && tier.days_to !== undefined) {
                             message += `   วันที่ ${tier.days_from}-${tier.days_to}: ${tier.fee_per_day} บาท/วัน\n`;
                         } else if (tier.days_from !== undefined) {
-                            message += `   วันที่ ${tier.days_from} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
+                            message += `   วันที่ ${tier.days_from}+: ${tier.fee_per_day} บาท/วัน\n`;
                         }
                     });
                     message += `\n`;
                 } else if (branchLateFeePerDay > 0) {
-                    message += `หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน\n\n`;
+                    message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน\n\n`;
                 }
                 
-                message += `โอนเงินได้ที่:\n`;
+                message += ` โอนเงินได้ที่:\n`;
                 message += `${branchBankName} ${branchBankAccountNumber}\n`;
                 message += `ชื่อ: ${branchBankAccountName}\n\n`;
-                message += `ส่งสลิปหลังโอนค่ะ`;
+                message += `📸 ส่งสลิปหลังโอนค่ะ`;
 
                 recipients.push({
                     lineUserId: hasLine ? tenant.line_user_id : null,
