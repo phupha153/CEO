@@ -220,8 +220,8 @@ Deno.serve(async (req) => {
 
                 // ⭐ ข้อความสั้นกระชับ - วันครบกำหนดชำระ
                 let message = `⏰ วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
-                message += ` ${branchBuildingName}\n`;
-                message += ` คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n`;
+                message += `🏠 ${branchBuildingName}\n`;
+                message += `👤 คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n`;
                 message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
                 
                 // ⭐ แจ้งค่าปรับแบบขั้นบันได (ถ้ามี)
@@ -239,7 +239,7 @@ Deno.serve(async (req) => {
                     message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน\n\n`;
                 }
                 
-                message += ` โอนเงินได้ที่:\n`;
+                message += `💳 โอนเงินได้ที่:\n`;
                 message += `${branchBankName} ${branchBankAccountNumber}\n`;
                 message += `ชื่อ: ${branchBankAccountName}\n\n`;
                 message += `📸 ส่งสลิปหลังโอนค่ะ`;
