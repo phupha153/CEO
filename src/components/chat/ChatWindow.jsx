@@ -99,6 +99,7 @@ export default function ChatWindow({
       if (response.data.success) {
         setAiExtractedData(response.data.data);
         setShowAddTenantDialog(true);
+        setShowProfile(false); // ปิดแถบข้อมูลเพิ่มเติม
       } else {
         toast.error('วิเคราะห์ข้อมูลไม่สำเร็จ');
       }
