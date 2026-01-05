@@ -17,7 +17,7 @@ import TestimonialsSection from "../components/welcome/TestimonialsSection";
 export default function Welcome() {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(null);
-  const [buildingName, setBuildingName] = useState('หลังหอพัก');
+  const [buildingName, setBuildingName] = useState('wresident877777');
   const [buildingLogo, setBuildingLogo] = useState('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/41d4e63e1_DC4395DB-4B27-4859-85B3-4F2948654F9E.png');
   const [showTrialForm, setShowTrialForm] = useState(false);
   const [trialFormData, setTrialFormData] = useState({ rooms: '', email: '', phone: '', name: '' });
@@ -84,7 +84,7 @@ export default function Welcome() {
           <div className="flex items-center gap-3">
             <img 
               src={buildingLogo} 
-              alt="หลังหอพัก" 
+              alt="wresident877777" 
               className="w-10 h-10 object-contain"
               onError={(e) => e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/41d4e63e1_DC4395DB-4B27-4859-85B3-4F2948654F9E.png'}
             />
@@ -290,7 +290,7 @@ export default function Welcome() {
             <div className="flex items-center gap-3">
               <img 
                 src={buildingLogo} 
-                alt="หลังหอพัก" 
+                alt="wresident877777" 
                 className="w-10 h-10 object-contain"
                 onError={(e) => e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/41d4e63e1_DC4395DB-4B27-4859-85B3-4F2948654F9E.png'}
               />
@@ -306,7 +306,7 @@ export default function Welcome() {
           </div>
           
           <div className="mt-8 pt-8 border-t border-slate-800 text-center text-slate-400 text-sm">
-            © {new Date().getFullYear()} หลังหอพัก - ระบบจัดการหอพักครบวงจร. สงวนลิขสิทธิ์.
+            © {new Date().getFullYear()} wresident877777 - ระบบจัดการหอพักครบวงจร. สงวนลิขสิทธิ์. | ติดต่อ: 095-593-9229
           </div>
         </div>
       </footer>
