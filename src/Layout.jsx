@@ -481,6 +481,12 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['currentUser'],
     queryFn: async () => {
       const user = await base44.auth.me();
+      console.log('👤 Current User Loaded:', {
+        email: user?.email,
+        role: user?.role,
+        custom_role: user?.custom_role,
+        plan_status: user?.plan_status
+      });
       setRetryCount(0);
       return user;
     },
@@ -647,15 +653,18 @@ export default function Layout({ children, currentPageName }) {
         isLoading,
         hasCurrentUser: !!currentUser,
         currentUserEmail: currentUser?.email,
+        currentUserCustomRole: currentUser?.custom_role,
         isOnline,
         isPublicPage
       });
       return enabled;
     })(),
-    staleTime: 30 * 1000, // ⚡ ลดเหลือ 30 วิเพื่อ test (จะเพิ่มกลับหลังแก้เสร็จ)
+    staleTime: 0, // ⚡ ปิด cache เพื่อ force refetch ทุกครั้ง
+    gcTime: 0,
     refetchInterval: false,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true, // ⚡ เปิดชั่วคราวเพื่อ debug
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     retry: 1,
     retryDelay: 500,
     throwOnError: false,
@@ -739,7 +748,15 @@ export default function Layout({ children, currentPageName }) {
   const appMode = getConfigValue('app_mode', 'single_tenant'); // ดึงค่า app_mode
 
   // ⭐ กำหนด userRole, userPermissions, userAccessibleBranches, canAccessBranch
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
+  const userRole = (() => {
+    const role = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
+    console.log('👤 User Role Calculation:', {
+      custom_role: currentUser?.custom_role,
+      base_role: currentUser?.role,
+      calculated_role: role
+    });
+    return role;
+  })();
   const userPermissions = currentUser?.permissions || [];
   
   // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้
