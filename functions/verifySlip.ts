@@ -424,19 +424,23 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // ⭐ เช็คชื่อบัญชี แบบ Fuzzy
+            // ⭐ เช็คชื่อบัญชี แบบ Fuzzy (รองรับทั้งไทย-อังกฤษ, ตัดคำนำหน้า)
             if (expectedAccountName && receiverName) {
                 const cleanExpected = expectedAccountName
-                    .replace(/นาย|นาง|นางสาว|mr\.|mrs\.|miss/gi, '')
+                    .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
                     .replace(/\s+/g, '')
                     .replace(/\./g, '')
                     .toLowerCase();
 
                 const cleanReceiver = receiverName
-                    .replace(/นาย|นาง|นางสาว|mr\.|mrs\.|miss/gi, '')
+                    .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
                     .replace(/\s+/g, '')
                     .replace(/\./g, '')
                     .toLowerCase();
+
+                console.log('🔍 Name comparison:');
+                console.log('  - Expected (cleaned):', cleanExpected);
+                console.log('  - Receiver (cleaned):', cleanReceiver);
 
                 nameMatch = cleanReceiver.includes(cleanExpected) || cleanExpected.includes(cleanReceiver);
             } else {
