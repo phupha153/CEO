@@ -3366,7 +3366,7 @@ Return JSON.`;
                                 )}
 
                                 {isPaid && canViewReceipt && (
-                                  <Link to={`${createPageUrl('Receipt')}?paymentId=${payment.id}`} className="flex-shrink-0">
+                                  <Link to={`${createPageUrl('Receipt')}?id=${payment.id}`} className="flex-shrink-0">
                                     <Button size="sm" className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700">
                                       <Receipt className="w-4 h-4 mr-1" />
                                       ใบเสร็จ
@@ -3684,7 +3684,7 @@ Return JSON.`;
                                         </Link>
                                       )}
                                       {isPaid && canViewReceipt && (
-                                        <Link to={`${createPageUrl('Receipt')}?paymentId=${payment.id}`}>
+                                        <Link to={`${createPageUrl('Receipt')}?id=${payment.id}`}>
                                           <Button variant="ghost" size="icon" className="h-8 w-8" title="ใบเสร็จรับเงิน"><Receipt className="w-4 h-4" /></Button>
                                         </Link>
                                       )}
@@ -4090,7 +4090,7 @@ Return JSON.`;
                                                </Link>
                                              )}
                                              {effectiveStatus === 'paid' && canViewReceipt && (
-                                               <Link to={`${createPageUrl('Receipt')}?paymentId=${roomPayment.id}`} className="flex-1 min-w-[100px]">
+                                               <Link to={`${createPageUrl('Receipt')}?id=${roomPayment.id}`} className="flex-1 min-w-[100px]">
                                                  <Button size="sm" className="w-full text-xs bg-green-600 hover:bg-green-700">
                                                    <Receipt className="w-3 h-3 mr-1" />
                                                    ใบเสร็จ
