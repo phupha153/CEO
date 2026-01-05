@@ -1110,19 +1110,21 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          <AIInsights
-            payments={allPayments}
-            expenses={expenses}
-            maintenanceRequests={maintenanceRequests}
-            tenants={[]}
-            rooms={rooms}
-            bookings={bookings}
-            branches={[]}
-            materialDeliveries={[]}
-            dateRangeLabel={dateRangeLabel()}
-            dateRange={dateRange}
-            configs={configs}
-          />
+          {userRole === 'developer' && (
+            <AIInsights
+              payments={allPayments}
+              expenses={expenses}
+              maintenanceRequests={maintenanceRequests}
+              tenants={[]}
+              rooms={rooms}
+              bookings={bookings}
+              branches={[]}
+              materialDeliveries={[]}
+              dateRangeLabel={dateRangeLabel()}
+              dateRange={dateRange}
+              configs={configs}
+            />
+          )}
 
           {userRole === 'developer' && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
