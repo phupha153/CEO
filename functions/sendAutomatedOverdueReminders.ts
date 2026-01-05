@@ -561,7 +561,7 @@ Deno.serve(async (req) => {
             console.log(`   - latestPayment.invoice_image_url: ${latestPayment.invoice_image_url ? '✅ มี' : '❌ ไม่มี'}`);
 
             // สร้างข้อความแบบเดียวกับ sendPaymentReminder template='overdue'
-            let message = `แจ้งเตือนค่าเช่าเกินกำหนด\n\n`;
+            let message = `📢 แจ้งเตือนค่าเช่าเกินกำหนด\n\n`;
             message += `${branchBuildingName}\n`;
             message += `คุณ ${tenant.full_name} ห้อง ${roomNumber}\n`;
             message += `ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
@@ -570,9 +570,9 @@ Deno.serve(async (req) => {
             }
             message += `\nรวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
             message += `\nเกินกำหนดมาแล้ว ${daysOverdue} วัน\n\n`;
-            message += `กรุณาชำระโดยด่วน${lateFee > 0 ? ' เพื่อหลีกเลี่ยงค่าปรับเพิ่มเติม' : ''}\n\n`;
-            message += `โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อบัญชี: ${branchBankAccountName}\n\n`;
-            message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ`;
+            message += `⚠️ ดำเนินการชำระยอดคงค้างดังกล่าว เพื่อเป็นการหยุดการคำนวณค่าปรับล่าช้าที่จะเพิ่มขึ้น\n\n`;
+            message += `💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อบัญชี: ${branchBankAccountName}\n\n`;
+            message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ 🙏`;
 
             console.log(`   📏 Final message length: ${message.length} chars`);
             console.log(`   📄 Message preview:\n${message.substring(0, 200)}...\n`);
