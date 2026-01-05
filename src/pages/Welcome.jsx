@@ -86,7 +86,7 @@ export default function Welcome() {
               src={buildingLogo} 
               alt="หลังหอพัก" 
               className="w-10 h-10 object-contain"
-              onError={(e) => e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/41d4e63e1_DC4395DB-4B27-4859-85B3-4F2948654F9E.png'}
+              onError={(e) => e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/58da6a306_DC4395DB-4B27-4859-85B3-4F2948654F9E.png'}
             />
             <span className="text-2xl font-bold text-slate-900">{buildingName}</span>
           </div>
