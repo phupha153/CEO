@@ -5,12 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { 
   Send, User, Phone, Home, Loader2, 
-  CheckCircle, Info, Sparkles, X, Link, Save, Facebook, ArrowLeft
+  CheckCircle, Info, Sparkles, X, Link, Save, Facebook, ArrowLeft, UserPlus
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
+import AddTenantDialog from "./AddTenantDialog";
 
 export default function ChatWindow({ 
   conversation, 
@@ -31,6 +32,10 @@ export default function ChatWindow({
   const [showProfile, setShowProfile] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [linking, setLinking] = useState(false);
+  const [showAddTenantDialog, setShowAddTenantDialog] = useState(false);
+  const [analyzingChat, setAnalyzingChat] = useState(false);
+  const [aiExtractedData, setAiExtractedData] = useState(null);
+  const [submittingTenant, setSubmittingTenant] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -81,6 +86,100 @@ export default function ChatWindow({
   }, [conversation, tenant]);
 
   const displayName = tenant?.full_name || conversation.line_display_name || 'ไม่ทราบชื่อ';
+
+  const handleAnalyzeChat = async () => {
+    if (analyzingChat) return;
+    
+    setAnalyzingChat(true);
+    try {
+      const response = await base44.functions.invoke('analyzeChatForTenant', {
+        messages: messages
+      });
+      
+      if (response.data.success) {
+        setAiExtractedData(response.data.data);
+        setShowAddTenantDialog(true);
+      } else {
+        toast.error('วิเคราะห์ข้อมูลไม่สำเร็จ');
+      }
+    } catch (error) {
+      console.error('Analyze error:', error);
+      toast.error('เกิดข้อผิดพลาด: ' + error.message);
+    } finally {
+      setAnalyzingChat(false);
+    }
+  };
+
+  const handleSubmitTenant = async ({ tenantData, createBooking }) => {
+    setSubmittingTenant(true);
+    try {
+      const branchId = localStorage.getItem('selected_branch_id');
+      
+      // สร้างหรืออัปเดตผู้เช่า
+      let tenantId = tenant?.id;
+      
+      if (tenant) {
+        // อัปเดตผู้เช่าที่มีอยู่
+        await base44.entities.Tenant.update(tenant.id, {
+          ...tenantData,
+          branch_id: branchId
+        });
+        toast.success('อัปเดตข้อมูลผู้เช่าสำเร็จ');
+      } else {
+        // สร้างผู้เช่าใหม่
+        const newTenant = await base44.entities.Tenant.create({
+          ...tenantData,
+          branch_id: branchId,
+          status: 'active'
+        });
+        tenantId = newTenant.id;
+        toast.success('เพิ่มผู้เช่าใหม่สำเร็จ');
+      }
+
+      // เชื่อมต่อ LINE/Facebook
+      const platformId = conversation.facebook_user_id 
+        ? { facebook_user_id: conversation.facebook_user_id }
+        : { line_user_id: conversation.line_user_id };
+      
+      await base44.entities.Tenant.update(tenantId, platformId);
+      
+      // สร้าง Booking ถ้าเลือก
+      if (createBooking && tenantData.room_number) {
+        const selectedRoom = rooms.find(r => r.room_number === tenantData.room_number);
+        
+        if (selectedRoom) {
+          await base44.entities.Booking.create({
+            branch_id: branchId,
+            room_id: selectedRoom.id,
+            tenant_id: tenantId,
+            check_in_date: tenantData.check_in_date || new Date().toISOString().split('T')[0],
+            booking_type: selectedRoom.room_type || 'monthly',
+            status: 'active',
+            deposit_amount: parseFloat(tenantData.deposit_amount) || 0,
+          });
+
+          // อัปเดตสถานะห้องเป็น occupied
+          await base44.entities.Room.update(selectedRoom.id, {
+            status: 'occupied'
+          });
+
+          toast.success('สร้างสัญญาเช่าสำเร็จ');
+        }
+      }
+
+      setShowAddTenantDialog(false);
+      setAiExtractedData(null);
+      
+      // Refresh data
+      if (onRefresh) await onRefresh();
+      
+    } catch (error) {
+      console.error('Submit error:', error);
+      toast.error('เกิดข้อผิดพลาด: ' + error.message);
+    } finally {
+      setSubmittingTenant(false);
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col bg-slate-50 h-full relative">
@@ -638,13 +737,51 @@ export default function ChatWindow({
                       เชื่อมต่อ {conversation.facebook_user_id ? 'Facebook' : 'LINE'}
                     </Button>
                   </div>
-                </div>
-              )}
-            </div>
-            </div>
-            </>,
-            document.body
-            )}
-    </div>
-  );
-}
+
+                  {/* ปุ่มเพิ่มผู้เช่า - แสดงตลอดเวลา */}
+                  <div className="mt-4 pt-4 border-t">
+                   <Button
+                     size="sm"
+                     className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+                     disabled={analyzingChat || messages.length === 0}
+                     onClick={handleAnalyzeChat}
+                   >
+                     {analyzingChat ? (
+                       <>
+                         <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                         กำลังวิเคราะห์...
+                       </>
+                     ) : (
+                       <>
+                         <UserPlus className="w-4 h-4 mr-2" />
+                         เพิ่มผู้เช่า
+                       </>
+                     )}
+                   </Button>
+                   <p className="text-xs text-slate-500 mt-2 text-center">
+                     AI จะวิเคราะห์ข้อความและเสนอข้อมูลให้
+                   </p>
+                  </div>
+                  </div>
+                  )}
+                  </div>
+                  </div>
+                  </>,
+                  document.body
+                  )}
+
+                  {/* Add Tenant Dialog */}
+                  <AddTenantDialog
+                  open={showAddTenantDialog}
+                  onClose={() => {
+                  setShowAddTenantDialog(false);
+                  setAiExtractedData(null);
+                  }}
+                  aiData={aiExtractedData}
+                  rooms={rooms}
+                  onSubmit={handleSubmitTenant}
+                  submitting={submittingTenant}
+                  />
+                  </div>
+                  );
+                  }

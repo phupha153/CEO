@@ -1,0 +1,213 @@
+import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, User, Phone, Home, Calendar, Wallet, CreditCard, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
+
+export default function AddTenantDialog({ 
+  open, 
+  onClose, 
+  aiData, 
+  rooms,
+  onSubmit,
+  submitting 
+}) {
+  const [formData, setFormData] = useState({
+    full_name: '',
+    phone: '',
+    address: '',
+    national_id: '',
+    room_number: '',
+    check_in_date: '',
+    deposit_amount: '',
+  });
+  const [createBooking, setCreateBooking] = useState(false);
+
+  // เมื่อ AI ส่งข้อมูลมา ให้กรอกในฟอร์มอัตโนมัติ
+  useEffect(() => {
+    if (aiData) {
+      setFormData({
+        full_name: aiData.full_name || '',
+        phone: aiData.phone || '',
+        address: aiData.address || '',
+        national_id: aiData.national_id || '',
+        room_number: aiData.room_number || '',
+        check_in_date: aiData.check_in_date || '',
+        deposit_amount: aiData.deposit_amount || '',
+      });
+    }
+  }, [aiData]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (!formData.full_name || !formData.phone) {
+      toast.error('กรุณากรอกชื่อและเบอร์โทรศัพท์');
+      return;
+    }
+
+    if (createBooking && !formData.room_number) {
+      toast.error('กรุณาเลือกห้องสำหรับสัญญาเช่า');
+      return;
+    }
+
+    onSubmit({
+      tenantData: formData,
+      createBooking,
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="w-5 h-5 text-blue-600" />
+            เพิ่มผู้เช่า
+          </DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* ข้อมูลผู้เช่า */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+              <User className="w-4 h-4" />
+              ข้อมูลผู้เช่า
+            </h3>
+            
+            <div>
+              <Label>ชื่อ-นามสกุล *</Label>
+              <Input
+                value={formData.full_name}
+                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                placeholder="นายสมชาย ใจดี"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>เบอร์โทรศัพท์ *</Label>
+                <Input
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="0812345678"
+                  required
+                />
+              </div>
+              <div>
+                <Label>เลขบัตรประชาชน</Label>
+                <Input
+                  value={formData.national_id}
+                  onChange={(e) => setFormData({ ...formData, national_id: e.target.value })}
+                  placeholder="1234567890123"
+                  maxLength={13}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>ที่อยู่</Label>
+              <Textarea
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="123 ถนน..."
+                rows={2}
+              />
+            </div>
+          </div>
+
+          {/* ข้อมูลการเช่า */}
+          <div className="border-t pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+                <Home className="w-4 h-4" />
+                ข้อมูลการเช่าห้อง
+              </h3>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={createBooking}
+                  onChange={(e) => setCreateBooking(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded"
+                />
+                <span className="text-sm font-medium text-slate-700">เพิ่มสัญญาเช่า</span>
+              </label>
+            </div>
+
+            {createBooking && (
+              <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div>
+                  <Label>เลือกห้อง *</Label>
+                  <select
+                    value={formData.room_number}
+                    onChange={(e) => setFormData({ ...formData, room_number: e.target.value })}
+                    className="w-full text-sm border rounded-lg px-3 py-2"
+                    required={createBooking}
+                  >
+                    <option value="">-- เลือกห้อง --</option>
+                    {rooms
+                      .filter(r => r.status === 'available')
+                      .sort((a, b) => a.room_number.localeCompare(b.room_number, 'th', { numeric: true }))
+                      .map(room => (
+                        <option key={room.id} value={room.room_number}>
+                          ห้อง {room.room_number} - {room.price?.toLocaleString()} บาท/เดือน
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>วันเริ่มเช่า</Label>
+                    <Input
+                      type="date"
+                      value={formData.check_in_date}
+                      onChange={(e) => setFormData({ ...formData, check_in_date: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>เงินมัดจำ (บาท)</Label>
+                    <Input
+                      type="number"
+                      value={formData.deposit_amount}
+                      onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
+                      placeholder="5000"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
+              ยกเลิก
+            </Button>
+            <Button 
+              type="submit" 
+              className="bg-gradient-to-r from-blue-600 to-indigo-600"
+              disabled={submitting}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  กำลังบันทึก...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  บันทึก
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
