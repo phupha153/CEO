@@ -288,29 +288,6 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // ⭐ สร้างรูปใบเสร็จก่อน (เหมือนใบแจ้งหนี้)
-        console.log('🎨 Generating receipt image...');
-        let receiptImageUrl = payment.receipt_image_url;
-        
-        if (!receiptImageUrl) {
-            try {
-                const generateResponse = await base44.asServiceRole.functions.invoke('generateReceiptImage', {
-                    paymentId: payment.id
-                });
-                
-                if (generateResponse.data?.success) {
-                    receiptImageUrl = generateResponse.data.receipt_image_url;
-                    console.log(`✅ Receipt image generated: ${receiptImageUrl}`);
-                } else {
-                    console.error('⚠️ Failed to generate receipt image:', generateResponse.data?.error);
-                }
-            } catch (genError) {
-                console.error('⚠️ Receipt image generation error:', genError.message);
-            }
-        } else {
-            console.log(`✅ Using existing receipt image: ${receiptImageUrl}`);
-        }
-
         const getConfig = (key, defaultValue) => {
             if (payment.branch_id) {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === payment.branch_id);
@@ -334,36 +311,255 @@ Deno.serve(async (req) => {
         const receiptLink = `${frontendUrl}/publicreceipt?id=${payment.id}`;
         console.log(`📄 Receipt link: ${receiptLink}`);
 
+        const bankAccountName = getConfig('bank_account_name', 'ธนานนท์ พรมพักตร์');
+        const lessorName = getConfig('lessor_name', bankAccountName);
         const buildingName = getConfig('building_name', 'W RESIDENTS');
-
-        const receiptLink = `${frontendUrl}/publicreceipt?id=${payment.id}`;
-
-        // ⭐ ส่งรูปใบเสร็จ + ข้อความสั้นๆ + ลิงก์
-        console.log('📤 Sending receipt image to LINE...');
+        const buildingAddress = getConfig('building_address', '');
+        const buildingPhone = getConfig('building_phone', '');
         
-        const messages = [];
+        // ข้อมูลบริษัท (ถ้ามี)
+        const companyName = getConfig('company_name', '');
+        const companyTaxId = getConfig('company_tax_id', '');
+        const companyRegistrationNumber = getConfig('company_registration_number', '');
+        const companyPhone = getConfig('company_phone', '');
+        const companyAddress = getConfig('company_address', '');
         
-        // 1. ส่งรูปใบเสร็จ (ถ้ามี)
-        if (receiptImageUrl) {
-            messages.push({
-                type: "image",
-                originalContentUrl: receiptImageUrl,
-                previewImageUrl: receiptImageUrl
+        // ใช้ข้อมูลบริษัทถ้ามี ไม่เช่นนั้นใช้ข้อมูลหอพัก
+        const issuerName = companyName || buildingName;
+        const issuerAddress = companyAddress || buildingAddress;
+        const issuerPhone = companyPhone || buildingPhone;
+        const issuerTaxId = companyTaxId;
+        const issuerRegistrationNumber = companyRegistrationNumber;
+
+        // สร้างรายการ items
+        const items = [];
+        if (payment.rent_amount > 0) {
+            items.push({
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                    { type: "text", text: "ค่าเช่า", size: "sm", color: "#555555", flex: 0 },
+                    { type: "text", text: `${payment.rent_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "sm", color: "#111111", align: "end" }
+                ]
             });
         }
-        
-        // 2. ส่งข้อความพร้อมลิงก์
-        const textMessage = `✅ ใบเสร็จรับเงิน\n\n` +
-            `${buildingName}\n` +
-            `ห้อง ${room?.room_number || 'N/A'}\n` +
-            `ยอดเงิน: ${payment.total_amount.toLocaleString()} บาท\n\n` +
-            `📄 ดูใบเสร็จฉบับเต็ม:\n${receiptLink}\n\n` +
-            `ขอบคุณที่ชำระเงินค่ะ 🙏`;
-        
-        messages.push({
-            type: "text",
-            text: textMessage
-        });
+        if (payment.electricity_amount > 0) {
+            items.push({
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                    { type: "text", text: `ค่าไฟ (${payment.electricity_units} หน่วย)`, size: "sm", color: "#555555", flex: 0 },
+                    { type: "text", text: `${payment.electricity_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "sm", color: "#111111", align: "end" }
+                ]
+            });
+        }
+        if (payment.water_amount > 0) {
+            items.push({
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                    { type: "text", text: `ค่าน้ำ (${payment.water_units} หน่วย)`, size: "sm", color: "#555555", flex: 0 },
+                    { type: "text", text: `${payment.water_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "sm", color: "#111111", align: "end" }
+                ]
+            });
+        }
+        if (payment.internet_amount > 0) {
+            items.push({
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                    { type: "text", text: "ค่าอินเทอร์เน็ต", size: "sm", color: "#555555", flex: 0 },
+                    { type: "text", text: `${payment.internet_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "sm", color: "#111111", align: "end" }
+                ]
+            });
+        }
+        if (payment.common_fee_amount > 0) {
+            items.push({
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                    { type: "text", text: "ค่าส่วนกลาง", size: "sm", color: "#555555", flex: 0 },
+                    { type: "text", text: `${payment.common_fee_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "sm", color: "#111111", align: "end" }
+                ]
+            });
+        }
+        if (payment.parking_fee_amount > 0) {
+            items.push({
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                    { type: "text", text: "ค่าที่จอดรถ", size: "sm", color: "#555555", flex: 0 },
+                    { type: "text", text: `${payment.parking_fee_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "sm", color: "#111111", align: "end" }
+                ]
+            });
+        }
+        if (payment.other_amount > 0) {
+            items.push({
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                    { type: "text", text: "ค่าใช้จ่ายอื่นๆ", size: "sm", color: "#555555", flex: 0 },
+                    { type: "text", text: `${payment.other_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "sm", color: "#111111", align: "end" }
+                ]
+            });
+        }
+        if (payment.late_fee_amount > 0) {
+            items.push({
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                    { type: "text", text: "ค่าปรับชำระล่าช้า", size: "sm", color: "#dc2626", flex: 0 },
+                    { type: "text", text: `${payment.late_fee_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "sm", color: "#dc2626", align: "end", weight: "bold" }
+                ]
+            });
+        }
+
+        const paymentDateText = payment.payment_date ? new Date(payment.payment_date).toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        }) : '-';
+
+        // สร้าง Flex Message
+        const headerContents = [
+            { type: "text", text: issuerName, color: "#ffffff", size: "xl", weight: "bold", align: "center" },
+            { type: "text", text: "ใบเสร็จรับเงิน", color: "#ffffff", size: "md", align: "center", margin: "md" }
+        ];
+
+        // เพิ่มข้อมูลบริษัทถ้ามี
+        if (issuerAddress) {
+            headerContents.push({ type: "text", text: issuerAddress, color: "#e0e7ff", size: "xs", align: "center", margin: "sm", wrap: true });
+        }
+        if (issuerPhone) {
+            headerContents.push({ type: "text", text: `โทร: ${issuerPhone}`, color: "#e0e7ff", size: "xs", align: "center", margin: "xs" });
+        }
+        if (issuerTaxId) {
+            headerContents.push({ type: "text", text: `เลขผู้เสียภาษี: ${issuerTaxId}`, color: "#e0e7ff", size: "xs", align: "center", margin: "xs" });
+        }
+
+        const flexMessage = {
+            type: "flex",
+            altText: `ใบเสร็จรับเงิน ${buildingName}`,
+            contents: {
+                type: "bubble",
+                size: "mega",
+                header: {
+                    type: "box",
+                    layout: "vertical",
+                    contents: [
+                        {
+                            type: "box",
+                            layout: "vertical",
+                            contents: [
+                                { type: "text", text: buildingName, color: "#ffffff", size: "xl", weight: "bold", align: "center" },
+                                { type: "text", text: "ใบเสร็จรับเงิน", color: "#ffffff", size: "md", align: "center", margin: "md" }
+                            ]
+                        }
+                    ],
+                    backgroundColor: "#2563eb",
+                    paddingTop: "20px",
+                    paddingBottom: "20px"
+                },
+                body: {
+                    type: "box",
+                    layout: "vertical",
+                    contents: [
+                        { type: "text", text: `เลขที่: REC-${payment.id.slice(0, 8).toUpperCase()}`, size: "xs", color: "#aaaaaa", margin: "md" },
+                        { type: "text", text: `วันที่: ${paymentDateText}`, size: "xs", color: "#aaaaaa", margin: "sm" },
+                        { type: "separator", margin: "lg" },
+                        {
+                            type: "box",
+                            layout: "vertical",
+                            margin: "lg",
+                            spacing: "sm",
+                            contents: [
+                                { type: "text", text: "ผู้เช่า", size: "sm", color: "#aaaaaa" },
+                                { type: "text", text: tenant.full_name, size: "md", weight: "bold", color: "#111111" },
+                                { type: "text", text: `ห้อง ${room?.room_number || 'N/A'}`, size: "sm", color: "#555555" },
+                                { type: "text", text: tenant.phone, size: "sm", color: "#555555" }
+                            ]
+                        },
+                        { type: "separator", margin: "lg" },
+                        {
+                            type: "box",
+                            layout: "vertical",
+                            margin: "lg",
+                            spacing: "sm",
+                            contents: [
+                                { type: "text", text: "รายการ", size: "sm", color: "#aaaaaa", weight: "bold" },
+                                ...items
+                            ]
+                        },
+                        { type: "separator", margin: "lg" },
+                        {
+                            type: "box",
+                            layout: "horizontal",
+                            margin: "lg",
+                            contents: [
+                                { type: "text", text: "รวมทั้งสิ้น", size: "md", color: "#111111", weight: "bold", flex: 0 },
+                                { type: "text", text: `${payment.total_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "xl", color: "#2563eb", weight: "bold", align: "end" }
+                            ]
+                        },
+                        {
+                            type: "box",
+                            layout: "vertical",
+                            margin: "sm",
+                            contents: [
+                                { type: "text", text: `(${numberToThaiText(payment.total_amount)})`, size: "sm", color: "#555555", align: "center", wrap: true }
+                            ]
+                        },
+                        {
+                            type: "box",
+                            layout: "vertical",
+                            margin: "lg",
+                            contents: [
+                                { type: "text", text: "✓ ชำระเงินเรียบร้อยแล้ว", size: "md", color: "#ffffff", weight: "bold", align: "center" }
+                            ],
+                            backgroundColor: "#10b981",
+                            cornerRadius: "md",
+                            paddingAll: "12px"
+                        },
+                        { type: "separator", margin: "lg" },
+                        {
+                            type: "box",
+                            layout: "vertical",
+                            margin: "lg",
+                            spacing: "xs",
+                            contents: [
+                                { type: "text", text: "ขอบคุณที่ชำระเงินตรงเวลา", size: "xs", color: "#aaaaaa", align: "center" },
+                                { type: "text", text: `ผู้รับเงิน: ${lessorName}`, size: "xs", color: "#aaaaaa", align: "center", margin: "sm" },
+                                { type: "text", text: "เอกสารนี้สร้างโดยระบบอัตโนมัติ", size: "xxs", color: "#aaaaaa", align: "center", margin: "sm" },
+                                { type: "text", text: "กรุณาเก็บใบเสร็จนี้ไว้เป็นหลักฐาน", size: "xxs", color: "#aaaaaa", align: "center", margin: "xs" }
+                            ]
+                        }
+                    ]
+                },
+                footer: {
+                    type: "box",
+                    layout: "vertical",
+                    contents: [
+                        {
+                            type: "button",
+                            action: {
+                                type: "uri",
+                                label: "📄 ดูใบเสร็จฉบับเต็ม",
+                                uri: receiptLink
+                            },
+                            style: "primary",
+                            color: "#2563eb"
+                        }
+                    ],
+                    spacing: "sm"
+                },
+                styles: {
+                    footer: {
+                        separator: false
+                    }
+                }
+            }
+        };
+
+        console.log('📤 Sending LINE message to:', tenant.line_user_id);
 
         const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
             method: 'POST',
@@ -373,7 +569,7 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
                 to: tenant.line_user_id,
-                messages: messages
+                messages: [flexMessage]
             })
         });
 
