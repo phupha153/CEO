@@ -13,7 +13,8 @@ export default function AddTenantDialog({
   aiData, 
   rooms,
   onSubmit,
-  submitting 
+  submitting,
+  conversation
 }) {
   const [formData, setFormData] = useState({
     full_name: '',
@@ -71,6 +72,23 @@ export default function AddTenantDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* แสดงข้อมูลการเชื่อมต่อ Platform */}
+          {conversation && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2">
+              <p className="text-sm font-semibold text-blue-900 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4" />
+                จะเชื่อมต่อกับ {conversation.facebook_user_id ? 'Facebook' : 'LINE'}
+              </p>
+              <div className="text-xs text-blue-700 font-mono bg-white/50 p-2 rounded break-all">
+                {conversation.facebook_user_id ? (
+                  <>Facebook ID: {conversation.facebook_user_id}</>
+                ) : (
+                  <>LINE ID: {conversation.line_user_id}</>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* ข้อมูลผู้เช่า */}
           <div className="space-y-3">
             <h3 className="font-semibold text-slate-700 flex items-center gap-2">
