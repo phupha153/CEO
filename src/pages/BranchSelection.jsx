@@ -21,6 +21,8 @@ export default function BranchSelection() {
   const [showDialog, setShowDialog] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeBanner, setActiveBanner] = useState(null);
+  const [showBannerPopup, setShowBannerPopup] = useState(false);
   const [formData, setFormData] = useState({
     branch_name: '',
     branch_code: '',
@@ -102,6 +104,13 @@ export default function BranchSelection() {
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
+    enabled: canLoadData && !!currentUser,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: banners = [] } = useQuery({
+    queryKey: ['banners'],
+    queryFn: () => base44.entities.Banner.list('-priority', 10),
     enabled: canLoadData && !!currentUser,
     staleTime: 5 * 60 * 1000,
   });
@@ -214,6 +223,46 @@ export default function BranchSelection() {
 
   const buildingName = getConfigValue('building_name') || 'W RESIDENTS';
   const buildingLogo = getConfigValue('building_logo') || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
+
+  // ⭐ Logic: เช็คและแสดง Pop-up ประกาศ
+  React.useEffect(() => {
+    if (!banners || banners.length === 0) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dismissedBanners = JSON.parse(localStorage.getItem('dismissed_banners') || '[]');
+
+    const validBanner = banners.find(banner => {
+      if (!banner.is_active) return false;
+      if (dismissedBanners.includes(banner.id)) return false;
+
+      const startDate = new Date(banner.start_date);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(banner.end_date);
+      endDate.setHours(23, 59, 59, 999);
+
+      return today >= startDate && today <= endDate;
+    });
+
+    if (validBanner) {
+      setActiveBanner(validBanner);
+      setShowBannerPopup(true);
+    }
+  }, [banners]);
+
+  const handleCloseBanner = () => {
+    if (!activeBanner) return;
+
+    const dismissedBanners = JSON.parse(localStorage.getItem('dismissed_banners') || '[]');
+    if (!dismissedBanners.includes(activeBanner.id)) {
+      dismissedBanners.push(activeBanner.id);
+      localStorage.setItem('dismissed_banners', JSON.stringify(dismissedBanners));
+    }
+
+    setShowBannerPopup(false);
+    setActiveBanner(null);
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -628,6 +677,36 @@ export default function BranchSelection() {
           />
         </div>
       </motion.div>
+
+      {/* Banner Pop-up */}
+      <Dialog open={showBannerPopup} onOpenChange={setShowBannerPopup}>
+        <DialogContent className="max-w-4xl p-0 border-0 bg-transparent shadow-none">
+          <div className="relative">
+            <Button
+              onClick={handleCloseBanner}
+              className="absolute -top-4 -right-4 z-50 rounded-full w-10 h-10 p-0 bg-white hover:bg-slate-100 shadow-lg border-2 border-slate-200"
+              variant="ghost"
+            >
+              <span className="text-2xl font-bold text-slate-700">×</span>
+            </Button>
+            {activeBanner?.link_url ? (
+              <a href={activeBanner.link_url} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={activeBanner.image_url}
+                  alt={activeBanner.title}
+                  className="w-full rounded-2xl shadow-2xl cursor-pointer hover:scale-105 transition-transform duration-300"
+                />
+              </a>
+            ) : (
+              <img
+                src={activeBanner?.image_url}
+                alt={activeBanner?.title}
+                className="w-full rounded-2xl shadow-2xl"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Form Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
