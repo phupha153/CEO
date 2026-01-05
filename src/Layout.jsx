@@ -499,6 +499,8 @@ export default function Layout({ children, currentPageName }) {
   });
 
   // เช็คสิทธิ์กับ CRM (เช็คทุก 5 นาที + logout อัตโนมัติถ้าไม่มีสิทธิ์ + sync role)
+  const hasRoleSyncedRef = useRef(false);
+  
   const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError } = useQuery({
     queryKey: ['crmAccess', currentUser?.email],
     queryFn: async () => {
@@ -567,25 +569,27 @@ export default function Layout({ children, currentPageName }) {
           });
 
           // ⭐ อัพเดทถ้า: (1) ไม่มี role เลย หรือ (2) role ไม่ตรงกับ CRM
-          if (!currentRole || currentRole !== crmRole) {
+          // 🔒 ป้องกัน infinite loop - sync เพียงครั้งเดียวต่อ session
+          if ((!currentRole || currentRole !== crmRole) && !hasRoleSyncedRef.current) {
             try {
-              console.log('⚡ UPDATING USER ROLE:', {
+              console.log('⚡ UPDATING USER ROLE (ONCE PER SESSION):', {
                 userId: currentUser.id,
                 from: currentRole || 'null',
                 to: crmRole,
-                updatePayload: { custom_role: crmRole }
+                updatePayload: { custom_role: crmRole },
+                hasRoleSyncedRef: hasRoleSyncedRef.current
               });
+              
+              hasRoleSyncedRef.current = true; // 🔒 Mark as synced
               
               const updateResult = await base44.entities.User.update(currentUser.id, { custom_role: crmRole });
               console.log('✅ Update API Response:', updateResult);
               console.log('✅ Synced role from CRM:', crmRole);
 
-              // ⭐ Wait 1000ms ให้ database persist
-              await new Promise(resolve => setTimeout(resolve, 1000));
-
-              // ⭐ Force reload เพื่อให้ role เปลี่ยนทันทีทุก component
-              console.log('🔄 Reloading page to apply new role...');
-              window.location.reload();
+              // ⭐ Invalidate user query instead of full reload
+              await queryClient.invalidateQueries(['currentUser']);
+              
+              console.log('✅ Role updated without reload - using query invalidation');
             } catch (error) {
               console.error('❌ Failed to sync role from CRM:', error);
               console.error('❌ Error details:', {
@@ -593,9 +597,12 @@ export default function Layout({ children, currentPageName }) {
                 stack: error.stack,
                 response: error.response
               });
+              hasRoleSyncedRef.current = false; // Reset on error
             }
-          } else {
+          } else if (currentRole === crmRole) {
             console.log('✓ Role already matches - no update needed:', { currentRole, crmRole });
+          } else if (hasRoleSyncedRef.current) {
+            console.log('✓ Role already synced this session - skipping');
           }
         } else {
           console.log('⚠️ Role sync skipped:', {
@@ -616,10 +623,12 @@ export default function Layout({ children, currentPageName }) {
       }
     },
     enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
-    staleTime: 60 * 60 * 1000, // ⚡ Cache 1 ชม. (ลดจาก 10 นาที)
+    staleTime: 60 * 60 * 1000, // ⚡ Cache 1 ชม.
     refetchInterval: false,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false, // ❌ ปิด auto-refetch (เช็คเฉพาะตอน mount)
+    refetchOnWindowFocus: false, // ❌ ปิด auto-refetch
+    refetchOnMount: false, // 🔒 ไม่ refetch ตอนเปลี่ยนหน้า
+    refetchOnReconnect: false, // 🔒 ไม่ refetch ตอน reconnect
     retry: 1,
     retryDelay: 500,
     throwOnError: false,
@@ -840,14 +849,16 @@ export default function Layout({ children, currentPageName }) {
   }, [isLoading, currentUser, navigate, currentPageName, error]);
 
   useEffect(() => {
-    console.log('🔍 Layout Branch Check:', {
+    console.log('🔍 Layout Branch Check + Navigation Debug:', {
       currentPageName,
+      pathname: location.pathname,
       hasUser: !!currentUser,
       isLoading,
       branchesLoading,
       selectedBranch: selectedBranch?.id,
       canAccessBranch,
-      branchesCount: branches.length
+      branchesCount: branches.length,
+      willNavigate: false // Will log if navigation happens
     });
 
     if (!currentUser || isLoading || branchesLoading) return;
@@ -867,7 +878,10 @@ export default function Layout({ children, currentPageName }) {
 
     // If user has a selected branch but no access to it, clear and redirect
     if (selectedBranch && !canAccessBranch) {
-      console.log('🚫 ไม่มีสิทธิ์เข้าสาขานี้ - redirect');
+      console.log('🚫 ไม่มีสิทธิ์เข้าสาขานี้ - redirect', {
+        from: location.pathname,
+        to: createPageUrl('BranchSelection')
+      });
       localStorage.removeItem('selected_branch_id');
       localStorage.removeItem('selected_branch_name');
       setSelectedBranch(null);
@@ -877,7 +891,10 @@ export default function Layout({ children, currentPageName }) {
 
     // If no branch is selected and there are branches available, redirect to branch selection
     if (!selectedBranch && branches.length > 0) {
-      console.log('⚠️ ไม่ได้เลือกสาขา - redirect ไป BranchSelection');
+      console.log('⚠️ ไม่ได้เลือกสาขา - redirect ไป BranchSelection', {
+        from: location.pathname,
+        to: createPageUrl('BranchSelection')
+      });
       navigate(createPageUrl('BranchSelection'), { replace: true });
     }
   }, [currentUser?.id, selectedBranch?.id, canAccessBranch, isLoading, branchesLoading, currentPageName, branches.length, navigate, userRole]);
@@ -1475,12 +1492,15 @@ export default function Layout({ children, currentPageName }) {
                     return (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
-                          onClick={() => navigate(item.url)}
-                          className={`group hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 ${
-                            isActive ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30' : ''
-                          }`}
-                          title={item.title}
-                        >
+                           onClick={(e) => {
+                             console.log('🔗 Navigation clicked:', { from: location.pathname, to: item.url });
+                             navigate(item.url);
+                           }}
+                           className={`group hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 ${
+                             isActive ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30' : ''
+                           }`}
+                           title={item.title}
+                         >
                           <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive ? '' : 'group-hover:scale-110 transition-transform'}`} />
                           <span className="font-medium group-data-[collapsible=icon]:hidden truncate">{item.title}</span>
                           {item.badge && (
