@@ -115,10 +115,7 @@ Deno.serve(async (req) => {
     console.log('11. Deleting configs...');
     await deleteAllByBranch('Config');
 
-    console.log('12. Deleting branch packages...');
-    await deleteAllByBranch('BranchPackage');
-
-    console.log('13. Deleting activity logs...');
+    console.log('12. Deleting activity logs...');
     await deleteAllByBranch('ActivityLog');
 
     console.log('14. Deleting notification configs...');
