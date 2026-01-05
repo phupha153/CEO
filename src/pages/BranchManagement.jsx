@@ -45,7 +45,7 @@ export default function BranchManagement() {
     queryFn: () => base44.auth.me(),
   });
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
   
   // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้
   const userAccessibleBranches = currentUser?.accessible_branches;

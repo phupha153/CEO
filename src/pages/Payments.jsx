@@ -208,7 +208,7 @@ export default function PaymentsPage() {
   });
 
   const userPermissions = currentUser?.permissions || [];
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
 
   const canView = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_view');
   const canAdd = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_add');
