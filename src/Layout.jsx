@@ -728,8 +728,6 @@ export default function Layout({ children, currentPageName }) {
   const hasFeature = (featureName) => {
     if (!currentUser) return false;
     
-    const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
-    
     // Developer = full access
     if (userRole === 'developer') return true;
     
@@ -750,10 +748,8 @@ export default function Layout({ children, currentPageName }) {
     const initTrialIfNeeded = async () => {
       if (isLoading || !currentUser) return;
 
-      const currentUserRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
-
-      // เฉพาะ Owner ที่ยังไม่มี plan_status เลย
-      if (currentUserRole === 'owner' && !currentUser.plan_status && !isCreatingTrial) {
+      // เฉพาะ Owner ที่ยังไม่มี plan_status เลย (developer ไม่ต้อง init trial)
+      if (userRole === 'owner' && !currentUser.plan_status && !isCreatingTrial) {
         console.log('🎉 Owner ไม่มี plan_status - กำลังสร้าง Trial อัตโนมัติ');
         setIsCreatingTrial(true);
 
@@ -789,10 +785,8 @@ export default function Layout({ children, currentPageName }) {
 
     // ⭐ Check subscription status and redirect
     if (!isLoading && currentUser) {
-      const currentUserRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
-
       // Skip check for developer and special pages
-      if (currentUserRole === 'developer') return;
+      if (userRole === 'developer') return;
       if (currentPageName === 'BranchSelection' ||
           currentPageName === 'BranchManagement' ||
           currentPageName === 'UserBranchAccess' ||
