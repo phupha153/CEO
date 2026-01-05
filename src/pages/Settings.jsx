@@ -637,7 +637,7 @@ export default function Settings() {
   }, [activeSubscription, crmPackages]);
 
   useEffect(() => {
-    const getConfigValue = (key) => {
+    const getConfigValue = (key, allowGlobalFallback = false) => {
       if (!selectedBranch) {
         return configs.find(c => c.key === key && !c.branch_id);
       }
@@ -650,66 +650,74 @@ export default function Settings() {
         selectedBranchName: selectedBranch?.name,
         branchConfigFound: !!branchConfig,
         branchConfigValue: branchConfig?.value || null,
-        totalConfigsForKey: configs.filter(c => c.key === key).length
+        allowGlobalFallback
       });
       
       if (branchConfig) return branchConfig;
       
-      // ⭐ Fallback to global config ONLY if no branch-specific config exists
-      return configs.find(c => c.key === key && !c.branch_id);
+      // ⭐ Fallback ไป global เฉพาะ config ที่อนุญาต (billing rates)
+      if (allowGlobalFallback) {
+        return configs.find(c => c.key === key && !c.branch_id);
+      }
+      
+      // ⭐ สำหรับ visual config (logo, signature) ไม่ fallback - ให้แสดงว่างถ้าไม่มี
+      return null;
     };
 
-    const buildingNameConfig = getConfigValue('building_name');
-    const addressConfig = getConfigValue('building_address');
-    const phoneConfig = getConfigValue('building_phone');
-    const buildingLogoConfig = getConfigValue('building_logo');
-    const waterRateConfig = getConfigValue('water_rate');
-    const electricityRateConfig = getConfigValue('electricity_rate');
-    const lateFeeConfig = getConfigValue('late_payment_fee_per_day');
-    const internetFeeConfig = getConfigValue('internet_rate');
-    const commonFeeConfig = getConfigValue('common_fee');
-    const accountNameConfig = getConfigValue('bank_account_name');
-    const accountNumberConfig = getConfigValue('bank_account_number');
-    const bankNameConfig = getConfigValue('bank_name');
-    const promptpayConfig = getConfigValue('promptpay');
-    const lessorNameConfig = getConfigValue('lessor_name');
-    const lessorIdConfig = getConfigValue('lessor_id');
-    const lessorPhoneConfig = getConfigValue('lessor_phone');
-    const lessorAddressConfig = getConfigValue('lessor_address');
-    const companyNameConfig = getConfigValue('company_name');
-    const companyRegistrationConfig = getConfigValue('company_registration_number');
-    const companyTaxIdConfig = getConfigValue('company_tax_id');
-    const companyPhoneConfig = getConfigValue('company_phone');
-    const companyAddressConfig = getConfigValue('company_address');
-    const useCompanyAddressConfig = getConfigValue('use_building_address_for_company');
+    // ⭐ Config ที่ไม่ fallback (เฉพาะสาขา) - สำหรับข้อมูลที่ไม่ควรแชร์ระหว่างสาขา
+    const buildingNameConfig = getConfigValue('building_name', false);
+    const addressConfig = getConfigValue('building_address', false);
+    const phoneConfig = getConfigValue('building_phone', false);
+    const buildingLogoConfig = getConfigValue('building_logo', false);
+    const accountNameConfig = getConfigValue('bank_account_name', false);
+    const accountNumberConfig = getConfigValue('bank_account_number', false);
+    const bankNameConfig = getConfigValue('bank_name', false);
+    const promptpayConfig = getConfigValue('promptpay', false);
+    const lessorNameConfig = getConfigValue('lessor_name', false);
+    const lessorIdConfig = getConfigValue('lessor_id', false);
+    const lessorPhoneConfig = getConfigValue('lessor_phone', false);
+    const lessorAddressConfig = getConfigValue('lessor_address', false);
+    const companyNameConfig = getConfigValue('company_name', false);
+    const companyRegistrationConfig = getConfigValue('company_registration_number', false);
+    const companyTaxIdConfig = getConfigValue('company_tax_id', false);
+    const companyPhoneConfig = getConfigValue('company_phone', false);
+    const companyAddressConfig = getConfigValue('company_address', false);
+    const useCompanyAddressConfig = getConfigValue('use_building_address_for_company', false);
+    
+    // ⭐ Config ที่อนุญาต fallback (billing rates) - สามารถใช้ค่ากลางได้
+    const waterRateConfig = getConfigValue('water_rate', true);
+    const electricityRateConfig = getConfigValue('electricity_rate', true);
+    const lateFeeConfig = getConfigValue('late_payment_fee_per_day', true);
+    const internetFeeConfig = getConfigValue('internet_rate', true);
+    const commonFeeConfig = getConfigValue('common_fee', true);
     
     if (companyNameConfig?.value) {
       setHasCompanyInfo(true);
     }
-    const billGenerationDayConfig = getConfigValue('bill_generation_day');
-    const payDayConfig = getConfigValue('pay_day');
-    const autoSendBillsConfig = getConfigValue('auto_send_bills_after_generation');
-    const billAdvanceNoticeConfig = getConfigValue('bill_advance_notice_days');
-    const sendAdvanceReminderConfig = getConfigValue('send_advance_reminder');
-    const sendDueDateReminderConfig = getConfigValue('send_due_date_reminder');
-    const sendOverdueReminderConfig = getConfigValue('send_overdue_reminder');
-    const lateFeeeTiersEnabledConfig = getConfigValue('late_fee_tiers_enabled');
-    const lateFeeTiersConfig = getConfigValue('late_fee_tiers');
-    const carParkingFeeConfig = getConfigValue('car_parking_fee');
-    const motorcycleParkingFeeConfig = getConfigValue('motorcycle_parking_fee');
-    const waterMinimumEnabledConfig = getConfigValue('water_minimum_enabled');
-    const waterMinimumUnitsConfig = getConfigValue('water_minimum_units');
-    const waterMinimumChargeConfig = getConfigValue('water_minimum_charge');
-    const electricityMinimumEnabledConfig = getConfigValue('electricity_minimum_enabled');
-    const electricityMinimumUnitsConfig = getConfigValue('electricity_minimum_units');
-    const electricityMinimumChargeConfig = getConfigValue('electricity_minimum_charge');
-    const signatureConfig = getConfigValue('receipt_signature');
-    const stampConfig = getConfigValue('receipt_stamp');
-    const lineTokenConfig = getConfigValue('line_channel_access_token');
-    const lineSecretConfig = getConfigValue('line_channel_secret');
-    const facebookTokenConfig = getConfigValue('facebook_page_access_token');
-    const facebookVerifyTokenConfig = getConfigValue('facebook_verify_token');
-    const allowMeterHistoryEditingConfig = getConfigValue('allow_meter_history_editing');
+    const billGenerationDayConfig = getConfigValue('bill_generation_day', true);
+    const payDayConfig = getConfigValue('pay_day', true);
+    const autoSendBillsConfig = getConfigValue('auto_send_bills_after_generation', false);
+    const billAdvanceNoticeConfig = getConfigValue('bill_advance_notice_days', true);
+    const sendAdvanceReminderConfig = getConfigValue('send_advance_reminder', false);
+    const sendDueDateReminderConfig = getConfigValue('send_due_date_reminder', false);
+    const sendOverdueReminderConfig = getConfigValue('send_overdue_reminder', false);
+    const lateFeeeTiersEnabledConfig = getConfigValue('late_fee_tiers_enabled', false);
+    const lateFeeTiersConfig = getConfigValue('late_fee_tiers', false);
+    const carParkingFeeConfig = getConfigValue('car_parking_fee', true);
+    const motorcycleParkingFeeConfig = getConfigValue('motorcycle_parking_fee', true);
+    const waterMinimumEnabledConfig = getConfigValue('water_minimum_enabled', false);
+    const waterMinimumUnitsConfig = getConfigValue('water_minimum_units', true);
+    const waterMinimumChargeConfig = getConfigValue('water_minimum_charge', true);
+    const electricityMinimumEnabledConfig = getConfigValue('electricity_minimum_enabled', false);
+    const electricityMinimumUnitsConfig = getConfigValue('electricity_minimum_units', true);
+    const electricityMinimumChargeConfig = getConfigValue('electricity_minimum_charge', true);
+    const signatureConfig = getConfigValue('receipt_signature', false);
+    const stampConfig = getConfigValue('receipt_stamp', false);
+    const lineTokenConfig = getConfigValue('line_channel_access_token', false);
+    const lineSecretConfig = getConfigValue('line_channel_secret', false);
+    const facebookTokenConfig = getConfigValue('facebook_page_access_token', false);
+    const facebookVerifyTokenConfig = getConfigValue('facebook_verify_token', false);
+    const allowMeterHistoryEditingConfig = getConfigValue('allow_meter_history_editing', false);
 
     const allLineTokenConfigs = configs.filter(c => c.key === 'line_channel_access_token');
     
