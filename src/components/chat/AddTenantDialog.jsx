@@ -69,6 +69,12 @@ export default function AddTenantDialog({
             <User className="w-5 h-5 text-blue-600" />
             เพิ่มผู้เช่า
           </DialogTitle>
+          {aiData && (
+            <p className="text-xs text-purple-600 flex items-center gap-1 mt-1">
+              <Sparkles className="w-3 h-3" />
+              วิเคราะห์จาก AI
+            </p>
+          )}
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
