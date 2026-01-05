@@ -118,10 +118,10 @@ Deno.serve(async (req) => {
     console.log('12. Deleting activity logs...');
     await deleteAllByBranch('ActivityLog');
 
-    console.log('14. Deleting notification configs...');
+    console.log('13. Deleting notification configs...');
     await deleteAllByBranch('NotificationConfig');
     
-    console.log('15. Deleting notifications...');
+    console.log('14. Deleting notifications...');
     // ⭐ Notifications ไม่มี branch_id ต้องลบผ่าน notification_id pattern
     try {
       const allNotifications = await serviceRole.entities.Notification.list('-created_date', 10000);
@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
       console.error('Error deleting notifications:', error);
     }
 
-    console.log('16. Deleting branch...');
+    console.log('15. Deleting branch...');
     await serviceRole.entities.Branch.delete(branchId);
 
     return Response.json({ 
