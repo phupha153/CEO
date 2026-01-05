@@ -207,16 +207,11 @@ Deno.serve(async (req) => {
                 const branchBuildingName = getConfigValue('building_name', 'W RESIDENTS', paymentBranchId);
                 const branchLateFeePerDay = parseFloat(getConfigValue('late_payment_fee_per_day', '0', paymentBranchId));
 
-                // ⭐ ดึงค่าปรับแบบขั้นบันได (ถ้ามี)
-                const lateFeeStructureConfig = configs.find(c => 
-                    c.key === 'late_fee_tiers' && c.branch_id === paymentBranchId
-                );
-                let lateFeeStructure = null;
-                if (lateFeeStructureConfig?.value) {
-                    try {
-                        lateFeeStructure = JSON.parse(lateFeeStructureConfig.value);
-                    } catch {}
-                }
+                // ⭐ เช็คว่าเปิดค่าปรับแบบขั้นบันไดหรือไม่
+                const branchTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === paymentBranchId);
+                const globalTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
+                const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
+                const tiersEnabled = tiersEnabledConfig?.value === 'true';
 
                 // ⭐ ข้อความสั้นกระชับ - วันครบกำหนดชำระ
                 let message = `⏰ วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
@@ -224,23 +219,36 @@ Deno.serve(async (req) => {
                 message += `👤 คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n`;
                 message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
                 
-                // ⭐ แจ้งค่าปรับแบบขั้นบันได (ถ้ามี)
-                if (lateFeeStructure && Array.isArray(lateFeeStructure) && lateFeeStructure.length > 0) {
-                    message += `⚠️ ค่าปรับชำระล่าช้า:\n`;
-                    lateFeeStructure.forEach((tier, idx) => {
-                        if (tier.days_from !== undefined && tier.days_to !== undefined) {
-                            // ถ้า days_to >= 999 แสดง "เป็นต้นไป"
-                            if (tier.days_to >= 999) {
+                // ⭐ แจ้งค่าปรับตามการตั้งค่า (เช็ค tiersEnabled ก่อน)
+                if (tiersEnabled) {
+                    // ใช้ระบบขั้นบันได
+                    const lateFeeStructureConfig = configs.find(c => 
+                        c.key === 'late_fee_tiers' && c.branch_id === paymentBranchId
+                    );
+                    let lateFeeStructure = null;
+                    if (lateFeeStructureConfig?.value) {
+                        try {
+                            lateFeeStructure = JSON.parse(lateFeeStructureConfig.value);
+                        } catch {}
+                    }
+
+                    if (lateFeeStructure && Array.isArray(lateFeeStructure) && lateFeeStructure.length > 0) {
+                        message += `⚠️ ค่าปรับชำระล่าช้า:\n`;
+                        lateFeeStructure.forEach((tier) => {
+                            if (tier.days_from !== undefined && tier.days_to !== undefined) {
+                                if (tier.days_to >= 999) {
+                                    message += `   วันที่ ${tier.days_from} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
+                                } else {
+                                    message += `   วันที่ ${tier.days_from}-${tier.days_to}: ${tier.fee_per_day} บาท/วัน\n`;
+                                }
+                            } else if (tier.days_from !== undefined) {
                                 message += `   วันที่ ${tier.days_from} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
-                            } else {
-                                message += `   วันที่ ${tier.days_from}-${tier.days_to}: ${tier.fee_per_day} บาท/วัน\n`;
                             }
-                        } else if (tier.days_from !== undefined) {
-                            message += `   วันที่ ${tier.days_from} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
-                        }
-                    });
-                    message += `\n`;
+                        });
+                        message += `\n`;
+                    }
                 } else if (branchLateFeePerDay > 0) {
+                    // ใช้ค่าปรับรายวันปกติ
                     message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน\n\n`;
                 }
                 
