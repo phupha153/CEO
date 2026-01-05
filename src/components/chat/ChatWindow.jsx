@@ -99,7 +99,12 @@ export default function ChatWindow({
   const handleAnalyzeChat = async () => {
     if (analyzingChat) return;
     
+    // เปิด Dialog ทันที
+    setShowAddTenantDialog(true);
+    setShowProfile(false);
     setAnalyzingChat(true);
+    setAiExtractedData(null); // Reset ข้อมูลเก่า
+    
     try {
       const response = await base44.functions.invoke('analyzeChatForTenant', {
         messages: messages
@@ -107,14 +112,14 @@ export default function ChatWindow({
       
       if (response.data.success) {
         setAiExtractedData(response.data.data);
-        setShowAddTenantDialog(true);
-        setShowProfile(false); // ปิดแถบข้อมูลเพิ่มเติม
       } else {
         toast.error('วิเคราะห์ข้อมูลไม่สำเร็จ');
+        setShowAddTenantDialog(false);
       }
     } catch (error) {
       console.error('Analyze error:', error);
       toast.error('เกิดข้อผิดพลาด: ' + error.message);
+      setShowAddTenantDialog(false);
     } finally {
       setAnalyzingChat(false);
     }
@@ -756,12 +761,14 @@ export default function ChatWindow({
                     onClose={() => {
                       setShowAddTenantDialog(false);
                       setAiExtractedData(null);
+                      setAnalyzingChat(false);
                     }}
                     aiData={aiExtractedData}
                     rooms={rooms}
                     onSubmit={handleSubmitTenant}
                     submitting={submittingTenant}
                     conversation={conversation}
+                    analyzing={analyzingChat}
                   />
                   </div>
                   );

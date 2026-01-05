@@ -14,7 +14,8 @@ export default function AddTenantDialog({
   rooms,
   onSubmit,
   submitting,
-  conversation
+  conversation,
+  analyzing
 }) {
   const [formData, setFormData] = useState({
     full_name: '',
@@ -70,14 +71,19 @@ export default function AddTenantDialog({
               <User className="w-5 h-5 text-blue-600" />
               เพิ่มผู้เช่า
             </DialogTitle>
-            {aiData && (
+            {analyzing ? (
+              <div className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                AI กำลังวิเคราะห์...
+              </div>
+            ) : aiData && (
               <div className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
                 <Sparkles className="w-3 h-3" />
                 วิเคราะห์จาก AI
               </div>
             )}
           </div>
-          {aiData && (
+          {aiData && !analyzing && (
             <div className="text-xs text-slate-500 mt-2 flex flex-wrap gap-2">
               {aiData.full_name && <span>• ชื่อ: {aiData.full_name}</span>}
               {aiData.phone && <span>• เบอร์: {aiData.phone}</span>}
@@ -88,7 +94,14 @@ export default function AddTenantDialog({
           )}
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {analyzing ? (
+          <div className="py-12 flex flex-col items-center justify-center">
+            <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
+            <p className="text-slate-600 font-medium">AI กำลังวิเคราะห์ข้อความ...</p>
+            <p className="text-xs text-slate-500 mt-1">กรุณารอสักครู่</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
           {/* สรุปการดำเนินการ */}
           <div className="space-y-2">
             {conversation && (
@@ -256,6 +269,7 @@ export default function AddTenantDialog({
             </Button>
           </div>
         </form>
+        )}
       </DialogContent>
     </Dialog>
   );
