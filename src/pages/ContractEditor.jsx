@@ -109,7 +109,7 @@ export default function ContractEditor() {
   const { data: tenants = [] } = useQuery({
     queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
-      const allTenants = await base44.entities.Tenant.list();
+      const allTenants = await base44.entities.Tenant.list('-created_date', 500);
       return allTenants.filter(t => t.branch_id === selectedBranchId);
     },
     enabled: !!selectedBranchId,
