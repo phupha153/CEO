@@ -449,7 +449,8 @@ Deno.serve(async (req) => {
                     // --- CASE 3: ปกติ (Advance/General) - มีลิงก์ + ธนาคาร ---
                     console.log(`📝 Using ADVANCE/GENERAL template (WITH LINK) for payment ${payment.id}`);
                     const frontendUrl = Deno.env.get('FRONTEND_URL');
-                    const invoiceLink = frontendUrl ? `${frontendUrl}publicinvoice?id=${payment.id}&branchId=${branchId}` : null;
+                    const paymentBranchId = payment.branch_id || branchId;
+                    const invoiceLink = frontendUrl ? `${frontendUrl}publicinvoice?id=${payment.id}&branchId=${paymentBranchId}` : null;
                     console.log(`🔗 Invoice link generated: ${invoiceLink || 'N/A'}`);
 
                     message = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
