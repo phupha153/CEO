@@ -218,10 +218,7 @@ Deno.serve(async (req) => {
                     } catch {}
                 }
 
-                // ⭐ ข้อความสั้นกระชับ - วันครบกำหนดชำระ + ลิงก์ดูบิล
-                const frontendUrl = Deno.env.get('FRONTEND_URL') || 'https://your-app.base44.com';
-                const invoiceUrl = `${frontendUrl}/PublicInvoice?id=${payment.id}&branch=${paymentBranchId}`;
-
+                // ⭐ ข้อความสั้นกระชับ - วันครบกำหนดชำระ
                 let message = `⏰ วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
                 message += `🏠 ${branchBuildingName}\n`;
                 message += `👤 คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n`;
@@ -245,8 +242,7 @@ Deno.serve(async (req) => {
                 message += `💳 โอนเงินได้ที่:\n`;
                 message += `${branchBankName} ${branchBankAccountNumber}\n`;
                 message += `ชื่อ: ${branchBankAccountName}\n\n`;
-                message += `📸 ส่งสลิปหลังโอนค่ะ\n\n`;
-                message += `📄 ดูรายละเอียดบิล:\n${invoiceUrl}`;
+                message += `📸 ส่งสลิปหลังโอนค่ะ`;
 
                 recipients.push({
                     lineUserId: hasLine ? tenant.line_user_id : null,
