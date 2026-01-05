@@ -1220,6 +1220,26 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             return;
         }
 
+        // ⭐⭐⭐ เช็คชื่อบัญชีก่อนเช็คยอด (ป้องกันรับสลิปที่โอนผิดบัญชี)
+        const now2 = Date.now();
+        let configs;
+        if (!configCache || (now2 - configCacheTime) > CONFIG_CACHE_DURATION) {
+            configs = await base44.asServiceRole.entities.Config.list();
+            configCache = configs;
+            configCacheTime = now2;
+            console.log(`✅ Refreshed config cache (${configs.length} items)`);
+        } else {
+            configs = configCache;
+            console.log(`✅ Using cached config (${configs.length} items)`);
+        }
+
+        const getConfigValue = (key) => {
+            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+            if (branchConfig) return branchConfig.value;
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+            return globalConfig?.value || null;
+        };
+
         const expectedAccountName = getConfigValue('bank_account_name');
         const receiverName = slipData.receiver?.account?.name || '';
 
