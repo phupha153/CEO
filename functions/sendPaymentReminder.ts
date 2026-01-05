@@ -449,7 +449,7 @@ Deno.serve(async (req) => {
                     // --- CASE 3: ปกติ (Advance/General) - มีลิงก์ + ธนาคาร ---
                     console.log(`📝 Using ADVANCE/GENERAL template (WITH LINK) for payment ${payment.id}`);
                     const frontendUrl = Deno.env.get('FRONTEND_URL');
-                    const invoiceLink = frontendUrl ? `${frontendUrl}/publicinvoice?id=${payment.id}` : null;
+                    const invoiceLink = frontendUrl ? `${frontendUrl}/PublicInvoice?id=${payment.id}&branchId=${branchId}` : null;
                     console.log(`🔗 Invoice link generated: ${invoiceLink || 'N/A'}`);
 
                     message = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
@@ -473,7 +473,7 @@ Deno.serve(async (req) => {
                     message += `สถานะ: ${statusText}\n\n`;
                     message += `💳 โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
                     if (invoiceLink) {
-                        message += `📄 ดูเอกสาร: ${invoiceLink}\n\n`;
+                        message += `📄 ดูรายละเอียดบิล:\n${invoiceLink}\n\n`;
                     }
                     message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
                 }
