@@ -592,6 +592,7 @@ async function handleAttachments(base44, senderPsid, attachments, branchId, tena
                         const amount = slipData.amount || slipData.transAmount || 0;
                         const senderName = slipData.sender?.account?.name?.th || slipData.sender?.displayName || 'N/A';
                         const transDate = slipData.transDate || new Date().toISOString().split('T')[0];
+                        const receiverName = slipData.receiver?.account?.name || '';
                         
                         console.log(`✅ Slip verified! Amount: ${amount} บาท`);
                         
@@ -613,6 +614,45 @@ async function handleAttachments(base44, senderPsid, attachments, branchId, tena
                                 `❌ ยอดเงินไม่ตรง\n\n💰 ยอดที่ต้องชำระ: ${pendingPayment.total_amount.toLocaleString()} บาท\n💵 ยอดที่โอนมา: ${amount.toLocaleString()} บาท\n\nกรุณาตรวจสอบและโอนใหม่ค่ะ`,
                                 branchId
                             );
+                            return;
+                        }
+                        
+                        // ⭐ เช็คชื่อบัญชี (ตัดคำนำหน้า)
+                        const configs = await base44.asServiceRole.entities.Config.list();
+                        const getConfigValue = (key) => {
+                            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+                            if (branchConfig) return branchConfig.value;
+                            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+                            return globalConfig?.value || null;
+                        };
+
+                        const expectedAccountName = getConfigValue('bank_account_name');
+                        let nameMatch = false;
+
+                        if (expectedAccountName && receiverName) {
+                            const cleanExpected = expectedAccountName
+                                .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
+                                .replace(/\s+/g, '')
+                                .replace(/\./g, '')
+                                .toLowerCase();
+
+                            const cleanReceiver = receiverName
+                                .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
+                                .replace(/\s+/g, '')
+                                .replace(/\./g, '')
+                                .toLowerCase();
+
+                            nameMatch = cleanReceiver.includes(cleanExpected) || cleanExpected.includes(cleanReceiver);
+                        } else {
+                            nameMatch = true;
+                        }
+
+                        if (!nameMatch) {
+                            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                                payment_slip_url: slipUrl,
+                                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ชื่อบัญชีไม่ตรง (${receiverName})`
+                            });
+                            await sendFacebookMessage(base44, senderPsid, '❌ ชื่อบัญชีไม่ตรง!\n\nกรุณาตรวจสอบหรือติดต่อเจ้าของหอพักค่ะ', branchId);
                             return;
                         }
                         

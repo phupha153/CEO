@@ -1343,17 +1343,16 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         let nameMatch = false;
 
-        // ⭐ เช็คชื่อบัญชี แบบ Fuzzy (ลบช่องว่าง + นำหน้า + สระ)
+        // ⭐ เช็คชื่อบัญชี แบบ Fuzzy (รองรับทั้งไทย-อังกฤษ, ตัดคำนำหน้า)
         if (expectedAccountName && receiverName) {
-            // ลบ "นาย", "นาง", "นางสาว", ช่องว่าง, จุด
             const cleanExpected = expectedAccountName
-                .replace(/นาย|นาง|นางสาว|mr\.|mrs\.|miss/gi, '')
+                .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
                 .replace(/\s+/g, '')
                 .replace(/\./g, '')
                 .toLowerCase();
 
             const cleanReceiver = receiverName
-                .replace(/นาย|นาง|นางสาว|mr\.|mrs\.|miss/gi, '')
+                .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
                 .replace(/\s+/g, '')
                 .replace(/\./g, '')
                 .toLowerCase();
