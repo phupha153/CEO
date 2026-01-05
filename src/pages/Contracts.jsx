@@ -62,7 +62,7 @@ export default function Contracts() {
   const { data: rooms = [] } = useQuery({
     queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
-      const allRooms = await base44.entities.Room.list();
+      const allRooms = await base44.entities.Room.list('-room_number', 1000);
       return allRooms.filter(room => room.branch_id === selectedBranchId);
     },
     ...retryConfig,
