@@ -521,8 +521,18 @@ export default function Settings() {
   });
 
   const getConfigValue = (key, defaultValue = '') => {
-    const config = configs.find(c => c.key === key && !c.branch_id);
-    return config?.value || defaultValue;
+    if (!selectedBranch) {
+      const config = configs.find(c => c.key === key && !c.branch_id);
+      return config?.value || defaultValue;
+    }
+    
+    // ดึงจากสาขาที่เลือกก่อน
+    const branchConfig = configs.find(c => c.key === key && c.branch_id === selectedBranch.id);
+    if (branchConfig) return branchConfig.value;
+    
+    // ถ้าไม่มี fallback ไปใช้ global
+    const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+    return globalConfig?.value || defaultValue;
   };
 
   const appMode = getConfigValue('app_mode', 'single_tenant');
