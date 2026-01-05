@@ -72,41 +72,7 @@ export default function AddTenantDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* สรุปข้อมูลที่ตรวจพบ */}
-          {aiData && (
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl space-y-3">
-              <p className="text-sm font-bold text-blue-900 flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                ข้อมูลที่ตรวจพบจากการสนทนา
-              </p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {aiData.full_name && (
-                  <div className="bg-white/70 p-2 rounded">
-                    <p className="text-slate-500">ชื่อ:</p>
-                    <p className="font-semibold text-slate-800">{aiData.full_name}</p>
-                  </div>
-                )}
-                {aiData.phone && (
-                  <div className="bg-white/70 p-2 rounded">
-                    <p className="text-slate-500">เบอร์:</p>
-                    <p className="font-semibold text-slate-800">{aiData.phone}</p>
-                  </div>
-                )}
-                {aiData.room_number && (
-                  <div className="bg-white/70 p-2 rounded">
-                    <p className="text-slate-500">ห้อง:</p>
-                    <p className="font-semibold text-slate-800">{aiData.room_number}</p>
-                  </div>
-                )}
-                {aiData.check_in_date && (
-                  <div className="bg-white/70 p-2 rounded">
-                    <p className="text-slate-500">วันเริ่มเช่า:</p>
-                    <p className="font-semibold text-slate-800">{aiData.check_in_date}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+
 
           {/* สรุปการดำเนินการ */}
           <div className="space-y-2">
