@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, User, Phone, Home, Calendar, Wallet, CreditCard, CheckCircle } from "lucide-react";
+import { Loader2, User, Phone, Home, Calendar, Wallet, CreditCard, CheckCircle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AddTenantDialog({ 
@@ -72,7 +72,43 @@ export default function AddTenantDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* แสดงข้อมูลที่จะบันทึก */}
+          {/* สรุปข้อมูลที่ตรวจพบ */}
+          {aiData && (
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl space-y-3">
+              <p className="text-sm font-bold text-blue-900 flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                ข้อมูลที่ตรวจพบจากการสนทนา
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {aiData.full_name && (
+                  <div className="bg-white/70 p-2 rounded">
+                    <p className="text-slate-500">ชื่อ:</p>
+                    <p className="font-semibold text-slate-800">{aiData.full_name}</p>
+                  </div>
+                )}
+                {aiData.phone && (
+                  <div className="bg-white/70 p-2 rounded">
+                    <p className="text-slate-500">เบอร์:</p>
+                    <p className="font-semibold text-slate-800">{aiData.phone}</p>
+                  </div>
+                )}
+                {aiData.room_number && (
+                  <div className="bg-white/70 p-2 rounded">
+                    <p className="text-slate-500">ห้อง:</p>
+                    <p className="font-semibold text-slate-800">{aiData.room_number}</p>
+                  </div>
+                )}
+                {aiData.check_in_date && (
+                  <div className="bg-white/70 p-2 rounded">
+                    <p className="text-slate-500">วันเริ่มเช่า:</p>
+                    <p className="font-semibold text-slate-800">{aiData.check_in_date}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* สรุปการดำเนินการ */}
           <div className="space-y-2">
             {conversation && (
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -92,6 +128,11 @@ export default function AddTenantDialog({
                 {formData.check_in_date && (
                   <p className="text-xs text-green-700 mt-1">
                     วันเริ่มเช่า: {formData.check_in_date}
+                  </p>
+                )}
+                {formData.deposit_amount && (
+                  <p className="text-xs text-green-700 mt-1">
+                    เงินมัดจำ: {parseFloat(formData.deposit_amount).toLocaleString()} บาท
                   </p>
                 )}
               </div>
