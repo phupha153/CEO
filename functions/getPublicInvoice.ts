@@ -17,11 +17,11 @@ Deno.serve(async (req) => {
         if (req.method === 'POST') {
             const body = await req.json();
             paymentId = body.paymentId;
-            branchId = body.branchId;
+            branchId = body.branchId || body.branch;
         } else {
             const url = new URL(req.url);
             paymentId = url.searchParams.get('id');
-            branchId = url.searchParams.get('branch');
+            branchId = url.searchParams.get('branchId') || url.searchParams.get('branch');
         }
 
         console.log(`📋 Payment ID: ${paymentId}`);
