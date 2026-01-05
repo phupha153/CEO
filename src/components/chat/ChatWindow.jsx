@@ -10,6 +10,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AddTenantDialog from "./AddTenantDialog";
 
@@ -37,6 +38,14 @@ export default function ChatWindow({
   const [aiExtractedData, setAiExtractedData] = useState(null);
   const [submittingTenant, setSubmittingTenant] = useState(false);
   const messagesEndRef = useRef(null);
+
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+    staleTime: Infinity,
+  });
+
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -458,19 +467,21 @@ export default function ChatWindow({
                   )}
                 </Badge>
                 
-                {/* User IDs */}
-                <div className="mt-3 space-y-1 text-xs text-slate-500">
-                  {conversation.line_user_id && (
-                    <p className="font-mono bg-slate-50 p-2 rounded break-all">
-                      LINE: {conversation.line_user_id}
-                    </p>
-                  )}
-                  {conversation.facebook_user_id && (
-                    <p className="font-mono bg-blue-50 p-2 rounded break-all text-blue-700">
-                      Facebook: {conversation.facebook_user_id}
-                    </p>
-                  )}
-                </div>
+                {/* User IDs - แสดงเฉพาะ Developer */}
+                {userRole === 'developer' && (
+                  <div className="mt-3 space-y-1 text-xs text-slate-500">
+                    {conversation.line_user_id && (
+                      <p className="font-mono bg-slate-50 p-2 rounded break-all">
+                        LINE: {conversation.line_user_id}
+                      </p>
+                    )}
+                    {conversation.facebook_user_id && (
+                      <p className="font-mono bg-blue-50 p-2 rounded break-all text-blue-700">
+                        Facebook: {conversation.facebook_user_id}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {tenant ? (
@@ -492,22 +503,6 @@ export default function ChatWindow({
                     <div className="flex items-center gap-2 text-slate-600">
                       <Home className="w-4 h-4" />
                       <span>ห้อง {tenant.room_number}</span>
-                    </div>
-                  )}
-                  
-                  {/* แสดง LINE User ID */}
-                  {conversation?.line_user_id && (
-                    <div className="flex items-start gap-2 text-slate-500 text-xs">
-                      <span className="flex-shrink-0">LINE ID:</span>
-                      <span className="break-all font-mono">{conversation.line_user_id}</span>
-                    </div>
-                  )}
-                  
-                  {/* แสดง Facebook User ID */}
-                  {conversation?.facebook_user_id && (
-                    <div className="flex items-start gap-2 text-slate-500 text-xs">
-                      <span className="flex-shrink-0">Facebook ID:</span>
-                      <span className="break-all font-mono">{conversation.facebook_user_id}</span>
                     </div>
                   )}
 
@@ -578,22 +573,6 @@ export default function ChatWindow({
                       ผู้ติดต่อนี้ยังไม่ได้เชื่อมต่อกับผู้เช่าในระบบ
                     </p>
                   </div>
-                  
-                  {/* แสดง LINE User ID สำหรับกรณียังไม่เชื่อมต่อ */}
-                  {conversation?.line_user_id && (
-                    <div className="p-2 bg-slate-50 rounded-lg">
-                      <p className="text-xs text-slate-500 mb-1">LINE User ID:</p>
-                      <p className="text-xs font-mono text-slate-700 break-all">{conversation.line_user_id}</p>
-                    </div>
-                  )}
-                  
-                  {/* แสดง Facebook User ID สำหรับกรณียังไม่เชื่อมต่อ */}
-                  {conversation?.facebook_user_id && (
-                    <div className="p-2 bg-slate-50 rounded-lg">
-                      <p className="text-xs text-slate-500 mb-1">Facebook User ID:</p>
-                      <p className="text-xs font-mono text-slate-700 break-all">{conversation.facebook_user_id}</p>
-                    </div>
-                  )}
 
                   {/* Link to Tenant by Room */}
                   <div className="space-y-2">
