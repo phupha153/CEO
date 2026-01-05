@@ -110,16 +110,16 @@ export default function BookingsPage() {
   const userPermissions = currentUser?.permissions || [];
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
 
-  const canViewAll = userRole === 'developer' || userPermissions.includes('bookings_view_all');
-  const canViewDaily = userRole === 'developer' || userPermissions.includes('bookings_view_daily');
-  const canViewMonthly = userRole === 'developer' || userPermissions.includes('bookings_view_monthly');
+  const canViewAll = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_view_all');
+  const canViewDaily = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_view_daily');
+  const canViewMonthly = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_view_monthly');
   const canView = canViewAll || canViewDaily || canViewMonthly;
-  const canAdd = userRole === 'developer' || userPermissions.includes('bookings_add');
-  const canEdit = userRole === 'developer' || userPermissions.includes('bookings_edit');
-  const canDelete = userRole === 'developer' || userPermissions.includes('bookings_delete');
-  const canCancel = userRole === 'developer' || userPermissions.includes('bookings_cancel_daily');
-  const canCheckIn = userRole === 'developer' || userPermissions.includes('bookings_checkin');
-  const canCheckOut = userRole === 'developer' || userPermissions.includes('bookings_checkout');
+  const canAdd = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_add');
+  const canEdit = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_edit');
+  const canDelete = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_delete');
+  const canCancel = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_cancel_daily');
+  const canCheckIn = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_checkin');
+  const canCheckOut = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_checkout');
 
   const { data: bookings = [], isLoading: bookingsLoading, isFetching: bookingsFetching } = useQuery({
     queryKey: ['bookings', selectedBranchId, 'secure'],
