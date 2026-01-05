@@ -227,11 +227,14 @@ export default function BranchSelection() {
 
       try {
         const defaultConfigs = [
-          { key: 'building_name', value: '', value_type: 'string', description: 'ชื่อหอพัก', category: 'general' },
+          { key: 'building_name', value: variables.branch_name || '', value_type: 'string', description: 'ชื่อหอพัก', category: 'general' },
+          { key: 'building_address', value: variables.address || '', value_type: 'string', description: 'ที่อยู่หอพัก', category: 'general' },
+          { key: 'building_phone', value: variables.phone || '', value_type: 'string', description: 'เบอร์โทรหอพัก', category: 'general' },
+          { key: 'building_manager', value: variables.manager_name || '', value_type: 'string', description: 'ผู้ดูแลหอพัก', category: 'general' },
           { key: 'water_rate', value: '18', value_type: 'number', description: 'ค่าน้ำต่อหน่วย (บาท)', category: 'billing' },
           { key: 'electricity_rate', value: '8', value_type: 'number', description: 'ค่าไฟต่อหน่วย (บาท)', category: 'billing' },
-          { key: 'bill_generation_day', value: '27', value_type: 'number', description: 'วันที่สร้างบิลอัตโนมัติ', category: 'billing' },
-          { key: 'pay_day', value: '5', value_type: 'number', description: 'วันครบกำหนดชำระเงิน', category: 'billing' },
+          { key: 'bill_generation_day', value: variables.bill_generation_day || '27', value_type: 'number', description: 'วันที่สร้างบิลอัตโนมัติ', category: 'billing' },
+          { key: 'pay_day', value: variables.payment_due_day || '5', value_type: 'number', description: 'วันครบกำหนดชำระเงิน', category: 'billing' },
           { key: 'bank_account_name', value: '', value_type: 'string', description: 'ชื่อบัญชีธนาคาร', category: 'general' },
           { key: 'bank_account_number', value: '', value_type: 'string', description: 'เลขที่บัญชี', category: 'general' },
           { key: 'bank_name', value: '', value_type: 'string', description: 'ชื่อธนาคาร', category: 'general' },
@@ -248,35 +251,7 @@ export default function BranchSelection() {
         console.error('Failed to create default configs:', error);
       }
 
-      if (variables.bill_generation_day) {
-        try {
-          await base44.entities.Config.create({
-            branch_id: newBranch.id,
-            key: 'bill_generation_day',
-            value: variables.bill_generation_day,
-            value_type: 'number',
-            description: 'วันที่สร้างบิลอัตโนมัติ',
-            category: 'billing'
-          });
-        } catch (error) {
-          console.error('Failed to create bill_generation_day:', error);
-        }
-      }
 
-      if (variables.payment_due_day) {
-        try {
-          await base44.entities.Config.create({
-            branch_id: newBranch.id,
-            key: 'pay_day',
-            value: variables.payment_due_day,
-            value_type: 'number',
-            description: 'วันครบกำหนดชำระเงิน',
-            category: 'billing'
-          });
-        } catch (error) {
-          console.error('Failed to create pay_day:', error);
-        }
-      }
 
       queryClient.invalidateQueries(['configs']);
 
