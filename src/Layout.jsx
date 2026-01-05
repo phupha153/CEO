@@ -535,8 +535,15 @@ export default function Layout({ children, currentPageName }) {
         }
 
         // ⭐ Sync role จาก CRM (ถ้ามี role ส่งกลับมา)
+        // 🔒 ยกเว้น: ถ้า user.role === 'admin' ใน Base44 = เป็น developer เสมอ ไม่ sync จาก CRM
         if (data.hasAccess && data.role && currentUser) {
-          const currentRole = currentUser.custom_role || (currentUser.role === 'admin' ? 'owner' : 'employee');
+          // ⭐ Admin users ใน Base44 = developer เสมอ ไม่ sync จาก CRM
+          if (currentUser.role === 'admin') {
+            console.log('🔒 Admin user detected - keeping as developer, not syncing from CRM');
+            return data;
+          }
+
+          const currentRole = currentUser.custom_role || 'employee';
           console.log('🔄 Role Sync Check:', {
             email: currentUser.email,
             currentRole,
