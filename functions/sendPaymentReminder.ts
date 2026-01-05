@@ -446,37 +446,59 @@ Deno.serve(async (req) => {
                     message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
 
                 } else {
-                    // --- CASE 3: ปกติ (Advance/General) - มีลิงก์ + ธนาคาร ---
-                    console.log(`📝 Using ADVANCE/GENERAL template (WITH LINK) for payment ${payment.id}`);
+                    // --- CASE 3: ปกติ (Advance/General) - มีรูป + ลิงก์ + ธนาคาร ---
+                    console.log(`📝 Using ADVANCE/GENERAL template (WITH IMAGE + LINK) for payment ${payment.id}`);
+                    
+                    // ⭐ สร้างรูปใบแจ้งหนี้ก่อน (เหมือนใบเสร็จ)
+                    let invoiceImageUrl = payment.invoice_image_url;
+                    if (!invoiceImageUrl) {
+                        try {
+                            const generateResponse = await base44.asServiceRole.functions.invoke('generateInvoiceImage', {
+                                paymentId: payment.id,
+                                lateFeeAmount: calculatedLateFee
+                            });
+                            
+                            if (generateResponse.data?.success) {
+                                invoiceImageUrl = generateResponse.data.invoice_image_url;
+                                console.log(`✅ Invoice image generated: ${invoiceImageUrl}`);
+                            }
+                        } catch (genError) {
+                            console.error('⚠️ Invoice image generation error:', genError.message);
+                        }
+                    }
+                    
                     const frontendUrl = Deno.env.get('FRONTEND_URL');
                     const paymentBranchId = payment.branch_id || branchId;
-                    const invoiceLink = frontendUrl ? `${frontendUrl}publicinvoice?id=${payment.id}&branchId=${paymentBranchId}` : null;
+                    const invoiceLink = frontendUrl ? `${frontendUrl}/publicinvoice?id=${payment.id}&branchId=${paymentBranchId}` : null;
                     console.log(`🔗 Invoice link generated: ${invoiceLink || 'N/A'}`);
 
                     message = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
                     message += `สวัสดีคุณ ${tenant.full_name}\n`;
                     message += `ห้อง ${roomNum}\n\n`;
-                    message += `รายละเอียดค่าใช้จ่าย:\n`;
-                    message += `━━━━━━━━━━━━━━━━━━━━\n`;
-
-                    if (payment.rent_amount >= 0) message += `🏠 ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
-                    if (payment.electricity_amount >= 0) message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-                    if (payment.water_amount >= 0) message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
-                    if (payment.internet_amount > 0) message += `🌐 ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
-                    if (payment.common_fee_amount > 0) message += `🧹 ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
-                    if (payment.parking_fee_amount > 0) message += `🚗 ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
-                    if (payment.other_amount > 0) message += `📦 ค่าใช้จ่ายอื่นๆ: ${payment.other_amount.toLocaleString()} บาท\n`;
-
-                    message += `━━━━━━━━━━━━━━━━━━━━\n`;
                     message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n`;
-                    message += `(${numberToThaiText(payment.total_amount)})\n\n`;
-                    message += `📅 ครบกำหนดชำระ: ${dueDateStr}\n`;
-                    message += `สถานะ: ${statusText}\n\n`;
+                    message += `📅 ครบกำหนดชำระ: ${dueDateStr}\n\n`;
                     message += `💳 โอนเงินได้ที่:\n${bankName} ${bankAccountNumber}\nชื่อบัญชี: ${bankAccountName}\n\n`;
                     if (invoiceLink) {
-                        message += `📄 ดูรายละเอียดบิล:\n${invoiceLink}\n\n`;
+                        message += `📄 ดูรายละเอียดบิลฉบับเต็ม:\n${invoiceLink}\n\n`;
                     }
                     message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
+                    
+                    // ⭐ เพิ่มรูปใบแจ้งหนี้ใน metadata เพื่อส่งผ่าน sendBatchLineMessages
+                    recipients.push({
+                        lineUserId: tenant.line_user_id || null,
+                        facebookUserId: tenant.facebook_user_id || null,
+                        message: message,
+                        invoiceImageUrl: invoiceImageUrl, // ⭐ เพิ่มรูปใบแจ้งหนี้
+                        metadata: {
+                            paymentId: payment.id,
+                            tenantId: tenant.id,
+                            tenantName: tenant.full_name,
+                            roomNumber: room?.room_number,
+                            branchId: payment.branch_id,
+                            platform: tenant.facebook_user_id ? 'facebook' : 'line'
+                        }
+                    });
+                    continue; // ⭐ ข้ามไปรายการถัดไป (ไม่ push ซ้ำ)
                 }
                 }
 

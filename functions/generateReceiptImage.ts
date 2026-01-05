@@ -315,7 +315,7 @@ Deno.serve(async (req) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 html: htmlContent,
-                viewport: { width: 700, height: 1000 },
+                viewport: { width: 800, height: 1000 },
                 options: { type: 'png', fullPage: true, omitBackground: true }
             })
         });
