@@ -419,7 +419,7 @@ Deno.serve(async (req) => {
 
                                         const branchId = tenant.branch_id || destinationBranchId;
 
-                                        // ⭐ เช็คว่ามี pending payment หรือไม่ ก่อนประมวลผลรูป
+                                        // ⭐ เช็คว่ามี payment ที่รอชำระหรือชำระไม่ครบ (pending/overdue/partial_paid)
                                         let hasPendingPayment = false;
                                         try {
                                             const paymentResult = await base44.asServiceRole.entities.Payment.filter({ 
@@ -427,14 +427,18 @@ Deno.serve(async (req) => {
                                                 branch_id: branchId
                                             });
                                             const allPayments = Array.isArray(paymentResult) ? paymentResult : (paymentResult ? [paymentResult] : []);
-                                            hasPendingPayment = allPayments.some(p => p.status === 'pending' || p.status === 'overdue');
+                                            hasPendingPayment = allPayments.some(p => 
+                                                p.status === 'pending' || 
+                                                p.status === 'overdue' || 
+                                                p.status === 'partial_paid'
+                                            );
                                         } catch (e) {
                                             console.log('⚠️ Could not check payments:', e.message);
                                         }
 
-                                        // ⭐ ถ้าไม่มี pending payment → ไม่ตอบอะไรเลย (ไม่ใช่สลิปที่เกี่ยวข้อง)
+                                        // ⭐ ถ้าไม่มี payment ที่ต้องชำระ → ไม่ตอบอะไรเลย
                                         if (!hasPendingPayment) {
-                                            console.log(`ℹ️ User ${lineUserId} has no pending payment - ignoring image, no response`);
+                                            console.log(`ℹ️ User ${lineUserId} has no outstanding payment - ignoring image, no response`);
                                             continue;
                                         }
 
@@ -914,13 +918,13 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         console.log(`✅ Found tenant: ${tenant.full_name} (ID: ${tenant.id}) in branch: ${branchId.substring(0, 8)}...`);
 
-        // ⭐ CRITICAL: Filter payments by tenant_id AND branch_id
+        // ⭐ CRITICAL: Filter payments รวมทั้ง partial_paid (ชำระไม่ครบ)
         let pendingPayments = [];
         try {
             const paymentResult = await base44.asServiceRole.entities.Payment.filter({ 
                 tenant_id: tenant.id,
                 branch_id: branchId,
-                status: { $in: ['pending', 'overdue'] }
+                status: { $in: ['pending', 'overdue', 'partial_paid'] }
             });
             pendingPayments = Array.isArray(paymentResult) ? paymentResult : (paymentResult ? [paymentResult] : []);
         } catch (e) {
@@ -929,18 +933,27 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             pendingPayments = allPayments.filter(p => 
                 p.tenant_id === tenant.id && 
                 p.branch_id === branchId &&
-                (p.status === 'pending' || p.status === 'overdue')
+                (p.status === 'pending' || p.status === 'overdue' || p.status === 'partial_paid')
             );
         }
 
-        // New condition from outline: If no pending payments, do not respond.
+        // ถ้าไม่มี payment ที่ต้องชำระ → ไม่ตอบ
         if (pendingPayments.length === 0) {
-            console.log(`ℹ️ No pending payment for tenant: ${tenant.id} - NOT responding`);
+            console.log(`ℹ️ No outstanding payment for tenant: ${tenant.id} - NOT responding`);
             return;
         }
 
-        // If there are pending payments, process the first one found (consistent with original `find` behavior)
-        const pendingPayment = pendingPayments[0]; 
+        // เรียงตาม due_date เก่าสุดก่อน (ให้ชำระบิลเก่าก่อน)
+        pendingPayments.sort((a, b) => {
+            try {
+                return new Date(a.due_date) - new Date(b.due_date);
+            } catch {
+                return 0;
+            }
+        });
+        
+        const pendingPayment = pendingPayments[0];
+        console.log(`📋 Processing oldest payment: ${pendingPayment.id}, Status: ${pendingPayment.status}, Due: ${pendingPayment.due_date}`); 
 
         console.log(`💰 Found pending payment: ${pendingPayment.id}`);
         console.log(`💰 Amount: ${pendingPayment.total_amount} บาท`);
