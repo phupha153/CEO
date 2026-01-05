@@ -232,6 +232,10 @@ export default function BranchSelection() {
           { key: 'electricity_rate', value: '8', value_type: 'number', description: 'ค่าไฟต่อหน่วย (บาท)', category: 'billing' },
           { key: 'bill_generation_day', value: '27', value_type: 'number', description: 'วันที่สร้างบิลอัตโนมัติ', category: 'billing' },
           { key: 'pay_day', value: '5', value_type: 'number', description: 'วันครบกำหนดชำระเงิน', category: 'billing' },
+          { key: 'bank_account_name', value: '', value_type: 'string', description: 'ชื่อบัญชีธนาคาร', category: 'general' },
+          { key: 'bank_account_number', value: '', value_type: 'string', description: 'เลขที่บัญชี', category: 'general' },
+          { key: 'bank_name', value: '', value_type: 'string', description: 'ชื่อธนาคาร', category: 'general' },
+          { key: 'promptpay', value: '', value_type: 'string', description: 'พร้อมเพย์', category: 'general' },
         ];
 
         const configsToCreate = defaultConfigs.map(config => ({
