@@ -648,17 +648,16 @@ export default function Layout({ children, currentPageName }) {
       }
     },
     enabled: (() => {
+      // ⭐ ถ้ามี custom_role แล้ว ไม่ต้อง check CRM อีก (ประหยัด API calls)
+      if (currentUser?.custom_role) {
+        console.log('✅ CRM Query DISABLED - Role already exists:', currentUser.custom_role);
+        return false;
+      }
+
       const enabled = !isLoading && !!currentUser && isOnline && !isPublicPage;
-      console.log('🔍 CRM Query Enabled Check:', {
+      console.log('🔍 CRM Query ENABLED - No role yet, checking CRM...', {
         enabled,
-        isLoading,
-        hasCurrentUser: !!currentUser,
-        currentUserEmail: currentUser?.email,
-        currentUserCustomRole: currentUser?.custom_role,
-        hasCustomRole: !!currentUser?.custom_role,
-        isOnline,
-        isPublicPage,
-        timestamp: new Date().toISOString()
+        currentUserEmail: currentUser?.email
       });
       return enabled;
     })(),
