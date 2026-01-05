@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { 
   Send, User, Phone, Home, Loader2, 
-  CheckCircle, Info, Sparkles, X, Link, Save, Facebook, ArrowLeft, UserPlus
+  CheckCircle, Info, Sparkles, X, Link, Save, Facebook, ArrowLeft, UserPlus, Image as ImageIcon
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
@@ -13,6 +13,46 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import AddTenantDialog from "./AddTenantDialog";
+
+function ImageWithLoader({ url }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  return (
+    <a 
+      href={url} 
+      target="_blank" 
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="block relative"
+    >
+      {loading && (
+        <div className="absolute inset-0 bg-slate-100 rounded-lg mb-2 flex items-center justify-center min-h-[150px]">
+          <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+        </div>
+      )}
+      {error && (
+        <div className="bg-slate-100 rounded-lg mb-2 p-4 flex flex-col items-center justify-center min-h-[150px]">
+          <ImageIcon className="w-8 h-8 text-slate-400 mb-2" />
+          <p className="text-xs text-slate-500">โหลดรูปไม่สำเร็จ</p>
+        </div>
+      )}
+      <img 
+        src={url} 
+        alt="รูปภาพจากลูกค้า" 
+        loading="lazy"
+        className={`max-w-full rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity ${
+          loading ? 'invisible absolute' : 'visible'
+        }`}
+        onLoad={() => setLoading(false)}
+        onError={() => {
+          setLoading(false);
+          setError(true);
+        }}
+      />
+    </a>
+  );
+}
 
 export default function ChatWindow({ 
   conversation, 
@@ -320,18 +360,7 @@ export default function ChatWindow({
                     }`}
                   >
                     {msg.message_type === 'image' && msg.media_url && (
-                      <a 
-                        href={msg.media_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <img 
-                          src={msg.media_url} 
-                          alt="รูปภาพจากลูกค้า" 
-                          className="max-w-full rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
-                        />
-                      </a>
+                      <ImageWithLoader url={msg.media_url} />
                     )}
                     <p className="whitespace-pre-wrap text-sm">{msg.content}</p>
                     <div className={`flex items-center gap-1.5 mt-1 ${
