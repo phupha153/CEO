@@ -135,7 +135,7 @@ export default function BranchSelection() {
     return counts;
   }, [allRooms]);
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
   
   // ⭐ Security Fix: กรองสาขาตามสิทธิ์
   const userAccessibleBranches = currentUser?.accessible_branches;

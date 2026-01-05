@@ -47,7 +47,7 @@ export default function UserBranchAccess() {
     queryFn: () => base44.auth.me(),
   });
 
-  const userRole = React.useMemo(() => currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee'), [currentUser]);
+  const userRole = React.useMemo(() => currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee'), [currentUser]);
   const isDeveloper = userRole === 'developer';
 
   // ⭐ เฉพาะ Developer เท่านั้นที่เข้าถึงหน้านี้ได้
@@ -483,7 +483,7 @@ export default function UserBranchAccess() {
               </Card>
             ) : (
               filteredUsers.map((user) => {
-                const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                const role = user.custom_role || (user.role === 'admin' ? 'developer' : 'employee');
                 const badge = getRoleBadge(role);
                 const accessibleBranches = user.accessible_branches || [];
                 const canAccessAllBranches = role === 'developer' || role === 'owner';

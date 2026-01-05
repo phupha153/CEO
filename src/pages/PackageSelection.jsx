@@ -30,7 +30,7 @@ export default function PackageSelectionPage() {
     queryFn: () => base44.auth.me(),
   });
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
   const userPermissions = currentUser?.permissions || [];
 
   // ⭐ เช็คสิทธิ์เข้าถึงหน้าแพ็กเกจ

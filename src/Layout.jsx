@@ -659,7 +659,7 @@ export default function Layout({ children, currentPageName }) {
   const appMode = getConfigValue('app_mode', 'single_tenant'); // ดึงค่า app_mode
 
   // ⭐ กำหนด userRole, userPermissions, userAccessibleBranches, canAccessBranch
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
   const userPermissions = currentUser?.permissions || [];
   
   // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้

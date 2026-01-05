@@ -339,7 +339,7 @@ export default function Settings() {
     refetchOnMount: false,
   });
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
   const canManagePermissions = userRole === 'developer' || userRole === 'owner';
   const canSetGlobalConfig = userRole === 'developer' || userRole === 'owner';
   const canAccessPackagePage = userRole === 'developer' || userRole === 'owner' || (currentUser?.permissions || []).includes('settings_access_package_page');
@@ -3767,7 +3767,7 @@ export default function Settings() {
                     <div className="space-y-3">
                       {users
                         .filter(user => {
-                          const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                          const role = user.custom_role || (user.role === 'admin' ? 'developer' : 'employee');
                           if (userRole === 'owner' && role === 'developer') return false;
                           
                           // กรองเฉพาะผู้ใช้ที่มีสิทธิ์ในสาขาที่เลือกอยู่
@@ -3785,7 +3785,7 @@ export default function Settings() {
                         .sort((a, b) => {
                           // เรียงตามลำดับ: pending users (ไม่มี custom_role) -> owner -> manager -> employee
                           const getRoleOrder = (user) => {
-                            const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                            const role = user.custom_role || (user.role === 'admin' ? 'developer' : 'employee');
                             if (!user.custom_role) return 0; // pending users first
                             if (role === 'owner') return 1;
                             if (role === 'manager') return 2;
@@ -3794,7 +3794,7 @@ export default function Settings() {
                           return getRoleOrder(a) - getRoleOrder(b);
                         })
                         .map((user) => {
-                          const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                          const role = user.custom_role || (user.role === 'admin' ? 'developer' : 'employee');
                           const badge = getRoleBadge(role);
                           const currentPermissions = userPermissions[user.id] || [];
                           const accessibleBranches = user.accessible_branches || [];
@@ -3922,7 +3922,7 @@ export default function Settings() {
                         })}
 
                       {users.filter(user => {
-                        const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
+                        const role = user.custom_role || (user.role === 'admin' ? 'developer' : 'employee');
                         if (userRole === 'owner' && role === 'developer') return false;
                         
                         if (selectedBranch) {
