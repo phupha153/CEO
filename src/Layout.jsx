@@ -502,6 +502,11 @@ export default function Layout({ children, currentPageName }) {
   const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError } = useQuery({
     queryKey: ['crmAccess', currentUser?.email],
     queryFn: async () => {
+      console.log('🚀🚀🚀 CRM CHECK QUERY STARTED 🚀🚀🚀', {
+        currentUserEmail: currentUser?.email,
+        timestamp: new Date().toISOString()
+      });
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
 
@@ -511,6 +516,8 @@ export default function Layout({ children, currentPageName }) {
         });
         clearTimeout(timeoutId);
         const data = response.data;
+
+        console.log('📦 Raw CRM Response:', data);
 
         // 🔒 FAIL-CLOSED: ถ้ามี error/timeout → DENY
         if (!data || data.error) {
@@ -633,11 +640,22 @@ export default function Layout({ children, currentPageName }) {
         return { hasAccess: false, reason: 'CRM error' };
       }
     },
-    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
-    staleTime: 60 * 60 * 1000, // ⚡ Cache 1 ชม. (ลดจาก 10 นาที)
+    enabled: (() => {
+      const enabled = !isLoading && !!currentUser && isOnline && !isPublicPage;
+      console.log('🔍 CRM Query Enabled Check:', {
+        enabled,
+        isLoading,
+        hasCurrentUser: !!currentUser,
+        currentUserEmail: currentUser?.email,
+        isOnline,
+        isPublicPage
+      });
+      return enabled;
+    })(),
+    staleTime: 30 * 1000, // ⚡ ลดเหลือ 30 วิเพื่อ test (จะเพิ่มกลับหลังแก้เสร็จ)
     refetchInterval: false,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false, // ❌ ปิด auto-refetch (เช็คเฉพาะตอน mount)
+    refetchOnWindowFocus: true, // ⚡ เปิดชั่วคราวเพื่อ debug
     retry: 1,
     retryDelay: 500,
     throwOnError: false,
