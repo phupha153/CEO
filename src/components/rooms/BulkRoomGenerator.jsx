@@ -81,7 +81,12 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
 
   const handleRoomChange = (globalIndex, field, value) => {
     const newRooms = [...generatedRooms];
-    newRooms[globalIndex] = { ...newRooms[globalIndex], [field]: value };
+    // Convert to appropriate type based on field
+    let convertedValue = value;
+    if (field === 'floor' || field === 'price' || field === 'size' || field === 'water_rate' || field === 'electricity_rate') {
+      convertedValue = value === '' ? '' : (field === 'floor' ? parseInt(value) || 0 : parseFloat(value) || 0);
+    }
+    newRooms[globalIndex] = { ...newRooms[globalIndex], [field]: convertedValue };
     setGeneratedRooms(newRooms);
   };
 
