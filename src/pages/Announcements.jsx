@@ -555,34 +555,7 @@ export default function Announcements() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
-      <PageHeader
-        title="ข้อความและประกาศ"
-        subtitle={`สาขา ${selectedBranchName || 'ไม่ระบุสาขา'}`}
-        icon={Megaphone}
-        actions={
-          activeTab === 'broadcast' ? (
-            <Button
-              onClick={handleSend}
-              disabled={sending || !message.trim() || tenantsWithLine.length === 0 || !selectedBranchId}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
-            >
-              {sending ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  กำลังส่ง...
-                </>
-              ) : (
-                <>
-                  <Send className="w-5 h-5 mr-2" />
-                  ส่งข้อความ ({targetType === 'all' ? tenantsWithLine.length : selectedTenants.size} คน)
-                </>
-              )}
-            </Button>
-          ) : null
-        }
-      />
-
-      <div className="px-4 md:px-8 py-6">
+      <div className="h-full">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6 bg-white/80 backdrop-blur-sm p-1 rounded-xl shadow-sm">
             <TabsTrigger value="broadcast" className="gap-2 rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white">
@@ -601,8 +574,8 @@ export default function Announcements() {
           </TabsList>
 
           {/* Chat Tab */}
-          <TabsContent value="chat" className="mt-0">
-            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl overflow-hidden">
+          <TabsContent value="chat" className="mt-0 h-[calc(100vh-140px)]">
+            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl overflow-hidden h-full">
               {/* Debug info */}
               {messagesError && (
                 <div className="p-4 bg-red-50 text-red-700 text-sm">
@@ -610,7 +583,7 @@ export default function Announcements() {
                 </div>
               )}
               
-              <div className="flex h-[600px] md:h-[700px] relative">
+              <div className="flex h-full relative">
                 {/* Sidebar - แสดง/ซ่อนตาม state บน mobile */}
                 <div className={`w-full md:w-80 md:border-r md:flex-shrink-0 ${showChatWindow ? 'hidden md:block' : 'block'}`}>
                   <ChatSidebar
@@ -1166,6 +1139,33 @@ export default function Announcements() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {activeTab === 'broadcast' && (
+        <PageHeader
+          title="ข้อความและประกาศ"
+          subtitle={`สาขา ${selectedBranchName || 'ไม่ระบุสาขา'}`}
+          icon={Megaphone}
+          actions={
+            <Button
+              onClick={handleSend}
+              disabled={sending || !message.trim() || tenantsWithLine.length === 0 || !selectedBranchId}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
+            >
+              {sending ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  กำลังส่ง...
+                </>
+              ) : (
+                <>
+                  <Send className="w-5 h-5 mr-2" />
+                  ส่งข้อความ ({targetType === 'all' ? tenantsWithLine.length : selectedTenants.size} คน)
+                </>
+              )}
+            </Button>
+          }
+        />
+      )}
 
       {/* AI Dialog */}
       <Dialog open={showAIDialog} onOpenChange={setShowAIDialog}>
