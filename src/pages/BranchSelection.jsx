@@ -225,31 +225,8 @@ export default function BranchSelection() {
     onSuccess: async (newBranch, variables) => {
       queryClient.invalidateQueries(['branches']);
 
-      try {
-        const defaultConfigs = [
-          { key: 'building_name', value: variables.branch_name || '', value_type: 'string', description: 'ชื่อหอพัก', category: 'general' },
-          { key: 'building_address', value: variables.address || '', value_type: 'string', description: 'ที่อยู่หอพัก', category: 'general' },
-          { key: 'building_phone', value: variables.phone || '', value_type: 'string', description: 'เบอร์โทรหอพัก', category: 'general' },
-          { key: 'building_manager', value: variables.manager_name || '', value_type: 'string', description: 'ผู้ดูแลหอพัก', category: 'general' },
-          { key: 'water_rate', value: '18', value_type: 'number', description: 'ค่าน้ำต่อหน่วย (บาท)', category: 'billing' },
-          { key: 'electricity_rate', value: '8', value_type: 'number', description: 'ค่าไฟต่อหน่วย (บาท)', category: 'billing' },
-          { key: 'bill_generation_day', value: variables.bill_generation_day || '27', value_type: 'number', description: 'วันที่สร้างบิลอัตโนมัติ', category: 'billing' },
-          { key: 'pay_day', value: variables.payment_due_day || '5', value_type: 'number', description: 'วันครบกำหนดชำระเงิน', category: 'billing' },
-          { key: 'bank_account_name', value: '', value_type: 'string', description: 'ชื่อบัญชีธนาคาร', category: 'general' },
-          { key: 'bank_account_number', value: '', value_type: 'string', description: 'เลขที่บัญชี', category: 'general' },
-          { key: 'bank_name', value: '', value_type: 'string', description: 'ชื่อธนาคาร', category: 'general' },
-          { key: 'promptpay', value: '', value_type: 'string', description: 'พร้อมเพย์', category: 'general' },
-        ];
-
-        const configsToCreate = defaultConfigs.map(config => ({
-          ...config,
-          branch_id: newBranch.id,
-        }));
-
-        await base44.entities.Config.bulkCreate(configsToCreate);
-      } catch (error) {
-        console.error('Failed to create default configs:', error);
-      }
+      // ⭐ ไม่สร้าง config เริ่มต้นเลย - ให้ user กรอกเองในหน้าตั้งค่า
+      // เพื่อป้องกันปัญหาลายเซ็น/โลโก้/ค่าต่างๆ คัดลอกมาจากสาขาอื่น
 
 
 

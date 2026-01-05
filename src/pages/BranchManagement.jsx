@@ -138,39 +138,8 @@ export default function BranchManagement() {
     onSuccess: async (newBranch, variables) => {
       queryClient.invalidateQueries(['branches']);
 
-      // ⭐ สร้างการตั้งค่าเริ่มต้น (ค่าว่างเปล่า - ให้ผู้ใช้กรอกเอง)
-      try {
-        const defaultConfigs = [
-          { key: 'building_name', value: '', value_type: 'string', description: 'ชื่อหอพัก', category: 'general' },
-          { key: 'building_address', value: '', value_type: 'string', description: 'ที่อยู่หอพัก', category: 'general' },
-          { key: 'building_phone', value: '', value_type: 'string', description: 'เบอร์โทรหอพัก', category: 'general' },
-          { key: 'lessor_name', value: '', value_type: 'string', description: 'ชื่อ-นามสกุลผู้ให้เช่า', category: 'general' },
-          { key: 'lessor_address', value: '', value_type: 'string', description: 'ที่อยู่ผู้ให้เช่า', category: 'general' },
-          { key: 'bank_name', value: '', value_type: 'string', description: 'ชื่อธนาคาร', category: 'billing' },
-          { key: 'bank_account_number', value: '', value_type: 'string', description: 'เลขที่บัญชี', category: 'billing' },
-          { key: 'bank_account_name', value: '', value_type: 'string', description: 'ชื่อบัญชี', category: 'billing' },
-          { key: 'promptpay', value: '', value_type: 'string', description: 'พร้อมเพย์', category: 'billing' },
-          { key: 'receipt_signature', value: '', value_type: 'string', description: 'ลายเซ็นผู้รับเงิน', category: 'billing' },
-          { key: 'water_rate', value: '18', value_type: 'number', description: 'ค่าน้ำต่อหน่วย (บาท)', category: 'billing' },
-          { key: 'electricity_rate', value: '8', value_type: 'number', description: 'ค่าไฟต่อหน่วย (บาท)', category: 'billing' },
-          { key: 'internet_rate', value: '0', value_type: 'number', description: 'ค่าอินเทอร์เน็ต (บาท)', category: 'billing' },
-          { key: 'common_fee', value: '0', value_type: 'number', description: 'ค่าส่วนกลาง (บาท)', category: 'billing' },
-          { key: 'car_parking_fee', value: '0', value_type: 'number', description: 'ค่าจอดรถยนต์ (บาท/คัน)', category: 'billing' },
-          { key: 'motorcycle_parking_fee', value: '0', value_type: 'number', description: 'ค่าจอดรถมอเตอร์ไซค์ (บาท/คัน)', category: 'billing' },
-          { key: 'bill_generation_day', value: '27', value_type: 'number', description: 'วันที่สร้างบิลอัตโนมัติ', category: 'billing' },
-          { key: 'pay_day', value: '5', value_type: 'number', description: 'วันครบกำหนดชำระเงิน', category: 'billing' },
-        ];
-
-        const configsToCreate = defaultConfigs.map(config => ({
-          ...config,
-          branch_id: newBranch.id,
-        }));
-
-        await base44.entities.Config.bulkCreate(configsToCreate);
-        console.log('✅ Created default configs for new branch:', newBranch.id);
-      } catch (error) {
-        console.error('Failed to create default configs:', error);
-      }
+      // ⭐ ไม่สร้าง config เริ่มต้นเลย - ให้ user กรอกเองในหน้าตั้งค่า
+      // เพื่อป้องกันปัญหาลายเซ็น/โลโก้/ค่าต่างๆ คัดลอกมาจากสาขาอื่น
       
       // บันทึก bill_generation_day และ payment_due_day ลง Config (override ถ้ากรอกมา)
       if (variables.bill_generation_day) {
