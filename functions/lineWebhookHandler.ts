@@ -175,23 +175,8 @@ Deno.serve(async (req) => {
 
                 if (event.type === 'follow') {
                     console.log(`✅ New follower: ${lineUserId}`);
-                    
-                    // ⭐ หา branch_id ของผู้ใช้ก่อนส่งข้อความ (ใช้ filter พร้อม branch_id)
-                    let tenant = null;
-                    try {
-                        const tenantResult = await base44.asServiceRole.entities.Tenant.filter({ 
-                            line_user_id: lineUserId,
-                            branch_id: destinationBranchId
-                        });
-                        tenant = Array.isArray(tenantResult) ? tenantResult[0] : tenantResult;
-                    } catch (e) {
-                        console.log('⚠️ Could not find tenant by line_user_id:', e.message);
-                    }
-                    const userBranchId = tenant?.branch_id || destinationBranchId;
-                    
-                    console.log(`📍 User branch: ${userBranchId ? userBranchId.substring(0, 12) + '...' : 'null (ไม่รู้สาขา)'}`);
-                    
-                    await sendWelcomeMessage(base44, lineUserId, userBranchId, replyToken);
+                    // ⭐ ปิดการส่งข้อความต้อนรับ (ไม่ส่งอะไรเมื่อมีคนเพิ่มเพื่อน)
+                    console.log(`ℹ️ Welcome message disabled - not sending anything`);
                     continue;
                 }
 
