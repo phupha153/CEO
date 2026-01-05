@@ -325,17 +325,6 @@ export default function PublicReceipt() {
             width: 100%;
           }
         }
-        
-        /* โหมดมือถือ - ขนาด 400x420px เหมือนใบแจ้งหนี้ */
-        @media screen and (max-width: 768px) {
-          .receipt-container {
-            max-width: 400px !important;
-            width: 400px !important;
-          }
-          .receipt-card {
-            min-height: 420px;
-          }
-        }
       `}</style>
 
       <div className="print:hidden bg-white border-b shadow-sm sticky top-0 z-10">

@@ -72,7 +72,7 @@ function numberToThaiText(number) {
 
 export default function Receipt() {
   const [searchParams] = useSearchParams();
-  const paymentId = searchParams.get("id") || searchParams.get("paymentId");
+  const paymentId = searchParams.get('paymentId');
   const navigate = useNavigate();
 
   const [receiptData, setReceiptData] = useState(null);
@@ -205,35 +205,16 @@ export default function Receipt() {
           </div>
           <p className="text-lg font-semibold text-slate-800 mb-3">{error || 'ไม่พบข้อมูลใบเสร็จ'}</p>
           <div className="text-sm text-slate-600 mb-6 space-y-1">
-            <p className="font-mono text-xs bg-slate-100 p-2 rounded">
-              Payment ID: {paymentId || '❌ ไม่มีค่า'}
-            </p>
-            <details className="text-left bg-yellow-50 p-3 rounded border border-yellow-200 mt-2">
-              <summary className="cursor-pointer text-xs font-semibold text-yellow-800 mb-2">🐛 Debug Info (คลิกเพื่อดู)</summary>
-              <div className="text-xs space-y-1 text-slate-700 mt-2">
-                <p><strong>URL ปัจจุบัน:</strong><br/><code className="text-xs bg-white p-1 rounded block mt-1 break-all">{window.location.href}</code></p>
-                <p className="mt-2"><strong>Search Params ทั้งหมด:</strong><br/>
-                  {Array.from(searchParams.entries()).length > 0 ? (
-                    <code className="text-xs bg-white p-1 rounded block mt-1">
-                      {Array.from(searchParams.entries()).map(([k, v]) => `${k}=${v}`).join(', ')}
-                    </code>
-                  ) : (
-                    <span className="text-red-600">❌ ไม่มี URL parameters</span>
-                  )}
-                </p>
-                <p className="mt-2"><strong>?id:</strong> {searchParams.get("id") || '❌ ไม่มี'}</p>
-                <p><strong>?paymentId:</strong> {searchParams.get("paymentId") || '❌ ไม่มี'}</p>
-              </div>
-            </details>
-            <p className="text-xs mt-3">กรุณาตรวจสอบว่า:</p>
+            <p>Payment ID: {paymentId}</p>
+            <p className="text-xs">กรุณาตรวจสอบว่า:</p>
             <ul className="text-xs text-left list-disc list-inside">
-              <li>ลิงก์มี <code>?id=xxx</code> หรือ <code>?paymentId=xxx</code></li>
               <li>รายการนี้ได้ชำระเงินแล้ว</li>
+              <li>ลิงก์ที่ใช้เปิดถูกต้อง</li>
               <li>อินเทอร์เน็ตเชื่อมต่อปกติ</li>
             </ul>
           </div>
           <div className="flex gap-2 justify-center">
-            <Button onClick={fetchReceipt} className="gap-2" disabled={!paymentId}>
+            <Button onClick={fetchReceipt} className="gap-2">
               <RefreshCw className="w-4 h-4" />
               ลองใหม่อีกครั้ง
             </Button>
@@ -517,17 +498,6 @@ export default function Receipt() {
           .receipt-container {
             max-width: 800px;
             width: 100%;
-          }
-        }
-        
-        /* โหมดมือถือ - ขนาด 400x420px เหมือนใบแจ้งหนี้ */
-        @media screen and (max-width: 768px) {
-          .receipt-container {
-            max-width: 400px !important;
-            width: 400px !important;
-          }
-          .receipt-card {
-            min-height: 420px;
           }
         }
       `}</style>
