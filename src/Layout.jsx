@@ -673,7 +673,17 @@ export default function Layout({ children, currentPageName }) {
 
   // ⭐ กำหนด userRole, userPermissions, userAccessibleBranches, canAccessBranch
   const userRole = (() => {
-    const role = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
+    // ⭐ Admin users = developer เสมอ (ไม่สนใจ custom_role)
+    if (currentUser?.role === 'admin') {
+      console.log('👤 User Role Calculation: Admin → Developer', {
+        custom_role: currentUser?.custom_role,
+        base_role: currentUser?.role,
+        calculated_role: 'developer'
+      });
+      return 'developer';
+    }
+    
+    const role = currentUser?.custom_role || 'employee';
     console.log('👤 User Role Calculation:', {
       custom_role: currentUser?.custom_role,
       base_role: currentUser?.role,
