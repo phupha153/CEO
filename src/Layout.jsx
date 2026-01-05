@@ -492,8 +492,8 @@ export default function Layout({ children, currentPageName }) {
     },
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: Infinity, // ⭐ Cache ตลอด
+    gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
@@ -662,8 +662,8 @@ export default function Layout({ children, currentPageName }) {
       });
       return enabled;
     })(),
-    staleTime: currentUser?.custom_role ? 60 * 60 * 1000 : 0, // ⭐ ถ้ามี role แล้ว cache 1 ชม., ไม่มีให้ refetch ทุกครั้ง
-    gcTime: currentUser?.custom_role ? 2 * 60 * 60 * 1000 : 0,
+    staleTime: currentUser?.custom_role ? Infinity : 0, // ⭐ ถ้ามี role แล้ว cache ตลอด, ไม่มีให้ refetch ทันที
+    gcTime: currentUser?.custom_role ? Infinity : 0,
     refetchInterval: false,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: !currentUser?.custom_role, // ⭐ Refetch เฉพาะถ้ายังไม่มี role
@@ -697,8 +697,8 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
     enabled: !isLoading && !!currentUser && isOnline,
-    staleTime: 24 * 60 * 60 * 1000, // 24 ชั่วโมง
-    gcTime: 48 * 60 * 60 * 1000, // 48 ชั่วโมง
+    staleTime: Infinity, // ⭐ Cache ตลอด
+    gcTime: Infinity,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     networkMode: 'online',
@@ -713,8 +713,8 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
     enabled: !isLoading && !!currentUser && isOnline,
-    staleTime: 24 * 60 * 60 * 1000, // 24 ชั่วโมง
-    gcTime: 48 * 60 * 60 * 1000, // 48 ชั่วโมง
+    staleTime: Infinity, // ⭐ Cache ตลอด
+    gcTime: Infinity,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     refetchOnWindowFocus: false,
