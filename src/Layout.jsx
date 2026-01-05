@@ -481,19 +481,13 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['currentUser'],
     queryFn: async () => {
       const user = await base44.auth.me();
-      console.log('👤 Current User Loaded:', {
-        email: user?.email,
-        role: user?.role,
-        custom_role: user?.custom_role,
-        plan_status: user?.plan_status
-      });
       setRetryCount(0);
       return user;
     },
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: Infinity, // ⭐ Cache ตลอด
-    gcTime: Infinity,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
@@ -504,14 +498,12 @@ export default function Layout({ children, currentPageName }) {
     throwOnError: false,
   });
 
-  // เช็คสิทธิ์กับ CRM (sync role ครั้งแรก, หลังจากนั้น cache ตลอด)
+  // เช็คสิทธิ์กับ CRM (เช็คทุก 5 นาที + logout อัตโนมัติถ้าไม่มีสิทธิ์ + sync role)
   const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError } = useQuery({
     queryKey: ['crmAccess', currentUser?.email],
     queryFn: async () => {
-      console.log('🔍 CRM Check Starting for:', currentUser?.email);
-
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
 
       try {
         const response = await base44.functions.invoke('checkCRMAccess', {}, {
@@ -521,11 +513,18 @@ export default function Layout({ children, currentPageName }) {
         const data = response.data;
 
         // 🔒 FAIL-CLOSED: ถ้ามี error/timeout → DENY
-        if (!data || data.error || data.timeout) {
-          console.error('❌ CRM check failed - DENYING access');
+        if (!data || data.error) {
+          console.error('❌ CRM check error - DENYING access');
           const welcomeUrl = window.location.origin + '/Welcome';
           base44.auth.logout(welcomeUrl);
-          return { hasAccess: false, reason: data?.error || 'CRM timeout' };
+          return { hasAccess: false, reason: 'CRM error' };
+        }
+
+        if (data.timeout) {
+          console.warn('⏱️ CRM timeout - DENYING access');
+          const welcomeUrl = window.location.origin + '/Welcome';
+          base44.auth.logout(welcomeUrl);
+          return { hasAccess: false, reason: 'CRM timeout' };
         }
 
         // ⚡ INSTANT LOGOUT: ถ้า deny → logout + redirect
@@ -533,64 +532,61 @@ export default function Layout({ children, currentPageName }) {
           console.warn('🚫 CRM Access denied - Immediate logout:', currentUser.email);
           const welcomeUrl = window.location.origin + '/Welcome';
           base44.auth.logout(welcomeUrl);
-          return data;
         }
 
         // ⭐ Sync role จาก CRM (ถ้ามี role ส่งกลับมา)
+        // 🔒 ยกเว้น: ถ้า user.role === 'admin' ใน Base44 = เป็น developer เสมอ ไม่ sync จาก CRM
         if (data.hasAccess && data.role && currentUser) {
-          // ⚠️ ตรวจสอบว่า email ตรงกันหรือไม่
-          if (data.email && currentUser.email !== data.email) {
-            console.warn('⚠️ Email mismatch - skipping role sync');
-            return data;
-          }
-
           // ⭐ Admin users ใน Base44 = developer เสมอ ไม่ sync จาก CRM
           if (currentUser.role === 'admin') {
-            console.log('🔒 Admin user - no sync needed');
+            console.log('🔒 Admin user detected - keeping as developer, not syncing from CRM');
             return data;
           }
 
-          const currentRole = currentUser.custom_role || null;
-          const crmRole = data.role?.trim();
+          const currentRole = currentUser.custom_role || 'employee';
+          console.log('🔄 Role Sync Check:', {
+            email: currentUser.email,
+            currentRole,
+            crmRole: data.role,
+            needsUpdate: currentRole !== data.role
+          });
 
-          // ⭐ อัพเดทเฉพาะเมื่อ role ไม่ตรงกัน
-          if (currentRole !== crmRole) {
-            console.log('⚡ Updating role from', currentRole, 'to', crmRole);
-            
+          if (currentRole !== data.role) {
             try {
-              await base44.entities.User.update(currentUser.id, { custom_role: crmRole });
-              await queryClient.invalidateQueries(['currentUser']);
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              console.log('⚡ Updating role from', currentRole, 'to', data.role);
+              await base44.entities.User.update(currentUser.id, { custom_role: data.role });
+              console.log('✅ Synced role from CRM:', data.role);
+
+              // ⭐ Wait 500ms ให้ database persist ก่อน reload
+              await new Promise(resolve => setTimeout(resolve, 500));
+
+              // ⭐ Force reload เพื่อให้ role เปลี่ยนทันทีทุก component
+              console.log('🔄 Reloading page to apply new role...');
               window.location.reload();
             } catch (error) {
-              console.error('❌ Role update failed:', error);
+              console.error('❌ Failed to sync role from CRM:', error);
             }
+          } else {
+            console.log('✓ Role already matches - no update needed');
           }
         }
 
         return data;
       } catch (error) {
         clearTimeout(timeoutId);
-        
-        // ⚠️ Timeout = ปัญหาเครือข่าย - ไม่ logout (แค่ส่ง error กลับ)
-        if (error.name === 'AbortError') {
-          console.warn('⏱️ CRM Timeout - allowing grace period');
-          return { hasAccess: true, timeout: true, cached: true };
-        }
-        
-        console.error('❌ CRM check error:', error);
-        return { hasAccess: true, error: error.message, cached: true };
+        console.error('❌ CRM check failed - DENYING access:', error);
+        const welcomeUrl = window.location.origin + '/Welcome';
+        base44.auth.logout(welcomeUrl);
+        return { hasAccess: false, reason: 'CRM error' };
       }
     },
     enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
-    staleTime: Infinity, // ⭐ Cache ตลอด - ไม่ refetch เว้นแต่ reload หน้า
-    gcTime: Infinity,
+    staleTime: 60 * 60 * 1000, // ⚡ Cache 1 ชม. (ลดจาก 10 นาที)
     refetchInterval: false,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false, // ⭐ ปิด refetch เมื่อกลับมาที่หน้าต่าง
-    refetchOnMount: false, // ⭐ ปิด refetch เมื่อ mount ใหม่
-    refetchOnReconnect: false,
-    retry: 0, // ⭐ ไม่ retry เพื่อไม่ให้เรียก CRM บ่อย
+    refetchOnWindowFocus: false, // ❌ ปิด auto-refetch (เช็คเฉพาะตอน mount)
+    retry: 1,
+    retryDelay: 500,
     throwOnError: false,
   });
 
@@ -612,8 +608,8 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
     enabled: !isLoading && !!currentUser && isOnline,
-    staleTime: Infinity, // ⭐ Cache ตลอด
-    gcTime: Infinity,
+    staleTime: 24 * 60 * 60 * 1000, // 24 ชั่วโมง
+    gcTime: 48 * 60 * 60 * 1000, // 48 ชั่วโมง
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     networkMode: 'online',
@@ -628,8 +624,8 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
     enabled: !isLoading && !!currentUser && isOnline,
-    staleTime: Infinity, // ⭐ Cache ตลอด
-    gcTime: Infinity,
+    staleTime: 24 * 60 * 60 * 1000, // 24 ชั่วโมง
+    gcTime: 48 * 60 * 60 * 1000, // 48 ชั่วโมง
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     refetchOnWindowFocus: false,
@@ -672,15 +668,7 @@ export default function Layout({ children, currentPageName }) {
   const appMode = getConfigValue('app_mode', 'single_tenant'); // ดึงค่า app_mode
 
   // ⭐ กำหนด userRole, userPermissions, userAccessibleBranches, canAccessBranch
-  const userRole = (() => {
-    const role = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
-    console.log('👤 User Role Calculation:', {
-      custom_role: currentUser?.custom_role,
-      base_role: currentUser?.role,
-      calculated_role: role
-    });
-    return role;
-  })();
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
   const userPermissions = currentUser?.permissions || [];
   
   // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้

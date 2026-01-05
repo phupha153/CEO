@@ -627,25 +627,16 @@ export default function Settings() {
   }, [activeSubscription, crmPackages]);
 
   useEffect(() => {
-    const getConfigValue = (key) => {
+    const getConfigValue = (key, applyToAll = true) => {
       if (!selectedBranch) {
         return configs.find(c => c.key === key && !c.branch_id);
       }
       
-      // ✅ ดึงค่าจากสาขาที่เลือกก่อนเสมอ
+      // ✅ ดึงค่าจากสาขาที่เลือกอยู่เสมอ (Toggle ควบคุมแค่ว่าจะ "บันทึก" ไปที่ไหน)
       const branchConfig = configs.find(c => c.key === key && c.branch_id === selectedBranch.id);
-      
-      console.log(`🔍 Config Lookup [${key}]:`, {
-        selectedBranchId: selectedBranch?.id,
-        selectedBranchName: selectedBranch?.name,
-        branchConfigFound: !!branchConfig,
-        branchConfigValue: branchConfig?.value || null,
-        totalConfigsForKey: configs.filter(c => c.key === key).length
-      });
-      
       if (branchConfig) return branchConfig;
       
-      // ⭐ Fallback to global config ONLY if no branch-specific config exists
+      // Fallback to global config if no branch-specific config exists
       return configs.find(c => c.key === key && !c.branch_id);
     };
 

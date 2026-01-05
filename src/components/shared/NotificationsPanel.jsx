@@ -60,9 +60,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
     enabled: showAllBranches && isOpen && canLoadData,
-    staleTime: Infinity,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    staleTime: 60 * 60 * 1000,
   });
 
   // 🚀 Optimization: ดึงข้อมูลทั้งหมดในครั้งเดียว (1 API call แทน 6 calls)
@@ -73,9 +71,8 @@ export default function NotificationsPanel({ isOpen, onClose }) {
       return response.data;
     },
     enabled: isOpen && canLoadData,
-    staleTime: 30 * 1000,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    staleTime: 30 * 1000, // Cache 30 วินาที
+    refetchOnMount: true,
   });
 
   const allPayments = batchData?.payments || [];
@@ -89,18 +86,14 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     queryKey: ['notificationConfigs'],
     queryFn: () => base44.entities.NotificationConfig.list(),
     enabled: isOpen,
-    staleTime: Infinity,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
     enabled: isOpen,
-    staleTime: Infinity,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    staleTime: 4 * 60 * 60 * 1000,
   });
 
   const { data: readNotifications = [] } = useQuery({
@@ -111,9 +104,8 @@ export default function NotificationsPanel({ isOpen, onClose }) {
       return all.filter(n => n.user_email === currentUser.email);
     },
     enabled: !!currentUser?.email && isOpen,
-    staleTime: 30 * 1000,
-    refetchOnMount: false,
-    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const getCurrentDate = () => {
@@ -321,6 +313,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   };
 
   const notificationsByBranch = useMemo(() => {
+    console.log('🔍 [NotificationPanel] useMemo triggered - isOpen:', isOpen, 'paymentsLoading:', paymentsLoading);
     if (!isOpen || paymentsLoading) return {};
     
     const now = getCurrentDate();
@@ -894,7 +887,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     });
 
     return branchNotifications;
-  }, [allPayments, allRooms, allMaintenanceRequests, allBookings, allMaterialDeliveries, allTenants, notificationConfigs, configs, branches, showAllBranches, isOpen, paymentsLoading]);
+  }, [allPayments, allRooms, allMaintenanceRequests, allBookings, allMaterialDeliveries, allTenants, notificationConfigs, configs, navigate, isOpen, paymentsLoading, branches, showAllBranches, readNotifications]);
 
   const allNotifications = Object.values(notificationsByBranch).flatMap(b => b.alerts);
   const filteredNotifications = filterBranch === 'all' 
