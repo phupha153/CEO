@@ -714,6 +714,33 @@ export default function Layout({ children, currentPageName }) {
 
   // ⭐ ยกเลิก Auto-init trial ที่ Layout - ให้สร้างเมื่อสร้างสาขาแรกแทน
 
+  // ⭐ Auto-init trial สำหรับ Owner ที่ยังไม่มี plan_status
+  useEffect(() => {
+    const initTrialIfNeeded = async () => {
+      if (isLoading || !currentUser) return;
+
+      const currentUserRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+
+      // เฉพาะ Owner ที่ยังไม่มี plan_status เลย
+      if (currentUserRole === 'owner' && !currentUser.plan_status && !isCreatingTrial) {
+        console.log('🎉 Owner ไม่มี plan_status - กำลังสร้าง Trial อัตโนมัติ');
+        setIsCreatingTrial(true);
+
+        try {
+          await base44.functions.invoke('initUserTrial');
+          await queryClient.invalidateQueries(['currentUser']);
+          console.log('✅ สร้าง Trial สำเร็จ');
+        } catch (error) {
+          console.error('❌ สร้าง Trial ไม่สำเร็จ:', error);
+        } finally {
+          setIsCreatingTrial(false);
+        }
+      }
+    };
+
+    initTrialIfNeeded();
+  }, [isLoading, currentUser?.id, currentUser?.plan_status, currentUser?.custom_role, currentUser?.role]);
+
   // ⭐ User-centric subscription check (ใช้ที่ effect แล้ว - ไม่ต้องใช้ตัวแปร subscriptionCheck อีก)
 
   useEffect(() => {
