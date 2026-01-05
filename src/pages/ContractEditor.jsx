@@ -132,7 +132,7 @@ export default function ContractEditor() {
   const { data: bookings = [] } = useQuery({
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
-      const allBookings = await base44.entities.Booking.list();
+      const allBookings = await base44.entities.Booking.list('-created_date', 500);
       return allBookings.filter(b => b.branch_id === selectedBranchId);
     },
     enabled: !!selectedBranchId,
