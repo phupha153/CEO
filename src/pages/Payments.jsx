@@ -3019,14 +3019,6 @@ Return JSON.`;
             </div>
           ) : viewMode === 'card' && (
                 <div className="grid grid-cols-1 gap-4 relative">
-                  {paymentsFetching && (
-                    <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
-                      <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-3">
-                        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-                        <p className="text-slate-700 font-medium">กำลังอัปเดตข้อมูล...</p>
-                      </div>
-                    </div>
-                  )}
                   <AnimatePresence>
                     {paginatedPayments.map((payment) => {
                       // ✅ Use enriched data from server
@@ -3533,14 +3525,6 @@ Return JSON.`;
 
               {viewMode === 'table' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
-                  {paymentsFetching && (
-                    <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
-                      <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-3">
-                        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-                        <p className="text-slate-700 font-medium">กำลังอัปเดตข้อมูล...</p>
-                      </div>
-                    </div>
-                  )}
                   <CardContent className="p-0">
                     <div className="overflow-x-auto">
                       <table className="w-full">
@@ -3743,14 +3727,6 @@ Return JSON.`;
 
               {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
-                  {(roomViewFetching || isLoadingRoomView) && (
-                    <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center rounded-xl">
-                      <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-3">
-                        <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
-                        <p className="text-slate-700 font-medium">กำลังอัปเดตข้อมูล...</p>
-                      </div>
-                    </div>
-                  )}
                   <CardContent className="p-4 md:p-6">
                     {/* Month Selector */}
                     <div className="flex items-center justify-between mb-6">
