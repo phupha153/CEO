@@ -531,20 +531,26 @@ Deno.serve(async (req) => {
 
         console.log(`📤 Sending payment reminders to ${recipients.length} recipients...`);
 
-        // Update bill_sent_date
+        // Update bill_sent_date และ overdue_reminder_sent_date (ถ้าเป็น template overdue)
         const paymentIdsToUpdate = recipients.map(r => r.metadata.paymentId);
         const now = new Date().toISOString();
-        const updateBatchSize = 50;
-        
+        const updateBatchSize = 100;
+
+        // ⭐ สร้าง update payload ตาม template
+        const updatePayload = { bill_sent_date: now };
+        if (template === 'overdue') {
+            updatePayload.overdue_reminder_sent_date = now;
+        }
+
         for (let i = 0; i < paymentIdsToUpdate.length; i += updateBatchSize) {
             const batch = paymentIdsToUpdate.slice(i, i + updateBatchSize);
             await Promise.all(
                 batch.map(id =>
-                    base44.asServiceRole.entities.Payment.update(id, { bill_sent_date: now })
+                    base44.asServiceRole.entities.Payment.update(id, updatePayload)
                         .catch(err => console.warn(`⚠️ Failed to update ${id}:`, err.message))
                 )
             );
-            console.log(`✅ Updated bill_sent_date: ${Math.min(i + updateBatchSize, paymentIdsToUpdate.length)}/${paymentIdsToUpdate.length}`);
+            console.log(`✅ Updated bill_sent_date${template === 'overdue' ? ' + overdue_reminder_sent_date' : ''}: ${Math.min(i + updateBatchSize, paymentIdsToUpdate.length)}/${paymentIdsToUpdate.length}`);
         }
 
         // Send messages
