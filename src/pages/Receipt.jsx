@@ -709,14 +709,9 @@ export default function Receipt() {
               <p className="text-[8px] md:text-xs text-slate-500 mt-1 md:mt-0 md:inline md:ml-2">({numberToThaiText(receiptData.total_amount || 0)})</p>
             </div>
 
-            {/* Payment Method & Bank Details */}
-            <div className="mb-2 md:mb-4 p-2 md:p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-[9px] md:text-xs font-semibold text-green-800 mb-1">💳 ชำระผ่าน</p>
-              <div className="text-[8px] md:text-xs text-slate-700 space-y-0.5">
-                <p><span className="font-medium">ธนาคาร:</span> {receiptData.bank.name}</p>
-                <p><span className="font-medium">เลขบัญชี:</span> {receiptData.bank.account_number}</p>
-                <p><span className="font-medium">ชื่อบัญชี:</span> {receiptData.bank.account_name}</p>
-              </div>
+            {/* Payment Method & Notes - Responsive */}
+            <div className="mb-2 md:mb-3 text-[8px] md:text-xs text-slate-500 leading-tight">
+              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {receiptData.bank.name}<span className="hidden md:inline"> | {receiptData.bank.account_number} ({receiptData.bank.account_name})</span>
             </div>
 
             {/* Signature Section - Responsive */}
