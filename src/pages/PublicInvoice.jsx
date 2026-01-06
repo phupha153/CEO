@@ -504,8 +504,13 @@ export default function PublicInvoice() {
               <p className="text-[8px] md:text-xs text-slate-500 mt-1 md:mt-0 md:inline md:ml-2">({numberToThaiText(invoiceData.total_amount || 0)})</p>
             </div>
 
-            <div className="mb-2 md:mb-3 text-[8px] md:text-xs text-slate-500 leading-tight">
-              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {invoiceData.bank?.name}<span className="hidden md:inline"> | {invoiceData.bank?.account_number} ({invoiceData.bank?.account_name})</span>
+            <div className="mb-2 md:mb-4 p-2 md:p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-[9px] md:text-xs font-semibold text-blue-800 mb-1">💳 ข้อมูลการโอนเงิน</p>
+              <div className="text-[8px] md:text-xs text-slate-700 space-y-0.5">
+                <p><span className="font-medium">ธนาคาร:</span> {invoiceData.bank?.name}</p>
+                <p><span className="font-medium">เลขบัญชี:</span> {invoiceData.bank?.account_number}</p>
+                <p><span className="font-medium">ชื่อบัญชี:</span> {invoiceData.bank?.account_name}</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-2 md:gap-4 mt-2 md:mt-5 pt-2 md:pt-3 border-t border-slate-200">
