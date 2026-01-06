@@ -549,17 +549,32 @@ export default function Maintenance() {
                               {request.status !== 'completed' && request.status !== 'cancelled' && (
                                 <>
                                   {request.status === 'pending' && canUpdateStatus && (
-                                    <Button
-                                      onClick={() => {
-                                        updateStatusMutation.mutate({
-                                          id: request.id,
-                                          status: 'in_progress'
-                                        });
-                                      }}
-                                      className="bg-blue-600 hover:bg-blue-700"
-                                    >
-                                      เริ่มดำเนินการ
-                                    </Button>
+                                    <>
+                                      <Button
+                                        onClick={() => {
+                                          updateStatusMutation.mutate({
+                                            id: request.id,
+                                            status: 'in_progress'
+                                          });
+                                        }}
+                                        className="bg-blue-600 hover:bg-blue-700"
+                                      >
+                                        เริ่มดำเนินการ
+                                      </Button>
+                                      <Button
+                                        onClick={() => {
+                                          updateStatusMutation.mutate({
+                                            id: request.id,
+                                            status: 'completed',
+                                            completed_date: new Date().toISOString().split('T')[0]
+                                          });
+                                        }}
+                                        className="bg-green-600 hover:bg-green-700"
+                                      >
+                                        <CheckCircle className="w-4 h-4 mr-1" />
+                                        ดำเนินการเสร็จสิ้น
+                                      </Button>
+                                    </>
                                   )}
                                   {request.status === 'in_progress' && canUpdateStatus && (
                                     <Button
