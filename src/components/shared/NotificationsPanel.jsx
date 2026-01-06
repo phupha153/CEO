@@ -454,10 +454,13 @@ export default function NotificationsPanel({ isOpen, onClose }) {
           expandable: true,
           items: overduePayments.map(payment => {
             const room = rooms.find(r => r.id === payment.room_id);
+            const tenant = tenants.find(t => t.id === payment.tenant_id);
             const daysOverdue = payment.due_date ? differenceInDays(now, parseISO(payment.due_date)) : 0;
+            const roomNumber = room?.room_number || tenant?.full_name || 'N/A';
+            
             return {
               id: `overdue-${payment.id}`,
-              title: `ห้อง ${room?.room_number || 'N/A'}`,
+              title: `ห้อง ${roomNumber}`,
               subtitle: `เกินกำหนด ${daysOverdue} วัน`,
               amount: payment.total_amount
             };
@@ -474,13 +477,26 @@ export default function NotificationsPanel({ isOpen, onClose }) {
       } else {
         overduePayments.forEach(payment => {
           const room = rooms.find(r => r.id === payment.room_id);
+          const tenant = tenants.find(t => t.id === payment.tenant_id);
+          
+          // ⭐ Debug log สำหรับ N/A
+          if (!room) {
+            console.warn(`⚠️ Room not found for payment ${payment.id}:`, {
+              room_id: payment.room_id,
+              tenant_name: tenant?.full_name,
+              available_rooms: rooms.length
+            });
+          }
+          
           const daysOverdue = payment.due_date ? differenceInDays(now, parseISO(payment.due_date)) : 0;
+          const roomNumber = room?.room_number || tenant?.full_name || 'N/A';
+          
           alerts.push({
             id: `overdue-${payment.id}`,
             type: 'overdue',
             icon: DollarSign,
             color: 'red',
-            title: `เกินกำหนด - ห้อง ${room?.room_number || 'N/A'}`,
+            title: `เกินกำหนด - ห้อง ${roomNumber}`,
             message: `เกิน ${daysOverdue} วัน (${payment.total_amount?.toLocaleString()} ฿)`,
             branch: branchName,
             branchId: branchId,
@@ -894,9 +910,9 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     ? allNotifications 
     : allNotifications.filter(n => n.branchId === filterBranch);
 
-  // แสดงทั้งหมด แต่นับเฉพาะที่ยังไม่อ่าน
-  const visibleNotifications = filteredNotifications;
-  const unreadCount = filteredNotifications.filter(n => !isNotificationRead(n.id)).length;
+  // ⭐ แสดงเฉพาะที่ยังไม่อ่าน - ซ่อนที่อ่านแล้ว
+  const visibleNotifications = filteredNotifications.filter(n => !isNotificationRead(n.id));
+  const unreadCount = visibleNotifications.length;
 
   if (!isOpen) return null;
 
