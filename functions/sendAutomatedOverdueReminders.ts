@@ -260,10 +260,7 @@ Deno.serve(async (req) => {
         console.log('🔍 Fetching filtered overdue payments...');
         console.log('⭐ Using NEW VERSION with STEP 1+2+3 (late fee calc + invoice gen + messaging)');
 
-        // ⭐ ใช้เวลาไทย (UTC+7) แทน UTC
-        const nowUtc = new Date();
-        const nowThailand = new Date(nowUtc.getTime() + (7 * 60 * 60 * 1000));
-        const today = startOfDay(nowThailand);
+        const today = startOfDay(new Date());
 
         // ⭐ ดึงเฉพาะ payment ที่ยังไม่ชำระ (pending/overdue) - ใช้ limit*2 แทน fetchAll
         // ⚡ ใช้ limit*2 เพื่อให้มีพอกรองหลังจากเช็ค overdue_reminder_sent_date
@@ -303,7 +300,7 @@ Deno.serve(async (req) => {
         console.log(`📊 Found ${overduePayments.length} actually overdue payments`);
 
         // กรองเฉพาะสาขาที่เปิดการแจ้งเตือน และยังไม่ส่งในวันนี้
-        const todayString = nowThailand.toISOString().split('T')[0];
+        const todayString = today.toISOString().split('T')[0];
         const paymentsFromEnabledBranches = overduePayments.filter(p => {
             if (!enabledBranches.includes(p.branch_id)) {
                 return false;
@@ -377,7 +374,7 @@ Deno.serve(async (req) => {
 
         // ⭐⭐⭐ ขั้นตอนที่ 1: คำนวณและอัปเดตค่าปรับก่อน (ต้องทำก่อนสร้างรูป)
         console.log(`\n💰 ========== STEP 1: CALCULATING LATE FEES (PRODUCTION-GRADE) ==========`);
-        const todayDateStr = todayString; // ใช้เวลาไทยที่คำนวณไว้แล้ว
+        const todayDateStr = new Date().toISOString().split('T')[0];
         let feeCalculated = 0;
         let feeSkipped = 0;
         
@@ -494,17 +491,8 @@ Deno.serve(async (req) => {
         const messageCreationDetails = [];
 
         for (const payment of paymentsToProcess) {
-            // ⭐ ดึงข้อมูล Payment ล่าสุดอีกครั้งเพื่อป้องกันการส่งซ้ำ (race condition)
-            const latestPayment = await base44.asServiceRole.entities.Payment.get(payment.id);
-            
-            // ตรวจสอบซ้ำอีกครั้งว่ามีการส่ง reminder วันนี้ไปแล้วหรือไม่
-            if (latestPayment.overdue_reminder_sent_date) {
-                const lastSentDate = latestPayment.overdue_reminder_sent_date.split('T')[0];
-                if (lastSentDate === todayString) {
-                    console.log(`⏭️ SKIP ${latestPayment.id.substring(0,8)} - already sent today (real-time check)`);
-                    continue;
-                }
-            }
+            // ⭐ ใช้ payment ปัจจุบัน (ไม่ต้อง refresh เพราะไม่มีการสร้างรูป)
+            const latestPayment = payment;
             
             const tenant = tenantMap.get(latestPayment.tenant_id);
             const room = roomMap.get(latestPayment.room_id);
@@ -723,9 +711,9 @@ Deno.serve(async (req) => {
             }
         }
 
-        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ - ใช้เวลาไทย
+        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ - ลด batch size เพื่อหลีกเลี่ยง rate limit
         console.log(`📝 Updating sent_date for ${successfulPaymentIds.size} successful payments...`);
-        const now_iso = nowThailand.toISOString();
+        const now_iso = new Date().toISOString();
         const updateBatchSize = 100; // เพิ่มเป็น 100 เพื่อเพิ่มประสิทธิภาพ
         const paymentIdsArray = Array.from(successfulPaymentIds);
         
@@ -823,7 +811,7 @@ Deno.serve(async (req) => {
             await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'sendAutomatedOverdueReminders',
-                run_timestamp: nowThailand.toISOString(),
+                run_timestamp: new Date().toISOString(),
                 status: sendErrors.length > 0 && sentCount === 0 ? 'error' : 'success',
                 message: responseResult.message,
                 execution_time_ms: executionTime,
