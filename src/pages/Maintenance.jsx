@@ -61,13 +61,16 @@ export default function Maintenance() {
   });
 
   const userPermissions = currentUser?.permissions || [];
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userRole = (() => {
+    if (currentUser?.role === 'admin') return 'developer';
+    return currentUser?.custom_role || 'employee';
+  })();
 
   const canView = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('maintenance_view');
   const canAdd = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('maintenance_add');
   const canEdit = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('maintenance_edit');
   const canDelete = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('maintenance_delete');
-  const canUpdateStatus = userRole === 'developer' || userPermissions.includes('maintenance_update_status');
+  const canUpdateStatus = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('maintenance_update_status');
 
   const retryConfig = {
     retry: 0,
