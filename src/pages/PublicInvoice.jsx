@@ -505,7 +505,13 @@ export default function PublicInvoice() {
             </div>
 
             <div className="mb-2 md:mb-3 text-[8px] md:text-xs text-slate-500 leading-tight">
-              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {invoiceData.bank?.name}<span className="hidden md:inline"> | {invoiceData.bank?.account_number} ({invoiceData.bank?.account_name})</span>
+              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {invoiceData.bank?.name}
+              {invoiceData.bank?.account_number && (
+                <> | {invoiceData.bank.account_number}</>
+              )}
+              {invoiceData.bank?.account_name && (
+                <> ({invoiceData.bank.account_name})</>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-2 md:gap-4 mt-2 md:mt-5 pt-2 md:pt-3 border-t border-slate-200">
