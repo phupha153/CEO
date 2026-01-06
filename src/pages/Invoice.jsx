@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Download, Loader2, AlertCircle, ArrowLeft, Clock, CheckCircle } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
+import html2canvas from "html2canvas";
 
 
 // ⭐ Note: ใช้ค่าปรับจาก backend (late_fee_amount) แทนการคำนวณเอง
@@ -75,6 +76,7 @@ export default function Invoice() {
   const [error, setError] = useState(null);
   const [configs, setConfigs] = useState([]);
   const [configsLoaded, setConfigsLoaded] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (!paymentId) {
@@ -154,9 +156,39 @@ export default function Invoice() {
   // ⭐ ใช้ค่าปรับที่ lock ไว้ในฐานข้อมูลโดยตรง (Cron Job จะอัปเดตให้)
   const displayLateFee = invoiceData.late_fee_amount || 0;
 
-  const handleDownload = () => {
-    if (window.print) {
-      window.print();
+  const handleDownloadImage = async () => {
+    if (!invoiceRef.current || downloading) return;
+    
+    setDownloading(true);
+    try {
+      const images = invoiceRef.current.getElementsByTagName('img');
+      await Promise.all(
+        Array.from(images).map(img => {
+          if (img.complete) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.onload = resolve;
+            img.onerror = resolve;
+          });
+        })
+      );
+
+      const canvas = await html2canvas(invoiceRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false,
+        useCORS: true,
+        allowTaint: true
+      });
+      
+      const link = document.createElement('a');
+      link.download = `ใบแจ้งหนี้-${invoiceNumber}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (error) {
+      console.error('Error generating image:', error);
+      alert('ดาวน์โหลดไม่สำเร็จ กรุณาลองอีกครั้ง');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -360,13 +392,18 @@ export default function Invoice() {
               </a>
             )}
             <Button
-              onClick={handleDownload}
+              onClick={handleDownloadImage}
               size="sm"
               variant="default"
-              className="gap-2 text-xs bg-blue-600 hover:bg-blue-700"
+              className="gap-2 text-sm bg-blue-600 hover:bg-blue-700 px-4 py-2 active:scale-95 transition-transform"
+              disabled={downloading}
             >
-              <Download className="w-3 h-3" />
-              พิมพ์ / บันทึก PDF
+              {downloading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              {downloading ? 'กำลังสร้างรูป...' : 'ดาวน์โหลดรูปภาพ'}
             </Button>
           </div>
         </div>
