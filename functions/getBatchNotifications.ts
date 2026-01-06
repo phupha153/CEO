@@ -48,6 +48,12 @@ Deno.serve(async (req) => {
       tenants: filterByBranch(tenants)
     };
 
+    // ⭐ Debug: ตรวจสอบสาขาที่มีปัญหา
+    const problematicBranch = '69256957890d2b5aaaca1d3f';
+    const branchPayments = filteredData.payments.filter(p => p.branch_id === problematicBranch);
+    const branchRooms = filteredData.rooms.filter(r => r.branch_id === problematicBranch);
+    const branchTenants = filteredData.tenants.filter(t => t.branch_id === problematicBranch);
+    
     console.log('📦 Batch Notifications Data:', {
       user: user.email,
       role: userRole,
@@ -59,6 +65,13 @@ Deno.serve(async (req) => {
         bookings: filteredData.bookings.length,
         deliveries: filteredData.deliveries.length,
         tenants: filteredData.tenants.length
+      },
+      debug_branch_69256957890d2b5aaaca1d3f: {
+        payments: branchPayments.length,
+        rooms: branchRooms.length,
+        tenants: branchTenants.length,
+        sample_payment_room_ids: branchPayments.slice(0, 3).map(p => p.room_id),
+        sample_room_ids: branchRooms.slice(0, 3).map(r => r.id)
       }
     });
 
