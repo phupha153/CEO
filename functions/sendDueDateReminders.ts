@@ -1,5 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
+// ⭐ สร้าง timestamp เวลาไทย (UTC+7)
+function getThailandTimestamp() {
+    const now = new Date();
+    const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    return thailandTime.toISOString();
+}
+
 // Due date reminder function - sends LINE notifications on payment due dates
 // Version: 2025-11-27 - Added tracking for sent reminders
 Deno.serve(async (req) => {
@@ -389,7 +396,7 @@ Deno.serve(async (req) => {
 
         // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ - ลด batch size เพื่อหลีกเลี่ยง rate limit
         console.log(`📝 Updating sent_date for ${successfulPaymentIds.size} successful payments...`);
-        const now_iso = new Date().toISOString();
+        const now_iso = getThailandTimestamp();
         const updateBatchSize = 10; // ลดจาก 50 เป็น 10 เพื่อหลีกเลี่ยง rate limit
         const paymentIdsArray = Array.from(successfulPaymentIds);
         
@@ -479,7 +486,7 @@ Deno.serve(async (req) => {
 
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'sendDueDateReminders',
-                run_timestamp: new Date().toISOString(),
+                run_timestamp: getThailandTimestamp(),
                 status: sendErrors.length > 0 && sentCount === 0 ? 'error' : 'success',
                 message: result.message,
                 execution_time_ms: executionTime,

@@ -355,7 +355,7 @@ Deno.serve(async (req) => {
                                 late_fee_amount: calculatedLateFee,
                                 total_amount: newTotalAmount,
                                 status: 'overdue',
-                                late_fee_last_calculated: new Date().toISOString()
+                                late_fee_last_calculated: getThailandTimestamp()
                             });
 
                             payment.late_fee_amount = calculatedLateFee;
@@ -533,7 +533,7 @@ Deno.serve(async (req) => {
 
         // Update bill_sent_date และ overdue_reminder_sent_date (ถ้าเป็น template overdue)
         const paymentIdsToUpdate = recipients.map(r => r.metadata.paymentId);
-        const now = new Date().toISOString();
+        const now = getThailandTimestamp();
         const updateBatchSize = 100;
 
         // ⭐ สร้าง update payload ตาม template

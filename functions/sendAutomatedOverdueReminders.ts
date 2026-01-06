@@ -3,6 +3,13 @@ import { differenceInDays, parseISO, startOfDay } from 'npm:date-fns@3.6.0';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// ⭐ สร้าง timestamp เวลาไทย (UTC+7)
+function getThailandTimestamp() {
+    const now = new Date();
+    const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    return thailandTime.toISOString();
+}
+
 // ⭐ สร้าง hash จากข้อมูลบิล เพื่อตรวจจับการเปลี่ยนแปลง
 function generatePaymentHash(payment) {
     const dataToHash = {
@@ -452,20 +459,21 @@ Deno.serve(async (req) => {
 
             console.log(`💰 Payment ${payment.id.substring(0,8)} (ห้อง ${room?.room_number}): ${daysOverdue} วัน → ค่าปรับ ${lateFee} บาท ${hasLateFeeChanged ? '(เปลี่ยนแปลง)' : '(เท่าเดิม)'}`);
 
-            // ⭐ PRODUCTION-GRADE: อัปเดตเฉพาะเมื่อค่าปรับเปลี่ยนแปลง + บันทึก timestamp
+            // ⭐ PRODUCTION-GRADE: อัปเดตเฉพาะเมื่อค่าปรับเปลี่ยนแปลง + บันทึก timestamp (เวลาไทย)
+            const thailandTime = getThailandTimestamp();
             if (hasLateFeeChanged || payment.status !== 'overdue') {
                 await base44.asServiceRole.entities.Payment.update(payment.id, {
                     status: 'overdue',
                     late_fee_amount: lateFee,
                     total_amount: newTotalAmount,
-                    late_fee_last_calculated: new Date().toISOString()
+                    late_fee_last_calculated: thailandTime
                 });
                 feeCalculated++;
-                console.log(`   ✅ DB Updated with timestamp`);
+                console.log(`   ✅ DB Updated with timestamp (Thailand time)`);
             } else {
                 console.log(`   ⏭️ No change - updating timestamp only`);
                 await base44.asServiceRole.entities.Payment.update(payment.id, {
-                    late_fee_last_calculated: new Date().toISOString()
+                    late_fee_last_calculated: thailandTime
                 });
             }
 
@@ -473,7 +481,7 @@ Deno.serve(async (req) => {
             payment.late_fee_amount = lateFee;
             payment.total_amount = newTotalAmount;
             payment.status = 'overdue';
-            payment.late_fee_last_calculated = new Date().toISOString();
+            payment.late_fee_last_calculated = thailandTime;
 
             await delay(200);
         }
@@ -713,7 +721,7 @@ Deno.serve(async (req) => {
 
         // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ - ลด batch size เพื่อหลีกเลี่ยง rate limit
         console.log(`📝 Updating sent_date for ${successfulPaymentIds.size} successful payments...`);
-        const now_iso = new Date().toISOString();
+        const now_iso = getThailandTimestamp();
         const updateBatchSize = 100; // เพิ่มเป็น 100 เพื่อเพิ่มประสิทธิภาพ
         const paymentIdsArray = Array.from(successfulPaymentIds);
         
@@ -811,7 +819,7 @@ Deno.serve(async (req) => {
             await new Promise(r => setTimeout(r, 1000)); // รอ 1 วิก่อนเขียน log
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'sendAutomatedOverdueReminders',
-                run_timestamp: new Date().toISOString(),
+                run_timestamp: getThailandTimestamp(),
                 status: sendErrors.length > 0 && sentCount === 0 ? 'error' : 'success',
                 message: responseResult.message,
                 execution_time_ms: executionTime,
