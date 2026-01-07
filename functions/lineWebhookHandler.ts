@@ -1866,19 +1866,22 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             };
 
             const templateText = 
-                `📝 ส่งข้อมูลใหม่ตามรูปแบบนี้:\n\n` +
-                `วันที่: ${pendingData.date}\n` +
-                `ประเภท: ${categoryTh[pendingData.category]}\n` +
-                `จำนวน: ${pendingData.amount} บาท\n` +
-                `รายละเอียด: ${pendingData.description || pendingData.title}\n\n` +
+                `📝 แก้ไขข้อมูลค่าใช้จ่าย\n\n` +
+                `━━━━━━━━━━━━━━━\n` +
+                `📌 ข้อมูลปัจจุบัน:\n\n` +
+                `📅 วันที่: ${pendingData.date}\n` +
+                `🏷️ ประเภท: ${categoryTh[pendingData.category]}\n` +
+                `💰 จำนวน: ${pendingData.amount.toLocaleString()} บาท\n` +
+                `📄 รายละเอียด: ${pendingData.description || pendingData.title}\n\n` +
                 `━━━━━━━━━━━━━━━\n\n` +
-                `💡 วิธีส่งข้อมูล:\n` +
+                `💡 ส่งข้อความใหม่ตามรูปแบบ:\n` +
                 `"[ประเภท] [จำนวน] [รายละเอียด]"\n\n` +
-                `ตัวอย่าง:\n` +
+                `📋 ตัวอย่างที่ถูกต้อง:\n` +
                 `• ค่าน้ำ 500 ห้อง 201\n` +
                 `• ค่าไฟ 1200 เดือนมกราคม\n` +
-                `• ซ่อมแอร์ 3500 ห้อง 305\n\n` +
-                `พิมพ์ "ยกเลิก" เพื่อยกเลิก`;
+                `• ซ่อมแอร์ 3500 ห้อง 305\n` +
+                `• อุปกรณ์ 250 ซื้อหลอดไฟ Big C\n\n` +
+                `❌ พิมพ์ "ยกเลิก" เพื่อยกเลิก`;
 
             await sendMessage(base44, lineUserId, templateText, branchId, replyToken);
 
@@ -2020,7 +2023,7 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
             refund_deposit: 'คืนเงินมัดจำ',
             other: 'อื่นๆ'
         };
-        
+
         // เก็บข้อมูล pending
         await base44.asServiceRole.entities.User.update(employee.id, {
             expense_pending_data: {
@@ -2032,19 +2035,9 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
                 receipt_image: file_url
             }
         });
-        
-        await sendMessage(base44, lineUserId,
-            `📋 ตรวจพบค่าใช้จ่าย:\n\n` +
-            `📝 ${analysis.title}\n` +
-            `💰 ${analysis.amount.toLocaleString()} บาท\n` +
-            `🏷️ ${categoryTh[analysis.category]}\n` +
-            `📅 ${analysis.date}\n` +
-            `📄 ${analysis.description}\n\n` +
-            `พิมพ์ "ยืนยัน" เพื่อบันทึก\n` +
-            `หรือ "แก้ไข" เพื่อแก้ไขข้อมูล`,
-            branchId,
-            replyToken
-        );
+
+        // ส่ง Flex Message พร้อมปุ่มยืนยัน/แก้ไข
+        await sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, branchId, replyToken);
         
     } catch (error) {
         console.error('❌ Expense image error:', error);
