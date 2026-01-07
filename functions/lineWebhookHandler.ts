@@ -2507,14 +2507,10 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             }
         });
 
-        console.log('📝 Expense text saved - ไม่ส่งข้อความ รอรูปใบเสร็จเพิ่ม');
+        console.log('📝 Expense text saved - sending Flex confirmation');
         
-        // ⭐ ส่งข้อความสั้นๆ ว่าได้รับข้อมูลแล้ว รอรูป
-        await sendMessage(base44, lineUserId, 
-            `📝 ได้รับข้อมูลแล้ว\n\n✓ ${analysis.title}\n✓ ${analysis.amount.toLocaleString()} บาท\n\nกรุณาส่งรูปใบเสร็จ/บิล หรือพิมพ์ "✅ ยืนยัน" ถ้าไม่มีรูป`,
-            branchId,
-            replyToken
-        );
+        // ⭐ ส่ง Flex Message พร้อมปุ่มยืนยัน/แก้ไข
+        await sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh, branchId, replyToken);
         
     } catch (error) {
         console.error('❌ Expense submission error:', error);
