@@ -2316,51 +2316,69 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
         if (employee.expense_edit_mode === true) {
             console.log('✏️ Edit mode detected - analyzing edited message');
             
-            // วิเคราะห์ข้อความที่แก้ไขแล้ว
+            // ⭐ Extract บรรทัด "ประเภท :" ด้วย regex ก่อน
+            const categoryLineMatch = messageText.match(/ประเภท\s*[:：]\s*(.+)/i);
+            const categoryText = categoryLineMatch ? categoryLineMatch[1].trim() : null;
+            
+            console.log('🔍 [REGEX] Category line found:', categoryText || 'NOT FOUND');
+            
+            // ⭐ แปลงเป็น enum ด้วย mapping
+            const categoryMapping = {
+                'ค่าไฟ': 'electricity',
+                'ไฟฟ้า': 'electricity',
+                'ค่าน้ำ': 'water',
+                'ค่านำ้': 'water', // รองรับพิมพ์ผิด
+                'น้ำ': 'water',
+                'นำ้': 'water', // รองรับพิมพ์ผิด
+                'ค่าซ่อม': 'repair',
+                'ซ่อม': 'repair',
+                'ค่าเน็ต': 'internet',
+                'อินเทอร์เน็ต': 'internet',
+                'เงินเดือน': 'salary',
+                'อุปกรณ์': 'supplies',
+                'คืนเงินมัดจำ': 'refund_deposit',
+                'มัดจำ': 'refund_deposit'
+            };
+            
+            let extractedCategory = 'other';
+            if (categoryText) {
+                // หาคีย์ที่ตรงกับข้อความ (ใช้ includes เพื่อรองรับ substring)
+                for (const [key, value] of Object.entries(categoryMapping)) {
+                    if (categoryText.includes(key)) {
+                        extractedCategory = value;
+                        console.log(`✅ [REGEX] Mapped "${categoryText}" → ${value}`);
+                        break;
+                    }
+                }
+            }
+            
+            // วิเคราะห์ส่วนอื่นด้วย AI (ไม่ให้ AI ตีความ category อีก)
             const editedAnalysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
-                prompt: `วิเคราะห์ข้อความค่าใช้จ่ายที่แก้ไขแล้ว:
+                prompt: `วิเคราะห์ข้อความค่าใช้จ่ายที่แก้ไขแล้ว (ไม่ต้องสน category):
 
 "${messageText}"
 
 วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
 
-**CRITICAL: มองหาบรรทัด "ประเภท :" ก่อนเป็นอันดับแรก**
-
-กรุณา extract ข้อมูล:
-1. category - **ให้ดูจากบรรทัด "ประเภท :" เป็นหลัก**:
-   - "ค่าไฟ" หรือ "ไฟฟ้า" → electricity
-   - "ค่าน้ำ" หรือ "ค่านำ้" หรือ "น้ำ" → water
-   - "ค่าซ่อม" หรือ "ซ่อม" → repair
-   - "ค่าเน็ต" หรือ "อินเทอร์เน็ต" → internet
-   - "เงินเดือน" → salary
-   - "อุปกรณ์" → supplies
-   - "คืนเงินมัดจำ" หรือ "มัดจำ" → refund_deposit
-   - อื่นๆ → other
-
-2. amount: ดูจากบรรทัด "ยอดเงิน :" (ตัวเลขเท่านั้น)
-
-3. date: ดูจากบรรทัด "วันที่ :" ในรูป YYYY-MM-DD
-   - ถ้าระบุวันที่ชัดเจนให้แปลง
-   - ถ้าไม่ระบุให้ใช้วันนี้
-
-4. description: ดูจากบรรทัด "รายละเอียด :"
-
-5. title: ดูจากบรรทัด "หัวข้อ :"`,
+กรุณา extract:
+1. amount: ดูจากบรรทัด "ยอดเงิน :" (ตัวเลขเท่านั้น)
+2. date: ดูจากบรรทัด "วันที่ :" ในรูป YYYY-MM-DD
+3. description: ดูจากบรรทัด "รายละเอียด :"
+4. title: ดูจากบรรทัด "หัวข้อ :"`,
                 response_json_schema: {
                     type: "object",
                     properties: {
-                        category: {
-                            type: "string",
-                            enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
-                        },
                         amount: { type: "number" },
                         date: { type: "string" },
                         description: { type: "string" },
                         title: { type: "string" }
                     },
-                    required: ["category", "amount", "date", "title"]
+                    required: ["amount", "date", "title"]
                 }
             });
+            
+            // รวม category จาก regex + ส่วนอื่นจาก AI
+            editedAnalysis.category = extractedCategory;
             
             const categoryTh = {
                 electricity: 'ค่าไฟ',
