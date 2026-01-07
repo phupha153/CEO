@@ -2452,12 +2452,12 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 other: 'อื่นๆ'
             };
             
-            // รวมข้อมูล: title/category/description จากข้อความ + amount/date/รูปจากรูปภาพ
+            // รวมข้อมูล: title/category/description/date จากข้อความ + amount/รูปจากรูปภาพ
             const mergedData = {
                 title: textAnalysis.title,
                 amount: imageAnalysis.amount,
                 category: textAnalysis.category,
-                date: imageAnalysis.date,
+                date: textAnalysis.date || imageAnalysis.date, // ใช้วันที่จากข้อความก่อน ถ้าไม่มีค่อยใช้จากรูป
                 description: textAnalysis.description || textAnalysis.title,
                 receipt_image: tempImageUrl
             };
