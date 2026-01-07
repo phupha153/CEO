@@ -1923,7 +1923,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             refund_deposit: 'คืนเงินมัดจำ',
             other: 'อื่นๆ'
         };
-        
+
         // เก็บข้อมูล pending
         await base44.asServiceRole.entities.User.update(employee.id, {
             expense_pending_data: {
@@ -1931,10 +1931,11 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 amount: analysis.amount,
                 category: analysis.category,
                 date: analysis.date,
-                description: analysis.description || analysis.title
+                description: analysis.description || analysis.title,
+                receipt_image: null
             }
         });
-        
+
         // ส่ง Flex Message พร้อมปุ่มยืนยัน/แก้ไข
         await sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, branchId, replyToken);
         
