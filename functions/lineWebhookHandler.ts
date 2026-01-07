@@ -1866,22 +1866,14 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             };
 
             const templateText = 
-                `📝 แก้ไขข้อมูลค่าใช้จ่าย\n\n` +
-                `━━━━━━━━━━━━━━━\n` +
-                `📌 ข้อมูลปัจจุบัน:\n\n` +
-                `📅 วันที่: ${pendingData.date}\n` +
-                `🏷️ ประเภท: ${categoryTh[pendingData.category]}\n` +
-                `💰 จำนวน: ${pendingData.amount.toLocaleString()} บาท\n` +
-                `📄 รายละเอียด: ${pendingData.description || pendingData.title}\n\n` +
-                `━━━━━━━━━━━━━━━\n\n` +
-                `💡 ส่งข้อความใหม่ตามรูปแบบ:\n` +
-                `"[ประเภท] [จำนวน] [รายละเอียด]"\n\n` +
-                `📋 ตัวอย่างที่ถูกต้อง:\n` +
-                `• ค่าน้ำ 500 ห้อง 201\n` +
-                `• ค่าไฟ 1200 เดือนมกราคม\n` +
-                `• ซ่อมแอร์ 3500 ห้อง 305\n` +
-                `• อุปกรณ์ 250 ซื้อหลอดไฟ Big C\n\n` +
-                `❌ พิมพ์ "ยกเลิก" เพื่อยกเลิก`;
+                `📝 บันทึกค่าใช้จ่าย\n` +
+                `หัวข้อ : ${pendingData.title || '...........'}\n` +
+                `ยอดเงิน : ${pendingData.amount.toLocaleString()} บาท\n` +
+                `ประเภท : ${categoryTh[pendingData.category]}\n` +
+                `วันที่ : ${pendingData.date}\n` +
+                `รายละเอียด : ${pendingData.description || '...........'}\n` +
+                `รูปสลิป/บิล : (แนบมาแล้ว)\n` +
+                `หมายเหตุ : ...........`;
 
             await sendMessage(base44, lineUserId, templateText, branchId, replyToken);
 
