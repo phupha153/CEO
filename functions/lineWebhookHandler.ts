@@ -2363,14 +2363,14 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             await sendEditTemplate(base44, lineUserId, pendingData, categoryTh, branchId, replyToken);
             
             // ตั้งค่า flag แก้ไข (ไม่ลบ pending data)
-            await base44.asServiceRole.entities.User.update(employee.id, {
+            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
                 expense_edit_mode: true
             });
             return;
         }
         
         // ⭐⭐⭐ เช็คว่าอยู่ในโหมดแก้ไขหรือไม่
-        if (employee.expense_edit_mode === true) {
+        if (freshEmployee.expense_edit_mode === true) {
             console.log('✏️ Edit mode detected - analyzing edited message');
             
             // ⭐ Extract บรรทัด "ประเภท :" ด้วย regex ก่อน
