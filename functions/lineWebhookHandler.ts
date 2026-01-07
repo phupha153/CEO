@@ -193,6 +193,15 @@ Deno.serve(async (req) => {
                         await handleKeepOldExpense(base44, lineUserId, replyToken, destinationBranchId);
                         continue;
                     }
+                    
+                    if (postbackData === 'upload_receipt_image') {
+                        await sendMessage(base44, lineUserId, 
+                            '📸 กรุณาส่งรูปใบเสร็จ/บิล\n\nระบบจะนำข้อมูลจากรูปมาผสานกับข้อมูลที่คุณป้อนไว้แล้วค่ะ',
+                            destinationBranchId,
+                            replyToken
+                        );
+                        continue;
+                    }
                 }
 
                 if (event.type === 'message') {
@@ -1540,6 +1549,170 @@ async function sendEditTemplate(base44, lineUserId, pendingData, categoryTh, bra
     await sendMessage(base44, lineUserId, templateText, branchId, replyToken);
 }
 
+// ⭐⭐⭐ Flex Message สำหรับข้อความที่ไม่มีรูป (มีปุ่มอัปโหลดรูป)
+async function sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh, branchId = null, replyToken = null) {
+    try {
+        const lineToken = await getLineToken(base44, branchId);
+        if (!lineToken) return;
+
+        const flexMessage = {
+            type: 'flex',
+            altText: `ตรวจสอบค่าใช้จ่าย ${analysis.amount.toLocaleString()} บาท`,
+            contents: {
+                type: 'bubble',
+                header: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'text',
+                            text: '📋 ตรวจสอบข้อมูล',
+                            weight: 'bold',
+                            size: 'xl',
+                            color: '#1E40AF'
+                        }
+                    ]
+                },
+                body: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: '📝', size: 'sm', flex: 0 },
+                                { type: 'text', text: analysis.title, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: '💰', size: 'sm', flex: 0 },
+                                { type: 'text', text: `${analysis.amount.toLocaleString()} บาท`, wrap: true, weight: 'bold', color: '#16A34A', size: 'md', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: '🏷️', size: 'sm', flex: 0 },
+                                { type: 'text', text: categoryTh[analysis.category], wrap: true, color: '#7C3AED', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: '📅', size: 'sm', flex: 0 },
+                                { type: 'text', text: analysis.date, wrap: true, color: '#64748B', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: '📄', size: 'sm', flex: 0 },
+                                { type: 'text', text: analysis.description, wrap: true, color: '#475569', size: 'xs', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: '📸', size: 'sm', flex: 0 },
+                                { type: 'text', text: 'ยังไม่มีรูปใบเสร็จ', wrap: true, color: '#F59E0B', size: 'xs', flex: 5 }
+                            ]
+                        }
+                    ],
+                    spacing: 'md'
+                },
+                footer: {
+                    type: 'box',
+                    layout: 'vertical',
+                    spacing: 'sm',
+                    contents: [
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'postback',
+                                label: '📸 อัปโหลดรูปใบเสร็จ',
+                                data: 'upload_receipt_image'
+                            },
+                            style: 'primary',
+                            color: '#3B82F6',
+                            height: 'sm'
+                        },
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: '✅ ยืนยัน (ไม่มีรูป)',
+                                text: '✅ ยืนยัน'
+                            },
+                            style: 'secondary',
+                            height: 'sm'
+                        },
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: '✏️ แก้ไข',
+                                text: '✏️ แก้ไข'
+                            },
+                            style: 'secondary',
+                            height: 'sm'
+                        }
+                    ]
+                }
+            }
+        };
+
+        const endpoint = replyToken 
+            ? 'https://api.line.me/v2/bot/message/reply'
+            : 'https://api.line.me/v2/bot/message/push';
+
+        const body = replyToken
+            ? { replyToken, messages: [flexMessage] }
+            : { to: lineUserId, messages: [flexMessage] };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${lineToken}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok && replyToken) {
+            const fallbackEndpoint = 'https://api.line.me/v2/bot/message/push';
+            const fallbackBody = { to: lineUserId, messages: [flexMessage] };
+            
+            await fetch(fallbackEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${lineToken}`
+                },
+                body: JSON.stringify(fallbackBody)
+            });
+        }
+
+        console.log('✅ Sent Flex message with upload option');
+    } catch (error) {
+        console.error('❌ Error sending Flex message:', error);
+    }
+}
+
 async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, branchId = null, replyToken = null) {
     try {
         const lineToken = await getLineToken(base44, branchId);
@@ -1976,7 +2149,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             other: 'อื่นๆ'
         };
 
-        // เก็บข้อมูล pending (ไม่ส่ง confirmation - รอให้ส่งรูปก่อน)
+        // เก็บข้อมูล pending
         await base44.asServiceRole.entities.User.update(employee.id, {
             expense_pending_data: {
                 title: analysis.title,
@@ -1988,16 +2161,8 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             }
         });
 
-        // ⭐ ส่งข้อความธรรมดาแจ้งว่ารอรูป (ไม่ส่ง Flex confirmation ยังเพื่อไม่ให้ซ้ำ)
-        await sendMessage(base44, lineUserId,
-            `📝 บันทึกข้อมูลแล้ว:\n\n` +
-            `${analysis.title}\n` +
-            `💰 ${analysis.amount.toLocaleString()} บาท\n` +
-            `🏷️ ${categoryTh[analysis.category]}\n\n` +
-            `📸 กรุณาส่งรูปใบเสร็จเพื่อยืนยันค่ะ`,
-            branchId,
-            replyToken
-        );
+        // ⭐ ส่ง Flex Message พร้อมปุ่ม "ยืนยัน" และ "อัปโหลดรูป"
+        await sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh, branchId, replyToken);
         
     } catch (error) {
         console.error('❌ Expense submission error:', error);
