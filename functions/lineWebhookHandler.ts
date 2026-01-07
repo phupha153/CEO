@@ -2028,7 +2028,17 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
 }
 
 async function sendWelcomeMessage(base44, lineUserId, branchId = null, replyToken = null) {
-    const welcomeText = '🏡 ยินดีต้อนรับสู่หอพัก W RESIDENTS';
+    // ดึงชื่อหอพักจากการตั้งค่า
+    const configs = await base44.asServiceRole.entities.Config.list();
+    const getConfigValue = (key) => {
+        const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+        if (branchConfig?.value) return branchConfig.value;
+        const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+        return globalConfig?.value || 'W RESIDENTS';
+    };
+    
+    const buildingName = getConfigValue('building_name');
+    const welcomeText = `🏡 ยินดีต้อนรับสู่หอพัก ${buildingName}`;
 
     await sendMessage(base44, lineUserId, welcomeText, branchId, replyToken);
 }
@@ -2040,6 +2050,7 @@ async function sendConfirmationMessage(base44, lineUserId, tenant, branch, reply
     if (branch) {
         confirmText += `\n🏢 สาขา: ${branch.branch_name}`;
     }
+    confirmText += `\n\nส่งรูปสลิปเพื่อชำระค่าเช่าทางนี้ได้เลยค่ะ`;
 
     await sendMessage(base44, lineUserId, confirmText, tenant.branch_id, replyToken);
 }
