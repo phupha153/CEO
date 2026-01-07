@@ -2277,13 +2277,25 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
         
         console.log(`✅ Uploaded expense image: ${file_url}`);
         
-        // ⭐ เช็คว่ามีข้อมูล pending อยู่แล้วหรือไม่
-        const pendingData = employee.expense_pending_data;
+        // ⭐ โหลดข้อมูล employee ใหม่อีกครั้ง (ป้องกัน race condition)
+        const freshEmployeeResult = await base44.asServiceRole.entities.User.filter({
+            employee_line_user_id: lineUserId,
+            can_submit_expenses: true
+        });
+        const freshEmployee = Array.isArray(freshEmployeeResult) ? freshEmployeeResult[0] : freshEmployeeResult;
+        const pendingData = freshEmployee?.expense_pending_data;
         
         if (pendingData) {
-            // ⭐⭐⭐ ถ้ามีรูปอยู่แล้ว → ให้เลือกว่าจะใช้รูปเดิมหรือใหม่
-            if (pendingData.receipt_image) {
-                console.log(`⚠️ Employee already has expense with image - sending choice dialog`);
+            // เช็คว่า pending data ถูกสร้างมานานแค่ไหน (ถ้ามากกว่า 30 วินาที = ไม่ใช่ race condition)
+            const employeeUpdatedAt = freshEmployee.updated_date ? new Date(freshEmployee.updated_date) : new Date(0);
+            const nowTime = new Date();
+            const secondsSinceUpdate = (nowTime - employeeUpdatedAt) / 1000;
+            
+            console.log(`⏱️ Pending data age: ${secondsSinceUpdate.toFixed(1)} seconds`);
+            
+            // ⭐⭐⭐ ถ้ามีรูปอยู่แล้ว AND ข้อมูลเก่ากว่า 30 วินาที → ส่ง alert ให้เลือก
+            if (pendingData.receipt_image && secondsSinceUpdate > 30) {
+                console.log(`⚠️ Employee already has old expense with image - sending choice dialog`);
                 
                 const categoryTh = {
                     electricity: 'ค่าไฟ',
@@ -2297,7 +2309,7 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
                 };
                 
                 // เก็บรูปใหม่ไว้ชั่วคราว
-                await base44.asServiceRole.entities.User.update(employee.id, {
+                await base44.asServiceRole.entities.User.update(freshEmployee.id, {
                     temp_expense_image_url: file_url
                 });
                 
@@ -2306,9 +2318,10 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
                 return;
             }
             
-            // ⭐⭐⭐ ถ้ามีแค่ข้อความ (title/description) ไม่มีรูป → ผสานข้อมูลจากรูปใหม่
-            if (pendingData.title || pendingData.description) {
-                console.log(`📝 Merging text data with new image data`);
+            // ⭐⭐⭐ ถ้ามีข้อความ (title/description) แต่ไม่มีรูป หรือข้อมูลเพิ่งสร้างใหม่ (race condition)
+            // → ผสานข้อมูลอัตโนมัติ
+            if ((pendingData.title || pendingData.description) && !pendingData.receipt_image) {
+                console.log(`📝 Auto-merging: text data (${secondsSinceUpdate.toFixed(1)}s old) + new image`);
                 
                 // AI Extract ข้อมูลจากรูป (amount, category, date)
                 const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -2357,11 +2370,11 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
                 };
                 
                 // อัพเดท pending data
-                await base44.asServiceRole.entities.User.update(employee.id, {
+                await base44.asServiceRole.entities.User.update(freshEmployee.id, {
                     expense_pending_data: mergedData
                 });
                 
-                console.log('✅ Merged data:', mergedData);
+                console.log('✅ Auto-merged data:', mergedData);
                 
                 // ส่ง Flex confirmation ด้วยข้อมูลที่ผสานแล้ว
                 await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
