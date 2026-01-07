@@ -2552,9 +2552,10 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
                         expense_pending_data: null
                     });
                     // แล้วให้มันไป analyze ครบด้านล่าง
-                } else {
-                    // ⭐ อยู่ในช่วง 30 วินาที → Auto-merge
+                }
                 
+                // ⭐ อยู่ในช่วง 30 วินาที → Auto-merge
+                if (pendingData && secondsSinceUpdate <= 30) {
                 // AI Extract ข้อมูลจากรูป (เฉพาะ amount, date)
                 const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
                     prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูล:
