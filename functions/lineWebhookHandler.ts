@@ -1719,6 +1719,187 @@ async function sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh
     }
 }
 
+async function sendFlexConfirmationMerged(base44, lineUserId, analysis, categoryTh, branchId = null, replyToken = null) {
+    try {
+        const lineToken = await getLineToken(base44, branchId);
+        if (!lineToken) return;
+
+        const hasReceipt = analysis.receipt_image && analysis.receipt_image.trim() !== '';
+
+        const flexMessage = {
+            type: 'flex',
+            altText: `รวมข้อมูลแล้ว - ยืนยันค่าใช้จ่าย ${analysis.amount.toLocaleString()} บาท`,
+            contents: {
+                type: 'bubble',
+                header: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'text',
+                            text: '✅ รวมข้อมูลเรียบร้อย',
+                            weight: 'bold',
+                            size: 'md',
+                            color: '#16A34A'
+                        },
+                        {
+                            type: 'text',
+                            text: '📝 ข้อความ + 📸 รูปใบเสร็จ',
+                            size: 'sm',
+                            color: '#64748B',
+                            margin: 'sm'
+                        }
+                    ],
+                    backgroundColor: '#F0FDF4'
+                },
+                body: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: 'หัวข้อ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.title, wrap: true, color: '#334155', size: 'sm', flex: 5, weight: 'bold' }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'ยอดสุทธิ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: `฿${analysis.amount.toLocaleString()}`, wrap: true, weight: 'bold', color: '#F97316', size: 'xl', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'วันที่จ่าย:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.date, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'ประเภท:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: categoryTh[analysis.category], wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'รายละเอียด:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.description, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'separator',
+                            margin: 'lg'
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'ใบเสร็จ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { 
+                                    type: 'text', 
+                                    text: hasReceipt ? '✅ แนบมาแล้ว' : 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', 
+                                    wrap: true, 
+                                    color: hasReceipt ? '#16A34A' : '#F97316', 
+                                    size: 'xs', 
+                                    flex: 5 
+                                }
+                            ]
+                        }
+                    ],
+                    spacing: 'md'
+                },
+                footer: {
+                    type: 'box',
+                    layout: 'vertical',
+                    spacing: 'sm',
+                    contents: [
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: 'ยืนยันข้อมูลถูกต้อง',
+                                text: '✅ ยืนยัน'
+                            },
+                            style: 'primary',
+                            color: '#16A34A',
+                            height: 'sm'
+                        },
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: '✏️ แก้ไข',
+                                text: '✏️ แก้ไข'
+                            },
+                            style: 'secondary',
+                            height: 'sm'
+                        }
+                    ]
+                }
+            }
+        };
+
+        const endpoint = replyToken 
+            ? 'https://api.line.me/v2/bot/message/reply'
+            : 'https://api.line.me/v2/bot/message/push';
+
+        const body = replyToken
+            ? { replyToken, messages: [flexMessage] }
+            : { to: lineUserId, messages: [flexMessage] };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${lineToken}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        const responseText = await response.text();
+        console.log(`📬 LINE API Response (Merged):`, response.status, responseText);
+
+        if (!response.ok && replyToken) {
+            const fallbackEndpoint = 'https://api.line.me/v2/bot/message/push';
+            const fallbackBody = { to: lineUserId, messages: [flexMessage] };
+            
+            await fetch(fallbackEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${lineToken}`
+                },
+                body: JSON.stringify(fallbackBody)
+            });
+        }
+
+        console.log('✅ Sent merged Flex confirmation');
+    } catch (error) {
+        console.error('❌ Error sending merged Flex:', error);
+    }
+}
+
 async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, branchId = null, replyToken = null) {
     try {
         const lineToken = await getLineToken(base44, branchId);
@@ -2232,18 +2413,8 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             
             console.log('✅ Merged data:', mergedData);
             
-            // ส่งข้อความแจ้งรวมข้อมูลแล้ว
-            await sendMessage(base44, lineUserId,
-                '✅ รวมข้อมูลเรียบร้อยแล้ว\n\n' +
-                '📝 ข้อมูลจากข้อความของคุณ\n' +
-                '📸 ยอดเงินและวันที่จากรูปใบเสร็จ\n\n' +
-                'กรุณาตรวจสอบและยืนยันข้อมูลด้านล่างค่ะ',
-                branchId,
-                replyToken
-            );
-            
-            // ส่ง Flex confirmation
-            await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, null);
+            // ส่ง Flex confirmation พร้อมข้อความแจ้งการรวมข้อมูล
+            await sendFlexConfirmationMerged(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
             return;
         }
         
