@@ -3261,6 +3261,48 @@ export default function Settings() {
                           </div>
                         </div>
 
+                        {/* ปุ่มเชื่อมต่อ LINE สำหรับพนักงาน */}
+                        {currentUser && (
+                          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+                            <CardContent className="p-6">
+                              <div className="flex items-start gap-4">
+                                <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                                  <MessageSquare className="w-6 h-6 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <h3 className="font-bold text-purple-900 mb-1">เชื่อมต่อ LINE สำหรับส่งค่าใช้จ่าย</h3>
+                                  <p className="text-sm text-purple-700 mb-4">
+                                    พนักงานสามารถส่งค่าใช้จ่ายผ่าน LINE ได้โดยตรง (ส่งข้อความหรือรูปใบเสร็จ)
+                                  </p>
+                                  {currentUser.employee_line_user_id && currentUser.can_submit_expenses ? (
+                                    <div className="bg-green-100 rounded-lg p-3 border border-green-300">
+                                      <div className="flex items-center gap-2 text-green-800">
+                                        <Check className="w-5 h-5" />
+                                        <span className="font-semibold">เชื่อมต่อแล้ว</span>
+                                      </div>
+                                      <p className="text-xs text-green-700 mt-1">
+                                        คุณสามารถส่งค่าใช้จ่ายผ่าน LINE ได้แล้ว
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <Button
+                                      type="button"
+                                      onClick={() => {
+                                        const url = `https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/employeeLineOAuthStart`;
+                                        window.open(url, '_blank', 'width=500,height=600');
+                                      }}
+                                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 w-full"
+                                    >
+                                      <MessageSquare className="w-4 h-4 mr-2" />
+                                      เชื่อมต่อ LINE เพื่อส่งค่าใช้จ่าย
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
                         <form onSubmit={handleLineSettingsSubmit} className="space-y-6">
                           <div className="space-y-4">
                             <div>

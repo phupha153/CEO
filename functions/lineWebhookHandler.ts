@@ -265,6 +265,24 @@ Deno.serve(async (req) => {
                         const messageText = event.message.text?.trim() || '';
                         console.log(`📝 Received text: "${messageText}"`);
                         
+                        // ⭐⭐⭐ เช็คว่าเป็นพนักงานที่เชื่อม LINE แล้วหรือไม่
+                        let employee = null;
+                        try {
+                            const employeeResult = await base44.asServiceRole.entities.User.filter({
+                                employee_line_user_id: lineUserId,
+                                can_submit_expenses: true
+                            });
+                            employee = Array.isArray(employeeResult) ? employeeResult[0] : employeeResult;
+                        } catch (e) {
+                            console.log('⚠️ Not an employee:', e.message);
+                        }
+
+                        // ⭐ ถ้าเป็นพนักงาน → จัดการ Expense Submission
+                        if (employee) {
+                            await handleEmployeeExpenseSubmission(base44, lineUserId, employee, messageText, replyToken, destinationBranchId);
+                            continue;
+                        }
+                        
                         // ⭐ ถ้าพิมพ์ "ลงทะเบียน" → แสดงขั้นตอนการลงทะเบียน
                         if (messageText.toLowerCase().includes('ลงทะเบียน') || messageText.toLowerCase().includes('สมัคร')) {
                             console.log('📝 User asking for registration instructions');
@@ -399,6 +417,24 @@ Deno.serve(async (req) => {
                     
                     if (messageType === 'image' && messageId) {
                                         console.log(`📸 Image received from ${lineUserId}`);
+                                        
+                                        // ⭐ เช็คพนักงานก่อน
+                                        let employee = null;
+                                        try {
+                                            const employeeResult = await base44.asServiceRole.entities.User.filter({
+                                                employee_line_user_id: lineUserId,
+                                                can_submit_expenses: true
+                                            });
+                                            employee = Array.isArray(employeeResult) ? employeeResult[0] : employeeResult;
+                                        } catch (e) {
+                                            console.log('⚠️ Not an employee:', e.message);
+                                        }
+
+                                        if (employee) {
+                                            await handleEmployeeExpenseImage(base44, lineUserId, employee, messageId, replyToken, destinationBranchId);
+                                            continue;
+                                        }
+                                        
                                         // ⭐ ใช้ filter พร้อม branch_id
                                         let tenant = null;
                                         try {
@@ -1606,4 +1642,256 @@ function handleNameRegistration(base44, lineUserId, nameQuery, replyToken = null
     // ปิดการลงทะเบียนด้วยชื่อ - ไม่ตอบกลับอะไรเลย
     console.log(`ℹ️ Name registration is disabled - ignoring query: "${nameQuery}"`);
     return;
+}
+
+// ⭐⭐⭐ จัดการค่าใช้จ่าย - ข้อความเปล่า
+async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, messageText, replyToken, branchId) {
+    try {
+        console.log(`💼 Employee expense submission: ${messageText}`);
+        
+        // เช็คว่าอยู่ในโหมดแก้ไขหรือไม่
+        const pendingData = employee.expense_pending_data;
+        
+        if (messageText.toLowerCase() === 'ยกเลิก') {
+            await base44.asServiceRole.entities.User.update(employee.id, {
+                expense_pending_data: null
+            });
+            await sendMessage(base44, lineUserId, '❌ ยกเลิกการบันทึกค่าใช้จ่ายแล้ว', branchId, replyToken);
+            return;
+        }
+        
+        if (pendingData && messageText.toLowerCase() === 'ยืนยัน') {
+            // บันทึก Expense
+            await base44.asServiceRole.entities.Expense.create({
+                branch_id: employee.assigned_branch_id || branchId,
+                title: pendingData.title,
+                amount: pendingData.amount,
+                category: pendingData.category,
+                date: pendingData.date,
+                description: pendingData.description,
+                receipt_image: pendingData.receipt_image || null,
+                notes: `ส่งโดย ${employee.full_name || employee.email} ผ่าน LINE`
+            });
+            
+            await base44.asServiceRole.entities.User.update(employee.id, {
+                expense_pending_data: null
+            });
+            
+            const categoryTh = {
+                electricity: 'ค่าไฟ',
+                water: 'ค่าน้ำ',
+                repair: 'ค่าซ่อม',
+                internet: 'ค่าเน็ต',
+                salary: 'เงินเดือน',
+                supplies: 'อุปกรณ์',
+                refund_deposit: 'คืนเงินมัดจำ',
+                other: 'อื่นๆ'
+            };
+            
+            await sendMessage(base44, lineUserId,
+                `✅ บันทึกค่าใช้จ่ายสำเร็จ!\n\n` +
+                `📋 ${pendingData.title}\n` +
+                `💰 ${pendingData.amount.toLocaleString()} บาท\n` +
+                `🏷️ ${categoryTh[pendingData.category]}\n` +
+                `📅 ${pendingData.date}`,
+                branchId,
+                replyToken
+            );
+            return;
+        }
+        
+        if (pendingData && messageText.toLowerCase().includes('แก้')) {
+            await sendMessage(base44, lineUserId,
+                `📝 กรุณาส่งข้อมูลใหม่ในรูปแบบ:\n\n` +
+                `"หมวดหมู่ จำนวน บาท [รายละเอียด]"\n\n` +
+                `ตัวอย่าง:\n` +
+                `• ค่าน้ำ 500\n` +
+                `• ค่าไฟ 1200 เดือนมกราคม\n` +
+                `• ซ่อมแอร์ 3500 ห้อง 201\n\n` +
+                `พิมพ์ "ยกเลิก" เพื่อยกเลิก`,
+                branchId,
+                replyToken
+            );
+            
+            await base44.asServiceRole.entities.User.update(employee.id, {
+                expense_pending_data: null
+            });
+            return;
+        }
+        
+        // ⭐ AI Extract ข้อมูล
+        const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+            prompt: `วิเคราะห์ข้อความค่าใช้จ่ายต่อไปนี้:
+
+"${messageText}"
+
+วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
+
+กรุณา extract ข้อมูล:
+1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
+2. amount: จำนวนเงิน (ตัวเลขเท่านั้น)
+3. date: วันที่ในรูป YYYY-MM-DD (ถ้าไม่ระบุให้ใช้วันนี้)
+4. description: รายละเอียดสั้นๆ
+5. title: หัวข้อสั้นๆ ไม่เกิน 50 ตัวอักษร`,
+            response_json_schema: {
+                type: "object",
+                properties: {
+                    category: {
+                        type: "string",
+                        enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
+                    },
+                    amount: { type: "number" },
+                    date: { type: "string" },
+                    description: { type: "string" },
+                    title: { type: "string" }
+                },
+                required: ["category", "amount", "date", "title"]
+            }
+        });
+        
+        const categoryTh = {
+            electricity: 'ค่าไฟ',
+            water: 'ค่าน้ำ',
+            repair: 'ค่าซ่อม',
+            internet: 'ค่าเน็ต',
+            salary: 'เงินเดือน',
+            supplies: 'อุปกรณ์',
+            refund_deposit: 'คืนเงินมัดจำ',
+            other: 'อื่นๆ'
+        };
+        
+        // เก็บข้อมูล pending
+        await base44.asServiceRole.entities.User.update(employee.id, {
+            expense_pending_data: {
+                title: analysis.title,
+                amount: analysis.amount,
+                category: analysis.category,
+                date: analysis.date,
+                description: analysis.description || analysis.title
+            }
+        });
+        
+        await sendMessage(base44, lineUserId,
+            `📋 กรุณาตรวจสอบข้อมูล:\n\n` +
+            `📝 ${analysis.title}\n` +
+            `💰 ${analysis.amount.toLocaleString()} บาท\n` +
+            `🏷️ ${categoryTh[analysis.category]}\n` +
+            `📅 ${analysis.date}\n` +
+            `📄 ${analysis.description}\n\n` +
+            `พิมพ์ "ยืนยัน" เพื่อบันทึก\n` +
+            `หรือ "แก้ไข" เพื่อแก้ไขข้อมูล`,
+            branchId,
+            replyToken
+        );
+        
+    } catch (error) {
+        console.error('❌ Expense submission error:', error);
+        await sendMessage(base44, lineUserId,
+            '❌ เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
+            branchId,
+            replyToken
+        );
+    }
+}
+
+// ⭐⭐⭐ จัดการค่าใช้จ่าย - รูปใบเสร็จ
+async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageId, replyToken, branchId) {
+    try {
+        console.log(`📸 Employee expense image from ${lineUserId}`);
+        
+        const lineToken = await getLineToken(base44, branchId);
+        if (!lineToken) {
+            await sendMessage(base44, lineUserId, '❌ ระบบขัดข้อง กรุณาติดต่อผู้ดูแล', branchId, replyToken);
+            return;
+        }
+        
+        // ดาวน์โหลดรูป
+        const imageResponse = await fetch(`https://api-data.line.me/v2/bot/message/${messageId}/content`, {
+            headers: { 'Authorization': `Bearer ${lineToken}` }
+        });
+        
+        if (!imageResponse.ok) {
+            await sendMessage(base44, lineUserId, '❌ ไม่สามารถดาวน์โหลดรูปได้', branchId, replyToken);
+            return;
+        }
+        
+        const imageBlob = await imageResponse.blob();
+        const file = new File([imageBlob], `expense-${Date.now()}.jpg`, { type: imageBlob.type });
+        const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file });
+        
+        console.log(`✅ Uploaded expense image: ${file_url}`);
+        
+        // ⭐ AI OCR + Extract
+        const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+            prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูล:
+
+วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
+
+กรุณา extract:
+1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
+2. amount: จำนวนเงินรวม
+3. date: วันที่ (ถ้าไม่มีให้ใช้วันนี้)
+4. description: ร้าน/รายละเอียดที่สำคัญ
+5. title: สรุปสั้นๆ เช่น "ซื้อหลอดไฟ Big C"`,
+            file_urls: [file_url],
+            response_json_schema: {
+                type: "object",
+                properties: {
+                    category: {
+                        type: "string",
+                        enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
+                    },
+                    amount: { type: "number" },
+                    date: { type: "string" },
+                    description: { type: "string" },
+                    title: { type: "string" }
+                },
+                required: ["category", "amount", "date", "title"]
+            }
+        });
+        
+        const categoryTh = {
+            electricity: 'ค่าไฟ',
+            water: 'ค่าน้ำ',
+            repair: 'ค่าซ่อม',
+            internet: 'ค่าเน็ต',
+            salary: 'เงินเดือน',
+            supplies: 'อุปกรณ์',
+            refund_deposit: 'คืนเงินมัดจำ',
+            other: 'อื่นๆ'
+        };
+        
+        // เก็บข้อมูล pending
+        await base44.asServiceRole.entities.User.update(employee.id, {
+            expense_pending_data: {
+                title: analysis.title,
+                amount: analysis.amount,
+                category: analysis.category,
+                date: analysis.date,
+                description: analysis.description || analysis.title,
+                receipt_image: file_url
+            }
+        });
+        
+        await sendMessage(base44, lineUserId,
+            `📋 ตรวจพบค่าใช้จ่าย:\n\n` +
+            `📝 ${analysis.title}\n` +
+            `💰 ${analysis.amount.toLocaleString()} บาท\n` +
+            `🏷️ ${categoryTh[analysis.category]}\n` +
+            `📅 ${analysis.date}\n` +
+            `📄 ${analysis.description}\n\n` +
+            `พิมพ์ "ยืนยัน" เพื่อบันทึก\n` +
+            `หรือ "แก้ไข" เพื่อแก้ไขข้อมูล`,
+            branchId,
+            replyToken
+        );
+        
+    } catch (error) {
+        console.error('❌ Expense image error:', error);
+        await sendMessage(base44, lineUserId,
+            '❌ ไม่สามารถประมวลผลรูปได้ กรุณาลองใหม่',
+            branchId,
+            replyToken
+        );
+    }
 }
