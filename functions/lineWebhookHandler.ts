@@ -1568,8 +1568,16 @@ async function sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh
                             type: 'text',
                             text: '📋 ตรวจสอบข้อมูล',
                             weight: 'bold',
-                            size: 'xl',
+                            size: 'lg',
                             color: '#1E40AF'
+                        },
+                        {
+                            type: 'text',
+                            text: 'ยืนยันรายการค่าใช้จ่าย ✅',
+                            weight: 'bold',
+                            size: 'md',
+                            color: '#475569',
+                            margin: 'sm'
                         }
                     ]
                 },
@@ -1582,44 +1590,8 @@ async function sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh
                             layout: 'baseline',
                             spacing: 'sm',
                             contents: [
-                                { type: 'text', text: '📝', size: 'sm', flex: 0 },
-                                { type: 'text', text: analysis.title, wrap: true, color: '#334155', size: 'sm', flex: 5 }
-                            ]
-                        },
-                        {
-                            type: 'box',
-                            layout: 'baseline',
-                            spacing: 'sm',
-                            contents: [
-                                { type: 'text', text: '💰', size: 'sm', flex: 0 },
-                                { type: 'text', text: `${analysis.amount.toLocaleString()} บาท`, wrap: true, weight: 'bold', color: '#16A34A', size: 'md', flex: 5 }
-                            ]
-                        },
-                        {
-                            type: 'box',
-                            layout: 'baseline',
-                            spacing: 'sm',
-                            contents: [
-                                { type: 'text', text: '🏷️', size: 'sm', flex: 0 },
-                                { type: 'text', text: categoryTh[analysis.category], wrap: true, color: '#7C3AED', size: 'sm', flex: 5 }
-                            ]
-                        },
-                        {
-                            type: 'box',
-                            layout: 'baseline',
-                            spacing: 'sm',
-                            contents: [
-                                { type: 'text', text: '📅', size: 'sm', flex: 0 },
-                                { type: 'text', text: analysis.date, wrap: true, color: '#64748B', size: 'sm', flex: 5 }
-                            ]
-                        },
-                        {
-                            type: 'box',
-                            layout: 'baseline',
-                            spacing: 'sm',
-                            contents: [
-                                { type: 'text', text: '📄', size: 'sm', flex: 0 },
-                                { type: 'text', text: analysis.description, wrap: true, color: '#475569', size: 'xs', flex: 5 }
+                                { type: 'text', text: 'หัวข้อ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.title, wrap: true, color: '#334155', size: 'sm', flex: 5, weight: 'bold' }
                             ]
                         },
                         {
@@ -1628,8 +1600,52 @@ async function sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh
                             spacing: 'sm',
                             margin: 'md',
                             contents: [
+                                { type: 'text', text: 'ยอดสุทธิ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: `฿${analysis.amount.toLocaleString()}`, wrap: true, weight: 'bold', color: '#F97316', size: 'xl', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'วันที่จ่าย:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.date, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'ประเภท:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: categoryTh[analysis.category], wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: 'รายละเอียด:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.description, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'separator',
+                            margin: 'lg'
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
                                 { type: 'text', text: '📸', size: 'sm', flex: 0 },
-                                { type: 'text', text: 'ยังไม่มีรูปใบเสร็จ', wrap: true, color: '#F59E0B', size: 'xs', flex: 5 }
+                                { type: 'text', text: 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', wrap: true, color: '#64748B', size: 'xs', flex: 5 }
                             ]
                         }
                     ],
@@ -1643,22 +1659,12 @@ async function sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh
                         {
                             type: 'button',
                             action: {
-                                type: 'postback',
-                                label: '📸 อัปโหลดรูปใบเสร็จ',
-                                data: 'upload_receipt_image'
-                            },
-                            style: 'primary',
-                            color: '#3B82F6',
-                            height: 'sm'
-                        },
-                        {
-                            type: 'button',
-                            action: {
                                 type: 'message',
-                                label: '✅ ยืนยัน (ไม่มีรูป)',
+                                label: 'ยืนยันข้อมูลถูกต้อง',
                                 text: '✅ ยืนยัน'
                             },
-                            style: 'secondary',
+                            style: 'primary',
+                            color: '#16A34A',
                             height: 'sm'
                         },
                         {
@@ -2258,6 +2264,14 @@ async function sendPendingExpenseAlert(base44, lineUserId, pendingData, imageUrl
                             weight: 'bold',
                             size: 'lg',
                             color: '#F59E0B'
+                        },
+                        {
+                            type: 'text',
+                            text: 'ยืนยันรายการค่าใช้จ่าย ✅',
+                            weight: 'bold',
+                            size: 'md',
+                            color: '#475569',
+                            margin: 'sm'
                         }
                     ],
                     backgroundColor: '#FEF3C7'
@@ -2279,17 +2293,18 @@ async function sendPendingExpenseAlert(base44, lineUserId, pendingData, imageUrl
                             spacing: 'sm',
                             margin: 'md',
                             contents: [
-                                { type: 'text', text: '📝', size: 'sm', flex: 0 },
-                                { type: 'text', text: pendingData.title || 'ไม่ระบุ', wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                                { type: 'text', text: 'หัวข้อ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: pendingData.title || 'ไม่ระบุ', wrap: true, color: '#334155', size: 'sm', flex: 5, weight: 'bold' }
                             ]
                         },
                         {
                             type: 'box',
                             layout: 'baseline',
                             spacing: 'sm',
+                            margin: 'md',
                             contents: [
-                                { type: 'text', text: '💰', size: 'sm', flex: 0 },
-                                { type: 'text', text: `${pendingData.amount.toLocaleString()} บาท`, wrap: true, weight: 'bold', color: '#16A34A', size: 'md', flex: 5 }
+                                { type: 'text', text: 'ยอดสุทธิ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: `฿${pendingData.amount.toLocaleString()}`, wrap: true, weight: 'bold', color: '#F97316', size: 'xl', flex: 5 }
                             ]
                         },
                         {
@@ -2298,7 +2313,7 @@ async function sendPendingExpenseAlert(base44, lineUserId, pendingData, imageUrl
                         },
                         {
                             type: 'text',
-                            text: 'คุณต้องการทำอย่างไรกับรูปใบเสร็จใหม่?',
+                            text: 'คุณต้องการทำอย่างไรกับรูปสลิปใหม่?',
                             size: 'sm',
                             color: '#475569',
                             margin: 'md',
