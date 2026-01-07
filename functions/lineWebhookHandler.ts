@@ -2202,7 +2202,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 temp_expense_image_url: null
             });
             
-            console.log('✅ Cleared pending data from employee');
+            console.log('✅ Cleared pending data and temp image from employee');
             
             const categoryTh = {
                 electricity: 'ค่าไฟ',
