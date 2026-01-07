@@ -2395,24 +2395,20 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             return;
         }
         
-        // ⭐⭐⭐ ถ้ามี pending data (ไม่ว่ามีรูปหรือไม่) + ส่งข้อความใหม่ → แก้ไขข้อมูล
-        if (pendingData) {
-            console.log('🔄 มี pending data + ข้อความใหม่ → วิเคราะห์ข้อมูลใหม่ทั้งหมด');
+        // ⭐⭐⭐ ถ้ามี pending data ที่มีรูปอยู่แล้ว + ส่งข้อความตาม → Auto-Merge
+        if (pendingData && pendingData.receipt_image) {
+            console.log('🔄 Auto-Merge: มีรูปอยู่แล้ว + ข้อความใหม่ → รวมข้อมูล');
             
-            // วิเคราะห์ข้อความใหม่ทั้งหมด (title, amount, category, date, description)
+            // AI Extract เฉพาะ category, title, description จากข้อความ
             const textAnalysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
-                prompt: `วิเคราะห์ข้อความค่าใช้จ่ายนี้และ extract ข้อมูลทั้งหมด:
+                prompt: `วิเคราะห์ข้อความค่าใช้จ่ายนี้และ extract ข้อมูล:
 
 "${messageText}"
 
-วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
-
-กรุณา extract:
+กรุณา extract เฉพาะ:
 1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
-2. amount: จำนวนเงิน (ตัวเลขเท่านั้น)
-3. date: วันที่ในรูป YYYY-MM-DD (ถ้าไม่ระบุให้ใช้วันนี้)
-4. title: หัวข้อสั้นๆ ไม่เกิน 50 ตัวอักษร
-5. description: รายละเอียดสั้นๆ`,
+2. title: หัวข้อสั้นๆ ไม่เกิน 50 ตัวอักษร
+3. description: รายละเอียดสั้นๆ`,
                 response_json_schema: {
                     type: "object",
                     properties: {
@@ -2420,12 +2416,10 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                             type: "string",
                             enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
                         },
-                        amount: { type: "number" },
-                        date: { type: "string" },
                         title: { type: "string" },
                         description: { type: "string" }
                     },
-                    required: ["category", "amount", "date", "title"]
+                    required: ["category", "title"]
                 }
             });
             
@@ -2440,29 +2434,25 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 other: 'อื่นๆ'
             };
             
-            // รวมข้อมูล: ข้อมูลทั้งหมดจากข้อความใหม่ + เก็บรูปเดิม (ถ้ามี)
+            // รวมข้อมูล: ข้อความใหม่ + ยอดเงิน/วันที่/รูปจากเดิม
             const mergedData = {
                 title: textAnalysis.title,
-                amount: textAnalysis.amount,
+                amount: pendingData.amount,
                 category: textAnalysis.category,
-                date: textAnalysis.date,
+                date: pendingData.date,
                 description: textAnalysis.description || textAnalysis.title,
-                receipt_image: pendingData.receipt_image || null
+                receipt_image: pendingData.receipt_image
             };
             
             await base44.asServiceRole.entities.User.update(employee.id, {
                 expense_pending_data: mergedData
             });
             
-            console.log('✅ Updated data:', mergedData);
-            console.log('🔍 DEBUG: receipt_image =', mergedData.receipt_image);
+            console.log('✅ Merged data:', mergedData);
+            console.log('🔍 DEBUG: Merged receipt_image =', mergedData.receipt_image);
             
-            // ส่ง Flex confirmation (ถ้ามีรูปจะแสดงรูป ไม่มีรูปจะเป็น Flex แบบไม่มีรูป)
-            if (mergedData.receipt_image) {
-                await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
-            } else {
-                await sendFlexWithUploadOption(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
-            }
+            // ส่ง Flex confirmation เพียงครั้งเดียว (ไม่ส่งข้อความธรรมดา)
+            await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
             return;
         }
         
