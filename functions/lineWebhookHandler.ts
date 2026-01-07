@@ -2118,32 +2118,12 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
     try {
         console.log(`💼 Employee expense submission: ${messageText}`);
         
-        // ⭐ โหลด employee ใหม่เพื่อเอาข้อมูลล่าสุด (ป้องกัน race condition)
-        const freshEmployeeResult = await base44.asServiceRole.entities.User.filter({
-            employee_line_user_id: lineUserId,
-            can_submit_expenses: true
-        });
-        const freshEmployee = Array.isArray(freshEmployeeResult) ? freshEmployeeResult[0] : freshEmployeeResult;
-        
-        if (!freshEmployee) {
-            console.log('❌ Employee not found in fresh query');
-            return;
-        }
-        
-        // ใช้ข้อมูลจาก fresh query
-        const pendingData = freshEmployee.expense_pending_data;
-        const tempImageUrl = freshEmployee.temp_expense_image_url;
-        
-        console.log('🔍 Fresh Employee Data:', {
-            hasPendingData: !!pendingData,
-            hasTempImage: !!tempImageUrl,
-            editMode: freshEmployee.expense_edit_mode
-        });
+        // เช็คว่าอยู่ในโหมดแก้ไขหรือไม่
+        const pendingData = employee.expense_pending_data;
         
         if (messageText.toLowerCase().includes('ยกเลิก')) {
-            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
-                expense_pending_data: null,
-                temp_expense_image_url: null
+            await base44.asServiceRole.entities.User.update(employee.id, {
+                expense_pending_data: null
             });
             await sendMessage(base44, lineUserId, '❌ ยกเลิกการบันทึกค่าใช้จ่ายแล้ว', branchId, replyToken);
             return;
@@ -2181,7 +2161,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             
             // บันทึก Expense
             const expenseData = {
-                branch_id: freshEmployee.assigned_branch_id || branchId,
+                branch_id: employee.assigned_branch_id || branchId,
                 title: pendingData.title,
                 amount: pendingData.amount,
                 category: pendingData.category,
@@ -2197,12 +2177,11 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             
             console.log('✅ Expense created successfully! ID:', createdExpense.id);
             
-            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
-                expense_pending_data: null,
-                temp_expense_image_url: null
+            await base44.asServiceRole.entities.User.update(employee.id, {
+                expense_pending_data: null
             });
             
-            console.log('✅ Cleared pending data and temp image from employee');
+            console.log('✅ Cleared pending data from employee');
             
             const categoryTh = {
                 electricity: 'ค่าไฟ',
@@ -2363,14 +2342,14 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             await sendEditTemplate(base44, lineUserId, pendingData, categoryTh, branchId, replyToken);
             
             // ตั้งค่า flag แก้ไข (ไม่ลบ pending data)
-            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+            await base44.asServiceRole.entities.User.update(employee.id, {
                 expense_edit_mode: true
             });
             return;
         }
         
         // ⭐⭐⭐ เช็คว่าอยู่ในโหมดแก้ไขหรือไม่
-        if (freshEmployee.expense_edit_mode === true) {
+        if (employee.expense_edit_mode === true) {
             console.log('✏️ Edit mode detected - analyzing edited message');
             
             // ⭐ Extract บรรทัด "ประเภท :" ด้วย regex ก่อน
@@ -2459,7 +2438,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             };
             
             // อัพเดท pending data และปิดโหมดแก้ไข
-            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+            await base44.asServiceRole.entities.User.update(employee.id, {
                 expense_pending_data: updatedData,
                 expense_edit_mode: false
             });
