@@ -1549,7 +1549,7 @@ async function sendEditTemplate(base44, lineUserId, pendingData, categoryTh, bra
     await sendMessage(base44, lineUserId, templateText, branchId, replyToken);
 }
 
-// ⭐⭐⭐ Flex Message สำหรับข้อความที่ไม่มีรูป (มีปุ่มอัปโหลดรูป)
+// ⭐⭐⭐ Flex Message สำหรับข้อความที่ไม่มีรูป
 async function sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh, branchId = null, replyToken = null) {
     try {
         const lineToken = await getLineToken(base44, branchId);
