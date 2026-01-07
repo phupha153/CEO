@@ -2332,8 +2332,8 @@ async function sendPendingExpenseAlert(base44, lineUserId, pendingData, imageUrl
                             type: 'button',
                             action: {
                                 type: 'postback',
-                                label: '🗑️ ยกเลิกเดิม ใช้รูปใหม่',
-                                data: `cancel_old_expense|${imageUrl}`
+                                label: '🗑️ ลบข้อมูลเก่า ส่งใหม่',
+                                data: `cancel_old_expense`
                             },
                             style: 'primary',
                             color: '#DC2626',
@@ -2391,7 +2391,7 @@ async function sendPendingExpenseAlert(base44, lineUserId, pendingData, imageUrl
     }
 }
 
-// ⭐⭐⭐ จัดการเมื่อเลือก "ยกเลิกเดิม ใช้รูปใหม่"
+// ⭐⭐⭐ จัดการเมื่อเลือก "ยกเลิกเดิม ส่งข้อมูลใหม่"
 async function handleCancelOldExpense(base44, lineUserId, replyToken, branchId) {
     try {
         const employeeResult = await base44.asServiceRole.entities.User.filter({
@@ -2402,61 +2402,25 @@ async function handleCancelOldExpense(base44, lineUserId, replyToken, branchId) 
         
         if (!employee) return;
         
-        // ดึง imageUrl จาก temp storage (จะเก็บไว้ชั่วคราวใน User)
-        const tempImageUrl = employee.temp_expense_image_url;
-        
-        if (!tempImageUrl) {
-            await sendMessage(base44, lineUserId, '❌ ไม่พบรูปใบเสร็จ กรุณาส่งใหม่อีกครั้ง', branchId, replyToken);
-            return;
-        }
-        
-        // ประมวลผลรูปใหม่ด้วย AI (ดึงเฉพาะ amount, date)
-        const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
-            prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูล:
-
-วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
-
-กรุณา extract เฉพาะ:
-1. amount: จำนวนเงินรวม (ตัวเลขเท่านั้น)
-2. date: วันที่โอนเงิน หรือวันที่ในใบเสร็จ ในรูป YYYY-MM-DD (ถ้าไม่มีให้ใช้วันนี้)`,
-            file_urls: [tempImageUrl],
-            response_json_schema: {
-                type: "object",
-                properties: {
-                    amount: { type: "number" },
-                    date: { type: "string" }
-                },
-                required: ["amount", "date"]
-            }
-        });
-        
-        const categoryTh = {
-            electricity: 'ค่าไฟ',
-            water: 'ค่าน้ำ',
-            repair: 'ค่าซ่อม',
-            internet: 'ค่าเน็ต',
-            salary: 'เงินเดือน',
-            supplies: 'อุปกรณ์',
-            refund_deposit: 'คืนเงินมัดจำ',
-            other: 'อื่นๆ'
-        };
-        
-        // บันทึก pending data ใหม่ (ใช้ category, title, description จาก pendingData เดิม)
-        const oldPending = employee.expense_pending_data || {};
+        // ⭐ ลบข้อมูลเก่าทั้งหมด (ไม่ประมวลผลรูปใหม่)
         await base44.asServiceRole.entities.User.update(employee.id, {
-            expense_pending_data: {
-                title: oldPending.title || 'ค่าใช้จ่ายจากรูปภาพ',
-                amount: analysis.amount,
-                category: oldPending.category || 'other',
-                date: analysis.date,
-                description: oldPending.description || 'ไม่มีรายละเอียด',
-                receipt_image: tempImageUrl
-            },
+            expense_pending_data: null,
             temp_expense_image_url: null
         });
         
-        // ส่ง Flex confirmation
-        await sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, branchId, replyToken);
+        console.log('✅ Cleared old expense data - ready for new submission');
+        
+        // แจ้งให้ส่งข้อมูลใหม่
+        await sendMessage(base44, lineUserId, 
+            '🗑️ ลบข้อมูลเดิมแล้ว\n\n' +
+            'กรุณาส่งข้อมูลค่าใช้จ่ายใหม่อีกครั้ง\n\n' +
+            'ตัวอย่าง:\n' +
+            '• ซื้อหลอดไฟ 200 บาท\n' +
+            '• จ่ายค่าไฟ 1,500 บาท\n\n' +
+            'หรือส่งรูปใบเสร็จมาได้เลยค่ะ',
+            branchId,
+            replyToken
+        );
         
     } catch (error) {
         console.error('❌ Error canceling old expense:', error);
