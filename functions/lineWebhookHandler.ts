@@ -1566,10 +1566,18 @@ async function sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh
                     contents: [
                         {
                             type: 'text',
+                            text: '📋 ตรวจสอบข้อมูล',
+                            weight: 'bold',
+                            size: 'md',
+                            color: '#64748B'
+                        },
+                        {
+                            type: 'text',
                             text: 'ยืนยันรายการค่าใช้จ่าย ✅',
                             weight: 'bold',
                             size: 'lg',
-                            color: '#1E40AF'
+                            color: '#1E40AF',
+                            margin: 'sm'
                         }
                     ]
                 },
@@ -1730,10 +1738,18 @@ async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, br
                     contents: [
                         {
                             type: 'text',
+                            text: '📋 ตรวจสอบข้อมูล',
+                            weight: 'bold',
+                            size: 'md',
+                            color: '#64748B'
+                        },
+                        {
+                            type: 'text',
                             text: 'ยืนยันรายการค่าใช้จ่าย ✅',
                             weight: 'bold',
                             size: 'lg',
-                            color: '#1E40AF'
+                            color: '#1E40AF',
+                            margin: 'sm'
                         }
                     ]
                 },
