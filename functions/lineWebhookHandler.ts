@@ -2118,8 +2118,27 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
     try {
         console.log(`💼 Employee expense submission: ${messageText}`);
         
-        // เช็คว่าอยู่ในโหมดแก้ไขหรือไม่
-        const pendingData = employee.expense_pending_data;
+        // ⭐ โหลด employee ใหม่เพื่อเอาข้อมูลล่าสุด (ป้องกัน race condition)
+        const freshEmployeeResult = await base44.asServiceRole.entities.User.filter({
+            employee_line_user_id: lineUserId,
+            can_submit_expenses: true
+        });
+        const freshEmployee = Array.isArray(freshEmployeeResult) ? freshEmployeeResult[0] : freshEmployeeResult;
+        
+        if (!freshEmployee) {
+            console.log('❌ Employee not found in fresh query');
+            return;
+        }
+        
+        // ใช้ข้อมูลจาก fresh query
+        const pendingData = freshEmployee.expense_pending_data;
+        const tempImageUrl = freshEmployee.temp_expense_image_url;
+        
+        console.log('🔍 Fresh Employee Data:', {
+            hasPendingData: !!pendingData,
+            hasTempImage: !!tempImageUrl,
+            editMode: freshEmployee.expense_edit_mode
+        });
         
         if (messageText.toLowerCase().includes('ยกเลิก')) {
             await base44.asServiceRole.entities.User.update(employee.id, {
