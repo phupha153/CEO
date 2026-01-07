@@ -266,6 +266,7 @@ Deno.serve(async (req) => {
             const expectedAccountNumber = getConfigValue('bank_account_number');
             const expectedPromptPay = getConfigValue('promptpay');
             const expectedAccountName = getConfigValue('bank_account_name');
+            const expectedAccountNameEn = getConfigValue('bank_account_name_en');
             
             // ⭐ ดึงข้อมูลจาก Slip2Go Response (ตาม structure ที่ถูกต้อง)
             const receiverAccount = slipData.receiver?.account?.bank?.account || '';
@@ -324,25 +325,56 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // ⭐ เช็คชื่อบัญชี แบบ Fuzzy (รองรับทั้งไทย-อังกฤษ, ตัดคำนำหน้า)
-            if (expectedAccountName && receiverName) {
-                const cleanExpected = expectedAccountName
-                    .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
-                    .replace(/\s+/g, '')
-                    .replace(/\./g, '')
-                    .toLowerCase();
-
+            // ⭐ เช็คชื่อบัญชี - รองรับทั้งไทยและอังกฤษ (เช็คแค่ชื่อแรกตรงก็พอ)
+            if ((expectedAccountName || expectedAccountNameEn) && receiverName) {
                 const cleanReceiver = receiverName
                     .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
-                    .replace(/\s+/g, '')
-                    .replace(/\./g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim()
                     .toLowerCase();
 
-                console.log('🔍 Name comparison:');
-                console.log('  - Expected (cleaned):', cleanExpected);
-                console.log('  - Receiver (cleaned):', cleanReceiver);
+                // แยกคำแรก (ชื่อ)
+                const receiverFirstName = cleanReceiver.split(' ')[0];
 
-                nameMatch = cleanReceiver.includes(cleanExpected) || cleanExpected.includes(cleanReceiver);
+                console.log('🔍 Name comparison:');
+                console.log('  - Receiver (from slip):', receiverName);
+                console.log('  - Receiver first name:', receiverFirstName);
+
+                // เช็คชื่อไทย
+                if (expectedAccountName) {
+                    const cleanExpectedTh = expectedAccountName
+                        .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\./gi, '')
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                        .toLowerCase();
+                    const expectedFirstNameTh = cleanExpectedTh.split(' ')[0];
+
+                    console.log('  - Expected (TH):', expectedAccountName);
+                    console.log('  - Expected first (TH):', expectedFirstNameTh);
+
+                    if (receiverFirstName.includes(expectedFirstNameTh) || expectedFirstNameTh.includes(receiverFirstName)) {
+                        nameMatch = true;
+                    }
+                }
+
+                // เช็คชื่ออังกฤษ (ถ้ายังไม่ match)
+                if (!nameMatch && expectedAccountNameEn) {
+                    const cleanExpectedEn = expectedAccountNameEn
+                        .replace(/mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
+                        .replace(/\s+/g, ' ')
+                        .trim()
+                        .toLowerCase();
+                    const expectedFirstNameEn = cleanExpectedEn.split(' ')[0];
+
+                    console.log('  - Expected (EN):', expectedAccountNameEn);
+                    console.log('  - Expected first (EN):', expectedFirstNameEn);
+
+                    if (receiverFirstName.includes(expectedFirstNameEn) || expectedFirstNameEn.includes(receiverFirstName)) {
+                        nameMatch = true;
+                    }
+                }
+
+                console.log('  - Name Match:', nameMatch);
             } else {
                 nameMatch = true;
             }
@@ -362,7 +394,7 @@ Deno.serve(async (req) => {
                 } else if (!accountMatch) {
                     errorMsg = `โอนเงินไปผิดบัญชี (ตรวจพบ: ${receiverAccount}, ควรโอนเข้า ${expectedAccountNumber || expectedPromptPay})`;
                 } else if (!nameMatch) {
-                    errorMsg = `ชื่อบัญชีไม่ตรง (ตรวจพบ: ${receiverName}, ควรเป็น ${expectedAccountName})`;
+                    errorMsg = `ชื่อบัญชีไม่ตรง\n\nคุณโอนเข้า: ${receiverName}\nควรเป็น: ${expectedAccountName || expectedAccountNameEn}\n\nกรุณาตรวจสอบหรือติดต่อเจ้าของหอพักค่ะ 🙏`;
                 }
                 
                 await base44.asServiceRole.entities.Payment.update(paymentId, {
