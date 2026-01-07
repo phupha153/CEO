@@ -180,6 +180,21 @@ Deno.serve(async (req) => {
                     continue;
                 }
 
+                if (event.type === 'postback') {
+                    const postbackData = event.postback?.data || '';
+                    console.log(`🔘 Postback received: ${postbackData}`);
+                    
+                    if (postbackData.startsWith('cancel_old_expense')) {
+                        await handleCancelOldExpense(base44, lineUserId, replyToken, destinationBranchId);
+                        continue;
+                    }
+                    
+                    if (postbackData.startsWith('keep_old_expense')) {
+                        await handleKeepOldExpense(base44, lineUserId, replyToken, destinationBranchId);
+                        continue;
+                    }
+                }
+
                 if (event.type === 'message') {
                     const messageId = event.message?.id;
                     const messageType = event.message?.type;
@@ -1953,6 +1968,255 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
     }
 }
 
+// ⭐⭐⭐ ส่งแจ้งเตือนเมื่อมีข้อมูลค่าใช้จ่ายรออยู่แล้ว
+async function sendPendingExpenseAlert(base44, lineUserId, pendingData, imageUrl, categoryTh, branchId, replyToken) {
+    try {
+        const lineToken = await getLineToken(base44, branchId);
+        if (!lineToken) return;
+
+        const flexMessage = {
+            type: 'flex',
+            altText: 'มีค่าใช้จ่ายรอยืนยันอยู่แล้ว',
+            contents: {
+                type: 'bubble',
+                header: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'text',
+                            text: '⚠️ มีข้อมูลรอยืนยันอยู่',
+                            weight: 'bold',
+                            size: 'lg',
+                            color: '#F59E0B'
+                        }
+                    ],
+                    backgroundColor: '#FEF3C7'
+                },
+                body: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'text',
+                            text: 'ข้อมูลค่าใช้จ่ายที่รอยืนยัน:',
+                            size: 'sm',
+                            color: '#64748B',
+                            margin: 'none'
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: '📝', size: 'sm', flex: 0 },
+                                { type: 'text', text: pendingData.title || 'ไม่ระบุ', wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: '💰', size: 'sm', flex: 0 },
+                                { type: 'text', text: `${pendingData.amount.toLocaleString()} บาท`, wrap: true, weight: 'bold', color: '#16A34A', size: 'md', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'separator',
+                            margin: 'md'
+                        },
+                        {
+                            type: 'text',
+                            text: 'คุณต้องการทำอย่างไรกับรูปใบเสร็จใหม่?',
+                            size: 'sm',
+                            color: '#475569',
+                            margin: 'md',
+                            wrap: true
+                        }
+                    ],
+                    spacing: 'sm'
+                },
+                footer: {
+                    type: 'box',
+                    layout: 'vertical',
+                    spacing: 'sm',
+                    contents: [
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'postback',
+                                label: '🗑️ ยกเลิกเดิม ใช้รูปใหม่',
+                                data: `cancel_old_expense|${imageUrl}`
+                            },
+                            style: 'primary',
+                            color: '#DC2626',
+                            height: 'sm'
+                        },
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'postback',
+                                label: '✅ เก็บเดิมไว้',
+                                data: 'keep_old_expense'
+                            },
+                            style: 'secondary',
+                            height: 'sm'
+                        }
+                    ]
+                }
+            }
+        };
+
+        const endpoint = replyToken 
+            ? 'https://api.line.me/v2/bot/message/reply'
+            : 'https://api.line.me/v2/bot/message/push';
+
+        const body = replyToken
+            ? { replyToken, messages: [flexMessage] }
+            : { to: lineUserId, messages: [flexMessage] };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${lineToken}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok && replyToken) {
+            const fallbackEndpoint = 'https://api.line.me/v2/bot/message/push';
+            const fallbackBody = { to: lineUserId, messages: [flexMessage] };
+            
+            await fetch(fallbackEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${lineToken}`
+                },
+                body: JSON.stringify(fallbackBody)
+            });
+        }
+
+        console.log('✅ Sent pending expense alert');
+    } catch (error) {
+        console.error('❌ Error sending pending expense alert:', error);
+    }
+}
+
+// ⭐⭐⭐ จัดการเมื่อเลือก "ยกเลิกเดิม ใช้รูปใหม่"
+async function handleCancelOldExpense(base44, lineUserId, replyToken, branchId) {
+    try {
+        const employeeResult = await base44.asServiceRole.entities.User.filter({
+            employee_line_user_id: lineUserId,
+            can_submit_expenses: true
+        });
+        const employee = Array.isArray(employeeResult) ? employeeResult[0] : employeeResult;
+        
+        if (!employee) return;
+        
+        // ดึง imageUrl จาก temp storage (จะเก็บไว้ชั่วคราวใน User)
+        const tempImageUrl = employee.temp_expense_image_url;
+        
+        if (!tempImageUrl) {
+            await sendMessage(base44, lineUserId, '❌ ไม่พบรูปใบเสร็จ กรุณาส่งใหม่อีกครั้ง', branchId, replyToken);
+            return;
+        }
+        
+        // ประมวลผลรูปใหม่ด้วย AI
+        const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+            prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูล:
+
+วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
+
+กรุณา extract:
+1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
+2. amount: จำนวนเงินรวม
+3. date: วันที่ (ถ้าไม่มีให้ใช้วันนี้)
+4. description: ร้าน/รายละเอียดที่สำคัญ
+5. title: สรุปสั้นๆ เช่น "ซื้อหลอดไฟ Big C"`,
+            file_urls: [tempImageUrl],
+            response_json_schema: {
+                type: "object",
+                properties: {
+                    category: {
+                        type: "string",
+                        enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
+                    },
+                    amount: { type: "number" },
+                    date: { type: "string" },
+                    description: { type: "string" },
+                    title: { type: "string" }
+                },
+                required: ["category", "amount", "date", "title"]
+            }
+        });
+        
+        const categoryTh = {
+            electricity: 'ค่าไฟ',
+            water: 'ค่าน้ำ',
+            repair: 'ค่าซ่อม',
+            internet: 'ค่าเน็ต',
+            salary: 'เงินเดือน',
+            supplies: 'อุปกรณ์',
+            refund_deposit: 'คืนเงินมัดจำ',
+            other: 'อื่นๆ'
+        };
+        
+        // บันทึก pending data ใหม่
+        await base44.asServiceRole.entities.User.update(employee.id, {
+            expense_pending_data: {
+                title: analysis.title,
+                amount: analysis.amount,
+                category: analysis.category,
+                date: analysis.date,
+                description: analysis.description || analysis.title,
+                receipt_image: tempImageUrl
+            },
+            temp_expense_image_url: null
+        });
+        
+        // ส่ง Flex confirmation
+        await sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, branchId, replyToken);
+        
+    } catch (error) {
+        console.error('❌ Error canceling old expense:', error);
+        await sendMessage(base44, lineUserId, '❌ เกิดข้อผิดพลาด กรุณาลองใหม่', branchId, replyToken);
+    }
+}
+
+// ⭐⭐⭐ จัดการเมื่อเลือก "เก็บเดิมไว้"
+async function handleKeepOldExpense(base44, lineUserId, replyToken, branchId) {
+    try {
+        const employeeResult = await base44.asServiceRole.entities.User.filter({
+            employee_line_user_id: lineUserId,
+            can_submit_expenses: true
+        });
+        const employee = Array.isArray(employeeResult) ? employeeResult[0] : employeeResult;
+        
+        if (!employee) return;
+        
+        // ลบ temp image
+        await base44.asServiceRole.entities.User.update(employee.id, {
+            temp_expense_image_url: null
+        });
+        
+        await sendMessage(base44, lineUserId, 
+            '✅ เก็บข้อมูลเดิมไว้แล้ว\n\n' +
+            'รูปใบเสร็จใหม่จะไม่ถูกใช้\n' +
+            'คุณสามารถกด "✅ ยืนยัน" เพื่อบันทึกข้อมูลเดิม หรือ "✏️ แก้ไข" เพื่อแก้ไขข้อมูลได้',
+            branchId,
+            replyToken
+        );
+        
+    } catch (error) {
+        console.error('❌ Error keeping old expense:', error);
+        await sendMessage(base44, lineUserId, '❌ เกิดข้อผิดพลาด', branchId, replyToken);
+    }
+}
+
 // ⭐⭐⭐ จัดการค่าใช้จ่าย - รูปใบเสร็จ
 async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageId, replyToken, branchId) {
     try {
@@ -1980,7 +2244,34 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
         
         console.log(`✅ Uploaded expense image: ${file_url}`);
         
-        // ⭐ AI OCR + Extract
+        // ⭐ เช็คว่ามีข้อมูล pending อยู่แล้วหรือไม่
+        const pendingData = employee.expense_pending_data;
+        
+        if (pendingData && (pendingData.title || pendingData.amount)) {
+            console.log(`⚠️ Employee already has pending expense data - sending alert`);
+            
+            const categoryTh = {
+                electricity: 'ค่าไฟ',
+                water: 'ค่าน้ำ',
+                repair: 'ค่าซ่อม',
+                internet: 'ค่าเน็ต',
+                salary: 'เงินเดือน',
+                supplies: 'อุปกรณ์',
+                refund_deposit: 'คืนเงินมัดจำ',
+                other: 'อื่นๆ'
+            };
+            
+            // เก็บรูปใหม่ไว้ชั่วคราว
+            await base44.asServiceRole.entities.User.update(employee.id, {
+                temp_expense_image_url: file_url
+            });
+            
+            // ส่งแจ้งเตือนให้เลือก
+            await sendPendingExpenseAlert(base44, lineUserId, pendingData, file_url, categoryTh, branchId, replyToken);
+            return;
+        }
+        
+        // ⭐ ถ้าไม่มีข้อมูล pending → ประมวลผลตามปกติ
         const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
             prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูล:
 
