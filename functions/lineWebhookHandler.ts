@@ -2302,11 +2302,8 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 other: 'อื่นๆ'
             };
 
-            await sendEditTemplate(base44, lineUserId, pendingData, categoryTh, branchId, replyToken);
-
-            await base44.asServiceRole.entities.User.update(employee.id, {
-                expense_pending_data: null
-            });
+            // ส่ง Flex Message แทน text template
+            await sendFlexConfirmation(base44, lineUserId, pendingData, categoryTh, branchId, replyToken);
             return;
         }
         
