@@ -2118,6 +2118,10 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
     try {
         console.log(`💼 Employee expense submission: ${messageText}`);
         
+        // ⭐ รอ 1.5 วินาทีให้รูปที่ส่งมาก่อนหน้าทันอัปโหลดและบันทึกเข้า temp_expense_image_url
+        console.log('⏳ Waiting 1.5s for image to be saved...');
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
         // ⭐ โหลด employee ใหม่เพื่อเอาข้อมูลล่าสุด (ป้องกัน race condition)
         const freshEmployeeResult = await base44.asServiceRole.entities.User.filter({
             employee_line_user_id: lineUserId,
