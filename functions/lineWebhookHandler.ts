@@ -2623,7 +2623,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 receipt_image: pendingData.receipt_image
             };
             
-            await base44.asServiceRole.entities.User.update(employee.id, {
+            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
                 expense_pending_data: mergedData
             });
             
