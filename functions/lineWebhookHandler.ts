@@ -2181,7 +2181,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             
             // บันทึก Expense
             const expenseData = {
-                branch_id: employee.assigned_branch_id || branchId,
+                branch_id: freshEmployee.assigned_branch_id || branchId,
                 title: pendingData.title,
                 amount: pendingData.amount,
                 category: pendingData.category,
