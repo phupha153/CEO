@@ -1727,6 +1727,92 @@ async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, br
         // เช็คว่ามีรูปสลิปหรือไม่
         const hasReceipt = analysis.receipt_image && analysis.receipt_image.trim() !== '';
 
+        // สร้าง body contents - แยกรูปไว้ต่างหาก
+        const bodyContents = [
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                contents: [
+                    { type: 'text', text: 'หัวข้อ:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: analysis.title, wrap: true, color: '#334155', size: 'sm', flex: 5, weight: 'bold' }
+                ]
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'ยอดสุทธิ:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: `฿${analysis.amount.toLocaleString()}`, wrap: true, weight: 'bold', color: '#F97316', size: 'xl', flex: 5 }
+                ]
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'วันที่จ่าย:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: analysis.date, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                ]
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'ประเภท:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: categoryTh[analysis.category], wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                ]
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'รายละเอียด:', size: 'sm', color: '#64748B', flex: 2 },
+                    { type: 'text', text: analysis.description, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                ]
+            },
+            {
+                type: 'separator',
+                margin: 'lg'
+            },
+            {
+                type: 'box',
+                layout: 'baseline',
+                spacing: 'sm',
+                margin: 'md',
+                contents: [
+                    { type: 'text', text: 'ใบเสร็จ:', size: 'sm', color: '#64748B', flex: 2 },
+                    { 
+                        type: 'text', 
+                        text: hasReceipt ? '✅ แนบมาแล้ว' : 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', 
+                        wrap: true, 
+                        color: hasReceipt ? '#16A34A' : '#F97316', 
+                        size: 'xs', 
+                        flex: 5 
+                    }
+                ]
+            }
+        ];
+
+        // ถ้ามีรูปสลิป ให้แสดงรูปด้วย
+        if (hasReceipt) {
+            bodyContents.push({
+                type: 'image',
+                url: analysis.receipt_image,
+                size: 'full',
+                aspectRatio: '1.5:1',
+                aspectMode: 'cover',
+                margin: 'md'
+            });
+        }
+
         const flexMessage = {
             type: 'flex',
             altText: `ยืนยันค่าใช้จ่าย ${analysis.amount.toLocaleString()} บาท`,
@@ -1756,78 +1842,7 @@ async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, br
                 body: {
                     type: 'box',
                     layout: 'vertical',
-                    contents: [
-                        {
-                            type: 'box',
-                            layout: 'baseline',
-                            spacing: 'sm',
-                            contents: [
-                                { type: 'text', text: 'หัวข้อ:', size: 'sm', color: '#64748B', flex: 2 },
-                                { type: 'text', text: analysis.title, wrap: true, color: '#334155', size: 'sm', flex: 5, weight: 'bold' }
-                            ]
-                        },
-                        {
-                            type: 'box',
-                            layout: 'baseline',
-                            spacing: 'sm',
-                            margin: 'md',
-                            contents: [
-                                { type: 'text', text: 'ยอดสุทธิ:', size: 'sm', color: '#64748B', flex: 2 },
-                                { type: 'text', text: `฿${analysis.amount.toLocaleString()}`, wrap: true, weight: 'bold', color: '#F97316', size: 'xl', flex: 5 }
-                            ]
-                        },
-                        {
-                            type: 'box',
-                            layout: 'baseline',
-                            spacing: 'sm',
-                            margin: 'md',
-                            contents: [
-                                { type: 'text', text: 'วันที่จ่าย:', size: 'sm', color: '#64748B', flex: 2 },
-                                { type: 'text', text: analysis.date, wrap: true, color: '#334155', size: 'sm', flex: 5 }
-                            ]
-                        },
-                        {
-                            type: 'box',
-                            layout: 'baseline',
-                            spacing: 'sm',
-                            margin: 'md',
-                            contents: [
-                                { type: 'text', text: 'ประเภท:', size: 'sm', color: '#64748B', flex: 2 },
-                                { type: 'text', text: categoryTh[analysis.category], wrap: true, color: '#334155', size: 'sm', flex: 5 }
-                            ]
-                        },
-                        {
-                            type: 'box',
-                            layout: 'baseline',
-                            spacing: 'sm',
-                            margin: 'md',
-                            contents: [
-                                { type: 'text', text: 'รายละเอียด:', size: 'sm', color: '#64748B', flex: 2 },
-                                { type: 'text', text: analysis.description, wrap: true, color: '#334155', size: 'sm', flex: 5 }
-                            ]
-                        },
-                        {
-                            type: 'separator',
-                            margin: 'lg'
-                        },
-                        {
-                            type: 'box',
-                            layout: 'baseline',
-                            spacing: 'sm',
-                            margin: 'md',
-                            contents: [
-                                { type: 'text', text: 'ใบเสร็จ:', size: 'sm', color: '#64748B', flex: 2 },
-                                { 
-                                    type: 'text', 
-                                    text: hasReceipt ? '✅ แนบมาแล้ว' : 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', 
-                                    wrap: true, 
-                                    color: hasReceipt ? '#16A34A' : '#F97316', 
-                                    size: 'xs', 
-                                    flex: 5 
-                                }
-                            ]
-                        }
-                    ],
+                    contents: bodyContents,
                     spacing: 'md'
                 },
                 footer: {
