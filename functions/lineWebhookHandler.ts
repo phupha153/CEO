@@ -2842,8 +2842,14 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
             }
         });
 
-        // ส่ง Flex Message พร้อมปุ่มยืนยัน/แก้ไข
-        await sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, branchId, replyToken);
+        console.log('📸 Expense image saved - ไม่ส่งข้อความ รอข้อความอธิบายเพิ่ม');
+        
+        // ⭐ ส่งข้อความสั้นๆ ว่าได้รับรูปแล้ว รอข้อความ
+        await sendMessage(base44, lineUserId, 
+            '📸 ได้รับรูปใบเสร็จแล้ว\n\nกรุณาส่งข้อความอธิบายเพิ่มเติม เช่น:\n• ซื้อหลอดไฟ\n• จ่ายค่าไฟ\n• ค่าซ่อมแอร์',
+            branchId,
+            replyToken
+        );
         
     } catch (error) {
         console.error('❌ Expense image error:', error);
