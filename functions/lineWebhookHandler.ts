@@ -1843,8 +1843,31 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
         }
         
         if (pendingData && (messageText.toLowerCase() === 'ยืนยัน' || messageText === '✅ ยืนยัน')) {
+            console.log('========================================');
+            console.log('✅ CONFIRMING EXPENSE');
+            console.log(`📊 Pending Data:`, JSON.stringify(pendingData, null, 2));
+            console.log(`👤 Employee:`, employee.email);
+            console.log(`🏢 Branch ID:`, employee.assigned_branch_id || branchId);
+            console.log('========================================');
+            
+            // ตรวจสอบข้อมูลก่อน create
+            if (!pendingData.title || !pendingData.amount || !pendingData.category || !pendingData.date) {
+                console.error('❌ Missing required fields:', {
+                    title: !!pendingData.title,
+                    amount: !!pendingData.amount,
+                    category: !!pendingData.category,
+                    date: !!pendingData.date
+                });
+                await sendMessage(base44, lineUserId,
+                    '❌ ข้อมูลไม่ครบ กรุณาส่งใหม่อีกครั้ง',
+                    branchId,
+                    replyToken
+                );
+                return;
+            }
+            
             // บันทึก Expense
-            await base44.asServiceRole.entities.Expense.create({
+            const expenseData = {
                 branch_id: employee.assigned_branch_id || branchId,
                 title: pendingData.title,
                 amount: pendingData.amount,
@@ -1853,11 +1876,19 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 description: pendingData.description,
                 receipt_image: pendingData.receipt_image || null,
                 notes: `ส่งโดย ${employee.full_name || employee.email} ผ่าน LINE`
-            });
+            };
+            
+            console.log('💾 Creating Expense with data:', JSON.stringify(expenseData, null, 2));
+            
+            const createdExpense = await base44.asServiceRole.entities.Expense.create(expenseData);
+            
+            console.log('✅ Expense created successfully! ID:', createdExpense.id);
             
             await base44.asServiceRole.entities.User.update(employee.id, {
                 expense_pending_data: null
             });
+            
+            console.log('✅ Cleared pending data from employee');
             
             const categoryTh = {
                 electricity: 'ค่าไฟ',
@@ -1879,6 +1910,8 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 branchId,
                 replyToken
             );
+            
+            console.log('✅ Confirmation message sent');
             return;
         }
         
