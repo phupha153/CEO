@@ -1805,7 +1805,11 @@ export default function Settings() {
     setShowLineConnectDialog(true);
   };
 
-  const handleConnectLineToUser = async (lineUserId) => {
+  const handleConnectLineToUser = async (lineUserId, displayName) => {
+    if (!confirm(`ยืนยันการเชื่อมต่อ LINE ของ "${displayName}" กับ ${selectedUserForLineConnect?.full_name}?`)) {
+      return;
+    }
+
     try {
       await base44.entities.User.update(selectedUserForLineConnect.id, {
         employee_line_user_id: lineUserId,
@@ -4441,8 +4445,8 @@ export default function Settings() {
                   availableLineChats.map((chat) => (
                     <button
                       key={chat.line_user_id}
-                      onClick={() => handleConnectLineToUser(chat.line_user_id)}
-                      className="w-full flex items-center gap-3 p-4 border-2 border-slate-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all"
+                      onClick={() => handleConnectLineToUser(chat.line_user_id, chat.line_display_name)}
+                      className="w-full flex items-center gap-3 p-4 border-2 border-slate-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all"
                     >
                       {chat.line_picture_url ? (
                         <img 
@@ -4461,7 +4465,6 @@ export default function Settings() {
                         <p className="font-semibold text-slate-800">{chat.line_display_name}</p>
                         <p className="text-xs text-slate-500">ID: {chat.line_user_id.substring(0, 20)}...</p>
                       </div>
-                      <Check className="w-5 h-5 text-green-600" />
                     </button>
                   ))
                 )}
