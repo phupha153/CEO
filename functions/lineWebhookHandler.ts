@@ -1511,6 +1511,149 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
     }
 }
 
+async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, branchId = null, replyToken = null) {
+    try {
+        const lineToken = await getLineToken(base44, branchId);
+        if (!lineToken) return;
+
+        const flexMessage = {
+            type: 'flex',
+            altText: `ยืนยันค่าใช้จ่าย ${analysis.amount.toLocaleString()} บาท`,
+            contents: {
+                type: 'bubble',
+                header: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'text',
+                            text: '📋 ตรวจสอบข้อมูล',
+                            weight: 'bold',
+                            size: 'xl',
+                            color: '#1E40AF'
+                        }
+                    ]
+                },
+                body: {
+                    type: 'box',
+                    layout: 'vertical',
+                    contents: [
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: '📝', size: 'sm', flex: 0 },
+                                { type: 'text', text: analysis.title, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: '💰', size: 'sm', flex: 0 },
+                                { type: 'text', text: `${analysis.amount.toLocaleString()} บาท`, wrap: true, weight: 'bold', color: '#16A34A', size: 'md', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: '🏷️', size: 'sm', flex: 0 },
+                                { type: 'text', text: categoryTh[analysis.category], wrap: true, color: '#7C3AED', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: '📅', size: 'sm', flex: 0 },
+                                { type: 'text', text: analysis.date, wrap: true, color: '#64748B', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            contents: [
+                                { type: 'text', text: '📄', size: 'sm', flex: 0 },
+                                { type: 'text', text: analysis.description, wrap: true, color: '#475569', size: 'xs', flex: 5 }
+                            ]
+                        }
+                    ],
+                    spacing: 'md'
+                },
+                footer: {
+                    type: 'box',
+                    layout: 'vertical',
+                    spacing: 'sm',
+                    contents: [
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: '✅ ยืนยัน',
+                                text: '✅ ยืนยัน'
+                            },
+                            style: 'primary',
+                            color: '#16A34A',
+                            height: 'sm'
+                        },
+                        {
+                            type: 'button',
+                            action: {
+                                type: 'message',
+                                label: '✏️ แก้ไข',
+                                text: '✏️ แก้ไข'
+                            },
+                            style: 'secondary',
+                            height: 'sm'
+                        }
+                    ]
+                }
+            }
+        };
+
+        const endpoint = replyToken 
+            ? 'https://api.line.me/v2/bot/message/reply'
+            : 'https://api.line.me/v2/bot/message/push';
+
+        const body = replyToken
+            ? { replyToken, messages: [flexMessage] }
+            : { to: lineUserId, messages: [flexMessage] };
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${lineToken}`
+            },
+            body: JSON.stringify(body)
+        });
+
+        if (!response.ok && replyToken) {
+            const fallbackEndpoint = 'https://api.line.me/v2/bot/message/push';
+            const fallbackBody = { to: lineUserId, messages: [flexMessage] };
+            
+            await fetch(fallbackEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${lineToken}`
+                },
+                body: JSON.stringify(fallbackBody)
+            });
+        }
+
+        console.log('✅ Sent Flex confirmation message');
+    } catch (error) {
+        console.error('❌ Error sending Flex message:', error);
+    }
+}
+
 async function sendMessage(base44, lineUserId, text, branchId = null, replyToken = null) {
     try {
         // เช็ค rate limit - ถ้าเพิ่งส่งไปไม่เกิน 5 นาทีให้ข้าม (เฉพาะ push)
@@ -1670,7 +1813,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             return;
         }
         
-        if (pendingData && messageText.toLowerCase() === 'ยืนยัน') {
+        if (pendingData && (messageText.toLowerCase() === 'ยืนยัน' || messageText === '✅ ยืนยัน')) {
             // บันทึก Expense
             await base44.asServiceRole.entities.Expense.create({
                 branch_id: employee.assigned_branch_id || branchId,
@@ -1710,10 +1853,21 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             return;
         }
         
-        if (pendingData && messageText.toLowerCase().includes('แก้')) {
+        if (pendingData && (messageText.toLowerCase().includes('แก้') || messageText === '✏️ แก้ไข')) {
+            const categoryTh = {
+                electricity: 'ค่าไฟ',
+                water: 'ค่าน้ำ',
+                repair: 'ค่าซ่อม',
+                internet: 'ค่าเน็ต',
+                salary: 'เงินเดือน',
+                supplies: 'อุปกรณ์',
+                refund_deposit: 'คืนเงินมัดจำ',
+                other: 'อื่นๆ'
+            };
+
             await sendMessage(base44, lineUserId,
-                `📝 กรุณาส่งข้อมูลใหม่ในรูปแบบ:\n\n` +
-                `"หมวดหมู่ จำนวน บาท [รายละเอียด]"\n\n` +
+                `📝 ส่งข้อมูลใหม่ตามรูปแบบนี้:\n\n` +
+                `"${categoryTh[pendingData.category]} ${pendingData.amount} ${pendingData.description || ''}"\n\n` +
                 `ตัวอย่าง:\n` +
                 `• ค่าน้ำ 500\n` +
                 `• ค่าไฟ 1200 เดือนมกราคม\n` +
@@ -1722,7 +1876,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 branchId,
                 replyToken
             );
-            
+
             await base44.asServiceRole.entities.User.update(employee.id, {
                 expense_pending_data: null
             });
@@ -1781,18 +1935,8 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             }
         });
         
-        await sendMessage(base44, lineUserId,
-            `📋 กรุณาตรวจสอบข้อมูล:\n\n` +
-            `📝 ${analysis.title}\n` +
-            `💰 ${analysis.amount.toLocaleString()} บาท\n` +
-            `🏷️ ${categoryTh[analysis.category]}\n` +
-            `📅 ${analysis.date}\n` +
-            `📄 ${analysis.description}\n\n` +
-            `พิมพ์ "ยืนยัน" เพื่อบันทึก\n` +
-            `หรือ "แก้ไข" เพื่อแก้ไขข้อมูล`,
-            branchId,
-            replyToken
-        );
+        // ส่ง Flex Message พร้อมปุ่มยืนยัน/แก้ไข
+        await sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, branchId, replyToken);
         
     } catch (error) {
         console.error('❌ Expense submission error:', error);
