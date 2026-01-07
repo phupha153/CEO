@@ -450,15 +450,15 @@ export default function Settings() {
   });
 
   const { data: lineMessages = [] } = useQuery({
-    queryKey: ['lineMessages', selectedBranchId],
+    queryKey: ['lineMessages', selectedBranch?.id],
     queryFn: async () => {
-      if (!selectedBranchId) return [];
+      if (!selectedBranch?.id) return [];
       return await base44.entities.LineMessage.filter({ 
-        branch_id: selectedBranchId,
+        branch_id: selectedBranch.id,
         direction: 'incoming'
       }, '-created_date', 500);
     },
-    enabled: !!currentUser && !!selectedBranchId,
+    enabled: !!currentUser && !!selectedBranch?.id,
     staleTime: 2 * 60 * 1000,
   });
 
@@ -1810,7 +1810,7 @@ export default function Settings() {
       await base44.entities.User.update(selectedUserForLineConnect.id, {
         employee_line_user_id: lineUserId,
         can_submit_expenses: true,
-        assigned_branch_id: selectedBranchId
+        assigned_branch_id: selectedBranch?.id
       });
       
       await queryClient.invalidateQueries(['usersInMyBranches']);
