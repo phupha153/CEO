@@ -2197,8 +2197,9 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             
             console.log('✅ Expense created successfully! ID:', createdExpense.id);
             
-            await base44.asServiceRole.entities.User.update(employee.id, {
-                expense_pending_data: null
+            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                expense_pending_data: null,
+                temp_expense_image_url: null
             });
             
             console.log('✅ Cleared pending data from employee');
