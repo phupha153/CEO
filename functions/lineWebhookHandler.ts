@@ -1731,8 +1731,16 @@ async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, br
                             type: 'text',
                             text: '📋 ตรวจสอบข้อมูล',
                             weight: 'bold',
-                            size: 'xl',
+                            size: 'lg',
                             color: '#1E40AF'
+                        },
+                        {
+                            type: 'text',
+                            text: 'ยืนยันรายการค่าใช้จ่าย ✅',
+                            weight: 'bold',
+                            size: 'md',
+                            color: '#475569',
+                            margin: 'sm'
                         }
                     ]
                 },
@@ -1745,44 +1753,62 @@ async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, br
                             layout: 'baseline',
                             spacing: 'sm',
                             contents: [
-                                { type: 'text', text: '📝', size: 'sm', flex: 0 },
-                                { type: 'text', text: analysis.title, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                                { type: 'text', text: 'หัวข้อ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.title, wrap: true, color: '#334155', size: 'sm', flex: 5, weight: 'bold' }
                             ]
                         },
                         {
                             type: 'box',
                             layout: 'baseline',
                             spacing: 'sm',
+                            margin: 'md',
                             contents: [
-                                { type: 'text', text: '💰', size: 'sm', flex: 0 },
-                                { type: 'text', text: `${analysis.amount.toLocaleString()} บาท`, wrap: true, weight: 'bold', color: '#16A34A', size: 'md', flex: 5 }
+                                { type: 'text', text: 'ยอดสุทธิ:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: `฿${analysis.amount.toLocaleString()}`, wrap: true, weight: 'bold', color: '#F97316', size: 'xl', flex: 5 }
                             ]
                         },
                         {
                             type: 'box',
                             layout: 'baseline',
                             spacing: 'sm',
+                            margin: 'md',
                             contents: [
-                                { type: 'text', text: '🏷️', size: 'sm', flex: 0 },
-                                { type: 'text', text: categoryTh[analysis.category], wrap: true, color: '#7C3AED', size: 'sm', flex: 5 }
+                                { type: 'text', text: 'วันที่จ่าย:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.date, wrap: true, color: '#334155', size: 'sm', flex: 5 }
                             ]
                         },
                         {
                             type: 'box',
                             layout: 'baseline',
                             spacing: 'sm',
+                            margin: 'md',
                             contents: [
-                                { type: 'text', text: '📅', size: 'sm', flex: 0 },
-                                { type: 'text', text: analysis.date, wrap: true, color: '#64748B', size: 'sm', flex: 5 }
+                                { type: 'text', text: 'ประเภท:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: categoryTh[analysis.category], wrap: true, color: '#334155', size: 'sm', flex: 5 }
                             ]
                         },
                         {
                             type: 'box',
                             layout: 'baseline',
                             spacing: 'sm',
+                            margin: 'md',
                             contents: [
-                                { type: 'text', text: '📄', size: 'sm', flex: 0 },
-                                { type: 'text', text: analysis.description, wrap: true, color: '#475569', size: 'xs', flex: 5 }
+                                { type: 'text', text: 'รายละเอียด:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: analysis.description, wrap: true, color: '#334155', size: 'sm', flex: 5 }
+                            ]
+                        },
+                        {
+                            type: 'separator',
+                            margin: 'lg'
+                        },
+                        {
+                            type: 'box',
+                            layout: 'baseline',
+                            spacing: 'sm',
+                            margin: 'md',
+                            contents: [
+                                { type: 'text', text: '📸', size: 'sm', flex: 0 },
+                                { type: 'text', text: 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', wrap: true, color: '#64748B', size: 'xs', flex: 5 }
                             ]
                         }
                     ],
@@ -1797,7 +1823,7 @@ async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, br
                             type: 'button',
                             action: {
                                 type: 'message',
-                                label: '✅ ยืนยัน',
+                                label: 'ยืนยันข้อมูลถูกต้อง',
                                 text: '✅ ยืนยัน'
                             },
                             style: 'primary',
