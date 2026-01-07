@@ -325,7 +325,7 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // ⭐ เช็คชื่อบัญชี - รองรับทั้งไทยและอังกฤษ (เช็คแค่ชื่อแรกตรงก็พอ)
+            // ⭐ เช็คชื่อบัญชี - เช็คไทยก่อน ถ้าตรงก็ผ่านเลย (เอาแค่ชื่อแรก ไม่เอานามสกุล)
             if ((expectedAccountName || expectedAccountNameEn) && receiverName) {
                 const cleanReceiver = receiverName
                     .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
@@ -333,14 +333,14 @@ Deno.serve(async (req) => {
                     .trim()
                     .toLowerCase();
 
-                // แยกคำแรก (ชื่อ)
+                // แยกชื่อแรกเท่านั้น (ไม่เอานามสกุล)
                 const receiverFirstName = cleanReceiver.split(' ')[0];
 
-                console.log('🔍 Name comparison:');
+                console.log('🔍 Name comparison (First name only):');
                 console.log('  - Receiver (from slip):', receiverName);
                 console.log('  - Receiver first name:', receiverFirstName);
 
-                // เช็คชื่อไทย
+                // ⭐ STEP 1: เช็คชื่อไทยก่อน
                 if (expectedAccountName) {
                     const cleanExpectedTh = expectedAccountName
                         .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\./gi, '')
@@ -352,12 +352,16 @@ Deno.serve(async (req) => {
                     console.log('  - Expected (TH):', expectedAccountName);
                     console.log('  - Expected first (TH):', expectedFirstNameTh);
 
-                    if (receiverFirstName.includes(expectedFirstNameTh) || expectedFirstNameTh.includes(receiverFirstName)) {
+                    // เช็คว่าชื่อตรงกันหรือไม่ (เอาแค่ชื่อแรก)
+                    if (receiverFirstName === expectedFirstNameTh || 
+                        receiverFirstName.includes(expectedFirstNameTh) || 
+                        expectedFirstNameTh.includes(receiverFirstName)) {
                         nameMatch = true;
+                        console.log('  ✅ Thai name matched! No need to check English.');
                     }
                 }
 
-                // เช็คชื่ออังกฤษ (ถ้ายังไม่ match)
+                // ⭐ STEP 2: เช็คชื่ออังกฤษ (เฉพาะเมื่อชื่อไทยไม่ตรง)
                 if (!nameMatch && expectedAccountNameEn) {
                     const cleanExpectedEn = expectedAccountNameEn
                         .replace(/mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
@@ -366,15 +370,20 @@ Deno.serve(async (req) => {
                         .toLowerCase();
                     const expectedFirstNameEn = cleanExpectedEn.split(' ')[0];
 
+                    console.log('  - Thai name not matched, checking English...');
                     console.log('  - Expected (EN):', expectedAccountNameEn);
                     console.log('  - Expected first (EN):', expectedFirstNameEn);
 
-                    if (receiverFirstName.includes(expectedFirstNameEn) || expectedFirstNameEn.includes(receiverFirstName)) {
+                    // เช็คชื่ออังกฤษ
+                    if (receiverFirstName === expectedFirstNameEn || 
+                        receiverFirstName.includes(expectedFirstNameEn) || 
+                        expectedFirstNameEn.includes(receiverFirstName)) {
                         nameMatch = true;
+                        console.log('  ✅ English name matched!');
                     }
                 }
 
-                console.log('  - Name Match:', nameMatch);
+                console.log('  - Final Name Match:', nameMatch);
             } else {
                 nameMatch = true;
             }
