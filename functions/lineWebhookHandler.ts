@@ -2036,12 +2036,10 @@ async function sendWelcomeMessage(base44, lineUserId, branchId = null, replyToke
 async function sendConfirmationMessage(base44, lineUserId, tenant, branch, replyToken = null) {
     let confirmText = `✅ เชื่อมโยงบัญชีสำเร็จ!\n\n`;
     confirmText += `👤 ชื่อ: ${tenant.full_name}\n`;
-    confirmText += `📱 เบอร์: ${tenant.phone}\n`;
+    confirmText += `📱 เบอร์: ${tenant.phone}`;
     if (branch) {
-        confirmText += `🏢 สาขา: ${branch.branch_name}\n`;
+        confirmText += `\n🏢 สาขา: ${branch.branch_name}`;
     }
-    confirmText += `\nส่งรูปสลิปเพื่อชำระค่าเช่าได้เลยค่ะ\n`;
-    confirmText += `🔧 แจ้งซ่อม: พิมพ์ "แจ้งซ่อม" แล้วตามด้วยรายละเอียดปัญหา`;
 
     await sendMessage(base44, lineUserId, confirmText, tenant.branch_id, replyToken);
 }
