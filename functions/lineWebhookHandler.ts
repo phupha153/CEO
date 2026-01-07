@@ -2220,18 +2220,8 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             }
         });
 
-        // ⭐ ส่งข้อความธรรมดาแทน Flex - ให้รอรูป 30 วินาที
-        await sendMessage(base44, lineUserId,
-            `✅ รับข้อมูลแล้ว!\n\n` +
-            `📝 ${analysis.title}\n` +
-            `💰 ${analysis.amount.toLocaleString()} บาท\n` +
-            `🏷️ ${categoryTh[analysis.category]}\n` +
-            `📅 ${analysis.date}\n\n` +
-            `📸 กรุณาส่งรูปใบเสร็จภายใน 30 วินาที\n` +
-            `หรือพิมพ์ "✅ ยืนยัน" (ถ้าไม่มีรูป)`,
-            branchId,
-            replyToken
-        );
+        // ⭐ ส่ง Flex Message แทนข้อความธรรมดา
+        await sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh, branchId, replyToken);
         
     } catch (error) {
         console.error('❌ Expense submission error:', error);
