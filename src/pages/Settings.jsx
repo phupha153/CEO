@@ -234,6 +234,7 @@ export default function Settings() {
 
   const [bankInfo, setBankInfo] = useState({
     account_name: '',
+    account_name_en: '',
     account_number: '',
     bank_name: '',
     promptpay: ''
@@ -688,6 +689,7 @@ export default function Settings() {
     const phoneConfig = getConfigValue('building_phone', false);
     const buildingLogoConfig = getConfigValue('building_logo', false);
     const accountNameConfig = getConfigValue('bank_account_name', false);
+    const accountNameEnConfig = getConfigValue('bank_account_name_en', false);
     const accountNumberConfig = getConfigValue('bank_account_number', false);
     const bankNameConfig = getConfigValue('bank_name', false);
     const promptpayConfig = getConfigValue('promptpay', false);
@@ -889,6 +891,7 @@ export default function Settings() {
     });
     setBankInfo({
       account_name: accountNameConfig?.value || '',
+      account_name_en: accountNameEnConfig?.value || '',
       account_number: accountNumberConfig?.value || '',
       bank_name: bankNameConfig?.value || '',
       promptpay: promptpayConfig?.value || ''
@@ -1435,7 +1438,8 @@ export default function Settings() {
     setIsSavingBankInfo(true);
     try {
       const configsToSave = [
-        { key: 'bank_account_name', value: bankInfo.account_name, description: 'ชื่อบัญชีธนาคาร', category: 'general', applyToAllBranches: applyToAllBranches_bank },
+        { key: 'bank_account_name', value: bankInfo.account_name, description: 'ชื่อบัญชีธนาคาร (ไทย)', category: 'general', applyToAllBranches: applyToAllBranches_bank },
+        { key: 'bank_account_name_en', value: bankInfo.account_name_en, description: 'ชื่อบัญชีธนาคาร (อังกฤษ)', category: 'general', applyToAllBranches: applyToAllBranches_bank },
         { key: 'bank_account_number', value: bankInfo.account_number, description: 'เลขที่บัญชี', category: 'general', applyToAllBranches: applyToAllBranches_bank },
         { key: 'bank_name', value: bankInfo.bank_name, description: 'ชื่อธนาคาร', category: 'general', applyToAllBranches: applyToAllBranches_bank },
         { key: 'promptpay', value: bankInfo.promptpay, description: 'พร้อมเพย์', category: 'general', applyToAllBranches: applyToAllBranches_bank }
@@ -3244,12 +3248,21 @@ export default function Settings() {
                     <form onSubmit={handleBankInfoSubmit} className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <Label>ชื่อบัญชี</Label>
+                          <Label>ชื่อบัญชี (ภาษาไทย)</Label>
                           <Input
                             value={bankInfo.account_name}
                             onChange={(e) => setBankInfo({ ...bankInfo, account_name: e.target.value })}
-                            placeholder="นาย/นาง..."
+                            placeholder="ไพทูลย์ มีของ"
                           />
+                        </div>
+                        <div>
+                          <Label>ชื่อบัญชี (ภาษาอังกฤษ)</Label>
+                          <Input
+                            value={bankInfo.account_name_en}
+                            onChange={(e) => setBankInfo({ ...bankInfo, account_name_en: e.target.value })}
+                            placeholder="PHAITOON M"
+                          />
+                          <p className="text-xs text-slate-500 mt-1">ใช้เปรียบเทียบกับสลิปจากธนาคาร</p>
                         </div>
                         <div>
                           <Label>ธนาคาร</Label>
@@ -3267,7 +3280,7 @@ export default function Settings() {
                             placeholder="xxx-x-xxxxx-x"
                           />
                         </div>
-                        <div>
+                        <div className="sm:col-span-2">
                           <Label>พร้อมเพย์</Label>
                           <Input
                             value={bankInfo.promptpay}
