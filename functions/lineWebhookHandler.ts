@@ -2459,7 +2459,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             };
             
             // อัพเดท pending data และปิดโหมดแก้ไข
-            await base44.asServiceRole.entities.User.update(employee.id, {
+            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
                 expense_pending_data: updatedData,
                 expense_edit_mode: false
             });
