@@ -2302,8 +2302,81 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 other: 'อื่นๆ'
             };
 
-            // ส่ง Flex Message แทน text template
-            await sendFlexConfirmation(base44, lineUserId, pendingData, categoryTh, branchId, replyToken);
+            // ส่ง text template และตั้งค่าโหมดแก้ไข
+            await sendEditTemplate(base44, lineUserId, pendingData, categoryTh, branchId, replyToken);
+            
+            // ตั้งค่า flag แก้ไข (ไม่ลบ pending data)
+            await base44.asServiceRole.entities.User.update(employee.id, {
+                expense_edit_mode: true
+            });
+            return;
+        }
+        
+        // ⭐⭐⭐ เช็คว่าอยู่ในโหมดแก้ไขหรือไม่
+        if (employee.expense_edit_mode === true) {
+            console.log('✏️ Edit mode detected - analyzing edited message');
+            
+            // วิเคราะห์ข้อความที่แก้ไขแล้ว
+            const editedAnalysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+                prompt: `วิเคราะห์ข้อความค่าใช้จ่ายที่แก้ไขแล้ว:
+
+"${messageText}"
+
+วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
+
+กรุณา extract ข้อมูล:
+1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
+2. amount: จำนวนเงิน (ตัวเลขเท่านั้น)
+3. date: วันที่ในรูป YYYY-MM-DD (ถ้าไม่ระบุให้ใช้วันนี้)
+4. description: รายละเอียดสั้นๆ
+5. title: หัวข้อสั้นๆ ไม่เกิน 50 ตัวอักษร`,
+                response_json_schema: {
+                    type: "object",
+                    properties: {
+                        category: {
+                            type: "string",
+                            enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
+                        },
+                        amount: { type: "number" },
+                        date: { type: "string" },
+                        description: { type: "string" },
+                        title: { type: "string" }
+                    },
+                    required: ["category", "amount", "date", "title"]
+                }
+            });
+            
+            const categoryTh = {
+                electricity: 'ค่าไฟ',
+                water: 'ค่าน้ำ',
+                repair: 'ค่าซ่อม',
+                internet: 'ค่าเน็ต',
+                salary: 'เงินเดือน',
+                supplies: 'อุปกรณ์',
+                refund_deposit: 'คืนเงินมัดจำ',
+                other: 'อื่นๆ'
+            };
+            
+            // สร้าง pending data ใหม่ (เก็บรูปเดิมถ้ามี)
+            const updatedData = {
+                title: editedAnalysis.title,
+                amount: editedAnalysis.amount,
+                category: editedAnalysis.category,
+                date: editedAnalysis.date,
+                description: editedAnalysis.description || editedAnalysis.title,
+                receipt_image: pendingData?.receipt_image || null
+            };
+            
+            // อัพเดท pending data และปิดโหมดแก้ไข
+            await base44.asServiceRole.entities.User.update(employee.id, {
+                expense_pending_data: updatedData,
+                expense_edit_mode: false
+            });
+            
+            console.log('✅ Updated data from edit:', updatedData);
+            
+            // ส่ง Flex confirmation
+            await sendFlexConfirmation(base44, lineUserId, updatedData, categoryTh, branchId, replyToken);
             return;
         }
         
