@@ -1834,7 +1834,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
         // เช็คว่าอยู่ในโหมดแก้ไขหรือไม่
         const pendingData = employee.expense_pending_data;
         
-        if (messageText.toLowerCase() === 'ยกเลิก') {
+        if (messageText.toLowerCase().includes('ยกเลิก')) {
             await base44.asServiceRole.entities.User.update(employee.id, {
                 expense_pending_data: null
             });
@@ -1842,7 +1842,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             return;
         }
         
-        if (pendingData && (messageText.toLowerCase() === 'ยืนยัน' || messageText === '✅ ยืนยัน')) {
+        if (pendingData && (messageText.includes('ยืนยัน') || messageText.includes('✅'))) {
             console.log('========================================');
             console.log('✅ CONFIRMING EXPENSE');
             console.log(`📊 Pending Data:`, JSON.stringify(pendingData, null, 2));
