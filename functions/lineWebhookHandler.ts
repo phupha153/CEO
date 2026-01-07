@@ -2028,15 +2028,7 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
 }
 
 async function sendWelcomeMessage(base44, lineUserId, branchId = null, replyToken = null) {
-    const welcomeText = 
-        '🏡 ยินดีต้อนรับสู่ระบบหอพัก W RESIDENTS\n\n' +
-        '📱 วิธีลงทะเบียน:\n' +
-        '• ส่งเบอร์โทรศัพท์ (10 หลัก)\n' +
-        '  ตัวอย่าง: 0812345678\n\n' +
-        '• หรือระบุสาขา (ถ้ามีหลายสาขา):\n' +
-        '  ตัวอย่าง: 0812345678 BR001\n\n' +
-        '🔧 แจ้งซ่อม: พิมพ์ "แจ้งซ่อม" แล้วตามด้วยรายละเอียดปัญหา\n' +
-        '💰 ชำระเงิน: ส่งรูปสลิป';
+    const welcomeText = '🏡 ยินดีต้อนรับสู่หอพัก W RESIDENTS';
 
     await sendMessage(base44, lineUserId, welcomeText, branchId, replyToken);
 }
