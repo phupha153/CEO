@@ -1636,8 +1636,8 @@ async function sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh
                             spacing: 'sm',
                             margin: 'md',
                             contents: [
-                                { type: 'text', text: '📸', size: 'sm', flex: 0 },
-                                { type: 'text', text: 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', wrap: true, color: '#64748B', size: 'xs', flex: 5 }
+                                { type: 'text', text: 'รายละเอียดสลิป:', size: 'sm', color: '#64748B', flex: 2 },
+                                { type: 'text', text: 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', wrap: true, color: '#F97316', size: 'xs', flex: 5 }
                             ]
                         }
                     ],
@@ -1715,6 +1715,9 @@ async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, br
     try {
         const lineToken = await getLineToken(base44, branchId);
         if (!lineToken) return;
+
+        // เช็คว่ามีรูปสลิปหรือไม่
+        const hasReceipt = analysis.receipt_image && analysis.receipt_image.trim() !== '';
 
         const flexMessage = {
             type: 'flex',
@@ -1797,8 +1800,15 @@ async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, br
                             spacing: 'sm',
                             margin: 'md',
                             contents: [
-                                { type: 'text', text: '📸', size: 'sm', flex: 0 },
-                                { type: 'text', text: 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', wrap: true, color: '#64748B', size: 'xs', flex: 5 }
+                                { type: 'text', text: 'รายละเอียดสลิป:', size: 'sm', color: '#64748B', flex: 2 },
+                                { 
+                                    type: 'text', 
+                                    text: hasReceipt ? '✅ แนบมาแล้ว' : 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', 
+                                    wrap: true, 
+                                    color: hasReceipt ? '#16A34A' : '#F97316', 
+                                    size: 'xs', 
+                                    flex: 5 
+                                }
                             ]
                         }
                     ],
