@@ -2331,32 +2331,23 @@ async function handleCancelOldExpense(base44, lineUserId, replyToken, branchId) 
             return;
         }
         
-        // ประมวลผลรูปใหม่ด้วย AI
+        // ประมวลผลรูปใหม่ด้วย AI (ดึงเฉพาะ amount, date)
         const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
             prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูล:
 
 วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
 
-กรุณา extract:
-1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
-2. amount: จำนวนเงินรวม
-3. date: วันที่ (ถ้าไม่มีให้ใช้วันนี้)
-4. description: ร้าน/รายละเอียดที่สำคัญ
-5. title: สรุปสั้นๆ เช่น "ซื้อหลอดไฟ Big C"`,
+กรุณา extract เฉพาะ:
+1. amount: จำนวนเงินรวม (ตัวเลขเท่านั้น)
+2. date: วันที่โอนเงิน หรือวันที่ในใบเสร็จ ในรูป YYYY-MM-DD (ถ้าไม่มีให้ใช้วันนี้)`,
             file_urls: [tempImageUrl],
             response_json_schema: {
                 type: "object",
                 properties: {
-                    category: {
-                        type: "string",
-                        enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
-                    },
                     amount: { type: "number" },
-                    date: { type: "string" },
-                    description: { type: "string" },
-                    title: { type: "string" }
+                    date: { type: "string" }
                 },
-                required: ["category", "amount", "date", "title"]
+                required: ["amount", "date"]
             }
         });
         
@@ -2371,14 +2362,15 @@ async function handleCancelOldExpense(base44, lineUserId, replyToken, branchId) 
             other: 'อื่นๆ'
         };
         
-        // บันทึก pending data ใหม่
+        // บันทึก pending data ใหม่ (ใช้ category, title, description จาก pendingData เดิม)
+        const oldPending = employee.expense_pending_data || {};
         await base44.asServiceRole.entities.User.update(employee.id, {
             expense_pending_data: {
-                title: analysis.title,
+                title: oldPending.title || 'ค่าใช้จ่ายจากรูปภาพ',
                 amount: analysis.amount,
-                category: analysis.category,
+                category: oldPending.category || 'other',
                 date: analysis.date,
-                description: analysis.description || analysis.title,
+                description: oldPending.description || 'ไม่มีรายละเอียด',
                 receipt_image: tempImageUrl
             },
             temp_expense_image_url: null
@@ -2492,32 +2484,27 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
             }
             
             // ⭐⭐⭐ ถ้ามีข้อความ (title/description) แต่ไม่มีรูป หรือข้อมูลเพิ่งสร้างใหม่ (race condition)
-            // → ผสานข้อมูลอัตโนมัติ
+            // → ผสานข้อมูลอัตโนมัติ โดยใช้ category, title, description จากข้อความ + amount, date จากรูป
             if ((pendingData.title || pendingData.description) && !pendingData.receipt_image) {
                 console.log(`📝 Auto-merging: text data (${secondsSinceUpdate.toFixed(1)}s old) + new image`);
                 
-                // AI Extract ข้อมูลจากรูป (amount, category, date)
+                // AI Extract ข้อมูลจากรูป (เฉพาะ amount, date)
                 const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
                     prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูล:
 
 วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
 
 กรุณา extract เฉพาะ:
-1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
-2. amount: จำนวนเงินรวม
-3. date: วันที่ (ถ้าไม่มีให้ใช้วันนี้)`,
+1. amount: จำนวนเงินรวม (ตัวเลขเท่านั้น)
+2. date: วันที่โอนเงิน หรือวันที่ในใบเสร็จ ในรูป YYYY-MM-DD (ถ้าไม่มีให้ใช้วันนี้)`,
                     file_urls: [file_url],
                     response_json_schema: {
                         type: "object",
                         properties: {
-                            category: {
-                                type: "string",
-                                enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
-                            },
                             amount: { type: "number" },
                             date: { type: "string" }
                         },
-                        required: ["category", "amount", "date"]
+                        required: ["amount", "date"]
                     }
                 });
                 
@@ -2532,11 +2519,11 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
                     other: 'อื่นๆ'
                 };
                 
-                // รวมข้อมูล: เอา title/description จากเดิม + amount/category/date จากรูปใหม่
+                // รวมข้อมูล: ใช้ category/title/description จากข้อความ + amount/date จากรูป
                 const mergedData = {
                     title: pendingData.title,
                     amount: analysis.amount,
-                    category: analysis.category,
+                    category: pendingData.category,
                     date: analysis.date,
                     description: pendingData.description,
                     receipt_image: file_url
@@ -2555,18 +2542,19 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
             }
         }
         
-        // ⭐ ถ้าไม่มีข้อมูล pending → ประมวลผลตามปกติ
+        // ⭐ ถ้าไม่มีข้อมูล pending (ส่งรูปอย่างเดียว) → ดึงข้อมูลทั้งหมดจากรูป
+        console.log('📸 No pending data - analyzing receipt image for all fields');
         const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
-            prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูล:
+            prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูลทั้งหมด:
 
 วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
 
 กรุณา extract:
-1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
+1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other (ดูจากประเภทร้าน/สินค้า)
 2. amount: จำนวนเงินรวม
-3. date: วันที่ (ถ้าไม่มีให้ใช้วันนี้)
-4. description: ร้าน/รายละเอียดที่สำคัญ
-5. title: สรุปสั้นๆ เช่น "ซื้อหลอดไฟ Big C"`,
+3. date: วันที่โอนเงิน หรือวันที่ในใบเสร็จ (ถ้าไม่มีให้ใช้วันนี้)
+4. description: ชื่อร้าน/รายละเอียดสินค้า
+5. title: สรุปสั้นๆ เช่น "ซื้อหลอดไฟ Big C", "จ่ายค่าไฟ"`,
             file_urls: [file_url],
             response_json_schema: {
                 type: "object",
