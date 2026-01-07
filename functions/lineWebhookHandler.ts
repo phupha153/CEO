@@ -183,6 +183,14 @@ Deno.serve(async (req) => {
                 if (event.type === 'message') {
                     const messageId = event.message?.id;
                     const messageType = event.message?.type;
+
+                    // ⭐⭐⭐ DEBUG LOG: แสดง LINE User ID ที่ส่งมา
+                    console.log('========================================');
+                    console.log('📱 MESSAGE EVENT DEBUG:');
+                    console.log(`   LINE User ID: ${lineUserId}`);
+                    console.log(`   Message Type: ${messageType}`);
+                    console.log(`   Message ID: ${messageId}`);
+                    console.log('========================================');
                     
                     if (messageId && processedMessages.has(messageId)) {
                         console.log(`⚠️ Message ${messageId} already processed, skipping`);
@@ -268,11 +276,13 @@ Deno.serve(async (req) => {
                         // ⭐⭐⭐ เช็คว่าเป็นพนักงานที่เชื่อม LINE แล้วหรือไม่
                         let employee = null;
                         try {
+                            console.log('🔍 Checking for employee with LINE ID:', lineUserId);
                             const employeeResult = await base44.asServiceRole.entities.User.filter({
                                 employee_line_user_id: lineUserId,
                                 can_submit_expenses: true
                             });
                             employee = Array.isArray(employeeResult) ? employeeResult[0] : employeeResult;
+                            console.log(`📊 Employee query result:`, employee ? `✅ FOUND: ${employee.email}` : '❌ NOT FOUND');
                         } catch (e) {
                             console.log('⚠️ Not an employee:', e.message);
                         }
