@@ -239,6 +239,7 @@ export default function Settings() {
     bank_name: '',
     promptpay: ''
   });
+  const [translatingName, setTranslatingName] = useState(false);
 
   const [lineSettings, setLineSettings] = useState({
     line_channel_access_token: '',
@@ -897,6 +898,47 @@ export default function Settings() {
       promptpay: promptpayConfig?.value || ''
     });
   }, [configs, selectedBranch]);
+
+  // Auto-translate Thai name to English
+  useEffect(() => {
+    if (!bankInfo.account_name || bankInfo.account_name.length < 3) return;
+    
+    const timer = setTimeout(async () => {
+      // ตรวจว่าเป็นภาษาไทยหรือไม่
+      const hasThaiChars = /[\u0E00-\u0E7F]/.test(bankInfo.account_name);
+      if (!hasThaiChars) return;
+      
+      setTranslatingName(true);
+      try {
+        const result = await base44.integrations.Core.InvokeLLM({
+          prompt: `แปลชื่อคนไทยนี้เป็นภาษาอังกฤษแบบทางการ (ตัวพิมพ์ใหญ่ทั้งหมด รูปแบบ MR./MRS. ตามด้วยชื่อ นามสกุล): "${bankInfo.account_name}"
+          
+ตัวอย่าง:
+- "นายสมชาย ใจดี" → "MR. SOMCHAI JAIDEE"
+- "นางสาวมะลิ สวยงาม" → "MISS MALI SUAYNGAM"
+- "ไพทูลย์ มีของ" → "MR. PHAITOON MEEKONG"
+
+ให้เฉพาะชื่ออังกฤษเท่านั้น ไม่ต้องอธิบาย`,
+          response_json_schema: {
+            type: "object",
+            properties: {
+              english_name: { type: "string" }
+            }
+          }
+        });
+        
+        if (result.english_name) {
+          setBankInfo(prev => ({ ...prev, account_name_en: result.english_name }));
+        }
+      } catch (error) {
+        console.error('Translation error:', error);
+      } finally {
+        setTranslatingName(false);
+      }
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [bankInfo.account_name]);
 
   // NEW useEffect for notificationConfigs
   useEffect(() => {
@@ -3257,12 +3299,22 @@ export default function Settings() {
                         </div>
                         <div>
                           <Label>ชื่อบัญชี (ภาษาอังกฤษ)</Label>
-                          <Input
-                            value={bankInfo.account_name_en}
-                            onChange={(e) => setBankInfo({ ...bankInfo, account_name_en: e.target.value })}
-                            placeholder="PHAITOON M"
-                          />
-                          <p className="text-xs text-slate-500 mt-1">ใช้เปรียบเทียบกับสลิปจากธนาคาร</p>
+                          <div className="relative">
+                            <Input
+                              value={bankInfo.account_name_en}
+                              onChange={(e) => setBankInfo({ ...bankInfo, account_name_en: e.target.value })}
+                              placeholder="PHAITOON M"
+                              disabled={translatingName}
+                            />
+                            {translatingName && (
+                              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {translatingName ? '🤖 AI กำลังแปลอัตโนมัติ...' : 'แปลจากชื่อไทยอัตโนมัติ หรือแก้ไขเองได้'}
+                          </p>
                         </div>
                         <div>
                           <Label>ธนาคาร</Label>
