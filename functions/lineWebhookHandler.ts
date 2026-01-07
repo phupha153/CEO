@@ -2141,8 +2141,9 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
         });
         
         if (messageText.toLowerCase().includes('ยกเลิก')) {
-            await base44.asServiceRole.entities.User.update(employee.id, {
-                expense_pending_data: null
+            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                expense_pending_data: null,
+                temp_expense_image_url: null
             });
             await sendMessage(base44, lineUserId, '❌ ยกเลิกการบันทึกค่าใช้จ่ายแล้ว', branchId, replyToken);
             return;
