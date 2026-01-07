@@ -2397,18 +2397,22 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
         
         // ⭐⭐⭐ ถ้ามี pending data ที่มีรูปอยู่แล้ว + ส่งข้อความตาม → Auto-Merge
         if (pendingData && pendingData.receipt_image) {
-            console.log('🔄 Auto-Merge: มีรูปอยู่แล้ว + ข้อความใหม่ → รวมข้อมูล');
+            console.log('🔄 Auto-Merge: มีรูปอยู่แล้ว + ข้อความใหม่ → วิเคราะห์ข้อมูลใหม่ทั้งหมด + เก็บรูปเดิม');
             
-            // AI Extract เฉพาะ category, title, description จากข้อความ
+            // วิเคราะห์ข้อความใหม่ทั้งหมด (title, amount, category, date, description)
             const textAnalysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
-                prompt: `วิเคราะห์ข้อความค่าใช้จ่ายนี้และ extract ข้อมูล:
+                prompt: `วิเคราะห์ข้อความค่าใช้จ่ายนี้และ extract ข้อมูลทั้งหมด:
 
 "${messageText}"
 
-กรุณา extract เฉพาะ:
+วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
+
+กรุณา extract:
 1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
-2. title: หัวข้อสั้นๆ ไม่เกิน 50 ตัวอักษร
-3. description: รายละเอียดสั้นๆ`,
+2. amount: จำนวนเงิน (ตัวเลขเท่านั้น)
+3. date: วันที่ในรูป YYYY-MM-DD (ถ้าไม่ระบุให้ใช้วันนี้)
+4. title: หัวข้อสั้นๆ ไม่เกิน 50 ตัวอักษร
+5. description: รายละเอียดสั้นๆ`,
                 response_json_schema: {
                     type: "object",
                     properties: {
@@ -2416,10 +2420,12 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                             type: "string",
                             enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
                         },
+                        amount: { type: "number" },
+                        date: { type: "string" },
                         title: { type: "string" },
                         description: { type: "string" }
                     },
-                    required: ["category", "title"]
+                    required: ["category", "amount", "date", "title"]
                 }
             });
             
@@ -2434,12 +2440,12 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 other: 'อื่นๆ'
             };
             
-            // รวมข้อมูล: ข้อความใหม่ + ยอดเงิน/วันที่/รูปจากเดิม
+            // รวมข้อมูล: ข้อมูลทั้งหมดจากข้อความใหม่ + รูปจากเดิม
             const mergedData = {
                 title: textAnalysis.title,
-                amount: pendingData.amount,
+                amount: textAnalysis.amount,
                 category: textAnalysis.category,
-                date: pendingData.date,
+                date: textAnalysis.date,
                 description: textAnalysis.description || textAnalysis.title,
                 receipt_image: pendingData.receipt_image
             };
@@ -2448,10 +2454,10 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 expense_pending_data: mergedData
             });
             
-            console.log('✅ Merged data:', mergedData);
+            console.log('✅ Merged data (แก้ไขข้อมูลใหม่):', mergedData);
             console.log('🔍 DEBUG: Merged receipt_image =', mergedData.receipt_image);
             
-            // ส่ง Flex confirmation เพียงครั้งเดียว (ไม่ส่งข้อความธรรมดา)
+            // ส่ง Flex confirmation ใหม่พร้อมรูปและข้อมูลที่แก้แล้ว
             await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
             return;
         }
