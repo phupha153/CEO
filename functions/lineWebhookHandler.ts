@@ -2795,67 +2795,14 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
             }
         }
         
-        // ⭐ ถ้าไม่มีข้อมูล pending (ส่งรูปอย่างเดียว) → ดึงข้อมูลทั้งหมดจากรูป
-        console.log('📸 No pending data - analyzing receipt image for all fields');
-        const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
-            prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูลทั้งหมด:
-
-วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
-
-กรุณา extract:
-1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other (ดูจากประเภทร้าน/สินค้า)
-2. amount: จำนวนเงินรวม
-3. date: วันที่โอนเงิน หรือวันที่ในใบเสร็จ (ถ้าไม่มีให้ใช้วันนี้)
-4. description: ชื่อร้าน/รายละเอียดสินค้า
-5. title: สรุปสั้นๆ เช่น "ซื้อหลอดไฟ Big C", "จ่ายค่าไฟ"`,
-            file_urls: [file_url],
-            response_json_schema: {
-                type: "object",
-                properties: {
-                    category: {
-                        type: "string",
-                        enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
-                    },
-                    amount: { type: "number" },
-                    date: { type: "string" },
-                    description: { type: "string" },
-                    title: { type: "string" }
-                },
-                required: ["category", "amount", "date", "title"]
-            }
-        });
+        // ⭐ ส่งรูปอย่างเดียว → เก็บ URL ไว้ใน temp_expense_image_url และไม่ส่งข้อความใดๆ
+        console.log('📸 Image only - saving to temp_expense_image_url and NOT responding');
         
-        const categoryTh = {
-            electricity: 'ค่าไฟ',
-            water: 'ค่าน้ำ',
-            repair: 'ค่าซ่อม',
-            internet: 'ค่าเน็ต',
-            salary: 'เงินเดือน',
-            supplies: 'อุปกรณ์',
-            refund_deposit: 'คืนเงินมัดจำ',
-            other: 'อื่นๆ'
-        };
-
-        // เก็บข้อมูล pending
         await base44.asServiceRole.entities.User.update(employee.id, {
-            expense_pending_data: {
-                title: analysis.title,
-                amount: analysis.amount,
-                category: analysis.category,
-                date: analysis.date,
-                description: analysis.description || analysis.title,
-                receipt_image: file_url
-            }
+            temp_expense_image_url: file_url
         });
-
-        console.log('📸 Expense image saved - ไม่ส่งข้อความ รอข้อความอธิบายเพิ่ม');
         
-        // ⭐ ส่งข้อความสั้นๆ ว่าได้รับรูปแล้ว รอข้อความ
-        await sendMessage(base44, lineUserId, 
-            '📸 ได้รับรูปใบเสร็จแล้ว\n\nกรุณาส่งข้อความอธิบายเพิ่มเติม เช่น:\n• ซื้อหลอดไฟ\n• จ่ายค่าไฟ\n• ค่าซ่อมแอร์',
-            branchId,
-            replyToken
-        );
+        console.log('✅ Saved temp_expense_image_url - waiting for text message');
         
     } catch (error) {
         console.error('❌ Expense image error:', error);
