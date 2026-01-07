@@ -2554,7 +2554,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             };
             
             // อัพเดท pending data และลบ temp
-            await base44.asServiceRole.entities.User.update(employee.id, {
+            await base44.asServiceRole.entities.User.update(freshEmployee.id, {
                 expense_pending_data: mergedData,
                 temp_expense_image_url: null
             });
