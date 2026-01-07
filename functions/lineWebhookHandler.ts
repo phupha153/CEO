@@ -2395,9 +2395,9 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             return;
         }
         
-        // ⭐⭐⭐ ถ้ามี pending data ที่มีรูปอยู่แล้ว + ส่งข้อความตาม → Auto-Merge
-        if (pendingData && pendingData.receipt_image) {
-            console.log('🔄 Auto-Merge: มีรูปอยู่แล้ว + ข้อความใหม่ → วิเคราะห์ข้อมูลใหม่ทั้งหมด + เก็บรูปเดิม');
+        // ⭐⭐⭐ ถ้ามี pending data (ไม่ว่ามีรูปหรือไม่) + ส่งข้อความใหม่ → แก้ไขข้อมูล
+        if (pendingData) {
+            console.log('🔄 มี pending data + ข้อความใหม่ → วิเคราะห์ข้อมูลใหม่ทั้งหมด');
             
             // วิเคราะห์ข้อความใหม่ทั้งหมด (title, amount, category, date, description)
             const textAnalysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -2440,25 +2440,29 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 other: 'อื่นๆ'
             };
             
-            // รวมข้อมูล: ข้อมูลทั้งหมดจากข้อความใหม่ + รูปจากเดิม
+            // รวมข้อมูล: ข้อมูลทั้งหมดจากข้อความใหม่ + เก็บรูปเดิม (ถ้ามี)
             const mergedData = {
                 title: textAnalysis.title,
                 amount: textAnalysis.amount,
                 category: textAnalysis.category,
                 date: textAnalysis.date,
                 description: textAnalysis.description || textAnalysis.title,
-                receipt_image: pendingData.receipt_image
+                receipt_image: pendingData.receipt_image || null
             };
             
             await base44.asServiceRole.entities.User.update(employee.id, {
                 expense_pending_data: mergedData
             });
             
-            console.log('✅ Merged data (แก้ไขข้อมูลใหม่):', mergedData);
-            console.log('🔍 DEBUG: Merged receipt_image =', mergedData.receipt_image);
+            console.log('✅ Updated data:', mergedData);
+            console.log('🔍 DEBUG: receipt_image =', mergedData.receipt_image);
             
-            // ส่ง Flex confirmation ใหม่พร้อมรูปและข้อมูลที่แก้แล้ว
-            await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
+            // ส่ง Flex confirmation (ถ้ามีรูปจะแสดงรูป ไม่มีรูปจะเป็น Flex แบบไม่มีรูป)
+            if (mergedData.receipt_image) {
+                await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
+            } else {
+                await sendFlexWithUploadOption(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
+            }
             return;
         }
         
