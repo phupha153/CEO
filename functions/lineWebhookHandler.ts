@@ -2324,16 +2324,28 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
 
 วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
 
+**CRITICAL: มองหาบรรทัด "ประเภท :" ก่อนเป็นอันดับแรก**
+
 กรุณา extract ข้อมูล:
-1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
-2. amount: จำนวนเงิน (ตัวเลขเท่านั้น)
-3. date: วันที่ในรูป YYYY-MM-DD
-   - ถ้าระบุวันที่ชัดเจน (เช่น "5/1", "วันที่ 3", "เมื่อวาน") ให้แปลงเป็น YYYY-MM-DD
-   - ถ้าพูดถึง "เมื่อวาน" ให้ใช้วันก่อนหน้า
-   - ถ้าพูดถึง "วันก่อน" ให้ใช้วันก่อนหน้า
-   - **เฉพาะเมื่อไม่มีการระบุวันที่เลย** ให้ใช้วันนี้
-4. description: รายละเอียดสั้นๆ
-5. title: หัวข้อสั้นๆ ไม่เกิน 50 ตัวอักษร`,
+1. category - **ให้ดูจากบรรทัด "ประเภท :" เป็นหลัก**:
+   - "ค่าไฟ" หรือ "ไฟฟ้า" → electricity
+   - "ค่าน้ำ" หรือ "ค่านำ้" หรือ "น้ำ" → water
+   - "ค่าซ่อม" หรือ "ซ่อม" → repair
+   - "ค่าเน็ต" หรือ "อินเทอร์เน็ต" → internet
+   - "เงินเดือน" → salary
+   - "อุปกรณ์" → supplies
+   - "คืนเงินมัดจำ" หรือ "มัดจำ" → refund_deposit
+   - อื่นๆ → other
+
+2. amount: ดูจากบรรทัด "ยอดเงิน :" (ตัวเลขเท่านั้น)
+
+3. date: ดูจากบรรทัด "วันที่ :" ในรูป YYYY-MM-DD
+   - ถ้าระบุวันที่ชัดเจนให้แปลง
+   - ถ้าไม่ระบุให้ใช้วันนี้
+
+4. description: ดูจากบรรทัด "รายละเอียด :"
+
+5. title: ดูจากบรรทัด "หัวข้อ :"`,
                 response_json_schema: {
                     type: "object",
                     properties: {
