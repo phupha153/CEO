@@ -1836,11 +1836,15 @@ async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, br
             body: JSON.stringify(body)
         });
 
+        const responseText = await response.text();
+        console.log(`📬 LINE API Response (${endpoint.includes('reply') ? 'REPLY' : 'PUSH'}):`, response.status, responseText);
+
         if (!response.ok && replyToken) {
+            console.log('⚠️ Reply failed - attempting PUSH fallback...');
             const fallbackEndpoint = 'https://api.line.me/v2/bot/message/push';
             const fallbackBody = { to: lineUserId, messages: [flexMessage] };
             
-            await fetch(fallbackEndpoint, {
+            const fallbackResponse = await fetch(fallbackEndpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1848,9 +1852,24 @@ async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, br
                 },
                 body: JSON.stringify(fallbackBody)
             });
-        }
 
-        console.log('✅ Sent Flex confirmation message');
+            const fallbackText = await fallbackResponse.text();
+            console.log(`📬 PUSH Fallback Response:`, fallbackResponse.status, fallbackText);
+
+            if (!fallbackResponse.ok) {
+                console.error('❌ Both REPLY and PUSH failed!');
+                console.error('   Reply Error:', responseText);
+                console.error('   Push Error:', fallbackText);
+                throw new Error(`LINE API failed: ${fallbackText}`);
+            }
+
+            console.log('✅ Sent Flex confirmation via PUSH fallback');
+        } else if (response.ok) {
+            console.log('✅ Sent Flex confirmation message via REPLY');
+        } else {
+            console.error('❌ Flex message failed (no fallback attempted)');
+            throw new Error(`LINE API error: ${responseText}`);
+        }
     } catch (error) {
         console.error('❌ Error sending Flex message:', error);
     }
@@ -1905,12 +1924,15 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
             body: JSON.stringify(body)
         });
 
+        let responseText = await response.text();
+        const usedReplyFirst = replyToken && endpoint.includes('reply');
+        console.log(`📬 LINE API Response (${usedReplyFirst ? 'REPLY' : 'PUSH'}):`, response.status, responseText.substring(0, 300));
+
         // ⭐ ถ้า reply ไม่สำเร็จ (error 400 = Invalid reply token) ให้ลอง push แทน
         if (!response.ok && replyToken) {
-            const errorText = await response.text();
-            console.error(`❌ Reply failed: ${response.status} - ${errorText}`);
+            console.error(`❌ Reply failed: ${response.status} - ${responseText}`);
 
-            if (response.status === 400 && errorText.includes('Invalid reply token')) {
+            if (response.status === 400 && responseText.includes('Invalid reply token')) {
                 console.log('⚠️ Reply token expired, falling back to PUSH');
 
                 endpoint = 'https://api.line.me/v2/bot/message/push';
@@ -1926,15 +1948,19 @@ async function sendMessage(base44, lineUserId, text, branchId = null, replyToken
                     },
                     body: JSON.stringify(body)
                 });
+
+                responseText = await response.text();
+                console.log(`📬 PUSH Fallback Response:`, response.status, responseText.substring(0, 300));
             }
         }
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ LINE API error:', response.status, errorText);
+            console.error('❌ LINE API error:', response.status, responseText);
+            console.error('❌ Final endpoint used:', endpoint);
+            console.error('❌ Message content:', text.substring(0, 100));
 
             // ถ้าเป็น error เรื่อง rate limit ให้ลบ cache เพื่อให้ลองใหม่ได้
-            if (errorText.includes('rate limit') || errorText.includes('429')) {
+            if (responseText.includes('rate limit') || responseText.includes('429')) {
                 messageSentCache.delete(cacheKey);
             }
         } else {
