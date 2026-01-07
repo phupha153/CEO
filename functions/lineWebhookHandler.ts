@@ -1311,46 +1311,76 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         };
 
         const expectedAccountName = getConfigValue('bank_account_name');
+        const expectedAccountNameEn = getConfigValue('bank_account_name_en');
         const receiverName = slipData.receiver?.account?.name || '';
 
-        console.log('🔍 Name Verification (Account number check DISABLED):');
-        console.log('  Expected Name:', expectedAccountName);
+        console.log('🔍 Name Verification:');
+        console.log('  Expected Name (TH):', expectedAccountName);
+        console.log('  Expected Name (EN):', expectedAccountNameEn);
         console.log('  Receiver Name:', receiverName);
 
         let nameMatch = false;
 
-        // ⭐ เช็คชื่อบัญชี แบบ Fuzzy (รองรับทั้งไทย-อังกฤษ, ตัดคำนำหน้า)
-        if (expectedAccountName && receiverName) {
-            const cleanExpected = expectedAccountName
-                .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
-                .replace(/\s+/g, '')
-                .replace(/\./g, '')
-                .toLowerCase();
-
+        // ⭐ เช็คชื่อบัญชี - เช็คไทยก่อน ถ้าตรงก็ผ่านเลย (เอาแค่ชื่อแรก ไม่เอานามสกุล)
+        if ((expectedAccountName || expectedAccountNameEn) && receiverName) {
             const cleanReceiver = receiverName
                 .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
-                .replace(/\s+/g, '')
-                .replace(/\./g, '')
+                .replace(/\s+/g, ' ')
+                .trim()
                 .toLowerCase();
 
-            console.log('  → Clean Expected:', cleanExpected);
-            console.log('  → Clean Receiver:', cleanReceiver);
+            // แยกชื่อแรกเท่านั้น (ไม่เอานามสกุล)
+            const receiverFirstName = cleanReceiver.split(' ')[0];
 
-            const similarity = cleanReceiver.includes(cleanExpected) || cleanExpected.includes(cleanReceiver);
+            console.log('🔍 Name comparison (First name only):');
+            console.log('  - Receiver (from slip):', receiverName);
+            console.log('  - Receiver first name:', receiverFirstName);
 
-            if (similarity) {
-                nameMatch = true;
-                console.log('  → ✅ Name matched (fuzzy)');
-            } else {
-                const expectedWords = cleanExpected.split(/(?=[ก-๙])/);
-                const commonWords = expectedWords.filter(w => w.length > 2 && cleanReceiver.includes(w));
+            // ⭐ STEP 1: เช็คชื่อไทยก่อน
+            if (expectedAccountName) {
+                const cleanExpectedTh = expectedAccountName
+                    .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\./gi, '')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .toLowerCase();
+                const expectedFirstNameTh = cleanExpectedTh.split(' ')[0];
 
-                if (commonWords.length > 0) {
+                console.log('  - Expected (TH):', expectedAccountName);
+                console.log('  - Expected first (TH):', expectedFirstNameTh);
+
+                // เช็คว่าชื่อตรงกันหรือไม่ (เอาแค่ชื่อแรก)
+                if (receiverFirstName === expectedFirstNameTh || 
+                    receiverFirstName.includes(expectedFirstNameTh) || 
+                    expectedFirstNameTh.includes(receiverFirstName)) {
                     nameMatch = true;
-                    console.log('  → ✅ Name matched (partial):', commonWords);
+                    console.log('  ✅ Thai name matched! No need to check English.');
                 }
             }
-        } else if (!expectedAccountName) {
+
+            // ⭐ STEP 2: เช็คชื่ออังกฤษ (เฉพาะเมื่อชื่อไทยไม่ตรง)
+            if (!nameMatch && expectedAccountNameEn) {
+                const cleanExpectedEn = expectedAccountNameEn
+                    .replace(/mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .toLowerCase();
+                const expectedFirstNameEn = cleanExpectedEn.split(' ')[0];
+
+                console.log('  - Thai name not matched, checking English...');
+                console.log('  - Expected (EN):', expectedAccountNameEn);
+                console.log('  - Expected first (EN):', expectedFirstNameEn);
+
+                // เช็คชื่ออังกฤษ
+                if (receiverFirstName === expectedFirstNameEn || 
+                    receiverFirstName.includes(expectedFirstNameEn) || 
+                    expectedFirstNameEn.includes(receiverFirstName)) {
+                    nameMatch = true;
+                    console.log('  ✅ English name matched!');
+                }
+            }
+
+            console.log('  - Final Name Match:', nameMatch);
+        } else if (!expectedAccountName && !expectedAccountNameEn) {
             nameMatch = true;
             console.log('  → ⚠️ No expected name configured - Auto-approve');
         }
