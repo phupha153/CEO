@@ -292,6 +292,11 @@ export default function Settings() {
   // NEW: State for AddEmployeeDialog
   const [showAddEmployeeDialog, setShowAddEmployeeDialog] = useState(false);
 
+  // State for LINE Connect Dialog
+  const [showLineConnectDialog, setShowLineConnectDialog] = useState(false);
+  const [selectedUserForLineConnect, setSelectedUserForLineConnect] = useState(null);
+  const [availableLineChats, setAvailableLineChats] = useState([]);
+
   const [meterSettings, setMeterSettings] = useState({
     allow_editing_history: false
   });
@@ -442,6 +447,19 @@ export default function Settings() {
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+  });
+
+  const { data: lineMessages = [] } = useQuery({
+    queryKey: ['lineMessages', selectedBranchId],
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      return await base44.entities.LineMessage.filter({ 
+        branch_id: selectedBranchId,
+        direction: 'incoming'
+      }, '-created_date', 500);
+    },
+    enabled: !!currentUser && !!selectedBranchId,
+    staleTime: 2 * 60 * 1000,
   });
 
   const users = usersData?.users || [];
@@ -1759,6 +1777,64 @@ export default function Settings() {
     };
 
     toast.success(`เปลี่ยนเป็นบทบาท "${roleLabels[newRole]}" และโหลดสิทธิ์เริ่มต้นแล้ว`);
+  };
+
+  const handleOpenLineConnectDialog = (user) => {
+    setSelectedUserForLineConnect(user);
+    
+    // ดึงรายชื่อแชท LINE ที่ยังไม่ถูกเชื่อมต่อกับพนักงานคนอื่น
+    const connectedLineUserIds = users
+      .filter(u => u.employee_line_user_id && u.id !== user.id)
+      .map(u => u.employee_line_user_id);
+
+    // หา unique LINE users จากข้อความ
+    const uniqueChats = lineMessages.reduce((acc, msg) => {
+      if (!connectedLineUserIds.includes(msg.line_user_id)) {
+        if (!acc.some(chat => chat.line_user_id === msg.line_user_id)) {
+          acc.push({
+            line_user_id: msg.line_user_id,
+            line_display_name: msg.line_display_name || 'ไม่ระบุชื่อ',
+            line_picture_url: msg.line_picture_url
+          });
+        }
+      }
+      return acc;
+    }, []);
+
+    setAvailableLineChats(uniqueChats);
+    setShowLineConnectDialog(true);
+  };
+
+  const handleConnectLineToUser = async (lineUserId) => {
+    try {
+      await base44.entities.User.update(selectedUserForLineConnect.id, {
+        employee_line_user_id: lineUserId,
+        can_submit_expenses: true,
+        assigned_branch_id: selectedBranchId
+      });
+      
+      await queryClient.invalidateQueries(['usersInMyBranches']);
+      toast.success('เชื่อมต่อ LINE สำเร็จ!');
+      setShowLineConnectDialog(false);
+    } catch (error) {
+      toast.error('เชื่อมต่อไม่สำเร็จ: ' + error.message);
+    }
+  };
+
+  const handleDisconnectLine = async (userId) => {
+    if (!confirm('ยกเลิกการเชื่อมต่อ LINE ของพนักงานคนนี้?')) return;
+    
+    try {
+      await base44.entities.User.update(userId, {
+        employee_line_user_id: null,
+        can_submit_expenses: false
+      });
+      
+      await queryClient.invalidateQueries(['usersInMyBranches']);
+      toast.success('ยกเลิกการเชื่อมต่อสำเร็จ');
+    } catch (error) {
+      toast.error('ยกเลิกไม่สำเร็จ: ' + error.message);
+    }
   };
 
   const getRoleBadge = (role) => {
@@ -3261,47 +3337,7 @@ export default function Settings() {
                           </div>
                         </div>
 
-                        {/* ปุ่มเชื่อมต่อ LINE สำหรับพนักงาน */}
-                        {currentUser && (
-                          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
-                            <CardContent className="p-6">
-                              <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                                  <MessageSquare className="w-6 h-6 text-white" />
-                                </div>
-                                <div className="flex-1">
-                                  <h3 className="font-bold text-purple-900 mb-1">เชื่อมต่อ LINE สำหรับส่งค่าใช้จ่าย</h3>
-                                  <p className="text-sm text-purple-700 mb-4">
-                                    พนักงานสามารถส่งค่าใช้จ่ายผ่าน LINE ได้โดยตรง (ส่งข้อความหรือรูปใบเสร็จ)
-                                  </p>
-                                  {currentUser.employee_line_user_id && currentUser.can_submit_expenses ? (
-                                    <div className="bg-green-100 rounded-lg p-3 border border-green-300">
-                                      <div className="flex items-center gap-2 text-green-800">
-                                        <Check className="w-5 h-5" />
-                                        <span className="font-semibold">เชื่อมต่อแล้ว</span>
-                                      </div>
-                                      <p className="text-xs text-green-700 mt-1">
-                                        คุณสามารถส่งค่าใช้จ่ายผ่าน LINE ได้แล้ว
-                                      </p>
-                                    </div>
-                                  ) : (
-                                    <Button
-                                      type="button"
-                                      onClick={() => {
-                                        const url = `https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/employeeLineOAuthStart`;
-                                        window.open(url, '_blank', 'width=500,height=600');
-                                      }}
-                                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 w-full"
-                                    >
-                                      <MessageSquare className="w-4 h-4 mr-2" />
-                                      เชื่อมต่อ LINE เพื่อส่งค่าใช้จ่าย
-                                    </Button>
-                                  )}
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
+
 
                         <form onSubmit={handleLineSettingsSubmit} className="space-y-6">
                           <div className="space-y-4">
@@ -3945,44 +3981,68 @@ export default function Settings() {
 
                                   {/* ปุ่มจัดการ */}
                                   <div className="flex flex-wrap gap-2">
-                                   <Button
-                                     type="button"
-                                     onClick={() => handleOpenPermissionsDialog(user)}
-                                     className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
-                                   >
-                                     <SettingsIcon className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
-                                     <span className="hidden md:inline">จัดการสิทธิ์ย่อย</span>
-                                     <span className="md:hidden">สิทธิ์</span>
-                                   </Button>
+                                  <Button
+                                    type="button"
+                                    onClick={() => handleOpenPermissionsDialog(user)}
+                                    className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
+                                  >
+                                    <SettingsIcon className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                                    <span className="hidden md:inline">จัดการสิทธิ์ย่อย</span>
+                                    <span className="md:hidden">สิทธิ์</span>
+                                  </Button>
 
-                                   <Button
-                                     type="button"
-                                     variant="outline"
-                                     onClick={() => handleOpenBranchAccessDialog(user)}
-                                     className="border-blue-600 text-blue-700 hover:bg-blue-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
-                                   >
-                                     <Globe className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
-                                     <span className="hidden md:inline">จัดการสาขา</span>
-                                     <span className="md:hidden">สาขา</span>
-                                   </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => handleOpenBranchAccessDialog(user)}
+                                    className="border-blue-600 text-blue-700 hover:bg-blue-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
+                                  >
+                                    <Globe className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                                    <span className="hidden md:inline">จัดการสาขา</span>
+                                    <span className="md:hidden">สาขา</span>
+                                  </Button>
 
-                                    {(user.custom_role === 'developer' || currentPermissions.includes('settings_access_test_mode')) && (
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={async () => {
-                                          const newPermissions = currentPermissions.filter(p => p !== 'settings_access_test_mode');
-                                          await base44.entities.User.update(user.id, { permissions: newPermissions });
-                                          queryClient.invalidateQueries(['users']);
-                                          toast.success('ลบสิทธิ์โหมดทดสอบแล้ว');
-                                        }}
-                                        className="border-red-600 text-red-600 hover:bg-red-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
-                                      >
-                                        <X className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
-                                        <span className="hidden md:inline">ลบโหมดทดสอบ</span>
-                                        <span className="md:hidden">ทดสอบ</span>
-                                      </Button>
-                                    )}
+                                  {user.employee_line_user_id && user.can_submit_expenses ? (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => handleDisconnectLine(user.id)}
+                                      className="border-green-600 text-green-700 hover:bg-green-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
+                                    >
+                                      <Check className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                                      <span className="hidden md:inline">LINE เชื่อมต่อแล้ว</span>
+                                      <span className="md:hidden">LINE ✓</span>
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      onClick={() => handleOpenLineConnectDialog(user)}
+                                      className="border-purple-600 text-purple-700 hover:bg-purple-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
+                                    >
+                                      <MessageSquare className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                                      <span className="hidden md:inline">เชื่อมต่อ LINE</span>
+                                      <span className="md:hidden">LINE</span>
+                                    </Button>
+                                  )}
+
+                                   {(user.custom_role === 'developer' || currentPermissions.includes('settings_access_test_mode')) && (
+                                     <Button
+                                       type="button"
+                                       variant="outline"
+                                       onClick={async () => {
+                                         const newPermissions = currentPermissions.filter(p => p !== 'settings_access_test_mode');
+                                         await base44.entities.User.update(user.id, { permissions: newPermissions });
+                                         queryClient.invalidateQueries(['users']);
+                                         toast.success('ลบสิทธิ์โหมดทดสอบแล้ว');
+                                       }}
+                                       className="border-red-600 text-red-600 hover:bg-red-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
+                                     >
+                                       <X className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                                       <span className="hidden md:inline">ลบโหมดทดสอบ</span>
+                                       <span className="md:hidden">ทดสอบ</span>
+                                     </Button>
+                                   )}
                                   </div>
                                 </div>
                               </CardContent>
@@ -4359,6 +4419,70 @@ export default function Settings() {
               toast.success('เพิ่มพนักงานใหม่สำเร็จ!');
             }}
           />
+
+          {/* LINE Connect Dialog */}
+          <Dialog open={showLineConnectDialog} onOpenChange={setShowLineConnectDialog}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-green-600" />
+                  เชื่อมต่อ LINE กับ {selectedUserForLineConnect?.full_name}
+                </DialogTitle>
+                <p className="text-sm text-slate-600 mt-2">
+                  เลือกแชท LINE ของพนักงานคนนี้เพื่อเชื่อมต่อ (พนักงานจะส่งค่าใช้จ่ายผ่าน LINE ได้)
+                </p>
+              </DialogHeader>
+
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {availableLineChats.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MessageSquare className="w-12 h-12 mx-auto text-slate-400 mb-3" />
+                    <p className="text-slate-600">ไม่พบแชท LINE ที่ยังไม่ถูกเชื่อมต่อ</p>
+                    <p className="text-xs text-slate-500 mt-2">
+                      ให้พนักงานส่งข้อความมาที่ LINE OA ของหอพักก่อน
+                    </p>
+                  </div>
+                ) : (
+                  availableLineChats.map((chat) => (
+                    <button
+                      key={chat.line_user_id}
+                      onClick={() => handleConnectLineToUser(chat.line_user_id)}
+                      className="w-full flex items-center gap-3 p-4 border-2 border-slate-200 rounded-xl hover:border-green-500 hover:bg-green-50 transition-all"
+                    >
+                      {chat.line_picture_url ? (
+                        <img 
+                          src={chat.line_picture_url} 
+                          alt={chat.line_display_name}
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-lg">
+                            {chat.line_display_name.charAt(0)}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex-1 text-left">
+                        <p className="font-semibold text-slate-800">{chat.line_display_name}</p>
+                        <p className="text-xs text-slate-500">ID: {chat.line_user_id.substring(0, 20)}...</p>
+                      </div>
+                      <Check className="w-5 h-5 text-green-600" />
+                    </button>
+                  ))
+                )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowLineConnectDialog(false)}
+                >
+                  ยกเลิก
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Facebook Page Selection Dialog */}
           <Dialog open={showPageSelectionDialog} onOpenChange={setShowPageSelectionDialog}>
