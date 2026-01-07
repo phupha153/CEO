@@ -2542,51 +2542,38 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
                 // ⭐ เช็คว่าอยู่ในช่วง 30 วินาทีหรือไม่
                 if (secondsSinceUpdate <= 30) {
                     console.log(`⏱️ Within 30s window - AUTO-MERGING text + image`);
-                } else {
-                    console.log(`⚠️ Outside 30s window (${secondsSinceUpdate.toFixed(1)}s) - treating as separate expense, will analyze full data from image`);
-                    // ถ้าเกิน 30 วินาที → ถือว่าเป็นรูปใหม่ไม่เกี่ยวกับ pending เดิม → ส่งไป analyze ครบ
-                    // (ให้มันไปทำงานในส่วน "ถ้าไม่มีข้อมูล pending" ด้านล่าง)
-                    // ดังนั้นต้อง skip การ merge นี้
-                    // แต่ต้องเคลียร์ pending data เดิมก่อน
-                    await base44.asServiceRole.entities.User.update(freshEmployee.id, {
-                        expense_pending_data: null
-                    });
-                    // แล้วให้มันไป analyze ครบด้านล่าง
-                }
-                
-                // ⭐ อยู่ในช่วง 30 วินาที → Auto-merge
-                if (pendingData && secondsSinceUpdate <= 30) {
-                // AI Extract ข้อมูลจากรูป (เฉพาะ amount, date)
-                const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
-                    prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูล:
+                    
+                    // AI Extract ข้อมูลจากรูป (เฉพาะ amount, date)
+                    const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+                        prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูล:
 
 วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
 
 กรุณา extract เฉพาะ:
 1. amount: จำนวนเงินรวม (ตัวเลขเท่านั้น)
 2. date: วันที่โอนเงิน หรือวันที่ในใบเสร็จ ในรูป YYYY-MM-DD (ถ้าไม่มีให้ใช้วันนี้)`,
-                    file_urls: [file_url],
-                    response_json_schema: {
-                        type: "object",
-                        properties: {
-                            amount: { type: "number" },
-                            date: { type: "string" }
-                        },
-                        required: ["amount", "date"]
-                    }
-                });
-                
-                const categoryTh = {
-                    electricity: 'ค่าไฟ',
-                    water: 'ค่าน้ำ',
-                    repair: 'ค่าซ่อม',
-                    internet: 'ค่าเน็ต',
-                    salary: 'เงินเดือน',
-                    supplies: 'อุปกรณ์',
-                    refund_deposit: 'คืนเงินมัดจำ',
-                    other: 'อื่นๆ'
-                };
+                        file_urls: [file_url],
+                        response_json_schema: {
+                            type: "object",
+                            properties: {
+                                amount: { type: "number" },
+                                date: { type: "string" }
+                            },
+                            required: ["amount", "date"]
+                        }
+                    });
                     
+                    const categoryTh = {
+                        electricity: 'ค่าไฟ',
+                        water: 'ค่าน้ำ',
+                        repair: 'ค่าซ่อม',
+                        internet: 'ค่าเน็ต',
+                        salary: 'เงินเดือน',
+                        supplies: 'อุปกรณ์',
+                        refund_deposit: 'คืนเงินมัดจำ',
+                        other: 'อื่นๆ'
+                    };
+                        
                     // รวมข้อมูล: ใช้ category/title/description จากข้อความ + amount/date จากรูป
                     const mergedData = {
                         title: pendingData.title,
@@ -2607,6 +2594,12 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
                     // ส่ง Flex confirmation ด้วยข้อมูลที่ผสานแล้ว
                     await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
                     return;
+                } else {
+                    console.log(`⚠️ Outside 30s window (${secondsSinceUpdate.toFixed(1)}s) - treating as separate expense, will analyze full data from image`);
+                    // ถ้าเกิน 30 วินาที → ถือว่าเป็นรูปใหม่ไม่เกี่ยวกับ pending เดิม → ส่งไป analyze ครบ
+                    await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                        expense_pending_data: null
+                    });
                 }
             }
         }
