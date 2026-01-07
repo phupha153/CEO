@@ -2480,16 +2480,22 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
         if (pendingData && pendingData.receipt_image) {
             console.log('🔄 Auto-Merge: มีรูปอยู่แล้ว + ข้อความใหม่ → รวมข้อมูล');
             
-            // AI Extract เฉพาะ category, title, description จากข้อความ
+            // AI Extract category, title, description, date จากข้อความ
             const textAnalysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
                 prompt: `วิเคราะห์ข้อความค่าใช้จ่ายนี้และ extract ข้อมูล:
 
 "${messageText}"
 
-กรุณา extract เฉพาะ:
+วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
+
+กรุณา extract:
 1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
 2. title: หัวข้อสั้นๆ ไม่เกิน 50 ตัวอักษร
-3. description: รายละเอียดสั้นๆ`,
+3. description: รายละเอียดสั้นๆ
+4. date: วันที่ในรูป YYYY-MM-DD
+   - ถ้าระบุวันที่ชัดเจน (เช่น "5/1", "วันที่ 3", "เมื่อวาน") ให้แปลงเป็น YYYY-MM-DD
+   - ถ้าพูดถึง "เมื่อวาน" ให้ใช้วันก่อนหน้า
+   - **เฉพาะเมื่อไม่มีการระบุวันที่เลย** ให้ใช้วันนี้`,
                 response_json_schema: {
                     type: "object",
                     properties: {
@@ -2498,9 +2504,10 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                             enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
                         },
                         title: { type: "string" },
-                        description: { type: "string" }
+                        description: { type: "string" },
+                        date: { type: "string" }
                     },
-                    required: ["category", "title"]
+                    required: ["category", "title", "date"]
                 }
             });
             
