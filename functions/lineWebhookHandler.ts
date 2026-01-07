@@ -2280,28 +2280,93 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
         // ⭐ เช็คว่ามีข้อมูล pending อยู่แล้วหรือไม่
         const pendingData = employee.expense_pending_data;
         
-        if (pendingData && (pendingData.title || pendingData.amount)) {
-            console.log(`⚠️ Employee already has pending expense data - sending alert`);
+        if (pendingData) {
+            // ⭐⭐⭐ ถ้ามีรูปอยู่แล้ว → ให้เลือกว่าจะใช้รูปเดิมหรือใหม่
+            if (pendingData.receipt_image) {
+                console.log(`⚠️ Employee already has expense with image - sending choice dialog`);
+                
+                const categoryTh = {
+                    electricity: 'ค่าไฟ',
+                    water: 'ค่าน้ำ',
+                    repair: 'ค่าซ่อม',
+                    internet: 'ค่าเน็ต',
+                    salary: 'เงินเดือน',
+                    supplies: 'อุปกรณ์',
+                    refund_deposit: 'คืนเงินมัดจำ',
+                    other: 'อื่นๆ'
+                };
+                
+                // เก็บรูปใหม่ไว้ชั่วคราว
+                await base44.asServiceRole.entities.User.update(employee.id, {
+                    temp_expense_image_url: file_url
+                });
+                
+                // ส่งแจ้งเตือนให้เลือก
+                await sendPendingExpenseAlert(base44, lineUserId, pendingData, file_url, categoryTh, branchId, replyToken);
+                return;
+            }
             
-            const categoryTh = {
-                electricity: 'ค่าไฟ',
-                water: 'ค่าน้ำ',
-                repair: 'ค่าซ่อม',
-                internet: 'ค่าเน็ต',
-                salary: 'เงินเดือน',
-                supplies: 'อุปกรณ์',
-                refund_deposit: 'คืนเงินมัดจำ',
-                other: 'อื่นๆ'
-            };
-            
-            // เก็บรูปใหม่ไว้ชั่วคราว
-            await base44.asServiceRole.entities.User.update(employee.id, {
-                temp_expense_image_url: file_url
-            });
-            
-            // ส่งแจ้งเตือนให้เลือก
-            await sendPendingExpenseAlert(base44, lineUserId, pendingData, file_url, categoryTh, branchId, replyToken);
-            return;
+            // ⭐⭐⭐ ถ้ามีแค่ข้อความ (title/description) ไม่มีรูป → ผสานข้อมูลจากรูปใหม่
+            if (pendingData.title || pendingData.description) {
+                console.log(`📝 Merging text data with new image data`);
+                
+                // AI Extract ข้อมูลจากรูป (amount, category, date)
+                const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+                    prompt: `วิเคราะห์ใบเสร็จนี้และ extract ข้อมูล:
+
+วันที่ปัจจุบัน: ${new Date().toISOString().split('T')[0]}
+
+กรุณา extract เฉพาะ:
+1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
+2. amount: จำนวนเงินรวม
+3. date: วันที่ (ถ้าไม่มีให้ใช้วันนี้)`,
+                    file_urls: [file_url],
+                    response_json_schema: {
+                        type: "object",
+                        properties: {
+                            category: {
+                                type: "string",
+                                enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
+                            },
+                            amount: { type: "number" },
+                            date: { type: "string" }
+                        },
+                        required: ["category", "amount", "date"]
+                    }
+                });
+                
+                const categoryTh = {
+                    electricity: 'ค่าไฟ',
+                    water: 'ค่าน้ำ',
+                    repair: 'ค่าซ่อม',
+                    internet: 'ค่าเน็ต',
+                    salary: 'เงินเดือน',
+                    supplies: 'อุปกรณ์',
+                    refund_deposit: 'คืนเงินมัดจำ',
+                    other: 'อื่นๆ'
+                };
+                
+                // รวมข้อมูล: เอา title/description จากเดิม + amount/category/date จากรูปใหม่
+                const mergedData = {
+                    title: pendingData.title,
+                    amount: analysis.amount,
+                    category: analysis.category,
+                    date: analysis.date,
+                    description: pendingData.description,
+                    receipt_image: file_url
+                };
+                
+                // อัพเดท pending data
+                await base44.asServiceRole.entities.User.update(employee.id, {
+                    expense_pending_data: mergedData
+                });
+                
+                console.log('✅ Merged data:', mergedData);
+                
+                // ส่ง Flex confirmation ด้วยข้อมูลที่ผสานแล้ว
+                await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
+                return;
+            }
         }
         
         // ⭐ ถ้าไม่มีข้อมูล pending → ประมวลผลตามปกติ
