@@ -2143,17 +2143,135 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 other: 'อื่นๆ'
             };
             
-            await sendMessage(base44, lineUserId,
-                `✅ บันทึกค่าใช้จ่ายสำเร็จ!\n\n` +
-                `📋 ${pendingData.title}\n` +
-                `💰 ${pendingData.amount.toLocaleString()} บาท\n` +
-                `🏷️ ${categoryTh[pendingData.category]}\n` +
-                `📅 ${pendingData.date}`,
-                branchId,
-                replyToken
-            );
+            // ส่ง Flex Message แสดงว่าบันทึกสำเร็จ
+            const successFlex = {
+                type: 'flex',
+                altText: '✅ บันทึกค่าใช้จ่ายสำเร็จ',
+                contents: {
+                    type: 'bubble',
+                    hero: {
+                        type: 'box',
+                        layout: 'vertical',
+                        contents: [
+                            {
+                                type: 'box',
+                                layout: 'vertical',
+                                contents: [
+                                    {
+                                        type: 'text',
+                                        text: '✅',
+                                        size: 'xxl',
+                                        align: 'center',
+                                        color: '#06C755'
+                                    },
+                                    {
+                                        type: 'text',
+                                        text: 'บันทึกสำเร็จ',
+                                        size: 'xl',
+                                        weight: 'bold',
+                                        align: 'center',
+                                        color: '#06C755',
+                                        margin: 'md'
+                                    }
+                                ],
+                                paddingAll: 'xl',
+                                backgroundColor: '#F0FFF4'
+                            }
+                        ],
+                        paddingAll: 'none'
+                    },
+                    body: {
+                        type: 'box',
+                        layout: 'vertical',
+                        contents: [
+                            {
+                                type: 'text',
+                                text: pendingData.title,
+                                size: 'lg',
+                                weight: 'bold',
+                                wrap: true,
+                                color: '#1a1a1a'
+                            },
+                            {
+                                type: 'box',
+                                layout: 'vertical',
+                                contents: [
+                                    {
+                                        type: 'box',
+                                        layout: 'baseline',
+                                        contents: [
+                                            { type: 'text', text: '💰', size: 'sm', flex: 0 },
+                                            { type: 'text', text: 'ยอดเงิน:', size: 'sm', color: '#666666', flex: 2, margin: 'sm' },
+                                            { type: 'text', text: `${parseFloat(pendingData.amount).toLocaleString()} บาท`, size: 'sm', weight: 'bold', color: '#06C755', flex: 3, align: 'end' }
+                                        ],
+                                        margin: 'md'
+                                    },
+                                    {
+                                        type: 'box',
+                                        layout: 'baseline',
+                                        contents: [
+                                            { type: 'text', text: '📁', size: 'sm', flex: 0 },
+                                            { type: 'text', text: 'ประเภท:', size: 'sm', color: '#666666', flex: 2, margin: 'sm' },
+                                            { type: 'text', text: categoryTh[pendingData.category] || pendingData.category, size: 'sm', color: '#1a1a1a', flex: 3, align: 'end' }
+                                        ],
+                                        margin: 'sm'
+                                    },
+                                    {
+                                        type: 'box',
+                                        layout: 'baseline',
+                                        contents: [
+                                            { type: 'text', text: '📅', size: 'sm', flex: 0 },
+                                            { type: 'text', text: 'วันที่:', size: 'sm', color: '#666666', flex: 2, margin: 'sm' },
+                                            { type: 'text', text: pendingData.date, size: 'sm', color: '#1a1a1a', flex: 3, align: 'end' }
+                                        ],
+                                        margin: 'sm'
+                                    }
+                                ]
+                            }
+                        ],
+                        spacing: 'md'
+                    },
+                    styles: {
+                        footer: { separator: false }
+                    }
+                }
+            };
             
-            console.log('✅ Confirmation message sent');
+            const lineToken = await getLineToken(base44, branchId);
+            if (lineToken) {
+                const endpoint = replyToken 
+                    ? 'https://api.line.me/v2/bot/message/reply'
+                    : 'https://api.line.me/v2/bot/message/push';
+
+                const body = replyToken
+                    ? { replyToken, messages: [successFlex] }
+                    : { to: lineUserId, messages: [successFlex] };
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${lineToken}`
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok && replyToken) {
+                    const fallbackEndpoint = 'https://api.line.me/v2/bot/message/push';
+                    const fallbackBody = { to: lineUserId, messages: [successFlex] };
+                    
+                    await fetch(fallbackEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${lineToken}`
+                        },
+                        body: JSON.stringify(fallbackBody)
+                    });
+                }
+            }
+            
+            console.log('✅ Success Flex message sent');
             return;
         }
         
