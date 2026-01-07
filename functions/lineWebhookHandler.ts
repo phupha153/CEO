@@ -2040,7 +2040,7 @@ async function sendConfirmationMessage(base44, lineUserId, tenant, branch, reply
     if (branch) {
         confirmText += `🏢 สาขา: ${branch.branch_name}\n`;
     }
-    confirmText += `\n📸 ส่งรูปสลิปเพื่อชำระค่าเช่าได้เลยค่ะ\n`;
+    confirmText += `\nส่งรูปสลิปเพื่อชำระค่าเช่าได้เลยค่ะ\n`;
     confirmText += `🔧 แจ้งซ่อม: พิมพ์ "แจ้งซ่อม" แล้วตามด้วยรายละเอียดปัญหา`;
 
     await sendMessage(base44, lineUserId, confirmText, tenant.branch_id, replyToken);
