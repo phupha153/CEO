@@ -1640,12 +1640,10 @@ async function sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh
                         },
                         {
                             type: 'box',
-                            layout: 'baseline',
-                            spacing: 'sm',
+                            layout: 'vertical',
                             margin: 'md',
                             contents: [
-                                { type: 'text', text: 'รายละเอียดสลิป:', size: 'sm', color: '#64748B', flex: 2 },
-                                { type: 'text', text: 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', wrap: true, color: '#F97316', size: 'xs', flex: 5 }
+                                { type: 'text', text: 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', wrap: true, color: '#F97316', size: 'xs' }
                             ]
                         }
                     ],
@@ -1812,18 +1810,15 @@ async function sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, br
                         },
                         {
                             type: 'box',
-                            layout: 'baseline',
-                            spacing: 'sm',
+                            layout: 'vertical',
                             margin: 'md',
                             contents: [
-                                { type: 'text', text: 'รายละเอียดสลิป:', size: 'sm', color: '#64748B', flex: 2 },
                                 { 
                                     type: 'text', 
                                     text: hasReceipt ? '✅ แนบมาแล้ว' : 'ยังไม่มีสลิป ส่งสลิปมาได้เลย', 
                                     wrap: true, 
                                     color: hasReceipt ? '#16A34A' : '#F97316', 
-                                    size: 'xs', 
-                                    flex: 5 
+                                    size: 'xs'
                                 }
                             ]
                         }
