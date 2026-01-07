@@ -1865,17 +1865,22 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 other: 'อื่นๆ'
             };
 
-            await sendMessage(base44, lineUserId,
+            const templateText = 
                 `📝 ส่งข้อมูลใหม่ตามรูปแบบนี้:\n\n` +
-                `"${categoryTh[pendingData.category]} ${pendingData.amount} ${pendingData.description || ''}"\n\n` +
+                `วันที่: ${pendingData.date}\n` +
+                `ประเภท: ${categoryTh[pendingData.category]}\n` +
+                `จำนวน: ${pendingData.amount} บาท\n` +
+                `รายละเอียด: ${pendingData.description || pendingData.title}\n\n` +
+                `━━━━━━━━━━━━━━━\n\n` +
+                `💡 วิธีส่งข้อมูล:\n` +
+                `"[ประเภท] [จำนวน] [รายละเอียด]"\n\n` +
                 `ตัวอย่าง:\n` +
-                `• ค่าน้ำ 500\n` +
+                `• ค่าน้ำ 500 ห้อง 201\n` +
                 `• ค่าไฟ 1200 เดือนมกราคม\n` +
-                `• ซ่อมแอร์ 3500 ห้อง 201\n\n` +
-                `พิมพ์ "ยกเลิก" เพื่อยกเลิก`,
-                branchId,
-                replyToken
-            );
+                `• ซ่อมแอร์ 3500 ห้อง 305\n\n` +
+                `พิมพ์ "ยกเลิก" เพื่อยกเลิก`;
+
+            await sendMessage(base44, lineUserId, templateText, branchId, replyToken);
 
             await base44.asServiceRole.entities.User.update(employee.id, {
                 expense_pending_data: null
