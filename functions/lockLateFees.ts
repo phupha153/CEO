@@ -191,11 +191,12 @@ Deno.serve(async (req) => {
                                 await base44.asServiceRole.entities.Payment.update(payment.id, {
                                     late_fee_amount: lateFeeAmount,
                                     total_amount: newTotalAmount,
+                                    late_fee_last_calculated: new Date().toISOString(),
                                     status: payment.status === 'pending' || payment.status === 'overdue' ? 'overdue' : payment.status
                                 });
 
                                 branchResult.updated++;
-                                console.log(`  ✅ Updated payment ${payment.id.substring(0, 8)}... | Days: ${daysOverdue} | Late Fee: ${lateFeeAmount}฿ | Method: ${calculationMethod}`);
+                                console.log(`  ✅ Updated payment ${payment.id.substring(0, 8)}... | Due: ${payment.due_date} | Days: ${daysOverdue} | Late Fee: ${lateFeeAmount}฿ | Method: ${calculationMethod}`);
                             } else {
                                 branchResult.skipped++;
                             }
