@@ -2129,6 +2129,12 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             return;
         }
         
+        // ⭐ ถ้ากด "แก้ไข" แต่ไม่มี pending data → ไม่ส่งอะไรเลย
+        if (!pendingData && (messageText.toLowerCase().includes('แก้') || messageText === '✏️ แก้ไข')) {
+            console.log('ℹ️ Edit requested but no pending data - not responding');
+            return;
+        }
+        
         if (pendingData && (messageText.includes('ยืนยัน') || messageText.includes('✅'))) {
             console.log('========================================');
             console.log('✅ CONFIRMING EXPENSE');
