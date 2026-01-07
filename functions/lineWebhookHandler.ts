@@ -1865,17 +1865,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 other: 'อื่นๆ'
             };
 
-            const templateText = 
-                `📝 บันทึกค่าใช้จ่าย\n` +
-                `หัวข้อ : ${pendingData.title || '...........'}\n` +
-                `ยอดเงิน : ${pendingData.amount.toLocaleString()} บาท\n` +
-                `ประเภท : ${categoryTh[pendingData.category]}\n` +
-                `วันที่ : ${pendingData.date}\n` +
-                `รายละเอียด : ${pendingData.description || '...........'}\n` +
-                `รูปสลิป/บิล : (แนบมาแล้ว)\n` +
-                `หมายเหตุ : ...........`;
-
-            await sendMessage(base44, lineUserId, templateText, branchId, replyToken);
+            await sendEditTemplate(base44, lineUserId, pendingData, categoryTh, branchId, replyToken);
 
             await base44.asServiceRole.entities.User.update(employee.id, {
                 expense_pending_data: null
