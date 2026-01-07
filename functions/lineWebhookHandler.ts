@@ -2327,7 +2327,11 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
 กรุณา extract ข้อมูล:
 1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
 2. amount: จำนวนเงิน (ตัวเลขเท่านั้น)
-3. date: วันที่ในรูป YYYY-MM-DD (ถ้าไม่ระบุให้ใช้วันนี้)
+3. date: วันที่ในรูป YYYY-MM-DD
+   - ถ้าระบุวันที่ชัดเจน (เช่น "5/1", "วันที่ 3", "เมื่อวาน") ให้แปลงเป็น YYYY-MM-DD
+   - ถ้าพูดถึง "เมื่อวาน" ให้ใช้วันก่อนหน้า
+   - ถ้าพูดถึง "วันก่อน" ให้ใช้วันก่อนหน้า
+   - **เฉพาะเมื่อไม่มีการระบุวันที่เลย** ให้ใช้วันนี้
 4. description: รายละเอียดสั้นๆ
 5. title: หัวข้อสั้นๆ ไม่เกิน 50 ตัวอักษร`,
                 response_json_schema: {
