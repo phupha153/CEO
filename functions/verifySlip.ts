@@ -270,7 +270,7 @@ Deno.serve(async (req) => {
             // ⭐ ดึงข้อมูลจาก Slip2Go Response (ตาม structure ที่ถูกต้อง)
             const receiverAccount = slipData.receiver?.account?.bank?.account || '';
             const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
-            const receiverName = slipData.receiver?.account?.name || '';
+            const receiverName = slipData.receiver?.account?.name?.th || slipData.receiver?.account?.name?.en || slipData.receiver?.account?.name || '';
             
             console.log('🔍 Checking account match:');
             console.log('  Expected Account:', expectedAccountNumber);
