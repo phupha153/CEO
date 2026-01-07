@@ -2681,7 +2681,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
         };
 
         // เก็บข้อมูล pending พร้อม timestamp
-        await base44.asServiceRole.entities.User.update(employee.id, {
+        await base44.asServiceRole.entities.User.update(freshEmployee.id, {
             expense_pending_data: {
                 title: analysis.title,
                 amount: analysis.amount,
@@ -2690,7 +2690,8 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 description: analysis.description || analysis.title,
                 receipt_image: null,
                 created_at: new Date().toISOString() // ⭐ เก็บเวลาสร้าง
-            }
+            },
+            temp_expense_image_url: null
         });
 
         console.log('📝 Expense text saved - sending Flex confirmation');
