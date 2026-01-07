@@ -1976,7 +1976,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             other: 'อื่นๆ'
         };
 
-        // เก็บข้อมูล pending
+        // เก็บข้อมูล pending (ไม่ส่ง confirmation - รอให้ส่งรูปก่อน)
         await base44.asServiceRole.entities.User.update(employee.id, {
             expense_pending_data: {
                 title: analysis.title,
@@ -1988,8 +1988,16 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             }
         });
 
-        // ส่ง Flex Message พร้อมปุ่มยืนยัน/แก้ไข
-        await sendFlexConfirmation(base44, lineUserId, analysis, categoryTh, branchId, replyToken);
+        // ⭐ ส่งข้อความธรรมดาแจ้งว่ารอรูป (ไม่ส่ง Flex confirmation ยังเพื่อไม่ให้ซ้ำ)
+        await sendMessage(base44, lineUserId,
+            `📝 บันทึกข้อมูลแล้ว:\n\n` +
+            `${analysis.title}\n` +
+            `💰 ${analysis.amount.toLocaleString()} บาท\n` +
+            `🏷️ ${categoryTh[analysis.category]}\n\n` +
+            `📸 กรุณาส่งรูปใบเสร็จเพื่อยืนยันค่ะ`,
+            branchId,
+            replyToken
+        );
         
     } catch (error) {
         console.error('❌ Expense submission error:', error);
