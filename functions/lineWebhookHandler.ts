@@ -2177,6 +2177,66 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             return;
         }
         
+        // ⭐⭐⭐ ถ้ามี pending data ที่มีรูปอยู่แล้ว + ส่งข้อความตาม → Auto-Merge
+        if (pendingData && pendingData.receipt_image) {
+            console.log('🔄 Auto-Merge: มีรูปอยู่แล้ว + ข้อความใหม่ → รวมข้อมูล');
+            
+            // AI Extract เฉพาะ category, title, description จากข้อความ
+            const textAnalysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
+                prompt: `วิเคราะห์ข้อความค่าใช้จ่ายนี้และ extract ข้อมูล:
+
+"${messageText}"
+
+กรุณา extract เฉพาะ:
+1. category: electricity, water, repair, internet, salary, supplies, refund_deposit, other
+2. title: หัวข้อสั้นๆ ไม่เกิน 50 ตัวอักษร
+3. description: รายละเอียดสั้นๆ`,
+                response_json_schema: {
+                    type: "object",
+                    properties: {
+                        category: {
+                            type: "string",
+                            enum: ["electricity", "water", "repair", "internet", "salary", "supplies", "refund_deposit", "other"]
+                        },
+                        title: { type: "string" },
+                        description: { type: "string" }
+                    },
+                    required: ["category", "title"]
+                }
+            });
+            
+            const categoryTh = {
+                electricity: 'ค่าไฟ',
+                water: 'ค่าน้ำ',
+                repair: 'ค่าซ่อม',
+                internet: 'ค่าเน็ต',
+                salary: 'เงินเดือน',
+                supplies: 'อุปกรณ์',
+                refund_deposit: 'คืนเงินมัดจำ',
+                other: 'อื่นๆ'
+            };
+            
+            // รวมข้อมูล: ข้อความใหม่ + ยอดเงิน/วันที่/รูปจากเดิม
+            const mergedData = {
+                title: textAnalysis.title,
+                amount: pendingData.amount,
+                category: textAnalysis.category,
+                date: pendingData.date,
+                description: textAnalysis.description || textAnalysis.title,
+                receipt_image: pendingData.receipt_image
+            };
+            
+            await base44.asServiceRole.entities.User.update(employee.id, {
+                expense_pending_data: mergedData
+            });
+            
+            console.log('✅ Merged data:', mergedData);
+            
+            // ส่ง Flex confirmation
+            await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
+            return;
+        }
+        
         // ⭐ AI Extract ข้อมูล
         const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
             prompt: `วิเคราะห์ข้อความค่าใช้จ่ายต่อไปนี้:
