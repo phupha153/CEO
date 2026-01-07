@@ -2522,12 +2522,12 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 other: 'อื่นๆ'
             };
             
-            // รวมข้อมูล: ข้อความใหม่ + ยอดเงิน/วันที่/รูปจากเดิม
+            // รวมข้อมูล: ข้อความใหม่ + ยอดเงิน/รูปจากเดิม, วันที่ใช้จากข้อความก่อน
             const mergedData = {
                 title: textAnalysis.title,
                 amount: pendingData.amount,
                 category: textAnalysis.category,
-                date: pendingData.date,
+                date: textAnalysis.date || pendingData.date, // ใช้วันที่จากข้อความก่อน ถ้าไม่มีค่อยใช้เดิม
                 description: textAnalysis.description || textAnalysis.title,
                 receipt_image: pendingData.receipt_image
             };
