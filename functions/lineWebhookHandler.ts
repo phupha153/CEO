@@ -2364,19 +2364,10 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             });
             
             console.log('✅ Merged data:', mergedData);
+            console.log('🔍 DEBUG: Merged receipt_image =', mergedData.receipt_image);
             
-            // ส่งข้อความแจ้งรวมข้อมูลแล้ว
-            await sendMessage(base44, lineUserId,
-                '✅ รวมข้อมูลเรียบร้อยแล้ว\n\n' +
-                '📝 ข้อมูลจากข้อความของคุณ\n' +
-                '📸 ยอดเงินและวันที่จากรูปใบเสร็จ\n\n' +
-                'กรุณาตรวจสอบและยืนยันข้อมูลด้านล่างค่ะ',
-                branchId,
-                replyToken
-            );
-            
-            // ส่ง Flex confirmation
-            await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, null);
+            // ส่ง Flex confirmation เพียงครั้งเดียว (ไม่ส่งข้อความธรรมดา)
+            await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
             return;
         }
         
