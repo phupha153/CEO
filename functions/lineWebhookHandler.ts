@@ -2408,6 +2408,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             });
             
             console.log('✅ Updated data from edit:', updatedData);
+            console.log('🔍 [EDIT] Final category:', updatedData.category);
             
             // ส่ง Flex confirmation
             await sendFlexConfirmation(base44, lineUserId, updatedData, categoryTh, branchId, replyToken);
