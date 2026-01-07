@@ -911,14 +911,14 @@ export default function Settings() {
       setTranslatingName(true);
       try {
         const result = await base44.integrations.Core.InvokeLLM({
-          prompt: `แปลชื่อคนไทยนี้เป็นภาษาอังกฤษแบบทางการ (ตัวพิมพ์ใหญ่ทั้งหมด รูปแบบ MR./MRS. ตามด้วยชื่อ นามสกุล): "${bankInfo.account_name}"
+          prompt: `แปลชื่อคนไทยนี้เป็นภาษาอังกฤษ (ตัวพิมพ์ใหญ่ทั้งหมด เฉพาะชื่อ-นามสกุล ไม่ต้องใส่คำนำหน้า MR./MRS.): "${bankInfo.account_name}"
           
 ตัวอย่าง:
-- "นายสมชาย ใจดี" → "MR. SOMCHAI JAIDEE"
-- "นางสาวมะลิ สวยงาม" → "MISS MALI SUAYNGAM"
-- "ไพทูลย์ มีของ" → "MR. PHAITOON MEEKONG"
+- "นายสมชาย ใจดี" → "SOMCHAI JAIDEE"
+- "นางสาวมะลิ สวยงาม" → "MALI SUAYNGAM"  
+- "ไพทูลย์ มีของ" → "PHAITOON MEEKONG"
 
-ให้เฉพาะชื่ออังกฤษเท่านั้น ไม่ต้องอธิบาย`,
+ให้เฉพาะชื่ออังกฤษเท่านั้น ไม่ต้องอธิบาย ไม่ต้องใส่ MR./MRS./MISS`,
           response_json_schema: {
             type: "object",
             properties: {
