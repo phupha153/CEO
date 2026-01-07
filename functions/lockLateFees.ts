@@ -79,8 +79,12 @@ Deno.serve(async (req) => {
 
                 console.log(`  🔍 Found ${unpaidPayments.length} unpaid payments for this branch`);
 
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+                // ⭐ ใช้เวลาไทย (UTC+7) แทน UTC
+                const now = new Date();
+                const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+                const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+                
+                console.log(`  📅 Today (Thailand): ${today.toISOString().split('T')[0]} (UTC: ${now.toISOString().split('T')[0]})`);
 
                 // Helper function สำหรับหาค่า config
                 const getConfigValue = (key, defaultValue = null) => {
