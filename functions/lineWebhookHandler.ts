@@ -2175,7 +2175,7 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
             other: 'อื่นๆ'
         };
 
-        // เก็บข้อมูล pending
+        // เก็บข้อมูล pending พร้อม timestamp
         await base44.asServiceRole.entities.User.update(employee.id, {
             expense_pending_data: {
                 title: analysis.title,
@@ -2183,12 +2183,23 @@ async function handleEmployeeExpenseSubmission(base44, lineUserId, employee, mes
                 category: analysis.category,
                 date: analysis.date,
                 description: analysis.description || analysis.title,
-                receipt_image: null
+                receipt_image: null,
+                created_at: new Date().toISOString() // ⭐ เก็บเวลาสร้าง
             }
         });
 
-        // ⭐ ส่ง Flex Message พร้อมปุ่ม "ยืนยัน" และ "อัปโหลดรูป"
-        await sendFlexWithUploadOption(base44, lineUserId, analysis, categoryTh, branchId, replyToken);
+        // ⭐ ส่งข้อความธรรมดาแทน Flex - ให้รอรูป 30 วินาที
+        await sendMessage(base44, lineUserId,
+            `✅ รับข้อมูลแล้ว!\n\n` +
+            `📝 ${analysis.title}\n` +
+            `💰 ${analysis.amount.toLocaleString()} บาท\n` +
+            `🏷️ ${categoryTh[analysis.category]}\n` +
+            `📅 ${analysis.date}\n\n` +
+            `📸 กรุณาส่งรูปใบเสร็จภายใน 30 วินาที\n` +
+            `หรือพิมพ์ "✅ ยืนยัน" (ถ้าไม่มีรูป)`,
+            branchId,
+            replyToken
+        );
         
     } catch (error) {
         console.error('❌ Expense submission error:', error);
@@ -2509,10 +2520,25 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
                 return;
             }
             
-            // ⭐⭐⭐ ถ้ามีข้อความ (title/description) แต่ไม่มีรูป หรือข้อมูลเพิ่งสร้างใหม่ (race condition)
-            // → ผสานข้อมูลอัตโนมัติ โดยใช้ category, title, description จากข้อความ + amount, date จากรูป
+            // ⭐⭐⭐ ถ้ามีข้อความ (title/description) แต่ไม่มีรูป
             if ((pendingData.title || pendingData.description) && !pendingData.receipt_image) {
-                console.log(`📝 Auto-merging: text data (${secondsSinceUpdate.toFixed(1)}s old) + new image`);
+                console.log(`📝 Pending data found (${secondsSinceUpdate.toFixed(1)}s old)`);
+                
+                // ⭐ เช็คว่าอยู่ในช่วง 30 วินาทีหรือไม่
+                if (secondsSinceUpdate <= 30) {
+                    console.log(`⏱️ Within 30s window - AUTO-MERGING text + image`);
+                } else {
+                    console.log(`⚠️ Outside 30s window (${secondsSinceUpdate.toFixed(1)}s) - treating as separate expense, will analyze full data from image`);
+                    // ถ้าเกิน 30 วินาที → ถือว่าเป็นรูปใหม่ไม่เกี่ยวกับ pending เดิม → ส่งไป analyze ครบ
+                    // (ให้มันไปทำงานในส่วน "ถ้าไม่มีข้อมูล pending" ด้านล่าง)
+                    // ดังนั้นต้อง skip การ merge นี้
+                    // แต่ต้องเคลียร์ pending data เดิมก่อน
+                    await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                        expense_pending_data: null
+                    });
+                    // แล้วให้มันไป analyze ครบด้านล่าง
+                } else {
+                    // ⭐ อยู่ในช่วง 30 วินาที → Auto-merge
                 
                 // AI Extract ข้อมูลจากรูป (เฉพาะ amount, date)
                 const analysis = await base44.asServiceRole.integrations.Core.InvokeLLM({
@@ -2544,27 +2570,28 @@ async function handleEmployeeExpenseImage(base44, lineUserId, employee, messageI
                     refund_deposit: 'คืนเงินมัดจำ',
                     other: 'อื่นๆ'
                 };
-                
-                // รวมข้อมูล: ใช้ category/title/description จากข้อความ + amount/date จากรูป
-                const mergedData = {
-                    title: pendingData.title,
-                    amount: analysis.amount,
-                    category: pendingData.category,
-                    date: analysis.date,
-                    description: pendingData.description,
-                    receipt_image: file_url
-                };
-                
-                // อัพเดท pending data
-                await base44.asServiceRole.entities.User.update(freshEmployee.id, {
-                    expense_pending_data: mergedData
-                });
-                
-                console.log('✅ Auto-merged data:', mergedData);
-                
-                // ส่ง Flex confirmation ด้วยข้อมูลที่ผสานแล้ว
-                await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
-                return;
+                    
+                    // รวมข้อมูล: ใช้ category/title/description จากข้อความ + amount/date จากรูป
+                    const mergedData = {
+                        title: pendingData.title,
+                        amount: analysis.amount,
+                        category: pendingData.category,
+                        date: analysis.date,
+                        description: pendingData.description,
+                        receipt_image: file_url
+                    };
+                    
+                    // อัพเดท pending data
+                    await base44.asServiceRole.entities.User.update(freshEmployee.id, {
+                        expense_pending_data: mergedData
+                    });
+                    
+                    console.log('✅ Auto-merged data:', mergedData);
+                    
+                    // ส่ง Flex confirmation ด้วยข้อมูลที่ผสานแล้ว
+                    await sendFlexConfirmation(base44, lineUserId, mergedData, categoryTh, branchId, replyToken);
+                    return;
+                }
             }
         }
         
