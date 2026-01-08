@@ -1411,9 +1411,11 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         console.log('✅ Name verification passed - Processing payment');
 
         // ⭐⭐⭐ เรียกใช้ helper function แทนการคำนวณเอง
-        console.log('🧮 [LINE WEBHOOK v3] CALLING calculateLateFee HELPER');
+        console.log('🧮 [LINE WEBHOOK v3.2] CALLING calculateLateFee HELPER');
         const paymentDateObj = parseISO(transDate.split('T')[0]);
         const { lateFeeAmount, daysLate } = calculateLateFee(pendingPayment, configs, branchId, paymentDateObj);
+        
+        console.log(`💰 [HELPER RESULT] Late Fee: ${lateFeeAmount}฿, Days Late: ${daysLate}`);
         
         // ⭐ คำนวณยอดที่ต้องชำระจริง (รวมค่าปรับ)
         const expectedAmount = parseFloat(pendingPayment.total_amount) + lateFeeAmount;
