@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
                             }
 
                             // ⭐ ใช้ helper function คำนวณค่าปรับ
-                            const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, branch.id, today);
+                            const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, branch.id);
 
                             // ถ้ายังไม่เกินกำหนด → skip
                             if (daysLate <= 0) {
@@ -347,7 +347,7 @@ Deno.serve(async (req) => {
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
 
         // ⭐ เรียกใช้ helper function คำนวณค่าปรับ
-        const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, payment.branch_id, today);
+        const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, payment.branch_id);
 
         console.log(`📊 Calculation result: ${daysLate} days late → ${lateFeeAmount}฿`);
 
