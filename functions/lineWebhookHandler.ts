@@ -1411,11 +1411,15 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         console.log('✅ Name verification passed - Processing payment');
 
         // ⭐⭐⭐ เรียกใช้ helper function แทนการคำนวณเอง
-        console.log('🧮 [LINE WEBHOOK v3.2] CALLING calculateLateFee HELPER');
-        const paymentDateObj = parseISO(transDate.split('T')[0]);
-        const { lateFeeAmount, daysLate } = calculateLateFee(pendingPayment, configs, branchId, paymentDateObj);
-        
-        console.log(`💰 [HELPER RESULT] Late Fee: ${lateFeeAmount}฿, Days Late: ${daysLate}`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('🧮 [LINE WEBHOOK v3.3] PAYMENT CALCULATION');
+        console.log(`📋 Payment ID: ${pendingPayment.id.substring(0, 12)}...`);
+        console.log(`📅 Due Date: ${pendingPayment.due_date}`);
+        console.log(`📅 Payment Date: ${transDate.split('T')[0]}`);
+        console.log(`💰 OLD total_amount from DB: ${pendingPayment.total_amount}฿`);
+        console.log(`💰 OLD late_fee_amount from DB: ${pendingPayment.late_fee_amount || 0}฿`);
+        console.log(`💰 OLD paid_amount from DB: ${pendingPayment.paid_amount || 0}฿`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
         // ⭐ คำนวณ base amount (ไม่รวมค่าปรับ) เพื่อป้องกันการคำนวณค่าปรับซ้ำ
         const baseAmount = (parseFloat(pendingPayment.rent_amount) || 0) +
@@ -1426,12 +1430,30 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                           (parseFloat(pendingPayment.parking_fee_amount) || 0) +
                           (parseFloat(pendingPayment.other_amount) || 0);
         
+        console.log(`🧮 BASE AMOUNT (rent+water+elec+...): ${baseAmount}฿`);
+        console.log(`   Rent: ${pendingPayment.rent_amount || 0}฿`);
+        console.log(`   Water: ${pendingPayment.water_amount || 0}฿`);
+        console.log(`   Electricity: ${pendingPayment.electricity_amount || 0}฿`);
+        console.log(`   Internet: ${pendingPayment.internet_amount || 0}฿`);
+        console.log(`   Common Fee: ${pendingPayment.common_fee_amount || 0}฿`);
+        console.log(`   Parking: ${pendingPayment.parking_fee_amount || 0}฿`);
+        console.log(`   Other: ${pendingPayment.other_amount || 0}฿`);
+        
+        const paymentDateObj = parseISO(transDate.split('T')[0]);
+        const { lateFeeAmount, daysLate } = calculateLateFee(pendingPayment, configs, branchId, paymentDateObj);
+        
+        console.log(`🧮 LATE FEE (from helper): ${lateFeeAmount}฿ (${daysLate} days late)`);
+        
         // ⭐ คำนวณยอดที่ต้องชำระจริง (base + ค่าปรับใหม่)
         const expectedAmount = baseAmount + lateFeeAmount;
         const currentPaid = parseFloat(pendingPayment.paid_amount || 0);
         const totalPaid = currentPaid + slipAmount;
         
-        console.log(`📊 [CALCULATION] Base: ${baseAmount}฿, Late Fee: ${lateFeeAmount}฿, Expected: ${expectedAmount}฿`);
+        console.log(`📊 EXPECTED AMOUNT = ${baseAmount}฿ (base) + ${lateFeeAmount}฿ (late fee) = ${expectedAmount}฿`);
+        console.log(`💰 SLIP AMOUNT: ${slipAmount}฿`);
+        console.log(`💰 CURRENT PAID: ${currentPaid}฿`);
+        console.log(`💰 TOTAL PAID: ${totalPaid}฿`);
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
         console.log(`💰 Expected Amount (with late fee): ${expectedAmount} บาท`);
         console.log(`💰 Already Paid: ${currentPaid} บาท`);
