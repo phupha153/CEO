@@ -1,5 +1,71 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import { parseISO } from 'npm:date-fns@3.0.0';
+import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
+
+// ⭐ Inline helper: Calculate late fee (same as lineWebhookHandler & lockLateFees)
+function calculateLateFee(payment, configs, branchId, calculationDate = null) {
+    if (!payment || !payment.due_date) return { lateFeeAmount: 0, daysLate: 0 };
+    if (payment.status === 'paid') return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
+    if (payment.late_fee_locked === true) return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
+
+    const calcDate = calculationDate || new Date();
+    if (payment.late_fee_last_calculated) {
+        const lastCalcDate = new Date(payment.late_fee_last_calculated);
+        lastCalcDate.setHours(0, 0, 0, 0);
+        const now = new Date();
+        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+        if (lastCalcDate.getTime() === today.getTime()) {
+            return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
+        }
+    }
+
+    try {
+        const dueDate = parseISO(payment.due_date);
+        const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+        const calcDateStart = new Date(calcDate.getFullYear(), calcDate.getMonth(), calcDate.getDate());
+        const daysOverdue = differenceInDays(calcDateStart, dueDateStart);
+
+        if (daysOverdue <= 0) return { lateFeeAmount: 0, daysLate: 0 };
+
+        const getConfigValue = (key, defaultValue = null) => {
+            const branchCfg = configs.find(c => c.key === key && c.branch_id === branchId);
+            if (branchCfg?.value !== undefined && branchCfg?.value !== null) return branchCfg.value;
+            const globalCfg = configs.find(c => c.key === key && !c.branch_id);
+            return globalCfg?.value !== undefined && globalCfg?.value !== null ? globalCfg.value : defaultValue;
+        };
+
+        const tiersEnabled = getConfigValue('late_fee_tiers_enabled') === 'true';
+        if (tiersEnabled) {
+            const tiersConfigValue = getConfigValue('late_fee_tiers');
+            if (tiersConfigValue) {
+                try {
+                    const tiers = JSON.parse(tiersConfigValue);
+                    let totalFee = 0;
+                    for (const tier of tiers) {
+                        const daysFrom = tier.days_from || 1;
+                        const daysTo = tier.days_to || 999;
+                        const feePerDay = parseFloat(tier.fee_per_day || 0);
+                        if (daysOverdue >= daysFrom) {
+                            const daysInThisTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+                            if (daysInThisTier > 0) totalFee += daysInThisTier * feePerDay;
+                        }
+                        if (daysOverdue <= daysTo) break;
+                    }
+                    return { lateFeeAmount: totalFee, daysLate: daysOverdue };
+                } catch (e) {
+                    console.error('Error parsing tiers:', e);
+                }
+            }
+        }
+
+        const lateFeePerDay = parseFloat(getConfigValue('late_payment_fee_per_day', '0'));
+        if (lateFeePerDay === 0 || isNaN(lateFeePerDay)) return { lateFeeAmount: 0, daysLate: daysOverdue };
+        return { lateFeeAmount: daysOverdue * lateFeePerDay, daysLate: daysOverdue };
+    } catch (error) {
+        console.error('Error calculating late fee:', error);
+        return { lateFeeAmount: 0, daysLate: 0 };
+    }
+}
 
 Deno.serve(async (req) => {
     try {
