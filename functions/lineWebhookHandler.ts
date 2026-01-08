@@ -1589,8 +1589,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             
             await sendMessage(base44, lineUserId, 
                 `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n` +
-                `✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n` +
-                `💵 ยอดที่ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n⏰ รวมค่าปรับล่าช้า ${daysLate} วัน: ${lateFeeAmount.toLocaleString()} บาท` : ''}\n\n` +
+                ` ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n` +
+                ` ยอดที่ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n⏰ รวมค่าปรับล่าช้า ${daysLate} วัน: ${lateFeeAmount.toLocaleString()} บาท` : ''}\n\n` +
                 `⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท\n\n` +
                 `กรุณาโอนส่วนที่ขาดและส่งสลิปใหม่ค่ะ 🙏`,
                 branchId,
