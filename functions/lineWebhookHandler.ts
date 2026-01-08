@@ -107,9 +107,10 @@ async function getBranchIdFromDestination(base44, destination) {
 }
 
 Deno.serve(async (req) => {
-    // ⭐⭐⭐ LOG แรกสุด - ถ้าไม่เห็น og นี้ = webhook ไม่ได้ถูกเรียกเลย
+    // ⭐⭐⭐ LOG แรกสุด - ถ้าไม่เห็น log นี้ = webhook ไม่ได้ถูกเรียกเลย
+    // v3.1 - Using helper function for late fee calculation
     console.log('========================================');
-    console.log('🚀 LINE WEBHOOK RECEIVED!');
+    console.log('🚀 LINE WEBHOOK RECEIVED! (v3.1)');
     console.log(`📅 Timestamp: ${new Date().toISOString()}`);
     console.log(`📍 Method: ${req.method}`);
     console.log(`📍 URL: ${req.url}`);
