@@ -37,8 +37,8 @@ export function calculateLateFee(payment, configs, branchId, calculationDate = n
     
     const calcDate = calculationDate || new Date();
     
-    // 🔒 LOCK 3: เช็คว่าคำนวณวันนี้แล้วหรือยัง
-    if (!calculationDate && payment.late_fee_last_calculated) {
+    // 🔒 LOCK 3: เช็คว่าคำนวณวันนี้แล้วหรือยัง (ทำงานเสมอ ไม่ว่า calculationDate มีค่าหรือไม่)
+    if (payment.late_fee_last_calculated) {
         const lastCalcDate = new Date(payment.late_fee_last_calculated);
         lastCalcDate.setHours(0, 0, 0, 0);
         
@@ -53,8 +53,6 @@ export function calculateLateFee(payment, configs, branchId, calculationDate = n
             console.log(`  ✅ SKIP: Already calculated today (${payment.late_fee_amount || 0}฿)`);
             return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
         }
-    } else if (!calculationDate) {
-        console.log(`  ⚠️ No late_fee_last_calculated → Will calculate`);
     }
 
     try {
