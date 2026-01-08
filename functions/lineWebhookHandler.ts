@@ -1529,8 +1529,12 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         
         console.log(`💰 Base: ${baseAmount}฿ (${pendingPayment.rent_amount}฿ rent + ${(baseAmount - (pendingPayment.rent_amount || 0)).toFixed(0)}฿ utilities)`);
         
-        const paymentDateObj = parseISO(transDate.split('T')[0]);
-        const { lateFeeAmount, daysLate } = calculateLateFee(pendingPayment, configs, branchId, paymentDateObj);
+        // ⭐ ใช้เวลาไทย (UTC+7) แทน UTC เพื่อให้เช็ก late_fee_last_calculated ได้ถูกต้อง
+        const now = new Date();
+        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+        
+        const { lateFeeAmount, daysLate } = calculateLateFee(pendingPayment, configs, branchId, today);
         
         const expectedAmount = baseAmount + lateFeeAmount;
         const currentPaid = parseFloat(pendingPayment.paid_amount || 0);
