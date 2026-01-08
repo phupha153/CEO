@@ -16,36 +16,28 @@ import { parseISO, differenceInDays } from 'npm:date-fns';
  * @returns {Object} { lateFeeAmount: number, daysLate: number }
  */
 export function calculateLateFee(payment, configs, branchId, calculationDate = null) {
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('🧮 [HELPER FUNCTION] calculateLateFee() CALLED');
-    console.log(`   📋 Payment ID: ${payment?.id?.substring(0, 12) || 'N/A'}...`);
-    console.log(`   📅 Due Date: ${payment?.due_date || 'N/A'}`);
-    console.log(`   📅 Calculation Date: ${calculationDate ? calculationDate.toISOString().split('T')[0] : 'Today'}`);
-    console.log(`   🏢 Branch ID: ${branchId?.substring(0, 12) || 'N/A'}...`);
-    console.log(`   📊 Payment Status: ${payment?.status || 'N/A'}`);
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`🧮 LateFee: ${payment?.id?.substring(0, 8)}... | Due: ${payment?.due_date} | Status: ${payment?.status}`);
     
     if (!payment || !payment.due_date) {
-        console.log('⚠️ [HELPER] No payment or due_date → Returning 0');
+        console.log('  ⏭️ SKIP: No due_date');
         return { lateFeeAmount: 0, daysLate: 0 };
     }
     
-    // 🔒 LOCK 1: ถ้าชำระแล้ว → ใช้ค่าปรับที่บันทึกไว้
+    // 🔒 LOCK 1: ถ้าชำระแล้ว
     if (payment.status === 'paid') {
-        console.log(`🔒 [HELPER] Payment PAID → Using locked late fee: ${payment.late_fee_amount || 0} บาท`);
+        console.log(`  🔒 SKIP: Already paid (locked: ${payment.late_fee_amount || 0}฿)`);
         return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
     }
     
-    // 🔒 LOCK 2: ถ้า admin ล็อคค่าปรับไว้ → ไม่คำนวณใหม่
+    // 🔒 LOCK 2: ถ้า admin ล็อคค่าปรับ
     if (payment.late_fee_locked === true) {
-        console.log(`🔒 [HELPER] Late fee LOCKED by admin: ${payment.late_fee_amount || 0} บาท`);
+        console.log(`  🔒 SKIP: Admin locked (${payment.late_fee_amount || 0}฿)`);
         return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
     }
     
-    // ⭐ ถ้าไม่ระบุวันที่ ให้ใช้วันนี้
     const calcDate = calculationDate || new Date();
     
-    // ⭐ เช็คว่าคำนวณวันนี้แล้วหรือยัง (ป้องกันคำนวณซ้ำ) - เฉพาะเมื่อใช้วันนี้
+    // 🔒 LOCK 3: เช็คว่าคำนวณวันนี้แล้วหรือยัง
     if (!calculationDate && payment.late_fee_last_calculated) {
         const lastCalcDate = new Date(payment.late_fee_last_calculated);
         lastCalcDate.setHours(0, 0, 0, 0);
@@ -55,9 +47,14 @@ export function calculateLateFee(payment, configs, branchId, calculationDate = n
         const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
         
+        console.log(`  🔍 LastCalc: ${lastCalcDate.toISOString().split('T')[0]} | Today(TH): ${today.toISOString().split('T')[0]} | Match: ${lastCalcDate.getTime() === today.getTime()}`);
+        
         if (lastCalcDate.getTime() === today.getTime()) {
-            return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 }; // ✅ ใช้ค่าเดิม
+            console.log(`  ✅ SKIP: Already calculated today (${payment.late_fee_amount || 0}฿)`);
+            return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
         }
+    } else if (!calculationDate) {
+        console.log(`  ⚠️ No late_fee_last_calculated → Will calculate`);
     }
 
     try {
@@ -103,11 +100,7 @@ export function calculateLateFee(payment, configs, branchId, calculationDate = n
                         if (daysOverdue <= daysTo) break;
                     }
 
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                    console.log('✅ [HELPER] CALCULATION COMPLETE (Tiered)');
-                    console.log(`   💰 Total Late Fee: ${totalFee} บาท`);
-                    console.log(`   📆 Days Late: ${daysOverdue} days`);
-                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log(`  ✅ Tiered: ${daysOverdue}d → ${totalFee}฿`);
                     return { lateFeeAmount: totalFee, daysLate: daysOverdue };
                 } catch (e) {
                     console.error('Error parsing late fee tiers:', e);
@@ -119,16 +112,12 @@ export function calculateLateFee(payment, configs, branchId, calculationDate = n
         const lateFeePerDay = parseFloat(getConfigValue('late_payment_fee_per_day', '0'));
         
         if (lateFeePerDay === 0 || isNaN(lateFeePerDay)) {
-            console.log('⚠️ [HELPER] No late fee config → Returning 0');
+            console.log('  ⏭️ SKIP: No late fee config');
             return { lateFeeAmount: 0, daysLate: daysOverdue };
         }
 
         const simpleFee = daysOverdue * lateFeePerDay;
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('✅ [HELPER] CALCULATION COMPLETE (Simple)');
-        console.log(`   💰 Late Fee: ${simpleFee} บาท (${daysOverdue} days × ${lateFeePerDay}฿/day)`);
-        console.log(`   📆 Days Late: ${daysOverdue} days`);
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(`  ✅ Simple: ${daysOverdue}d × ${lateFeePerDay}฿ = ${simpleFee}฿`);
         return { lateFeeAmount: simpleFee, daysLate: daysOverdue };
     } catch (error) {
         console.error('Error calculating late fee:', error);
