@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
-import { calculateLateFee } from './utils/calculateLateFee.js';
+import { calculateLateFee } from './utils/calculateLateFee';
 
 const processedMessages = new Set();
 
