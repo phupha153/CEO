@@ -111,10 +111,15 @@ Deno.serve(async (req) => {
                     return globalCfg?.value !== undefined && globalCfg?.value !== null ? globalCfg.value : defaultValue;
                 };
 
-                // ⭐ ประมวลผลแบบ batch (chunk 50 records/ครั้ง เพื่อป้องกัน rate limit)
-                const chunkSize = 50;
+                // ⭐ ประมวลผลแบบ batch (chunk 200 records/ครั้ง - optimized for performance)
+                const chunkSize = 200;
+                const totalChunks = Math.ceil(unpaidPayments.length / chunkSize);
+                
                 for (let i = 0; i < unpaidPayments.length; i += chunkSize) {
                     const chunk = unpaidPayments.slice(i, i + chunkSize);
+                    const chunkNumber = Math.floor(i / chunkSize) + 1;
+                    
+                    console.log(`  📦 Processing chunk ${chunkNumber}/${totalChunks} (${chunk.length} payments)`);
                     
                     // ประมวลผล chunk นี้แบบ parallel
                     const updatePromises = chunk.map(async (payment) => {
@@ -185,9 +190,11 @@ Deno.serve(async (req) => {
                     // รอให้ chunk นี้เสร็จก่อนไป chunk ถัดไป
                     await Promise.all(updatePromises);
                     
-                    // Delay เล็กน้อยเพื่อป้องกัน rate limit
+                    console.log(`  ✅ Chunk ${chunkNumber}/${totalChunks} completed`);
+                    
+                    // Delay สั้นลงเพื่อเพิ่มความเร็ว (50ms แทน 100ms)
                     if (i + chunkSize < unpaidPayments.length) {
-                        await new Promise(resolve => setTimeout(resolve, 100));
+                        await new Promise(resolve => setTimeout(resolve, 50));
                     }
                 }
 
