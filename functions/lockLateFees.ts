@@ -1,19 +1,35 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
+import { calculateLateFee } from './utils/calculateLateFee.js';
 
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
+        
+        // ⭐ รับ paymentId จาก request body (optional)
+        let paymentId = null;
+        try {
+            const body = await req.json();
+            paymentId = body?.paymentId || null;
+        } catch {
+            // ไม่มี body = รันแบบปกติกับทุกบิล
+        }
+
         const user = await base44.auth.me();
 
         if (user?.role !== 'admin') {
             return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
         }
 
-        console.log('🔒 [Lock Late Fees] Starting job...');
+        console.log('🔒 [Lock Late Fees] Starting job...', paymentId ? `(Single payment: ${paymentId.substring(0, 12)}...)` : '(All payments)');
         const startTime = Date.now();
 
-        // ⭐ ดึง branches ที่ active เท่านั้น
+        // ⭐⭐⭐ ถ้าระบุ paymentId = คำนวณเฉพาะบิลนั้น
+        if (paymentId) {
+            return await calculateSinglePayment(base44, paymentId, startTime);
+        }
+
+        // ⭐ ดึง branches ที่ active เท่านั้น (สำหรับโหมดคำนวณทุกบิล)
         const allBranches = await base44.asServiceRole.entities.Branch.filter({ status: 'active' });
         console.log(`✅ Loaded ${allBranches.length} active branches`);
 
@@ -117,57 +133,13 @@ Deno.serve(async (req) => {
                                 return;
                             }
 
-                            const dueDate = parseISO(payment.due_date);
-                            const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-                            const daysOverdue = differenceInDays(today, dueDateStart);
+                            // ⭐ ใช้ helper function คำนวณค่าปรับ
+                            const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, branch.id, today);
 
                             // ถ้ายังไม่เกินกำหนด → skip
-                            if (daysOverdue <= 0) {
+                            if (daysLate <= 0) {
                                 branchResult.skipped++;
                                 return;
-                            }
-
-                            // ⭐ คำนวณค่าปรับ (รองรับ Tiers + Simple)
-                            let lateFeeAmount = 0;
-                            let calculationMethod = 'none';
-
-                            // เช็คว่าเปิดใช้ Tiers หรือไม่
-                            const tiersEnabled = getConfigValue('late_fee_tiers_enabled') === 'true';
-
-                            if (tiersEnabled) {
-                                const tiersConfigValue = getConfigValue('late_fee_tiers');
-
-                                if (tiersConfigValue) {
-                                    try {
-                                        const tiers = JSON.parse(tiersConfigValue);
-                                        
-                                        for (const tier of tiers) {
-                                            const daysFrom = tier.days_from || 1;
-                                            const daysTo = tier.days_to || 999;
-                                            const feePerDay = parseFloat(tier.fee_per_day || 0);
-
-                                            if (daysOverdue >= daysFrom) {
-                                                const daysInThisTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
-                                                if (daysInThisTier > 0) {
-                                                    lateFeeAmount += daysInThisTier * feePerDay;
-                                                }
-                                            }
-
-                                            if (daysOverdue <= daysTo) break;
-                                        }
-
-                                        calculationMethod = 'tiered';
-                                    } catch (e) {
-                                        console.error(`  ❌ Error parsing tiers for payment ${payment.id}:`, e);
-                                    }
-                                }
-                            }
-
-                            // Fallback: Simple rate
-                            if (calculationMethod === 'none') {
-                                const lateFeePerDay = parseFloat(getConfigValue('late_payment_fee_per_day', '0'));
-                                lateFeeAmount = daysOverdue * lateFeePerDay;
-                                calculationMethod = 'simple';
                             }
 
                             // คำนวณ total_amount ใหม่
@@ -185,7 +157,7 @@ Deno.serve(async (req) => {
                             const needsUpdate = 
                                 Math.abs((payment.late_fee_amount || 0) - lateFeeAmount) > 0.01 ||
                                 Math.abs((payment.total_amount || 0) - newTotalAmount) > 0.01 ||
-                                (daysOverdue > 0 && payment.status !== 'overdue');
+                                (daysLate > 0 && payment.status !== 'overdue');
 
                             if (needsUpdate) {
                                 await base44.asServiceRole.entities.Payment.update(payment.id, {
@@ -196,7 +168,7 @@ Deno.serve(async (req) => {
                                 });
 
                                 branchResult.updated++;
-                                console.log(`  ✅ Updated payment ${payment.id.substring(0, 8)}... | Due: ${payment.due_date} | Days: ${daysOverdue} | Late Fee: ${lateFeeAmount}฿ | Method: ${calculationMethod}`);
+                                console.log(`  ✅ Updated payment ${payment.id.substring(0, 8)}... | Due: ${payment.due_date} | Days: ${daysLate} | Late Fee: ${lateFeeAmount}฿`);
                             } else {
                                 branchResult.skipped++;
                             }
@@ -284,5 +256,130 @@ Deno.serve(async (req) => {
             success: false, 
             error: error.message 
         }, { status: 500 });
-    }
-});
+        }
+        });
+
+        // ⭐⭐⭐ Helper function: คำนวณค่าปรับสำหรับบิลเดียว
+        async function calculateSinglePayment(base44, paymentId, startTime) {
+        try {
+        console.log(`\n🎯 [Single Payment Mode] Payment ID: ${paymentId.substring(0, 12)}...`);
+
+        // ดึงข้อมูล payment
+        const payments = await base44.asServiceRole.entities.Payment.list();
+        const payment = payments.find(p => p.id === paymentId);
+
+        if (!payment) {
+        return Response.json({
+          success: false,
+          error: 'Payment not found'
+        }, { status: 404 });
+        }
+
+        console.log(`✅ Found payment: ${payment.id.substring(0, 12)}... (Branch: ${payment.branch_id.substring(0, 12)}...)`);
+
+        // ดึง configs ของสาขานี้
+        const allConfigs = await base44.asServiceRole.entities.Config.list();
+        const branchConfigs = allConfigs.filter(c => 
+        c.branch_id === payment.branch_id || !c.branch_id
+        );
+
+        // ตรวจสอบว่าเจ้าของสาขาหมดอายุหรือไม่
+        const branch = await base44.asServiceRole.entities.Branch.filter({ id: payment.branch_id });
+        const branchData = Array.isArray(branch) ? branch[0] : branch;
+
+        if (!branchData) {
+        return Response.json({
+          success: false,
+          error: 'Branch not found'
+        }, { status: 404 });
+        }
+
+        let shouldSkip = false;
+        try {
+        const ownerUsers = await base44.asServiceRole.entities.User.filter({ email: branchData.owner_id });
+        if (ownerUsers && ownerUsers.length > 0) {
+          const ownerStatus = ownerUsers[0].plan_status;
+          if (ownerStatus !== 'active' && ownerStatus !== 'trial') {
+              console.log(`⏭️ SKIP: Owner expired/cancelled (status: ${ownerStatus})`);
+              shouldSkip = true;
+          }
+        }
+        } catch (e) {
+        console.warn(`⚠️ Could not check owner status: ${e.message}`);
+        }
+
+        if (shouldSkip) {
+        return Response.json({
+          success: false,
+          error: 'Branch owner subscription expired'
+        }, { status: 403 });
+        }
+
+        // ตรวจสอบสถานะ
+        if (payment.status === 'paid') {
+        return Response.json({
+          success: true,
+          message: 'Payment already paid',
+          late_fee_amount: payment.late_fee_amount || 0,
+          updated: false
+        });
+        }
+
+        if (payment.late_fee_locked === true) {
+        return Response.json({
+          success: true,
+          message: 'Late fee locked by admin',
+          late_fee_amount: payment.late_fee_amount || 0,
+          updated: false
+        });
+        }
+
+        // ⭐ ใช้เวลาไทย (UTC+7)
+        const now = new Date();
+        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+
+        // ⭐ เรียกใช้ helper function คำนวณค่าปรับ
+        const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, payment.branch_id, today);
+
+        console.log(`📊 Calculation result: ${daysLate} days late → ${lateFeeAmount}฿`);
+
+        // คำนวณ total_amount ใหม่
+        const baseAmount = (payment.rent_amount || 0) +
+                    (payment.water_amount || 0) +
+                    (payment.electricity_amount || 0) +
+                    (payment.internet_amount || 0) +
+                    (payment.common_fee_amount || 0) +
+                    (payment.parking_fee_amount || 0) +
+                    (payment.other_amount || 0);
+
+        const newTotalAmount = baseAmount + lateFeeAmount;
+
+        // อัปเดต payment
+        await base44.asServiceRole.entities.Payment.update(payment.id, {
+        late_fee_amount: lateFeeAmount,
+        total_amount: newTotalAmount,
+        late_fee_last_calculated: new Date().toISOString(),
+        status: payment.status === 'pending' || payment.status === 'overdue' ? (daysLate > 0 ? 'overdue' : 'pending') : payment.status
+        });
+
+        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+        return Response.json({
+        success: true,
+        duration_seconds: duration,
+        payment_id: paymentId,
+        late_fee_amount: lateFeeAmount,
+        days_late: daysLate,
+        total_amount: newTotalAmount,
+        updated: true
+        });
+
+        } catch (error) {
+        console.error('❌ Single payment calculation failed:', error);
+        return Response.json({
+        success: false,
+        error: error.message
+        }, { status: 500 });
+        }
+        }
