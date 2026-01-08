@@ -49,8 +49,11 @@ export function calculateLateFee(payment, configs, branchId, calculationDate = n
     if (!calculationDate && payment.late_fee_last_calculated) {
         const lastCalcDate = new Date(payment.late_fee_last_calculated);
         lastCalcDate.setHours(0, 0, 0, 0);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        
+        // ⭐ ใช้เวลาไทย (UTC+7)
+        const now = new Date();
+        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
         
         if (lastCalcDate.getTime() === today.getTime()) {
             return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 }; // ✅ ใช้ค่าเดิม
