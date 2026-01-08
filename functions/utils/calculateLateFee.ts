@@ -79,7 +79,7 @@ export function calculateLateFee(payment, configs, branchId, calculationDate = n
 
         if (tiersEnabled) {
             const tiersConfigValue = getConfigValue('late_fee_tiers');
-            
+
             if (tiersConfigValue) {
                 try {
                     const tiers = JSON.parse(tiersConfigValue);
