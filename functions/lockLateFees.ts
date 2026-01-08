@@ -126,6 +126,17 @@ Deno.serve(async (req) => {
                         branchResult.processed++;
 
                         try {
+                            // ⭐ NEW: Check if already calculated today before doing anything else
+                            if (payment.late_fee_last_calculated) {
+                                const lastCalcDate = new Date(payment.late_fee_last_calculated);
+                                lastCalcDate.setHours(0, 0, 0, 0);
+                                if (lastCalcDate.getTime() === today.getTime()) {
+                                    // console.log(`  ⏭️ Skipped (already calc today): ${payment.id.substring(0, 8)}...`);
+                                    branchResult.skipped++;
+                                    return; // Use return because we are inside an async map function
+                                }
+                            }
+
                             if (!payment.due_date) {
                                 branchResult.skipped++;
                                 return;

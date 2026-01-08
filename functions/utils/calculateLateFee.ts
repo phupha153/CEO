@@ -37,25 +37,8 @@ export function calculateLateFee(payment, configs, branchId, calculationDate = n
     
     const calcDate = calculationDate || new Date();
     
-    // 🔒 LOCK 3: เช็คว่าคำนวณวันนี้แล้วหรือยัง
-    if (!calculationDate && payment.late_fee_last_calculated) {
-        const lastCalcDate = new Date(payment.late_fee_last_calculated);
-        lastCalcDate.setHours(0, 0, 0, 0);
-        
-        // ⭐ ใช้เวลาไทย (UTC+7)
-        const now = new Date();
-        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
-        
-        console.log(`  🔍 LastCalc: ${lastCalcDate.toISOString().split('T')[0]} | Today(TH): ${today.toISOString().split('T')[0]} | Match: ${lastCalcDate.getTime() === today.getTime()}`);
-        
-        if (lastCalcDate.getTime() === today.getTime()) {
-            console.log(`  ✅ SKIP: Already calculated today (${payment.late_fee_amount || 0}฿)`);
-            return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
-        }
-    } else if (!calculationDate) {
-        console.log(`  ⚠️ No late_fee_last_calculated → Will calculate`);
-    }
+    // NOTE: The check for 'late_fee_last_calculated' has been moved to the main 'lockLateFees' function
+    // to prevent this helper from being called unnecessarily.
 
     try {
         const dueDate = parseISO(payment.due_date);
