@@ -1417,10 +1417,21 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         
         console.log(`💰 [HELPER RESULT] Late Fee: ${lateFeeAmount}฿, Days Late: ${daysLate}`);
         
-        // ⭐ คำนวณยอดที่ต้องชำระจริง (รวมค่าปรับ)
-        const expectedAmount = parseFloat(pendingPayment.total_amount) + lateFeeAmount;
+        // ⭐ คำนวณ base amount (ไม่รวมค่าปรับ) เพื่อป้องกันการคำนวณค่าปรับซ้ำ
+        const baseAmount = (parseFloat(pendingPayment.rent_amount) || 0) +
+                          (parseFloat(pendingPayment.water_amount) || 0) +
+                          (parseFloat(pendingPayment.electricity_amount) || 0) +
+                          (parseFloat(pendingPayment.internet_amount) || 0) +
+                          (parseFloat(pendingPayment.common_fee_amount) || 0) +
+                          (parseFloat(pendingPayment.parking_fee_amount) || 0) +
+                          (parseFloat(pendingPayment.other_amount) || 0);
+        
+        // ⭐ คำนวณยอดที่ต้องชำระจริง (base + ค่าปรับใหม่)
+        const expectedAmount = baseAmount + lateFeeAmount;
         const currentPaid = parseFloat(pendingPayment.paid_amount || 0);
         const totalPaid = currentPaid + slipAmount;
+        
+        console.log(`📊 [CALCULATION] Base: ${baseAmount}฿, Late Fee: ${lateFeeAmount}฿, Expected: ${expectedAmount}฿`);
         
         console.log(`💰 Expected Amount (with late fee): ${expectedAmount} บาท`);
         console.log(`💰 Already Paid: ${currentPaid} บาท`);
