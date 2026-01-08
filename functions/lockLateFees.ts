@@ -173,7 +173,8 @@ Deno.serve(async (req) => {
                                 });
 
                                 branchResult.updated++;
-                                console.log(`  ✅ Updated payment ${payment.id.substring(0, 8)}... | Due: ${payment.due_date} | Days: ${daysLate} | Late Fee: ${lateFeeAmount}฿`);
+                                const method = getConfigValue('late_fee_tiers_enabled') === 'true' ? 'tiered' : 'simple';
+                                console.log(`  ✅ Updated payment ${payment.id.substring(0, 8)}... | Due: ${payment.due_date} | Days: ${daysLate} | Late Fee: ${lateFeeAmount}฿ | Method: ${method}`);
                             } else {
                                 branchResult.skipped++;
                             }
