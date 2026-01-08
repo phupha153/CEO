@@ -1410,10 +1410,21 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         console.log('✅ Name verification passed - Processing payment');
 
         // ⭐⭐⭐ คำนวณค่าปรับหลังเช็คชื่อบัญชีแล้ว - ใช้ helper function
+        console.log('========================================');
+        console.log('🧮 [LINE WEBHOOK] CALLING calculateLateFee HELPER');
+        console.log(`   Payment ID: ${pendingPayment.id.substring(0, 12)}...`);
+        console.log(`   Due Date: ${pendingPayment.due_date}`);
+        console.log(`   Payment Date: ${transDate.split('T')[0]}`);
+        console.log('========================================');
+        
         const paymentDateObj = parseISO(transDate.split('T')[0]);
         const { lateFeeAmount, daysLate } = calculateLateFee(pendingPayment, configs, branchId, paymentDateObj);
         
-        console.log(`⏰ Late payment: ${daysLate} days → ${lateFeeAmount} บาท`);
+        console.log('========================================');
+        console.log('✅ [LINE WEBHOOK] HELPER RETURNED:');
+        console.log(`   Days Late: ${daysLate} days`);
+        console.log(`   Late Fee: ${lateFeeAmount} บาท`);
+        console.log('========================================');
         
         // ⭐ คำนวณยอดที่ต้องชำระจริง (รวมค่าปรับ)
         const expectedAmount = parseFloat(pendingPayment.total_amount) + lateFeeAmount;
