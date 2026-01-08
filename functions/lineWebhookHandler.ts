@@ -1409,9 +1409,9 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         console.log('✅ Name verification passed - Processing payment');
 
-        // ⭐⭐⭐ คำนวณค่าปรับหลังเช็คชื่อบัญชีแล้ว - ใช้ helper function
+        // ⭐⭐⭐ คำนวณค่าปรับหลังเช็คชื่อบัญชีแล้ว - ใช้ helper function v2
         console.log('========================================');
-        console.log('🧮 [LINE WEBHOOK] CALLING calculateLateFee HELPER');
+        console.log('🧮 [LINE WEBHOOK v2] CALLING calculateLateFee HELPER');
         console.log(`   Payment ID: ${pendingPayment.id.substring(0, 12)}...`);
         console.log(`   Due Date: ${pendingPayment.due_date}`);
         console.log(`   Payment Date: ${transDate.split('T')[0]}`);
