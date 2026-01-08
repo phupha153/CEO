@@ -503,7 +503,6 @@ Deno.serve(async (req) => {
                     payment_slip_url: uploadedSlipUrl,
                     late_fee_amount: lateFeeAmount,
                     total_amount: expectedAmount,
-                    late_fee_last_calculated: new Date().toISOString(),
                     notes: payment.notes ? 
                         `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)` :
                         `💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
@@ -531,7 +530,6 @@ Deno.serve(async (req) => {
                 late_fee_amount: lateFeeAmount,
                 total_amount: expectedAmount,
                 paid_amount: expectedAmount,
-                late_fee_last_calculated: new Date().toISOString(),
                 notes: payment.notes ? 
                     `${payment.notes}\n\n✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}` :
                     `✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}`
