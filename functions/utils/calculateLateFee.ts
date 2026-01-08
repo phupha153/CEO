@@ -94,18 +94,18 @@ export function calculateLateFee(payment, configs, branchId, calculationDate = n
                             const daysInThisTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
                             if (daysInThisTier > 0) {
                                 totalFee += daysInThisTier * feePerDay;
-                                }
-                                }
+                            }
+                        }
 
-                                if (daysOverdue <= daysTo) break;
-                                }
+                        if (daysOverdue <= daysTo) break;
+                    }
 
-                                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                                console.log('✅ [HELPER] CALCULATION COMPLETE (Tiered)');
-                                console.log(`   💰 Total Late Fee: ${totalFee} บาท`);
-                                console.log(`   📆 Days Late: ${daysOverdue} days`);
-                                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-                                return { lateFeeAmount: totalFee, daysLate: daysOverdue };
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('✅ [HELPER] CALCULATION COMPLETE (Tiered)');
+                    console.log(`   💰 Total Late Fee: ${totalFee} บาท`);
+                    console.log(`   📆 Days Late: ${daysOverdue} days`);
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    return { lateFeeAmount: totalFee, daysLate: daysOverdue };
                 } catch (e) {
                     console.error('Error parsing late fee tiers:', e);
                 }
