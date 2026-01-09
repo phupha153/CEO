@@ -26,11 +26,11 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
         const lastCalcDate = new Date(payment.late_fee_last_calculated);
         lastCalcDate.setHours(0, 0, 0, 0);
         
-        const now = new Date();
-        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+        const checkDate = new Date();
+        const checkThailandTime = new Date(checkDate.getTime() + (7 * 60 * 60 * 1000));
+        const checkToday = new Date(checkThailandTime.getFullYear(), checkThailandTime.getMonth(), checkThailandTime.getDate());
         
-        if (lastCalcDate.getTime() === today.getTime()) {
+        if (lastCalcDate.getTime() === checkToday.getTime()) {
             console.log(`  ✅ SKIP: Already calculated today (${payment.late_fee_amount || 0}฿)`);
             return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
         }
@@ -98,7 +98,6 @@ Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
         
-        // ⭐ รับ paymentId จาก request body (optional)
         let paymentId = null;
         try {
             const body = await req.json();
@@ -116,12 +115,10 @@ Deno.serve(async (req) => {
         console.log('🔒 [Lock Late Fees] Starting job...', paymentId ? `(Single payment: ${paymentId.substring(0, 12)}...)` : '(All payments)');
         const startTime = Date.now();
 
-        // ⭐⭐⭐ ถ้าระบุ paymentId = คำนวณเฉพาะบิลนั้น
         if (paymentId) {
             return await calculateSinglePayment(base44, paymentId, startTime);
         }
 
-        // ⭐ ดึง branches ที่ active เท่านั้น (สำหรับโหมดคำนวณทุกบิล)
         const allBranches = await base44.asServiceRole.entities.Branch.filter({ status: 'active' });
         console.log(`✅ Loaded ${allBranches.length} active branches`);
 
@@ -133,11 +130,9 @@ Deno.serve(async (req) => {
             branches: []
         };
 
-        // ⭐ ประมวลผลแยกตามสาขา
         for (const branch of allBranches) {
             console.log(`\n📍 Processing branch: ${branch.branch_name} (${branch.id.substring(0, 12)}...)`);
 
-            // ⭐ ตรวจสอบสถานะแพ็กเกจของเจ้าของสาขา (ป้องกันการประมวลผลสาขาที่หมดอายุ)
             let shouldSkipBranch = false;
             try {
                 const ownerUsers = await base44.asServiceRole.entities.User.filter({ email: branch.owner_id });
@@ -145,7 +140,6 @@ Deno.serve(async (req) => {
                     const ownerStatus = ownerUsers[0].plan_status;
                     console.log(`  👤 Owner "${branch.owner_id}" status: ${ownerStatus}`);
                     
-                    // ⭐ ข้ามถ้าไม่ใช่ active หรือ trial
                     if (ownerStatus !== 'active' && ownerStatus !== 'trial') {
                         console.log(`  ⏭️ SKIP: Owner expired/cancelled (status: ${ownerStatus})`);
                         shouldSkipBranch = true;
@@ -170,7 +164,6 @@ Deno.serve(async (req) => {
             };
 
             try {
-                // ⭐ ดึงเฉพาะ configs ของสาขานี้ + global (ไม่โหลดทั้งระบบ)
                 const branchConfigs = await base44.asServiceRole.entities.Config.filter({
                     $or: [
                         { branch_id: branch.id },
@@ -179,15 +172,13 @@ Deno.serve(async (req) => {
                 });
                 console.log(`  📋 Loaded ${branchConfigs.length} configs for this branch`);
 
-                // ⭐ ใช้เวลาไทย (UTC+7) สำหรับ filter
-                const now = new Date();
-                const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-                const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
-                const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+                const branchDate = new Date();
+                const branchThailandTime = new Date(branchDate.getTime() + (7 * 60 * 60 * 1000));
+                const branchToday = new Date(branchThailandTime.getFullYear(), branchThailandTime.getMonth(), branchThailandTime.getDate());
+                const branchTodayStr = branchToday.toISOString().split('T')[0];
                 
-                console.log(`  📅 Today (Thailand): ${todayStr} (UTC: ${now.toISOString().split('T')[0]})`);
+                console.log(`  📅 Today (Thailand): ${branchTodayStr} (UTC: ${branchDate.toISOString().split('T')[0]})`);
 
-                // Helper function สำหรับหาค่า config
                 const getConfigValue = (key, defaultValue = null) => {
                     const branchCfg = branchConfigs.find(c => c.key === key && c.branch_id === branch.id);
                     if (branchCfg?.value !== undefined && branchCfg?.value !== null) return branchCfg.value;
@@ -196,14 +187,12 @@ Deno.serve(async (req) => {
                     return globalCfg?.value !== undefined && globalCfg?.value !== null ? globalCfg.value : defaultValue;
                 };
 
-                // ⭐⭐⭐ Pagination Loop - รองรับ scale ไม่จำกัด (memory usage คงที่)
-                const pageSize = 500; // ดึงทีละ 500 bills
+                const pageSize = 500;
                 let offset = 0;
                 let hasMore = true;
                 let totalFetched = 0;
 
                 while (hasMore) {
-                    // ⭐ Query with retry logic (429 handling)
                     let pagedPayments;
                     let retries = 0;
                     const maxRetries = 3;
@@ -216,17 +205,17 @@ Deno.serve(async (req) => {
                                     status: { $ne: 'paid' },
                                     $or: [
                                         { late_fee_calculated_date: null },
-                                        { late_fee_calculated_date: { $ne: todayStr } }
+                                        { late_fee_calculated_date: { $ne: branchTodayStr } }
                                     ]
                                 },
                                 '-created_date',
                                 pageSize,
                                 offset
                             );
-                            break; // Success
+                            break;
                         } catch (queryError) {
                             if (queryError.message?.includes('429') && retries < maxRetries - 1) {
-                                const backoff = 1000 * Math.pow(2, retries); // 1s, 2s, 4s
+                                const backoff = 1000 * Math.pow(2, retries);
                                 console.log(`  ⚠️ Rate limit hit, retry ${retries + 1}/${maxRetries} in ${backoff}ms`);
                                 await new Promise(resolve => setTimeout(resolve, backoff));
                                 retries++;
@@ -247,7 +236,6 @@ Deno.serve(async (req) => {
                     const needsCalculation = pagedPayments;
                     console.log(`  ✅ DB-filtered: ${needsCalculation.length} need calculation`);
 
-                    // ⭐ Process filtered bills in batches (100 at a time - reduced)
                     const processChunkSize = 100;
                     for (let i = 0; i < needsCalculation.length; i += processChunkSize) {
                         const chunk = needsCalculation.slice(i, i + processChunkSize);
@@ -266,7 +254,7 @@ Deno.serve(async (req) => {
                                     return;
                                 }
 
-                                const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, branch.id, today);
+                                const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, branch.id, branchToday);
 
                                 if (daysLate <= 0) {
                                     branchResult.skipped++;
@@ -293,7 +281,7 @@ Deno.serve(async (req) => {
                                         late_fee_amount: lateFeeAmount,
                                         total_amount: newTotalAmount,
                                         late_fee_last_calculated: new Date().toISOString(),
-                                        late_fee_calculated_date: todayStr,
+                                        late_fee_calculated_date: branchTodayStr,
                                         status: payment.status === 'pending' || payment.status === 'overdue' ? 'overdue' : payment.status
                                     });
 
@@ -314,7 +302,6 @@ Deno.serve(async (req) => {
 
                         await Promise.all(updatePromises);
                         
-                        // Delay ระหว่าง chunks (increased)
                         if (i + processChunkSize < needsCalculation.length) {
                             await new Promise(resolve => setTimeout(resolve, 150));
                         }
@@ -324,7 +311,6 @@ Deno.serve(async (req) => {
                         hasMore = false;
                     } else {
                         offset += pageSize;
-                        // Delay ระหว่างหน้า (increased)
                         await new Promise(resolve => setTimeout(resolve, 300));
                     }
                 }
@@ -345,15 +331,13 @@ Deno.serve(async (req) => {
 
             console.log(`✅ Branch "${branch.branch_name}" done: ${branchResult.updated} updated, ${branchResult.skipped} skipped`);
 
-            // ⭐ Delay ระหว่างสาขา (prevent rate limit)
             await new Promise(resolve => setTimeout(resolve, 500));
-            }
+        }
 
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
         console.log(`\n🎉 [Lock Late Fees] Completed in ${duration}s`);
         console.log(`📊 Total: ${results.total_processed} processed, ${results.total_updated} updated, ${results.total_skipped} skipped, ${results.total_branches_skipped_expired} branches skipped (expired)`);
 
-        // บันทึก log
         await base44.asServiceRole.entities.FunctionLog.create({
             function_name: 'lockLateFees',
             run_timestamp: new Date().toISOString(),
@@ -382,7 +366,6 @@ Deno.serve(async (req) => {
     } catch (error) {
         console.error('❌ Lock Late Fees Job Failed:', error);
 
-        // บันทึก error log
         try {
             const base44 = createClientFromRequest(req);
             await base44.asServiceRole.entities.FunctionLog.create({
@@ -402,93 +385,85 @@ Deno.serve(async (req) => {
     }
 });
 
-// ⭐⭐⭐ Helper function: คำนวณค่าปรับสำหรับบิลเดียว
 async function calculateSinglePayment(base44, paymentId, startTime) {
-        try {
+    try {
         console.log(`\n🎯 [Single Payment Mode] Payment ID: ${paymentId.substring(0, 12)}...`);
 
-        // ดึงข้อมูล payment
         const payments = await base44.asServiceRole.entities.Payment.list();
         const payment = payments.find(p => p.id === paymentId);
 
         if (!payment) {
-        return Response.json({
-          success: false,
-          error: 'Payment not found'
-        }, { status: 404 });
+            return Response.json({
+                success: false,
+                error: 'Payment not found'
+            }, { status: 404 });
         }
 
         console.log(`✅ Found payment: ${payment.id.substring(0, 12)}... (Branch: ${payment.branch_id.substring(0, 12)}...)`);
 
-        // ดึง configs ของสาขานี้
         const allConfigs = await base44.asServiceRole.entities.Config.list();
         const branchConfigs = allConfigs.filter(c => 
-        c.branch_id === payment.branch_id || !c.branch_id
+            c.branch_id === payment.branch_id || !c.branch_id
         );
 
-        // ตรวจสอบว่าเจ้าของสาขาหมดอายุหรือไม่
         const branch = await base44.asServiceRole.entities.Branch.filter({ id: payment.branch_id });
         const branchData = Array.isArray(branch) ? branch[0] : branch;
 
         if (!branchData) {
-        return Response.json({
-          success: false,
-          error: 'Branch not found'
-        }, { status: 404 });
+            return Response.json({
+                success: false,
+                error: 'Branch not found'
+            }, { status: 404 });
         }
 
         let shouldSkip = false;
         try {
-        const ownerUsers = await base44.asServiceRole.entities.User.filter({ email: branchData.owner_id });
-        if (ownerUsers && ownerUsers.length > 0) {
-          const ownerStatus = ownerUsers[0].plan_status;
-          if (ownerStatus !== 'active' && ownerStatus !== 'trial') {
-              console.log(`⏭️ SKIP: Owner expired/cancelled (status: ${ownerStatus})`);
-              shouldSkip = true;
-          }
-        }
+            const ownerUsers = await base44.asServiceRole.entities.User.filter({ email: branchData.owner_id });
+            if (ownerUsers && ownerUsers.length > 0) {
+                const ownerStatus = ownerUsers[0].plan_status;
+                if (ownerStatus !== 'active' && ownerStatus !== 'trial') {
+                    console.log(`⏭️ SKIP: Owner expired/cancelled (status: ${ownerStatus})`);
+                    shouldSkip = true;
+                }
+            }
         } catch (e) {
-        console.warn(`⚠️ Could not check owner status: ${e.message}`);
+            console.warn(`⚠️ Could not check owner status: ${e.message}`);
         }
 
         if (shouldSkip) {
-        return Response.json({
-          success: false,
-          error: 'Branch owner subscription expired'
-        }, { status: 403 });
+            return Response.json({
+                success: false,
+                error: 'Branch owner subscription expired'
+            }, { status: 403 });
         }
 
-        // ตรวจสอบสถานะ
         if (payment.status === 'paid') {
-        return Response.json({
-          success: true,
-          message: 'Payment already paid',
-          late_fee_amount: payment.late_fee_amount || 0,
-          updated: false
-        });
+            return Response.json({
+                success: true,
+                message: 'Payment already paid',
+                late_fee_amount: payment.late_fee_amount || 0,
+                updated: false
+            });
         }
 
         if (payment.late_fee_locked === true) {
-        return Response.json({
-          success: true,
-          message: 'Late fee locked by admin',
-          late_fee_amount: payment.late_fee_amount || 0,
-          updated: false
-        });
+            return Response.json({
+                success: true,
+                message: 'Late fee locked by admin',
+                late_fee_amount: payment.late_fee_amount || 0,
+                updated: false
+            });
         }
 
-        // ⭐ ใช้เวลาไทย (UTC+7)
-        const nowSingle = new Date();
-        const thailandTimeSingle = new Date(nowSingle.getTime() + (7 * 60 * 60 * 1000));
-        const todaySingle = new Date(thailandTimeSingle.getFullYear(), thailandTimeSingle.getMonth(), thailandTimeSingle.getDate());
-        const todayStrSingle = todaySingle.toISOString().split('T')[0];
+        const singleDate = new Date();
+        const singleThailandTime = new Date(singleDate.getTime() + (7 * 60 * 60 * 1000));
+        const singleToday = new Date(singleThailandTime.getFullYear(), singleThailandTime.getMonth(), singleThailandTime.getDate());
+        const singleTodayStr = singleToday.toISOString().split('T')[0];
 
-        // ⭐ เรียกใช้ helper function คำนวณค่าปรับ (ส่ง today ที่คำนวณจาก UTC+7)
-        const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, payment.branch_id, todaySingle);
+        const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, payment.branch_id, singleToday);
 
         console.log(`📊 Calculation result: ${daysLate} days late → ${lateFeeAmount}฿`);
 
-        // คำนวณ total_amount ใหม่
         const baseAmount = (payment.rent_amount || 0) +
                     (payment.water_amount || 0) +
                     (payment.electricity_amount || 0) +
@@ -500,30 +475,30 @@ async function calculateSinglePayment(base44, paymentId, startTime) {
         const newTotalAmount = baseAmount + lateFeeAmount;
 
         await base44.asServiceRole.entities.Payment.update(payment.id, {
-        late_fee_amount: lateFeeAmount,
-        total_amount: newTotalAmount,
-        late_fee_last_calculated: new Date().toISOString(),
-        late_fee_calculated_date: todayStrSingle,
-        status: payment.status === 'pending' || payment.status === 'overdue' ? (daysLate > 0 ? 'overdue' : 'pending') : payment.status
+            late_fee_amount: lateFeeAmount,
+            total_amount: newTotalAmount,
+            late_fee_last_calculated: new Date().toISOString(),
+            late_fee_calculated_date: singleTodayStr,
+            status: payment.status === 'pending' || payment.status === 'overdue' ? (daysLate > 0 ? 'overdue' : 'pending') : payment.status
         });
 
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
 
         return Response.json({
-        success: true,
-        duration_seconds: duration,
-        payment_id: paymentId,
-        late_fee_amount: lateFeeAmount,
-        days_late: daysLate,
-        total_amount: newTotalAmount,
-        updated: true
+            success: true,
+            duration_seconds: duration,
+            payment_id: paymentId,
+            late_fee_amount: lateFeeAmount,
+            days_late: daysLate,
+            total_amount: newTotalAmount,
+            updated: true
         });
 
-        } catch (error) {
+    } catch (error) {
         console.error('❌ Single payment calculation failed:', error);
         return Response.json({
-        success: false,
-        error: error.message
+            success: false,
+            error: error.message
         }, { status: 500 });
-        }
+    }
 }
