@@ -133,8 +133,22 @@ Deno.serve(async (req) => {
             branches: []
         };
 
-        // ⭐ ประมวลผลแยกตามสาขา
-        for (const branch of allBranches) {
+        // ⭐⭐⭐ แบ่งสาขาเป็น batch เพื่อไม่ให้ timeout (5 สาขา/batch)
+        const BRANCH_BATCH_SIZE = 5;
+        const branchBatches = [];
+        for (let i = 0; i < allBranches.length; i += BRANCH_BATCH_SIZE) {
+            branchBatches.push(allBranches.slice(i, i + BRANCH_BATCH_SIZE));
+        }
+        
+        console.log(`📦 Split into ${branchBatches.length} batches (${BRANCH_BATCH_SIZE} branches/batch)`);
+
+        // ⭐ ประมวลผลทีละ batch
+        for (let batchIndex = 0; batchIndex < branchBatches.length; batchIndex++) {
+            const branchBatch = branchBatches[batchIndex];
+            console.log(`\n🎯 Processing batch ${batchIndex + 1}/${branchBatches.length} (${branchBatch.length} branches)`);
+
+            // ประมวลผลสาขาใน batch นี้แบบ sequential
+            for (const branch of branchBatch) {
             console.log(`\n📍 Processing branch: ${branch.branch_name} (${branch.id.substring(0, 12)}...)`);
 
             // ⭐ ตรวจสอบสถานะแพ็กเกจของเจ้าของสาขา (ป้องกันการประมวลผลสาขาที่หมดอายุ)
