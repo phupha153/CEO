@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
+// FIXED: All variable names are now uniquely scoped to prevent redeclaration errors
 
 // ⭐ Inline helper: Calculate late fee
 function calculateLateFee(payment, configs, branchId, calculationDate = null) {
