@@ -498,9 +498,7 @@ Deno.serve(async (req) => {
 
         const newTotalAmount = baseAmount + lateFeeAmount;
 
-        // อัปเดต payment
-        const now = new Date();
-        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        // อัปเดต payment (reuse variables from above)
         const todayStr = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate()).toISOString().split('T')[0];
 
         await base44.asServiceRole.entities.Payment.update(payment.id, {
