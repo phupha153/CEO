@@ -478,12 +478,13 @@ Deno.serve(async (req) => {
         }
 
         // ⭐ ใช้เวลาไทย (UTC+7)
-        const now = new Date();
-        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+        const nowSingle = new Date();
+        const thailandTimeSingle = new Date(nowSingle.getTime() + (7 * 60 * 60 * 1000));
+        const todaySingle = new Date(thailandTimeSingle.getFullYear(), thailandTimeSingle.getMonth(), thailandTimeSingle.getDate());
+        const todayStrSingle = todaySingle.toISOString().split('T')[0];
 
         // ⭐ เรียกใช้ helper function คำนวณค่าปรับ (ส่ง today ที่คำนวณจาก UTC+7)
-        const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, payment.branch_id, today);
+        const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, payment.branch_id, todaySingle);
 
         console.log(`📊 Calculation result: ${daysLate} days late → ${lateFeeAmount}฿`);
 
@@ -498,14 +499,11 @@ Deno.serve(async (req) => {
 
         const newTotalAmount = baseAmount + lateFeeAmount;
 
-        // อัปเดต payment (reuse variables from above)
-        const todayStr = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate()).toISOString().split('T')[0];
-
         await base44.asServiceRole.entities.Payment.update(payment.id, {
         late_fee_amount: lateFeeAmount,
         total_amount: newTotalAmount,
         late_fee_last_calculated: new Date().toISOString(),
-        late_fee_calculated_date: todayStr,
+        late_fee_calculated_date: todayStrSingle,
         status: payment.status === 'pending' || payment.status === 'overdue' ? (daysLate > 0 ? 'overdue' : 'pending') : payment.status
         });
 
