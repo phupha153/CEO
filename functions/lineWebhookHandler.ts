@@ -1530,10 +1530,11 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         
         console.log(`💰 Base: ${baseAmount}฿ (${pendingPayment.rent_amount}฿ rent + ${(baseAmount - (pendingPayment.rent_amount || 0)).toFixed(0)}฿ utilities)`);
         
-        // ⭐ ใช้เวลาไทย (UTC+7) แทน UTC เพื่อให้เช็ก late_fee_last_calculated ได้ถูกต้อง
+        // ⭐ ใช้เวลาไทย (UTC+7) เพื่อให้ LOCK 3 ทำงาน
         const now = new Date();
         const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+        console.log(`📅 Today(TH): ${today.toISOString().split('T')[0]}`);
         
         const { lateFeeAmount, daysLate } = calculateLateFee(pendingPayment, configs, branchId, today);
         
