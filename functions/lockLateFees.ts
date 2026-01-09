@@ -183,20 +183,40 @@ Deno.serve(async (req) => {
                 const now = new Date();
                 const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
                 const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+                const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
                 
-                console.log(`  📅 Today (Thailand): ${today.toISOString().split('T')[0]} (UTC: ${now.toISOString().split('T')[0]})`);
+                console.log(`  📅 Today (Thailand): ${todayStr} (UTC: ${now.toISOString().split('T')[0]})`);
 
-                // ⭐ Query ที่ Database Level - ดึงเฉพาะบิลที่ยังไม่ชำระครบ + ยังไม่คำนวณวันนี้
-                const unpaidPayments = await base44.asServiceRole.entities.Payment.filter({
+                // ⭐ Query ที่ Database Level - ดึงเฉพาะบิลที่ยังไม่ชำระครบ
+                const allUnpaidPayments = await base44.asServiceRole.entities.Payment.filter({
                     branch_id: branch.id,
-                    status: { $ne: 'paid' }, // not equal to 'paid'
-                    $or: [
-                        { late_fee_last_calculated: null }, // ยังไม่เคยคำนวณเลย
-                        { late_fee_last_calculated: { $lt: today.toISOString() } } // คำนวณก่อนวันนี้
-                    ]
+                    status: { $ne: 'paid' }
                 });
 
-                console.log(`  🔍 Found ${unpaidPayments.length} unpaid payments (not calculated today) for this branch`);
+                console.log(`  🔍 Fetched ${allUnpaidPayments.length} unpaid payments from DB`);
+
+                // ⭐ Filter ใน memory - เอาเฉพาะที่ยังไม่ได้คำนวณวันนี้
+                const unpaidPayments = allUnpaidPayments.filter(payment => {
+                    if (!payment.late_fee_last_calculated) return true; // ยังไม่เคยคำนวณ
+                    const lastCalc = new Date(payment.late_fee_last_calculated).toISOString().split('T')[0];
+                    return lastCalc !== todayStr; // คำนวณก่อนวันนี้
+                });
+
+                console.log(`  ✅ Filtered to ${unpaidPayments.length} payments (not calculated today)`);
+
+                // ⭐ Early exit ถ้าไม่มีอะไรต้อง process
+                if (unpaidPayments.length === 0) {
+                    console.log(`  ⏭️ Skip: No payments need calculation`);
+                    results.branches.push({
+                        branch_id: branch.id,
+                        branch_name: branch.branch_name,
+                        processed: 0,
+                        updated: 0,
+                        skipped: 0,
+                        errors: []
+                    });
+                    continue;
+                }
 
                 // Helper function สำหรับหาค่า config
                 const getConfigValue = (key, defaultValue = null) => {
