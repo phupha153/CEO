@@ -203,10 +203,17 @@ Deno.serve(async (req) => {
                 let totalFetched = 0;
 
                 while (hasMore) {
-                    // Query unpaid bills แบบ paginate
+                    // ⭐ Query with DB-level date filter (indexed)
                     const pagedPayments = await base44.asServiceRole.entities.Payment.filter(
-                        { branch_id: branch.id, status: { $ne: 'paid' } },
-                        '-created_date', // sort descending
+                        { 
+                            branch_id: branch.id, 
+                            status: { $ne: 'paid' },
+                            $or: [
+                                { late_fee_calculated_date: null },
+                                { late_fee_calculated_date: { $ne: todayStr } }
+                            ]
+                        },
+                        '-created_date',
                         pageSize,
                         offset
                     );
@@ -220,14 +227,8 @@ Deno.serve(async (req) => {
                         break;
                     }
 
-                    // ⭐ Filter ใน memory - เอาเฉพาะที่ยังไม่คำนวณวันนี้
-                    const needsCalculation = pagedPayments.filter(payment => {
-                        if (!payment.late_fee_last_calculated) return true;
-                        const lastCalc = new Date(payment.late_fee_last_calculated).toISOString().split('T')[0];
-                        return lastCalc !== todayStr;
-                    });
-
-                    console.log(`  ✅ Filtered: ${needsCalculation.length}/${pagedPayments.length} need calculation`);
+                    const needsCalculation = pagedPayments;
+                    console.log(`  ✅ DB-filtered: ${needsCalculation.length} need calculation (no memory filter)`);
 
                     // ⭐ Process filtered bills in batches (200 at a time)
                     const processChunkSize = 200;
@@ -275,6 +276,7 @@ Deno.serve(async (req) => {
                                         late_fee_amount: lateFeeAmount,
                                         total_amount: newTotalAmount,
                                         late_fee_last_calculated: new Date().toISOString(),
+                                        late_fee_calculated_date: todayStr,
                                         status: payment.status === 'pending' || payment.status === 'overdue' ? 'overdue' : payment.status
                                     });
 
@@ -478,10 +480,15 @@ Deno.serve(async (req) => {
         const newTotalAmount = baseAmount + lateFeeAmount;
 
         // อัปเดต payment
+        const now = new Date();
+        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const todayStr = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate()).toISOString().split('T')[0];
+
         await base44.asServiceRole.entities.Payment.update(payment.id, {
         late_fee_amount: lateFeeAmount,
         total_amount: newTotalAmount,
         late_fee_last_calculated: new Date().toISOString(),
+        late_fee_calculated_date: todayStr,
         status: payment.status === 'pending' || payment.status === 'overdue' ? (daysLate > 0 ? 'overdue' : 'pending') : payment.status
         });
 
