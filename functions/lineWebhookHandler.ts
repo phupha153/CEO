@@ -1571,9 +1571,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         }
 
         // ⭐ ชำระครบแล้ว + บัญชีถูกต้อง
-        // ⭐ บันทึก late_fee_last_calculated เป็นเวลาไทย (UTC+7) เพื่อให้ LOCK 3 เช็คได้ถูกต้อง
-        const nowForLock = new Date();
-        const thailandForLock = new Date(nowForLock.getTime() + (7 * 60 * 60 * 1000));
+        // ⭐ บันทึก late_fee_last_calculated เป็นเวลา Asia/Bangkok เพื่อให้ LOCK 3 เช็คได้ถูกต้อง
+        const thailandForLock = getZonedTime('Asia/Bangkok');
 
         await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
             status: 'paid',
