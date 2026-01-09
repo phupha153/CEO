@@ -484,12 +484,10 @@ Deno.serve(async (req) => {
         });
         }
 
-        // ⭐ ใช้เวลาไทย (UTC+7)
-        const now = new Date();
-        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+        // ⭐ ใช้เวลา Asia/Bangkok (ไม่ hardcode timezone offset)
+        const today = getDateInTimezone('Asia/Bangkok');
 
-        // ⭐ เรียกใช้ helper function คำนวณค่าปรับ (ส่ง today ที่คำนวณจาก UTC+7)
+        // ⭐ เรียกใช้ helper function คำนวณค่าปรับ (ส่ง today ที่คำนวณจากโซนเวลา Asia/Bangkok)
         const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, payment.branch_id, today);
 
         console.log(`📊 Calculation result: ${daysLate} days late → ${lateFeeAmount}฿`);
