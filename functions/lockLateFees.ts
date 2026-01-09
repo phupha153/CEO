@@ -1,5 +1,11 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
+import { utcToZonedTime } from 'npm:date-fns-tz@3.0.0';
+
+// ⭐ Helper: Get current time in specified timezone
+function getZonedTime(timezone = 'Asia/Bangkok') {
+    return utcToZonedTime(new Date(), timezone);
+}
 
 // ⭐ Inline helper: Calculate late fee
 function calculateLateFee(payment, configs, branchId, calculationDate = null) {
@@ -26,8 +32,7 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
         const lastCalcDate = new Date(payment.late_fee_last_calculated);
         lastCalcDate.setHours(0, 0, 0, 0);
         
-        const now = new Date();
-        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const thailandTime = getZonedTime('Asia/Bangkok');
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
         
         if (lastCalcDate.getTime() === today.getTime()) {
@@ -187,12 +192,12 @@ Deno.serve(async (req) => {
 
                 console.log(`  🔍 Found ${unpaidPayments.length} unpaid payments for this branch`);
 
-                // ⭐ ใช้เวลาไทย (UTC+7) แทน UTC
+                // ⭐ ใช้เวลาในโซน Asia/Bangkok แทน hardcode offset
                 const now = new Date();
-                const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+                const thailandTime = getZonedTime('Asia/Bangkok');
                 const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
                 
-                console.log(`  📅 Today (Thailand): ${today.toISOString().split('T')[0]} (UTC: ${now.toISOString().split('T')[0]})`);
+                console.log(`  📅 Today (Asia/Bangkok): ${today.toISOString().split('T')[0]} (UTC: ${now.toISOString().split('T')[0]})`);
 
                 // Helper function สำหรับหาค่า config
                 const getConfigValue = (key, defaultValue = null) => {
@@ -257,9 +262,8 @@ Deno.serve(async (req) => {
                                 (daysLate > 0 && payment.status !== 'overdue');
 
                             if (needsUpdate) {
-                                // ⭐ บันทึกเป็นเวลาไทย (UTC+7) เพื่อให้ LOCK 3 เช็คได้ถูกต้อง
-                                const nowThailand = new Date();
-                                const thailandNow = new Date(nowThailand.getTime() + (7 * 60 * 60 * 1000));
+                                // ⭐ บันทึกเป็นเวลา Asia/Bangkok เพื่อให้ LOCK 3 เช็คได้ถูกต้อง
+                                const thailandNow = getZonedTime('Asia/Bangkok');
                                 
                                 await base44.asServiceRole.entities.Payment.update(payment.id, {
                                     late_fee_amount: lateFeeAmount,
@@ -437,9 +441,9 @@ Deno.serve(async (req) => {
         });
         }
 
-        // ⭐ ใช้เวลาไทย (UTC+7)
+        // ⭐ ใช้เวลาในโซน Asia/Bangkok
         const now = new Date();
-        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const thailandTime = getZonedTime('Asia/Bangkok');
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
 
         // ⭐ เรียกใช้ helper function คำนวณค่าปรับ (ส่ง today ที่คำนวณจาก UTC+7)
@@ -458,9 +462,8 @@ Deno.serve(async (req) => {
 
         const newTotalAmount = baseAmount + lateFeeAmount;
 
-        // ⭐ บันทึกเป็นเวลาไทย (UTC+7) เพื่อให้ LOCK 3 เช็คได้ถูกต้อง
-        const nowThailand2 = new Date();
-        const thailandNow2 = new Date(nowThailand2.getTime() + (7 * 60 * 60 * 1000));
+        // ⭐ บันทึกเป็นเวลา Asia/Bangkok เพื่อให้ LOCK 3 เช็คได้ถูกต้อง
+        const thailandNow2 = getZonedTime('Asia/Bangkok');
 
         // อัปเดต payment
         await base44.asServiceRole.entities.Payment.update(payment.id, {
