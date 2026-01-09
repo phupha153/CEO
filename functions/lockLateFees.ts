@@ -77,9 +77,7 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
         const lastCalcDate = new Date(payment.late_fee_last_calculated);
         lastCalcDate.setHours(0, 0, 0, 0);
         
-        const now = new Date();
-        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+        const today = getDateInTimezone('Asia/Bangkok');
         
         if (lastCalcDate.getTime() === today.getTime()) {
             console.log(`  ✅ SKIP: Already calculated today (${payment.late_fee_amount || 0}฿)`);
