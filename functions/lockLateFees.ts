@@ -187,37 +187,6 @@ Deno.serve(async (req) => {
                 
                 console.log(`  📅 Today (Thailand): ${todayStr} (UTC: ${now.toISOString().split('T')[0]})`);
 
-                // ⭐ Query ที่ Database Level - ดึงเฉพาะบิลที่ยังไม่ชำระครบ
-                const allUnpaidPayments = await base44.asServiceRole.entities.Payment.filter({
-                    branch_id: branch.id,
-                    status: { $ne: 'paid' }
-                });
-
-                console.log(`  🔍 Fetched ${allUnpaidPayments.length} unpaid payments from DB`);
-
-                // ⭐ Filter ใน memory - เอาเฉพาะที่ยังไม่ได้คำนวณวันนี้
-                const unpaidPayments = allUnpaidPayments.filter(payment => {
-                    if (!payment.late_fee_last_calculated) return true; // ยังไม่เคยคำนวณ
-                    const lastCalc = new Date(payment.late_fee_last_calculated).toISOString().split('T')[0];
-                    return lastCalc !== todayStr; // คำนวณก่อนวันนี้
-                });
-
-                console.log(`  ✅ Filtered to ${unpaidPayments.length} payments (not calculated today)`);
-
-                // ⭐ Early exit ถ้าไม่มีอะไรต้อง process
-                if (unpaidPayments.length === 0) {
-                    console.log(`  ⏭️ Skip: No payments need calculation`);
-                    results.branches.push({
-                        branch_id: branch.id,
-                        branch_name: branch.branch_name,
-                        processed: 0,
-                        updated: 0,
-                        skipped: 0,
-                        errors: []
-                    });
-                    continue;
-                }
-
                 // Helper function สำหรับหาค่า config
                 const getConfigValue = (key, defaultValue = null) => {
                     const branchCfg = branchConfigs.find(c => c.key === key && c.branch_id === branch.id);
@@ -227,92 +196,122 @@ Deno.serve(async (req) => {
                     return globalCfg?.value !== undefined && globalCfg?.value !== null ? globalCfg.value : defaultValue;
                 };
 
-                // ⭐ ประมวลผลแบบ batch (chunk 200 records/ครั้ง - optimized for performance)
-                const chunkSize = 200;
-                const totalChunks = Math.ceil(unpaidPayments.length / chunkSize);
-                
-                for (let i = 0; i < unpaidPayments.length; i += chunkSize) {
-                    const chunk = unpaidPayments.slice(i, i + chunkSize);
-                    const chunkNumber = Math.floor(i / chunkSize) + 1;
-                    
-                    console.log(`  📦 Processing chunk ${chunkNumber}/${totalChunks} (${chunk.length} payments)`);
-                    
-                    // ประมวลผล chunk นี้แบบ parallel
-                    const updatePromises = chunk.map(async (payment) => {
-                        branchResult.processed++;
+                // ⭐⭐⭐ Pagination Loop - รองรับ scale ไม่จำกัด (memory usage คงที่)
+                const pageSize = 500; // ดึงทีละ 500 bills
+                let offset = 0;
+                let hasMore = true;
+                let totalFetched = 0;
 
-                        try {
-                            if (!payment.due_date) {
-                                branchResult.skipped++;
-                                return;
-                            }
+                while (hasMore) {
+                    // Query unpaid bills แบบ paginate
+                    const pagedPayments = await base44.asServiceRole.entities.Payment.filter(
+                        { branch_id: branch.id, status: { $ne: 'paid' } },
+                        '-created_date', // sort descending
+                        pageSize,
+                        offset
+                    );
 
-                            // 🔒 ถ้า admin ล็อคค่าปรับไว้ → skip
-                            if (payment.late_fee_locked === true) {
-                                branchResult.skipped++;
-                                console.log(`  🔒 Locked: payment ${payment.id.substring(0, 8)}... (late fee: ${payment.late_fee_amount || 0}฿)`);
-                                return;
-                            }
+                    totalFetched += pagedPayments.length;
+                    console.log(`  📄 Page ${Math.floor(offset/pageSize) + 1}: Fetched ${pagedPayments.length} bills (total: ${totalFetched})`);
 
-                            // ⭐ ใช้ helper function คำนวณค่าปรับ (ส่ง today ที่คำนวณจาก UTC+7)
-                            const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, branch.id, today);
+                    // หยุดถ้าไม่มีข้อมูลแล้ว
+                    if (pagedPayments.length === 0) {
+                        hasMore = false;
+                        break;
+                    }
 
-                            // ถ้ายังไม่เกินกำหนด → skip
-                            if (daysLate <= 0) {
-                                branchResult.skipped++;
-                                return;
-                            }
-
-                            // คำนวณ total_amount ใหม่
-                            const baseAmount = (payment.rent_amount || 0) +
-                                              (payment.water_amount || 0) +
-                                              (payment.electricity_amount || 0) +
-                                              (payment.internet_amount || 0) +
-                                              (payment.common_fee_amount || 0) +
-                                              (payment.parking_fee_amount || 0) +
-                                              (payment.other_amount || 0);
-
-                            const newTotalAmount = baseAmount + lateFeeAmount;
-
-                            // ⭐ อัปเดตเฉพาะที่มีการเปลี่ยนแปลง
-                            const needsUpdate = 
-                                Math.abs((payment.late_fee_amount || 0) - lateFeeAmount) > 0.01 ||
-                                Math.abs((payment.total_amount || 0) - newTotalAmount) > 0.01 ||
-                                (daysLate > 0 && payment.status !== 'overdue');
-
-                            if (needsUpdate) {
-                                await base44.asServiceRole.entities.Payment.update(payment.id, {
-                                    late_fee_amount: lateFeeAmount,
-                                    total_amount: newTotalAmount,
-                                    late_fee_last_calculated: new Date().toISOString(),
-                                    status: payment.status === 'pending' || payment.status === 'overdue' ? 'overdue' : payment.status
-                                });
-
-                                branchResult.updated++;
-                                console.log(`  ✅ Updated payment ${payment.id.substring(0, 8)}... | Due: ${payment.due_date} | Days: ${daysLate} | Late Fee: ${lateFeeAmount}฿`);
-                            } else {
-                                branchResult.skipped++;
-                            }
-
-                        } catch (paymentError) {
-                            branchResult.errors.push({
-                                payment_id: payment.id,
-                                error: paymentError.message
-                            });
-                            console.error(`  ❌ Error processing payment ${payment.id}:`, paymentError.message);
-                        }
+                    // ⭐ Filter ใน memory - เอาเฉพาะที่ยังไม่คำนวณวันนี้
+                    const needsCalculation = pagedPayments.filter(payment => {
+                        if (!payment.late_fee_last_calculated) return true;
+                        const lastCalc = new Date(payment.late_fee_last_calculated).toISOString().split('T')[0];
+                        return lastCalc !== todayStr;
                     });
 
-                    // รอให้ chunk นี้เสร็จก่อนไป chunk ถัดไป
-                    await Promise.all(updatePromises);
-                    
-                    console.log(`  ✅ Chunk ${chunkNumber}/${totalChunks} completed`);
-                    
-                    // Delay สั้นลงเพื่อเพิ่มความเร็ว (50ms แทน 100ms)
-                    if (i + chunkSize < unpaidPayments.length) {
-                        await new Promise(resolve => setTimeout(resolve, 50));
+                    console.log(`  ✅ Filtered: ${needsCalculation.length}/${pagedPayments.length} need calculation`);
+
+                    // ⭐ Process filtered bills in batches (200 at a time)
+                    const processChunkSize = 200;
+                    for (let i = 0; i < needsCalculation.length; i += processChunkSize) {
+                        const chunk = needsCalculation.slice(i, i + processChunkSize);
+                        
+                        const updatePromises = chunk.map(async (payment) => {
+                            branchResult.processed++;
+
+                            try {
+                                if (!payment.due_date) {
+                                    branchResult.skipped++;
+                                    return;
+                                }
+
+                                if (payment.late_fee_locked === true) {
+                                    branchResult.skipped++;
+                                    return;
+                                }
+
+                                const { lateFeeAmount, daysLate } = calculateLateFee(payment, branchConfigs, branch.id, today);
+
+                                if (daysLate <= 0) {
+                                    branchResult.skipped++;
+                                    return;
+                                }
+
+                                const baseAmount = (payment.rent_amount || 0) +
+                                                  (payment.water_amount || 0) +
+                                                  (payment.electricity_amount || 0) +
+                                                  (payment.internet_amount || 0) +
+                                                  (payment.common_fee_amount || 0) +
+                                                  (payment.parking_fee_amount || 0) +
+                                                  (payment.other_amount || 0);
+
+                                const newTotalAmount = baseAmount + lateFeeAmount;
+
+                                const needsUpdate = 
+                                    Math.abs((payment.late_fee_amount || 0) - lateFeeAmount) > 0.01 ||
+                                    Math.abs((payment.total_amount || 0) - newTotalAmount) > 0.01 ||
+                                    (daysLate > 0 && payment.status !== 'overdue');
+
+                                if (needsUpdate) {
+                                    await base44.asServiceRole.entities.Payment.update(payment.id, {
+                                        late_fee_amount: lateFeeAmount,
+                                        total_amount: newTotalAmount,
+                                        late_fee_last_calculated: new Date().toISOString(),
+                                        status: payment.status === 'pending' || payment.status === 'overdue' ? 'overdue' : payment.status
+                                    });
+
+                                    branchResult.updated++;
+                                    console.log(`  ✅ Updated ${payment.id.substring(0, 8)}... | ${daysLate}d | ${lateFeeAmount}฿`);
+                                } else {
+                                    branchResult.skipped++;
+                                }
+
+                            } catch (paymentError) {
+                                branchResult.errors.push({
+                                    payment_id: payment.id,
+                                    error: paymentError.message
+                                });
+                                console.error(`  ❌ Error: ${payment.id}`, paymentError.message);
+                            }
+                        });
+
+                        await Promise.all(updatePromises);
+                        
+                        // Delay ระหว่าง process chunks
+                        if (i + processChunkSize < needsCalculation.length) {
+                            await new Promise(resolve => setTimeout(resolve, 50));
+                        }
+                    }
+
+                    // ถ้า fetch ได้น้อยกว่า pageSize = หมดข้อมูลแล้ว
+                    if (pagedPayments.length < pageSize) {
+                        hasMore = false;
+                    } else {
+                        offset += pageSize;
+                        // Delay ระหว่างหน้า
+                        await new Promise(resolve => setTimeout(resolve, 100));
                     }
                 }
+
+                console.log(`  📊 Total fetched: ${totalFetched} bills for this branch`)
 
             } catch (branchError) {
                 branchResult.errors.push({
