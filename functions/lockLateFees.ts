@@ -179,20 +179,24 @@ Deno.serve(async (req) => {
                 });
                 console.log(`  📋 Loaded ${branchConfigs.length} configs for this branch`);
 
-                // ⭐ Query ที่ Database Level - ดึงเฉพาะบิลที่ยังไม่ชำระครบของสาขานี้
-                const unpaidPayments = await base44.asServiceRole.entities.Payment.filter({
-                    branch_id: branch.id,
-                    status: { $ne: 'paid' } // not equal to 'paid'
-                });
-
-                console.log(`  🔍 Found ${unpaidPayments.length} unpaid payments for this branch`);
-
-                // ⭐ ใช้เวลาไทย (UTC+7) แทน UTC
+                // ⭐ ใช้เวลาไทย (UTC+7) สำหรับ filter
                 const now = new Date();
                 const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
                 const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
                 
                 console.log(`  📅 Today (Thailand): ${today.toISOString().split('T')[0]} (UTC: ${now.toISOString().split('T')[0]})`);
+
+                // ⭐ Query ที่ Database Level - ดึงเฉพาะบิลที่ยังไม่ชำระครบ + ยังไม่คำนวณวันนี้
+                const unpaidPayments = await base44.asServiceRole.entities.Payment.filter({
+                    branch_id: branch.id,
+                    status: { $ne: 'paid' }, // not equal to 'paid'
+                    $or: [
+                        { late_fee_last_calculated: null }, // ยังไม่เคยคำนวณเลย
+                        { late_fee_last_calculated: { $lt: today.toISOString() } } // คำนวณก่อนวันนี้
+                    ]
+                });
+
+                console.log(`  🔍 Found ${unpaidPayments.length} unpaid payments (not calculated today) for this branch`);
 
                 // Helper function สำหรับหาค่า config
                 const getConfigValue = (key, defaultValue = null) => {
