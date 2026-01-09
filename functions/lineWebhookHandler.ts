@@ -1530,9 +1530,9 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         
         console.log(`💰 Base: ${baseAmount}฿ (${pendingPayment.rent_amount}฿ rent + ${(baseAmount - (pendingPayment.rent_amount || 0)).toFixed(0)}฿ utilities)`);
         
-        // ⭐ ใช้เวลาไทย (UTC+7) เพื่อให้ LOCK 3 ทำงาน
+        // ⭐ ใช้เวลา Asia/Bangkok เพื่อให้ LOCK 3 ทำงาน
         const now = new Date();
-        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const thailandTime = getZonedTime(TIMEZONE);
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
         console.log(`📅 Today(TH): ${today.toISOString().split('T')[0]}`);
         
@@ -1572,7 +1572,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
 
         // ⭐ ชำระครบแล้ว + บัญชีถูกต้อง
         // ⭐ บันทึก late_fee_last_calculated เป็นเวลา Asia/Bangkok เพื่อให้ LOCK 3 เช็คได้ถูกต้อง
-        const thailandForLock = getZonedTime('Asia/Bangkok');
+        const thailandForLock = getZonedTime(TIMEZONE);
 
         await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
             status: 'paid',
