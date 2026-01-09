@@ -1,12 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
-import { utcToZonedTime } from 'npm:date-fns-tz@3.0.0';
-
-const TIMEZONE = 'Asia/Bangkok';
-
-function getZonedTime(timezone = TIMEZONE) {
-    return utcToZonedTime(new Date(), timezone);
-}
 
 // ⭐ Inline helper function (ไม่ import จากไฟล์อื่น เพื่อหลีกเลี่ยง path issues)
 function calculateLateFee(payment, configs, branchId, calculationDate = null) {
@@ -37,7 +30,9 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
         const lastCalcDate = new Date(payment.late_fee_last_calculated);
         lastCalcDate.setHours(0, 0, 0, 0);
         
-        const thailandTime = getZonedTime(TIMEZONE);
+        // ⭐ ใช้เวลาไทย (UTC+7)
+        const now = new Date();
+        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
         
         console.log(`  🔍 LastCalc: ${lastCalcDate.toISOString().split('T')[0]} | Today(TH): ${today.toISOString().split('T')[0]} | Match: ${lastCalcDate.getTime() === today.getTime()}`);
