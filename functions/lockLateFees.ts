@@ -503,15 +503,14 @@ Deno.serve(async (req) => {
 
         const newTotalAmount = baseAmount + lateFeeAmount;
 
-        // ⭐ บันทึกเป็นเวลาไทย (UTC+7) เพื่อให้ LOCK 3 เช็คได้ถูกต้อง
-        const nowThailand2 = new Date();
-        const thailandNow2 = new Date(nowThailand2.getTime() + (7 * 60 * 60 * 1000));
+        // ⭐ บันทึกเป็นเวลา Asia/Bangkok (ไม่ hardcode timezone offset)
+        const timestampInBangkok = getTimestampInTimezone('Asia/Bangkok');
 
         // อัปเดต payment
         await base44.asServiceRole.entities.Payment.update(payment.id, {
         late_fee_amount: lateFeeAmount,
         total_amount: newTotalAmount,
-        late_fee_last_calculated: thailandNow2.toISOString(),
+        late_fee_last_calculated: timestampInBangkok,
         status: payment.status === 'pending' || payment.status === 'overdue' ? (daysLate > 0 ? 'overdue' : 'pending') : payment.status
         });
 
