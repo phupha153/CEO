@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
+import { getTodayInTimeZone, getCurrentTimeInTimeZone, getConfiguredTimeZone } from './utils/timezone.js';
 
 // ⭐ Inline helper function (ไม่ import จากไฟล์อื่น เพื่อหลีกเลี่ยง path issues)
 function calculateLateFee(payment, configs, branchId, calculationDate = null) {
@@ -30,10 +31,8 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
         const lastCalcDate = new Date(payment.late_fee_last_calculated);
         lastCalcDate.setHours(0, 0, 0, 0);
         
-        // ⭐ ใช้เวลาไทย (UTC+7)
-        const now = new Date();
-        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+        // ⭐ ใช้เวลาตาม Timezone ที่ตั้งค่าไว้
+        const today = getTodayInTimeZone(getConfiguredTimeZone());
         
         console.log(`  🔍 LastCalc: ${lastCalcDate.toISOString().split('T')[0]} | Today(TH): ${today.toISOString().split('T')[0]} | Match: ${lastCalcDate.getTime() === today.getTime()}`);
         
@@ -1530,10 +1529,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         
         console.log(`💰 Base: ${baseAmount}฿ (${pendingPayment.rent_amount}฿ rent + ${(baseAmount - (pendingPayment.rent_amount || 0)).toFixed(0)}฿ utilities)`);
         
-        // ⭐ ใช้เวลาไทย (UTC+7) เพื่อให้ LOCK 3 ทำงาน
-        const now = new Date();
-        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
-        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
+        // ⭐ ใช้เวลาตาม Timezone ที่ตั้งค่าไว้เพื่อให้ LOCK 3 ทำงาน
+        const today = getTodayInTimeZone(getConfiguredTimeZone());
         console.log(`📅 Today(TH): ${today.toISOString().split('T')[0]}`);
         
         const { lateFeeAmount, daysLate } = calculateLateFee(pendingPayment, configs, branchId, today);
@@ -1571,10 +1568,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         }
 
         // ⭐ ชำระครบแล้ว + บัญชีถูกต้อง
-        // ⭐ บันทึก late_fee_last_calculated เป็นเวลาไทย (UTC+7) เพื่อให้ LOCK 3 เช็คได้ถูกต้อง
-        const nowForLock = new Date();
-        const thailandForLock = new Date(nowForLock.getTime() + (7 * 60 * 60 * 1000));
-
+        // ⭐ บันทึก late_fee_last_calculated เป็นเวลาตาม Timezone ที่ตั้งค่าไว้
         await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
             status: 'paid',
             payment_date: transDate.split('T')[0],
@@ -1582,7 +1576,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             late_fee_amount: lateFeeAmount,
             total_amount: expectedAmount,
             paid_amount: expectedAmount,
-            late_fee_last_calculated: thailandForLock.toISOString(),
+            late_fee_last_calculated: getCurrentTimeInTimeZone(getConfiguredTimeZone()).toISOString(),
             notes: `${pendingPayment.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}`
         });
 
