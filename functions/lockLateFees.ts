@@ -400,9 +400,10 @@ Deno.serve(async (req) => {
             error: error.message 
         }, { status: 500 });
     }
+});
 
-    // ⭐⭐⭐ Helper function: คำนวณค่าปรับสำหรับบิลเดียว
-    async function calculateSinglePayment(base44, paymentId, startTime) {
+// ⭐⭐⭐ Helper function: คำนวณค่าปรับสำหรับบิลเดียว
+async function calculateSinglePayment(base44, paymentId, startTime) {
         try {
         console.log(`\n🎯 [Single Payment Mode] Payment ID: ${paymentId.substring(0, 12)}...`);
 
@@ -525,5 +526,4 @@ Deno.serve(async (req) => {
         error: error.message
         }, { status: 500 });
         }
-    }
-});
+}
