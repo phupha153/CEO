@@ -1,6 +1,57 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
 
+// ⭐ Helper: Get current date in a specific timezone (no hardcoding)
+function getDateInTimezone(timeZone = 'Asia/Bangkok') {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone
+    });
+    
+    const parts = formatter.formatToParts(now);
+    const partsMap = {};
+    parts.forEach(({ type, value }) => {
+        partsMap[type] = value;
+    });
+    
+    const year = parseInt(partsMap.year);
+    const month = parseInt(partsMap.month) - 1;
+    const day = parseInt(partsMap.day);
+    
+    return new Date(year, month, day);
+}
+
+// ⭐ Helper: Get current timestamp in a specific timezone as ISO string
+function getTimestampInTimezone(timeZone = 'Asia/Bangkok') {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        fractionalSecondDigits: 3,
+        hour12: false,
+        timeZone
+    });
+    
+    const parts = formatter.formatToParts(now);
+    const partsMap = {};
+    parts.forEach(({ type, value }) => {
+        partsMap[type] = value;
+    });
+    
+    return `${partsMap.year}-${partsMap.month}-${partsMap.day}T${partsMap.hour}:${partsMap.minute}:${partsMap.second}.${partsMap.fractionalSecondDigits || '000'}Z`;
+}
+
 // ⭐ Inline helper: Calculate late fee
 function calculateLateFee(payment, configs, branchId, calculationDate = null) {
     console.log(`🧮 LateFee: ${payment?.id?.substring(0, 8)}... | Due: ${payment?.due_date} | Status: ${payment?.status}`);
