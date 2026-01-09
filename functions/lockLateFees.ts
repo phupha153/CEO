@@ -203,35 +203,52 @@ Deno.serve(async (req) => {
                 let totalFetched = 0;
 
                 while (hasMore) {
-                    // ⭐ Query with DB-level date filter (indexed)
-                    const pagedPayments = await base44.asServiceRole.entities.Payment.filter(
-                        { 
-                            branch_id: branch.id, 
-                            status: { $ne: 'paid' },
-                            $or: [
-                                { late_fee_calculated_date: null },
-                                { late_fee_calculated_date: { $ne: todayStr } }
-                            ]
-                        },
-                        '-created_date',
-                        pageSize,
-                        offset
-                    );
+                    // ⭐ Query with retry logic (429 handling)
+                    let pagedPayments;
+                    let retries = 0;
+                    const maxRetries = 3;
+                    
+                    while (retries < maxRetries) {
+                        try {
+                            pagedPayments = await base44.asServiceRole.entities.Payment.filter(
+                                { 
+                                    branch_id: branch.id, 
+                                    status: { $ne: 'paid' },
+                                    $or: [
+                                        { late_fee_calculated_date: null },
+                                        { late_fee_calculated_date: { $ne: todayStr } }
+                                    ]
+                                },
+                                '-created_date',
+                                pageSize,
+                                offset
+                            );
+                            break; // Success
+                        } catch (queryError) {
+                            if (queryError.message?.includes('429') && retries < maxRetries - 1) {
+                                const backoff = 1000 * Math.pow(2, retries); // 1s, 2s, 4s
+                                console.log(`  ⚠️ Rate limit hit, retry ${retries + 1}/${maxRetries} in ${backoff}ms`);
+                                await new Promise(resolve => setTimeout(resolve, backoff));
+                                retries++;
+                            } else {
+                                throw queryError;
+                            }
+                        }
+                    }
 
                     totalFetched += pagedPayments.length;
                     console.log(`  📄 Page ${Math.floor(offset/pageSize) + 1}: Fetched ${pagedPayments.length} bills (total: ${totalFetched})`);
 
-                    // หยุดถ้าไม่มีข้อมูลแล้ว
                     if (pagedPayments.length === 0) {
                         hasMore = false;
                         break;
                     }
 
                     const needsCalculation = pagedPayments;
-                    console.log(`  ✅ DB-filtered: ${needsCalculation.length} need calculation (no memory filter)`);
+                    console.log(`  ✅ DB-filtered: ${needsCalculation.length} need calculation`);
 
-                    // ⭐ Process filtered bills in batches (200 at a time)
-                    const processChunkSize = 200;
+                    // ⭐ Process filtered bills in batches (100 at a time - reduced)
+                    const processChunkSize = 100;
                     for (let i = 0; i < needsCalculation.length; i += processChunkSize) {
                         const chunk = needsCalculation.slice(i, i + processChunkSize);
                         
@@ -297,19 +314,18 @@ Deno.serve(async (req) => {
 
                         await Promise.all(updatePromises);
                         
-                        // Delay ระหว่าง process chunks
+                        // Delay ระหว่าง chunks (increased)
                         if (i + processChunkSize < needsCalculation.length) {
-                            await new Promise(resolve => setTimeout(resolve, 50));
+                            await new Promise(resolve => setTimeout(resolve, 150));
                         }
                     }
 
-                    // ถ้า fetch ได้น้อยกว่า pageSize = หมดข้อมูลแล้ว
                     if (pagedPayments.length < pageSize) {
                         hasMore = false;
                     } else {
                         offset += pageSize;
-                        // Delay ระหว่างหน้า
-                        await new Promise(resolve => setTimeout(resolve, 100));
+                        // Delay ระหว่างหน้า (increased)
+                        await new Promise(resolve => setTimeout(resolve, 300));
                     }
                 }
 
@@ -328,7 +344,10 @@ Deno.serve(async (req) => {
             results.total_skipped += branchResult.skipped;
 
             console.log(`✅ Branch "${branch.branch_name}" done: ${branchResult.updated} updated, ${branchResult.skipped} skipped`);
-        }
+
+            // ⭐ Delay ระหว่างสาขา (prevent rate limit)
+            await new Promise(resolve => setTimeout(resolve, 500));
+            }
 
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
         console.log(`\n🎉 [Lock Late Fees] Completed in ${duration}s`);
