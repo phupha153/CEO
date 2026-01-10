@@ -33,15 +33,8 @@ export default function WebhookLogs() {
     queryFn: async () => {
       const filter = {};
       
-      // Branch filter (ต้องมีเสมอสำหรับ multi-tenant)
-      if (selectedBranch !== 'all') {
-        filter.branch_id = selectedBranch;
-      } else {
-        // ถ้าไม่เลือกสาขา ดึงจากสาขาที่เลือกไว้ใน layout
-        // (ถ้าต้อง scope ให้กรรมชาต เอกเลือก branch ที่เลือกไว้)
-      }
-      
       if (searchLineId) filter.line_user_id = { $regex: searchLineId };
+      if (selectedBranch !== 'all') filter.branch_id = selectedBranch;
       if (selectedEventType !== 'all') filter.event_type = selectedEventType;
       if (selectedStatus !== 'all') filter.status = selectedStatus;
 
@@ -132,12 +125,11 @@ export default function WebhookLogs() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Events</SelectItem>
-                    <SelectItem value="payment_verified">✅ Payment Verified</SelectItem>
-                    <SelectItem value="partial_payment">💰 Partial Payment</SelectItem>
-                    <SelectItem value="slip_duplicate">⚠️ Slip Duplicate</SelectItem>
-                    <SelectItem value="slip_fraud">🚫 Slip Fraud</SelectItem>
-                    <SelectItem value="slip_verification_error">❌ Verification Error</SelectItem>
-                    <SelectItem value="slip_processing_error">❌ Processing Error</SelectItem>
+                    <SelectItem value="payment_verified">Payment Verified</SelectItem>
+                    <SelectItem value="partial_payment">Partial Payment</SelectItem>
+                    <SelectItem value="slip_duplicate">Slip Duplicate</SelectItem>
+                    <SelectItem value="slip_fraud">Slip Fraud</SelectItem>
+                    <SelectItem value="slip_verification_error">Verification Error</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
