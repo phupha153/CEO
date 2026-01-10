@@ -199,7 +199,8 @@ Deno.serve(async (req) => {
 
             try {
                 const qrData = JSON.parse(qrResponseText);
-                if (qrResponse.ok && qrData.success && qrData.data?.amount?.amount) {
+                // ⭐ Slip2Go ส่ง code "200200" = success, ไม่มี field "success"
+                if (qrResponse.ok && qrData.code === '200200' && qrData.data) {
                     simpleData = qrData;
                     verificationMethod = 'qr-image';
                     console.log('✅ qr-image/info method succeeded');
@@ -267,11 +268,12 @@ Deno.serve(async (req) => {
         
         console.log(`✅ Verified using ${verificationMethod} method`);
 
-        if (simpleData && simpleData.success) {
+        // ⭐ เช็คว่ามี simpleData และ code = 200200 (success)
+        if (simpleData && simpleData.code === '200200' && simpleData.data) {
             console.log('✅ Slip verification SUCCESS!');
-            
+
             const slipData = simpleData.data;
-            const slipAmount = parseFloat(slipData.amount?.amount || 0);
+            const slipAmount = parseFloat(slipData.amount || 0);
             
             // ⭐⭐⭐ เช็คบัญชีปลายทางก่อนเช็คยอด (ป้องกันรับสลิปที่โอนผิดบัญชี)
             const configs = await base44.asServiceRole.entities.Config.list();
