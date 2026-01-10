@@ -355,7 +355,7 @@ Deno.serve(async (req) => {
                                 late_fee_amount: calculatedLateFee,
                                 total_amount: newTotalAmount,
                                 status: 'overdue',
-                                late_fee_last_calculated: getThailandTimestamp()
+                                late_fee_last_calculated: new Date().toISOString()
                             });
 
                             payment.late_fee_amount = calculatedLateFee;
@@ -533,7 +533,7 @@ Deno.serve(async (req) => {
 
         // Update bill_sent_date และ overdue_reminder_sent_date (ถ้าเป็น template overdue)
         const paymentIdsToUpdate = recipients.map(r => r.metadata.paymentId);
-        const now = getThailandTimestamp();
+        const now = new Date().toISOString();
         const updateBatchSize = 100;
 
         // ⭐ สร้าง update payload ตาม template
@@ -724,6 +724,7 @@ Deno.serve(async (req) => {
         
         // 🚨 ส่งอีเมลแจ้งเตือนเมื่อเกิดข้อผิดพลาดร้ายแรง
         try {
+            const base44 = createClientFromRequest(req);
             await base44.integrations.Core.SendEmail({
                 to: 'phupha20517@gmail.com',
                 subject: '🚨 Error in sendPaymentReminder Function',
