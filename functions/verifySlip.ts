@@ -444,21 +444,33 @@ Deno.serve(async (req) => {
             const dueDateObj = parseISO(payment.due_date);
             const daysLate = Math.floor((paymentDateObj - dueDateObj) / (1000 * 60 * 60 * 24));
 
+            console.log('\n========== 💰 LATE FEE CALCULATION START ==========');
+            console.log('📅 Due Date:', payment.due_date);
+            console.log('📅 Payment Date:', paymentDateOnly);
+            console.log('⏰ Days Late:', daysLate);
+
             let lateFeeAmount = 0;
             if (daysLate > 0) {
                 // เช็คว่าใช้ค่าปรับแบบขั้นบันไดหรือไม่
                 const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && (c.branch_id === payment.branch_id || !c.branch_id));
                 const tiersEnabled = tiersEnabledConfig?.value === 'true';
+                
+                console.log('🔧 Config Check:');
+                console.log('  - late_fee_tiers_enabled:', tiersEnabled ? 'YES ✅' : 'NO ❌');
 
                 let usedTiers = false;
 
                 if (tiersEnabled) {
                     const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && (c.branch_id === payment.branch_id || !c.branch_id));
+                    
+                    console.log('  - late_fee_tiers config:', tiersConfig?.value ? 'FOUND ✅' : 'NOT FOUND ❌');
 
                     if (tiersConfig?.value) {
                         try {
                             const tiers = JSON.parse(tiersConfig.value);
-                            console.log(`📊 Using tiered late fees - Days late: ${daysLate}`);
+                            console.log('\n📊 USING TIERED LATE FEE CALCULATION');
+                            console.log('📋 Tiers:', JSON.stringify(tiers, null, 2));
+                            console.log(`⏰ Days Late: ${daysLate}`);
 
                             for (const tier of tiers) {
                                 const daysFrom = tier.days_from || 1;
@@ -470,7 +482,7 @@ Deno.serve(async (req) => {
                                     if (daysInThisTier > 0) {
                                         const tierFee = daysInThisTier * feePerDay;
                                         lateFeeAmount += tierFee;
-                                        console.log(`  ➡️ Tier ${daysFrom}-${daysTo}: ${daysInThisTier} วัน × ${feePerDay}฿ = ${tierFee}฿`);
+                                        console.log(`  ✅ Tier ${daysFrom}-${daysTo} วัน: ${daysInThisTier} วัน × ${feePerDay}฿ = ${tierFee}฿`);
                                     }
                                 }
 
@@ -478,7 +490,7 @@ Deno.serve(async (req) => {
                             }
 
                             usedTiers = true;
-                            console.log(`⏰ Late payment (Tiers): ${daysLate} days → TOTAL ${lateFeeAmount} บาท`);
+                            console.log(`\n💰 TIERED TOTAL: ${lateFeeAmount} บาท (${daysLate} วันล่าช้า)`);
                         } catch (e) {
                             console.error('❌ Error parsing tiers, fallback to simple fee:', e);
                         }
@@ -489,10 +501,20 @@ Deno.serve(async (req) => {
                 if (!usedTiers) {
                     const lateFeePerDayConfig = configs.find(c => c.key === 'late_fee_per_day' && (c.branch_id === payment.branch_id || !c.branch_id));
                     const lateFeePerDay = parseFloat(lateFeePerDayConfig?.value || 0);
+                    
+                    console.log('\n📊 USING SIMPLE LATE FEE CALCULATION');
+                    console.log('  - late_fee_per_day config:', lateFeePerDay);
+                    console.log('  - Days Late:', daysLate);
+                    console.log('  - Formula:', `${daysLate} × ${lateFeePerDay}฿`);
+                    
                     lateFeeAmount = daysLate * lateFeePerDay;
-                    console.log(`⏰ Late payment (Simple): ${daysLate} days × ${lateFeePerDay} = ${lateFeeAmount} บาท`);
+                    console.log(`\n💰 SIMPLE TOTAL: ${lateFeeAmount} บาท`);
                 }
+            } else {
+                console.log('✅ Payment on time - No late fee');
             }
+            
+            console.log('========== 💰 LATE FEE CALCULATION END ==========\n');
 
             // ⭐ คำนวณยอดที่ต้องชำระจริง (รวมค่าปรับ)
             const expectedAmount = parseFloat(payment.total_amount) + lateFeeAmount;
