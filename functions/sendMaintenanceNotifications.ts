@@ -33,7 +33,20 @@ Deno.serve(async (req) => {
             });
         }
 
-        const recipientIds = recipients.split(',').map(id => id.trim()).filter(id => id);
+        const recipientEmails = recipients.split(',').map(email => email.trim()).filter(email => email);
+
+        // ⭐ Step 1: ดึง User ทั้งหมดที่ตรงกับ email และมี LINE ID
+        const allUsers = await base44.asServiceRole.entities.User.list();
+        const lineRecipients = allUsers.filter(user => 
+            recipientEmails.includes(user.email) && user.employee_line_user_id
+        ).map(user => user.employee_line_user_id);
+        
+        if (lineRecipients.length === 0) {
+            return Response.json({ 
+                success: false, 
+                error: 'ไม่พบผู้รับที่มี LINE ID ที่เชื่อมต่อ' 
+            });
+        }
 
         // กำหนดลำดับความสำคัญ
         const priorityOrder = { 'low': 0, 'medium': 1, 'high': 2, 'urgent': 3 };
@@ -73,11 +86,10 @@ Deno.serve(async (req) => {
         let totalSent = 0;
         const errors = [];
 
-        for (const recipientId of recipientIds) {
-            let message = `🔧 แจ้งเตือนคำขอซ่อม\n\n`;
-            message += `พบคำขอซ่อมที่รอดำเนินการ ${pendingMaintenance.length} รายการ\n\n`;
+        let message = `🔧 แจ้งเตือนคำขอซ่อม\n\n`;
+        message += `พบคำขอซ่อมที่รอดำเนินการ ${pendingMaintenance.length} รายการ\n\n`;
 
-            // จัดกลุ่มตามความสำคัญ
+        // จัดกลุ่มตามความสำคัญ
             const urgent = pendingMaintenance.filter(m => m.priority === 'urgent');
             const high = pendingMaintenance.filter(m => m.priority === 'high');
             const medium = pendingMaintenance.filter(m => m.priority === 'medium');
@@ -109,36 +121,36 @@ Deno.serve(async (req) => {
                 message += `⚪ ต่ำ: ${low.length} รายการ\n`;
             }
 
-            message += `\n💡 กรุณาตรวจสอบและดำเนินการ`;
+        message += `\n💡 กรุณาตรวจสอบและดำเนินการ`;
 
-            try {
-                const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${lineAccessToken}`
-                    },
-                    body: JSON.stringify({
-                        to: recipientId,
-                        messages: [{ type: 'text', text: message }]
-                    })
-                });
+        // ส่งแบบ multicast ไปยังทุก LINE ID ที่หาเจอ
+        try {
+            const lineResponse = await fetch('https://api.line.me/v2/bot/message/multicast', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${lineAccessToken}`
+                },
+                body: JSON.stringify({
+                    to: lineRecipients,
+                    messages: [{ type: 'text', text: message }]
+                })
+            });
 
-                if (lineResponse.ok) {
-                    totalSent++;
-                } else {
-                    const errorData = await lineResponse.json();
-                    errors.push(`Failed to send to ${recipientId}: ${errorData.message || 'Unknown error'}`);
-                }
-            } catch (error) {
-                errors.push(`Error sending to ${recipientId}: ${error.message}`);
+            if (lineResponse.ok) {
+                totalSent = lineRecipients.length;
+            } else {
+                const errorData = await lineResponse.json();
+                errors.push(`Multicast failed: ${errorData.message || 'Unknown error'}`);
             }
+        } catch (error) {
+            errors.push(`Multicast error: ${error.message}`);
         }
 
         const executionTime = Date.now() - startTime;
         const result = {
             success: true,
-            message: `ส่งการแจ้งเตือนสำเร็จ ${totalSent}/${recipientIds.length} ผู้รับ`,
+            message: `ส่งการแจ้งเตือนสำเร็จ ${totalSent}/${lineRecipients.length} ผู้รับ`,
             maintenanceCount: pendingMaintenance.length,
             sentTo: totalSent,
             errors: errors.length > 0 ? errors : undefined
