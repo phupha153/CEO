@@ -1571,10 +1571,6 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         }
 
         // ⭐ ชำระครบแล้ว + บัญชีถูกต้อง
-        // ⭐ บันทึก late_fee_last_calculated เป็นเวลาไทย (UTC+7) เพื่อให้ LOCK 3 เช็คได้ถูกต้อง
-        const nowForLock = new Date();
-        const thailandForLock = new Date(nowForLock.getTime() + (7 * 60 * 60 * 1000));
-
         await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
             status: 'paid',
             payment_date: transDate.split('T')[0],
@@ -1582,7 +1578,6 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             late_fee_amount: lateFeeAmount,
             total_amount: expectedAmount,
             paid_amount: expectedAmount,
-            late_fee_last_calculated: thailandForLock.toISOString(),
             notes: `${pendingPayment.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}`
         });
 
