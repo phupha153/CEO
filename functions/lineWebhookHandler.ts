@@ -1471,6 +1471,20 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             const isSlipNotFound = errorCode === '200404' || errorMessage === 'Slip not found';
 
             if (isSlipNotFound) {
+                try {
+                    await base44.asServiceRole.entities.WebhookLog.create({
+                        webhook_type: 'line',
+                        branch_id: branchId,
+                        event_type: 'slip_not_found',
+                        line_user_id: lineUserId,
+                        tenant_id: tenant?.id,
+                        payment_id: pendingPayment.id,
+                        status: 'warning',
+                        message: 'Slip not found in banking system (200404)',
+                        details: { errorCode, errorMessage }
+                    });
+                } catch(e) {}
+
                 const now = new Date().toISOString();
                 await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                     payment_slip_url: slipImageUrl,
@@ -1618,6 +1632,23 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 payment_slip_url: slipImageUrl,
                 notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
             });
+
+            try {
+                await base44.asServiceRole.entities.WebhookLog.create({
+                    webhook_type: 'line',
+                    branch_id: branchId,
+                    event_type: 'account_mismatch',
+                    line_user_id: lineUserId,
+                    tenant_id: tenant?.id,
+                    payment_id: pendingPayment.id,
+                    status: 'error',
+                    message: 'Account mismatch',
+                    details: { 
+                        slip_receiver: `${receiverAccount || receiverPromptPay}`,
+                        config_receiver: `${expectedAccountNumber || expectedPromptPay}`
+                    }
+                });
+            } catch(e) {}
 
             await sendMessage(base44, lineUserId, 
                 `❌ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ 🙏`,
