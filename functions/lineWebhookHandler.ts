@@ -1436,13 +1436,13 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         // ⭐ เช็คชื่อบัญชี - เช็คไทยก่อน ถ้าตรงก็ผ่านเลย (เอาแค่ชื่อแรก ไม่เอานามสกุล)
         if ((expectedAccountName || expectedAccountNameEn) && receiverName) {
             const cleanReceiver = receiverName
-                .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
+                .replace(/นางสาว|นาย|นาง|ด\.ช\.|ด\.ญ\.|miss\.?|mrs\.?|mr\.?|ms\.?|dr\.?/gi, '')
                 .replace(/\s+/g, ' ')
                 .trim()
                 .toLowerCase();
 
-            // แยกชื่อแรกเท่านั้น (ไม่เอานามสกุล)
-            const receiverFirstName = cleanReceiver.split(' ')[0];
+            // แยกชื่อแรกเท่านั้น (ไม่เอานามสกุล) - filter ชื่อว่าง
+            const receiverFirstName = cleanReceiver.split(' ').filter(word => word.length > 0)[0] || '';
 
             console.log('🔍 Name comparison (First name only):');
             console.log('  - Receiver (from slip):', receiverName);
@@ -1451,11 +1451,11 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             // ⭐ STEP 1: เช็คชื่อไทยก่อน
             if (expectedAccountName) {
                 const cleanExpectedTh = expectedAccountName
-                    .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\./gi, '')
+                    .replace(/นางสาว|นาย|นาง|ด\.ช\.|ด\.ญ\./gi, '')
                     .replace(/\s+/g, ' ')
                     .trim()
                     .toLowerCase();
-                const expectedFirstNameTh = cleanExpectedTh.split(' ')[0];
+                const expectedFirstNameTh = cleanExpectedTh.split(' ').filter(word => word.length > 0)[0] || '';
 
                 console.log('  - Expected (TH):', expectedAccountName);
                 console.log('  - Expected first (TH):', expectedFirstNameTh);
@@ -1472,11 +1472,11 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             // ⭐ STEP 2: เช็คชื่ออังกฤษ (เฉพาะเมื่อชื่อไทยไม่ตรง)
             if (!nameMatch && expectedAccountNameEn) {
                 const cleanExpectedEn = expectedAccountNameEn
-                    .replace(/mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
+                    .replace(/miss\.?|mrs\.?|mr\.?|ms\.?|dr\.?/gi, '')
                     .replace(/\s+/g, ' ')
                     .trim()
                     .toLowerCase();
-                const expectedFirstNameEn = cleanExpectedEn.split(' ')[0];
+                const expectedFirstNameEn = cleanExpectedEn.split(' ').filter(word => word.length > 0)[0] || '';
 
                 console.log('  - Thai name not matched, checking English...');
                 console.log('  - Expected (EN):', expectedAccountNameEn);
