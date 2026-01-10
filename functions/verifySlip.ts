@@ -333,8 +333,8 @@ Deno.serve(async (req) => {
                     .trim()
                     .toLowerCase();
 
-                // แยกชื่อแรกเท่านั้น (ไม่เอานามสกุล)
-                const receiverFirstName = cleanReceiver.split(' ')[0];
+                // แยกชื่อแรกเท่านั้น (ไม่เอานามสกุล) - filter ชื่อว่าง
+                const receiverFirstName = cleanReceiver.split(' ').filter(word => word.length > 0)[0] || '';
 
                 console.log('🔍 Name comparison (First name only):');
                 console.log('  - Receiver (from slip):', receiverName);
@@ -347,7 +347,7 @@ Deno.serve(async (req) => {
                         .replace(/\s+/g, ' ')
                         .trim()
                         .toLowerCase();
-                    const expectedFirstNameTh = cleanExpectedTh.split(' ')[0];
+                    const expectedFirstNameTh = cleanExpectedTh.split(' ').filter(word => word.length > 0)[0] || '';
 
                     console.log('  - Expected (TH):', expectedAccountName);
                     console.log('  - Expected first (TH):', expectedFirstNameTh);
@@ -368,7 +368,7 @@ Deno.serve(async (req) => {
                         .replace(/\s+/g, ' ')
                         .trim()
                         .toLowerCase();
-                    const expectedFirstNameEn = cleanExpectedEn.split(' ')[0];
+                    const expectedFirstNameEn = cleanExpectedEn.split(' ').filter(word => word.length > 0)[0] || '';
 
                     console.log('  - Thai name not matched, checking English...');
                     console.log('  - Expected (EN):', expectedAccountNameEn);
