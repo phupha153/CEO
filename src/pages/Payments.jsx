@@ -25,6 +25,7 @@ import SendAdvanceReminderButton from "@/components/settings/SendAdvanceReminder
 import GenerateMonthlyBillsButton from "@/components/payments/GenerateMonthlyBillsButton";
 import SlipPreviewDialog from "@/components/shared/SlipPreviewDialog";
 import SendReminderDialog from "@/components/payments/SendReminderDialog";
+import ConfirmPaymentDialog from "@/components/payments/ConfirmPaymentDialog";
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
@@ -49,6 +50,7 @@ export default function PaymentsPage() {
   const [slipPreview, setSlipPreview] = useState({ open: false, url: '', title: '' });
   const [reminderDialog, setReminderDialog] = useState({ open: false, payment: null, template: null });
   const [confirmReminderDialog, setConfirmReminderDialog] = useState({ open: false, payment: null, template: null });
+  const [confirmPaymentDialog, setConfirmPaymentDialog] = useState({ open: false, payment: null });
 
   const [statusFilter, setStatusFilter] = useState(initialStatusFilter);
   const [dateRangeType, setDateRangeType] = useState('this_month');
@@ -2490,40 +2492,21 @@ Return JSON.`;
                                 )}
                                 <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                                   <button
-                                    type="button"
-                                    className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
-                                    onClick={(e) => {
-                                      console.log('🔘🔘🔘 BUTTON CLICKED - Review Banner');
-                                      e.stopPropagation();
-                                      e.preventDefault();
-                                      console.log('Event propagation stopped');
-                                      console.log('State check:', { 
-                                        paymentId: p.id, 
-                                        canConfirmPaid, 
-                                        isPending: updateStatusMutation.isPending,
-                                        userRole,
-                                        userPermissions 
-                                      });
-                                      const confirmed = confirm(`ยืนยันชำระเงิน ${(p.total_amount || 0).toLocaleString()} บาท?`);
-                                      console.log('Confirm dialog result:', confirmed);
-                                      if (confirmed) {
-                                        console.log('✅ Calling updateStatusMutation.mutate NOW');
-                                        const mutationData = { id: p.id, status: 'paid', payment_date: getTodayDateString() };
-                                        console.log('Mutation data:', mutationData);
-                                        updateStatusMutation.mutate(mutationData);
-                                        console.log('Mutate function called');
-                                      } else {
-                                        console.log('❌ User cancelled confirmation');
-                                      }
-                                    }}
-                                    disabled={updateStatusMutation.isPending}
+                                   type="button"
+                                   className="flex-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     e.preventDefault();
+                                     setConfirmPaymentDialog({ open: true, payment: p });
+                                   }}
+                                   disabled={updateStatusMutation.isPending}
                                   >
-                                    {updateStatusMutation.isPending ? (
-                                      <Loader2 className="w-3 h-3 animate-spin" />
-                                    ) : (
-                                      <Check className="w-3 h-3" />
-                                    )}
-                                    <span>ยืนยันชำระ</span>
+                                   {updateStatusMutation.isPending ? (
+                                     <Loader2 className="w-3 h-3 animate-spin" />
+                                   ) : (
+                                     <Check className="w-3 h-3" />
+                                   )}
+                                   <span>ยืนยันชำระ</span>
                                   </button>
                                   <button
                                     type="button"
@@ -3154,13 +3137,7 @@ Return JSON.`;
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           e.preventDefault();
-                                          console.log('🔘 Card View: Confirm clicked', { paymentId: payment.id, canConfirmPaid });
-                                          const confirmed = confirm(`ยืนยันชำระเงิน ${payment.total_amount?.toLocaleString()} บาท?`);
-                                          console.log('Confirm dialog result:', confirmed);
-                                          if (confirmed) {
-                                            console.log('✅ Executing mutation');
-                                            updateStatusMutation.mutate({ id: payment.id, status: 'paid', payment_date: getTodayDateString() });
-                                          }
+                                          setConfirmPaymentDialog({ open: true, payment });
                                         }}
                                         disabled={updateStatusMutation.isPending}
                                       >
@@ -3497,7 +3474,7 @@ Return JSON.`;
                                     size="sm" 
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      updateStatusMutation.mutate({ id: payment.id, status: 'paid', payment_date: getTodayDateString() }); 
+                                      setConfirmPaymentDialog({ open: true, payment });
                                     }} 
                                     className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 flex-shrink-0"
                                   >
@@ -3681,7 +3658,7 @@ Return JSON.`;
                                        </Button>
                                       )}
                                       {effectiveStatus !== 'paid' && canConfirmPaid && (
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => { updateStatusMutation.mutate({ id: payment.id, status: 'paid', payment_date: getTodayDateString() }); }} title="ยืนยันชำระ">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50" onClick={() => setConfirmPaymentDialog({ open: true, payment })} title="ยืนยันชำระ">
                                           <CheckCircle2 className="w-4 h-4" />
                                         </Button>
                                       )}
@@ -4090,15 +4067,7 @@ Return JSON.`;
                                                  className="w-full text-xs bg-green-600 hover:bg-green-700"
                                                  onClick={(e) => {
                                                    e.stopPropagation();
-                                                   console.log('🔘 Room View Dialog: Confirm clicked', { paymentId: roomPayment.id, canConfirmPaid });
-                                                   const todayStr = getTodayDateString();
-                                                   console.log('Today date string:', todayStr);
-                                                   const confirmed = confirm(`ยืนยันชำระเงิน ${(roomPayment.total_amount || 0).toLocaleString()} บาท?`);
-                                                   console.log('Confirm result:', confirmed);
-                                                   if (confirmed) {
-                                                     console.log('✅ Executing mutation with:', { id: roomPayment.id, status: 'paid', payment_date: todayStr });
-                                                     updateStatusMutation.mutate({ id: roomPayment.id, status: 'paid', payment_date: todayStr });
-                                                   }
+                                                   setConfirmPaymentDialog({ open: true, payment: roomPayment });
                                                  }}
                                                  disabled={updateStatusMutation.isPending}
                                                >
@@ -4853,8 +4822,7 @@ Return JSON.`;
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log('Confirming payment:', selectedPayment.id);
-                        updateStatusMutation.mutate({ id: selectedPayment.id, status: 'paid', payment_date: getTodayDateString() });
+                        setConfirmPaymentDialog({ open: true, payment: selectedPayment });
                         setShowDetailDialog(false);
                       }}
                       disabled={updateStatusMutation.isPending}
@@ -4999,6 +4967,37 @@ Return JSON.`;
           selectedBranchId={selectedBranchId}
           onConfirm={(template, customMessage) => handleSendReminder(reminderDialog.payment.id, template, customMessage)}
           isSending={sendingReminder === reminderDialog.payment.id}
+        />
+      )}
+
+      {/* Confirm Payment Dialog */}
+      {confirmPaymentDialog.payment && (
+        <ConfirmPaymentDialog
+          open={confirmPaymentDialog.open}
+          onClose={() => setConfirmPaymentDialog({ open: false, payment: null })}
+          payment={confirmPaymentDialog.payment}
+          room={confirmPaymentDialog.payment.room_number ? 
+            { room_number: confirmPaymentDialog.payment.room_number } : 
+            getRoomInfo(confirmPaymentDialog.payment.room_id)}
+          tenant={confirmPaymentDialog.payment.tenant_name ? 
+            { full_name: confirmPaymentDialog.payment.tenant_name } : 
+            getTenantInfo(confirmPaymentDialog.payment.tenant_id)}
+          configs={configs}
+          selectedBranchId={selectedBranchId}
+          onConfirmWithoutSlip={() => {
+            updateStatusMutation.mutate({ 
+              id: confirmPaymentDialog.payment.id, 
+              status: 'paid', 
+              payment_date: getTodayDateString() 
+            });
+          }}
+          onConfirmWithSlip={async (verifyResult) => {
+            await queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
+            await queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
+            await queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
+            setConfirmPaymentDialog({ open: false, payment: null });
+          }}
+          confirming={updateStatusMutation.isPending}
         />
       )}
     </div>
