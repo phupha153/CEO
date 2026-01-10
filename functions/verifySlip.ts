@@ -1,6 +1,27 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import { parseISO } from 'npm:date-fns@3.0.0';
 
+// ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (รองรับ masked accounts)
+function isAccountMatch(maskedSlipAccount, myRealAccount) {
+    if (!maskedSlipAccount || !myRealAccount) return false;
+    
+    const slipAcc = String(maskedSlipAccount).replace(/[- ]/g, '').toLowerCase();
+    const myAcc = String(myRealAccount).replace(/[- ]/g, '').toLowerCase();
+    
+    if (Math.abs(slipAcc.length - myAcc.length) > 2) return false;
+    
+    let matchedCount = 0;
+    const minRequired = slipAcc.length <= 4 ? 2 : 3;
+    
+    for (let i = 0; i < Math.min(slipAcc.length, myAcc.length); i++) {
+        if (slipAcc[i] === 'x' || slipAcc[i] === '*') continue;
+        if (slipAcc[i] === myAcc[i]) matchedCount++;
+        else return false;
+    }
+    
+    return matchedCount >= minRequired;
+}
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
@@ -255,49 +276,44 @@ Deno.serve(async (req) => {
             // ⭐⭐⭐ เช็คบัญชีปลายทางก่อนเช็คยอด (ป้องกันรับสลิปที่โอนผิดบัญชี)
             const configs = await base44.asServiceRole.entities.Config.list();
             const getConfigValue = (key) => {
-                // ⭐ หา config เฉพาะสาขาก่อน ถ้าไม่มีค่อย fallback ไป global
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === payment.branch_id);
                 if (branchConfig) return branchConfig.value;
-                
+
                 const globalConfig = configs.find(c => c.key === key && !c.branch_id);
                 return globalConfig?.value || null;
             };
 
             const expectedAccountNumber = getConfigValue('bank_account_number');
             const expectedPromptPay = getConfigValue('promptpay');
-            const expectedAccountName = getConfigValue('bank_account_name');
-            const expectedAccountNameEn = getConfigValue('bank_account_name_en');
-            
-            // ⭐ ดึงข้อมูลจาก Slip2Go Response (ตาม structure ที่ถูกต้อง)
+
+            // ⭐ ดึงข้อมูลจาก Slip2Go Response
             const receiverAccount = slipData.receiver?.account?.bank?.account || '';
             const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
             const receiverName = slipData.receiver?.account?.name || '';
-            
-            console.log('🔍 Checking account match:');
+
+            console.log('🔍 Checking account match (NEW SECURE METHOD):');
             console.log('  Expected Account:', expectedAccountNumber);
             console.log('  Expected PromptPay:', expectedPromptPay);
-            console.log('  Expected Name:', expectedAccountName);
             console.log('  Receiver Account (from slip):', receiverAccount);
             console.log('  Receiver PromptPay (from slip):', receiverPromptPay);
             console.log('  Receiver Name (from slip):', receiverName);
-            console.log('  Full receiver data:', JSON.stringify(slipData.receiver, null, 2));
-            
+
             // ⭐ ถ้าไม่มี config บัญชีเลย = บังคับให้ตรวจสอบด้วยตนเอง
             if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
                 (!expectedPromptPay || expectedPromptPay.trim() === '')) {
                 const rooms = await base44.asServiceRole.entities.Room.list();
                 const room = rooms.find(r => r.id === payment.room_id);
                 const roomNumber = room?.room_number || 'ไม่ทราบ';
-                
+
                 console.log('⚠️ NO CONFIG FOUND - Manual review required');
-                
+
                 await base44.asServiceRole.entities.Payment.update(paymentId, {
                     payment_slip_url: uploadedSlipUrl,
                     notes: payment.notes ? 
                         `${payment.notes}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})` :
                         `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ (โอนเข้า: ${receiverName} บช ${receiverAccount})`
                 });
-                
+
                 return Response.json({ 
                     success: true,
                     message: `อัปโหลดสลิปสำเร็จ\n\n⚠️ ยังไม่ได้ตั้งค่าบัญชีธนาคารในระบบ\nกรุณารอเจ้าของหอพักตรวจสอบ`,
@@ -305,120 +321,44 @@ Deno.serve(async (req) => {
                     no_config: true
                 });
             }
-            
+
             let accountMatch = false;
-            let nameMatch = false;
 
-            // ⭐ เช็คเลขบัญชี (เช็คว่าเลขในสลิปอยู่ในบัญชีเต็มหรือไม่)
+            // ⭐ เช็คเลขบัญชีธนาคาร
             if (expectedAccountNumber) {
-                const expectedDigits = expectedAccountNumber.replace(/-/g, '').replace(/\s/g, '');
-                const receiverDigits = receiverAccount.replace(/-/g, '').replace(/x/g, '').replace(/X/g, '').replace(/\s/g, '');
-
-                if (receiverDigits && expectedDigits.includes(receiverDigits)) {
-                    accountMatch = true;
-                }
+                accountMatch = isAccountMatch(receiverAccount, expectedAccountNumber);
+                console.log(`  💳 Bank Account Match: ${accountMatch}`);
             }
 
+            // ⭐ ถ้าไม่ผ่าน ลองเช็ค PromptPay
             if (!accountMatch && expectedPromptPay) {
-                if (receiverPromptPay === expectedPromptPay || receiverAccount.includes(expectedPromptPay)) {
-                    accountMatch = true;
-                }
+                const promptPayMatch1 = isAccountMatch(receiverPromptPay, expectedPromptPay);
+                const promptPayMatch2 = isAccountMatch(receiverAccount, expectedPromptPay);
+                accountMatch = promptPayMatch1 || promptPayMatch2;
+                console.log(`  📱 PromptPay Match: ${accountMatch}`);
             }
 
-            // ⭐ เช็คชื่อบัญชี - เช็คไทยก่อน ถ้าตรงก็ผ่านเลย (เอาแค่ชื่อแรก ไม่เอานามสกุล)
-            if ((expectedAccountName || expectedAccountNameEn) && receiverName) {
-                const cleanReceiver = receiverName
-                    .replace(/นางสาว|นาย|นาง|ด\.ช\.|ด\.ญ\.|miss\.?|mrs\.?|mr\.?|ms\.?|dr\.?/gi, '')
-                    .replace(/\s+/g, ' ')
-                    .trim()
-                    .toLowerCase();
+            console.log('  ✅ Final Account Match:', accountMatch);
 
-                // แยกชื่อแรกเท่านั้น (ไม่เอานามสกุล) - filter ชื่อว่าง
-                const receiverFirstName = cleanReceiver.split(' ').filter(word => word.length > 0)[0] || '';
-
-                console.log('🔍 Name comparison (First name only):');
-                console.log('  - Receiver (from slip):', receiverName);
-                console.log('  - Receiver first name:', receiverFirstName);
-
-                // ⭐ STEP 1: เช็คชื่อไทยก่อน
-                if (expectedAccountName) {
-                    const cleanExpectedTh = expectedAccountName
-                        .replace(/นางสาว|นาย|นาง|ด\.ช\.|ด\.ญ\./gi, '')
-                        .replace(/\s+/g, ' ')
-                        .trim()
-                        .toLowerCase();
-                    const expectedFirstNameTh = cleanExpectedTh.split(' ').filter(word => word.length > 0)[0] || '';
-
-                    console.log('  - Expected (TH):', expectedAccountName);
-                    console.log('  - Expected first (TH):', expectedFirstNameTh);
-
-                    // เช็คว่าชื่อตรงกันหรือไม่ (เอาแค่ชื่อแรก)
-                    if (receiverFirstName === expectedFirstNameTh || 
-                        receiverFirstName.includes(expectedFirstNameTh) || 
-                        expectedFirstNameTh.includes(receiverFirstName)) {
-                        nameMatch = true;
-                        console.log('  ✅ Thai name matched! No need to check English.');
-                    }
-                }
-
-                // ⭐ STEP 2: เช็คชื่ออังกฤษ (เฉพาะเมื่อชื่อไทยไม่ตรง)
-                if (!nameMatch && expectedAccountNameEn) {
-                    const cleanExpectedEn = expectedAccountNameEn
-                        .replace(/miss\.?|mrs\.?|mr\.?|ms\.?|dr\.?/gi, '')
-                        .replace(/\s+/g, ' ')
-                        .trim()
-                        .toLowerCase();
-                    const expectedFirstNameEn = cleanExpectedEn.split(' ').filter(word => word.length > 0)[0] || '';
-
-                    console.log('  - Thai name not matched, checking English...');
-                    console.log('  - Expected (EN):', expectedAccountNameEn);
-                    console.log('  - Expected first (EN):', expectedFirstNameEn);
-
-                    // เช็คชื่ออังกฤษ
-                    if (receiverFirstName === expectedFirstNameEn || 
-                        receiverFirstName.includes(expectedFirstNameEn) || 
-                        expectedFirstNameEn.includes(receiverFirstName)) {
-                        nameMatch = true;
-                        console.log('  ✅ English name matched!');
-                    }
-                }
-
-                console.log('  - Final Name Match:', nameMatch);
-            } else {
-                nameMatch = true;
-            }
-
-            console.log('  Account Match:', accountMatch);
-            console.log('  Name Match:', nameMatch);
-
-            if (!accountMatch || !nameMatch) {
-                // ดึงข้อมูลห้องเพื่อแสดงหมายเลขห้อง
+            if (!accountMatch) {
                 const rooms = await base44.asServiceRole.entities.Room.list();
                 const room = rooms.find(r => r.id === payment.room_id);
                 const roomNumber = room?.room_number || 'ไม่ทราบ';
-                
-                let errorMsg = '';
-                if (!accountMatch && !nameMatch) {
-                    errorMsg = `โอนเงินไปผิดบัญชี และชื่อไม่ตรง (ตรวจพบ: ${receiverName} บช ${receiverAccount})`;
-                } else if (!accountMatch) {
-                    errorMsg = `โอนเงินไปผิดบัญชี (ตรวจพบ: ${receiverAccount}, ควรโอนเข้า ${expectedAccountNumber || expectedPromptPay})`;
-                } else if (!nameMatch) {
-                    errorMsg = `ชื่อบัญชีไม่ตรง\n\nคุณโอนเข้า: ${receiverName}\nควรเป็น: ${expectedAccountName || expectedAccountNameEn}\n\nกรุณาตรวจสอบหรือติดต่อเจ้าของหอพักค่ะ 🙏`;
-                }
-                
+
+                const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
+
                 await base44.asServiceRole.entities.Payment.update(paymentId, {
                     payment_slip_url: uploadedSlipUrl,
                     notes: payment.notes ? 
                         `${payment.notes}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}` :
                         `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
                 });
-                
+
                 return Response.json({ 
                     success: true,
                     message: `อัปโหลดสลิปสำเร็จ แต่${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบ`,
                     manual_review_required: true,
-                    account_mismatch: !accountMatch,
-                    name_mismatch: !nameMatch
+                    account_mismatch: true
                 });
             }
 
