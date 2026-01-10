@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
             // ⭐ เช็คชื่อบัญชี - เช็คไทยก่อน ถ้าตรงก็ผ่านเลย (เอาแค่ชื่อแรก ไม่เอานามสกุล)
             if ((expectedAccountName || expectedAccountNameEn) && receiverName) {
                 const cleanReceiver = receiverName
-                    .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\.|mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
+                    .replace(/นางสาว|นาย|นาง|ด\.ช\.|ด\.ญ\.|miss\.?|mrs\.?|mr\.?|ms\.?|dr\.?/gi, '')
                     .replace(/\s+/g, ' ')
                     .trim()
                     .toLowerCase();
@@ -343,7 +343,7 @@ Deno.serve(async (req) => {
                 // ⭐ STEP 1: เช็คชื่อไทยก่อน
                 if (expectedAccountName) {
                     const cleanExpectedTh = expectedAccountName
-                        .replace(/นาย|นาง|นางสาว|ด\.ช\.|ด\.ญ\./gi, '')
+                        .replace(/นางสาว|นาย|นาง|ด\.ช\.|ด\.ญ\./gi, '')
                         .replace(/\s+/g, ' ')
                         .trim()
                         .toLowerCase();
@@ -364,7 +364,7 @@ Deno.serve(async (req) => {
                 // ⭐ STEP 2: เช็คชื่ออังกฤษ (เฉพาะเมื่อชื่อไทยไม่ตรง)
                 if (!nameMatch && expectedAccountNameEn) {
                     const cleanExpectedEn = expectedAccountNameEn
-                        .replace(/mr\.?|mrs\.?|miss\.?|ms\.?|dr\.?/gi, '')
+                        .replace(/miss\.?|mrs\.?|mr\.?|ms\.?|dr\.?/gi, '')
                         .replace(/\s+/g, ' ')
                         .trim()
                         .toLowerCase();
