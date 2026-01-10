@@ -289,20 +289,24 @@ Deno.serve(async (req) => {
                     console.log(`   🔒 LOCKED by admin: ${calculatedLateFee} บาท (won't recalculate)`);
                     // ไม่ต้องคำนวณใหม่ - ข้ามไปส่วนสร้างข้อความเลย
                 } else {
-                    // ⭐ เช็คว่าคำนวณค่าปรับไปแล้วในวันนี้หรือยัง
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    
+                    // ⭐ เช็คว่าคำนวณค่าปรับไปแล้วในวันนี้หรือยัง (ใช้เวลาไทย)
                     let shouldRecalculate = true;
                     if (payment.late_fee_last_calculated) {
+                        // แปลง timestamp ที่บันทึก (UTC) ให้เป็นวันในเวลาไทย
                         const lastCalcDate = new Date(payment.late_fee_last_calculated);
-                        lastCalcDate.setHours(0, 0, 0, 0);
+                        const lastCalcThailand = new Date(lastCalcDate.getTime() + (7 * 60 * 60 * 1000));
+                        const lastCalcDay = new Date(lastCalcThailand.getFullYear(), lastCalcThailand.getMonth(), lastCalcThailand.getDate());
+                        
+                        // วันนี้ในเวลาไทย
+                        const now = new Date();
+                        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+                        const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
                         
                         // ถ้าคำนวณวันนี้แล้ว → ใช้ค่าเดิม (ไม่คำนวณซ้ำ)
-                        if (lastCalcDate.getTime() === today.getTime() && payment.late_fee_amount > 0) {
+                        if (lastCalcDay.getTime() === today.getTime() && payment.late_fee_amount > 0) {
                             shouldRecalculate = false;
                             calculatedLateFee = payment.late_fee_amount;
-                            console.log(`   ♻️ Reusing late fee: ${calculatedLateFee} บาท (already calculated today)`);
+                            console.log(`   ♻️ Reusing late fee: ${calculatedLateFee} บาท (already calculated today TH)`);
                         }
                     }
 

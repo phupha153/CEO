@@ -27,17 +27,19 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
     // 🔒 LOCK 3: เช็คว่าคำนวณวันนี้แล้วหรือยัง (ทำงานเสมอ ไม่ว่า calculationDate มีค่าหรือไม่)
     console.log(`  🔍 LOCK 3 Check: late_fee_last_calculated=${payment.late_fee_last_calculated || 'null'}`);
     if (payment.late_fee_last_calculated) {
+        // แปลง timestamp ที่บันทึก (UTC) ให้เป็นวันในเวลาไทย
         const lastCalcDate = new Date(payment.late_fee_last_calculated);
-        lastCalcDate.setHours(0, 0, 0, 0);
+        const lastCalcThailand = new Date(lastCalcDate.getTime() + (7 * 60 * 60 * 1000));
+        const lastCalcDay = new Date(lastCalcThailand.getFullYear(), lastCalcThailand.getMonth(), lastCalcThailand.getDate());
         
-        // ⭐ ใช้เวลาไทย (UTC+7)
+        // วันนี้ในเวลาไทย
         const now = new Date();
         const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
         
-        console.log(`  🔍 LastCalc: ${lastCalcDate.toISOString().split('T')[0]} | Today(TH): ${today.toISOString().split('T')[0]} | Match: ${lastCalcDate.getTime() === today.getTime()}`);
+        console.log(`  🔍 LastCalc(TH): ${lastCalcDay.toISOString().split('T')[0]} | Today(TH): ${today.toISOString().split('T')[0]} | Match: ${lastCalcDay.getTime() === today.getTime()}`);
         
-        if (lastCalcDate.getTime() === today.getTime()) {
+        if (lastCalcDay.getTime() === today.getTime()) {
             console.log(`  ✅ SKIP: Already calculated today (${payment.late_fee_amount || 0}฿)`);
             return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
         }

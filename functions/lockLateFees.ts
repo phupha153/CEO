@@ -23,14 +23,19 @@ function calculateLateFee(payment, configs, branchId, calculationDate = null) {
     const calcDate = calculationDate || new Date();
     
     if (payment.late_fee_last_calculated) {
+        // แปลง timestamp ที่บันทึก (UTC) ให้เป็นวันในเวลาไทย
         const lastCalcDate = new Date(payment.late_fee_last_calculated);
-        lastCalcDate.setHours(0, 0, 0, 0);
+        const lastCalcThailand = new Date(lastCalcDate.getTime() + (7 * 60 * 60 * 1000));
+        const lastCalcDay = new Date(lastCalcThailand.getFullYear(), lastCalcThailand.getMonth(), lastCalcThailand.getDate());
         
+        // วันนี้ในเวลาไทย
         const now = new Date();
         const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
         
-        if (lastCalcDate.getTime() === today.getTime()) {
+        console.log(`  🔍 LastCalc(TH): ${lastCalcDay.toISOString().split('T')[0]} | Today(TH): ${today.toISOString().split('T')[0]}`);
+        
+        if (lastCalcDay.getTime() === today.getTime()) {
             console.log(`  ✅ SKIP: Already calculated today (${payment.late_fee_amount || 0}฿)`);
             return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
         }
