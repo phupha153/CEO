@@ -3,23 +3,51 @@ import { parseISO } from 'npm:date-fns@3.0.0';
 
 // ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (รองรับ masked accounts)
 function isAccountMatch(maskedSlipAccount, myRealAccount) {
-    if (!maskedSlipAccount || !myRealAccount) return false;
+    console.log('\n🔍 === ACCOUNT MATCH CHECK ===');
+    console.log('  Input (from slip):', maskedSlipAccount);
+    console.log('  Expected (my account):', myRealAccount);
+    
+    if (!maskedSlipAccount || !myRealAccount) {
+        console.log('  ❌ Result: FAIL - Missing data');
+        return false;
+    }
     
     const slipAcc = String(maskedSlipAccount).replace(/[- ]/g, '').toLowerCase();
     const myAcc = String(myRealAccount).replace(/[- ]/g, '').toLowerCase();
     
-    if (Math.abs(slipAcc.length - myAcc.length) > 2) return false;
+    console.log('  Cleaned slip account:', slipAcc);
+    console.log('  Cleaned my account:', myAcc);
+    
+    if (Math.abs(slipAcc.length - myAcc.length) > 2) {
+        console.log(`  ❌ Result: FAIL - Length mismatch (${slipAcc.length} vs ${myAcc.length})`);
+        return false;
+    }
     
     let matchedCount = 0;
     const minRequired = slipAcc.length <= 4 ? 2 : 3;
     
+    console.log(`  Min required matches: ${minRequired}`);
+    
     for (let i = 0; i < Math.min(slipAcc.length, myAcc.length); i++) {
-        if (slipAcc[i] === 'x' || slipAcc[i] === '*') continue;
-        if (slipAcc[i] === myAcc[i]) matchedCount++;
-        else return false;
+        if (slipAcc[i] === 'x' || slipAcc[i] === '*') {
+            console.log(`  Position ${i}: MASKED (${slipAcc[i]}) - SKIP`);
+            continue;
+        }
+        if (slipAcc[i] === myAcc[i]) {
+            matchedCount++;
+            console.log(`  Position ${i}: MATCH (${slipAcc[i]} === ${myAcc[i]})`);
+        } else {
+            console.log(`  Position ${i}: MISMATCH (${slipAcc[i]} !== ${myAcc[i]}) - FAIL`);
+            return false;
+        }
     }
     
-    return matchedCount >= minRequired;
+    const isMatch = matchedCount >= minRequired;
+    console.log(`  Matched count: ${matchedCount}/${minRequired}`);
+    console.log(`  ✅ Result: ${isMatch ? 'PASS' : 'FAIL'}`);
+    console.log('=========================\n');
+    
+    return isMatch;
 }
 
 // ⭐ Helper: Extract amount จาก Slip2Go response (ลองหลาย path เพราะ API อาจเปลี่ยน structure)
@@ -363,12 +391,14 @@ Deno.serve(async (req) => {
             const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
             const receiverName = slipData.receiver?.account?.name || '';
 
-            console.log('🔍 Checking account match (NEW SECURE METHOD):');
-            console.log('  Expected Account:', expectedAccountNumber);
-            console.log('  Expected PromptPay:', expectedPromptPay);
-            console.log('  Receiver Account (from slip):', receiverAccount);
-            console.log('  Receiver PromptPay (from slip):', receiverPromptPay);
-            console.log('  Receiver Name (from slip):', receiverName);
+            console.log('\n========== 🏦 ACCOUNT VERIFICATION START ==========');
+            console.log('📋 Expected Configuration:');
+            console.log('  Bank Account:', expectedAccountNumber || '(not set)');
+            console.log('  PromptPay:', expectedPromptPay || '(not set)');
+            console.log('\n📋 Received from Slip:');
+            console.log('  Receiver Account:', receiverAccount || '(empty)');
+            console.log('  Receiver PromptPay:', receiverPromptPay || '(empty)');
+            console.log('  Receiver Name:', receiverName || '(empty)');
 
             // ⭐ ถ้าไม่มี config บัญชีเลย = บังคับให้ตรวจสอบด้วยตนเอง
             if ((!expectedAccountNumber || expectedAccountNumber.trim() === '') && 
@@ -395,22 +425,43 @@ Deno.serve(async (req) => {
             }
 
             let accountMatch = false;
+            let matchMethod = '';
 
             // ⭐ เช็คเลขบัญชีธนาคาร
             if (expectedAccountNumber) {
+                console.log('\n🔍 Checking Bank Account Number...');
                 accountMatch = isAccountMatch(receiverAccount, expectedAccountNumber);
-                console.log(`  💳 Bank Account Match: ${accountMatch}`);
+                if (accountMatch) {
+                    matchMethod = 'Bank Account';
+                    console.log(`✅ MATCHED via Bank Account Number`);
+                }
             }
 
             // ⭐ ถ้าไม่ผ่าน ลองเช็ค PromptPay
             if (!accountMatch && expectedPromptPay) {
+                console.log('\n🔍 Checking PromptPay...');
+                console.log('  Trying receiverPromptPay vs expectedPromptPay...');
                 const promptPayMatch1 = isAccountMatch(receiverPromptPay, expectedPromptPay);
-                const promptPayMatch2 = isAccountMatch(receiverAccount, expectedPromptPay);
-                accountMatch = promptPayMatch1 || promptPayMatch2;
-                console.log(`  📱 PromptPay Match: ${accountMatch}`);
+                
+                if (!promptPayMatch1) {
+                    console.log('  Trying receiverAccount vs expectedPromptPay...');
+                    const promptPayMatch2 = isAccountMatch(receiverAccount, expectedPromptPay);
+                    accountMatch = promptPayMatch2;
+                    if (promptPayMatch2) matchMethod = 'PromptPay (via receiverAccount)';
+                } else {
+                    accountMatch = true;
+                    matchMethod = 'PromptPay';
+                }
+                
+                if (accountMatch) {
+                    console.log(`✅ MATCHED via ${matchMethod}`);
+                }
             }
 
-            console.log('  ✅ Final Account Match:', accountMatch);
+            console.log('\n========== 🏦 ACCOUNT VERIFICATION RESULT ==========');
+            console.log(`  Final Match: ${accountMatch ? '✅ PASS' : '❌ FAIL'}`);
+            console.log(`  Method: ${matchMethod || 'None'}`);
+            console.log('====================================================\n');
 
             if (!accountMatch) {
                 const rooms = await base44.asServiceRole.entities.Room.list();
@@ -591,36 +642,43 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // ⭐ ส่งข้อมูลไปยัง CRM (หลังจาก update payment สำเร็จแล้ว)
-            try {
-              const crmWebhookUrl = 'https://ta-01ka6m9nmbv7qt4nfa6hkghhyy-5173.wo-eqi13toh5dnga3zgg8fg4pukt.w.modal.host/api/addCustomerWebhook';
-              const crmApiKey = 'crm_8swg3i4zy9rpk8ysf6q';
+            // ⭐ ส่งข้อมูลไปยัง CRM เฉพาะการชำระแพ็กเกจเท่านั้น (ไม่ส่งค่าเช่าห้องปกติ)
+            const isPackagePayment = !payment.booking_id || payment.payment_category === 'package';
+            
+            if (isPackagePayment) {
+              console.log('📤 This is a PACKAGE payment - sending to CRM...');
+              try {
+                const crmWebhookUrl = 'https://ta-01ka6m9nmbv7qt4nfa6hkghhyy-5173.wo-eqi13toh5dnga3zgg8fg4pukt.w.modal.host/api/addCustomerWebhook';
+                const crmApiKey = 'crm_8swg3i4zy9rpk8ysf6q';
 
-              const crmResponse = await fetch(crmWebhookUrl, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'x-api-key': crmApiKey
-                },
-                body: JSON.stringify({
-                  event_type: 'payment_verified',
-                  customer_email: user.email,
-                  customer_name: user.full_name,
-                  payment_id: paymentId,
-                  amount: slipAmount,
-                  payment_date: paymentDateOnly,
-                  sender_name: senderName,
-                  timestamp: new Date().toISOString()
-                })
-              });
-              
-              if (!crmResponse.ok) {
-                console.error('⚠️ CRM webhook failed:', crmResponse.status, await crmResponse.text());
-              } else {
-                console.log('✅ CRM webhook sent successfully');
+                const crmResponse = await fetch(crmWebhookUrl, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': crmApiKey
+                  },
+                  body: JSON.stringify({
+                    event_type: 'payment_verified',
+                    customer_email: user.email,
+                    customer_name: user.full_name,
+                    payment_id: paymentId,
+                    amount: slipAmount,
+                    payment_date: paymentDateOnly,
+                    sender_name: senderName,
+                    timestamp: new Date().toISOString()
+                  })
+                });
+                
+                if (!crmResponse.ok) {
+                  console.error('⚠️ CRM webhook failed:', crmResponse.status, await crmResponse.text());
+                } else {
+                  console.log('✅ CRM webhook sent successfully');
+                }
+              } catch (crmError) {
+                console.error('⚠️ CRM webhook error:', crmError.message);
               }
-            } catch (crmError) {
-              console.error('⚠️ CRM webhook error:', crmError.message);
+            } else {
+              console.log('⏭️ This is a ROOM RENTAL payment (booking_id exists) - skipping CRM webhook');
             }
 
             return Response.json({ 
