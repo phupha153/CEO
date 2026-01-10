@@ -125,14 +125,11 @@ export default function WebhookLogs() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Events</SelectItem>
-                    <SelectItem value="payment_verified">✅ Payment Verified</SelectItem>
-                    <SelectItem value="partial_payment">⚠️ Partial Payment</SelectItem>
-                    <SelectItem value="slip_duplicate">🔄 Slip Duplicate</SelectItem>
-                    <SelectItem value="slip_fraud">🚫 Slip Fraud</SelectItem>
-                    <SelectItem value="maintenance_request">🔧 Maintenance Request</SelectItem>
-                    <SelectItem value="expense_added">💰 Expense Added</SelectItem>
-                    <SelectItem value="registration">📝 Registration</SelectItem>
-                    <SelectItem value="error">❌ Error</SelectItem>
+                    <SelectItem value="payment_verified">Payment Verified</SelectItem>
+                    <SelectItem value="partial_payment">Partial Payment</SelectItem>
+                    <SelectItem value="slip_duplicate">Slip Duplicate</SelectItem>
+                    <SelectItem value="slip_fraud">Slip Fraud</SelectItem>
+                    <SelectItem value="slip_verification_error">Verification Error</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
