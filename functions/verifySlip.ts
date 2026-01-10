@@ -316,13 +316,34 @@ Deno.serve(async (req) => {
 
             const slipData = simpleData.data;
             
-            // ⭐ Log ข้อมูลดิบทั้งหมดก่อนเพื่อ debug
+            // ⭐ Log ข้อมูลดิบทั้งหมดเพื่อ debug structure
             console.log('📋 Slip2Go Full Response:', JSON.stringify(simpleData, null, 2));
-            console.log('📋 Slip Data:', JSON.stringify(slipData, null, 2));
             
-            // ⭐ ใช้ extractAmount() เหมือน LINE webhook (robust กว่า)
+            // ⭐ ใช้ extractAmount() เหมือน LINE webhook (ลองหลาย path)
             const slipAmount = extractAmount(slipData);
             console.log('💰 Extracted slip amount:', slipAmount);
+            
+            // ⭐ Validate amount ต้องมากกว่า 0
+            if (slipAmount === 0 || isNaN(slipAmount)) {
+                console.error('❌ Invalid slip amount:', slipAmount);
+                
+                const rooms = await base44.asServiceRole.entities.Room.list();
+                const room = rooms.find(r => r.id === payment.room_id);
+                const roomNumber = room?.room_number || 'ไม่ทราบ';
+                
+                await base44.asServiceRole.entities.Payment.update(paymentId, {
+                    payment_slip_url: uploadedSlipUrl,
+                    notes: payment.notes ? 
+                        `${payment.notes}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ระบบอ่านยอดเงินไม่ได้` :
+                        `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ระบบอ่านยอดเงินไม่ได้`
+                });
+                
+                return Response.json({ 
+                    success: true,
+                    message: `อัปโหลดสลิปสำเร็จ\n\nระบบอ่านยอดเงินไม่ได้\nกรุณารอเจ้าของหอพักตรวจสอบ`,
+                    manual_review_required: true
+                });
+            }
             
             // ⭐⭐⭐ เช็คบัญชีปลายทางก่อนเช็คยอด (ป้องกันรับสลิปที่โอนผิดบัญชี)
             const configs = await base44.asServiceRole.entities.Config.list();
@@ -415,8 +436,11 @@ Deno.serve(async (req) => {
 
             // ⭐⭐⭐ คำนวณค่าปรับหลังเช็คชื่อบัญชีแล้ว
             // Slip2Go ส่ง dateTime ไม่ใช่ transDate
-            const paymentDateStr = slipData.dateTime || slipData.transDate || new Date().toISOString().split('T')[0];
-            const paymentDateObj = parseISO(paymentDateStr.split('T')[0]);
+            const paymentDateStr = slipData.dateTime || slipData.transDate || new Date().toISOString();
+            const paymentDateOnly = paymentDateStr.split('T')[0];
+            console.log('📅 Payment date from slip:', paymentDateOnly);
+            
+            const paymentDateObj = parseISO(paymentDateOnly);
             const dueDateObj = parseISO(payment.due_date);
             const daysLate = Math.floor((paymentDateObj - dueDateObj) / (1000 * 60 * 60 * 24));
 
@@ -544,12 +568,12 @@ Deno.serve(async (req) => {
                 }
             }
 
-            // ส่งข้อมูลไปยัง CRM
+            // ⭐ ส่งข้อมูลไปยัง CRM (หลังจาก update payment สำเร็จแล้ว)
             try {
               const crmWebhookUrl = 'https://ta-01ka6m9nmbv7qt4nfa6hkghhyy-5173.wo-eqi13toh5dnga3zgg8fg4pukt.w.modal.host/api/addCustomerWebhook';
               const crmApiKey = 'crm_8swg3i4zy9rpk8ysf6q';
 
-              await fetch(crmWebhookUrl, {
+              const crmResponse = await fetch(crmWebhookUrl, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -561,20 +585,28 @@ Deno.serve(async (req) => {
                   customer_name: user.full_name,
                   payment_id: paymentId,
                   amount: slipAmount,
-                  payment_date: slipData.transDate || new Date().toISOString().split('T')[0],
-                  sender_name: slipData.sender?.account?.name?.th || 'N/A',
+                  payment_date: paymentDateOnly,
+                  sender_name: senderName,
                   timestamp: new Date().toISOString()
                 })
               });
+              
+              if (!crmResponse.ok) {
+                console.error('⚠️ CRM webhook failed:', crmResponse.status, await crmResponse.text());
+              } else {
+                console.log('✅ CRM webhook sent successfully');
+              }
             } catch (crmError) {
-              console.error('CRM error:', crmError);
+              console.error('⚠️ CRM webhook error:', crmError.message);
             }
 
             return Response.json({ 
                 success: true,
                 message: '✅ ตรวจสอบสลิปสำเร็จและอัปเดตสถานะเป็น "ชำระแล้ว"',
-                slipData: slipData,
-                verified_amount: slipAmount
+                verified_amount: slipAmount,
+                payment_date: paymentDateOnly,
+                late_fee: lateFeeAmount,
+                days_late: daysLate
             });
         }
 
