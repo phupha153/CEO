@@ -257,10 +257,14 @@ Deno.serve(async (req) => {
                                 (daysLate > 0 && payment.status !== 'overdue');
 
                             if (needsUpdate) {
+                                // ⭐ บันทึกเป็นเวลาไทย (UTC+7) เพื่อให้ LOCK 3 เช็คได้ถูกต้อง
+                                const nowThailand = new Date();
+                                const thailandNow = new Date(nowThailand.getTime() + (7 * 60 * 60 * 1000));
+                                
                                 await base44.asServiceRole.entities.Payment.update(payment.id, {
                                     late_fee_amount: lateFeeAmount,
                                     total_amount: newTotalAmount,
-                                    late_fee_last_calculated: new Date().toISOString(),
+                                    late_fee_last_calculated: thailandNow.toISOString(),
                                     status: payment.status === 'pending' || payment.status === 'overdue' ? 'overdue' : payment.status
                                 });
 
@@ -454,11 +458,15 @@ Deno.serve(async (req) => {
 
         const newTotalAmount = baseAmount + lateFeeAmount;
 
+        // ⭐ บันทึกเป็นเวลาไทย (UTC+7) เพื่อให้ LOCK 3 เช็คได้ถูกต้อง
+        const nowThailand2 = new Date();
+        const thailandNow2 = new Date(nowThailand2.getTime() + (7 * 60 * 60 * 1000));
+
         // อัปเดต payment
         await base44.asServiceRole.entities.Payment.update(payment.id, {
         late_fee_amount: lateFeeAmount,
         total_amount: newTotalAmount,
-        late_fee_last_calculated: new Date().toISOString(),
+        late_fee_last_calculated: thailandNow2.toISOString(),
         status: payment.status === 'pending' || payment.status === 'overdue' ? (daysLate > 0 ? 'overdue' : 'pending') : payment.status
         });
 
