@@ -4693,41 +4693,35 @@ Return JSON.`;
                   </div>
                 </div>
 
-                {/* แสดงสถานะการชำระเงิน */}
-                <Card className={effectiveStatus === 'paid' ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'}>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                      <Calculator className="w-5 h-5" />
-                      สถานะการชำระเงิน
-                    </h3>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-600">ยอดที่ต้องชำระทั้งหมด:</span>
-                        <span className="font-bold text-slate-800">{totalWithLateFee.toLocaleString()} ฿</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-600">ชำระไปแล้ว:</span>
-                        <span className={`font-bold ${selectedPayment.paid_amount > 0 ? 'text-green-700' : 'text-slate-400'}`}>
-                          {(selectedPayment.paid_amount || 0).toLocaleString()} ฿
-                        </span>
-                      </div>
-                      {effectiveStatus !== 'paid' && (
+                {/* แสดงสถานะการชำระเงิน - เฉพาะ partial_paid */}
+                {effectiveStatus === 'partial_paid' && (
+                  <Card className="bg-orange-50 border-orange-200">
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                        <Calculator className="w-5 h-5" />
+                        สถานะการชำระเงิน
+                      </h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600">ยอดที่ต้องชำระทั้งหมด:</span>
+                          <span className="font-bold text-slate-800">{totalWithLateFee.toLocaleString()} ฿</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600">ชำระไปแล้ว:</span>
+                          <span className="font-bold text-green-700">
+                            {(selectedPayment.paid_amount || 0).toLocaleString()} ฿
+                          </span>
+                        </div>
                         <div className="flex justify-between items-center pt-2 border-t">
                           <span className="text-red-700 font-semibold">ยังค้างชำระอีก:</span>
                           <span className="font-bold text-xl text-red-700">
                             {(totalWithLateFee - (selectedPayment.paid_amount || 0)).toLocaleString()} ฿
                           </span>
                         </div>
-                      )}
-                      {effectiveStatus === 'paid' && (
-                        <div className="flex items-center gap-2 pt-2 border-t text-green-700">
-                          <CheckCircle2 className="w-5 h-5" />
-                          <span className="font-semibold">ชำระครบถ้วนแล้ว</span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 <div className="space-y-2">
                   <h3 className="font-semibold text-slate-800">รายการค่าใช้จ่าย</h3>
