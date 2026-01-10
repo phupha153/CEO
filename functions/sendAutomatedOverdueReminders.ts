@@ -267,7 +267,11 @@ Deno.serve(async (req) => {
         console.log('🔍 Fetching filtered overdue payments...');
         console.log('⭐ Using NEW VERSION with STEP 1+2+3 (late fee calc + invoice gen + messaging)');
 
-        const today = startOfDay(new Date());
+        // ⭐ ใช้เวลาไทย (UTC+7) เพื่อให้ตรงกับเวลาจริงในประเทศไทย
+        const now = new Date();
+        const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+        const today = startOfDay(new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate()));
+        console.log(`📅 Today (Thailand): ${today.toISOString().split('T')[0]}`);
 
         // ⭐ ดึงเฉพาะ payment ที่ยังไม่ชำระ (pending/overdue) - ใช้ limit*2 แทน fetchAll
         // ⚡ ใช้ limit*2 เพื่อให้มีพอกรองหลังจากเช็ค overdue_reminder_sent_date
@@ -306,8 +310,8 @@ Deno.serve(async (req) => {
 
         console.log(`📊 Found ${overduePayments.length} actually overdue payments`);
 
-        // กรองเฉพาะสาขาที่เปิดการแจ้งเตือน และยังไม่ส่งในวันนี้
-        const todayString = today.toISOString().split('T')[0];
+        // กรองเฉพาะสาขาที่เปิดการแจ้งเตือน และยังไม่ส่งในวันนี้ (เวลาไทย)
+        const todayString = today.toISOString().split('T')[0]; // วันนี้ในเวลาไทย
         const paymentsFromEnabledBranches = overduePayments.filter(p => {
             if (!enabledBranches.includes(p.branch_id)) {
                 return false;
