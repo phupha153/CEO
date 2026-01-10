@@ -129,10 +129,10 @@ export default function WebhookLogs() {
                     <SelectItem value="partial_payment">⚠️ Partial Payment</SelectItem>
                     <SelectItem value="slip_duplicate">🔄 Slip Duplicate</SelectItem>
                     <SelectItem value="slip_fraud">🚫 Slip Fraud</SelectItem>
-                    <SelectItem value="maintenance_request">🔧 Maintenance Request</SelectItem>
-                    <SelectItem value="expense_added">💰 Expense Added</SelectItem>
+                    <SelectItem value="slip_verification_error">❗ Slip Error</SelectItem>
+                    <SelectItem value="maintenance_request">🔧 Maintenance</SelectItem>
                     <SelectItem value="registration">📝 Registration</SelectItem>
-                    <SelectItem value="error">❌ Error</SelectItem>
+                    <SelectItem value="error">❌ General Error</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

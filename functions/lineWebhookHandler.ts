@@ -1383,7 +1383,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 await base44.asServiceRole.entities.WebhookLog.create({
                     webhook_type: 'line',
                     branch_id: branchId,
-                    event_type: 'error',
+                    event_type: 'slip_verification_error',
                     line_user_id: lineUserId,
                     tenant_id: tenant?.id,
                     payment_id: pendingPayment.id,
@@ -1484,6 +1484,27 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 );
                 return;
             }
+
+            // Log unknown slip verification errors
+            try {
+                await base44.asServiceRole.entities.WebhookLog.create({
+                    webhook_type: 'line',
+                    branch_id: branchId,
+                    event_type: 'slip_verification_error',
+                    line_user_id: lineUserId,
+                    tenant_id: tenant?.id,
+                    payment_id: pendingPayment.id,
+                    status: 'error',
+                    message: `Unknown slip verification error: ${errorMessage || 'No message'}`,
+                    details: { error_code: errorCode, slip_image_url: slipImageUrl }
+                });
+            } catch(logError) { /* silent fail */ }
+            
+            await sendMessage(base44, lineUserId, 
+                `❌ ไม่สามารถตรวจสอบสลิปได้\n\n(${errorMessage || 'ไม่ทราบสาเหตุ'})\n\nกรุณารอเจ้าหน้าที่ตรวจสอบค่ะ`,
+                branchId,
+                replyToken
+            );
 
             return;
         }
