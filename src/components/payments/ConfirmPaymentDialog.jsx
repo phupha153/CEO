@@ -151,18 +151,18 @@ export default function ConfirmPaymentDialog({
                 handleReset();
               }}
               disabled={confirming}
-              className="w-full h-auto py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 flex-col gap-2"
+              className="w-full h-auto py-2 md:py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 flex-col gap-1 md:gap-2"
             >
               {confirming ? (
                 <>
-                  <Loader2 className="w-6 h-6 animate-spin" />
-                  <span className="text-sm">กำลังบันทึก...</span>
+                  <Loader2 className="w-5 h-5 md:w-6 md:h-6 animate-spin" />
+                  <span className="text-xs md:text-sm">กำลังบันทึก...</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-6 h-6" />
+                  <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />
                   <div>
-                    <p className="font-bold">ยืนยันเลย</p>
+                    <p className="font-bold text-sm md:text-base">ยืนยันเลย</p>
                     <p className="text-xs opacity-90">ตรวจสอบด้วยตนเอง</p>
                   </div>
                 </>
@@ -173,12 +173,12 @@ export default function ConfirmPaymentDialog({
             <Button
               onClick={() => setStep('upload')}
               variant="outline"
-              className="w-full h-auto py-4 flex-col gap-2 border-blue-300 hover:bg-blue-50"
+              className="w-full h-auto py-2 md:py-4 flex-col gap-1 md:gap-2 border-blue-300 hover:bg-blue-50"
             >
-              <Upload className="w-6 h-6 text-blue-600" />
+              <Upload className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
               <div>
-                <p className="font-bold text-blue-700">อัปโหลดสลิปเพื่อตรวจสอบ</p>
-                <p className="text-xs text-blue-600">ตรวจสอบอัตโนมัติด้วย AI</p>
+                <p className="font-bold text-blue-700 text-sm md:text-base">อัปโหลดสลิปเพื่อตรวจสอบ</p>
+                <p className="text-xs text-blue-600">ตรวจสอบ Slip</p>
               </div>
             </Button>
           </div>
