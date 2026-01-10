@@ -216,8 +216,8 @@ Deno.serve(async (req) => {
             console.error('qr-image/info error:', qrError.message);
         }
         
-        // ถ้าไม่สำเร็จ - บันทึกไว้ให้ตรวจสอบด้วยตนเอง (ไม่ลอง endpoint อื่น)
-        if (!simpleData) {
+        // ⭐ เช็คว่าสำเร็จหรือไม่ (code 200xxx = success range)
+        if (!simpleData || !simpleData.data) {
             console.log('❌ Verification failed - saving for manual review');
             console.log('Error code:', slip2goErrorCode);
             console.log('Error message:', slip2goErrorMessage);
