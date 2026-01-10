@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
 
-// ⭐ Helper: เช็คเลขบัญชีแบบปลอดภ(คัดลอกจาก verifySlip)
+// ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (คัดลอกจาก verifySlip)
 function isAccountMatch(maskedSlipAccount, myRealAccount) {
     console.log('\n🔍 === ACCOUNT MATCH CHECK ===');
     console.log('  Input (from slip):', maskedSlipAccount);
