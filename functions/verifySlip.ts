@@ -22,6 +22,44 @@ function isAccountMatch(maskedSlipAccount, myRealAccount) {
     return matchedCount >= minRequired;
 }
 
+// ⭐ Helper: Extract amount จาก Slip2Go response (ลองหลาย path เพราะ API อาจเปลี่ยน structure)
+function extractAmount(slipData) {
+    const possiblePaths = [
+        ['amount'],
+        ['transAmount'],
+        ['transaction', 'amount'],
+        ['payment', 'amount'],
+        ['data', 'amount'],
+        ['receiver', 'amount'],
+        ['sender', 'amount']
+    ];
+    
+    for (const path of possiblePaths) {
+        let current = slipData;
+        let isValid = true;
+        
+        for (const key of path) {
+            if (current && typeof current === 'object' && key in current) {
+                current = current[key];
+            } else {
+                isValid = false;
+                break;
+            }
+        }
+        
+        if (isValid && current !== null && current !== undefined) {
+            const amount = typeof current === 'number' ? current : parseFloat(current);
+            if (!isNaN(amount) && amount > 0) {
+                console.log(`💰 Found amount at path: ${path.join('.')} = ${amount}`);
+                return amount;
+            }
+        }
+    }
+    
+    console.warn('⚠️ Could not find amount in any known path');
+    return 0;
+}
+
 Deno.serve(async (req) => {
     try {
         const base44 = createClientFromRequest(req);
@@ -272,15 +310,19 @@ Deno.serve(async (req) => {
         console.log(`✅ Verified using ${verificationMethod} method`);
 
         // ⭐ เช็คว่ามี simpleData และ code = 200200 (success)
-        if (simpleData && simpleData.code === '200200' && simpleData.data) {
-            console.log('✅ Slip verification SUCCESS!');
+        const isValidCode = simpleData?.code === '200200' || simpleData?.code === 200200;
+        if (isValidCode && simpleData?.data) {
+            console.log('✅ Slip verification SUCCESS! (code:', simpleData.code, ')');
 
             const slipData = simpleData.data;
-            // ⭐ Slip2Go ส่ง amount เป็น number โดยตรง ไม่ใช่ nested object
-            const slipAmount = parseFloat(slipData.amount || 0);
             
-            console.log('💰 Raw slip data amount:', slipData.amount);
-            console.log('💰 Parsed slip amount:', slipAmount);
+            // ⭐ Log ข้อมูลดิบทั้งหมดก่อนเพื่อ debug
+            console.log('📋 Slip2Go Full Response:', JSON.stringify(simpleData, null, 2));
+            console.log('📋 Slip Data:', JSON.stringify(slipData, null, 2));
+            
+            // ⭐ ใช้ extractAmount() เหมือน LINE webhook (robust กว่า)
+            const slipAmount = extractAmount(slipData);
+            console.log('💰 Extracted slip amount:', slipAmount);
             
             // ⭐⭐⭐ เช็คบัญชีปลายทางก่อนเช็คยอด (ป้องกันรับสลิปที่โอนผิดบัญชี)
             const configs = await base44.asServiceRole.entities.Config.list();
@@ -299,8 +341,6 @@ Deno.serve(async (req) => {
             const receiverAccount = slipData.receiver?.account?.bank?.account || '';
             const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
             const receiverName = slipData.receiver?.account?.name || '';
-            
-            console.log('📋 Slip2Go Full Data:', JSON.stringify(slipData, null, 2));
 
             console.log('🔍 Checking account match (NEW SECURE METHOD):');
             console.log('  Expected Account:', expectedAccountNumber);
