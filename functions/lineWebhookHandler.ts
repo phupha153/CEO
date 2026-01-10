@@ -1286,18 +1286,22 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             }
             
         } catch (fetchError) {
-            // Log to DB
-            await base44.asServiceRole.entities.WebhookLog.create({
-                webhook_type: 'line',
-                branch_id: branchId,
-                event_type: 'slip_verification_error',
-                line_user_id: lineUserId,
-                tenant_id: tenant?.id,
-                payment_id: pendingPayment.id,
-                status: 'error',
-                message: 'Slip2Go API error',
-                error_message: fetchError.message
-            }).catch(() => {});
+            // เก็บ error slip verification
+            try {
+                await base44.asServiceRole.entities.WebhookLog.create({
+                    webhook_type: 'line',
+                    branch_id: branchId,
+                    event_type: 'slip_verification_error',
+                    line_user_id: lineUserId,
+                    tenant_id: tenant?.id,
+                    payment_id: pendingPayment.id,
+                    status: 'error',
+                    message: 'Slip2Go API error',
+                    error_message: fetchError.message
+                });
+            } catch (logError) {
+                // Silent fail
+            }
 
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 payment_slip_url: slipImageUrl,
@@ -1318,17 +1322,21 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const isDuplicateError = errorCode === '200501' || errorMessage.toLowerCase().includes('duplicate');
 
         if (isDuplicateError) {
-            // Log duplicate
-            await base44.asServiceRole.entities.WebhookLog.create({
-                webhook_type: 'line',
-                branch_id: branchId,
-                event_type: 'slip_duplicate',
-                line_user_id: lineUserId,
-                tenant_id: tenant?.id,
-                payment_id: pendingPayment.id,
-                status: 'warning',
-                message: 'Duplicate slip detected'
-            }).catch(() => {});
+            // เก็บ log slip ซ้ำ
+            try {
+                await base44.asServiceRole.entities.WebhookLog.create({
+                    webhook_type: 'line',
+                    branch_id: branchId,
+                    event_type: 'slip_duplicate',
+                    line_user_id: lineUserId,
+                    tenant_id: tenant?.id,
+                    payment_id: pendingPayment.id,
+                    status: 'warning',
+                    message: 'Duplicate slip detected'
+                });
+            } catch (logError) {
+                // Silent fail
+            }
 
             await sendMessage(base44, lineUserId, 
                 `⚠️ สลิปนี้เคยถูกใช้ไปแล้ว\n\nกรุณาส่งสลิปใหม่ค่ะ`,
@@ -1346,18 +1354,23 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const isFraudSlip = errorCode === '200500' || errorMessage.toLowerCase().includes('fraud');
 
         if (isFraudSlip && !verificationSuccess) {
-            // Log fraud attempt
-            await base44.asServiceRole.entities.WebhookLog.create({
-                webhook_type: 'line',
-                branch_id: branchId,
-                event_type: 'slip_fraud',
-                line_user_id: lineUserId,
-                tenant_id: tenant?.id,
-                payment_id: pendingPayment.id,
-                status: 'warning',
-                message: 'Fraud slip detected',
-                details: { error_code: errorCode }
-            }).catch(() => {});
+            // เก็บ log slip ปลอม + error
+            try {
+                await base44.asServiceRole.entities.WebhookLog.create({
+                    webhook_type: 'line',
+                    branch_id: branchId,
+                    event_type: 'slip_fraud',
+                    line_user_id: lineUserId,
+                    tenant_id: tenant?.id,
+                    payment_id: pendingPayment.id,
+                    status: 'error',
+                    message: 'Fraud slip detected',
+                    error_message: errorMessage,
+                    details: { error_code: errorCode }
+                });
+            } catch (logError) {
+                // Silent fail
+            }
             return;
         }
 
@@ -1555,19 +1568,23 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 notes: `${pendingPayment.notes || ''}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
             });
 
-            // Log partial payment
-            await base44.asServiceRole.entities.WebhookLog.create({
-                webhook_type: 'line',
-                branch_id: branchId,
-                event_type: 'partial_payment',
-                line_user_id: lineUserId,
-                tenant_id: tenant?.id,
-                payment_id: pendingPayment.id,
-                amount: slipAmount,
-                status: 'success',
-                message: `Partial: ${totalPaid}/${expectedAmount}`,
-                details: { late_fee: lateFeeAmount, days_late: daysLate }
-            }).catch(() => {});
+            // เก็บ log เฉพาะ partial payment
+            try {
+                await base44.asServiceRole.entities.WebhookLog.create({
+                    webhook_type: 'line',
+                    branch_id: branchId,
+                    event_type: 'partial_payment',
+                    line_user_id: lineUserId,
+                    tenant_id: tenant?.id,
+                    payment_id: pendingPayment.id,
+                    amount: slipAmount,
+                    status: 'success',
+                    message: `Partial: ${totalPaid}/${expectedAmount}`,
+                    details: { late_fee: lateFeeAmount, days_late: daysLate }
+                });
+            } catch (logError) {
+                // Silent fail
+            }
             
             await sendMessage(base44, lineUserId, 
                 `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n` +
@@ -1592,24 +1609,28 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             notes: `${pendingPayment.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}`
         });
 
-        // Log successful payment
-        await base44.asServiceRole.entities.WebhookLog.create({
-            webhook_type: 'line',
-            branch_id: branchId,
-            event_type: 'payment_verified',
-            line_user_id: lineUserId,
-            tenant_id: tenant?.id,
-            payment_id: pendingPayment.id,
-            amount: slipAmount,
-            status: 'success',
-            message: 'Payment verified successfully',
-            details: { 
-                late_fee: lateFeeAmount, 
-                days_late: daysLate,
-                sender_name: senderName,
-                verification_method: verificationMethod
-            }
-        }).catch(() => {});
+        // เก็บ log ชำระเงินสำเร็จ
+        try {
+            await base44.asServiceRole.entities.WebhookLog.create({
+                webhook_type: 'line',
+                branch_id: branchId,
+                event_type: 'payment_verified',
+                line_user_id: lineUserId,
+                tenant_id: tenant?.id,
+                payment_id: pendingPayment.id,
+                amount: slipAmount,
+                status: 'success',
+                message: 'Payment verified successfully',
+                details: { 
+                    late_fee: lateFeeAmount, 
+                    days_late: daysLate,
+                    sender_name: senderName,
+                    verification_method: verificationMethod
+                }
+            });
+        } catch (logError) {
+            // Silent fail
+        }
 
         // คำนวณคะแนน
         if (tenant?.id) {
@@ -1635,16 +1656,20 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         }
 
     } catch (error) {
-        // Log critical error to DB
-        await base44.asServiceRole.entities.WebhookLog.create({
-            webhook_type: 'line',
-            branch_id: branchId,
-            event_type: 'slip_processing_error',
-            line_user_id: lineUserId,
-            status: 'error',
-            message: 'Slip processing failed',
-            error_message: error.message
-        }).catch(() => {});
+        // เก็บ error ทั้งหมด
+        try {
+            await base44.asServiceRole.entities.WebhookLog.create({
+                webhook_type: 'line',
+                branch_id: branchId,
+                event_type: 'slip_processing_error',
+                line_user_id: lineUserId,
+                status: 'error',
+                message: 'Slip processing failed',
+                error_message: error.message
+            });
+        } catch (logError) {
+            // Silent fail
+        }
 
         await sendMessage(base44, lineUserId, 'เกิดข้อผิดพลาดในการประมวลผล กรุณาลองใหม่อีกครั้ง', branchId, replyToken);
     }

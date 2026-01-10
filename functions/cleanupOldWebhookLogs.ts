@@ -15,17 +15,17 @@ Deno.serve(async (req) => {
 
         console.log('🧹 Starting cleanup of old webhook logs...');
 
-        // คำนวณวันที่ 30 วันก่อน (เวลาไทย UTC+7)
+        // คำนวณวันที่ 14 วันก่อน (เวลาไทย UTC+7)
         const now = new Date();
         const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
         const cutoffDate = new Date(thailandTime);
-        cutoffDate.setDate(cutoffDate.getDate() - 30);
+        cutoffDate.setDate(cutoffDate.getDate() - 14);
         const cutoffISO = cutoffDate.toISOString();
 
         console.log(`📅 Deleting logs older than: ${cutoffISO}`);
 
         // ลบทีละ batch เพื่อไม่ให้ timeout
-        const BATCH_SIZE = 500;
+        const BATCH_SIZE = 1000;
         let totalDeleted = 0;
         let hasMore = true;
 
