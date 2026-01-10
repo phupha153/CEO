@@ -273,7 +273,11 @@ Deno.serve(async (req) => {
             console.log('✅ Slip verification SUCCESS!');
 
             const slipData = simpleData.data;
+            // ⭐ Slip2Go ส่ง amount เป็น number โดยตรง ไม่ใช่ nested object
             const slipAmount = parseFloat(slipData.amount || 0);
+            
+            console.log('💰 Raw slip data amount:', slipData.amount);
+            console.log('💰 Parsed slip amount:', slipAmount);
             
             // ⭐⭐⭐ เช็คบัญชีปลายทางก่อนเช็คยอด (ป้องกันรับสลิปที่โอนผิดบัญชี)
             const configs = await base44.asServiceRole.entities.Config.list();
@@ -292,6 +296,8 @@ Deno.serve(async (req) => {
             const receiverAccount = slipData.receiver?.account?.bank?.account || '';
             const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
             const receiverName = slipData.receiver?.account?.name || '';
+            
+            console.log('📋 Slip2Go Full Data:', JSON.stringify(slipData, null, 2));
 
             console.log('🔍 Checking account match (NEW SECURE METHOD):');
             console.log('  Expected Account:', expectedAccountNumber);
@@ -365,7 +371,9 @@ Deno.serve(async (req) => {
             }
 
             // ⭐⭐⭐ คำนวณค่าปรับหลังเช็คชื่อบัญชีแล้ว
-            const paymentDateObj = parseISO(slipData.transDate || new Date().toISOString().split('T')[0]);
+            // Slip2Go ส่ง dateTime ไม่ใช่ transDate
+            const paymentDateStr = slipData.dateTime || slipData.transDate || new Date().toISOString().split('T')[0];
+            const paymentDateObj = parseISO(paymentDateStr.split('T')[0]);
             const dueDateObj = parseISO(payment.due_date);
             const daysLate = Math.floor((paymentDateObj - dueDateObj) / (1000 * 60 * 60 * 24));
 
@@ -467,7 +475,7 @@ Deno.serve(async (req) => {
 
             const updatedPayment = await base44.asServiceRole.entities.Payment.update(paymentId, {
                 status: 'paid',
-                payment_date: slipData.transDate || new Date().toISOString().split('T')[0],
+                payment_date: (slipData.dateTime || slipData.transDate || new Date().toISOString()).split('T')[0],
                 payment_slip_url: uploadedSlipUrl,
                 late_fee_amount: lateFeeAmount,
                 total_amount: expectedAmount,
