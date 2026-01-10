@@ -187,6 +187,15 @@ const adminOnlyItems = [
     requiredPermission: "settings_access_test_mode",
     requiredFeature: "settings_access_test_mode"
   },
+  {
+    title: "Webhook Logs",
+    url: createPageUrl("WebhookLogs"),
+    icon: Terminal,
+    badge: "Dev",
+    showOnlyForDeveloper: true,
+    requiredPermission: "settings_access_test_mode",
+    requiredFeature: "settings_access_test_mode"
+  },
 
   {
     title: "จัดการผู้ใช้และแพ็กเกจ",
