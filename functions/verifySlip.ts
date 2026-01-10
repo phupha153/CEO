@@ -537,19 +537,20 @@ Deno.serve(async (req) => {
             }
 
             // ✅ ทุกอย่างถูกต้อง - อัปเดต payment (ชำระครบแล้ว)
-            const currentPaid = parseFloat(payment.paid_amount || 0);
-            const totalPaidNow = currentPaid + slipAmount;
+            const senderName = slipData.sender?.account?.name?.th || 
+                              slipData.sender?.account?.name || 
+                              slipData.sender?.displayName || 'N/A';
 
             const updatedPayment = await base44.asServiceRole.entities.Payment.update(paymentId, {
                 status: 'paid',
-                payment_date: (slipData.dateTime || slipData.transDate || new Date().toISOString()).split('T')[0],
+                payment_date: paymentDateOnly,
                 payment_slip_url: uploadedSlipUrl,
                 late_fee_amount: lateFeeAmount,
                 total_amount: expectedAmount,
                 paid_amount: expectedAmount,
                 notes: payment.notes ? 
-                    `${payment.notes}\n\n✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}` :
-                    `✅ ตรวจสอบสลิปอัตโนมัติ: ${slipData.sender?.account?.name?.th || 'N/A'} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}`
+                    `${payment.notes}\n\n✅ ตรวจสอบสลิปอัตโนมัติ: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}` :
+                    `✅ ตรวจสอบสลิปอัตโนมัติ: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}`
             });
             
             console.log('✅ Payment updated successfully:', updatedPayment.id, 'status:', updatedPayment.status);
