@@ -353,18 +353,6 @@ Deno.serve(async (req) => {
             
             // ⭐ Validate amount ต้องมากกว่า 0
             if (slipAmount === 0 || isNaN(slipAmount)) {
-                try {
-                    await base44.asServiceRole.entities.WebhookLog.create({
-                        webhook_type: 'line',
-                        branch_id: payment.branch_id,
-                        event_type: 'slip_unreadable',
-                        line_user_id: user.email, 
-                        payment_id: paymentId,
-                        status: 'warning',
-                        message: 'Manual Upload: Could not read amount from slip',
-                        details: { slipData, uploaded_by: user.email }
-                    });
-                } catch(logError) { /* silent fail */ }
                 console.error('❌ Invalid slip amount:', slipAmount);
                 
                 const rooms = await base44.asServiceRole.entities.Room.list();
@@ -476,18 +464,6 @@ Deno.serve(async (req) => {
             console.log('====================================================\n');
 
             if (!accountMatch) {
-            try {
-                await base44.asServiceRole.entities.WebhookLog.create({
-                    webhook_type: 'line',
-                    branch_id: payment.branch_id,
-                    event_type: 'slip_account_mismatch',
-                    line_user_id: user.email, // In this context, user is the one uploading
-                    payment_id: paymentId,
-                    status: 'warning',
-                    message: `Manual Upload: Account mismatch: expected ${expectedAccountNumber || expectedPromptPay}, got ${receiverAccount || receiverPromptPay}`,
-                    details: { receiverName, uploaded_by: user.email }
-                });
-            } catch(logError) { /* silent fail */ }
                 const rooms = await base44.asServiceRole.entities.Room.list();
                 const room = rooms.find(r => r.id === payment.room_id);
                 const roomNumber = room?.room_number || 'ไม่ทราบ';
@@ -604,20 +580,6 @@ Deno.serve(async (req) => {
 
             // ตรวจสอบยอดเงิน (ยอมรับ ±5%)
             if (totalPaid < expectedAmount * 0.95) {
-            const shortfall = expectedAmount - totalPaid;
-            try {
-                 await base44.asServiceRole.entities.WebhookLog.create({
-                    webhook_type: 'line',
-                    branch_id: payment.branch_id,
-                    event_type: 'slip_amount_mismatch',
-                    line_user_id: user.email, 
-                    payment_id: paymentId,
-                    amount: slipAmount,
-                    status: 'warning',
-                    message: `Manual Upload: Amount mismatch: paid ${totalPaid}, expected ${expectedAmount}`,
-                    details: { shortfall, late_fee: lateFeeAmount, days_late: daysLate, uploaded_by: user.email }
-                });
-            } catch(logError) { /* silent fail */ }
                 // ดึงข้อมูลห้องเพื่อแสดงหมายเลขห้อง
                 const rooms = await base44.asServiceRole.entities.Room.list();
                 const room = rooms.find(r => r.id === payment.room_id);
