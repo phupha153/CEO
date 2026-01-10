@@ -477,23 +477,6 @@ Deno.serve(async (req) => {
                         `⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
                 });
 
-                try {
-                  await base44.asServiceRole.entities.WebhookLog.create({
-                      webhook_type: 'frontend',
-                      branch_id: payment.branch_id,
-                      event_type: 'account_mismatch',
-                      line_user_id: user.email,
-                      tenant_id: payment.tenant_id,
-                      payment_id: paymentId,
-                      status: 'error',
-                      message: 'Account mismatch from frontend',
-                      details: { 
-                          slip_receiver: `${receiverAccount || receiverPromptPay}`,
-                          config_receiver: `${expectedAccountNumber || expectedPromptPay}`
-                      }
-                  });
-                } catch(e){}
-
                 return Response.json({ 
                     success: true,
                     message: `อัปโหลดสลิปสำเร็จ แต่${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบ`,
@@ -615,21 +598,6 @@ Deno.serve(async (req) => {
                         `💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
                 });
 
-                try {
-                  await base44.asServiceRole.entities.WebhookLog.create({
-                      webhook_type: 'frontend',
-                      branch_id: payment.branch_id,
-                      event_type: 'partial_payment',
-                      line_user_id: user.email,
-                      tenant_id: payment.tenant_id,
-                      payment_id: paymentId,
-                      status: 'warning',
-                      message: `Partial payment from frontend: paid ${totalPaid} of ${expectedAmount}`,
-                      amount: slipAmount,
-                      details: { shortfall }
-                  });
-                } catch(e){}
-
                 return Response.json({ 
                     success: true,
                     message: `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n💵 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n   (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท\n\nกรุณาโอนส่วนที่ขาดและอัปโหลดสลิปใหม่`,
@@ -657,23 +625,8 @@ Deno.serve(async (req) => {
                     `${payment.notes}\n\n✅ ตรวจสอบสลิปอัตโนมัติ: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}` :
                     `✅ ตรวจสอบสลิปอัตโนมัติ: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}`
             });
-
+            
             console.log('✅ Payment updated successfully:', updatedPayment.id, 'status:', updatedPayment.status);
-
-            try {
-              await base44.asServiceRole.entities.WebhookLog.create({
-                  webhook_type: 'frontend',
-                  branch_id: payment.branch_id,
-                  event_type: 'payment_verified',
-                  line_user_id: user.email,
-                  tenant_id: payment.tenant_id,
-                  payment_id: paymentId,
-                  status: 'success',
-                  message: 'Payment verified successfully from frontend',
-                  amount: slipAmount,
-                  details: { senderName }
-              });
-            } catch(e){}
             
             // ⭐ คำนวณคะแนนอัตโนมัติหลังยืนยันสลิป
             if (payment.tenant_id) {
