@@ -1618,6 +1618,21 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 payment_slip_url: slipImageUrl,
                 notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ห้อง ${roomNumber} - ${errorMsg}`
             });
+            
+            try {
+                await base44.asServiceRole.entities.WebhookLog.create({
+                    webhook_type: 'line',
+                    branch_id: branchId,
+                    event_type: 'slip_account_mismatch',
+                    line_user_id: lineUserId,
+                    tenant_id: tenant?.id,
+                    payment_id: pendingPayment.id,
+                    amount: slipAmount,
+                    status: 'warning',
+                    message: `Account mismatch: expected ${expectedAccountNumber || expectedPromptPay}, got ${receiverAccount || receiverPromptPay}`,
+                    details: { receiverName }
+                });
+            } catch(logError) { /* silent fail */ }
 
             await sendMessage(base44, lineUserId, 
                 `❌ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบค่ะ 🙏`,
@@ -1645,11 +1660,13 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const currentPaid = parseFloat(pendingPayment.paid_amount || 0);
         const totalPaid = currentPaid + slipAmount;
 
-        // ตรวจสอบยอดเงิน (ยอมรับ ±5%)
-        if (totalPaid < expectedAmount * 0.95) {
+        const amountDifference = totalPaid - expectedAmount;
+        const isAmountMismatched = Math.abs(amountDifference) > 1.0; // ยอมให้ต่างได้ไม่เกิน 1 บาท
+
+        // กรณีจ่ายไม่ครบ (น้อยกว่า 95%)
+        if (isAmountMismatched && totalPaid < expectedAmount * 0.95) {
             const shortfall = expectedAmount - totalPaid;
             
-            // อัปเดตยอดที่จ่ายไปแล้ว และเปลี่ยนสถานะเป็น partial_paid
             await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
                 status: 'partial_paid',
                 paid_amount: totalPaid,
@@ -1659,23 +1676,14 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 notes: `${pendingPayment.notes || ''}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
             });
 
-            // Log partial payment
             try {
                 await base44.asServiceRole.entities.WebhookLog.create({
-                    webhook_type: 'line',
-                    branch_id: branchId,
-                    event_type: 'partial_payment',
-                    line_user_id: lineUserId,
-                    tenant_id: tenant?.id,
-                    payment_id: pendingPayment.id,
-                    amount: slipAmount,
-                    status: 'success',
-                    message: `Partial: ${totalPaid}/${expectedAmount}`,
+                    webhook_type: 'line', branch_id: branchId, event_type: 'partial_payment',
+                    line_user_id: lineUserId, tenant_id: tenant?.id, payment_id: pendingPayment.id,
+                    amount: slipAmount, status: 'success', message: `Partial: ${totalPaid}/${expectedAmount}`,
                     details: { late_fee: lateFeeAmount, days_late: daysLate }
                 });
-            } catch (logError) {
-                // Silent fail
-            }
+            } catch (logError) { /* silent fail */ }
             
             await sendMessage(base44, lineUserId, 
                 `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n` +
@@ -1683,8 +1691,38 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 ` ยอดที่ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n⏰ รวมค่าปรับล่าช้า ${daysLate} วัน: ${lateFeeAmount.toLocaleString()} บาท` : ''}\n\n` +
                 `⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท\n\n` +
                 `กรุณาโอนส่วนที่ขาดและส่งสลิปใหม่ค่ะ 🙏`,
-                branchId,
-                replyToken
+                branchId, replyToken
+            );
+            return;
+        }
+
+        // กรณียอดไม่ตรง (จ่ายเกิน หรือจ่ายขาดเล็กน้อย)
+        if (isAmountMismatched) {
+            const mismatchMessage = amountDifference > 0 
+                ? `ยอดโอนเกิน ${amountDifference.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`
+                : `ยอดโอนขาด ${Math.abs(amountDifference).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท`;
+
+            await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
+                payment_slip_url: slipImageUrl,
+                notes: `${pendingPayment.notes || ''}\n\n⚠️ รอตรวจสอบ: ${mismatchMessage} (ยอดสลิป: ${slipAmount.toLocaleString()}, ยอดบิล: ${expectedAmount.toLocaleString()})`
+            });
+            
+            try {
+                 await base44.asServiceRole.entities.WebhookLog.create({
+                    webhook_type: 'line', branch_id: branchId, event_type: 'slip_amount_mismatch',
+                    line_user_id: lineUserId, tenant_id: tenant?.id, payment_id: pendingPayment.id,
+                    amount: slipAmount, status: 'warning', message: `Amount mismatch: expected ${expectedAmount}, got ${slipAmount}`,
+                    details: { difference: amountDifference, late_fee: lateFeeAmount }
+                });
+            } catch(logError) { /* silent fail */ }
+
+            await sendMessage(base44, lineUserId, 
+                `⚠️ ตรวจสอบยอดเงินไม่ตรงกัน\n\n` +
+                `ยอดที่ต้องชำระ: ${expectedAmount.toLocaleString()} บาท\n` +
+                `ยอดโอนจากสลิป: ${slipAmount.toLocaleString()} บาท\n\n` +
+                `(${mismatchMessage})\n\n` +
+                `กรุณารอเจ้าหน้าที่ตรวจสอบและยืนยันค่ะ 🙏`,
+                branchId, replyToken
             );
             return;
         }
