@@ -365,6 +365,26 @@ Deno.serve(async (req) => {
                         continue;
                     }
 
+                    // ⭐ Check for maintenance messages (keywords)
+                    const maintenanceKeywords = ['ซ่อม', 'แจ้งซ่อม', 'เสีย', 'พัง', 'แอร์', 'ท่อ', 'ไฟ'];
+                    const hasMaintenanceKeyword = maintenanceKeywords.some(kw => messageText.includes(kw));
+
+                    // ⭐ Log maintenance-related messages
+                    if (messageType === 'text' && hasMaintenanceKeyword) {
+                        try {
+                            await base44.asServiceRole.entities.WebhookLog.create({
+                                webhook_type: 'line',
+                                branch_id: queryBranchId,
+                                event_type: 'maintenance_request',
+                                line_user_id: lineUserId,
+                                status: 'warning', // It's a request, not success/error yet
+                                message: `Maintenance keyword detected: \"${messageText.substring(0, 100)}...\"`
+                            });
+                        } catch (logError) {
+                            // Silent fail
+                        }
+                    }
+
                     // ⭐ Check for maintenance or expense messages (keywords)
                     const maintenanceKeywords = ['ซ่อม', 'แจ้ง', 'บ้าน', 'ห้อง', 'พัง', 'แอร์', 'ท่อ', 'ไฟ'];
                     const expenseKeywords = ['ค่า', 'ใช้จ่าย', 'ชำระ', 'ราคา'];
@@ -729,6 +749,18 @@ Deno.serve(async (req) => {
             }
         } catch (error) {
             console.error('❌ Webhook processing error:', error);
+            try {
+                await base44.asServiceRole.entities.WebhookLog.create({
+                    webhook_type: 'line',
+                    branch_id: queryBranchId || 'unknown',
+                    event_type: 'error',
+                    line_user_id: 'unknown',
+                    status: 'error',
+                    message: 'Top-level webhook processing error',
+                    error_message: error.message,
+                    details: { stack: error.stack }
+                });
+            } catch(logError) { /* silent fail */ }
         }
     })();
 
@@ -852,6 +884,21 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
             status: 'pending',
             notes: `แจ้งผ่าน LINE: ${problemDescription}`
         });
+        maintenanceRecordId = maintenanceRequest.id;
+
+        try {
+             await base44.asServiceRole.entities.WebhookLog.create({
+                webhook_type: 'line',
+                branch_id: tenant.branch_id,
+                event_type: 'maintenance_request',
+                line_user_id: lineUserId,
+                tenant_id: tenant.id,
+                maintenance_id: maintenanceRecordId,
+                status: 'success',
+                message: `Created maintenance request: ${analysisResult.title}`,
+                details: { category: analysisResult.category, priority: analysisResult.priority }
+            });
+        } catch(logError) { /* silent fail */ }
         
         console.log(`✅ Created maintenance request: ${maintenanceRequest.id}`);
         
@@ -900,7 +947,18 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
         
     } catch (error) {
         console.error('❌ Maintenance report error:', error);
-        console.error('Error stack:', error.stack);
+        try {
+             await base44.asServiceRole.entities.WebhookLog.create({
+                webhook_type: 'line',
+                branch_id: branchId,
+                event_type: 'error',
+                line_user_id: lineUserId,
+                maintenance_id: maintenanceRecordId,
+                status: 'error',
+                message: 'Failed to create maintenance request',
+                error_message: error.message
+            });
+        } catch(logError) { /* silent fail */ }
         // ⭐ ใช้ filter พร้อม branch_id
         let errorTenant = null;
         try {
@@ -944,6 +1002,17 @@ async function fetchAllWithPagination(entity, batchSize = 5000) {
 
 async function handlePhoneNumberRegistration(base44, lineUserId, phoneNumber, branchCode = null, replyToken = null, destinationBranchId = null) {
     try {
+        try {
+            await base44.asServiceRole.entities.WebhookLog.create({
+                webhook_type: 'line',
+                branch_id: destinationBranchId,
+                event_type: 'registration',
+                line_user_id: lineUserId,
+                status: 'warning',
+                message: `Registration attempt with phone: ${phoneNumber}`,
+                details: { branchCode: branchCode }
+            });
+        } catch(logError) { /* silent fail */ }
         // ⭐⭐⭐ CRITICAL FIX: ต้องมี destinationBranchId เสมอ (ป้องกัน Data Leak)
         if (!destinationBranchId) {
             console.error('❌ CRITICAL: Missing destinationBranchId - cannot register without branch context');
