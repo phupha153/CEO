@@ -199,11 +199,14 @@ Deno.serve(async (req) => {
 
             try {
                 const qrData = JSON.parse(qrResponseText);
-                // ⭐ Slip2Go ส่ง code "200200" = success, ไม่มี field "success"
-                if (qrResponse.ok && qrData.code === '200200' && qrData.data) {
+                // ⭐ Slip2Go: code "200200" = success (ไม่มี field "success")
+                // เช็คทั้ง string และ number เพราะ API บางครั้งส่งมาเป็น number
+                const isValidCode = qrData.code === '200200' || qrData.code === 200200;
+                
+                if (isValidCode && qrData.data) {
                     simpleData = qrData;
                     verificationMethod = 'qr-image';
-                    console.log('✅ qr-image/info method succeeded');
+                    console.log('✅ qr-image/info method succeeded (code:', qrData.code, ')');
                 } else {
                     slip2goErrorCode = qrData.code;
                     slip2goErrorMessage = qrData.message;
