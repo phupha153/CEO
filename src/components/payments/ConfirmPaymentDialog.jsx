@@ -187,39 +187,17 @@ export default function ConfirmPaymentDialog({
         {step === 'upload' && (
           <div className="space-y-4">
             {/* ข้อมูลบัญชีที่จะตรวจสอบ */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <div className="bg-blue-100 p-2 rounded-lg">
-                  <Shield className="w-5 h-5 text-blue-700" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-semibold text-blue-900 mb-2">ระบบจะตรวจสอบบัญชีปลายทาง:</p>
-                  {bankAccountNumber && (
-                    <div className="space-y-1 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-blue-600" />
-                        <span className="text-blue-800">{bankName || 'ธนาคาร'}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-blue-600" />
-                        <span className="font-mono text-blue-900">{bankAccountNumber}</span>
-                      </div>
-                      <p className="text-blue-700">ชื่อบัญชี: {bankAccountName || 'N/A'}</p>
-                    </div>
-                  )}
-                  {promptPay && (
-                    <div className="mt-2 pt-2 border-t border-blue-200">
-                      <p className="text-xs text-blue-700">หรือ PromptPay: {promptPay}</p>
-                    </div>
-                  )}
-                  {!bankAccountNumber && !promptPay && (
-                    <div className="flex items-start gap-2 text-amber-700 text-sm">
-                      <AlertCircle className="w-4 h-4 mt-0.5" />
-                      <p>ยังไม่ได้ตั้งค่าบัญชีธนาคาร - จะตรวจสอบเฉพาะยอดเงิน</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div className="text-xs text-slate-600 space-y-1">
+              <p className="font-medium text-slate-700">ตรวจสอบ Slip กับ:</p>
+              {bankAccountNumber && (
+                <p>• {bankName || 'ธนาคาร'} {bankAccountNumber} ({bankAccountName || 'N/A'})</p>
+              )}
+              {promptPay && (
+                <p>• PromptPay: {promptPay}</p>
+              )}
+              {!bankAccountNumber && !promptPay && (
+                <p className="text-amber-600">⚠️ ยังไม่ได้ตั้งค่าบัญชี - ตรวจสอบเฉพาะยอดเงิน</p>
+              )}
             </div>
 
             {/* อัปโหลดสลิป */}
