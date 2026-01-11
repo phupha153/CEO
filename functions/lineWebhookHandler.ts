@@ -1504,6 +1504,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         console.log('====================================================\n');
 
         if (!accountMatch) {
+            console.log('❌ Account mismatch - saving for manual review');
             const roomResult = await base44.asServiceRole.entities.Room.filter({ id: pendingPayment.room_id });
             const room = Array.isArray(roomResult) ? roomResult[0] : roomResult;
             const roomNumber = room?.room_number || 'ไม่ทราบ';
@@ -1520,9 +1521,11 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 branchId,
                 replyToken
             );
+            console.log('✅ Sent account mismatch message');
             return;
         }
 
+        console.log('💰 Account verified - calculating amounts...');
         const baseAmount = (parseFloat(pendingPayment.rent_amount) || 0) +
                           (parseFloat(pendingPayment.water_amount) || 0) +
                           (parseFloat(pendingPayment.electricity_amount) || 0) +
@@ -1535,14 +1538,19 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         const thailandTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
         const today = new Date(thailandTime.getFullYear(), thailandTime.getMonth(), thailandTime.getDate());
         
+        console.log('📊 Base amount:', baseAmount);
         const { lateFeeAmount, daysLate } = calculateLateFee(pendingPayment, configs, branchId, today);
+        console.log(`💸 Late fee calculated: ${lateFeeAmount}฿ (${daysLate} days)`);
         
         const expectedAmount = baseAmount + lateFeeAmount;
         const currentPaid = parseFloat(pendingPayment.paid_amount || 0);
         const totalPaid = currentPaid + slipAmount;
 
+        console.log(`💰 Payment check: slip=${slipAmount}฿, expected=${expectedAmount}฿, total=${totalPaid}฿`);
+        
         // ตรวจสอบยอดเงิน (ยอมรับ ±5%)
         if (totalPaid < expectedAmount * 0.95) {
+            console.log('⚠️ Partial payment detected - updating status...');
             const shortfall = expectedAmount - totalPaid;
             
             // อัปเดตยอดที่จ่ายไปแล้ว และเปลี่ยนสถานะเป็น partial_paid
@@ -1554,6 +1562,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 total_amount: expectedAmount,
                 notes: `${pendingPayment.notes || ''}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
             });
+            console.log('✅ Payment updated (partial_paid)');
 
             // Log partial payment
             await base44.asServiceRole.entities.WebhookLog.create({
@@ -1578,10 +1587,12 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 branchId,
                 replyToken
             );
+            console.log('✅ Sent partial payment message');
             return;
         }
 
         // ⭐ ชำระครบแล้ว + บัญชีถูกต้อง
+        console.log('✅ Full payment verified - updating status...');
         await base44.asServiceRole.entities.Payment.update(pendingPayment.id, {
             status: 'paid',
             payment_date: transDate.split('T')[0],
@@ -1591,6 +1602,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
             paid_amount: expectedAmount,
             notes: `${pendingPayment.notes || ''}\n\n✅ ตรวจสอบสลิปอัตโนมัติผ่าน LINE: ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท จากชำระล่าช้า ${daysLate} วัน)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่มจากครั้งก่อน ${currentPaid.toLocaleString()} บาท)` : ''}`
         });
+        console.log('✅ Payment updated (status=paid)');
 
         // Log successful payment
         await base44.asServiceRole.entities.WebhookLog.create({
@@ -1610,31 +1622,42 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                 verification_method: verificationMethod
             }
         }).catch(() => {});
+        console.log('✅ WebhookLog created');
 
         // คำนวณคะแนน
         if (tenant?.id) {
             try {
+                console.log('📊 Calculating payment score...');
                 await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
                     tenant_id: tenant.id
                 });
+                console.log('✅ Payment score calculated');
             } catch (scoreError) {
-                // Silent fail
+                console.log('⚠️ Score calculation failed:', scoreError.message);
             }
         }
         
+        console.log('📨 Sending receipt...');
         try {
             await base44.asServiceRole.functions.invoke('sendReceipt', { 
                 paymentId: pendingPayment.id 
             });
+            console.log('✅ Receipt sent successfully');
         } catch (receiptError) {
+            console.error('❌ Receipt send failed:', receiptError.message);
             await sendMessage(base44, lineUserId, 
                 `✅ ตรวจสอบสลิปสำเร็จ!\n\n💰 ยอดเงิน: ${slipAmount.toLocaleString()} บาท\n📅 วันที่: ${transDate.split('T')[0]}\n\n✓ อัปเดตสถานะ "ชำระแล้ว"\n\nขอบคุณที่ชำระเงินค่ะ 🙏`,
                 branchId,
                 replyToken
             );
+            console.log('✅ Sent fallback success message (receipt failed)');
         }
 
     } catch (error) {
+        console.error('❌ === SLIP PROCESSING ERROR ===');
+        console.error('Error:', error.message);
+        console.error('Stack:', error.stack);
+        
         // Log critical error to DB
         await base44.asServiceRole.entities.WebhookLog.create({
             webhook_type: 'line',
@@ -1647,6 +1670,7 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
         }).catch(() => {});
 
         await sendMessage(base44, lineUserId, 'เกิดข้อผิดพลาดในการประมวลผล กรุณาลองใหม่อีกครั้ง', branchId, replyToken);
+        console.log('✅ Sent error message to user');
     }
 }
 
