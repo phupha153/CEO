@@ -1070,30 +1070,34 @@ export default function PaymentsPage() {
       return payment;
     },
     onMutate: async (deletedPayment) => {
-      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
       await queryClient.cancelQueries({ queryKey: ['payments-filtered'] });
       await queryClient.cancelQueries({ queryKey: ['payments-room-view'] });
+      await queryClient.cancelQueries({ queryKey: ['payments-count', selectedBranchId] });
 
-      // Snapshot the previous value
       const previousPaymentsFiltered = queryClient.getQueryData(['payments-filtered']);
       const previousPaymentsRoomView = queryClient.getQueryData(['payments-room-view']);
 
-      // Optimistically update to the new value
       if (previousPaymentsFiltered) {
-        queryClient.setQueryData(['payments-filtered'], (old) => ({
-          ...old,
-          data: old.data.filter(p => p.id !== deletedPayment.id),
-          total: old.total - 1,
-        }));
+        queryClient.setQueryData(['payments-filtered'], (old) => {
+            if (!old || !old.data) return old;
+            return {
+              ...old,
+              data: old.data.filter(p => p.id !== deletedPayment.id),
+              total: (old.total || 0) - 1,
+            }
+        });
       }
+      
       if (previousPaymentsRoomView) {
-        queryClient.setQueryData(['payments-room-view'], (old) => old.filter(p => p.id !== deletedPayment.id));
+        queryClient.setQueryData(['payments-room-view'], (old) => {
+            if (!old) return [];
+            return old.filter(p => p.id !== deletedPayment.id)
+        });
       }
 
       return { previousPaymentsFiltered, previousPaymentsRoomView };
     },
     onError: (err, deletedPayment, context) => {
-      // Rollback on error
       if (context.previousPaymentsFiltered) {
         queryClient.setQueryData(['payments-filtered'], context.previousPaymentsFiltered);
       }
@@ -1102,30 +1106,29 @@ export default function PaymentsPage() {
       }
       toast.error('ลบไม่สำเร็จ: ' + err.message);
     },
-    onSettled: async (deletedPayment) => {
-      // Invalidate and refetch
-      await queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
-      await queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
-      await queryClient.invalidateQueries({ queryKey: ['payments-count', selectedBranchId] });
+    onSuccess: async (deletedPayment) => {
+        toast.success('ลบการชำระเงินสำเร็จ');
 
-      if (deletedPayment) {
-        setAiResult(null);
-        setAiAction(null);
-        setSearchQuery('');
         const room = rooms.find(r => r.id === deletedPayment.room_id);
         const tenant = tenants.find(t => t.id === deletedPayment.tenant_id);
-        await base44.entities.ActivityLog.create({
-          branch_id: selectedBranchId,
-          action_type: 'delete',
-          entity_type: 'Payment',
-          entity_id: deletedPayment.id,
-          entity_name: `ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`,
-          user_email: currentUser?.email,
-          user_name: currentUser?.full_name,
-          description: `ลบบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} จำนวน ${deletedPayment.total_amount?.toLocaleString()} บาท`
-        });
-        toast.success('ลบการชำระเงินสำเร็จ');
-      }
+        try {
+            await base44.entities.ActivityLog.create({
+              branch_id: selectedBranchId,
+              action_type: 'delete',
+              entity_type: 'Payment',
+              entity_id: deletedPayment.id,
+              entity_name: `ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`,
+              user_email: currentUser?.email,
+              user_name: currentUser?.full_name,
+              description: `ลบบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} จำนวน ${deletedPayment.total_amount?.toLocaleString()} บาท`
+            });
+        } catch (logError) {
+            console.error("Failed to create activity log for deletion:", logError);
+        }
+    },
+    onSettled: () => {
+      // Just invalidate counts, not the main data lists
+      queryClient.invalidateQueries({ queryKey: ['payments-count', selectedBranchId] });
     },
   });
 
