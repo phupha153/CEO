@@ -495,6 +495,16 @@ export default function Layout({ children, currentPageName }) {
                        currentPageName === 'PublicInvoice' ||
                        currentPageName === 'PublicReceipt';
 
+  // ⭐⭐⭐ CRITICAL: Early return สำหรับ Public Pages - ต้องมาก่อน queries ทั้งหมด!
+  if (isPublicPage) {
+    return (
+      <>
+        <Toaster richColors position="top-center" />
+        {children}
+      </>
+    );
+  }
+
   const { data: currentUser, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
@@ -615,7 +625,7 @@ export default function Layout({ children, currentPageName }) {
   const { data: appSubscriptions = [] } = useQuery({
     queryKey: ['appSubscriptions'],
     queryFn: () => base44.entities.AppSubscription.list('-created_date', 1),
-    enabled: !isLoading && !!currentUser,
+    enabled: !isLoading && !!currentUser && !isPublicPage,
     staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -629,7 +639,7 @@ export default function Layout({ children, currentPageName }) {
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
-    enabled: !isLoading && !!currentUser && isOnline,
+    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
     staleTime: Infinity, // ⭐ Cache ตลอด
     gcTime: Infinity,
     retry: 2,
@@ -645,7 +655,7 @@ export default function Layout({ children, currentPageName }) {
   const { data: configs = [], isLoading: configsLoading } = useQuery({
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
-    enabled: !isLoading && !!currentUser && isOnline,
+    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
     staleTime: Infinity, // ⭐ Cache ตลอด
     gcTime: Infinity,
     retry: 2,
@@ -666,7 +676,7 @@ export default function Layout({ children, currentPageName }) {
       });
       return response.data;
     },
-    enabled: !!selectedBranch && !!currentUser && isOnline,
+    enabled: !!selectedBranch && !!currentUser && isOnline && !isPublicPage,
     staleTime: 5 * 60 * 1000,
     retry: 1,
     throwOnError: false,
@@ -837,21 +847,6 @@ export default function Layout({ children, currentPageName }) {
       }
     }
   }, [isLoading, currentUser, navigate, currentPageName, error]);
-
-  // ⭐ หน้า Public - ไม่ต้อง Loading, return เลย
-  if (currentPageName === 'Welcome' || 
-      currentPageName === 'Invoice' || 
-      currentPageName === 'Receipt' || 
-      currentPageName === 'PrintReceipts' ||
-      currentPageName === 'PublicInvoice' ||
-      currentPageName === 'PublicReceipt') {
-    return (
-      <>
-        <Toaster richColors position="top-center" />
-        {children}
-      </>
-    );
-  }
 
   useEffect(() => {
     console.log('🔍 Layout Branch Check:', {
@@ -1208,7 +1203,7 @@ export default function Layout({ children, currentPageName }) {
 
   // Render loading screen - แต่ถ้า CRM check ใช้เวลานาน ให้ข้ามไปได้
   const isWaitingForCRM = crmAccessLoading && !crmAccess && !crmAccessError;
-  const shouldShowLoading = (isLoading || branchesLoading || configsLoading) && !isWaitingForCRM;
+  const shouldShowLoading = (isLoading || branchesLoading || configsLoading) && !isWaitingForCRM && !isPublicPage;
 
   if (shouldShowLoading) {
     return (
