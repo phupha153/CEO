@@ -638,7 +638,7 @@ export default function Layout({ children, currentPageName }) {
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
-    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
+    enabled: !isLoading && !!currentUser && isOnline,
     staleTime: Infinity, // ⭐ Cache ตลอด
     gcTime: Infinity,
     retry: 2,
@@ -654,7 +654,7 @@ export default function Layout({ children, currentPageName }) {
   const { data: configs = [], isLoading: configsLoading } = useQuery({
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
-    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
+    enabled: !isLoading && !!currentUser && isOnline,
     staleTime: Infinity, // ⭐ Cache ตลอด
     gcTime: Infinity,
     retry: 2,
