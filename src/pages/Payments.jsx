@@ -1078,16 +1078,19 @@ export default function PaymentsPage() {
       const previousPaymentsFiltered = queryClient.getQueryData(['payments-filtered']);
       const previousPaymentsRoomView = queryClient.getQueryData(['payments-room-view']);
 
-      // Optimistically update to the new value
-      if (previousPaymentsFiltered) {
+      // Optimistically update to the new value for both views
+      if (previousPaymentsFiltered && previousPaymentsFiltered.data) {
         queryClient.setQueryData(['payments-filtered'], (old) => ({
           ...old,
           data: old.data.filter(p => p.id !== deletedPayment.id),
-          total: old.total - 1,
+          total: old.total ? old.total - 1 : 0,
         }));
       }
+      
       if (previousPaymentsRoomView) {
-        queryClient.setQueryData(['payments-room-view'], (old) => old.filter(p => p.id !== deletedPayment.id));
+        queryClient.setQueryData(['payments-room-view'], (old) => 
+          old ? old.filter(p => p.id !== deletedPayment.id) : []
+        );
       }
 
       return { previousPaymentsFiltered, previousPaymentsRoomView };
