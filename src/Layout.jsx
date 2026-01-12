@@ -495,16 +495,7 @@ export default function Layout({ children, currentPageName }) {
                        currentPageName === 'PublicInvoice' ||
                        currentPageName === 'PublicReceipt';
 
-  // ⭐⭐⭐ CRITICAL: Early return สำหรับ Public Pages - ต้องมาก่อน queries ทั้งหมด!
-  if (isPublicPage) {
-    return (
-      <>
-        <Toaster richColors position="top-center" />
-        {children}
-      </>
-    );
-  }
-
+  // ⭐ HOOKS MUST COME FIRST - ห้าม early return ก่อน hooks!
   const { data: currentUser, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
