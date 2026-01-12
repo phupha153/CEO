@@ -487,7 +487,7 @@ export default function Layout({ children, currentPageName }) {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  // ⭐ หน้า Public ไม่ต้องโหลด user
+  // ⭐ หน้า Public ไม่ต้องโหลด user (เช็คก่อน แต่ยังไม่ return)
   const isPublicPage = currentPageName === 'Welcome' || 
                        currentPageName === 'Invoice' || 
                        currentPageName === 'Receipt' || 
@@ -495,7 +495,7 @@ export default function Layout({ children, currentPageName }) {
                        currentPageName === 'PublicInvoice' ||
                        currentPageName === 'PublicReceipt';
 
-  // ⭐ HOOKS MUST COME FIRST - ห้าม early return ก่อน hooks!
+  // ⭐ HOOKS MUST ALWAYS RUN - ห้าม skip hooks!
   const { data: currentUser, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
@@ -672,16 +672,6 @@ export default function Layout({ children, currentPageName }) {
     retry: 1,
     throwOnError: false,
   });
-
-  // ⭐⭐⭐ Early return สำหรับ Public Pages - ต้องมาหลัง hooks ทั้งหมด!
-  if (isPublicPage) {
-    return (
-      <>
-        <Toaster richColors position="top-center" />
-        {children}
-      </>
-    );
-  }
 
   const getConfigValue = (key, defaultValue = '') => {
     if (selectedBranch) {
@@ -967,6 +957,16 @@ export default function Layout({ children, currentPageName }) {
   const visibleMenuItems = currentUser ? navigationItems.filter(canAccessMenuItem) : [];
   // Admin items - show for both developer and owner
   const visibleAdminItems = currentUser && (userRole === 'developer' || userRole === 'owner') ? adminOnlyItems.filter(canAccessMenuItem) : [];
+
+  // ⭐⭐⭐ CRITICAL: Early return for Public Pages - MUST come AFTER all hooks!
+  if (isPublicPage) {
+    return (
+      <>
+        <Toaster richColors position="top-center" />
+        {children}
+      </>
+    );
+  }
 
   // Don't apply subscription check to these pages (public or critical admin pages)
   // Developer สามารถเข้าถึงทุกหน้าได้แม้แพ็กเกจหมดอายุ
