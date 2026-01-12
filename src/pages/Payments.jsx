@@ -213,7 +213,7 @@ export default function PaymentsPage() {
   const canAutoCalculate = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_autocalculate');
   const canDeleteTestData = userRole === 'developer';
 
-  const { data: roomViewPayments = [], isFetching: roomViewFetching, isLoading: roomViewIsLoading } = useQuery({
+  const { data: roomViewPayments = [], isFetching: roomViewFetching } = useQuery({
     queryKey: ['payments-room-view', selectedBranchId, roomViewMonth],
     queryFn: async () => {
       if (!selectedBranchId || !roomViewMonth) return [];
@@ -3714,7 +3714,7 @@ Return JSON.`;
                       </div>
                     </div>
 
-                    {roomViewIsLoading ? (
+                    {roomViewFetching ? (
                       <div className="text-center py-16">
                         <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                         <p className="text-lg font-semibold text-slate-800">กำลังโหลดข้อมูล...</p>
