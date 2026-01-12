@@ -515,7 +515,7 @@ export default function Layout({ children, currentPageName }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    enabled: isOnline && !isPublicPage,
+    enabled: isOnline,
     networkMode: 'online',
     onError: () => setRetryCount(prev => prev + 1),
     placeholderData: (previousData) => previousData,
@@ -615,7 +615,7 @@ export default function Layout({ children, currentPageName }) {
   const { data: appSubscriptions = [] } = useQuery({
     queryKey: ['appSubscriptions'],
     queryFn: () => base44.entities.AppSubscription.list('-created_date', 1),
-    enabled: !isLoading && !!currentUser && !isPublicPage,
+    enabled: !isLoading && !!currentUser,
     staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
