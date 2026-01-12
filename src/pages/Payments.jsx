@@ -3651,7 +3651,13 @@ Return JSON.`;
                       </div>
                     </div>
 
-                    {(() => {
+                    {isLoadingRoomView ? (
+                      <div className="text-center py-16">
+                        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                        <p className="text-lg font-semibold text-slate-800">กำลังโหลดข้อมูล...</p>
+                        <p className="text-sm text-slate-500 mt-1">กรุณารอสักครู่</p>
+                      </div>
+                    ) : (() => {
                       const roomsByFloor = rooms.reduce((acc, room) => {
                         const floor = room.floor || 1;
                         if (!acc[floor]) acc[floor] = [];
