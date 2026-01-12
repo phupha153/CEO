@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -80,12 +81,11 @@ export default function PaymentsPage() {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedPaymentIds, setSelectedPaymentIds] = useState([]);
   const [bulkAIQuery, setBulkAIQuery] = useState('');
-  const [bulkAIResult, setBulkAIResult] = useState(null);
+  const [bulkAIResult, setBulkAIResult] = null);
   const [isBulkExecuting, setIsBulkExecuting] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [longPressTarget, setLongPressTarget] = useState(null);
 
-  // ⭐ Expose reset function to window for GenerateMonthlyBillsButton
   useEffect(() => {
     window.resetPaymentsAI = () => {
       setAiResult(null);
@@ -97,7 +97,6 @@ export default function PaymentsPage() {
     };
   }, []);
 
-  // ⭐ Escape key handler เพื่อยกเลิก selection mode
   useEffect(() => {
     if (!isSelectionMode) return;
 
@@ -110,16 +109,9 @@ export default function PaymentsPage() {
     };
 
     const handleClickOutside = (e) => {
-      // ถ้าคลิกที่ปุ่มหรือ checkbox ให้ข้ามไป
       if (e.target.closest('[data-selection-control]')) return;
-      
-      // ถ้าคลิกบน card หรือ table row ให้ข้ามไป
       if (e.target.closest('[data-payment-item]')) return;
-      
-      // ⭐ ถ้าคลิกที่ input, textarea, button, dialog ให้ข้ามไป
       if (e.target.closest('input, textarea, button, select, [role="dialog"], [role="menu"]')) return;
-      
-      // ถ้าคลิกข้างนอก = ยกเลิก selection mode
       setIsSelectionMode(false);
       setSelectedPaymentIds([]);
       toast.info('ยกเลิกการเลือกแล้ว', { duration: 1500 });
@@ -178,9 +170,8 @@ export default function PaymentsPage() {
     });
   };
 
-  // Reset filters and clear cache when branch changes
   useEffect(() => {
-    setDateRangeType('this_month'); // ⭐ เริ่มต้นที่เดือนนี้เสมอ
+    setDateRangeType('this_month');
     setStatusFilter('all');
     setCurrentPage(1);
     setSearchQuery('');
@@ -194,9 +185,8 @@ export default function PaymentsPage() {
 
   const getTodayDateString = () => {
     try {
-      // ⭐ บันทึกเวลาปัจจุบันแบบ UTC (เพื่อให้ทุก browser แสดงเวลาตรงกัน)
       const now = new Date();
-      return now.toISOString(); // บันทึกเป็น UTC timestamp
+      return now.toISOString();
     } catch {
       return new Date().toISOString();
     }
@@ -224,7 +214,6 @@ export default function PaymentsPage() {
   const canAutoCalculate = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_autocalculate');
   const canDeleteTestData = userRole === 'developer';
 
-  // ⭐ Room View Month - โหลดข้อมูลแยกจาก main filters
   const { data: roomViewPayments = [], isFetching: roomViewFetching } = useQuery({
     queryKey: ['payments-room-view', selectedBranchId, roomViewMonth],
     queryFn: async () => {
@@ -260,7 +249,6 @@ export default function PaymentsPage() {
     retryDelay: 0,
   };
 
-  // ✅ Server-side filtering via Backend Function (SaaS Standard)
   const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
     queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy],
     queryFn: async () => {
@@ -275,10 +263,9 @@ export default function PaymentsPage() {
         page: currentPage,
         limit: itemsPerPage,
         sort_by: sortBy,
-        debug: true // Request debug logs
+        debug: true
       });
       
-      // Capture logs from response
       if (response.data?.logs) {
         setDebugLogs(response.data.logs);
       }
@@ -294,7 +281,7 @@ export default function PaymentsPage() {
       });
       return response.data;
     },
-    enabled: canView && !!selectedBranchId,
+    enabled: canView && !!selectedBranchId && viewMode !== 'room',
     ...retryConfig,
     staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
@@ -314,7 +301,6 @@ export default function PaymentsPage() {
     dateRangeType
   });
 
-  // ✅ Shared Query Keys with AccountingData for instant navigation
   const { data: bookings = [], isFetching: bookingsFetching } = useQuery({
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
@@ -354,7 +340,6 @@ export default function PaymentsPage() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ O(1) Lookup Maps
   const roomsMap = useMemo(() => new Map(rooms.map(r => [r.id, r])), [rooms]);
   const getRoomInfo = useCallback((roomId) => roomsMap.get(roomId), [roomsMap]);
 
@@ -377,7 +362,6 @@ export default function PaymentsPage() {
     placeholderData: (previousData) => previousData,
   });
 
-  // ✅ O(1) Lookup Maps
   const tenantsMap = useMemo(() => new Map(tenants.map(t => [t.id, t])), [tenants]);
   const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
 
@@ -399,11 +383,8 @@ export default function PaymentsPage() {
     refetchOnWindowFocus: false,
   });
 
-  // ⭐ Set initial room view month once (don't override user selection)
   useEffect(() => {
     if (!configs || configs.length === 0 || !selectedBranchId) return;
-    
-    // ⭐ ไม่ set ซ้ำถ้า user เลือกเดือนไว้แล้ว - set เฉพาะครั้งแรก
   }, []);
 
   const isDataFetching = paymentsFetching || bookingsFetching || roomsFetching || tenantsFetching;
@@ -426,7 +407,6 @@ export default function PaymentsPage() {
 
   const getMainDateRange = () => {
     const now = getCurrentDate();
-    // ⭐ ดึง bill_generation_day ของสาขาก่อน ถ้าไม่มีใช้ global
     const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
     const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
     const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
@@ -435,7 +415,6 @@ export default function PaymentsPage() {
       case 'all':
         return null;
       case 'this_month': {
-        // งวดบิลเดือนนี้ = ถ้าวันนี้ยังไม่ถึงวันสร้างบิล ให้ดูงวดเดือนก่อนหน้า
         const currentDay = now.getDate();
         let cycleMonth = now.getMonth();
         let cycleYear = now.getFullYear();
@@ -453,7 +432,6 @@ export default function PaymentsPage() {
         return { from: cycleStart, to: cycleEnd };
       }
       case 'last_month': {
-        // งวดบิลเดือนที่แล้ว
         const currentDay = now.getDate();
         let cycleMonth = now.getMonth() - 1;
         let cycleYear = now.getFullYear();
@@ -539,7 +517,6 @@ export default function PaymentsPage() {
   const dateRange = useMemo(() => getMainDateRange(), [dateRangeType, customRange]);
 
   const calculateDueDate = () => {
-    // ดึง pay_day จาก config ของสาขา (ถ้ามี) ไม่งั้นใช้ global
     const branchPayDayConfig = configs.find(c => c.key === 'pay_day' && c.branch_id === selectedBranchId);
     const globalPayDayConfig = configs.find(c => c.key === 'pay_day' && !c.branch_id);
     const payDayConfig = branchPayDayConfig || globalPayDayConfig;
@@ -552,7 +529,6 @@ export default function PaymentsPage() {
     );
     const billGenerationDay = billGenerationDayConfig ? parseInt(billGenerationDayConfig.value) : 27;
     
-    // ถ้าวันสร้างบิล > วันครบกำหนด = due date อยู่ในเดือนถัดไป
     let dueMonth = today.getMonth();
     let dueYear = today.getFullYear();
     
@@ -581,7 +557,6 @@ export default function PaymentsPage() {
         return 0;
       }
 
-      // ตรวจสอบว่าเปิดใช้ค่าปรับแบบขั้นบันไดหรือไม่
       const branchConfig = configsList.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === selectedBranchId);
       const globalConfig = configsList.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
       const tiersEnabledConfig = branchConfig || globalConfig;
@@ -603,7 +578,6 @@ export default function PaymentsPage() {
           return 0;
         }
 
-        // ถ้าใช้ค่าปรับแบบขั้นบันได
         if (tiersEnabled) {
           const branchTiersConfig = configsList.find(c => c.key === 'late_fee_tiers' && c.branch_id === selectedBranchId);
           const globalTiersConfig = configsList.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
@@ -624,7 +598,6 @@ export default function PaymentsPage() {
 
               console.log('📊 Tiers Config:', tiers);
 
-              // คำนวณค่าปรับแต่ละช่วง
               for (const tier of tiers) {
                 const daysFrom = tier.days_from || 1;
                 const daysTo = tier.days_to || 999;
@@ -651,7 +624,6 @@ export default function PaymentsPage() {
           }
         }
 
-        // ถ้าไม่ได้เปิดใช้ขั้นบันได หรือ parse ไม่ได้ → ใช้ค่าปรับแบบเดิม
         const branchLateFeeConfig = configsList.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === selectedBranchId);
         const globalLateFeeConfig = configsList.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
         const lateFeeConfig = branchLateFeeConfig || globalLateFeeConfig;
@@ -710,7 +682,6 @@ export default function PaymentsPage() {
         return;
       }
 
-      // Helper function to get config value with branch priority
       const getConfigValue = (key, defaultValue) => {
         const branchConfig = configs.find(c => c.key === key && c.branch_id === selectedBranchId);
         if (branchConfig && branchConfig.value !== undefined && branchConfig.value !== '') {
@@ -720,10 +691,9 @@ export default function PaymentsPage() {
         return globalConfig && globalConfig.value !== undefined && globalConfig.value !== '' ? parseFloat(globalConfig.value) : defaultValue;
       };
 
-      // Calculate Rates (Priority: Room Specific > Branch Config > Default)
       const waterRate = room.water_rate || getConfigValue('water_rate', 18);
       const electricityRate = room.electricity_rate || getConfigValue('electricity_rate', 7);
-      const internetRate = getConfigValue('internet_rate', 0); // Default to 0 if not set
+      const internetRate = getConfigValue('internet_rate', 0);
       const commonFee = room.common_fee || getConfigValue('common_fee', 0);
       
       const carParkingFee = getConfigValue('car_parking_fee', 0);
@@ -748,10 +718,8 @@ export default function PaymentsPage() {
         toast.info('ยังไม่มีการบันทึกมิเตอร์สำหรับห้องนี้ กรุณากรอกค่าเอง');
       }
 
-      // ⭐ ตรวจสอบค่าขั้นต่ำสำหรับน้ำและไฟ
       let notesAddition = '';
       
-      // Helper to get string config value
       const getStringConfigValue = (key) => {
         const branchConfig = configs.find(c => c.key === key && c.branch_id === selectedBranchId);
         if (branchConfig) return branchConfig.value;
@@ -759,7 +727,6 @@ export default function PaymentsPage() {
         return globalConfig?.value || '';
       };
       
-      // ค่าน้ำขั้นต่ำ
       const waterMinEnabled = getStringConfigValue('water_minimum_enabled') === 'true';
       if (waterMinEnabled && waterUnits > 0) {
         const minUnits = parseFloat(getStringConfigValue('water_minimum_units') || '3');
@@ -771,7 +738,6 @@ export default function PaymentsPage() {
         }
       }
       
-      // ค่าไฟขั้นต่ำ
       const elecMinEnabled = getStringConfigValue('electricity_minimum_enabled') === 'true';
       if (elecMinEnabled && electricityUnits > 0) {
         const minUnits = parseFloat(getStringConfigValue('electricity_minimum_units') || '3');
@@ -795,7 +761,6 @@ export default function PaymentsPage() {
         parkingFeeAmount = (carCount * carParkingFee) + (motorcycleCount * motorcycleParkingFee);
       }
 
-      // Calculate Other Monthly Fees from Room
       let otherMonthlyFeesAmount = 0;
       if (room.other_monthly_fees && Array.isArray(room.other_monthly_fees)) {
         otherMonthlyFeesAmount = room.other_monthly_fees.reduce((sum, fee) => sum + (parseFloat(fee.amount) || 0), 0);
@@ -866,11 +831,9 @@ export default function PaymentsPage() {
     return payment.status || 'pending';
   }, [currentDateMemo]);
 
-  // ✅ Server-side filtering ทำแล้ว - ไม่ต้อง filter ซ้อนอีก
   const filteredPayments = useMemo(() => {
     if (!payments || payments.length === 0) return [];
     
-    // ถ้ามี AI result ให้กรองเพิ่ม
     if (aiResult && aiResult.payments && aiResult.payments.length > 0) {
       const aiPaymentIds = new Set(aiResult.payments.map(p => p.payment_id));
       return payments.filter(payment => aiPaymentIds.has(payment.id));
@@ -879,7 +842,6 @@ export default function PaymentsPage() {
     return payments;
   }, [payments, aiResult]);
 
-  // ✅ Pagination ทำที่ server แล้ว
   const totalPages = paymentsResponse?.totalPages || 1;
   const paginatedPayments = filteredPayments;
 
@@ -887,13 +849,10 @@ export default function PaymentsPage() {
     setCurrentPage(1);
   }, [dateRangeType, customRange, statusFilter, searchQuery, aiResult]);
 
-  // ✅ Removed separate counts query - now from backend
-
   const totalAmounts = useMemo(() => {
     const calculateSum = (paymentsToSum) => {
       return paymentsToSum.reduce((sum, p) => {
         const baseAmount = parseFloat(p.total_amount) || 0;
-        // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
         const lateFee = (p.late_fee_amount && p.late_fee_amount > 0) ? 0 : calculateLateFee(p);
         if (isNaN(baseAmount) || isNaN(lateFee)) {
           console.error('Invalid amount for payment:', p.id, { baseAmount, lateFee });
@@ -903,7 +862,6 @@ export default function PaymentsPage() {
       }, 0);
     };
   
-    // ⭐ ถ้าอยู่ใน Room View ให้ใช้ roomViewPayments แทน
     const paymentsForSummary = viewMode === 'room' ? roomViewPayments : filteredPayments;
     
     return {
@@ -914,10 +872,8 @@ export default function PaymentsPage() {
     };
   }, [filteredPayments, roomViewPayments, viewMode, getEffectiveStatus, calculateLateFee]);
 
-  // ⭐ นับจำนวนรายการแยกตาม viewMode - ใช้ข้อมูลจริงที่แสดงบนหน้า
   const displayCounts = useMemo(() => {
     if (viewMode === 'room') {
-      // Room View = นับจาก roomViewPayments
       return {
         all: roomViewPayments.length,
         paid: roomViewPayments.filter(p => getEffectiveStatus(p) === 'paid').length,
@@ -925,7 +881,6 @@ export default function PaymentsPage() {
         overdue: roomViewPayments.filter(p => getEffectiveStatus(p) === 'overdue').length,
       };
     } else {
-      // Card/Table View = นับจาก filteredPayments (ข้อมูลจริงที่แสดง)
       return {
         all: filteredPayments.length,
         paid: filteredPayments.filter(p => getEffectiveStatus(p) === 'paid').length,
@@ -935,7 +890,6 @@ export default function PaymentsPage() {
     }
   }, [viewMode, roomViewPayments, filteredPayments, getEffectiveStatus]);
 
-  // ✅ Use enriched data from server (no lookup needed)
   const pendingOverduePayments = useMemo(() => 
     filteredPayments.filter(p => {
       const status = getEffectiveStatus(p);
@@ -945,7 +899,6 @@ export default function PaymentsPage() {
   );
 
   const tenantsWithLine = useMemo(() => {
-    // ⭐ ถ้าอยู่ใน Room View ให้นับจาก roomViewPayments แทน
     const paymentsSource = viewMode === 'room' ? roomViewPayments : pendingOverduePayments;
     
     return paymentsSource.filter(p => {
@@ -956,18 +909,15 @@ export default function PaymentsPage() {
     }).length;
   }, [viewMode, roomViewPayments, pendingOverduePayments, getEffectiveStatus]);
 
-  // ✅ Count from server-returned data
   const testPaymentsCount = useMemo(() => 
     payments.filter(p => p.notes?.includes('[TEST-')).length,
     [payments]
   );
 
-  // ✅ Query for counting bills (separate from main payments)
   const { data: allPaymentsForCounting = [] } = useQuery({
     queryKey: ['payments-count', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      // โหลดแค่ fields ที่ต้องการนับ (ลดขนาด)
       return await base44.entities.Payment.filter(
         { branch_id: selectedBranchId },
         '-created_date',
@@ -1042,7 +992,6 @@ export default function PaymentsPage() {
       return base44.entities.Payment.create({...data, branch_id: selectedBranchId});
     },
     onSuccess: async (newPayment) => {
-      // ⭐ รีเฟรชข้อมูลทุก query
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
         queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
@@ -1050,7 +999,6 @@ export default function PaymentsPage() {
         queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
       ]);
       
-      // บันทึก log
       const room = rooms.find(r => r.id === newPayment.room_id);
       const tenant = tenants.find(t => t.id === newPayment.tenant_id);
       await base44.entities.ActivityLog.create({
@@ -1064,7 +1012,6 @@ export default function PaymentsPage() {
         description: `สร้างบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} จำนวน ${newPayment.total_amount?.toLocaleString()} บาท`
       });
       
-      // ⭐ รอให้โหลดข้อมูลใหม่เสร็จ
       await new Promise(r => setTimeout(r, 500));
       
       setShowDialog(false);
@@ -1080,7 +1027,6 @@ export default function PaymentsPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => {
       if (!canEdit) throw new Error('คุณไม่มีสิทธิ์แก้ไขการชำระเงิน');
-      // ⭐ เมื่อแก้ไขบิล ให้เคลียร์สถานะรูปเพื่อให้สร้างใหม่
       return base44.entities.Payment.update(id, {
         ...data,
         invoice_image_url: null,
@@ -1089,7 +1035,6 @@ export default function PaymentsPage() {
       });
     },
     onSuccess: async (updatedPayment) => {
-      // ⭐ รีเฟรชข้อมูลทุก query
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
         queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
@@ -1097,7 +1042,6 @@ export default function PaymentsPage() {
         queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
       ]);
       
-      // บันทึก log
       const room = rooms.find(r => r.id === updatedPayment.room_id);
       const tenant = tenants.find(t => t.id === updatedPayment.tenant_id);
       await base44.entities.ActivityLog.create({
@@ -1111,7 +1055,6 @@ export default function PaymentsPage() {
         description: `แก้ไขบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} (รูปจะถูกสร้างใหม่)`
       });
       
-      // ⭐ รอให้โหลดข้อมูลใหม่เสร็จ
       await new Promise(r => setTimeout(r, 500));
       
       setShowDialog(false);
@@ -1128,12 +1071,10 @@ export default function PaymentsPage() {
       return payment;
     },
     onSuccess: async (deletedPayment) => {
-      // ⭐ รีเซ็ต AI state เมื่อลบการชำระเงิน
       setAiResult(null);
       setAiAction(null);
       setSearchQuery('');
       
-      // ⭐ รีเฟรชข้อมูลทุก query รวมถึง room view
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
         queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
@@ -1141,7 +1082,6 @@ export default function PaymentsPage() {
         queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
       ]);
       
-      // บันทึก log
       const room = rooms.find(r => r.id === deletedPayment.room_id);
       const tenant = tenants.find(t => t.id === deletedPayment.tenant_id);
       await base44.entities.ActivityLog.create({
@@ -1169,19 +1109,15 @@ export default function PaymentsPage() {
       }
       console.log('✅ Permission check passed, calling API...');
       
-      // ⭐ FIX: ดึง payment เดิมมาก่อน เพื่อ clean notes และ lock late fee
       const existingPayment = await base44.entities.Payment.filter({ id }, '', 1);
       const payment = existingPayment[0];
       
-      // ⭐ คำนวณและ lock ค่าปรับ ณ เวลาที่ยืนยันชำระ
       let lockedLateFee = payment.late_fee_amount || 0;
       if (status === 'paid' && lockedLateFee === 0) {
-        // คำนวณค่าปรับครั้งสุดท้าย ณ วันที่ชำระ
         lockedLateFee = calculateLateFee(payment);
         console.log(`🔒 Locking late fee at payment confirmation: ${lockedLateFee} บาท`);
       }
       
-      // ⭐ ลบ warning flags ออกจาก notes + เพิ่มการยืนยัน
       let cleanedNotes = payment?.notes || '';
       if (cleanedNotes.includes('⚠️ รอตรวจสอบ')) {
         cleanedNotes = cleanedNotes
@@ -1191,7 +1127,6 @@ export default function PaymentsPage() {
           .trim();
       }
       
-      // ⭐ อัปเดต total_amount ให้รวมค่าปรับที่ lock ไว้
       const baseAmount = payment.total_amount - (payment.late_fee_amount || 0);
       const newTotalAmount = baseAmount + lockedLateFee;
       
@@ -1208,7 +1143,6 @@ export default function PaymentsPage() {
     onSuccess: async (updatedPayment, variables) => {
       console.log('✅ onSuccess triggered! Updated payment:', updatedPayment);
       
-      // ⭐ รีเฟรชข้อมูลทุก query ที่เกี่ยวข้อง
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
         queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
@@ -1217,10 +1151,8 @@ export default function PaymentsPage() {
         queryClient.invalidateQueries({ queryKey: ['allPayments'] }),
       ]);
       
-      // ⭐ รอให้ query โหลดเสร็จก่อนแสดง toast
       await new Promise(r => setTimeout(r, 500));
       
-      // บันทึก log การยืนยันชำระเงิน
       if (variables.status === 'paid') {
         const room = rooms.find(r => r.id === updatedPayment.room_id);
         const tenant = tenants.find(t => t.id === updatedPayment.tenant_id);
@@ -1235,41 +1167,38 @@ export default function PaymentsPage() {
           description: `ยืนยันชำระเงินห้อง ${room?.room_number || 'N/A'} จำนวน ${updatedPayment.total_amount?.toLocaleString()} บาท`
         });
 
-        // สร้างการแจ้งเตือน
         await base44.entities.Notification.create({
           user_email: currentUser?.email,
           notification_id: `payment-confirmed-${updatedPayment.id}`,
           is_read: false
         });
 
-        // ⭐ คำนวณและให้คะแนนชำระเงิน (ยิ่งชำระเร็วยิ่งได้คะแนนสูง)
         if (tenant && updatedPayment.due_date && updatedPayment.payment_date) {
           try {
             const dueDate = parseISO(updatedPayment.due_date);
             const paymentDate = parseISO(updatedPayment.payment_date);
-            const daysDiff = differenceInDays(paymentDate, dueDate); // บวก = ชำระช้า, ลบ = ชำระก่อนกำหนด
+            const daysDiff = differenceInDays(paymentDate, dueDate);
 
-            let paymentScore = 5; // คะแนนฐาน
+            let paymentScore = 5;
 
             if (daysDiff <= -7) {
-              paymentScore = 10; // ชำระก่อนกำหนด 7 วันขึ้นไป → 10 คะแนน
+              paymentScore = 10;
             } else if (daysDiff <= -3) {
-              paymentScore = 9; // ชำระก่อนกำหนด 3-6 วัน → 9 คะแนน
+              paymentScore = 9;
             } else if (daysDiff <= -1) {
-              paymentScore = 8; // ชำระก่อนกำหนด 1-2 วัน → 8 คะแนน
+              paymentScore = 8;
             } else if (daysDiff === 0) {
-              paymentScore = 7; // ชำระตรงเวลา → 7 คะแนน
+              paymentScore = 7;
             } else if (daysDiff <= 3) {
-              paymentScore = 5; // ชำระช้า 1-3 วัน → 5 คะแนน
+              paymentScore = 5;
             } else if (daysDiff <= 7) {
-              paymentScore = 3; // ชำระช้า 4-7 วัน → 3 คะแนน
+              paymentScore = 3;
             } else if (daysDiff <= 14) {
-              paymentScore = 2; // ชำระช้า 8-14 วัน → 2 คะแนน
+              paymentScore = 2;
             } else {
-              paymentScore = 1; // ชำระช้ามากกว่า 14 วัน → 1 คะแนน
+              paymentScore = 1;
             }
 
-            // อัปเดตคะแนนในข้อมูลผู้เช่า (เก็บไว้ใน payment_scores array)
             const existingScores = tenant.payment_scores || [];
             const newScores = [...existingScores, {
               payment_id: updatedPayment.id,
@@ -1279,12 +1208,11 @@ export default function PaymentsPage() {
               days_diff: daysDiff
             }];
 
-            // คำนวณคะแนนเฉลี่ย
             const avgScore = newScores.reduce((sum, s) => sum + s.score, 0) / newScores.length;
 
             await base44.entities.Tenant.update(tenant.id, {
               payment_scores: newScores,
-              avg_payment_score: Math.round(avgScore * 10) / 10 // เก็บทศนิยม 1 ตำแหน่ง
+              avg_payment_score: Math.round(avgScore * 10) / 10
             });
 
             console.log(`✅ ให้คะแนนชำระเงิน: ${paymentScore}/10 (ชำระ ${daysDiff >= 0 ? 'ก่อน' : 'หลัง'}กำหนด ${Math.abs(daysDiff)} วัน)`);
@@ -1293,7 +1221,6 @@ export default function PaymentsPage() {
           }
         }
 
-        // ⭐ ถ้าเป็นการชำระค่าเช่าล่วงหน้า (advance_rent) → เพิ่มยอดเงินล่วงหน้าให้ผู้เช่า
         if (updatedPayment.advance_rent_amount && updatedPayment.advance_rent_amount > 0 && tenant) {
           try {
             const currentPrepaid = tenant.prepaid_balance || 0;
@@ -1310,7 +1237,6 @@ export default function PaymentsPage() {
           }
         }
 
-        // ส่งใบเสร็จอัตโนมัติทันทีหลังยืนยันชำระ (รองรับทั้ง LINE และ Facebook)
         if ((tenant?.line_user_id || tenant?.facebook_user_id) && canSendReceipt) {
           try {
             const platform = tenant?.facebook_user_id ? 'Facebook' : 'LINE';
@@ -1557,7 +1483,6 @@ export default function PaymentsPage() {
       return;
     }
 
-    // ส่งทีละรายการ - แสดง confirmation dialog ก่อน
     if (paymentId) {
       const payment = payments.find(p => p.id === paymentId);
       if (!payment) return;
@@ -1570,7 +1495,6 @@ export default function PaymentsPage() {
       return;
     }
 
-    // ส่งทุกห้อง - ใช้ข้อมูลตาม viewMode
     const paymentsSource = viewMode === 'room' ? roomViewPayments : pendingOverduePayments;
     
     const paymentsToSend = paymentsSource.filter(p => {
@@ -1627,7 +1551,6 @@ export default function PaymentsPage() {
     }
 
     try {
-      // ⭐ ถ้าส่งเกินกำหนด ให้สร้างรูปใบแจ้งหนี้ใหม่ก่อน (เพื่อให้รวมค่าปรับ)
       if (template === 'overdue' && paymentId) {
         try {
           console.log('🖼️ Regenerating invoice with late fee for overdue reminder...');
@@ -1636,11 +1559,9 @@ export default function PaymentsPage() {
             forceRegenerate: true
           });
           console.log('✅ Invoice regenerated before sending overdue reminder');
-          // รอ 1 วิเพื่อให้ database อัปเดตรูป
           await new Promise(r => setTimeout(r, 1000));
         } catch (invoiceError) {
           console.error('⚠️ Failed to regenerate invoice:', invoiceError);
-          // ยังส่งข้อความต่อแม้สร้างรูปไม่สำเร็จ
         }
       }
       
@@ -1690,19 +1611,16 @@ export default function PaymentsPage() {
 
     setSendingReceipt(paymentId);
     try {
-      // ⭐ ตรวจสอบว่าผู้เช่าใช้ LINE หรือ Facebook
       const payment = payments.find(p => p.id === paymentId);
       const tenant = payment ? getTenantInfo(payment.tenant_id) : null;
       
       let response;
       if (tenant?.facebook_user_id) {
-        // ส่งผ่าน Facebook
         console.log('📤 Sending receipt via Facebook to:', tenant.facebook_user_id);
         response = await base44.functions.invoke('sendFacebookReceipt', {
           paymentId: paymentId
         });
       } else if (tenant?.line_user_id) {
-        // ส่งผ่าน LINE (เดิม)
         console.log('📤 Sending receipt via LINE to:', tenant.line_user_id);
         response = await base44.functions.invoke('sendReceipt', {
           paymentId: paymentId
@@ -1785,7 +1703,6 @@ export default function PaymentsPage() {
     setAiResult(null);
 
     try {
-      // ✅ Use enriched data (already has room_number, tenant_name)
       const paymentsData = payments.map(p => ({
         id: p.id,
         room_number: p.room_number,
@@ -1798,7 +1715,6 @@ export default function PaymentsPage() {
         notes: p.notes
       }));
 
-      // ✅ Use Maps for O(1) lookup
       const roomsData = rooms.map(r => ({
         id: r.id,
         room_number: r.room_number,
@@ -1969,9 +1885,7 @@ ${JSON.stringify(bookingsData, null, 2)}
       ]);
 
       if (!controller.signal.aborted) {
-        // ถ้า action_type = "create" หรือ "delete" ให้แสดง confirmation
         if ((response.action_type === 'create' || response.action_type === 'delete') && response.data) {
-          // Map answer to description so it shows in the confirmation box
           setAiAction({ ...response, description: response.answer });
           setAiResult({ answer: response.answer });
         } else {
@@ -2014,15 +1928,12 @@ ${JSON.stringify(bookingsData, null, 2)}
         if (!actionData.id) {
           throw new Error('ไม่พบ ID ของรายการที่ต้องการลบ');
         }
-        // Try to find full payment object for better logging
         const paymentToDelete = payments.find(p => p.id === actionData.id) || { id: actionData.id };
         await deleteMutation.mutateAsync(paymentToDelete);
         toast.success('ลบรายการสำเร็จ');
       } else {
-        // Create Logic
         let paymentData = { ...actionData };
 
-        // ถ้ามีการอัปโหลดสลิป
         if (slipFile) {
           const { file_url } = await base44.integrations.Core.UploadFile({ file: slipFile });
           paymentData.payment_slip_url = file_url;
@@ -2032,7 +1943,6 @@ ${JSON.stringify(bookingsData, null, 2)}
         paymentData.branch_id = selectedBranchId;
         paymentData.status = paymentData.payment_date ? 'paid' : 'pending';
         
-        // คำนวณ total_amount
         const total = 
           (parseFloat(paymentData.rent_amount) || 0) +
           (parseFloat(paymentData.water_amount) || 0) +
@@ -2080,10 +1990,8 @@ ${JSON.stringify(bookingsData, null, 2)}
   };
 
   const handleLongPressStart = (e, paymentId) => {
-    // ⭐ ถ้าอยู่ใน selection mode แล้ว ไม่ต้อง start timer ให้คลิกเลือกได้เลย
     if (isSelectionMode) return;
     
-    // ⭐ เอา preventDefault() ออกเพื่อให้ click event ทำงานได้ปกติ
     const timer = setTimeout(() => {
       setIsSelectionMode(true);
       setSelectedPaymentIds([paymentId]);
@@ -2110,7 +2018,6 @@ ${JSON.stringify(bookingsData, null, 2)}
   };
 
   const toggleSelectAllInPage = () => {
-    // ⭐ รองรับทุก view mode
     const currentViewPayments = viewMode === 'room' ? roomViewPayments : paginatedPayments;
     const pagePaymentIds = currentViewPayments.map(p => p.id);
     const allSelectedOnPage = pagePaymentIds.every(id => selectedPaymentIds.includes(id));
@@ -2123,7 +2030,6 @@ ${JSON.stringify(bookingsData, null, 2)}
   };
 
   const selectAllFilteredPayments = () => {
-    // ⭐ เลือกจากข้อมูลที่ถูกต้องตาม viewMode
     const paymentsToSelect = viewMode === 'room' ? roomViewPayments : filteredPayments;
     const allFilteredIds = paymentsToSelect.map(p => p.id);
     setSelectedPaymentIds(allFilteredIds);
@@ -2213,7 +2119,6 @@ Return JSON.`;
           const chunk = selectedPaymentIds.slice(i, i + chunkSize);
           const updateData = { status: bulkAIResult.new_status };
           
-          // ⭐ ถ้ามีการส่ง due_date มาด้วย ให้อัปเดตด้วย
           if (bulkAIResult.due_date) {
             updateData.due_date = bulkAIResult.due_date;
           }
@@ -2265,7 +2170,6 @@ Return JSON.`;
           await Promise.all(promises);
         }
         
-        // ⭐ รีเฟรชทุก query รวม room view
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
           queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
@@ -2273,7 +2177,6 @@ Return JSON.`;
           queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
         ]);
         
-        // ⭐ รีเซ็ต AI
         setAiResult(null);
         setAiAction(null);
         setSearchQuery('');
@@ -2303,6 +2206,9 @@ Return JSON.`;
       </div>
     );
   }
+
+  const isLoading = (viewMode === 'room' ? roomViewFetching : paymentsLoading);
+  const hasNoData = viewMode === 'room' ? (roomViewPayments.length === 0) : (paginatedPayments.length === 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
@@ -2379,9 +2285,7 @@ Return JSON.`;
                         const payment = payments.find(p => p.id === item.payment_id);
                         if (!payment) return null;
 
-                        // ✅ Use enriched data from server
                         const effectiveStatus = getEffectiveStatus(payment);
-                        // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
                         const lateFee = (payment.late_fee_amount && payment.late_fee_amount > 0) ? 0 : calculateLateFee(payment);
                         const totalWithLateFee = (payment.total_amount || 0) + lateFee;
                         
@@ -2413,11 +2317,6 @@ Return JSON.`;
                                     <p>วันที่ชำระ: {format(parseISO(payment.payment_date), 'd MMM yyyy', { locale: th })}</p>
                                   )}
                                 </div>
-                                
-                                {/* ปุ่มดูรายละเอียด */}
-                                <div className="flex gap-2 mt-2">
-                                  {/* Action buttons removed from AI results - click card to see details */}
-                                </div>
                               </div>
                             </div>
                           </div>
@@ -2430,9 +2329,7 @@ Return JSON.`;
             </CardContent>
           </Card>
 
-          {/* แจ้งเตือนสลิปที่รอตรวจสอบ */}
           {(() => {
-            // ⭐ FIX: แสดงห้องที่รอตรวจ ไม่สนใจ status (เพราะอาจยืนยันไปแล้วแต่ยัง flag อยู่)
             const needReviewPayments = payments.filter(p => {
               const hasReviewFlag = p.notes?.includes('⚠️ รอตรวจสอบ');
               const alreadyConfirmed = p.notes?.includes('✅ ยืนยันชำระแล้ว');
@@ -2534,7 +2431,6 @@ Return JSON.`;
             );
           })()}
 
-          {/* Debug Toggle - Developer Only */}
           {userRole === 'developer' && !showDebugPanel && (
             <Button
               size="sm"
@@ -2546,7 +2442,6 @@ Return JSON.`;
             </Button>
           )}
 
-          {/* Debug Info - Developer Only */}
           {userRole === 'developer' && showDebugPanel && (
             <Card className="bg-purple-50 border-purple-200">
               <CardContent className="p-4">
@@ -2618,7 +2513,6 @@ Return JSON.`;
                     </div>
                   </div>
 
-                  {/* Backend Debug Logs */}
                   {debugLogs.length > 0 && (
                     <div className="text-xs">
                       <p className="text-purple-600 font-bold mb-2">📋 Backend Logs:</p>
@@ -2637,7 +2531,6 @@ Return JSON.`;
             </Card>
           )}
 
-          {/* ปุ่มจัดการบิล + เลือกหลายรายการ */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-4 py-3">
             <div className="flex items-center gap-2" data-selection-control>
               <Button
@@ -2898,7 +2791,6 @@ Return JSON.`;
             </div>
           </div>
 
-          {/* Filters for Card & Table View - แสดงเสมอ */}
           {viewMode !== 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
                   <CardContent className="p-4">
@@ -2989,22 +2881,27 @@ Return JSON.`;
                 </Card>
               )}
 
-          {paymentsLoading && payments.length === 0 ? (
+          {isLoading ? (
             <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
               <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-xl font-semibold text-slate-800">กำลังโหลดข้อมูล...</p>
             </div>
-          ) : paginatedPayments.length === 0 && viewMode !== 'room' ? (
+          ) : hasNoData && viewMode !== 'room' ? (
             <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
               <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
               <p className="text-xl font-semibold text-slate-800">ไม่พบรายการชำระเงิน</p>
               <p className="text-slate-600">ลองเปลี่ยนช่วงเวลาหรือสถานะการค้นหา</p>
             </div>
+          ) : viewMode === 'room' && hasNoData ? (
+            <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
+              <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+              <p className="text-xl font-semibold text-slate-800">ไม่พบรายการชำระเงินในเดือนนี้</p>
+              <p className="text-slate-600">ลองเปลี่ยนเดือนหรือสร้างบิลใหม่</p>
+            </div>
           ) : viewMode === 'card' && (
                 <div className="grid grid-cols-1 gap-4 relative">
                   <AnimatePresence>
                     {paginatedPayments.map((payment) => {
-                      // ✅ Use enriched data from server
                       const effectiveStatus = getEffectiveStatus(payment);
                       const room = payment.room_number ? { room_number: payment.room_number } : getRoomInfo(payment.room_id);
                       const tenant = payment.tenant_name ? { 
@@ -3013,7 +2910,6 @@ Return JSON.`;
                         line_user_id: payment.tenant_line_user_id,
                         facebook_user_id: payment.tenant_facebook_user_id
                       } : getTenantInfo(payment.tenant_id);
-                      // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
                       const lateFee = (payment.late_fee_amount && payment.late_fee_amount > 0) ? 0 : calculateLateFee(payment);
                       const totalWithLateFee = (payment.total_amount || 0) + lateFee;
                       const canSendReminderForPayment = canSendReminder && (effectiveStatus === 'pending' || effectiveStatus === 'overdue') && tenant && (tenant.line_user_id || tenant.facebook_user_id);
@@ -3155,7 +3051,7 @@ Return JSON.`;
                                           e.stopPropagation();
                                           e.preventDefault();
                                           console.log('🔘 Card View: Details clicked');
-                                          setSelectedPayment(payment);
+                                          setSelectedPayment(p);
                                           setShowDetailDialog(true);
                                         }}
                                       >
@@ -3541,14 +3437,12 @@ Return JSON.`;
                         </thead>
                         <tbody>
                           {paginatedPayments.map((payment) => {
-                            // ✅ Use enriched data
                             const effectiveStatus = getEffectiveStatus(payment);
                             const tenant = payment.tenant_name ? { 
                               full_name: payment.tenant_name,
                               line_user_id: payment.tenant_line_user_id,
                               facebook_user_id: payment.tenant_facebook_user_id
                             } : getTenantInfo(payment.tenant_id);
-                            // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
                             const lateFee = (payment.late_fee_amount && payment.late_fee_amount > 0) ? 0 : calculateLateFee(payment);
                             const totalWithLateFee = (payment.total_amount || 0) + lateFee;
                             const isPaid = effectiveStatus === 'paid';
@@ -3702,10 +3596,9 @@ Return JSON.`;
                 </Card>
               )}
 
-              {viewMode === 'room' && (
+              {viewMode === 'room' && roomViewPayments.length > 0 && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
                   <CardContent className="p-4 md:p-6">
-                    {/* Month Selector */}
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-2">
                         <Button
@@ -3765,9 +3658,7 @@ Return JSON.`;
                       </div>
                     </div>
 
-                    {/* Room Grid by Floor */}
                     {(() => {
-                      // Group rooms by floor
                       const roomsByFloor = rooms.reduce((acc, room) => {
                         const floor = room.floor || 1;
                         if (!acc[floor]) acc[floor] = [];
@@ -3775,11 +3666,7 @@ Return JSON.`;
                         return acc;
                       }, {});
 
-                      // Sort floors
                       const sortedFloors = Object.keys(roomsByFloor).sort((a, b) => Number(a) - Number(b));
-
-                      // ⭐ ใช้ข้อมูลจาก payments ที่ filter มาแล้ว (ตาม dateRangeType)
-                      // ไม่ต้องคำนวณ monthStart/monthEnd ใหม่
 
                       return sortedFloors.map(floor => (
                         <div key={floor} className="mb-6">
@@ -3791,7 +3678,6 @@ Return JSON.`;
                             {roomsByFloor[floor]
                               .sort((a, b) => a.room_number.localeCompare(b.room_number))
                               .map(room => {
-                                // ⭐ ใช้ roomViewPayments แทน filteredPayments
                                 const roomPayment = roomViewPayments.find(p => p.room_id === room.id);
 
                                 const effectiveStatus = roomPayment ? getEffectiveStatus(roomPayment) : null;
@@ -3799,8 +3685,7 @@ Return JSON.`;
                                 const isSelected = roomPayment && selectedPaymentIds.includes(roomPayment.id);
                                 const hasNotSentBill = roomPayment && !roomPayment.bill_sent_date && effectiveStatus !== 'paid';
 
-                                // Determine background color
-                                let bgColor = 'bg-slate-200 hover:bg-slate-300'; // No bill
+                                let bgColor = 'bg-slate-200 hover:bg-slate-300';
                                 let textColor = 'text-slate-600';
                                 let statusLabel = 'ไม่มีบิล';
 
@@ -3958,7 +3843,6 @@ Return JSON.`;
                                                </div>
                                              )}
                                              {(() => {
-                                               // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
                                                const lateFee = (roomPayment.late_fee_amount && roomPayment.late_fee_amount > 0) ? 0 : calculateLateFee(roomPayment);
                                                return (roomPayment.late_fee_amount > 0 || lateFee > 0) ? (
                                                  <div className="flex justify-between text-red-600 font-semibold">
@@ -3969,7 +3853,6 @@ Return JSON.`;
                                              })()}
                                            </div>
 
-                                           {/* สถานะการชำระเงิน */}
                                            <div className="border-t pt-3 space-y-2 text-sm">
                                              {effectiveStatus !== 'paid' && (
                                                <>
@@ -4013,7 +3896,6 @@ Return JSON.`;
                                              )}
                                            </div>
 
-                                           {/* Badges */}
                                            <div className="flex flex-wrap gap-1">
                                              {roomPayment.bill_sent_date && effectiveStatus !== 'paid' && (
                                                <Badge className="bg-purple-100 text-purple-700 text-xs">
@@ -4032,7 +3914,6 @@ Return JSON.`;
                                              )}
                                            </div>
 
-                                           {/* Actions */}
                                            <div className="flex flex-wrap gap-2 pt-3 border-t">
                                              {effectiveStatus !== 'paid' && canViewInvoice && (
                                                <Link to={`${createPageUrl('Invoice')}?paymentId=${roomPayment.id}`} className="flex-1 min-w-[100px]">
@@ -4094,7 +3975,7 @@ Return JSON.`;
                                                  disabled={sendingReminder === roomPayment.id}
                                                >
                                                  {sendingReminder === roomPayment.id ? (
-                                                   <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" />
+                                                   <Loader2 className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" />
                                                  ) : (
                                                    <Send className="w-3 h-3 mr-1" />
                                                  )}
@@ -4121,7 +4002,7 @@ Return JSON.`;
                                                  disabled={sendingReceipt === roomPayment.id}
                                                >
                                                  {sendingReceipt === roomPayment.id ? (
-                                                   <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" />
+                                                   <Loader2 className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1" />
                                                  ) : (
                                                    <Send className="w-3 h-3 mr-1" />
                                                  )}
@@ -4137,7 +4018,7 @@ Return JSON.`;
                                                  disabled={sendingReceipt === roomPayment.id}
                                                >
                                                  {sendingReceipt === roomPayment.id ? (
-                                                   <div className="w-3 h-3 border-2 border-slate-600 border-t-transparent rounded-full animate-spin mr-1" />
+                                                   <Loader2 className="w-3 h-3 border-2 border-slate-600 border-t-transparent rounded-full animate-spin mr-1" />
                                                  ) : (
                                                    <Send className="w-3 h-3 mr-1" />
                                                  )}
@@ -4174,7 +4055,6 @@ Return JSON.`;
                                                size="sm"
                                                className="w-full bg-blue-600 hover:bg-blue-700"
                                                onClick={async () => {
-                                                 // เตรียมข้อมูลสำหรับสร้างบิล
                                                  const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
                                                  if (activeBooking) {
                                                    setEditingPayment(null);
@@ -4202,7 +4082,6 @@ Return JSON.`;
                                                      notes: ''
                                                    });
                                                    setShowDialog(true);
-                                                   // Auto-calculate after a short delay
                                                    setTimeout(() => autoCalculatePayment(room.id), 100);
                                                  } else {
                                                    toast.error('ห้องนี้ไม่มีการจองที่ใช้งานอยู่');
@@ -4228,7 +4107,7 @@ Return JSON.`;
                                        </Card>
                                        )}
 
-          {totalPages > 1 && (
+          {totalPages > 1 && viewMode !== 'room' && (
             <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
               <CardContent className="p-4">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -4524,7 +4403,6 @@ Return JSON.`;
         </div>
       </div>
 
-      {/* Floating Bulk AI Action Bar */}
       <AnimatePresence>
         {selectedPaymentIds.length > 0 && (
           <motion.div
@@ -4649,22 +4527,22 @@ Return JSON.`;
         )}
       </AnimatePresence>
 
-      {/* Payment Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>รายละเอียดการชำระเงิน</DialogTitle>
           </DialogHeader>
           {selectedPayment && (() => {
-            // ✅ Use enriched data or fallback
-            const room = selectedPayment.room_number ? { room_number: selectedPayment.room_number } : getRoomInfo(selectedPayment.room_id);
-            const tenant = selectedPayment.tenant_name ? { 
-              full_name: selectedPayment.tenant_name,
-              line_user_id: selectedPayment.tenant_line_user_id,
-              facebook_user_id: selectedPayment.tenant_facebook_user_id
-            } : getTenantInfo(selectedPayment.tenant_id);
+            const room = selectedPayment.room_number ? 
+              { room_number: selectedPayment.room_number } : 
+              getRoomInfo(selectedPayment.room_id);
+            const tenant = selectedPayment.tenant_name ? 
+              { full_name: selectedPayment.tenant_name,
+                line_user_id: selectedPayment.tenant_line_user_id,
+                facebook_user_id: selectedPayment.tenant_facebook_user_id
+              } : 
+              getTenantInfo(selectedPayment.tenant_id);
             const effectiveStatus = getEffectiveStatus(selectedPayment);
-            // ⭐ ถ้า payment มี late_fee_amount บันทึกไว้แล้ว = total_amount รวมค่าปรับแล้ว ไม่ต้องบวกอีก
             const lateFee = (selectedPayment.late_fee_amount && selectedPayment.late_fee_amount > 0) ? 0 : calculateLateFee(selectedPayment);
             const totalWithLateFee = (selectedPayment.total_amount || 0) + lateFee;
 
@@ -4693,7 +4571,6 @@ Return JSON.`;
                   </div>
                 </div>
 
-                {/* แสดงสถานะการชำระเงิน - เฉพาะ partial_paid */}
                 {effectiveStatus === 'partial_paid' && (
                   <Card className="bg-orange-50 border-orange-200">
                     <CardContent className="p-4">
@@ -4862,7 +4739,6 @@ Return JSON.`;
         </DialogContent>
       </Dialog>
 
-      {/* Slip Preview Dialog */}
       <SlipPreviewDialog
         open={slipPreview.open}
         onOpenChange={(open) => setSlipPreview(prev => ({ ...prev, open }))}
@@ -4870,7 +4746,6 @@ Return JSON.`;
         title={slipPreview.title}
       />
 
-      {/* Confirmation Dialog */}
       {confirmReminderDialog.payment && (() => {
         const room = confirmReminderDialog.payment.room_number ? 
           { room_number: confirmReminderDialog.payment.room_number } : 
@@ -4937,7 +4812,6 @@ Return JSON.`;
         );
       })()}
 
-      {/* Send Reminder Dialog */}
       {reminderDialog.payment && (
         <SendReminderDialog
           open={reminderDialog.open}
@@ -4964,7 +4838,6 @@ Return JSON.`;
         />
       )}
 
-      {/* Confirm Payment Dialog */}
       {confirmPaymentDialog.payment && (
         <ConfirmPaymentDialog
           open={confirmPaymentDialog.open}
