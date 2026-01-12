@@ -673,7 +673,15 @@ export default function Layout({ children, currentPageName }) {
     throwOnError: false,
   });
 
-
+  // ⭐⭐⭐ Early return สำหรับ Public Pages - ต้องมาหลัง hooks ทั้งหมด!
+  if (isPublicPage) {
+    return (
+      <>
+        <Toaster richColors position="top-center" />
+        {children}
+      </>
+    );
+  }
 
   const getConfigValue = (key, defaultValue = '') => {
     if (selectedBranch) {
