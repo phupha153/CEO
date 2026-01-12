@@ -112,9 +112,11 @@ export default function BranchSelection() {
     queryFn: () => base44.entities.Branch.list(),
     enabled: !!currentUser && !userLoading,
     retry: 1,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 3 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 30 * 1000, // Auto-refresh every 30 seconds
   });
 
   const { data: configs = [] } = useQuery({
