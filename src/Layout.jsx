@@ -789,8 +789,8 @@ export default function Layout({ children, currentPageName }) {
   // ⭐ User-centric subscription check (ใช้ที่ effect แล้ว - ไม่ต้องใช้ตัวแปร subscriptionCheck อีก)
 
   useEffect(() => {
-    // ⭐ Redirect unauthenticated users to Welcome
-    if (!isLoading && !currentUser && !error && 
+    // ⭐ Redirect unauthenticated users to Welcome (even if there's an auth error)
+    if (!isLoading && !currentUser && 
         currentPageName !== 'Welcome' &&
         currentPageName !== 'Invoice' &&
         currentPageName !== 'Receipt' &&
