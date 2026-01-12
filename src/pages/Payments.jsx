@@ -3600,9 +3600,7 @@ Return JSON.`;
                           onClick={() => {
                             const [year, month] = roomViewMonth.split('-').map(Number);
                             const prevMonth = new Date(year, month - 2, 1);
-                            setIsLoadingRoomView(true);
                             setRoomViewMonth(format(prevMonth, 'yyyy-MM'));
-                            setTimeout(() => setIsLoadingRoomView(false), 400);
                           }}
                         >
                           <ChevronLeft className="w-4 h-4" />
@@ -3611,9 +3609,7 @@ Return JSON.`;
                           type="month"
                           value={roomViewMonth}
                           onChange={(e) => {
-                            setIsLoadingRoomView(true);
                             setRoomViewMonth(e.target.value);
-                            setTimeout(() => setIsLoadingRoomView(false), 400);
                           }}
                           className="w-40"
                         />
@@ -3623,9 +3619,7 @@ Return JSON.`;
                           onClick={() => {
                             const [year, month] = roomViewMonth.split('-').map(Number);
                             const nextMonth = new Date(year, month, 1);
-                            setIsLoadingRoomView(true);
                             setRoomViewMonth(format(nextMonth, 'yyyy-MM'));
-                            setTimeout(() => setIsLoadingRoomView(false), 400);
                           }}
                         >
                           <ChevronRight className="w-4 h-4" />
@@ -3651,7 +3645,7 @@ Return JSON.`;
                       </div>
                     </div>
 
-                    {isLoadingRoomView ? (
+                    {roomViewFetching ? (
                       <div className="text-center py-16">
                         <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                         <p className="text-lg font-semibold text-slate-800">กำลังโหลดข้อมูล...</p>
