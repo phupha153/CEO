@@ -53,69 +53,89 @@ export default function BranchSelection() {
         return { hasAccess: false, reason: 'User not loaded' };
       }
 
-      const response = await base44.functions.invoke('checkCRMAccess');
-      const data = response.data;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // ⚡ ลด timeout: 10s → 5s
 
-      // 🔒 FAIL-CLOSED: ถ้ามี error/timeout → DENY ACCESS (ไม่ fallback เป็น allow)
-      if (!data || data.error) {
-        console.error('❌ CRM check error - DENYING access for security');
-        return { hasAccess: false, reason: 'CRM error' };
-      }
+      try {
+        const response = await base44.functions.invoke('checkCRMAccess', {}, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        const data = response.data;
 
-      // ⚠️ Timeout = ปัญหาเครือข่าย → DENY (แทนที่จะ allow)
-      if (data.timeout) {
-        console.warn('⏱️ CRM timeout - DENYING access for security');
-        return { hasAccess: false, reason: 'CRM timeout' };
-      }
+        // 🔒 FAIL-CLOSED: ถ้ามี error/timeout → DENY ACCESS
+        if (!data || data.error) {
+          console.error('❌ CRM check error - DENYING access for security');
+          return { hasAccess: false, reason: 'CRM error' };
+        }
 
-      // ⚡ INSTANT LOGOUT: ถ้า CRM deny ชัดเจน → logout + redirect
-      if (data.hasAccess === false && currentUser?.email) {
-        console.warn('🚫 CRM Access denied - Immediate logout:', currentUser.email);
-        const welcomeUrl = window.location.origin + '/Welcome';
-        base44.auth.logout(welcomeUrl);
+        // ⚠️ Timeout = ปัญหาเครือข่าย → DENY
+        if (data.timeout) {
+          console.warn('⏱️ CRM timeout - DENYING access for security');
+          return { hasAccess: false, reason: 'CRM timeout' };
+        }
+
+        // ⚡ INSTANT LOGOUT: ถ้า CRM deny ชัดเจน → logout + redirect
+        if (data.hasAccess === false && currentUser?.email) {
+          console.warn('🚫 CRM Access denied - Immediate logout:', currentUser.email);
+          const welcomeUrl = window.location.origin + '/Welcome';
+          base44.auth.logout(welcomeUrl);
+          return data;
+        }
+
         return data;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        
+        // ⚠️ Timeout = ปัญหาเครือข่าย
+        if (error.name === 'AbortError') {
+          console.warn('⏱️ CRM Timeout (5s) - DENYING for security');
+          return { hasAccess: false, reason: 'CRM timeout', timeout: true };
+        }
+        
+        console.error('❌ CRM check error:', error);
+        return { hasAccess: false, error: error.message };
       }
-
-      return data;
     },
     enabled: !!currentUser && !userLoading && userSuccess,
-    staleTime: 10 * 60 * 1000, // ⚡ Cache 10 นาที (ลด API calls)
-    refetchInterval: false, // ⚠️ ปิด auto-refetch (เช็คเฉพาะตอน reload)
+    staleTime: 10 * 60 * 1000,
+    refetchInterval: false,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true, // ✅ เช็คใหม่เมื่อกลับมาที่หน้าต่าง
-    retry: 1,
-    retryDelay: 500,
+    refetchOnWindowFocus: false, // ⚡ ปิด auto-refetch (ลด API calls)
+    retry: 0, // ⚡ ไม่ retry (ลดจาก 1)
     throwOnError: false,
   });
 
-  // 🔒 รอให้ CRM check เสร็จก่อนถึงจะโหลดข้อมูล
-  const canLoadData = !crmAccessLoading && crmAccess && crmAccess.hasAccess !== false;
-
+  // ⚡ Parallel Queries - ไม่รอ CRM check (แต่จะเช็ค CRM ก่อนแสดงข้อมูล)
   const { data: branches = [], isLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
-    enabled: canLoadData && !!currentUser,
-    retry: 2,
+    enabled: !!currentUser && !userLoading,
+    retry: 1,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
-    enabled: canLoadData && !!currentUser,
+    enabled: !!currentUser && !userLoading,
+    retry: 1,
     staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: banners = [] } = useQuery({
     queryKey: ['banners'],
     queryFn: () => base44.entities.Banner.list('-priority', 10),
-    enabled: canLoadData && !!currentUser,
+    enabled: !!currentUser && !userLoading,
+    retry: 1,
     staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
-  // ⭐ ดึงจำนวนห้องจริงจาก Room entity - ใช้ Backend
+  // ⚡ Lazy Load - โหลดหลัง UI แสดงแล้ว (ไม่บล็อก initial render)
   const { data: allRooms = [] } = useQuery({
     queryKey: ['rooms', 'all', 'secure'],
     queryFn: async () => {
@@ -126,11 +146,11 @@ export default function BranchSelection() {
       });
       return response.data.data;
     },
-    enabled: canLoadData && !!currentUser,
-    retry: 2,
+    enabled: !!currentUser && !userLoading && branches.length > 0,
+    retry: 1,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
   // นับจำนวนห้องต่อสาขา
@@ -463,7 +483,10 @@ export default function BranchSelection() {
 
 
 
-  if (userLoading || isLoading || crmAccessLoading) {
+  // ⚡ Progressive Loading - แสดง UI ก่อน (ไม่รอ CRM check)
+  const isInitialLoading = userLoading || (isLoading && branches.length === 0);
+  
+  if (isInitialLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-purple-100 flex items-center justify-center">
         <div className="text-center">
@@ -474,18 +497,17 @@ export default function BranchSelection() {
     );
   }
 
-  // 🚫 CRM DENY = แสดง Loading แล้ว Auto-logout (ไม่แสดง UI)
-  if (currentUser && crmAccess && crmAccess.hasAccess === false) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-purple-100 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-red-600 animate-spin mx-auto mb-4" />
-          <p className="text-slate-800 text-lg font-semibold">🚫 ไม่มีสิทธิ์เข้าใช้งาน</p>
-          <p className="text-slate-600 text-sm mt-2">กำลังออกจากระบบ...</p>
-        </div>
-      </div>
-    );
-  }
+  // 🚫 CRM DENY = Auto-logout (เช็คหลัง UI แสดงแล้ว)
+  React.useEffect(() => {
+    if (currentUser && crmAccess && crmAccess.hasAccess === false) {
+      console.warn('🚫 CRM Access denied - Auto logout');
+      const welcomeUrl = window.location.origin + '/Welcome';
+      setTimeout(() => base44.auth.logout(welcomeUrl), 1000);
+    }
+  }, [currentUser?.email, crmAccess?.hasAccess]);
+
+  // ⚠️ แสดง warning banner ถ้า CRM กำลังเช็คอยู่
+  const showCRMWarning = crmAccessLoading && currentUser;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-purple-100 overflow-hidden">
@@ -502,6 +524,14 @@ export default function BranchSelection() {
         >
           <Card className="bg-white/80 backdrop-blur-2xl border border-white/60 shadow-2xl overflow-hidden rounded-3xl">
             <CardContent className="p-8">
+              {/* ⚠️ CRM Loading Banner */}
+              {showCRMWarning && (
+                <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 text-yellow-600 animate-spin flex-shrink-0" />
+                  <p className="text-sm text-yellow-800">กำลังตรวจสอบสิทธิ์...</p>
+                </div>
+              )}
+
               <div className="text-center mb-8">
                 <p className="text-slate-600">เลือกสาขาที่ต้องการจัดการ</p>
               </div>
