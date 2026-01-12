@@ -1069,34 +1069,64 @@ export default function PaymentsPage() {
       await base44.entities.Payment.delete(payment.id);
       return payment;
     },
-    onSuccess: async (deletedPayment) => {
-      setAiResult(null);
-      setAiAction(null);
-      setSearchQuery('');
-      
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
-        queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
-        queryClient.invalidateQueries({ queryKey: ['payments-room-view'] }),
-        queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
-      ]);
-      
-      const room = rooms.find(r => r.id === deletedPayment.room_id);
-      const tenant = tenants.find(t => t.id === deletedPayment.tenant_id);
-      await base44.entities.ActivityLog.create({
-        branch_id: selectedBranchId,
-        action_type: 'delete',
-        entity_type: 'Payment',
-        entity_id: deletedPayment.id,
-        entity_name: `ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`,
-        user_email: currentUser?.email,
-        user_name: currentUser?.full_name,
-        description: `ลบบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} จำนวน ${deletedPayment.total_amount?.toLocaleString()} บาท`
-      });
-      
-      toast.success('ลบการชำระเงินสำเร็จ');
+    onMutate: async (deletedPayment) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['payments-filtered'] });
+      await queryClient.cancelQueries({ queryKey: ['payments-room-view'] });
+
+      // Snapshot the previous value
+      const previousPaymentsFiltered = queryClient.getQueryData(['payments-filtered']);
+      const previousPaymentsRoomView = queryClient.getQueryData(['payments-room-view']);
+
+      // Optimistically update to the new value
+      if (previousPaymentsFiltered) {
+        queryClient.setQueryData(['payments-filtered'], (old) => ({
+          ...old,
+          data: old.data.filter(p => p.id !== deletedPayment.id),
+          total: old.total - 1,
+        }));
+      }
+      if (previousPaymentsRoomView) {
+        queryClient.setQueryData(['payments-room-view'], (old) => old.filter(p => p.id !== deletedPayment.id));
+      }
+
+      return { previousPaymentsFiltered, previousPaymentsRoomView };
     },
-    onError: (error) => toast.error(error.message || 'เกิดข้อผิดพลาด')
+    onError: (err, deletedPayment, context) => {
+      // Rollback on error
+      if (context.previousPaymentsFiltered) {
+        queryClient.setQueryData(['payments-filtered'], context.previousPaymentsFiltered);
+      }
+      if (context.previousPaymentsRoomView) {
+        queryClient.setQueryData(['payments-room-view'], context.previousPaymentsRoomView);
+      }
+      toast.error('ลบไม่สำเร็จ: ' + err.message);
+    },
+    onSettled: async (deletedPayment) => {
+      // Invalidate and refetch
+      await queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
+      await queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
+      await queryClient.invalidateQueries({ queryKey: ['payments-count', selectedBranchId] });
+
+      if (deletedPayment) {
+        setAiResult(null);
+        setAiAction(null);
+        setSearchQuery('');
+        const room = rooms.find(r => r.id === deletedPayment.room_id);
+        const tenant = tenants.find(t => t.id === deletedPayment.tenant_id);
+        await base44.entities.ActivityLog.create({
+          branch_id: selectedBranchId,
+          action_type: 'delete',
+          entity_type: 'Payment',
+          entity_id: deletedPayment.id,
+          entity_name: `ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`,
+          user_email: currentUser?.email,
+          user_name: currentUser?.full_name,
+          description: `ลบบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} จำนวน ${deletedPayment.total_amount?.toLocaleString()} บาท`
+        });
+        toast.success('ลบการชำระเงินสำเร็จ');
+      }
+    },
   });
 
   const updateStatusMutation = useMutation({
