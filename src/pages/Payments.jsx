@@ -3592,14 +3592,6 @@ Return JSON.`;
               {viewMode === 'room' && rooms.length > 0 && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
                   <CardContent className="p-4 md:p-6">
-                    {isLoadingRoomView && (
-                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
-                        <div className="flex flex-col items-center gap-3">
-                          <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-                          <p className="text-sm font-medium text-slate-700">กำลังโหลด...</p>
-                        </div>
-                      </div>
-                    )}
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-2">
                         <Button
