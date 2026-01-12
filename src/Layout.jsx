@@ -322,6 +322,14 @@ export default function Layout({ children, currentPageName }) {
   const mainContentRef = useRef(null);
   const queryClient = useQueryClient();
 
+  // ⭐⭐⭐ Check if public page FIRST (before ANY hooks)
+  const isPublicPage = currentPageName === 'Welcome' || 
+                       currentPageName === 'Invoice' || 
+                       currentPageName === 'Receipt' || 
+                       currentPageName === 'PrintReceipts' || 
+                       currentPageName === 'PublicInvoice' ||
+                       currentPageName === 'PublicReceipt';
+
   // Initialize Facebook SDK
   useEffect(() => {
     // Hardcode Facebook App ID - ไม่ต้องเรียก API
@@ -601,7 +609,7 @@ export default function Layout({ children, currentPageName }) {
         return { hasAccess: true, error: error.message, cached: true };
       }
     },
-    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
+    enabled: !isLoading && !!currentUser && isOnline,
     staleTime: Infinity, // ⭐ Cache ตลอด - ไม่ refetch เว้นแต่ reload หน้า
     gcTime: Infinity,
     refetchInterval: false,
@@ -667,7 +675,7 @@ export default function Layout({ children, currentPageName }) {
       });
       return response.data;
     },
-    enabled: !!selectedBranch && !!currentUser && isOnline && !isPublicPage,
+    enabled: !!selectedBranch && !!currentUser && isOnline,
     staleTime: 5 * 60 * 1000,
     retry: 1,
     throwOnError: false,
