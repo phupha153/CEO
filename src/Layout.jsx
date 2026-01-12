@@ -322,13 +322,25 @@ export default function Layout({ children, currentPageName }) {
   const mainContentRef = useRef(null);
   const queryClient = useQueryClient();
 
-  // ⭐⭐⭐ Check if public page FIRST (before ANY hooks)
+  // ⭐⭐⭐ Check if public page (variable only - return happens AFTER all hooks)
   const isPublicPage = currentPageName === 'Welcome' || 
                        currentPageName === 'Invoice' || 
                        currentPageName === 'Receipt' || 
                        currentPageName === 'PrintReceipts' || 
                        currentPageName === 'PublicInvoice' ||
                        currentPageName === 'PublicReceipt';
+
+  // ⭐ State declarations - MUST be before any conditional returns
+  const [selectedBranch, setSelectedBranch] = useState(() => {
+    const branchId = localStorage.getItem('selected_branch_id');
+    const branchName = localStorage.getItem('selected_branch_name');
+    return (branchId && branchName) ? { id: branchId, branch_name: branchName } : null;
+  });
+
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [retryCount, setRetryCount] = useState(0);
+  const [isCreatingTrial, setIsCreatingTrial] = useState(false);
+  const [onboardingMinimized, setOnboardingMinimized] = useState(false);
 
   // Initialize Facebook SDK
   useEffect(() => {
