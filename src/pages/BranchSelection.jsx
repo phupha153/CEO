@@ -483,6 +483,15 @@ export default function BranchSelection() {
 
 
 
+  // 🚫 CRM DENY = Auto-logout (เช็คหลัง UI แสดงแล้ว)
+  React.useEffect(() => {
+    if (currentUser && crmAccess && crmAccess.hasAccess === false) {
+      console.warn('🚫 CRM Access denied - Auto logout');
+      const welcomeUrl = window.location.origin + '/Welcome';
+      setTimeout(() => base44.auth.logout(welcomeUrl), 1000);
+    }
+  }, [currentUser?.email, crmAccess?.hasAccess]);
+
   // ⚡ Progressive Loading - แสดง UI ก่อน (ไม่รอ CRM check)
   const isInitialLoading = userLoading || (isLoading && branches.length === 0);
   
@@ -496,15 +505,6 @@ export default function BranchSelection() {
       </div>
     );
   }
-
-  // 🚫 CRM DENY = Auto-logout (เช็คหลัง UI แสดงแล้ว)
-  React.useEffect(() => {
-    if (currentUser && crmAccess && crmAccess.hasAccess === false) {
-      console.warn('🚫 CRM Access denied - Auto logout');
-      const welcomeUrl = window.location.origin + '/Welcome';
-      setTimeout(() => base44.auth.logout(welcomeUrl), 1000);
-    }
-  }, [currentUser?.email, crmAccess?.hasAccess]);
 
   // ⚠️ แสดง warning banner ถ้า CRM กำลังเช็คอยู่
   const showCRMWarning = crmAccessLoading && currentUser;
