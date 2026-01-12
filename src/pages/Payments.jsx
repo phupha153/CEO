@@ -1070,55 +1070,45 @@ export default function PaymentsPage() {
       return payment;
     },
     onMutate: async (deletedPayment) => {
-      const filteredQueryKey = ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy];
-      const roomViewQueryKey = ['payments-room-view', selectedBranchId, roomViewMonth];
-
-      // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: filteredQueryKey });
-      await queryClient.cancelQueries({ queryKey: roomViewQueryKey });
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: ['payments-filtered'] });
+      await queryClient.cancelQueries({ queryKey: ['payments-room-view'] });
 
       // Snapshot the previous value
-      const previousPaymentsFiltered = queryClient.getQueryData(filteredQueryKey);
-      const previousPaymentsRoomView = queryClient.getQueryData(roomViewQueryKey);
+      const previousPaymentsFiltered = queryClient.getQueryData(['payments-filtered']);
+      const previousPaymentsRoomView = queryClient.getQueryData(['payments-room-view']);
 
       // Optimistically update to the new value
       if (previousPaymentsFiltered) {
-        queryClient.setQueryData(filteredQueryKey, (old) => {
-          if (!old || !old.data) return old;
-          return {
-            ...old,
-            data: old.data.filter(p => p.id !== deletedPayment.id),
-            total: (old.total || 0) - 1,
-          };
-        });
+        queryClient.setQueryData(['payments-filtered'], (old) => ({
+          ...old,
+          data: old.data.filter(p => p.id !== deletedPayment.id),
+          total: old.total - 1,
+        }));
       }
       if (previousPaymentsRoomView) {
-        queryClient.setQueryData(roomViewQueryKey, (old) => old ? old.filter(p => p.id !== deletedPayment.id) : []);
+        queryClient.setQueryData(['payments-room-view'], (old) => old.filter(p => p.id !== deletedPayment.id));
       }
 
-      return { previousPaymentsFiltered, previousPaymentsRoomView, filteredQueryKey, roomViewQueryKey };
+      return { previousPaymentsFiltered, previousPaymentsRoomView };
     },
     onError: (err, deletedPayment, context) => {
       // Rollback on error
-      if (context?.previousPaymentsFiltered) {
-        queryClient.setQueryData(context.filteredQueryKey, context.previousPaymentsFiltered);
+      if (context.previousPaymentsFiltered) {
+        queryClient.setQueryData(['payments-filtered'], context.previousPaymentsFiltered);
       }
-      if (context?.previousPaymentsRoomView) {
-        queryClient.setQueryData(context.roomViewQueryKey, context.previousPaymentsRoomView);
+      if (context.previousPaymentsRoomView) {
+        queryClient.setQueryData(['payments-room-view'], context.previousPaymentsRoomView);
       }
       toast.error('ลบไม่สำเร็จ: ' + err.message);
     },
-    onSettled: async (deletedPayment, error, variables, context) => {
-      // Invalidate and refetch to ensure consistency
-      if (context?.filteredQueryKey) {
-        await queryClient.invalidateQueries({ queryKey: context.filteredQueryKey });
-      }
-      if (context?.roomViewQueryKey) {
-        await queryClient.invalidateQueries({ queryKey: context.roomViewQueryKey });
-      }
+    onSettled: async (deletedPayment) => {
+      // Invalidate and refetch
+      await queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
+      await queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
       await queryClient.invalidateQueries({ queryKey: ['payments-count', selectedBranchId] });
 
-      if (deletedPayment && !error) {
+      if (deletedPayment) {
         setAiResult(null);
         setAiAction(null);
         setSearchQuery('');
