@@ -1070,53 +1070,44 @@ export default function PaymentsPage() {
       return payment;
     },
     onMutate: async (deletedPayment) => {
-      const paymentsFilteredQueryKey = ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy];
-      const paymentsRoomViewQueryKey = ['payments-room-view', selectedBranchId, roomViewMonth];
+      await queryClient.cancelQueries({ queryKey: ['payments-filtered'] });
+      await queryClient.cancelQueries({ queryKey: ['payments-room-view'] });
+      await queryClient.cancelQueries({ queryKey: ['payments-count', selectedBranchId] });
 
-      await queryClient.cancelQueries({ queryKey: paymentsFilteredQueryKey });
-      await queryClient.cancelQueries({ queryKey: paymentsRoomViewQueryKey });
+      const previousPaymentsFiltered = queryClient.getQueryData(['payments-filtered']);
+      const previousPaymentsRoomView = queryClient.getQueryData(['payments-room-view']);
 
-      const previousPaymentsFiltered = queryClient.getQueryData(paymentsFilteredQueryKey);
-      const previousPaymentsRoomView = queryClient.getQueryData(paymentsRoomViewQueryKey);
-
-      // Optimistically update the 'card' and 'table' views
       if (previousPaymentsFiltered) {
-        queryClient.setQueryData(paymentsFilteredQueryKey, (old) => {
-          if (!old || !old.data) return old;
-          return {
-            ...old,
-            data: old.data.filter((p) => p.id !== deletedPayment.id),
-            total: old.total - 1,
-          };
+        queryClient.setQueryData(['payments-filtered'], (old) => {
+            if (!old || !old.data) return old;
+            return {
+              ...old,
+              data: old.data.filter(p => p.id !== deletedPayment.id),
+              total: (old.total || 0) - 1,
+            }
         });
       }
-
-      // Optimistically update the 'room' view
+      
       if (previousPaymentsRoomView) {
-        queryClient.setQueryData(paymentsRoomViewQueryKey, (old) => {
-          if (!old) return [];
-          return old.filter((p) => p.id !== deletedPayment.id);
+        queryClient.setQueryData(['payments-room-view'], (old) => {
+            if (!old) return [];
+            return old.filter(p => p.id !== deletedPayment.id)
         });
       }
 
-      return { previousPaymentsFiltered, previousPaymentsRoomView, paymentsFilteredQueryKey, paymentsRoomViewQueryKey };
+      return { previousPaymentsFiltered, previousPaymentsRoomView };
     },
     onError: (err, deletedPayment, context) => {
-      // Rollback on error
       if (context.previousPaymentsFiltered) {
-        queryClient.setQueryData(context.paymentsFilteredQueryKey, context.previousPaymentsFiltered);
+        queryClient.setQueryData(['payments-filtered'], context.previousPaymentsFiltered);
       }
       if (context.previousPaymentsRoomView) {
-        queryClient.setQueryData(context.paymentsRoomViewQueryKey, context.previousPaymentsRoomView);
+        queryClient.setQueryData(['payments-room-view'], context.previousPaymentsRoomView);
       }
       toast.error('ลบไม่สำเร็จ: ' + err.message);
     },
     onSuccess: async (deletedPayment) => {
         toast.success('ลบการชำระเงินสำเร็จ');
-        // Invalidate counts and other non-critical data in the background
-        queryClient.invalidateQueries({ queryKey: ['payments-count', selectedBranchId] });
-        queryClient.invalidateQueries({ queryKey: ['allPayments'] });
-        queryClient.invalidateQueries({ queryKey: ['activityLog'] });
 
         const room = rooms.find(r => r.id === deletedPayment.room_id);
         const tenant = tenants.find(t => t.id === deletedPayment.tenant_id);
@@ -1136,8 +1127,8 @@ export default function PaymentsPage() {
         }
     },
     onSettled: () => {
-      // Data is already updated optimistically. No invalidation needed for the main lists
-      // to ensure a smooth UX without refetching/flickering.
+      // Just invalidate counts, not the main data lists
+      queryClient.invalidateQueries({ queryKey: ['payments-count', selectedBranchId] });
     },
   });
 
