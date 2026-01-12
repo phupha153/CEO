@@ -495,15 +495,6 @@ export default function Layout({ children, currentPageName }) {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  // ⭐ หน้า Public ไม่ต้องโหลด user (เช็คก่อน แต่ยังไม่ return)
-  const isPublicPage = currentPageName === 'Welcome' || 
-                       currentPageName === 'Invoice' || 
-                       currentPageName === 'Receipt' || 
-                       currentPageName === 'PrintReceipts' || 
-                       currentPageName === 'PublicInvoice' ||
-                       currentPageName === 'PublicReceipt';
-
-  // ⭐ HOOKS MUST ALWAYS RUN - ห้าม skip hooks!
   const { data: currentUser, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
