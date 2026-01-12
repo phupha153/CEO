@@ -1070,64 +1070,71 @@ export default function PaymentsPage() {
       return payment;
     },
     onMutate: async (deletedPayment) => {
-      await queryClient.cancelQueries({ queryKey: ['payments-filtered'] });
-      await queryClient.cancelQueries({ queryKey: ['payments-room-view'] });
-      await queryClient.cancelQueries({ queryKey: ['payments-count', selectedBranchId] });
+      const filteredQueryKey = ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy];
+      const roomViewQueryKey = ['payments-room-view', selectedBranchId, roomViewMonth];
 
-      const previousPaymentsFiltered = queryClient.getQueryData(['payments-filtered']);
-      const previousPaymentsRoomView = queryClient.getQueryData(['payments-room-view']);
+      await queryClient.cancelQueries({ queryKey: filteredQueryKey });
+      await queryClient.cancelQueries({ queryKey: roomViewQueryKey });
+
+      const previousPaymentsFiltered = queryClient.getQueryData(filteredQueryKey);
+      const previousPaymentsRoomView = queryClient.getQueryData(roomViewQueryKey);
 
       if (previousPaymentsFiltered) {
-        queryClient.setQueryData(['payments-filtered'], (old) => {
-            if (!old || !old.data) return old;
-            return {
-              ...old,
-              data: old.data.filter(p => p.id !== deletedPayment.id),
-              total: (old.total || 0) - 1,
-            }
-        });
-      }
-      
-      if (previousPaymentsRoomView) {
-        queryClient.setQueryData(['payments-room-view'], (old) => {
-            if (!old) return [];
-            return old.filter(p => p.id !== deletedPayment.id)
+        queryClient.setQueryData(filteredQueryKey, (old) => {
+          if (!old || !old.data) return old;
+          return {
+            ...old,
+            data: old.data.filter(p => p.id !== deletedPayment.id),
+            total: (old.total || 1) - 1,
+          };
         });
       }
 
-      return { previousPaymentsFiltered, previousPaymentsRoomView };
+      if (previousPaymentsRoomView) {
+        queryClient.setQueryData(roomViewQueryKey, (old) => {
+          if (!old) return [];
+          return old.filter(p => p.id !== deletedPayment.id);
+        });
+      }
+
+      return { previousPaymentsFiltered, previousPaymentsRoomView, filteredQueryKey, roomViewQueryKey };
     },
     onError: (err, deletedPayment, context) => {
       if (context.previousPaymentsFiltered) {
-        queryClient.setQueryData(['payments-filtered'], context.previousPaymentsFiltered);
+        queryClient.setQueryData(context.filteredQueryKey, context.previousPaymentsFiltered);
       }
       if (context.previousPaymentsRoomView) {
-        queryClient.setQueryData(['payments-room-view'], context.previousPaymentsRoomView);
+        queryClient.setQueryData(context.roomViewQueryKey, context.previousPaymentsRoomView);
       }
       toast.error('ลบไม่สำเร็จ: ' + err.message);
     },
     onSuccess: async (deletedPayment) => {
-        toast.success('ลบการชำระเงินสำเร็จ');
-
-        const room = rooms.find(r => r.id === deletedPayment.room_id);
-        const tenant = tenants.find(t => t.id === deletedPayment.tenant_id);
-        try {
-            await base44.entities.ActivityLog.create({
-              branch_id: selectedBranchId,
-              action_type: 'delete',
-              entity_type: 'Payment',
-              entity_id: deletedPayment.id,
-              entity_name: `ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`,
-              user_email: currentUser?.email,
-              user_name: currentUser?.full_name,
-              description: `ลบบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} จำนวน ${deletedPayment.total_amount?.toLocaleString()} บาท`
-            });
-        } catch (logError) {
-            console.error("Failed to create activity log for deletion:", logError);
-        }
+      toast.success('ลบการชำระเงินสำเร็จ');
+      const room = rooms.find(r => r.id === deletedPayment.room_id) || { room_number: 'N/A' };
+      const tenant = tenants.find(t => t.id === deletedPayment.tenant_id) || { full_name: 'N/A' };
+      try {
+        await base44.entities.ActivityLog.create({
+          branch_id: selectedBranchId,
+          action_type: 'delete',
+          entity_type: 'Payment',
+          entity_id: deletedPayment.id,
+          entity_name: `ห้อง ${room.room_number} - ${tenant.full_name}`,
+          user_email: currentUser?.email,
+          user_name: currentUser?.full_name,
+          description: `ลบบิลค่าเช่าห้อง ${room.room_number} จำนวน ${deletedPayment.total_amount?.toLocaleString()} บาท`
+        });
+      } catch (logError) {
+        console.error("Failed to create activity log for deletion:", logError);
+      }
     },
-    onSettled: () => {
-      // Just invalidate counts, not the main data lists
+    onSettled: (data, error, variables, context) => {
+      // Invalidate everything to be safe, but after the optimistic update has settled
+      if (context.filteredQueryKey) {
+          queryClient.invalidateQueries({ queryKey: context.filteredQueryKey });
+      }
+      if (context.roomViewQueryKey) {
+          queryClient.invalidateQueries({ queryKey: context.roomViewQueryKey });
+      }
       queryClient.invalidateQueries({ queryKey: ['payments-count', selectedBranchId] });
     },
   });
