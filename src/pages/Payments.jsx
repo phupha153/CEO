@@ -2304,9 +2304,6 @@ Return JSON.`;
     );
   }
 
-  const isLoading = (viewMode === 'room' ? roomViewFetching : paymentsLoading);
-  const hasNoData = viewMode === 'room' ? (roomViewPayments.length === 0) : (paginatedPayments.length === 0);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -2992,22 +2989,16 @@ Return JSON.`;
                 </Card>
               )}
 
-          {isLoading ? (
+          {paymentsLoading && payments.length === 0 ? (
             <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
               <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-xl font-semibold text-slate-800">กำลังโหลดข้อมูล...</p>
             </div>
-          ) : hasNoData && viewMode !== 'room' ? (
+          ) : paginatedPayments.length === 0 && viewMode !== 'room' ? (
             <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
               <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
               <p className="text-xl font-semibold text-slate-800">ไม่พบรายการชำระเงิน</p>
               <p className="text-slate-600">ลองเปลี่ยนช่วงเวลาหรือสถานะการค้นหา</p>
-            </div>
-          ) : hasNoData && viewMode === 'room' ? (
-            <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
-              <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-              <p className="text-xl font-semibold text-slate-800">ไม่พบรายการชำระเงินในเดือนนี้</p>
-              <p className="text-slate-600">ลองเปลี่ยนเดือนหรือสร้างบิลใหม่</p>
             </div>
           ) : viewMode === 'card' && (
                 <div className="grid grid-cols-1 gap-4 relative">
@@ -4237,7 +4228,7 @@ Return JSON.`;
                                        </Card>
                                        )}
 
-          {totalPages > 1 && viewMode !== 'room' && (
+          {totalPages > 1 && (
             <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
               <CardContent className="p-4">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
