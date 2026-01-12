@@ -2880,22 +2880,16 @@ Return JSON.`;
                 </Card>
               )}
 
-          {isLoading ? (
+          {viewMode === 'card' && paymentsLoading ? (
             <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
               <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-xl font-semibold text-slate-800">กำลังโหลดข้อมูล...</p>
             </div>
-          ) : hasNoData && viewMode !== 'room' ? (
+          ) : viewMode === 'card' && paginatedPayments.length === 0 ? (
             <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
               <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
               <p className="text-xl font-semibold text-slate-800">ไม่พบรายการชำระเงิน</p>
               <p className="text-slate-600">ลองเปลี่ยนช่วงเวลาหรือสถานะการค้นหา</p>
-            </div>
-          ) : viewMode === 'room' && hasNoData ? (
-            <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
-              <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-              <p className="text-xl font-semibold text-slate-800">ไม่พบรายการชำระเงินในเดือนนี้</p>
-              <p className="text-slate-600">ลองเปลี่ยนเดือนหรือสร้างบิลใหม่</p>
             </div>
           ) : viewMode === 'card' && (
                 <div className="grid grid-cols-1 gap-4 relative">
