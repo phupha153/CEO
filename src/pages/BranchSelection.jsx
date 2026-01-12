@@ -481,9 +481,8 @@ export default function BranchSelection() {
     }, 300);
   };
 
-
-
   // 🚫 CRM DENY = Auto-logout (เช็คหลัง UI แสดงแล้ว)
+  // ⭐ CRITICAL: ย้าย useEffect ขึ้นมาก่อน early return เพื่อให้ hooks ถูกเรียกสม่ำเสมอ
   React.useEffect(() => {
     if (currentUser && crmAccess && crmAccess.hasAccess === false) {
       console.warn('🚫 CRM Access denied - Auto logout');
