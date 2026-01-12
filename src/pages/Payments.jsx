@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -81,7 +80,7 @@ export default function PaymentsPage() {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedPaymentIds, setSelectedPaymentIds] = useState([]);
   const [bulkAIQuery, setBulkAIQuery] = useState('');
-  const [bulkAIResult, setBulkAIResult] = null);
+  const [bulkAIResult, setBulkAIResult] = useState(null);
   const [isBulkExecuting, setIsBulkExecuting] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [longPressTarget, setLongPressTarget] = useState(null);
