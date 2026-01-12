@@ -838,6 +838,21 @@ export default function Layout({ children, currentPageName }) {
     }
   }, [isLoading, currentUser, navigate, currentPageName, error]);
 
+  // ⭐ หน้า Public - ไม่ต้อง Loading, return เลย
+  if (currentPageName === 'Welcome' || 
+      currentPageName === 'Invoice' || 
+      currentPageName === 'Receipt' || 
+      currentPageName === 'PrintReceipts' ||
+      currentPageName === 'PublicInvoice' ||
+      currentPageName === 'PublicReceipt') {
+    return (
+      <>
+        <Toaster richColors position="top-center" />
+        {children}
+      </>
+    );
+  }
+
   useEffect(() => {
     console.log('🔍 Layout Branch Check:', {
       currentPageName,
@@ -967,16 +982,11 @@ export default function Layout({ children, currentPageName }) {
   // แต่ไม่ redirect ไปหน้า package pages
 
   // หน้าที่ไม่ต้องมี sidebar - return children เลย
-  if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
-      currentPageName === 'PrintReceipts' || 
-      currentPageName === 'PublicInvoice' ||
-      currentPageName === 'PublicReceipt' ||
-      currentPageName === 'TrialExpiredPage' ||
+  if (currentPageName === 'TrialExpiredPage' ||
       currentPageName === 'NoPackagePage' ||
       currentPageName === 'PackageSelection' ||
       currentPageName === 'BranchSelection' ||
-      currentPageName === 'BranchManagement' ||
-      currentPageName === 'Welcome') {
+      currentPageName === 'BranchManagement') {
     return (
       <>
         <Toaster richColors position="top-center" />
