@@ -16,9 +16,9 @@ import TestimonialsSection from "../components/welcome/TestimonialsSection";
 
 export default function Welcome() {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(null);
-  const [buildingName, setBuildingName] = useState('หลังหอพัก');
-  const [buildingLogo, setBuildingLogo] = useState('https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/58da6a306_DC4395DB-4B27-4859-85B3-4F2948654F9E.png');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const buildingName = 'หลังหอพัก';
+  const buildingLogo = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/58da6a306_DC4395DB-4B27-4859-85B3-4F2948654F9E.png';
   const [showTrialForm, setShowTrialForm] = useState(false);
   const [trialFormData, setTrialFormData] = useState({ rooms: '', email: '', phone: '', name: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,15 +27,6 @@ export default function Welcome() {
     base44.auth.isAuthenticated()
       .then(authed => setIsAuthenticated(authed))
       .catch(() => setIsAuthenticated(false));
-
-    base44.entities.Config.list()
-      .then(configs => {
-        const logoConfig = configs.find(c => c.key === 'building_logo' && !c.branch_id);
-        const nameConfig = configs.find(c => c.key === 'building_name' && !c.branch_id);
-        if (logoConfig?.value) setBuildingLogo(logoConfig.value);
-        if (nameConfig?.value) setBuildingName(nameConfig.value);
-      })
-      .catch(() => {});
   }, []);
 
   const handleCta = () => {
@@ -67,14 +58,6 @@ export default function Welcome() {
       setIsSubmitting(false);
     }
   };
-
-  if (isAuthenticated === null) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
-        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-white">
