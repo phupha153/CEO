@@ -1064,55 +1064,71 @@ export default function PaymentsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (payment) => {
+    mutationFn: async (paymentId) => {
       if (!canDelete) throw new Error('คุณไม่มีสิทธิ์ลบการชำระเงิน');
-      await base44.entities.Payment.delete(payment.id);
-      return payment;
+      const payment = allPaymentsForCounting.find(p => p.id === paymentId) || roomViewPayments.find(p => p.id === paymentId) || paginatedPayments.find(p => p.id === paymentId);
+      if (!payment) throw new Error('ไม่พบข้อมูลการชำระเงิน');
+      await base44.entities.Payment.delete(paymentId);
+      return payment; // Return the full payment object for logging
     },
-    onMutate: async (deletedPayment) => {
+    onMutate: async (paymentId) => {
+      // Define all relevant query keys
       const filteredKey = ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy];
       const roomViewKey = ['payments-room-view', selectedBranchId, roomViewMonth];
-      
+      const countKey = ['payments-count', selectedBranchId];
+
+      // Cancel ongoing queries
       await queryClient.cancelQueries({ queryKey: filteredKey });
       await queryClient.cancelQueries({ queryKey: roomViewKey });
+      await queryClient.cancelQueries({ queryKey: countKey });
 
+      // Snapshot previous states
       const previousPaymentsFiltered = queryClient.getQueryData(filteredKey);
       const previousPaymentsRoomView = queryClient.getQueryData(roomViewKey);
+      const previousPaymentsCount = queryClient.getQueryData(countKey);
 
       // Optimistic update for filtered/card/table view
-      if (previousPaymentsFiltered) {
-        queryClient.setQueryData(filteredKey, (old) => {
-          if (!old || !old.data) return old;
-          return {
-            ...old,
-            data: old.data.filter(p => p.id !== deletedPayment.id),
-            total: (old.total || 1) - 1,
-          };
-        });
+      if (previousPaymentsFiltered?.data) {
+        queryClient.setQueryData(filteredKey, (old) => ({
+          ...old,
+          data: old.data.filter((p) => p.id !== paymentId),
+          total: (old.total || 1) - 1,
+        }));
       }
 
       // Optimistic update for room view
       if (previousPaymentsRoomView) {
-        queryClient.setQueryData(roomViewKey, (old) => {
-          if (!old) return [];
-          return old.filter(p => p.id !== deletedPayment.id);
-        });
+        queryClient.setQueryData(roomViewKey, (old) => old.filter((p) => p.id !== paymentId));
+      }
+      
+      // Optimistic update for count
+      if (previousPaymentsCount) {
+        queryClient.setQueryData(countKey, (old) => old.filter((p) => p.id !== paymentId));
       }
 
-      return { previousPaymentsFiltered, previousPaymentsRoomView, filteredKey, roomViewKey };
+      return { previousPaymentsFiltered, previousPaymentsRoomView, previousPaymentsCount, filteredKey, roomViewKey, countKey };
     },
-    onError: (err, deletedPayment, context) => {
+    onError: (err, paymentId, context) => {
+      // Rollback on error
       if (context?.previousPaymentsFiltered) {
         queryClient.setQueryData(context.filteredKey, context.previousPaymentsFiltered);
       }
       if (context?.previousPaymentsRoomView) {
         queryClient.setQueryData(context.roomViewKey, context.previousPaymentsRoomView);
       }
+      if (context?.previousPaymentsCount) {
+        queryClient.setQueryData(context.countKey, context.previousPaymentsCount);
+      }
       toast.error(`ลบไม่สำเร็จ: ${err.message}`);
     },
     onSuccess: (deletedPayment) => {
       toast.success('ลบการชำระเงินสำเร็จ');
-      // Log activity only on successful deletion
+      // Invalidate queries on success to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
+      queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
+      queryClient.invalidateQueries({ queryKey: ['payments-count'] });
+
+      // Log activity
       try {
         const room = rooms.find(r => r.id === deletedPayment.room_id);
         const tenant = tenants.find(t => t.id === deletedPayment.tenant_id);
@@ -1127,18 +1143,8 @@ export default function PaymentsPage() {
           description: `ลบบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} จำนวน ${deletedPayment.total_amount?.toLocaleString()} บาท`
         });
       } catch (logError) {
-        console.error("Failed to create activity log for deletion:", logError);
+        console.error("Failed to create activity log:", logError);
       }
-    },
-    onSettled: (deletedPayment, error, variables, context) => {
-      // Always refetch to ensure data consistency after optimistic update
-      if (context?.filteredKey) {
-        queryClient.invalidateQueries({ queryKey: context.filteredKey });
-      }
-      if (context?.roomViewKey) {
-        queryClient.invalidateQueries({ queryKey: context.roomViewKey });
-      }
-      queryClient.invalidateQueries({ queryKey: ['payments-count', selectedBranchId] });
     },
   });
 
