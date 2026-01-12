@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     trialEndDate.setDate(today.getDate() + 30);
     trialEndDate.setHours(23, 59, 59, 999);
 
-    await base44.asServiceRole.auth.updateUser(user.email, {
+    await base44.asServiceRole.entities.User.update(user.id, {
       trial_ends_at: trialEndDate.toISOString().split('T')[0],
       plan_status: 'trial'
     });
