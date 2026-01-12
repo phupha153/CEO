@@ -421,18 +421,8 @@ export default function Layout({ children, currentPageName }) {
       });
     };
   }, []);
-  
-  const [selectedBranch, setSelectedBranch] = useState(() => {
-    const branchId = localStorage.getItem('selected_branch_id');
-    const branchName = localStorage.getItem('selected_branch_name');
-    return (branchId && branchName) ? { id: branchId, branch_name: branchName } : null;
-  });
 
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [retryCount, setRetryCount] = useState(0);
-  const [isCreatingTrial, setIsCreatingTrial] = useState(false);
-  const [onboardingMinimized, setOnboardingMinimized] = useState(false);
-
+  // ⭐ Force light theme
   useEffect(() => {
     document.documentElement.classList.remove('dark', 'theme-dark', 'dark-mode');
     document.body.classList.remove('dark', 'theme-dark', 'dark-mode');
