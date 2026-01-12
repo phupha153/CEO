@@ -1201,9 +1201,10 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // Render loading screen - แต่ถ้า CRM check ใช้เวลานาน ให้ข้ามไปได้
-  const isWaitingForCRM = crmAccessLoading && !crmAccess && !crmAccessError;
-  const shouldShowLoading = (isLoading || branchesLoading || configsLoading) && !isWaitingForCRM && !isPublicPage;
+  // Render loading screen
+  // ⭐ FIX: ต้องแสดง loading ถ้า user โหลดแล้วแต่ CRM ยังเช็คอยู่ ไม่งั้นจะหน้าขาว
+  const shouldShowLoading = isLoading || branchesLoading || configsLoading || 
+                            (!isLoading && !!currentUser && crmAccessLoading && !crmAccess && !crmAccessError);
 
   if (shouldShowLoading) {
     return (
