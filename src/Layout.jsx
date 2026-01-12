@@ -487,13 +487,20 @@ export default function Layout({ children, currentPageName }) {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  // ⭐ หน้า Public ไม่ต้องโหลด user
-  const isPublicPage = currentPageName === 'Welcome' || 
-                       currentPageName === 'Invoice' || 
-                       currentPageName === 'Receipt' || 
-                       currentPageName === 'PrintReceipts' || 
-                       currentPageName === 'PublicInvoice' ||
-                       currentPageName === 'PublicReceipt';
+  // ⭐ หน้า Public - return เลยไม่ต้องโหลดอะไร
+  if (currentPageName === 'Welcome' || 
+      currentPageName === 'Invoice' || 
+      currentPageName === 'Receipt' || 
+      currentPageName === 'PrintReceipts' || 
+      currentPageName === 'PublicInvoice' ||
+      currentPageName === 'PublicReceipt') {
+    return (
+      <>
+        <Toaster richColors position="top-center" />
+        {children}
+      </>
+    );
+  }
 
   const { data: currentUser, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['currentUser'],
@@ -515,7 +522,7 @@ export default function Layout({ children, currentPageName }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    enabled: isOnline && !isPublicPage,
+    enabled: isOnline,
     networkMode: 'online',
     onError: () => setRetryCount(prev => prev + 1),
     placeholderData: (previousData) => previousData,
@@ -600,7 +607,7 @@ export default function Layout({ children, currentPageName }) {
         return { hasAccess: true, error: error.message, cached: true };
       }
     },
-    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
+    enabled: !isLoading && !!currentUser && isOnline,
     staleTime: Infinity, // ⭐ Cache ตลอด - ไม่ refetch เว้นแต่ reload หน้า
     gcTime: Infinity,
     refetchInterval: false,
@@ -967,16 +974,11 @@ export default function Layout({ children, currentPageName }) {
   // แต่ไม่ redirect ไปหน้า package pages
 
   // หน้าที่ไม่ต้องมี sidebar - return children เลย
-  if (currentPageName === 'Invoice' || currentPageName === 'Receipt' || 
-      currentPageName === 'PrintReceipts' || 
-      currentPageName === 'PublicInvoice' ||
-      currentPageName === 'PublicReceipt' ||
-      currentPageName === 'TrialExpiredPage' ||
+  if (currentPageName === 'TrialExpiredPage' ||
       currentPageName === 'NoPackagePage' ||
       currentPageName === 'PackageSelection' ||
       currentPageName === 'BranchSelection' ||
-      currentPageName === 'BranchManagement' ||
-      currentPageName === 'Welcome') {
+      currentPageName === 'BranchManagement') {
     return (
       <>
         <Toaster richColors position="top-center" />
