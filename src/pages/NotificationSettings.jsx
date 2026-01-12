@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -61,7 +62,6 @@ export default function NotificationSettings() {
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   const canManage = userRole === 'developer' || userRole === 'owner';
-  const isTrialMode = currentUser?.plan_status === 'trial';
 
   useEffect(() => {
     if (configs.length > 0) {
