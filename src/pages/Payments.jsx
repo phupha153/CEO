@@ -1353,7 +1353,7 @@ export default function PaymentsPage() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.room_id) {
@@ -1408,6 +1408,45 @@ export default function PaymentsPage() {
     };
 
     console.log('Submitting payment data:', data);
+
+    // ✅ ตรวจสอบบิลซ้ำก่อนบันทึก (เฉพาะตอนสร้างใหม่)
+    if (!editingPayment) {
+      try {
+        const dueDateMonth = formData.due_date.substring(0, 7); // 'YYYY-MM'
+        
+        // หาบิลที่มีอยู่แล้วในห้องเดียวกัน + เดือนเดียวกัน
+        const existingPayments = await base44.entities.Payment.filter({
+          room_id: formData.room_id,
+          branch_id: selectedBranchId
+        }, '-created_date', 100);
+        
+        const duplicatePayment = existingPayments.find(p => 
+          p.due_date && p.due_date.substring(0, 7) === dueDateMonth
+        );
+
+        if (duplicatePayment) {
+          const room = rooms.find(r => r.id === formData.room_id);
+          const confirmed = confirm(
+            `⚠️ พบบิลซ้ำในห้อง ${room?.room_number || 'N/A'} เดือน ${format(parseISO(formData.due_date), 'MMM yyyy', { locale: th })}\n\n` +
+            `บิลเก่า: ${duplicatePayment.total_amount?.toLocaleString() || 0} บาท (${duplicatePayment.status})\n` +
+            `บิลใหม่: ${total.toLocaleString()} บาท\n\n` +
+            `ต้องการลบบิลเก่าและสร้างใหม่หรือไม่?`
+          );
+
+          if (confirmed) {
+            // ลบบิลเก่า
+            await base44.entities.Payment.delete(duplicatePayment.id);
+            toast.info('ลบบิลเก่าแล้ว กำลังสร้างใหม่...', { duration: 2000 });
+          } else {
+            toast.info('ยกเลิกการบันทึก');
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error checking duplicate payment:', error);
+        // ถ้าเช็คไม่ได้ ให้ดำเนินการต่อได้
+      }
+    }
 
     if (editingPayment) {
       updateMutation.mutate({ id: editingPayment.id, data });
