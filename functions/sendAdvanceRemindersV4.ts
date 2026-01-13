@@ -219,6 +219,12 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
 
             // Send LINE
             const lineUsers = recipients.filter(r => r.lineUserId);
+            console.log(`📨 LINE Recipients prepared: ${lineUsers.length}`, lineUsers.map(u => ({ 
+                userId: u.lineUserId?.substring(0, 10), 
+                hasMetadata: !!u.metadata, 
+                paymentId: u.metadata?.paymentId?.substring(0, 8) 
+            })));
+            
             if (lineUsers.length > 0) {
                  if (testLineUserId) {
                      // Test Mode: ส่งเฉพาะ 1 คน
@@ -227,9 +233,10 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
                     });
                     console.log('📤 LINE Response (Test):', response?.data);
                     // เช็คว่าส่งสำเร็จจริง (success อาจเป็น number หรือ boolean)
-                    if (response?.data && (response.data.sent > 0 || response.data.success > 0)) {
+                    const sentCount = response?.data?.sent || response?.data?.success || 0;
+                    if (sentCount > 0) {
                         successfulSends.push(lineUsers[0].metadata.paymentId);
-                        console.log(`✅ Test mode sent successfully to ${testLineUserId}`);
+                        console.log(`✅ Test mode sent successfully. PaymentId added:`, lineUsers[0].metadata.paymentId);
                     } else {
                         console.error(`❌ Test mode failed:`, response?.data);
                     }
@@ -239,11 +246,21 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
                         recipients: lineUsers,
                         options: { batchSize: 10, delayBetweenMessages: 50 }
                     });
-                    console.log('📤 LINE Response (Prod):', { success: response?.data?.success, sent: response?.data?.sent, failed: response?.data?.failed });
-                    // เช็คจำนวนที่ส่งสำเร็จจริง (sent > 0 หรือ success > 0)
-                    if (response?.data && (response.data.sent > 0 || response.data.success > 0)) {
-                        lineUsers.forEach(u => successfulSends.push(u.metadata.paymentId));
-                        console.log(`✅ Sent ${response.data.sent || response.data.success} LINE messages successfully`);
+                    console.log('📤 LINE Response (Prod):', response?.data);
+                    
+                    // เช็คจำนวนที่ส่งสำเร็จจริง (support ทั้ง sent และ success)
+                    const sentCount = response?.data?.sent || response?.data?.success || 0;
+                    console.log(`🔍 Sent Count: ${sentCount}, LineUsers Count: ${lineUsers.length}`);
+                    
+                    if (sentCount > 0) {
+                        lineUsers.forEach(u => {
+                            if (u.metadata?.paymentId) {
+                                successfulSends.push(u.metadata.paymentId);
+                            } else {
+                                console.error('❌ Missing paymentId in metadata:', u);
+                            }
+                        });
+                        console.log(`✅ Added ${successfulSends.length} paymentIds to successfulSends array`);
                     } else {
                         console.error(`❌ LINE API failed or sent 0:`, response?.data);
                     }
