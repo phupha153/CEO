@@ -208,6 +208,7 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
             recipients.push({
                 lineUserId: tenant.line_user_id,
                 facebookUserId: tenant.facebook_user_id,
+                branchId: branchId,
                 message: message,
                 metadata: { paymentId: payment.id }
             });
@@ -222,11 +223,15 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
                  if (testLineUserId) {
                      // Test Mode: ส่งเฉพาะ 1 คน
                      const response = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                        recipients: [{ lineUserId: testLineUserId, message: lineUsers[0].message }]
+                        recipients: [{ lineUserId: testLineUserId, branchId: branchId, message: lineUsers[0].message, metadata: lineUsers[0].metadata }]
                     });
+                    console.log('📤 LINE Response (Test):', response?.data);
                     // เช็คว่าส่งสำเร็จจริง
                     if (response?.data?.success && response?.data?.sent > 0) {
                         successfulSends.push(lineUsers[0].metadata.paymentId);
+                        console.log(`✅ Test mode sent successfully to ${testLineUserId}`);
+                    } else {
+                        console.error(`❌ Test mode failed:`, response?.data);
                     }
                  } else {
                      // Production Mode: ส่งทุกคน + เช็ค response
@@ -234,11 +239,13 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
                         recipients: lineUsers,
                         options: { batchSize: 10, delayBetweenMessages: 50 }
                     });
+                    console.log('📤 LINE Response (Prod):', { success: response?.data?.success, sent: response?.data?.sent, failed: response?.data?.failed });
                     // ถ้า LINE API ตอบว่าส่งสำเร็จ → เก็บ paymentId
                     if (response?.data?.success && response?.data?.sent > 0) {
                         lineUsers.forEach(u => successfulSends.push(u.metadata.paymentId));
+                        console.log(`✅ Sent ${response.data.sent} LINE messages successfully`);
                     } else {
-                        console.warn(`⚠️ LINE API returned no success: ${JSON.stringify(response?.data)}`);
+                        console.error(`❌ LINE API failed or sent 0:`, response?.data);
                     }
                  }
             }
