@@ -1075,11 +1075,14 @@ export default function PaymentsPage() {
       await queryClient.cancelQueries({ queryKey: ['payments-room-view'] });
       await queryClient.cancelQueries({ queryKey: ['payments-count', selectedBranchId] });
 
-      const previousPaymentsFiltered = queryClient.getQueryData(['payments-filtered']);
-      const previousPaymentsRoomView = queryClient.getQueryData(['payments-room-view']);
+      const queryKeyFiltered = ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy];
+      const queryKeyRoomView = ['payments-room-view', selectedBranchId, roomViewMonth];
+
+      const previousPaymentsFiltered = queryClient.getQueryData(queryKeyFiltered);
+      const previousPaymentsRoomView = queryClient.getQueryData(queryKeyRoomView);
 
       if (previousPaymentsFiltered) {
-        queryClient.setQueryData(['payments-filtered'], (old) => {
+        queryClient.setQueryData(queryKeyFiltered, (old) => {
             if (!old || !old.data) return old;
             return {
               ...old,
@@ -1090,20 +1093,20 @@ export default function PaymentsPage() {
       }
       
       if (previousPaymentsRoomView) {
-        queryClient.setQueryData(['payments-room-view'], (old) => {
+        queryClient.setQueryData(queryKeyRoomView, (old) => {
             if (!old) return [];
             return old.filter(p => p.id !== deletedPayment.id)
         });
       }
 
-      return { previousPaymentsFiltered, previousPaymentsRoomView };
+      return { previousPaymentsFiltered, previousPaymentsRoomView, queryKeyFiltered, queryKeyRoomView };
     },
     onError: (err, deletedPayment, context) => {
-      if (context.previousPaymentsFiltered) {
-        queryClient.setQueryData(['payments-filtered'], context.previousPaymentsFiltered);
+      if (context?.previousPaymentsFiltered) {
+        queryClient.setQueryData(context.queryKeyFiltered, context.previousPaymentsFiltered);
       }
-      if (context.previousPaymentsRoomView) {
-        queryClient.setQueryData(['payments-room-view'], context.previousPaymentsRoomView);
+      if (context?.previousPaymentsRoomView) {
+        queryClient.setQueryData(context.queryKeyRoomView, context.previousPaymentsRoomView);
       }
       toast.error('ลบไม่สำเร็จ: ' + err.message);
     },
@@ -1128,7 +1131,6 @@ export default function PaymentsPage() {
         }
     },
     onSettled: () => {
-      // Just invalidate counts, not the main data lists
       queryClient.invalidateQueries({ queryKey: ['payments-count', selectedBranchId] });
     },
   });
