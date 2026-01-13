@@ -986,9 +986,15 @@ export default function PaymentsPage() {
     }
   };
 
+  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+
   const createMutation = useMutation({
-    mutationFn: (data) => {
+    mutationFn: async (data) => {
       if (!canAdd) throw new Error('คุณไม่มีสิทธิ์เพิ่มการชำระเงิน');
+      if (isCreatingPayment) {
+        throw new Error('กำลังสร้างบิลอยู่ กรุณารอสักครู่');
+      }
+      setIsCreatingPayment(true);
       return base44.entities.Payment.create({...data, branch_id: selectedBranchId});
     },
     onSuccess: async (newPayment) => {
@@ -1016,10 +1022,12 @@ export default function PaymentsPage() {
       
       setShowDialog(false);
       resetForm();
+      setIsCreatingPayment(false);
       toast.success('บันทึกการชำระเงินสำเร็จ');
     },
     onError: (error) => {
       console.error('Create payment error:', error);
+      setIsCreatingPayment(false);
       toast.error(error.message || 'เกิดข้อผิดพลาดในการบันทึก');
     }
   });
@@ -4457,21 +4465,21 @@ Return JSON.`;
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setShowDialog(false)}>ยกเลิก</Button>
-                  <Button 
-                    type="submit" 
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600"
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                  >
-                    {(createMutation.isPending || updateMutation.isPending) ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        กำลังบันทึก...
-                      </>
-                    ) : (
-                      editingPayment ? 'อัปเดต' : 'บันทึก'
-                    )}
-                  </Button>
+                 <Button type="button" variant="outline" onClick={() => setShowDialog(false)} disabled={isCreatingPayment}>ยกเลิก</Button>
+                 <Button 
+                   type="submit" 
+                   className="bg-gradient-to-r from-blue-600 to-indigo-600"
+                   disabled={createMutation.isPending || updateMutation.isPending || isCreatingPayment}
+                 >
+                   {(createMutation.isPending || updateMutation.isPending || isCreatingPayment) ? (
+                     <>
+                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                       กำลังบันทึก...
+                     </>
+                   ) : (
+                     editingPayment ? 'อัปเดต' : 'บันทึก'
+                   )}
+                 </Button>
                 </div>
               </form>
             </DialogContent>
