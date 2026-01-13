@@ -71,6 +71,7 @@ export default function PaymentsPage() {
   // Room View State
   const [roomViewMonth, setRoomViewMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [isLoadingRoomView, setIsLoadingRoomView] = useState(false);
+  const [openRoomDialogs, setOpenRoomDialogs] = useState({});
 
   const [aiSearching, setAiSearching] = useState(false);
   const [aiResult, setAiResult] = useState(null);
@@ -3788,7 +3789,10 @@ Return JSON.`;
                                        {isSelected && <Check className="w-2.5 h-2.5 text-white" />}
                                      </div>
                                    )}
-                                   <Dialog>
+                                   <Dialog 
+                                     open={openRoomDialogs[room.id] || false}
+                                     onOpenChange={(open) => setOpenRoomDialogs(prev => ({ ...prev, [room.id]: open }))}
+                                   >
                                      <DialogTrigger asChild>
                                        <button
                                          className={`select-none ${bgColor} ${textColor} rounded-lg p-2 text-center transition-all shadow-sm hover:shadow-md cursor-pointer w-full relative ${isSelected && isSelectionMode ? 'ring-2 ring-blue-400' : ''} ${longPressTarget === roomPayment?.id ? 'scale-95' : ''}`}
@@ -4095,9 +4099,14 @@ Return JSON.`;
                                                  size="sm" 
                                                  variant="outline"
                                                  className="w-full text-xs border-red-300 text-red-600 hover:bg-red-50"
-                                                 onClick={() => {
+                                                 onClick={async () => {
                                                    if (confirm('คุณแน่ใจว่าต้องการลบการชำระเงินนี้?')) {
-                                                     deleteMutation.mutate(roomPayment);
+                                                     try {
+                                                       await deleteMutation.mutateAsync(roomPayment);
+                                                       setOpenRoomDialogs(prev => ({ ...prev, [room.id]: false }));
+                                                     } catch (error) {
+                                                       console.error('Delete error:', error);
+                                                     }
                                                    }
                                                  }}
                                                  disabled={deleteMutation.isPending}
