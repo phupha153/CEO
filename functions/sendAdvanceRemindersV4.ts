@@ -226,8 +226,8 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
                         recipients: [{ lineUserId: testLineUserId, branchId: branchId, message: lineUsers[0].message, metadata: lineUsers[0].metadata }]
                     });
                     console.log('📤 LINE Response (Test):', response?.data);
-                    // เช็คว่าส่งสำเร็จจริง
-                    if (response?.data?.success && response?.data?.sent > 0) {
+                    // เช็คว่าส่งสำเร็จจริง (success อาจเป็น number หรือ boolean)
+                    if (response?.data && (response.data.sent > 0 || response.data.success > 0)) {
                         successfulSends.push(lineUsers[0].metadata.paymentId);
                         console.log(`✅ Test mode sent successfully to ${testLineUserId}`);
                     } else {
@@ -240,10 +240,10 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
                         options: { batchSize: 10, delayBetweenMessages: 50 }
                     });
                     console.log('📤 LINE Response (Prod):', { success: response?.data?.success, sent: response?.data?.sent, failed: response?.data?.failed });
-                    // ถ้า LINE API ตอบว่าส่งสำเร็จ → เก็บ paymentId
-                    if (response?.data?.success && response?.data?.sent > 0) {
+                    // เช็คจำนวนที่ส่งสำเร็จจริง (sent > 0 หรือ success > 0)
+                    if (response?.data && (response.data.sent > 0 || response.data.success > 0)) {
                         lineUsers.forEach(u => successfulSends.push(u.metadata.paymentId));
-                        console.log(`✅ Sent ${response.data.sent} LINE messages successfully`);
+                        console.log(`✅ Sent ${response.data.sent || response.data.success} LINE messages successfully`);
                     } else {
                         console.error(`❌ LINE API failed or sent 0:`, response?.data);
                     }
