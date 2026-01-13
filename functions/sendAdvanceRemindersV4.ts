@@ -214,25 +214,40 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
         }
 
         if (recipients.length > 0) {
+            const successfulSends = []; // เก็บเฉพาะคนที่ส่งสำเร็จ
+
             // Send LINE
             const lineUsers = recipients.filter(r => r.lineUserId);
             if (lineUsers.length > 0) {
                  if (testLineUserId) {
-                     await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                     // Test Mode: ส่งเฉพาะ 1 คน
+                     const response = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
                         recipients: [{ lineUserId: testLineUserId, message: lineUsers[0].message }]
                     });
+                    // เช็คว่าส่งสำเร็จจริง
+                    if (response?.data?.success && response?.data?.sent > 0) {
+                        successfulSends.push(lineUsers[0].metadata.paymentId);
+                    }
                  } else {
-                     await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                     // Production Mode: ส่งทุกคน + เช็ค response
+                     const response = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
                         recipients: lineUsers,
                         options: { batchSize: 10, delayBetweenMessages: 50 }
                     });
+                    // ถ้า LINE API ตอบว่าส่งสำเร็จ → เก็บ paymentId
+                    if (response?.data?.success && response?.data?.sent > 0) {
+                        lineUsers.forEach(u => successfulSends.push(u.metadata.paymentId));
+                    } else {
+                        console.warn(`⚠️ LINE API returned no success: ${JSON.stringify(response?.data)}`);
+                    }
                  }
             }
+
             // Send FB (แบบ Batch เพื่อหลีกเลี่ยง Rate Limit)
             const fbUsers = recipients.filter(r => r.facebookUserId);
             if (fbUsers.length > 0) {
-                const FB_BATCH_SIZE = 10; // ส่งทีละ 10 คน
-                const FB_DELAY_MS = 500;  // พัก 500ms ระหว่าง batch
+                const FB_BATCH_SIZE = 10;
+                const FB_DELAY_MS = 500;
                 
                 for (let i = 0; i < fbUsers.length; i += FB_BATCH_SIZE) {
                     const batch = fbUsers.slice(i, i + FB_BATCH_SIZE);
@@ -242,10 +257,16 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
                         branch_id: branchId
                     }));
                     
-                    await Promise.all(fbMessages.map(fb => 
+                    const results = await Promise.allSettled(fbMessages.map(fb => 
                         base44.asServiceRole.functions.invoke('sendFacebookMessage', fb)
-                            .catch(e => console.error(`⚠️ FB Error:`, e.message))
                     ));
+                    
+                    // เก็บเฉพาะคนที่ส่งสำเร็จ
+                    results.forEach((result, idx) => {
+                        if (result.status === 'fulfilled' && result.value?.data?.success) {
+                            successfulSends.push(batch[idx].metadata.paymentId);
+                        }
+                    });
                     
                     if (i + FB_BATCH_SIZE < fbUsers.length) {
                         await delay(FB_DELAY_MS);
@@ -253,21 +274,27 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
                 }
             }
 
-            // Update DB (แบบ Batch เพื่อไม่ให้ database overwhelm)
-            const nowIso = new Date().toISOString();
-            const UPDATE_BATCH_SIZE = 20;
-            for (let i = 0; i < recipients.length; i += UPDATE_BATCH_SIZE) {
-                const batch = recipients.slice(i, i + UPDATE_BATCH_SIZE);
-                await Promise.all(batch.map(r => 
-                    base44.asServiceRole.entities.Payment.update(r.metadata.paymentId, { 
-                        advance_reminder_sent_date: nowIso,
-                        bill_sent_date: nowIso
-                    }).catch(e => console.error(`⚠️ Update Error:`, e.message))
-                ));
-                if (i + UPDATE_BATCH_SIZE < recipients.length) await delay(100); // พักระหว่าง batch
+            // Update DB เฉพาะคนที่ส่งสำเร็จจริง
+            if (successfulSends.length > 0) {
+                const nowIso = new Date().toISOString();
+                const UPDATE_BATCH_SIZE = 20;
+                const uniquePaymentIds = [...new Set(successfulSends)]; // ป้องกันซ้ำ
+                
+                for (let i = 0; i < uniquePaymentIds.length; i += UPDATE_BATCH_SIZE) {
+                    const batch = uniquePaymentIds.slice(i, i + UPDATE_BATCH_SIZE);
+                    await Promise.all(batch.map(paymentId => 
+                        base44.asServiceRole.entities.Payment.update(paymentId, { 
+                            advance_reminder_sent_date: nowIso,
+                            bill_sent_date: nowIso
+                        }).catch(e => console.error(`⚠️ Update Error:`, e.message))
+                    ));
+                    if (i + UPDATE_BATCH_SIZE < uniquePaymentIds.length) await delay(100);
+                }
+                
+                branchSent += uniquePaymentIds.length;
+            } else {
+                console.warn(`⚠️ Branch ${branchId}: 0 successful sends despite ${recipients.length} recipients`);
             }
-            
-            branchSent += recipients.length;
         }
         offset += 50;
         await delay(100); // ⬆️ เพิ่มจาก 50ms → 100ms (ลด database pressure)
