@@ -179,7 +179,7 @@ export default function PackagePaymentPage() {
 
       if (result.data.success) {
         queryClient.invalidateQueries({ queryKey: ['appSubscriptions'] });
-        queryClient.invalidateQueries({ queryKey: ['branchPackages'] });
+        queryClient.invalidateQueries({ queryKey: ['currentUser'] });
         setPaymentSuccess(true);
         toast.success('เปิดใช้งานแพ็กเกจสำเร็จ!');
         

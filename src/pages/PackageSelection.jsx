@@ -82,29 +82,16 @@ export default function PackageSelectionPage() {
     queryFn: () => base44.entities.Branch.list(),
   });
 
-  const { data: branchPackages = [] } = useQuery({
-    queryKey: ['branchPackages'],
-    queryFn: () => base44.entities.BranchPackage.list('-created_date', 200),
-  });
-
-  // หาว่า package ที่หมดอายุเป็น trial หรือ paid
-  const selectedBranchId = localStorage.getItem('selected_branch_id');
+  // ⭐ ไม่ใช้ BranchPackage แล้ว - ดูจาก currentUser.plan_status แทน
   const expiredPackageType = useMemo(() => {
-    if (!selectedBranchId) return null;
+    if (!currentUser) return null;
     
-    // หา package ล่าสุดของสาขานี้ (ไม่ว่าจะ status ไหน)
-    const branchPkgs = branchPackages.filter(bp => bp.branch_id === selectedBranchId);
-    if (branchPkgs.length === 0) return null;
-    
-    // เรียงตามวันที่สร้างล่าสุด
-    const latestPkg = branchPkgs.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0];
-    
-    // เช็คว่าเป็น trial หรือ paid
-    if (latestPkg.package_id === 'trial' || latestPkg.price_per_month === 0 || !latestPkg.price_per_month) {
+    // เช็คว่า package เก่าเป็น trial หรือ paid
+    if (currentUser.plan_status === 'trial' || !currentUser.package_id) {
       return 'trial';
     }
     return 'paid';
-  }, [branchPackages, selectedBranchId]);
+  }, [currentUser]);
 
   const handleGoBack = () => {
     // ⭐ กลับไปหน้าก่อนหน้า (ใช้ browser history)

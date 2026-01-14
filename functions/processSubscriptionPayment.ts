@@ -335,304 +335,76 @@ Deno.serve(async (req) => {
     console.log('✅ All verifications passed!');
     }
     
-    // ✅ Declare shared variables at function scope
-    let startDate, endDate, daysToAdd, targetBranchIds = null;
+    // ⭐ คำนวณวันที่เริ่มต้นและสิ้นสุด
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const daysToAdd = parseInt(duration_months) * 30;
 
-    if (appMode === 'multi_tenant' || (requestAppMode === 'multi_tenant')) {
-      console.log('📦 Multi-Tenant Mode: Creating packages based on owner_email');
+    // นับต่อจาก subscription_end_date เก่าถ้ายังไม่หมดอายุ
+    let startDate;
+    if (user.subscription_end_date && user.plan_status === 'active') {
+      const currentEndDate = new Date(user.subscription_end_date);
+      currentEndDate.setHours(23, 59, 59, 999);
 
-      // ✅ ตรวจสอบ owner_email ให้แน่นอนจากหลายแหล่ง
-      console.log('🔍 Step 1: Determining owner_email');
-      console.log('   user_email from payload:', user_email, 'type:', typeof user_email);
-      console.log('   user.email from auth:', user.email, 'type:', typeof user.email);
-
-      const ownerEmail = user_email || user.email;
-      
-      console.log('🔍 Step 2: Final ownerEmail:', ownerEmail, 'type:', typeof ownerEmail);
-      
-      if (!ownerEmail || ownerEmail === '' || typeof ownerEmail !== 'string') {
-        console.error('❌ CRITICAL: ownerEmail validation failed!');
-        console.error('   Value:', ownerEmail);
-        console.error('   Type:', typeof ownerEmail);
-        console.error('   user_email:', user_email);
-        console.error('   user.email:', user.email);
-        return Response.json({ 
-          success: false,
-          error: 'ไม่พบข้อมูล email ผู้ใช้ กรุณาลองใหม่อีกครั้ง',
-          details: `owner_email validation failed. Received: ${JSON.stringify({user_email, userEmail: user.email})}`
-        }, { status: 400 });
-      }
-      
-      console.log('✅ Owner Email validated:', ownerEmail);
-      
-      // ✅ ดึงข้อมูล user จาก email เพื่อหา accessible_branches
-      const allUsers = await base44.asServiceRole.entities.User.list();
-      const targetUser = allUsers.find(u => u.email === ownerEmail);
-      
-      if (!targetUser) {
-        return Response.json({ 
-          success: false,
-          error: 'ไม่พบข้อมูลผู้ใช้ในระบบ กรุณาติดต่อผู้ดูแล',
-          details: `User with email ${ownerEmail} not found`
-        }, { status: 400 });
-      }
-      
-      const userAccessibleBranches = targetUser.accessible_branches || [];
-      
-      console.log('👤 User accessible branches:', userAccessibleBranches);
-      
-      // ✅ ถ้าไม่มีสาขาที่เข้าถึงได้เลย
-      if (!userAccessibleBranches || userAccessibleBranches.length === 0) {
-        return Response.json({ 
-          success: false,
-          error: 'ผู้ใช้นี้ยังไม่มีสาขาที่เข้าถึงได้ กรุณาติดต่อผู้ดูแลระบบเพื่อกำหนดสิทธิ์',
-          details: 'User has no accessible_branches configured'
-        }, { status: 400 });
-      }
-      
-      // ✅ ใช้สาขาทั้งหมดที่ user มีสิทธิ์เข้าถึง
-      targetBranchIds = userAccessibleBranches;
-
-      console.log(`✅ Processing ${targetBranchIds.length} branch(es) for user ${ownerEmail}:`, targetBranchIds);
-
-      // คำนวณวันที่ใหม่ - นับต่อจากแพ็กเกจเก่าถ้ามี (30 วัน = 1 เดือน)
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      daysToAdd = parseInt(duration_months) * 30;
-
-      // หา package ที่ active อยู่เพื่อนับต่อ
-      const branchPackages = await base44.asServiceRole.entities.BranchPackage.list();
-
-      // หา package ที่หมดอายุช้าที่สุดใน branches ที่ซื้อ
-      let latestEndDate = null;
-      for (const branchId of targetBranchIds) {
-        const activePkg = branchPackages.find(bp =>
-          bp.branch_id === branchId &&
-          bp.status === 'active' &&
-          bp.package_id !== 'trial' &&
-          bp.price_per_month > 0
-        );
-
-        if (activePkg && activePkg.subscription_end_date) {
-          const pkgEndDate = new Date(activePkg.subscription_end_date);
-          pkgEndDate.setHours(23, 59, 59, 999);
-          if (!latestEndDate || pkgEndDate > latestEndDate) {
-            latestEndDate = pkgEndDate;
-          }
-        }
-      }
-
-      if (latestEndDate && latestEndDate > today) {
-        // นับต่อจาก package เก่า
-        startDate = new Date(latestEndDate);
+      if (currentEndDate > today) {
+        // นับต่อจากแพ็กเกจเก่า
+        startDate = new Date(currentEndDate);
         startDate.setDate(startDate.getDate() + 1);
         startDate.setHours(0, 0, 0, 0);
       } else {
-        // เริ่มใหม่จากวันนี้
         startDate = new Date(today);
       }
-
-      endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + daysToAdd);
-      endDate.setHours(23, 59, 59, 999);
-
-      console.log('📅 Start Date:', startDate.toISOString().split('T')[0]);
-      console.log('📅 End Date:', endDate.toISOString());
-      console.log('📅 Duration:', duration_months, 'months =', daysToAdd, 'days');
-
-      // ทำการอัปเดตทุกสาขาที่เลือก
-      for (const targetBranchId of targetBranchIds) {
-        // ยกเลิก trial packages ของสาขานี้ก่อน
-        const trialPackages = branchPackages.filter(bp => 
-          bp.branch_id === targetBranchId && 
-          (bp.package_id === 'trial' || bp.price_per_month === 0 || !bp.price_per_month)
-        );
-        
-        for (const trialPkg of trialPackages) {
-          // ✅ CRITICAL FIX: ต้องส่ง owner_email ไปด้วยตอน update
-          const trialOwnerEmail = (trialPkg.owner_email && trialPkg.owner_email.trim() !== '') 
-            ? trialPkg.owner_email 
-            : ownerEmail;
-
-          await base44.asServiceRole.entities.BranchPackage.update(trialPkg.id, { 
-            status: 'cancelled',
-            owner_email: trialOwnerEmail,
-            notes: (trialPkg.notes || '') + `\n❌ ยกเลิกเมื่อ ${new Date().toISOString().split('T')[0]} (อัปเกรดเป็น ${package_name})`
-          });
-          console.log(`✅ Cancelled trial package for branch ${targetBranchId}:`, trialPkg.id);
-        }
-
-        // หา active package ที่ไม่ใช่ trial
-        const currentActivePackage = branchPackages.find(bp => 
-          bp.branch_id === targetBranchId && 
-          bp.status === 'active' && 
-          bp.package_id !== 'trial' && 
-          bp.price_per_month > 0
-        );
-
-        // ✅ Final validation ก่อนบันทึก
-        if (!ownerEmail || ownerEmail === '' || ownerEmail === 'undefined' || ownerEmail === 'null') {
-          console.error('❌ CRITICAL: ownerEmail is invalid:', ownerEmail);
-          throw new Error(`owner_email is required but has invalid value: ${ownerEmail}`);
-        }
-
-        console.log(`📦 Processing branch ${targetBranchId} for owner ${ownerEmail}`);
-
-        if (currentActivePackage) {
-          // ✅ Update existing package - ระบุ field ทั้งหมดชัดเจน
-          // 🔍 FIXED: ป้องกัน empty string "" ที่จะทำให้ owner_email เป็นค่าว่าง
-          const existingOwnerEmail = currentActivePackage.owner_email;
-          const finalOwnerEmail = (existingOwnerEmail && existingOwnerEmail.trim() !== '') 
-            ? existingOwnerEmail 
-            : ownerEmail;
-          
-          console.log('🔍 Owner Email for Update:', {
-            existing: existingOwnerEmail,
-            new: ownerEmail,
-            final: finalOwnerEmail
-          });
-          
-          const updateData = {
-            package_id: package_id,
-            package_name: package_name,
-            owner_email: finalOwnerEmail,
-            subscription_start_date: startDate.toISOString().split('T')[0],
-            subscription_end_date: endDate.toISOString().split('T')[0],
-            status: 'active',
-            price_per_month: parseFloat(price_per_month),
-            features: [],
-            notes: `✅ ชำระเงินเมื่อ ${new Date().toISOString().split('T')[0]}\n✅ ตรวจสอบสลิปโดย Slip2Go${testModeEnabled ? ' (TEST MODE)' : ''}\n💰 จำนวนเงิน: ${slipAmount.toLocaleString()} บาท\n👤 จาก: ${senderName}\n🏦 เข้าบัญชี: ${receiverAccount || receiverProxyAccount || receiverName}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)${targetBranchIds.length > 1 ? `\n🏢 ซื้อพร้อมกับอีก ${targetBranchIds.length - 1} สาขา` : ''}`
-          };
-          
-          console.log('🔄 Updating package:', currentActivePackage.id, 'Data:', JSON.stringify(updateData, null, 2));
-          await base44.asServiceRole.entities.BranchPackage.update(currentActivePackage.id, updateData);
-          console.log(`✅ Updated BranchPackage for branch ${targetBranchId}`);
-        } else {
-          // ✅ Create new package - ระบุ field ทั้งหมดชัดเจน ไม่ใช้ spread
-          
-          // 🔍 CRITICAL VALIDATION ก่อนสร้าง
-          console.log('🔍 Step 3: Pre-create validation for branch:', targetBranchId);
-          console.log('   ownerEmail value:', ownerEmail);
-          console.log('   ownerEmail type:', typeof ownerEmail);
-          console.log('   ownerEmail trimmed:', ownerEmail?.trim());
-          console.log('   Is valid string?:', typeof ownerEmail === 'string' && ownerEmail.trim().length > 0);
-          
-          // 🛡️ Final safety check
-          if (!ownerEmail || typeof ownerEmail !== 'string' || ownerEmail.trim() === '') {
-            console.error('❌ CRITICAL ERROR: ownerEmail is invalid right before create!');
-            console.error('   Value:', ownerEmail);
-            console.error('   Payload user_email:', user_email);
-            console.error('   Auth user.email:', user.email);
-            throw new Error(`CRITICAL: owner_email is ${ownerEmail} (${typeof ownerEmail})`);
-          }
-          
-          const createData = {
-            branch_id: targetBranchId,
-            package_id: package_id,
-            package_name: package_name,
-            owner_email: ownerEmail.trim(),
-            subscription_start_date: startDate.toISOString().split('T')[0],
-            subscription_end_date: endDate.toISOString().split('T')[0],
-            status: 'active',
-            price_per_month: parseFloat(price_per_month),
-            features: [],
-            notes: is_free 
-              ? `🎉 แพ็กเกจฟรี (ส่วนลด 100%)\n✅ เปิดใช้งานเมื่อ ${new Date().toISOString().split('T')[0]}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)${discount_code ? `\n🎟️ รหัสส่วนลด: ${discount_code}` : ''}${targetBranchIds.length > 1 ? `\n🏢 ใช้ได้กับ ${targetBranchIds.length} สาขา` : ''}`
-              : `✅ ชำระเงินเมื่อ ${new Date().toISOString().split('T')[0]}\n✅ ตรวจสอบสลิปโดย Slip2Go${testModeEnabled ? ' (TEST MODE)' : ''}\n💰 จำนวนเงิน: ${slipAmount.toLocaleString()} บาท\n👤 จาก: ${senderName}\n🏦 เข้าบัญชี: ${receiverAccount || receiverProxyAccount || receiverName}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)${targetBranchIds.length > 1 ? `\n🏢 ซื้อพร้อมกับอีก ${targetBranchIds.length - 1} สาขา` : ''}`
-          };
-          
-          console.log('➕ Step 4: Creating new package');
-          console.log('   Data to create:', JSON.stringify(createData, null, 2));
-          console.log('   Specifically owner_email:', createData.owner_email, 'length:', createData.owner_email?.length);
-          
-          const createdPackage = await base44.asServiceRole.entities.BranchPackage.create(createData);
-          console.log(`✅ Created BranchPackage for branch ${targetBranchId}:`, createdPackage?.id);
-        }
-      }
-
-      // อัปเดต AppSubscription (global)
-      const subscriptions = await base44.asServiceRole.entities.AppSubscription.list('-created_date', 1);
-      const currentSub = subscriptions[0];
-      
-      if (currentSub) {
-        await base44.asServiceRole.entities.AppSubscription.update(currentSub.id, {
-          status: 'active',
-          package_id: package_id,
-          package_name: package_name,
-          subscription_end_date: endDate.toISOString().split('T')[0],
-          subscription_start_date: startDate.toISOString().split('T')[0],
-          subscription_duration_months: duration_months,
-          price_per_month: price_per_month,
-          total_price: total_amount,
-          payment_status: 'paid',
-          slip_url: slip_url,
-          notes: `✅ ชำระเงินเมื่อ ${new Date().toISOString().split('T')[0]}\n🏢 จำนวนสาขา: ${targetBranchIds.length}\n📦 แพ็กเกจ: ${package_name} (${duration_months} เดือน = ${daysToAdd} วัน)`
-        });
-        console.log('✅ AppSubscription updated');
-      }
-
     } else {
-      console.log('📦 Single-Tenant Mode: Updating AppSubscription');
+      startDate = new Date(today);
+    }
 
-      // คำนวณวันที่ - นับต่อจาก subscription เก่าถ้ายังไม่หมดอายุ
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      daysToAdd = parseInt(duration_months) * 30;
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + daysToAdd);
+    endDate.setHours(23, 59, 59, 999);
 
-      const subscriptions = await base44.asServiceRole.entities.AppSubscription.list('-created_date', 1);
-      const currentSub = subscriptions[0];
+    console.log('📅 Start Date:', startDate.toISOString().split('T')[0]);
+    console.log('📅 End Date:', endDate.toISOString().split('T')[0]);
+    console.log('📅 Duration:', duration_months, 'months =', daysToAdd, 'days');
 
-      if (currentSub && currentSub.subscription_end_date && currentSub.status === 'active') {
-        const currentEndDate = new Date(currentSub.subscription_end_date);
-        currentEndDate.setHours(23, 59, 59, 999);
+    // ⭐ อัปเดต User entity ของเจ้าของหอพัก
+    await base44.asServiceRole.entities.User.update(user.id, {
+      plan_status: 'active',
+      subscription_end_date: endDate.toISOString().split('T')[0],
+      package_id: package_id,
+      package_name: package_name,
+      trial_ends_at: null // ล้าง trial_ends_at เมื่อซื้อแพ็กเกจแล้ว
+    });
+    console.log('✅ User package updated for:', user.email);
 
-        if (currentEndDate > today) {
-          // นับต่อจาก subscription เก่า
-          startDate = new Date(currentEndDate);
-          startDate.setDate(startDate.getDate() + 1);
-          startDate.setHours(0, 0, 0, 0);
-        } else {
-          startDate = new Date(today);
-        }
-      } else {
-        startDate = new Date(today);
-      }
+    // ⭐ อัปเดต AppSubscription (สำหรับ backward compatibility)
+    const subscriptions = await base44.asServiceRole.entities.AppSubscription.list('-created_date', 1);
+    const currentSub = subscriptions[0];
+    
+    const subscriptionData = {
+      status: 'active',
+      package_id: package_id,
+      package_name: package_name,
+      subscription_start_date: startDate.toISOString().split('T')[0],
+      subscription_end_date: endDate.toISOString().split('T')[0],
+      subscription_duration_months: duration_months,
+      price_per_month: price_per_month,
+      total_price: total_amount,
+      slip_url: slip_url || null,
+      payment_status: 'paid',
+      notes: is_free
+        ? `🎉 แพ็กเกจฟรี (ส่วนลด 100%)\n✅ เปิดใช้งานเมื่อ ${new Date().toISOString().split('T')[0]}\n👤 เจ้าของ: ${user.email}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)${discount_code ? `\n🎟️ รหัสส่วนลด: ${discount_code}` : ''}`
+        : `✅ ชำระเงินเมื่อ ${new Date().toISOString().split('T')[0]}\n✅ ตรวจสอบสลิปโดย Slip2Go${testModeEnabled ? ' (TEST MODE)' : ''}\n💰 จำนวนเงิน: ${slipAmount.toLocaleString()} บาท\n👤 จาก: ${senderName}\n👤 เจ้าของ: ${user.email}\n🏦 เข้าบัญชี: ${receiverAccount || receiverProxyAccount || receiverName}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)`
+    };
 
-      endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + daysToAdd);
-      endDate.setHours(23, 59, 59, 999);
-
-      console.log('📅 Start Date:', startDate.toISOString().split('T')[0]);
-      console.log('📅 End Date:', endDate.toISOString());
-      console.log('📅 Duration:', duration_months, 'months =', daysToAdd, 'days');
-
-      const subscriptionData = {
-        status: 'active',
-        package_id: package_id,
-        package_name: package_name,
-        subscription_start_date: startDate.toISOString().split('T')[0],
-        subscription_end_date: endDate.toISOString().split('T')[0],
-        subscription_duration_months: duration_months,
-        price_per_month: price_per_month,
-        total_price: total_amount,
-        slip_url: slip_url || null,
-        payment_status: 'paid',
-        features: currentSub?.features || [],
-        notes: is_free
-          ? `🎉 แพ็กเกจฟรี (ส่วนลด 100%)\n✅ เปิดใช้งานเมื่อ ${new Date().toISOString().split('T')[0]}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)${discount_code ? `\n🎟️ รหัสส่วนลด: ${discount_code}` : ''}`
-          : `✅ ชำระเงินเมื่อ ${new Date().toISOString().split('T')[0]}\n✅ ตรวจสอบสลิปโดย Slip2Go${testModeEnabled ? ' (TEST MODE)' : ''}\n💰 จำนวนเงิน: ${slipAmount.toLocaleString()} บาท\n👤 จาก: ${senderName}\n🏦 เข้าบัญชี: ${receiverAccount || receiverProxyAccount || receiverName}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)`
-      };
-
-      if (currentSub) {
-        await base44.asServiceRole.entities.AppSubscription.update(currentSub.id, subscriptionData);
-        console.log('✅ Subscription updated:', currentSub.id);
-      } else {
-        await base44.asServiceRole.entities.AppSubscription.create({
-          app_name: 'Dormitory Management System',
-          ...subscriptionData
-        });
-        console.log('✅ New subscription created');
-      }
+    if (currentSub) {
+      await base44.asServiceRole.entities.AppSubscription.update(currentSub.id, subscriptionData);
+      console.log('✅ AppSubscription updated');
+    } else {
+      await base44.asServiceRole.entities.AppSubscription.create({
+        app_name: 'Dormitory Management System',
+        ...subscriptionData
+      });
+      console.log('✅ New AppSubscription created');
     }
 
     // ⭐ ปิดการส่งข้อมูลไป CRM
