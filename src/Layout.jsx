@@ -512,12 +512,12 @@ export default function Layout({ children, currentPageName }) {
     },
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: Infinity, // ⭐ Cache ตลอด
+    staleTime: Infinity,
     gcTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    enabled: isOnline,
+    enabled: isOnline && !isPublicPage, // ⚡ ไม่โหลดถ้าเป็น public page
     networkMode: 'online',
     onError: () => setRetryCount(prev => prev + 1),
     placeholderData: (previousData) => previousData,
@@ -633,8 +633,8 @@ export default function Layout({ children, currentPageName }) {
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
-    enabled: !isLoading && !!currentUser && isOnline,
-    staleTime: Infinity, // ⭐ Cache ตลอด
+    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage, // ⚡ ไม่โหลดถ้าเป็น public page
+    staleTime: Infinity,
     gcTime: Infinity,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -649,8 +649,8 @@ export default function Layout({ children, currentPageName }) {
   const { data: configs = [], isLoading: configsLoading } = useQuery({
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
-    enabled: !isLoading && !!currentUser && isOnline,
-    staleTime: Infinity, // ⭐ Cache ตลอด
+    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage, // ⚡ ไม่โหลดถ้าเป็น public page
+    staleTime: Infinity,
     gcTime: Infinity,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),

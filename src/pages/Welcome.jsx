@@ -33,7 +33,9 @@ export default function Welcome() {
     if (isAuthenticated) {
       navigate(createPageUrl('BranchSelection'));
     } else {
-      base44.auth.redirectToLogin(window.location.origin + createPageUrl('BranchSelection'));
+      // ⚡ Fix: ไม่ต้องใส่ window.location.origin เพราะ redirectToLogin รับ path เดียว
+      const nextUrl = window.location.origin + '/BranchSelection';
+      base44.auth.redirectToLogin(nextUrl);
     }
   };
 
