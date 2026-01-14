@@ -726,9 +726,18 @@ export default function Layout({ children, currentPageName }) {
       return 'developer';
     }
     
-    const role = currentUser?.custom_role || 'employee';
+    let effectiveRole = currentUser?.custom_role;
+    
+    // ⭐ FIX: ใช้ crmAccess.role เป็น fallback ถ้า custom_role ยัง undefined
+    if (!effectiveRole && crmAccess && !crmAccessLoading && crmAccess.role) {
+      effectiveRole = crmAccess.role;
+      console.log('💡 Layout: Using CRM role as fallback:', effectiveRole);
+    }
+    
+    const role = effectiveRole || 'employee';
     console.log('👤 User Role Calculation:', {
       custom_role: currentUser?.custom_role,
+      crm_role: crmAccess?.role,
       base_role: currentUser?.role,
       calculated_role: role
     });
@@ -858,6 +867,12 @@ export default function Layout({ children, currentPageName }) {
           currentPageName === 'NoPackagePage' ||
           currentPageName === 'PackageSelection') return;
 
+      // ⭐ FIX: รอ CRM check เสร็จก่อนถ้า custom_role ยัง undefined (ป้องกัน race condition)
+      if (!currentUser.custom_role && crmAccessLoading) {
+        console.log('⏳ Waiting for CRM role sync before checking subscription...');
+        return;
+      }
+
       const planStatus = currentUser.plan_status;
       const trialEndsAt = currentUser.trial_ends_at;
 
@@ -881,7 +896,7 @@ export default function Layout({ children, currentPageName }) {
         } catch {}
       }
     }
-  }, [isLoading, currentUser, navigate, currentPageName, error]);
+  }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading]);
 
   useEffect(() => {
     console.log('🔍 Layout Branch Check:', {
@@ -1247,9 +1262,9 @@ export default function Layout({ children, currentPageName }) {
   }
 
   // Render loading screen
-  // ⭐ FIX: ต้องแสดง loading ถ้า user โหลดแล้วแต่ CRM ยังเช็คอยู่ ไม่งั้นจะหน้าขาว
-  const shouldShowLoading = isLoading || branchesLoading || configsLoading || 
-                            (!isLoading && !!currentUser && crmAccessLoading && !crmAccess && !crmAccessError);
+  // ⭐ FIX: รอ CRM check เสร็จถ้า custom_role ยัง undefined
+  const needsCRMRoleSync = !isLoading && !!currentUser && !currentUser.custom_role && crmAccessLoading;
+  const shouldShowLoading = isLoading || branchesLoading || configsLoading || needsCRMRoleSync;
 
   if (shouldShowLoading) {
     return (
@@ -1279,8 +1294,11 @@ export default function Layout({ children, currentPageName }) {
           <div className="text-center space-y-3 max-w-xs mx-auto px-4">
             <h2 className="text-2xl font-bold text-slate-800">กำลังโหลด</h2>
             <p className="text-slate-600 leading-relaxed">
-              กรุณารอสักครู่<br/>
-              ระบบกำลังเตรียมข้อมูลให้คุณ
+              {needsCRMRoleSync ? (
+                <>กำลังตรวจสอบสิทธิ์...<br/>กรุณารอสักครู่</>
+              ) : (
+                <>กรุณารอสักครู่<br/>ระบบกำลังเตรียมข้อมูลให้คุณ</>
+              )}
             </p>
           </div>
         </motion.div>
