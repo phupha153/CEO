@@ -576,14 +576,16 @@ export default function Layout({ children, currentPageName }) {
           // ⭐ อัพเดทเฉพาะเมื่อ role ไม่ตรงกัน
           if (currentRole !== crmRole) {
             console.log('⚡ Updating role from', currentRole, 'to', crmRole);
-            
+
             try {
-              await base44.entities.User.update(currentUser.id, { custom_role: crmRole });
+              await base44.auth.updateMe({ custom_role: crmRole });
+              console.log('✅ Role updated successfully');
               await queryClient.invalidateQueries(['currentUser']);
               await new Promise(resolve => setTimeout(resolve, 1000));
               window.location.reload();
             } catch (error) {
-              console.error('❌ Role update failed:', error);
+              console.error('❌ Role update failed:', error.message);
+              console.error('Error details:', error);
             }
           }
         }
@@ -759,8 +761,6 @@ export default function Layout({ children, currentPageName }) {
   };
 
 
-  // ⭐ ยกเลิก Auto-init trial ที่ Layout - ให้สร้างเมื่อสร้างสาขาแรกแทน
-
   // ⭐ Auto-init trial สำหรับ Owner ที่ยังไม่มี plan_status
   useEffect(() => {
     const initTrialIfNeeded = async () => {
@@ -784,7 +784,7 @@ export default function Layout({ children, currentPageName }) {
     };
 
     initTrialIfNeeded();
-  }, [isLoading, currentUser?.id, currentUser?.plan_status, currentUser?.custom_role, currentUser?.role]);
+  }, [isLoading, currentUser?.id, currentUser?.plan_status, userRole]);
 
   // ⭐ User-centric subscription check (ใช้ที่ effect แล้ว - ไม่ต้องใช้ตัวแปร subscriptionCheck อีก)
 
