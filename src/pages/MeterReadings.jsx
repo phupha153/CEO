@@ -416,7 +416,7 @@ export default function MeterReadings() {
       return base44.entities.MeterReading.create(readingData);
     },
     onSuccess: async (newReading, variables) => {
-      queryClient.invalidateQueries(['meterReadings', selectedBranchId]);
+      await queryClient.invalidateQueries(['meterReadings', selectedBranchId]);
       
       // บันทึก log
       const room = rooms.find(r => r.id === newReading.room_id);
@@ -1235,24 +1235,28 @@ export default function MeterReadings() {
         icon={Gauge}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              onClick={handleDownloadTemplate}
-              variant="outline"
-              className="border-green-600 text-green-600 hover:bg-green-50"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              ดาวน์โหลด
-            </Button>
+            {userRole !== 'developer' && (
+              <>
+                <Button
+                  onClick={handleDownloadTemplate}
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  ดาวน์โหลด
+                </Button>
 
-            {canAdd && (
-              <ExcelUploader
-                entityName="มิเตอร์"
-                templateFields={['หมายเลขห้อง', 'มิเตอร์น้ำปัจจุบัน', 'มิเตอร์ไฟปัจจุบัน']}
-                onImport={handleImportData}
-                buttonVariant="outline"
-                buttonClassName="border-blue-600 text-blue-600 hover:bg-blue-50"
-                hideDownloadTemplate={true}
-              />
+                {canAdd && (
+                  <ExcelUploader
+                    entityName="มิเตอร์"
+                    templateFields={['หมายเลขห้อง', 'มิเตอร์น้ำปัจจุบัน', 'มิเตอร์ไฟปัจจุบัน']}
+                    onImport={handleImportData}
+                    buttonVariant="outline"
+                    buttonClassName="border-blue-600 text-blue-600 hover:bg-blue-50"
+                    hideDownloadTemplate={true}
+                  />
+                )}
+              </>
             )}
 
             {viewMode === 'table' && Object.keys(bulkReadings).length > 0 && (
@@ -1856,25 +1860,8 @@ export default function MeterReadings() {
                           setSelectedReadingVersion(e.target.value);
                           setBulkReadings({}); // ล้างค่าเมื่อเปลี่ยนเวอร์ชัน
                           
-                          // ถ้าเลือกเวอร์ชันเก่า ให้โหลดค่าเข้ามา
-                          if (e.target.value !== 'new' && !e.target.value.startsWith('view_')) {
-                            const newBulkReadings = {};
-                            rooms.forEach(room => {
-                              const reading = meterReadings.find(r => r.id === e.target.value && r.room_id === room.id) 
-                                || meterReadings.find(r => r.room_id === room.id && r.reading_date === meterReadings.find(mr => mr.id === e.target.value)?.reading_date);
-                              if (reading) {
-                                newBulkReadings[room.id] = {
-                                  water_previous: reading.water_previous,
-                                  water_current: reading.water_current,
-                                  electricity_previous: reading.electricity_previous,
-                                  electricity_current: reading.electricity_current
-                                };
-                              }
-                            });
-                            setBulkReadings(newBulkReadings);
-                            setBulkReadingDate(meterReadings.find(r => r.id === e.target.value)?.reading_date || new Date().toISOString().split('T')[0]);
-                          } else if (e.target.value.startsWith('view_')) {
-                            // โหมดดูประวัติ
+                          // โหมดดูประวัติ
+                          if (e.target.value.startsWith('view_')) {
                             const viewDate = e.target.value.replace('view_', '');
                             setBulkReadingDate(viewDate);
                           } else {
@@ -1884,8 +1871,8 @@ export default function MeterReadings() {
                         className="p-2 border rounded-lg min-w-[200px]"
                       >
                         <option value="new">➕ บันทึกใหม่ (วันนี้)</option>
-                        {/* แสดงประวัติจัดกลุ่มตามวันที่ - ดูอย่างเดียว (สำหรับพนักงาน) */}
-                        {!(canEditHistory || userRole === 'owner' || userRole === 'developer') && (() => {
+                        {/* แสดงประวัติจัดกลุ่มตามวันที่ - ดูอย่างเดียว (แสดงทั้ง developer และพนักงาน) */}
+                        {(() => {
                           const dateGroups = {};
                           meterReadings.forEach(r => {
                             if (!dateGroups[r.reading_date]) {
@@ -1901,30 +1888,8 @@ export default function MeterReadings() {
                               </option>
                             ));
                         })()}
-                        {/* แก้ไขประวัติ - เจ้าของ, developer, หรือคนที่มีสิทธิ์ (จำกัด 5 ครั้งล่าสุด) */}
-                        {(canEditHistory || userRole === 'owner' || userRole === 'developer') && (() => {
-                          const dateGroups = {};
-                          meterReadings.forEach(r => {
-                            if (!dateGroups[r.reading_date]) {
-                              dateGroups[r.reading_date] = r;
-                            }
-                          });
-                          return Object.entries(dateGroups)
-                            .sort((a, b) => b[0].localeCompare(a[0]))
-                            .slice(0, 5) // จำกัดแค่ 5 ครั้งล่าสุด
-                            .map(([date, reading]) => (
-                              <option key={reading.id} value={reading.id}>
-                                📝 แก้ไข: {format(parseISO(date), 'd MMM yyyy', { locale: th })}
-                              </option>
-                            ));
-                        })()}
                       </select>
                     </div>
-                    {selectedReadingVersion !== 'new' && !selectedReadingVersion.startsWith('view_') && (
-                      <Badge className="bg-amber-100 text-amber-700">
-                        โหมดแก้ไข
-                      </Badge>
-                    )}
                     {selectedReadingVersion.startsWith('view_') && (
                       <Badge className="bg-blue-100 text-blue-700">
                         ดูประวัติ
@@ -1968,9 +1933,8 @@ export default function MeterReadings() {
                                 const waterPrevious = hasExistingReading ? latest.water_current : '';
                                 const electricityPrevious = hasExistingReading ? latest.electricity_current : '';
                                 
-                                // โหมดดูประวัติ (เฉพาะพนักงานที่ไม่มีสิทธิ์แก้ไข)
-                                const canEditMeterHistory = canEditHistory || userRole === 'owner' || userRole === 'developer';
-                                const isViewMode = selectedReadingVersion.startsWith('view_') && !canEditMeterHistory;
+                                // โหมดดูประวัติ (ทุกคนที่เลือก view_)
+                                const isViewMode = selectedReadingVersion.startsWith('view_');
                                 const viewDate = isViewMode ? selectedReadingVersion.replace('view_', '') : null;
                                 const historyReading = viewDate ? meterReadings.find(r => r.room_id === room.id && r.reading_date === viewDate) : null;
                                 
@@ -1993,148 +1957,82 @@ export default function MeterReadings() {
                                       // โหมดดูประวัติ - แสดงข้อมูลอย่างเดียว
                                       <>
                                         <td className="px-4 py-3 text-center">
-                                          <span className="font-medium text-slate-600">{historyReading?.water_previous ?? '-'}</span>
+                                          <div className="font-medium text-slate-600 bg-slate-100 rounded px-2 py-1.5">
+                                            {historyReading?.water_previous ?? '-'}
+                                          </div>
                                         </td>
                                         <td className="px-4 py-3 text-center">
-                                          <span className="font-bold text-blue-600">{historyReading?.water_current ?? '-'}</span>
-                                          {historyReading && (
-                                            <span className="text-xs text-slate-500 ml-1">({historyReading.water_units})</span>
-                                          )}
+                                          <div className="font-bold text-blue-600 bg-blue-50 rounded px-2 py-1.5">
+                                            {historyReading?.water_current ?? '-'}
+                                            {historyReading && (
+                                              <span className="text-xs text-slate-500 ml-1">({historyReading.water_units})</span>
+                                            )}
+                                          </div>
                                         </td>
                                         <td className="px-4 py-3 text-center">
-                                          <span className="font-medium text-slate-600">{historyReading?.electricity_previous ?? '-'}</span>
+                                          <div className="font-medium text-slate-600 bg-slate-100 rounded px-2 py-1.5">
+                                            {historyReading?.electricity_previous ?? '-'}
+                                          </div>
                                         </td>
                                         <td className="px-4 py-3 text-center">
-                                          <span className="font-bold text-yellow-600">{historyReading?.electricity_current ?? '-'}</span>
-                                          {historyReading && (
-                                            <span className="text-xs text-slate-500 ml-1">({historyReading.electricity_units})</span>
-                                          )}
+                                          <div className="font-bold text-yellow-600 bg-yellow-50 rounded px-2 py-1.5">
+                                            {historyReading?.electricity_current ?? '-'}
+                                            {historyReading && (
+                                              <span className="text-xs text-slate-500 ml-1">({historyReading.electricity_units})</span>
+                                            )}
+                                          </div>
                                         </td>
                                       </>
                                     ) : (
-                                      // โหมดบันทึก/แก้ไข
-                                      <>
-                                        <td className="px-4 py-3">
-                                          {canEditMeterHistory ? (
-                                            <Input
-                                              type="number"
-                                              step="0.01"
-                                              placeholder="ก่อน"
-                                              value={bulkReadings[room.id]?.water_previous ?? waterPrevious ?? ''}
-                                              onChange={(e) => setBulkReadings({
-                                                ...bulkReadings,
-                                                [room.id]: {
-                                                  ...bulkReadings[room.id],
-                                                  water_previous: e.target.value,
-                                                  water_current: bulkReadings[room.id]?.water_current ?? ''
-                                                }
-                                              })}
-                                              className="w-24 text-center"
-                                            />
-                                          ) : hasExistingReading ? (
-                                            <div className="text-center font-medium text-slate-700 bg-slate-100 rounded px-2 py-1.5">
-                                              {waterPrevious}
-                                            </div>
-                                          ) : (
-                                            <Input
-                                              type="number"
-                                              step="0.01"
-                                              placeholder="ตั้งต้น"
-                                              value={bulkReadings[room.id]?.water_previous ?? ''}
-                                              onChange={(e) => setBulkReadings({
-                                                ...bulkReadings,
-                                                [room.id]: {
-                                                  ...bulkReadings[room.id],
-                                                  water_previous: e.target.value
-                                                }
-                                              })}
-                                              className="w-24 text-center border-amber-300 focus:border-amber-500"
-                                            />
-                                          )}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                          <Input
-                                            type="number"
-                                            step="0.01"
-                                            placeholder="เช่น 150.5"
-                                            value={bulkReadings[room.id]?.water_current ?? ''}
-                                            onChange={(e) => {
-                                              const newValue = e.target.value;
-                                              setBulkReadings({
-                                                ...bulkReadings,
-                                                [room.id]: {
-                                                  ...bulkReadings[room.id],
-                                                  water_current: newValue,
-                                                  water_previous: canEditMeterHistory 
-                                                    ? (bulkReadings[room.id]?.water_previous ?? waterPrevious ?? '')
-                                                    : (hasExistingReading ? waterPrevious : (bulkReadings[room.id]?.water_previous ?? ''))
-                                                }
-                                              });
-                                            }}
-                                            className="w-32"
-                                          />
-                                        </td>
-                                        <td className="px-4 py-3">
-                                          {canEditMeterHistory ? (
-                                            <Input
-                                              type="number"
-                                              step="0.01"
-                                              placeholder="ก่อน"
-                                              value={bulkReadings[room.id]?.electricity_previous ?? electricityPrevious ?? ''}
-                                              onChange={(e) => setBulkReadings({
-                                                ...bulkReadings,
-                                                [room.id]: {
-                                                  ...bulkReadings[room.id],
-                                                  electricity_previous: e.target.value,
-                                                  electricity_current: bulkReadings[room.id]?.electricity_current ?? ''
-                                                }
-                                              })}
-                                              className="w-24 text-center"
-                                            />
-                                          ) : hasExistingReading ? (
-                                            <div className="text-center font-medium text-slate-700 bg-slate-100 rounded px-2 py-1.5">
-                                              {electricityPrevious}
-                                            </div>
-                                          ) : (
-                                            <Input
-                                              type="number"
-                                              step="0.01"
-                                              placeholder="ตั้งต้น"
-                                              value={bulkReadings[room.id]?.electricity_previous ?? ''}
-                                              onChange={(e) => setBulkReadings({
-                                                ...bulkReadings,
-                                                [room.id]: {
-                                                  ...bulkReadings[room.id],
-                                                  electricity_previous: e.target.value
-                                                }
-                                              })}
-                                              className="w-24 text-center border-amber-300 focus:border-amber-500"
-                                            />
-                                          )}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                          <Input
-                                            type="number"
-                                            step="0.01"
-                                            placeholder="เช่น 250.0"
-                                            value={bulkReadings[room.id]?.electricity_current ?? ''}
-                                            onChange={(e) => {
-                                              const newValue = e.target.value;
-                                              setBulkReadings({
-                                                ...bulkReadings,
-                                                [room.id]: {
-                                                  ...bulkReadings[room.id],
-                                                  electricity_current: newValue,
-                                                  electricity_previous: canEditMeterHistory 
-                                                    ? (bulkReadings[room.id]?.electricity_previous ?? electricityPrevious ?? '')
-                                                    : (hasExistingReading ? electricityPrevious : (bulkReadings[room.id]?.electricity_previous ?? ''))
-                                                }
-                                              });
-                                            }}
-                                            className="w-32"
-                                          />
-                                        </td>
-                                      </>
+                                     // โหมดบันทึก/แก้ไข
+                                     <>
+                                       <td className="px-4 py-3 text-center">
+                                         <span className="font-medium text-slate-700">{waterPrevious || '0'}</span>
+                                       </td>
+                                       <td className="px-4 py-3">
+                                         <Input
+                                           type="number"
+                                           step="0.01"
+                                           placeholder="เช่น 150.5"
+                                           value={bulkReadings[room.id]?.water_current ?? ''}
+                                           onChange={(e) => {
+                                             const newValue = e.target.value;
+                                             setBulkReadings({
+                                               ...bulkReadings,
+                                               [room.id]: {
+                                                 ...bulkReadings[room.id],
+                                                 water_current: newValue,
+                                                 water_previous: hasExistingReading ? waterPrevious : (bulkReadings[room.id]?.water_previous ?? '')
+                                               }
+                                             });
+                                           }}
+                                           className="w-32"
+                                         />
+                                       </td>
+                                       <td className="px-4 py-3 text-center">
+                                         <span className="font-medium text-slate-700">{electricityPrevious || '0'}</span>
+                                       </td>
+                                       <td className="px-4 py-3">
+                                         <Input
+                                           type="number"
+                                           step="0.01"
+                                           placeholder="เช่น 250.0"
+                                           value={bulkReadings[room.id]?.electricity_current ?? ''}
+                                           onChange={(e) => {
+                                             const newValue = e.target.value;
+                                             setBulkReadings({
+                                               ...bulkReadings,
+                                               [room.id]: {
+                                                 ...bulkReadings[room.id],
+                                                 electricity_current: newValue,
+                                                 electricity_previous: hasExistingReading ? electricityPrevious : (bulkReadings[room.id]?.electricity_previous ?? '')
+                                               }
+                                             });
+                                           }}
+                                           className="w-32"
+                                         />
+                                       </td>
+                                     </>
                                     )}
                                   </tr>
                                 );
