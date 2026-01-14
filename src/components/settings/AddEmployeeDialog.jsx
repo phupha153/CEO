@@ -52,30 +52,31 @@ export default function AddEmployeeDialog({ isOpen, onClose, onSuccess }) {
     enabled: isOpen && !!currentUser,
   });
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
   const userAccessibleBranches = currentUser?.accessible_branches;
 
-  // กรองสาขาที่แสดงให้เลือก: ถ้าเป็น developer หรือไม่ set accessible_branches = เห็นทุกสาขา
   const branches = React.useMemo(() => {
-    if (!currentUser) return [];
-    const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
+    if (!currentUser || !allBranches.length) return [];
 
-    // Developer sees all branches
+    // Developer sees all branches.
     if (userRole === 'developer') {
-        return allBranches;
+      return allBranches;
     }
 
-    const myAccessibleBranches = currentUser?.accessible_branches;
-
-    // If user has an explicit list of accessible branches, use that list.
-    if (myAccessibleBranches !== null && myAccessibleBranches !== undefined) {
-      return allBranches.filter(b => myAccessibleBranches.includes(b.id));
+    // Owner should only see branches they own.
+    if (userRole === 'owner') {
+      return allBranches.filter(branch => branch.owner_id === currentUser.email || branch.created_by === currentUser.email);
     }
-    
-    // Fallback for owners: If no explicit list, show branches they own by email.
-    return allBranches.filter(b => b.owner_id === currentUser.email || b.created_by === currentUser.email);
 
-  }, [allBranches, currentUser]);
+    // Employees/Managers should only see branches they are assigned to.
+    if (userAccessibleBranches && Array.isArray(userAccessibleBranches)) {
+      const accessibleBranchIds = new Set(userAccessibleBranches);
+      return allBranches.filter(branch => accessibleBranchIds.has(branch.id));
+    }
+
+    // Default to no branches if no permissions found.
+    return [];
+  }, [allBranches, currentUser, userRole, userAccessibleBranches]);
 
   const toggleBranchAccess = (branchId) => {
     setFormData(prev => {
