@@ -18,11 +18,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ตั้งค่า trial 30 วัน
+    // ตั้งค่า trial 30 วัน (ใช้ +31 เพื่อให้แสดง 30 วันในวันแรก)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const trialEndDate = new Date(today);
-    trialEndDate.setDate(today.getDate() + 30);
+    trialEndDate.setDate(today.getDate() + 31);
     trialEndDate.setHours(23, 59, 59, 999);
 
     await base44.auth.updateMe({

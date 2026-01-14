@@ -523,13 +523,37 @@ export default function BranchSelection() {
   
   if (isInitialLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-purple-100 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600 text-lg">
-            {needsRoleSync ? 'กำลังตรวจสอบสิทธิ์...' : 'กำลังโหลด...'}
-          </p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-purple-100 flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-blue-300/20 to-sky-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-tr from-sky-300/20 to-cyan-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="relative z-10"
+        >
+          <div className="relative mb-8">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-400/30 via-sky-400/30 to-cyan-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '3s' }} />
+            <div className="relative w-64 h-64 mx-auto rounded-full bg-gradient-to-br from-white/40 via-white/30 to-white/20 backdrop-blur-2xl border border-white/50 shadow-2xl flex items-center justify-center">
+              <div className="absolute inset-8 rounded-full bg-gradient-to-br from-white/30 to-white/10 backdrop-blur-xl animate-pulse" style={{ animationDuration: '2s' }} />
+              
+              <div className="absolute inset-12 rounded-full border-4 border-transparent border-t-blue-400/60 border-r-sky-400/60 animate-spin" style={{ animationDuration: '3s' }} />
+              
+              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-blue-500 to-sky-500 shadow-lg relative z-10" />
+            </div>
+          </div>
+
+          <div className="text-center space-y-3 max-w-xs mx-auto px-4">
+            <h2 className="text-2xl font-bold text-slate-800">กำลังโหลด</h2>
+            <p className="text-slate-600 leading-relaxed">
+              กรุณารอสักครู่<br/>
+              ระบบกำลังเตรียมข้อมูลให้คุณ
+            </p>
+          </div>
+        </motion.div>
       </div>
     );
   }

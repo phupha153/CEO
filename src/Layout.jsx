@@ -1294,11 +1294,8 @@ export default function Layout({ children, currentPageName }) {
           <div className="text-center space-y-3 max-w-xs mx-auto px-4">
             <h2 className="text-2xl font-bold text-slate-800">กำลังโหลด</h2>
             <p className="text-slate-600 leading-relaxed">
-              {needsCRMRoleSync ? (
-                <>กำลังตรวจสอบสิทธิ์...<br/>กรุณารอสักครู่</>
-              ) : (
-                <>กรุณารอสักครู่<br/>ระบบกำลังเตรียมข้อมูลให้คุณ</>
-              )}
+              กรุณารอสักครู่<br/>
+              ระบบกำลังเตรียมข้อมูลให้คุณ
             </p>
           </div>
         </motion.div>
