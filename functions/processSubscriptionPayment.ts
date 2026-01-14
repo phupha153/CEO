@@ -340,8 +340,22 @@ Deno.serve(async (req) => {
     today.setHours(0, 0, 0, 0);
     const daysToAdd = parseInt(duration_months) * 30;
 
-    // นับต่อจาก subscription_end_date เก่าถ้ายังไม่หมดอายุ
     let startDate;
+    let bonusDays = 0;
+
+    // เช็คว่ามี trial เหลืออยู่หรือไม่
+    if (user.trial_ends_at && user.plan_status === 'trial') {
+      const trialEndDate = new Date(user.trial_ends_at);
+      trialEndDate.setHours(23, 59, 59, 999);
+
+      if (trialEndDate > today) {
+        // มี trial เหลืออยู่ - บวกวันที่เหลือเข้าไป
+        bonusDays = Math.ceil((trialEndDate - today) / (1000 * 60 * 60 * 24));
+        console.log(`🎁 Trial bonus: ${bonusDays} days remaining`);
+      }
+    }
+
+    // นับต่อจาก subscription_end_date เก่าถ้ายังไม่หมดอายุ
     if (user.subscription_end_date && user.plan_status === 'active') {
       const currentEndDate = new Date(user.subscription_end_date);
       currentEndDate.setHours(23, 59, 59, 999);
@@ -359,12 +373,16 @@ Deno.serve(async (req) => {
     }
 
     const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + daysToAdd);
+    endDate.setDate(endDate.getDate() + daysToAdd + bonusDays);
     endDate.setHours(23, 59, 59, 999);
 
     console.log('📅 Start Date:', startDate.toISOString().split('T')[0]);
     console.log('📅 End Date:', endDate.toISOString().split('T')[0]);
     console.log('📅 Duration:', duration_months, 'months =', daysToAdd, 'days');
+    if (bonusDays > 0) {
+      console.log('🎁 Bonus Days (from trial):', bonusDays, 'days');
+      console.log('📅 Total Days:', daysToAdd + bonusDays, 'days');
+    }
 
     // ⭐ อัปเดต User entity ของเจ้าของหอพัก
     await base44.asServiceRole.entities.User.update(user.id, {
@@ -392,8 +410,8 @@ Deno.serve(async (req) => {
       slip_url: slip_url || null,
       payment_status: 'paid',
       notes: is_free
-        ? `🎉 แพ็กเกจฟรี (ส่วนลด 100%)\n✅ เปิดใช้งานเมื่อ ${new Date().toISOString().split('T')[0]}\n👤 เจ้าของ: ${user.email}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)${discount_code ? `\n🎟️ รหัสส่วนลด: ${discount_code}` : ''}`
-        : `✅ ชำระเงินเมื่อ ${new Date().toISOString().split('T')[0]}\n✅ ตรวจสอบสลิปโดย Slip2Go${testModeEnabled ? ' (TEST MODE)' : ''}\n💰 จำนวนเงิน: ${slipAmount.toLocaleString()} บาท\n👤 จาก: ${senderName}\n👤 เจ้าของ: ${user.email}\n🏦 เข้าบัญชี: ${receiverAccount || receiverProxyAccount || receiverName}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)`
+        ? `🎉 แพ็กเกจฟรี (ส่วนลด 100%)\n✅ เปิดใช้งานเมื่อ ${new Date().toISOString().split('T')[0]}\n👤 เจ้าของ: ${user.email}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)${bonusDays > 0 ? `\n🎁 โบนัสจาก Trial: ${bonusDays} วัน` : ''}${discount_code ? `\n🎟️ รหัสส่วนลด: ${discount_code}` : ''}`
+        : `✅ ชำระเงินเมื่อ ${new Date().toISOString().split('T')[0]}\n✅ ตรวจสอบสลิปโดย Slip2Go${testModeEnabled ? ' (TEST MODE)' : ''}\n💰 จำนวนเงิน: ${slipAmount.toLocaleString()} บาท\n👤 จาก: ${senderName}\n👤 เจ้าของ: ${user.email}\n🏦 เข้าบัญชี: ${receiverAccount || receiverProxyAccount || receiverName}\n📦 ระยะเวลา: ${duration_months} เดือน (${daysToAdd} วัน)${bonusDays > 0 ? `\n🎁 โบนัสจาก Trial: ${bonusDays} วัน` : ''}`
     };
 
     if (currentSub) {
