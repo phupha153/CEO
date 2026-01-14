@@ -429,7 +429,7 @@ export default function MeterReadings() {
       toast.success('บันทึกมิเตอร์สำเร็จ');
       
       // บันทึก log ใน background
-      const room = rooms.find(r => r.id => newReading.room_id);
+      const room = rooms.find(r => r.id === newReading.room_id);
       base44.entities.ActivityLog.create({
         branch_id: selectedBranchId,
         action_type: 'create',
