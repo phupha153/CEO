@@ -388,6 +388,9 @@ Deno.serve(async (req) => {
 const nowForCalc = new Date();
 const thaiDateForCalc = new Date(nowForCalc.getTime() + (7 * 60 * 60 * 1000));
 const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
+
+        let feeCalculated = 0;
+        let feeSkipped = 0;
         
         for (const payment of paymentsToProcess) {
             const dueDate = startOfDay(parseISO(payment.due_date));
