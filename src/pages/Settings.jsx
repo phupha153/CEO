@@ -602,9 +602,9 @@ export default function Settings() {
     // ⭐ ถ้ามีสาขาเลือก ให้ดูของเจ้าของสาขา, ถ้าไม่มีให้ดูของตัวเอง
     const planStatus = branchOwnerStatus?.plan_status || currentUser.plan_status;
     const trialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
-    const subscriptionEndDate = currentUser.subscription_end_date;
-    const packageId = currentUser.package_id;
-    const packageName = currentUser.package_name; // ⭐ แก้ไข: ใช้ package_name จาก User
+    const subscriptionEndDate = branchOwnerStatus?.subscription_end_date || currentUser.subscription_end_date;
+    const packageId = branchOwnerStatus?.package_id || currentUser.package_id;
+    const packageName = branchOwnerStatus?.package_name || currentUser.package_name;
     
     // ถ้าไม่มี plan_status หรือ expired/cancelled = ไม่มี package
     if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {

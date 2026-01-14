@@ -42,6 +42,9 @@ Deno.serve(async (req) => {
             owner_name: owner.full_name,
             plan_status: owner.plan_status || 'trial',
             trial_ends_at: owner.trial_ends_at,
+            subscription_end_date: owner.subscription_end_date,
+            package_id: owner.package_id,
+            package_name: owner.package_name,
             is_owner: user.email === owner.email
         });
 
