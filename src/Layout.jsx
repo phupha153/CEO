@@ -803,6 +803,9 @@ export default function Layout({ children, currentPageName }) {
 
     // ⭐ Check subscription status and redirect
     if (!isLoading && currentUser) {
+      // ⚡ รอให้สร้างแพ็กเกจทดลองเสร็จก่อน
+      if (isCreatingTrial) return;
+
       // Skip check for developer and special pages
       if (userRole === 'developer') return;
       if (currentPageName === 'BranchSelection' ||
