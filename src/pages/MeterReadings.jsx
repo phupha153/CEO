@@ -415,20 +415,10 @@ export default function MeterReadings() {
 
       return base44.entities.MeterReading.create(readingData);
     },
-    onSuccess: async (newReading, variables) => {
-      await queryClient.invalidateQueries(['meterReadings', selectedBranchId]);
-      
-      // บันทึก log
-      const room = rooms.find(r => r.id === newReading.room_id);
-      await base44.entities.ActivityLog.create({
-        branch_id: selectedBranchId,
-        action_type: 'create',
-        entity_type: 'MeterReading',
-        entity_id: newReading.id,
-        entity_name: `ห้อง ${room?.room_number || 'N/A'}`,
-        user_email: currentUser?.email,
-        user_name: currentUser?.full_name,
-        description: `บันทึกมิเตอร์ห้อง ${room?.room_number || 'N/A'} - ไฟ: ${newReading.electricity_units} น้ำ: ${newReading.water_units}`
+    onSuccess: (newReading, variables) => {
+      // ⚡ Optimistic update - ไม่ต้องรอ
+      queryClient.setQueryData(['meterReadings', selectedBranchId], (old) => {
+        return [newReading, ...(old || [])];
       });
       
       setCardReadings(prev => {
@@ -437,6 +427,19 @@ export default function MeterReadings() {
         return newState;
       });
       toast.success('บันทึกมิเตอร์สำเร็จ');
+      
+      // บันทึก log ใน background
+      const room = rooms.find(r => r.id => newReading.room_id);
+      base44.entities.ActivityLog.create({
+        branch_id: selectedBranchId,
+        action_type: 'create',
+        entity_type: 'MeterReading',
+        entity_id: newReading.id,
+        entity_name: `ห้อง ${room?.room_number || 'N/A'}`,
+        user_email: currentUser?.email,
+        user_name: currentUser?.full_name,
+        description: `บันทึกมิเตอร์ห้อง ${room?.room_number || 'N/A'} - ไฟ: ${newReading.electricity_units} น้ำ: ${newReading.water_units}`
+      }).catch(() => {});
     },
     onError: (error) => {
       toast.error('เกิดข้อผิดพลาด: ' + error.message);
@@ -1235,7 +1238,7 @@ export default function MeterReadings() {
         icon={Gauge}
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            {userRole !== 'developer' && (
+            {!isMobile && (
               <>
                 <Button
                   onClick={handleDownloadTemplate}
