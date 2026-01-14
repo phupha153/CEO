@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, DoorOpen, Users, Wallet, TrendingUp, ArrowUpRight, ArrowDownRight, AlertTriangle, RefreshCw, Loader2, CreditCard, Database, Trash2, Bug } from "lucide-react";
-import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, isWithinInterval, parseISO, differenceInDays, startOfDay } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, isWithinInterval, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, ComposedChart, Bar, Line, Area, XAxis, YAxis, CartesianGrid } from "recharts";
@@ -353,7 +353,10 @@ export default function Dashboard() {
           return 0;
         }
 
-        const daysOverdue = differenceInDays(startOfDay(today), startOfDay(parseISO(payment.due_date)));
+        const todayStartOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const dueDateStartOfDay = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+
+        const daysOverdue = Math.floor((todayStartOfDay.getTime() - dueDateStartOfDay.getTime()) / (1000 * 60 * 60 * 24));
 
         const fee = daysOverdue > 0 ? Math.max(0, daysOverdue * lateFeePerDay) : 0;
         cache.set(payment.id, fee);
@@ -379,10 +382,10 @@ export default function Dashboard() {
           return payment.status;
         }
 
-        const todayStart = startOfDay(today);
-        const dueDateStart = startOfDay(dueDate);
+        const todayStartOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const dueDateStartOfDay = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
 
-        if (todayStart > dueDateStart) {
+        if (todayStartOfDay > dueDateStartOfDay) {
           return 'overdue';
         }
       } catch (error) {
