@@ -9,48 +9,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ⭐ Auto-init trial ถ้ายังไม่มี
-    if (!user.trial_ends_at) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const trialEndDate = new Date(today);
-      trialEndDate.setDate(today.getDate() + 30);
-      trialEndDate.setHours(23, 59, 59, 999);
-
-      await base44.asServiceRole.auth.updateUser(user.email, {
-        trial_ends_at: trialEndDate.toISOString().split('T')[0],
-        plan_status: 'trial'
-      });
-
-      // Refresh user object
-      user.trial_ends_at = trialEndDate.toISOString().split('T')[0];
-      user.plan_status = 'trial';
-    }
-
-    // ⭐ ตรวจสอบสถานะ trial ของ user
+    // ⭐ คำนวณ userRole
     const userRole = user.custom_role || (user.role === 'admin' ? 'developer' : 'employee');
     
-    console.log('🔍 getSecureData - User Role Check:', {
+    console.log('🔍 getSecureData - User Access:', {
       email: user.email,
       base_role: user.role,
       custom_role: user.custom_role,
-      calculated_role: userRole
+      calculated_role: userRole,
+      plan_status: user.plan_status
     });
-    
-    // Developer ไม่ต้องเช็ค trial
-    if (userRole !== 'developer') {
-      const trialEndDate = new Date(user.trial_ends_at);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (today > trialEndDate && user.plan_status !== 'active') {
-        return Response.json({ 
-          error: 'Trial expired', 
-          trial_ends_at: user.trial_ends_at,
-          plan_status: user.plan_status
-        }, { status: 403 });
-      }
-    }
 
     const { entity, filters = {}, sort = '-created_date', limit = 10000 } = await req.json();
 
