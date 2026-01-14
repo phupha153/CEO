@@ -167,7 +167,30 @@ export default function BranchSelection() {
     return counts;
   }, [allRooms]);
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
+  // ⭐ FIX: ใช้ crmAccess.role เป็น fallback เมื่อ custom_role ยัง undefined
+  const userRole = (() => {
+    if (currentUser?.role === 'admin') return 'developer';
+    
+    let effectiveRole = currentUser?.custom_role;
+    
+    // ⭐ ถ้า custom_role ยัง undefined และ CRM ส่ง role มาแล้ว ให้ใช้จาก CRM
+    if (!effectiveRole && crmAccess && !crmAccessLoading && crmAccess.role) {
+      effectiveRole = crmAccess.role;
+      console.log('💡 BranchSelection: Using CRM role as fallback:', effectiveRole);
+    }
+    
+    const finalRole = effectiveRole || 'employee';
+    console.log('👤 BranchSelection Role Calculation:', {
+      currentUserCustomRole: currentUser?.custom_role,
+      currentUserBaseRole: currentUser?.role,
+      crmRole: crmAccess?.role,
+      crmLoading: crmAccessLoading,
+      effectiveRole,
+      finalRole
+    });
+    
+    return finalRole;
+  })();
   
   // ⭐ Security Fix: กรองสาขาตามสิทธิ์
   const userAccessibleBranches = currentUser?.accessible_branches;
@@ -494,15 +517,18 @@ export default function BranchSelection() {
     }
   }, [currentUser?.email, crmAccess?.hasAccess]);
 
-  // ⚡ Progressive Loading - แสดง UI ก่อน (ไม่รอ CRM check)
-  const isInitialLoading = userLoading || (isLoading && branches.length === 0);
+  // ⚡ รอให้ CRM check เสร็จก่อนถ้า custom_role ยัง undefined
+  const needsRoleSync = currentUser && !currentUser.custom_role && crmAccessLoading;
+  const isInitialLoading = userLoading || (isLoading && branches.length === 0) || needsRoleSync;
   
   if (isInitialLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-purple-100 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600 text-lg">กำลังโหลด...</p>
+          <p className="text-slate-600 text-lg">
+            {needsRoleSync ? 'กำลังตรวจสอบสิทธิ์...' : 'กำลังโหลด...'}
+          </p>
         </div>
       </div>
     );
