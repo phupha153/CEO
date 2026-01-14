@@ -1284,20 +1284,22 @@ export default function MeterReadings() {
       <div className="px-4 md:px-8 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-blue-100 text-sm mb-1 font-medium">ห้องที่มีการบันทึก</p>
-                    <p className="text-4xl font-bold">{Object.keys(readingsByRoomForSummary).length}</p>
+          <div className={`grid grid-cols-1 gap-4 ${viewMode === 'card' ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+            {viewMode === 'card' && (
+              <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-blue-100 text-sm mb-1 font-medium">ห้องที่มีการบันทึก</p>
+                      <p className="text-4xl font-bold">{Object.keys(readingsByRoomForSummary).length}</p>
+                    </div>
+                    <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                      <Gauge className="w-7 h-7 text-white" />
+                    </div>
                   </div>
-                  <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <Gauge className="w-7 h-7 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
             <Card className="bg-gradient-to-br from-yellow-500 to-orange-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all">
               <CardContent className="p-5">
                 <div className="flex items-center justify-between">
