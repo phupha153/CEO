@@ -4062,7 +4062,7 @@ export default function Settings() {
 
                                   {/* ปุ่มจัดการ */}
                                   <div className="flex flex-wrap gap-2">
-                                  {user.email !== currentUser?.email && (
+                                  {user.email !== currentUser?.email ? (
                                     <>
                                       <Button
                                         type="button"
@@ -4085,45 +4085,49 @@ export default function Settings() {
                                         <span className="md:hidden">สาขา</span>
                                       </Button>
                                     </>
+                                  ) : (
+                                    <Button variant="outline" disabled className="flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4">
+                                      (คุณไม่สามารถจัดการสิทธิ์ตัวเองได้)
+                                    </Button>
                                   )}
 
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => user.employee_line_user_id && user.can_submit_expenses 
-                                      ? handleDisconnectLine(user.id) 
-                                      : handleOpenLineConnectDialog(user)
-                                    }
-                                    className={user.employee_line_user_id && user.can_submit_expenses
-                                      ? "border-red-600 text-red-700 hover:bg-red-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
-                                      : "border-purple-600 text-purple-700 hover:bg-purple-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
-                                    }
-                                  >
-                                    <MessageSquare className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
-                                    <span className="hidden md:inline">
-                                      {user.employee_line_user_id && user.can_submit_expenses ? 'ยกเลิก LINE' : 'เชื่อมต่อ LINE'}
-                                    </span>
-                                    <span className="md:hidden">LINE</span>
-                                  </Button>
+                                   <Button
+                                     type="button"
+                                     variant="outline"
+                                     onClick={() => user.employee_line_user_id && user.can_submit_expenses 
+                                       ? handleDisconnectLine(user.id) 
+                                       : handleOpenLineConnectDialog(user)
+                                     }
+                                     className={user.employee_line_user_id && user.can_submit_expenses
+                                       ? "border-red-600 text-red-700 hover:bg-red-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
+                                       : "border-purple-600 text-purple-700 hover:bg-purple-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
+                                     }
+                                   >
+                                     <MessageSquare className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                                     <span className="hidden md:inline">
+                                       {user.employee_line_user_id && user.can_submit_expenses ? 'ยกเลิก LINE' : 'เชื่อมต่อ LINE'}
+                                     </span>
+                                     <span className="md:hidden">LINE</span>
+                                   </Button>
 
-                                   {(user.custom_role === 'developer' || currentPermissions.includes('settings_access_test_mode')) && (
-                                     <Button
-                                       type="button"
-                                       variant="outline"
-                                       onClick={async () => {
-                                         const newPermissions = currentPermissions.filter(p => p !== 'settings_access_test_mode');
-                                         await base44.entities.User.update(user.id, { permissions: newPermissions });
-                                         queryClient.invalidateQueries(['users']);
-                                         toast.success('ลบสิทธิ์โหมดทดสอบแล้ว');
-                                       }}
-                                       className="border-red-600 text-red-600 hover:bg-red-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
-                                     >
-                                       <X className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
-                                       <span className="hidden md:inline">ลบโหมดทดสอบ</span>
-                                       <span className="md:hidden">ทดสอบ</span>
-                                     </Button>
-                                   )}
-                                  </div>
+                                    {(user.custom_role === 'developer' || currentPermissions.includes('settings_access_test_mode')) && (
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={async () => {
+                                          const newPermissions = currentPermissions.filter(p => p !== 'settings_access_test_mode');
+                                          await base44.entities.User.update(user.id, { permissions: newPermissions });
+                                          queryClient.invalidateQueries(['users']);
+                                          toast.success('ลบสิทธิ์โหมดทดสอบแล้ว');
+                                        }}
+                                        className="border-red-600 text-red-600 hover:bg-red-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
+                                      >
+                                        <X className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                                        <span className="hidden md:inline">ลบโหมดทดสอบ</span>
+                                        <span className="md:hidden">ทดสอบ</span>
+                                      </Button>
+                                    )}
+                                   </div>
                                 </div>
                               </CardContent>
                             </Card>

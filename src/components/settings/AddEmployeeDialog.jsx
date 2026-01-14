@@ -58,9 +58,22 @@ export default function AddEmployeeDialog({ isOpen, onClose, onSuccess }) {
   // กรองสาขาที่แสดงให้เลือก: ถ้าเป็น developer หรือไม่ set accessible_branches = เห็นทุกสาขา
   const branches = React.useMemo(() => {
     if (!currentUser) return [];
+
+    // Developer (admin role) sees all branches
+    if (currentUser.role === 'admin') {
+      return allBranches;
+    }
+    
     const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
-    if (!hasAccessibleBranchesSet) return allBranches; // ไม่ได้ set = เห็นทุกสาขา
-    return allBranches.filter(b => userAccessibleBranches.includes(b.id));
+    
+    // If user has an explicit list of branches, use that.
+    if (hasAccessibleBranchesSet) {
+      return allBranches.filter(b => userAccessibleBranches.includes(b.id));
+    }
+    
+    // Otherwise (e.g. owner without explicit list), show only branches they own.
+    return allBranches.filter(b => b.owner_id === currentUser.email || b.created_by === currentUser.email);
+    
   }, [allBranches, currentUser, userAccessibleBranches]);
 
   const toggleBranchAccess = (branchId) => {
