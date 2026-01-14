@@ -524,11 +524,17 @@ export default function Layout({ children, currentPageName }) {
     throwOnError: false,
   });
 
-  // เช็คสิทธิ์กับ CRM (sync role ครั้งแรก, หลังจากนั้น cache 10 นาที)
-  const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError } = useQuery({
+  // เช็คสิทธิ์กับ CRM (sync role ทุกครั้งที่ currentUser เปลี่ยน)
+  const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError, refetch: refetchCRMAccess } = useQuery({
     queryKey: ['crmAccess', currentUser?.email],
     queryFn: async () => {
       console.log('🔍 CRM Check Starting for:', currentUser?.email);
+      console.log('📌 Current User State:', {
+        email: currentUser?.email,
+        custom_role: currentUser?.custom_role,
+        role: currentUser?.role,
+        id: currentUser?.id
+      });
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -545,7 +551,8 @@ export default function Layout({ children, currentPageName }) {
           role: data?.role,
           email: data?.email,
           currentUserEmail: currentUser?.email,
-          currentCustomRole: currentUser?.custom_role
+          currentCustomRole: currentUser?.custom_role,
+          fullResponse: data
         });
 
         // 🔒 FAIL-CLOSED: ถ้ามี error/timeout → DENY
@@ -595,18 +602,22 @@ export default function Layout({ children, currentPageName }) {
             } catch (error) {
               console.error('❌ Role update failed:', error.message);
               console.error('Full error:', error);
-              // ⚠️ แม้ update ล้มเหลว ก็ส่ง role จาก CRM กลับไป
             }
           } else {
             console.log('✅ Role already synced:', crmRole);
           }
+        } else {
+          console.warn('⚠️ No role in CRM response:', {
+            hasAccess: data?.hasAccess,
+            role: data?.role,
+            hasCurrentUser: !!currentUser
+          });
         }
 
         return data;
       } catch (error) {
         clearTimeout(timeoutId);
         
-        // ⚠️ Timeout = ปัญหาเครือข่าย - ไม่ logout (แค่ส่ง error กลับ)
         if (error.name === 'AbortError') {
           console.warn('⏱️ CRM Timeout - allowing grace period');
           return { hasAccess: true, timeout: true, cached: true };
@@ -616,15 +627,15 @@ export default function Layout({ children, currentPageName }) {
         return { hasAccess: true, error: error.message, cached: true };
       }
     },
-    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
-    staleTime: 10 * 60 * 1000, // ⭐ Cache 10 นาที (ลดจาก Infinity)
-    gcTime: 15 * 60 * 1000,
+    enabled: !isLoading && !!currentUser?.email && isOnline && !isPublicPage,
+    staleTime: 1 * 60 * 1000, // ⭐ Cache 1 นาที (ลดลงเพื่อให้ refetch บ่อยขึ้น)
+    gcTime: 5 * 60 * 1000,
     refetchInterval: false,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-    retry: 0,
+    refetchOnWindowFocus: true, // ⭐ เปิด refetch เมื่อกลับมาที่หน้าต่าง
+    refetchOnMount: true, // ⭐ เปิด refetch เมื่อ mount ใหม่
+    refetchOnReconnect: true,
+    retry: 1,
     throwOnError: false,
   });
 
@@ -772,6 +783,25 @@ export default function Layout({ children, currentPageName }) {
     return false;
   };
 
+
+  // ⭐ Auto-sync role จาก CRM ถ้า custom_role = undefined
+  useEffect(() => {
+    const syncRoleIfNeeded = async () => {
+      if (isLoading || !currentUser || isPublicPage) return;
+
+      // ⭐ FORCE REFETCH: ถ้า custom_role = undefined ให้ refetch CRM
+      if (!currentUser.custom_role && !crmAccessLoading) {
+        console.log('⚡ Force CRM refetch: custom_role is undefined');
+        try {
+          await refetchCRMAccess();
+        } catch (error) {
+          console.error('❌ Failed to refetch CRM:', error);
+        }
+      }
+    };
+
+    syncRoleIfNeeded();
+  }, [isLoading, currentUser?.id, currentUser?.custom_role, isPublicPage]);
 
   // ⭐ Auto-init trial สำหรับ Owner ที่ยังไม่มี plan_status
   useEffect(() => {
