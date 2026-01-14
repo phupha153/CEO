@@ -55,13 +55,25 @@ export default function AddEmployeeDialog({ isOpen, onClose, onSuccess }) {
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   const userAccessibleBranches = currentUser?.accessible_branches;
 
-  // กรองสาขาที่แสดงให้เลือก: ถ้าเป็น developer หรือไม่ set accessible_branches = เห็นทุกสาขา
+  // ⭐ กรองสาขาที่แสดงให้เลือก: แสดงเฉพาะสาขาที่ตัวเองเป็นเจ้าของหรือมีสิทธิ์
   const branches = React.useMemo(() => {
     if (!currentUser) return [];
+    
+    // Developer = เห็นทุกสาขา
+    if (userRole === 'developer') return allBranches;
+    
     const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
-    if (!hasAccessibleBranchesSet) return allBranches; // ไม่ได้ set = เห็นทุกสาขา
-    return allBranches.filter(b => userAccessibleBranches.includes(b.id));
-  }, [allBranches, currentUser, userAccessibleBranches]);
+    
+    // ถ้ามี accessible_branches set = ใช้ลิสต์นั้น
+    if (hasAccessibleBranchesSet) {
+      return allBranches.filter(b => userAccessibleBranches.includes(b.id));
+    }
+    
+    // ถ้าไม่มี accessible_branches set = แสดงเฉพาะสาขาที่เป็นเจ้าของ
+    return allBranches.filter(b => 
+      b.owner_id === currentUser?.email || b.created_by === currentUser?.email
+    );
+  }, [allBranches, currentUser, userAccessibleBranches, userRole]);
 
   const toggleBranchAccess = (branchId) => {
     setFormData(prev => {
