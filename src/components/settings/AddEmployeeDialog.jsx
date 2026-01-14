@@ -52,30 +52,30 @@ export default function AddEmployeeDialog({ isOpen, onClose, onSuccess }) {
     enabled: isOpen && !!currentUser,
   });
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   const userAccessibleBranches = currentUser?.accessible_branches;
 
+  // กรองสาขาที่แสดงให้เลือก: ถ้าเป็น developer หรือไม่ set accessible_branches = เห็นทุกสาขา
   const branches = React.useMemo(() => {
-    if (!currentUser || !allBranches.length) return [];
+    if (!currentUser) return [];
 
-    // Developer sees all branches.
+    // Developer can see all branches
     if (userRole === 'developer') {
       return allBranches;
     }
 
-    // Owner should only see branches they own.
-    if (userRole === 'owner') {
-      return allBranches.filter(branch => branch.owner_id === currentUser.email || branch.created_by === currentUser.email);
-    }
+    const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
 
-    // Employees/Managers should only see branches they are assigned to.
-    if (userAccessibleBranches && Array.isArray(userAccessibleBranches)) {
-      const accessibleBranchIds = new Set(userAccessibleBranches);
-      return allBranches.filter(branch => accessibleBranchIds.has(branch.id));
+    // If accessible_branches is explicitly set, use it
+    if (hasAccessibleBranchesSet) {
+      const accessibleSet = new Set(userAccessibleBranches);
+      return allBranches.filter(b => accessibleSet.has(b.id));
     }
-
-    // Default to no branches if no permissions found.
-    return [];
+    
+    // Fallback for owners/managers: show branches they own
+    return allBranches.filter(b => 
+      b.owner_id === currentUser.email || b.created_by === currentUser.email
+    );
   }, [allBranches, currentUser, userRole, userAccessibleBranches]);
 
   const toggleBranchAccess = (branchId) => {
