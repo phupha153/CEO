@@ -18,11 +18,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ตั้งค่า trial 30 วัน
+    // ตั้งค่า trial 14 วัน
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const trialEndDate = new Date(today);
-    trialEndDate.setDate(today.getDate() + 30);
+    trialEndDate.setDate(today.getDate() + 14);
     trialEndDate.setHours(23, 59, 59, 999);
 
     await base44.auth.updateMe({
@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       message: 'Trial period initialized successfully',
       trial_ends_at: trialEndDate.toISOString().split('T')[0],
       plan_status: 'trial',
-      days_remaining: 30
+      days_remaining: 14
     });
 
   } catch (error) {

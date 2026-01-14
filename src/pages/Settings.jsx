@@ -602,8 +602,9 @@ export default function Settings() {
     // ⭐ ถ้ามีสาขาเลือก ให้ดูของเจ้าของสาขา, ถ้าไม่มีให้ดูของตัวเอง
     const planStatus = branchOwnerStatus?.plan_status || currentUser.plan_status;
     const trialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
-    const subscriptionEndDate = currentUser.subscription_end_date; // ยังไม่มีใน branchOwnerStatus
+    const subscriptionEndDate = currentUser.subscription_end_date;
     const packageId = currentUser.package_id;
+    const packageName = currentUser.package_name; // ⭐ แก้ไข: ใช้ package_name จาก User
     
     // ถ้าไม่มี plan_status หรือ expired/cancelled = ไม่มี package
     if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
@@ -613,8 +614,8 @@ export default function Settings() {
     // ⭐ สร้าง subscription object จาก Owner data
     return {
       package_id: packageId || 'trial',
-      package_name: packageId || 'ทดลองใช้งาน',
-      app_name: packageId || 'ทดลองใช้งาน',
+      package_name: packageName || 'ทดลองใช้งาน', // ⭐ แก้ไข: ใช้ package_name แทน packageId
+      app_name: packageName || 'ทดลองใช้งาน', // ⭐ แก้ไข: ใช้ package_name แทน packageId
       status: planStatus, // 'trial' | 'active'
       subscription_end_date: planStatus === 'trial' ? trialEndsAt : subscriptionEndDate,
       trial_end_date: planStatus === 'trial' ? trialEndsAt : null,
@@ -622,7 +623,7 @@ export default function Settings() {
       payment_status: 'paid',
       auto_renew: false,
       notes: null,
-      owner_name: branchOwnerStatus?.owner_name, // เพิ่มชื่อเจ้าของ
+      owner_name: branchOwnerStatus?.owner_name,
       is_owner: branchOwnerStatus?.is_owner !== false
     };
   })();
@@ -1998,19 +1999,30 @@ export default function Settings() {
 
                               const pkgIcon = isTrial ? Package : isBasic ? SettingsIcon : isPro ? Sparkles : Crown;
 
+                              // ⭐ Log สำหรับ Debug
+                              console.log('🔍 Package Display Debug:', {
+                                packageName: pkgName,
+                                status: activeSubscription?.status,
+                                packageId: activeSubscription?.package_id,
+                                isTrial,
+                                isBasic,
+                                isPro,
+                                isElite
+                              });
+
                               return (
                                 <>
-                                  {/* Header with shimmer effect */}
-                                  <div className="relative overflow-hidden">
-                                    <div className={`relative p-5 ${
-                                      isTrial
-                                        ? 'bg-gradient-to-br from-amber-400 via-orange-300 to-amber-400'
-                                        : isBasic
-                                        ? 'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950'
-                                        : isPro
-                                        ? 'bg-gradient-to-br from-blue-300 via-indigo-200 to-purple-200'
-                                        : 'bg-gradient-to-br from-amber-300 via-yellow-200 to-orange-200'
-                                    }`}>
+                                   {/* Header with shimmer effect */}
+                                   <div className="relative overflow-hidden">
+                                     <div className={`relative p-5 ${
+                                       isTrial
+                                         ? 'bg-gradient-to-br from-amber-400 via-orange-300 to-amber-400'
+                                         : isBasic
+                                         ? 'bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950'
+                                         : isPro
+                                         ? 'bg-gradient-to-br from-blue-300 via-indigo-200 to-purple-200'
+                                         : 'bg-gradient-to-br from-amber-300 via-yellow-200 to-orange-200'
+                                     }`}>
                                       {/* Shimmer overlay - only for Pro and Elite (not Trial) */}
                                       {!isTrial && (isPro || isElite) && (
                                         <>
