@@ -34,6 +34,7 @@ export default function MeterReadings() {
   const [aiAnalysisResult, setAiAnalysisResult] = useState(null);
   const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState('auto'); // จะตั้งค่าจริงหลังจากโหลด config
+  const [editingPreviousForRoom, setEditingPreviousForRoom] = useState(null); // room_id ที่กำลังแก้ไขค่าก่อน
   const [formData, setFormData] = useState({
     room_id: '',
     reading_date: new Date().toISOString().split('T')[0],
@@ -1950,6 +1951,7 @@ export default function MeterReadings() {
                               <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์น้ำปัจจุบัน</th>
                               <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์ไฟก่อน</th>
                               <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์ไฟปัจจุบัน</th>
+                              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700"></th>
                             </tr>
                           </thead>
                           <tbody className="divide-y">
@@ -2013,55 +2015,106 @@ export default function MeterReadings() {
                                         </td>
                                       </>
                                     ) : (
-                                     // โหมดบันทึก/แก้ไข
-                                     <>
-                                       <td className="px-4 py-3 text-center">
-                                         <span className="font-medium text-slate-700">{waterPrevious || '0'}</span>
-                                       </td>
-                                       <td className="px-4 py-3">
-                                         <Input
-                                           type="number"
-                                           step="0.01"
-                                           placeholder="เช่น 150.5"
-                                           value={bulkReadings[room.id]?.water_current ?? ''}
-                                           onChange={(e) => {
-                                             const newValue = e.target.value;
-                                             setBulkReadings({
-                                               ...bulkReadings,
-                                               [room.id]: {
-                                                 ...bulkReadings[room.id],
-                                                 water_current: newValue,
-                                                 water_previous: hasExistingReading ? waterPrevious : (bulkReadings[room.id]?.water_previous ?? '')
-                                               }
-                                             });
-                                           }}
-                                           className="w-32"
-                                         />
-                                       </td>
-                                       <td className="px-4 py-3 text-center">
-                                         <span className="font-medium text-slate-700">{electricityPrevious || '0'}</span>
-                                       </td>
-                                       <td className="px-4 py-3">
-                                         <Input
-                                           type="number"
-                                           step="0.01"
-                                           placeholder="เช่น 250.0"
-                                           value={bulkReadings[room.id]?.electricity_current ?? ''}
-                                           onChange={(e) => {
-                                             const newValue = e.target.value;
-                                             setBulkReadings({
-                                               ...bulkReadings,
-                                               [room.id]: {
-                                                 ...bulkReadings[room.id],
-                                                 electricity_current: newValue,
-                                                 electricity_previous: hasExistingReading ? electricityPrevious : (bulkReadings[room.id]?.electricity_previous ?? '')
-                                               }
-                                             });
-                                           }}
-                                           className="w-32"
-                                         />
-                                       </td>
-                                     </>
+                                    // โหมดบันทึก/แก้ไข
+                                    <>
+                                      <td className="px-4 py-3 text-center">
+                                        {editingPreviousForRoom === room.id ? (
+                                          <Input
+                                            type="number"
+                                            step="0.01"
+                                            value={bulkReadings[room.id]?.water_previous ?? waterPrevious ?? '0'}
+                                            onChange={(e) => {
+                                              setBulkReadings({
+                                                ...bulkReadings,
+                                                [room.id]: {
+                                                  ...bulkReadings[room.id],
+                                                  water_previous: e.target.value
+                                                }
+                                              });
+                                            }}
+                                            className="w-24 mx-auto"
+                                            autoFocus
+                                          />
+                                        ) : (
+                                          <span className="font-medium text-slate-700">{bulkReadings[room.id]?.water_previous || waterPrevious || '0'}</span>
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <Input
+                                          type="number"
+                                          step="0.01"
+                                          placeholder="เช่น 150.5"
+                                          value={bulkReadings[room.id]?.water_current ?? ''}
+                                          onChange={(e) => {
+                                            const newValue = e.target.value;
+                                            setBulkReadings({
+                                              ...bulkReadings,
+                                              [room.id]: {
+                                                ...bulkReadings[room.id],
+                                                water_current: newValue,
+                                                water_previous: bulkReadings[room.id]?.water_previous ?? (hasExistingReading ? waterPrevious : '')
+                                              }
+                                            });
+                                          }}
+                                          className="w-32"
+                                        />
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        {editingPreviousForRoom === room.id ? (
+                                          <Input
+                                            type="number"
+                                            step="0.01"
+                                            value={bulkReadings[room.id]?.electricity_previous ?? electricityPrevious ?? '0'}
+                                            onChange={(e) => {
+                                              setBulkReadings({
+                                                ...bulkReadings,
+                                                [room.id]: {
+                                                  ...bulkReadings[room.id],
+                                                  electricity_previous: e.target.value
+                                                }
+                                              });
+                                            }}
+                                            className="w-24 mx-auto"
+                                          />
+                                        ) : (
+                                          <span className="font-medium text-slate-700">{bulkReadings[room.id]?.electricity_previous || electricityPrevious || '0'}</span>
+                                        )}
+                                      </td>
+                                      <td className="px-4 py-3">
+                                        <Input
+                                          type="number"
+                                          step="0.01"
+                                          placeholder="เช่น 250.0"
+                                          value={bulkReadings[room.id]?.electricity_current ?? ''}
+                                          onChange={(e) => {
+                                            const newValue = e.target.value;
+                                            setBulkReadings({
+                                              ...bulkReadings,
+                                              [room.id]: {
+                                                ...bulkReadings[room.id],
+                                                electricity_current: newValue,
+                                                electricity_previous: bulkReadings[room.id]?.electricity_previous ?? (hasExistingReading ? electricityPrevious : '')
+                                              }
+                                            });
+                                          }}
+                                          className="w-32"
+                                        />
+                                      </td>
+                                      <td className="px-4 py-3 text-center">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => setEditingPreviousForRoom(editingPreviousForRoom === room.id ? null : room.id)}
+                                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                        >
+                                          {editingPreviousForRoom === room.id ? (
+                                            <Check className="w-4 h-4" />
+                                          ) : (
+                                            <Pencil className="w-4 h-4" />
+                                          )}
+                                        </Button>
+                                      </td>
+                                    </>
                                     )}
                                   </tr>
                                 );
