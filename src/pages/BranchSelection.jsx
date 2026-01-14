@@ -99,11 +99,14 @@ export default function BranchSelection() {
     },
     enabled: !!currentUser && !userLoading && userSuccess,
     staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     refetchInterval: false,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: false, // ⚡ ปิด auto-refetch (ลด API calls)
-    retry: 0, // ⚡ ไม่ retry (ลดจาก 1)
+    refetchOnWindowFocus: false,
+    retry: 0,
     throwOnError: false,
+    networkMode: 'online',
+    meta: { timeout: 5000 }, // ⚡ 5 วินาที timeout
   });
 
   // ⚡ Parallel Queries - ไม่รอ CRM check (แต่จะเช็ค CRM ก่อนแสดงข้อมูล)
@@ -523,11 +526,11 @@ export default function BranchSelection() {
         >
           <Card className="bg-white/80 backdrop-blur-2xl border border-white/60 shadow-2xl overflow-hidden rounded-3xl">
             <CardContent className="p-8">
-              {/* ⚠️ CRM Loading Banner */}
-              {showCRMWarning && (
+              {/* ⚠️ CRM Loading Banner - แสดงเฉพาะ Developer */}
+              {showCRMWarning && userRole === 'developer' && (
                 <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-center gap-3">
                   <Loader2 className="w-5 h-5 text-yellow-600 animate-spin flex-shrink-0" />
-                  <p className="text-sm text-yellow-800">กำลังตรวจสอบสิทธิ์...</p>
+                  <p className="text-sm text-yellow-800">🔧 Dev: กำลังตรวจสอบสิทธิ์...</p>
                 </div>
               )}
 

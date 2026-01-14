@@ -99,15 +99,28 @@ export default function BranchManagement() {
     return counts;
   }, [allRooms]);
 
-  // กรองสาขาตามสิทธิ์: แสดงเฉพาะสาขาที่มีสิทธิ์เข้าถึง (ถ้า set accessible_branches)
+  // กรองสาขาตามสิทธิ์: เหมือน BranchSelection
   const branches = React.useMemo(() => {
-    // ⭐ ถ้าไม่ได้ set accessible_branches (null/undefined) = แสดงทุกสาขา
-    if (userAccessibleBranches === null || userAccessibleBranches === undefined) {
-      return allBranches;
+    // Developer = เห็นทุกสาขา
+    if (userRole === 'developer') return allBranches;
+
+    // ถ้ามี accessible_branches set แล้ว = ใช้ลิสต์นั้น
+    const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
+    if (hasAccessibleBranchesSet) {
+      return allBranches.filter(b => userAccessibleBranches.includes(b.id));
     }
-    // ⭐ ถ้า set แล้ว = กรองตามลิสต์
-    return allBranches.filter(b => userAccessibleBranches.includes(b.id));
-  }, [allBranches, userAccessibleBranches]);
+
+    // ถ้าไม่มี accessible_branches set และเป็น Owner = เห็นสาขาที่ตัวเองเป็นเจ้าของ
+    if (userRole === 'owner') {
+      return allBranches.filter(b => 
+        b.owner_id === currentUser?.email || 
+        b.created_by === currentUser?.email
+      );
+    }
+
+    // Employee/Manager ที่ไม่มี accessible_branches = ไม่เห็นสาขาใดเลย
+    return [];
+  }, [allBranches, userRole, userAccessibleBranches, currentUser?.email]);
 
   const { data: crmPackages } = useQuery({
     queryKey: ['crmPackages'],
