@@ -1287,8 +1287,8 @@ export default function MeterReadings() {
           <div className="grid grid-cols-3 gap-3 md:gap-4">
             <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all">
               <CardContent className="p-3 md:p-5">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                  <div className="flex-1">
+                <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between gap-2">
+                  <div className="flex-1 text-center md:text-left">
                     <p className="text-blue-100 text-[10px] md:text-sm mb-1 font-medium leading-tight">ห้องที่มีการบันทึก</p>
                     <p className="text-2xl md:text-4xl font-bold">{Object.keys(readingsByRoomForSummary).length}</p>
                   </div>
@@ -1300,8 +1300,8 @@ export default function MeterReadings() {
             </Card>
             <Card className="bg-gradient-to-br from-yellow-500 to-orange-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all">
               <CardContent className="p-3 md:p-5">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                    <div className="flex-1">
+                <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between gap-2">
+                    <div className="flex-1 text-center md:text-left">
                         <p className="text-yellow-100 text-[10px] md:text-sm mb-1 font-medium leading-tight">ไฟใช้ (หน่วย)</p>
                         <p className="text-2xl md:text-4xl font-bold">{totalElectricityThisMonth.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</p>
                         <p className="text-yellow-100 text-[9px] md:text-xs mt-0.5 md:mt-1">{monthReadingsCount} รายการ</p>
@@ -1314,8 +1314,8 @@ export default function MeterReadings() {
             </Card>
             <Card className="bg-gradient-to-br from-cyan-500 to-blue-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all">
                 <CardContent className="p-3 md:p-5">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                        <div className="flex-1">
+                    <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between gap-2">
+                        <div className="flex-1 text-center md:text-left">
                             <p className="text-cyan-100 text-[10px] md:text-sm mb-1 font-medium leading-tight">น้ำใช้ (หน่วย)</p>
                             <p className="text-2xl md:text-4xl font-bold">{totalWaterThisMonth.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</p>
                             <p className="text-cyan-100 text-[9px] md:text-xs mt-0.5 md:mt-1">{monthReadingsCount} รายการ</p>
