@@ -15,9 +15,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'branch_id is required' }, { status: 400 });
     }
 
-    // ⭐ Admin only check (ไม่ให้ user ธรรมชาติลบข้อมูลของสาขา)
-    if (user.role !== 'admin') {
-      return Response.json({ error: 'Forbidden: Only admins can delete branch data' }, { status: 403 });
+    // ⭐ Admin/Developer only check
+    const isDeveloper = user.role === 'admin' || user.custom_role === 'developer';
+    if (!isDeveloper) {
+      return Response.json({ error: 'Forbidden: Only admins/developers can delete branch data' }, { status: 403 });
     }
 
     console.log(`🗑️ Deleting ALL test data for branch: ${branch_id}`);
