@@ -655,13 +655,9 @@ export default function Layout({ children, currentPageName }) {
 
 
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
-    queryKey: ['branches', currentUser?.email],
-    queryFn: async () => {
-      if (!currentUser?.email) return [];
-      // 🔒 SECURITY: ดึงเฉพาะสาขาที่ตัวเองเป็น owner
-      return base44.entities.Branch.filter({ owner_id: currentUser.email });
-    },
-    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
+    queryKey: ['branches'],
+    queryFn: () => base44.entities.Branch.list(),
+    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage, // ⚡ ไม่โหลดถ้าเป็น public page
     staleTime: Infinity,
     gcTime: Infinity,
     retry: 2,
