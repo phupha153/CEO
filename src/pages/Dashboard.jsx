@@ -153,6 +153,24 @@ export default function Dashboard() {
     }
   });
 
+  const deleteBranchDataMutation = useMutation({
+    mutationFn: async () => {
+      toast.info('🗑️ กำลังลบข้อมูลทั้งหมดของสาขา...', { duration: 2000 });
+      const response = await base44.functions.invoke('deleteTestDataForBranch', {
+        branch_id: selectedBranchId
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(`✅ ${data.message}`, { duration: 5000 });
+      setShowDeleteBranchDataDialog(false);
+      queryClient.invalidateQueries();
+    },
+    onError: (error) => {
+      toast.error(`❌ เกิดข้อผิดพลาด: ${error.message}`);
+    }
+  });
+
   const [showConnectedDataOptions, setShowConnectedDataOptions] = useState(false);
 
   const generateConnectedTestDataMutation = useMutation({
