@@ -155,22 +155,41 @@ export default function Dashboard() {
   });
 
   const deleteBranchDataMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async ({ abortSignal }) => {
       toast.info('🗑️ กำลังลบข้อมูลทั้งหมดของสาขา...', { duration: 2000 });
       const response = await base44.functions.invoke('deleteTestDataForBranch', {
-        branch_id: selectedBranchId
+        branch_id: selectedBranchId,
+        abortSignal
       });
       return response.data;
     },
     onSuccess: (data) => {
-      toast.success(`✅ ${data.message}`, { duration: 5000 });
+      if (data.cancelled) {
+        toast.warning(`⏸️ ยกเลิกการลบแล้ว`, { duration: 3000 });
+      } else {
+        toast.success(`✅ ${data.message}`, { duration: 5000 });
+      }
       setShowDeleteBranchDataDialog(false);
+      setIsCancellingDelete(false);
       queryClient.invalidateQueries();
     },
     onError: (error) => {
       toast.error(`❌ เกิดข้อผิดพลาด: ${error.message}`);
+      setIsCancellingDelete(false);
     }
   });
+
+  const handleCancelDelete = async () => {
+    setIsCancellingDelete(true);
+    try {
+      await base44.functions.invoke('cancelDeleteBranchData', {
+        branch_id: selectedBranchId
+      });
+      toast.info('⏸️ กำลังหยุดการลบ...', { duration: 2000 });
+    } catch (error) {
+      console.error('Error cancelling delete:', error);
+    }
+  };
 
   const [showConnectedDataOptions, setShowConnectedDataOptions] = useState(false);
 
