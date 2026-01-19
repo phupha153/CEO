@@ -463,13 +463,19 @@ export default function BranchSelection() {
     
     setSelectedBranchId(branch.id);
     setIsNavigating(true);
+    
+    // บันทึก localStorage
     localStorage.setItem('selected_branch_id', branch.id);
     localStorage.setItem('selected_branch_name', branch.branch_name);
     
+    // ⭐ Trigger custom event เพื่อให้ Layout sync ทันที
+    window.dispatchEvent(new Event('storage'));
+    
+    // ⭐ เพิ่ม delay เป็น 800ms เพื่อให้ Layout sync state ทัน
     setTimeout(() => {
       navigate(createPageUrl('Dashboard'));
       setIsNavigating(false);
-    }, 300);
+    }, 800);
   };
 
   const handleViewReports = () => {
