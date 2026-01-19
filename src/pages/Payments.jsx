@@ -3751,7 +3751,7 @@ Return JSON.`;
                       </div>
                     </div>
 
-                    {(() => {
+                    <div className="space-y-6">{(() => {
                       const roomsByFloor = rooms.reduce((acc, room) => {
                         const floor = room.floor || 1;
                         if (!acc[floor]) acc[floor] = [];
@@ -4210,7 +4210,7 @@ Return JSON.`;
                                        </div>
                                        </div>
                                        ));
-                                       })()}
+                                       })()}</div>
                                        )}
                                        </CardContent>
                                        </Card>
