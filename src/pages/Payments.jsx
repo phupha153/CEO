@@ -3686,19 +3686,6 @@ Return JSON.`;
               {viewMode === 'room' && rooms.length > 0 && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
                   <CardContent className="p-4 md:p-6">
-                    {roomViewFetching && roomViewPayments.length === 0 ? (
-                      <div className="text-center py-12">
-                        <div className="relative w-20 h-20 mx-auto mb-4">
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full blur-xl opacity-30 animate-pulse" style={{ animationDuration: '3s' }} />
-                          <div className="relative w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
-                            <Loader2 className="w-10 h-10 text-white animate-spin" />
-                          </div>
-                        </div>
-                        <p className="text-slate-700 font-semibold text-lg">กำลังโหลดข้อมูลห้อง...</p>
-                        <p className="text-slate-500 text-sm mt-2">กรุณารอสักครู่</p>
-                      </div>
-                    ) : (
-                    <>
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-2">
                         <Button
@@ -3752,7 +3739,18 @@ Return JSON.`;
                       </div>
                     </div>
 
-                    {(() => {
+                    {roomViewFetching && roomViewPayments.length === 0 ? (
+                      <div className="text-center py-12">
+                        <div className="relative w-20 h-20 mx-auto mb-4">
+                          <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full blur-xl opacity-30 animate-pulse" style={{ animationDuration: '3s' }} />
+                          <div className="relative w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                            <Loader2 className="w-10 h-10 text-white animate-spin" />
+                          </div>
+                        </div>
+                        <p className="text-slate-700 font-semibold text-lg">กำลังโหลดข้อมูลห้อง...</p>
+                        <p className="text-slate-500 text-sm mt-2">กรุณารอสักครู่</p>
+                      </div>
+                    ) : ((() => {
                       const roomsByFloor = rooms.reduce((acc, room) => {
                         const floor = room.floor || 1;
                         if (!acc[floor]) acc[floor] = [];
@@ -4211,9 +4209,7 @@ Return JSON.`;
                                        </div>
                                        </div>
                                        ));
-                                       })()}
-                                       </>
-                                       )}
+                                       })()))}
                                        </CardContent>
                                        </Card>
                                        )}
