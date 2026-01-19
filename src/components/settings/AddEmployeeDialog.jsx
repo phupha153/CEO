@@ -21,9 +21,13 @@ export default function AddEmployeeDialog({ isOpen, onClose, onSuccess }) {
 
   // ดึงข้อมูลสาขาที่มีในระบบ
   const { data: allBranches = [] } = useQuery({
-    queryKey: ['branches'],
-    queryFn: () => base44.entities.Branch.list(),
-    enabled: isOpen,
+    queryKey: ['branches', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser?.email) return [];
+      // 🔒 SECURITY: ดึงเฉพาะสาขาที่ตัวเองเป็น owner
+      return base44.entities.Branch.filter({ owner_id: currentUser.email });
+    },
+    enabled: isOpen && !!currentUser,
   });
 
   // ดึงข้อมูล user ปัจจุบันเพื่อกรองสาขา

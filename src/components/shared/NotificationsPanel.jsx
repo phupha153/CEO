@@ -57,9 +57,13 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   const canLoadData = allowedBranchIds === null || allowedBranchIds.length > 0;
 
   const { data: branches = [] } = useQuery({
-    queryKey: ['branches'],
-    queryFn: () => base44.entities.Branch.list(),
-    enabled: showAllBranches && isOpen && canLoadData,
+    queryKey: ['branches', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser?.email) return [];
+      // 🔒 SECURITY: ดึงเฉพาะสาขาที่ตัวเองเป็น owner
+      return base44.entities.Branch.filter({ owner_id: currentUser.email });
+    },
+    enabled: showAllBranches && isOpen && canLoadData && !!currentUser,
     staleTime: 60 * 60 * 1000,
   });
 
