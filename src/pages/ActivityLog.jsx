@@ -26,27 +26,9 @@ export default function ActivityLog() {
   });
 
   const { data: activityLogs = [], isLoading } = useQuery({
-    queryKey: ['activityLogs', selectedBranchId],
-    queryFn: async () => {
-      // 🔒 Security: ดึงเฉพาะ logs ของสาขาที่มีสิทธิ์เข้าถึง
-      const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
-      const accessibleBranchIds = currentUser?.accessible_branches || [];
-      
-      // Developer without accessible_branches set = ดูทุกสาขา
-      if (userRole === 'developer' && (!accessibleBranchIds || accessibleBranchIds.length === 0)) {
-        return await base44.entities.ActivityLog.list('-created_date', 5000);
-      }
-      
-      // ถ้ามี accessible_branches = กรองเฉพาะสาขาที่เข้าถึงได้
-      const allLogs = await base44.entities.ActivityLog.list('-created_date', 5000);
-      return allLogs.filter(log => 
-        !log.branch_id || // Global logs
-        accessibleBranchIds.includes(log.branch_id)
-      );
-    },
-    enabled: !!currentUser,
-    refetchInterval: 30000,
-    staleTime: 10 * 1000,
+    queryKey: ['activityLogs'],
+    queryFn: () => base44.entities.ActivityLog.list('-created_date', 500),
+    refetchInterval: 30000
   });
 
   const { data: allBranches = [] } = useQuery({
@@ -66,10 +48,11 @@ export default function ActivityLog() {
 
   const filteredLogs = activityLogs
     .filter(log => {
-      // กรองตามสาขา (ถ้าเลือกสาขาเฉพาะ)
+      // กรองตามสาขา
       if (branchFilter !== 'all' && log.branch_id !== branchFilter) return false;
       
-      // 🔒 ไม่กรองอีกครั้ง - query function กรองตาม accessible_branches ไว้แล้ว
+      // ถ้าไม่ใช่ developer และไม่มีการเลือกสาขาในฟิลเตอร์ ให้แสดงเฉพาะสาขาที่เลือก
+      if (userRole !== 'developer' && branchFilter === 'all' && log.branch_id !== selectedBranchId) return false;
       
       if (actionFilter !== 'all' && log.action_type !== actionFilter) return false;
       if (entityFilter !== 'all' && log.entity_type !== entityFilter) return false;
