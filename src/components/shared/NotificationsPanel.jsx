@@ -20,7 +20,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   const queryClient = useQueryClient();
   const [expandedGroups, setExpandedGroups] = useState({});
   const selectedBranchId = localStorage.getItem('selected_branch_id');
-  const [filterBranch, setFilterBranch] = useState(selectedBranchId || 'all');
+  const [filterBranch, setFilterBranch] = useState('all');
   const [swipedItem, setSwipedItem] = useState(null);
   const [confirmingPaymentId, setConfirmingPaymentId] = useState(null);
   const [slipPreview, setSlipPreview] = useState({ open: false, url: '', title: '' });
@@ -921,6 +921,10 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   }, [allPayments, allRooms, allMaintenanceRequests, allBookings, allMaterialDeliveries, allTenants, notificationConfigs, configs, navigate, isOpen, paymentsLoading, branches, showAllBranches, readNotifications]);
 
   const allNotifications = Object.values(notificationsByBranch).flatMap(b => b.alerts);
+  
+  // ⭐ แยก unread count (ก่อนกรอง) กับ filtered notifications (หลังกรอง)
+  const totalUnreadCount = allNotifications.filter(n => !isNotificationRead(n.id)).length;
+  
   const filteredNotifications = filterBranch === 'all' 
     ? allNotifications 
     : allNotifications.filter(n => n.branchId === filterBranch);
@@ -970,7 +974,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                   <div>
                     <h2 className="text-base md:text-xl text-slate-900 font-bold">การแจ้งเตือน</h2>
                     <p className="text-xs text-slate-600">
-                      {currentBranchName} · {unreadCount > 0 ? `${unreadCount} รายการใหม่` : 'ไม่มีรายการใหม่'}
+                      {totalUnreadCount > 0 ? `${totalUnreadCount} รายการใหม่` : 'ไม่มีรายการใหม่'}
                     </p>
                   </div>
                 </div>
@@ -1017,12 +1021,15 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                     onChange={(e) => setFilterBranch(e.target.value)}
                     className="flex-1 md:flex-none px-3 py-1.5 text-xs border border-slate-300 rounded-lg bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="all">ทุกสาขา ({allNotifications.length})</option>
-                    {Object.entries(notificationsByBranch).map(([branchId, branchData]) => (
-                      <option key={branchId} value={branchId}>
-                        {branchData.branchName} ({branchData.alerts.length})
-                      </option>
-                    ))}
+                    <option value="all">ทุกสาขา ({totalUnreadCount})</option>
+                    {Object.entries(notificationsByBranch).map(([branchId, branchData]) => {
+                      const unreadInBranch = branchData.alerts.filter(a => !isNotificationRead(a.id)).length;
+                      return (
+                        <option key={branchId} value={branchId}>
+                          {branchData.branchName} ({unreadInBranch})
+                        </option>
+                      );
+                    })}
                   </select>
                 )}
               </div>
@@ -1030,7 +1037,22 @@ export default function NotificationsPanel({ isOpen, onClose }) {
 
             <div className="flex-1 overflow-y-auto bg-gradient-to-b from-slate-50/50 to-white">
               <CardContent className="p-3 md:p-6">
-                {visibleNotifications.length === 0 ? (
+                {paymentsLoading ? (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-center py-12"
+                  >
+                    <div className="relative w-20 h-20 mx-auto mb-4">
+                      <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full blur-xl opacity-30 animate-pulse"></div>
+                      <div className="relative w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                        <Loader2 className="w-10 h-10 text-white animate-spin" />
+                      </div>
+                    </div>
+                    <p className="text-slate-700 font-semibold text-lg">กำลังโหลด...</p>
+                    <p className="text-slate-500 text-sm mt-2">กรุณารอสักครู่</p>
+                  </motion.div>
+                ) : visibleNotifications.length === 0 ? (
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -1042,12 +1064,8 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                         <CheckCheck className="w-10 h-10 text-white" />
                       </div>
                     </div>
-                    <p className="text-slate-700 font-semibold text-lg">
-                      {paymentsLoading ? 'กำลังโหลด...' : 'ไม่มีการแจ้งเตือน'}
-                    </p>
-                    <p className="text-slate-500 text-sm mt-2">
-                      {paymentsLoading ? 'กรุณารอสักครู่' : 'ทุกอย่างเรียบร้อยดี ✨'}
-                    </p>
+                    <p className="text-slate-700 font-semibold text-lg">ไม่มีการแจ้งเตือน</p>
+                    <p className="text-slate-500 text-sm mt-2">ทุกอย่างเรียบร้อยดี ✨</p>
                   </motion.div>
                 ) : (
                   <div className="space-y-3">
