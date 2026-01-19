@@ -1956,7 +1956,9 @@ export default function Settings() {
                 <Button variant={activeTab === 'building' ? 'default' : 'ghost'} onClick={() => setActiveTab('building')} className={activeTab === 'building' ? 'bg-blue-600' : ''}>อาคาร</Button>
                 <Button variant={activeTab === 'billing' ? 'default' : 'ghost'} onClick={() => setActiveTab('billing')} className={activeTab === 'billing' ? 'bg-blue-600' : ''}>อัตรา</Button>
                 <Button variant={activeTab === 'bill_notifications' ? 'default' : 'ghost'} onClick={() => setActiveTab('bill_notifications')} className={activeTab === 'bill_notifications' ? 'bg-blue-600' : ''}>บิล</Button>
-                <Button variant={activeTab === 'notifications' ? 'default' : 'ghost'} onClick={() => setActiveTab('notifications')} className={activeTab === 'notifications' ? 'bg-blue-600' : ''}>การแจ้งเตือน</Button>
+                {userRole === 'developer' && (
+                  <Button variant={activeTab === 'notifications' ? 'default' : 'ghost'} onClick={() => setActiveTab('notifications')} className={activeTab === 'notifications' ? 'bg-blue-600' : ''}>การแจ้งเตือน</Button>
+                )}
                 <Button variant={activeTab === 'bank' ? 'default' : 'ghost'} onClick={() => setActiveTab('bank')} className={activeTab === 'bank' ? 'bg-blue-600' : ''}>ธนาคาร</Button>
                 <Button variant={activeTab === 'messaging' ? 'default' : 'ghost'} onClick={() => setActiveTab('messaging')} className={activeTab === 'messaging' ? 'bg-blue-600' : ''}>
                   <MessageSquare className="w-4 h-4 mr-1" />
