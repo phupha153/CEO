@@ -184,7 +184,7 @@ const navigationItems = [
     requiredFeature: "settings_view"
   },
   {
-    title: "📊 สร้างข้อมูลทดสอบ",
+    title: "สร้างข้อมูลทดสอบ",
     url: "#create-test-data",
     icon: Database,
     requiredPermission: "settings_view",
@@ -192,7 +192,7 @@ const navigationItems = [
     isTrial: true
   },
   {
-    title: "🗑️ ลบข้อมูลทดสอบ",
+    title: "ลบข้อมูลทดสอบ",
     url: "#delete-test-data",
     icon: Trash2,
     requiredPermission: "settings_view",
