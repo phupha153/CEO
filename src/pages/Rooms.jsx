@@ -1665,18 +1665,18 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             <Button
               onClick={handleDownloadExistingRooms}
               variant="outline"
-              className="border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md"
+              className="border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md hidden md:flex"
             >
-              <Download className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">ดาวน์โหลดข้อมูล</span>
+              <Download className="w-4 h-4 mr-2" />
+              ดาวน์โหลดข้อมูล
             </Button>
             <Button
               onClick={() => setShowUploadDialog(true)}
               variant="outline"
-              className="border-green-600 text-green-600 hover:bg-green-50 shadow-md"
+              className="border-green-600 text-green-600 hover:bg-green-50 shadow-md hidden md:flex"
             >
-              <Upload className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">นำเข้าข้อมูล</span>
+              <Upload className="w-4 h-4 mr-2" />
+              นำเข้าข้อมูล
             </Button>
             {roomsWithoutBranch.length > 0 && (userRole === 'developer' || userRole === 'owner') && (
               <Button
