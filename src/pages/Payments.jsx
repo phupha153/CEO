@@ -3859,7 +3859,14 @@ Return JSON.`;
                                        <DialogHeader>
                                          <DialogTitle>ห้อง {room.room_number} - รายละเอียด</DialogTitle>
                                        </DialogHeader>
-                                       {roomPayment ? (
+                                       {roomViewFetching && !roomPayment ? (
+                                         <div className="space-y-4 py-8">
+                                           <div className="flex flex-col items-center justify-center gap-3">
+                                             <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                                             <p className="text-sm text-slate-600">กำลังโหลดข้อมูล...</p>
+                                           </div>
+                                         </div>
+                                       ) : roomPayment ? (
                                          <div className="space-y-4">
                                            <div className="flex items-center justify-between">
                                              <span className="font-medium">สถานะ:</span>
