@@ -432,6 +432,9 @@ Deno.serve(async (req) => {
     if (crmWebhookUrl && crmWebhookSecret) {
       try {
         console.log('\n=== Sending to CRM Webhook ===');
+        console.log('🔑 API Key length:', crmWebhookSecret?.length || 0);
+        console.log('🔑 API Key first 10 chars:', crmWebhookSecret?.substring(0, 10) || 'MISSING');
+        console.log('📍 CRM URL:', crmWebhookUrl);
         const crmPayload = {
           event_type: 'subscription_payment',
           customer_email: user.email,
