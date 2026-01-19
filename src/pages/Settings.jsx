@@ -423,8 +423,10 @@ export default function Settings() {
       
       const allConfigs = await base44.entities.Config.list();
       
-      // 🔒 SECURITY: Developer ดูทุก config, Owner/Others ดูเฉพาะของสาขาตัวเอง
-      if (userRole === 'developer') return allConfigs;
+      // 🔒 SECURITY: Calculate role inside queryFn to avoid initialization errors
+      const role = currentUser.custom_role || (currentUser.role === 'admin' ? 'developer' : 'employee');
+      
+      if (role === 'developer') return allConfigs;
       
       // ดึงสาขาที่ตัวเองเป็นเจ้าของ
       const myBranches = await base44.entities.Branch.filter({ owner_id: currentUser.email });

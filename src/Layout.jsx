@@ -679,10 +679,11 @@ export default function Layout({ children, currentPageName }) {
     queryFn: async () => {
       if (!currentUser?.email) return [];
       
-      const userRole = currentUser.custom_role || (currentUser.role === 'admin' ? 'developer' : 'employee');
+      // 🔒 Calculate role inside queryFn to avoid initialization errors
+      const role = currentUser.custom_role || (currentUser.role === 'admin' ? 'developer' : 'employee');
       
       // 🔒 SECURITY: Developer ดูทุก config
-      if (userRole === 'developer') {
+      if (role === 'developer') {
         return base44.entities.Config.list();
       }
       
