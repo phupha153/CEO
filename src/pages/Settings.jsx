@@ -982,8 +982,7 @@ export default function Settings() {
 
   const updateConfigMutation = useMutation({
     mutationFn: async ({ key, value, description, category, value_type = 'string', applyToAllBranches }) => {
-      const userAccessibleBranches = currentUser?.accessible_branches || [];
-      const isDeveloper = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+      const isDeveloper = userRole === 'developer';
       
       // Helper function to process items in chunks to avoid Rate Limits (429 Errors)
       const processInChunks = async (items, fn, chunkSize = 3) => {
@@ -998,9 +997,19 @@ export default function Settings() {
         return results;
       };
 
-      // ⭐ Case 1: Owner/Manager saving to ALL accessible branches
-      if (applyToAllBranches && !isDeveloper && userAccessibleBranches.length > 0) {
-        return processInChunks(userAccessibleBranches, async (branchId) => {
+      // ⭐ Case 1: Owner saving to ALL owned branches
+      if (applyToAllBranches && !isDeveloper) {
+        // 🔒 SECURITY: Filter only branches where user is owner
+        const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
+        const ownedBranchIds = branches
+          .filter(b => b.owner_id === ownerEmail || b.created_by === ownerEmail)
+          .map(b => b.id);
+        
+        if (ownedBranchIds.length === 0) {
+          throw new Error('ไม่พบสาขาที่คุณเป็นเจ้าของ');
+        }
+        
+        return processInChunks(ownedBranchIds, async (branchId) => {
           const existingConfigs = configs.filter(c => c.key === key && c.branch_id === branchId);
           
           if (existingConfigs.length > 0) {
@@ -1144,8 +1153,7 @@ export default function Settings() {
   // NEW: Mutation for NotificationConfig
   const saveNotificationSettingsMutation = useMutation({
     mutationFn: async (data) => {
-      const userAccessibleBranches = currentUser?.accessible_branches || [];
-      const isDeveloper = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+      const isDeveloper = userRole === 'developer';
       
       // Helper function to process items in chunks (Inline definition to avoid dependency issues)
       const processInChunks = async (items, fn, chunkSize = 3) => {
@@ -1159,9 +1167,19 @@ export default function Settings() {
         return results;
       };
 
-      // ⭐ Case 1: Owner/Manager saving to ALL accessible branches (Upsert Pattern)
-      if (applyToAllBranches_billNotif && !isDeveloper && userAccessibleBranches.length > 0) {
-        return processInChunks(userAccessibleBranches, async (branchId) => {
+      // ⭐ Case 1: Owner saving to ALL owned branches
+      if (applyToAllBranches_billNotif && !isDeveloper) {
+        // 🔒 SECURITY: Filter only branches where user is owner
+        const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
+        const ownedBranchIds = branches
+          .filter(b => b.owner_id === ownerEmail || b.created_by === ownerEmail)
+          .map(b => b.id);
+        
+        if (ownedBranchIds.length === 0) {
+          throw new Error('ไม่พบสาขาที่คุณเป็นเจ้าของ');
+        }
+        
+        return processInChunks(ownedBranchIds, async (branchId) => {
           const existingConfigs = notificationConfigs.filter(c => c.branch_id === branchId);
           
           if (existingConfigs.length > 0) {
@@ -1513,17 +1531,22 @@ export default function Settings() {
     
     setIsSavingLineSettings(true);
     
-    const userAccessibleBranches = currentUser?.accessible_branches || [];
     let targetBranchIds;
     
     if (applyToAllBranches_line) {
-      if (userAccessibleBranches.length > 0) {
-        targetBranchIds = userAccessibleBranches;
-      } else {
-        // กรณีเป็น Owner/Developer ที่เข้าถึงได้ทุกสาขา (ไม่มี list จำกัด)
-        // ให้บันทึกใส่ทุกสาขาที่มีในระบบ
-        targetBranchIds = branches.map(b => b.id);
+      // 🔒 SECURITY: บันทึกเฉพาะสาขาที่ผู้ใช้เป็นเจ้าของ
+      const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
+      const ownedBranches = branches.filter(b => 
+        b.owner_id === ownerEmail || b.created_by === ownerEmail
+      );
+      
+      if (ownedBranches.length === 0) {
+        toast.error('ไม่พบสาขาที่คุณเป็นเจ้าของ');
+        setIsSavingLineSettings(false);
+        return;
       }
+      
+      targetBranchIds = ownedBranches.map(b => b.id);
     } else {
       targetBranchIds = [selectedBranch?.id].filter(Boolean);
     }
@@ -1677,15 +1700,22 @@ export default function Settings() {
     e.preventDefault();
     setIsSavingFacebookSettings(true);
 
-    const userAccessibleBranches = currentUser?.accessible_branches || [];
     let targetBranchIds;
     
     if (applyToAllBranches_facebook) {
-      if (userAccessibleBranches.length > 0) {
-        targetBranchIds = userAccessibleBranches;
-      } else {
-        targetBranchIds = branches.map(b => b.id);
+      // 🔒 SECURITY: บันทึกเฉพาะสาขาที่ผู้ใช้เป็นเจ้าของ
+      const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
+      const ownedBranches = branches.filter(b => 
+        b.owner_id === ownerEmail || b.created_by === ownerEmail
+      );
+      
+      if (ownedBranches.length === 0) {
+        toast.error('ไม่พบสาขาที่คุณเป็นเจ้าของ');
+        setIsSavingFacebookSettings(false);
+        return;
       }
+      
+      targetBranchIds = ownedBranches.map(b => b.id);
     } else {
       targetBranchIds = [selectedBranch?.id].filter(Boolean);
     }
