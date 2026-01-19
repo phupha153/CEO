@@ -3683,7 +3683,7 @@ Return JSON.`;
                 </Card>
               )}
 
-              {viewMode === 'room' && rooms.length > 0 && (
+              {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
                   <CardContent className="p-4 md:p-6">
                     <div className="flex items-center justify-between mb-6">
