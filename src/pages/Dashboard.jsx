@@ -1339,6 +1339,75 @@ export default function Dashboard() {
         />
       )}
 
+      {/* Delete Branch Data Confirmation Dialog */}
+      <Dialog open={showDeleteBranchDataDialog} onOpenChange={setShowDeleteBranchDataDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              ลบข้อมูลทั้งหมดของสาขา
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-800 font-semibold mb-2">⚠️ คำเตือน!</p>
+              <p className="text-sm text-red-700 mb-3">
+                การดำเนินการนี้จะลบข้อมูลต่อไปนี้ของสาขา "{selectedBranchName}" อย่างถาวร:
+              </p>
+              <ul className="text-sm text-red-700 space-y-1 ml-4 list-disc">
+                <li>ห้องพัก</li>
+                <li>ผู้เช่า</li>
+                <li>การจอง</li>
+                <li>การชำระเงิน</li>
+                <li>ค่าใช้จ่าย</li>
+                <li>แจ้งซ่อม</li>
+                <li>บันทึกมิเตอร์</li>
+              </ul>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-xs text-yellow-800">
+                💡 <strong>ไม่สามารถกู้คืนข้อมูลได้</strong> หลังจากลบ กรุณาตรวจสอบให้แน่ใจก่อนลำเบียง
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowDeleteBranchDataDialog(false)}
+                variant="outline"
+                className="flex-1"
+                disabled={deleteBranchDataMutation.isPending}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                onClick={() => {
+                  if (confirm(`⚠️ ยืนยันการลบข้อมูลทั้งหมดของสาขา "${selectedBranchName}"?\n\nข้อมูลที่ลบแล้วไม่สามารถกู้คืนได้!`)) {
+                    deleteBranchDataMutation.mutate();
+                  }
+                }}
+                variant="destructive"
+                className="flex-1"
+                disabled={deleteBranchDataMutation.isPending}
+              >
+                {deleteBranchDataMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    กำลังลบ...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    ลบข้อมูลทั้งหมด
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Debug Dialog */}
       <Dialog open={showDebugDialog} onOpenChange={setShowDebugDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
