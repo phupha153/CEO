@@ -15,10 +15,36 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'branch_id is required' }, { status: 400 });
     }
 
-    // ⭐ Admin/Developer only check
-    const isDeveloper = user.role === 'admin' || user.custom_role === 'developer';
-    if (!isDeveloper) {
-      return Response.json({ error: 'Forbidden: Only admins/developers can delete branch data' }, { status: 403 });
+    // 🔒 Multi-Tenancy Guard: ตรวจสอบว่า user มีสิทธิ์ access branch นี้
+    try {
+      const branch = await base44.asServiceRole.entities.Branch.filter({ id: branch_id }, '', 1);
+      if (!branch || branch.length === 0) {
+        return Response.json({ error: 'Branch not found' }, { status: 404 });
+      }
+
+      const branchRecord = branch[0];
+      const userEmail = user.email;
+      const accessibleBranches = user.accessible_branches;
+
+      // ✅ Developer = เข้าได้ทุกสาขา
+      if (user.role === 'admin' || user.custom_role === 'developer') {
+        // Allow access
+      }
+      // ✅ Owner of this branch
+      else if (branchRecord.owner_id === userEmail || branchRecord.created_by === userEmail) {
+        // Allow access
+      }
+      // ✅ In accessible_branches list
+      else if (Array.isArray(accessibleBranches) && accessibleBranches.includes(branch_id)) {
+        // Allow access
+      }
+      // ❌ No access
+      else {
+        return Response.json({ error: 'Forbidden: No access to this branch' }, { status: 403 });
+      }
+    } catch (error) {
+      console.error('🔒 Multi-tenancy check error:', error.message);
+      return Response.json({ error: 'Access control check failed' }, { status: 500 });
     }
 
     console.log(`🗑️ Deleting ALL test data for branch: ${branch_id}`);
