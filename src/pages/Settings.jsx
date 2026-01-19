@@ -1150,15 +1150,14 @@ export default function Settings() {
       }
     },
     onSuccess: () => {
-      console.log('✅ [CONFIG SAVED] Invalidating configs query...');
+      console.log('✅ [CONFIG SAVED] Success - No refetch needed');
       
-      // ⭐ FIX: ใช้ invalidateQueries แทน refetchQueries (ป้องกัน 429 Rate Limit)
-      // invalidate = mark เป็น stale, จะ refetch เมื่อหน้านั้นต้องใช้จริงๆ (lazy)
-      queryClient.invalidateQueries({ 
-        queryKey: ['configs']
-      });
+      // ⭐ ULTIMATE FIX: ไม่ invalidate เลย เพราะ:
+      // 1. UI ใช้ local state (buildingInfo, billingRates, etc.)
+      // 2. กด Save = อัปเดต DB แล้ว, local state ถูกต้องอยู่แล้ว
+      // 3. Reload หน้าถึงจะโหลด config ใหม่จาก DB (ไม่มีปัญหา)
       
-      // ⭐ ไม่ต้อง refetch ทันที - ให้แต่ละหน้า refetch เองเมื่อต้องใช้
+      // ⭐ ผลลัพธ์: ไม่มี refetch cascade → ไม่มี 429 Rate Limit
     },
     onError: (error) => {
       toast.error('เกิดข้อผิดพลาด: ' + (error.message || 'ไม่สามารถบันทึกได้'));
