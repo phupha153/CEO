@@ -76,16 +76,15 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   }, [allBranches, userRole, userAccessibleBranches]);
 
   // 🚀 Optimization: ดึงข้อมูลทั้งหมดในครั้งเดียว (1 API call แทน 6 calls)
-  const { data: batchData, isLoading: paymentsLoading, isFetching } = useQuery({
+  const { data: batchData, isLoading: paymentsLoading } = useQuery({
     queryKey: ['notifications-batch', 'secure', allowedBranchIds],
     queryFn: async () => {
       const response = await base44.functions.invoke('getBatchNotifications', {});
       return response.data;
     },
     enabled: isOpen && canLoadData,
-    staleTime: 10 * 1000, // Cache 10 วินาที
+    staleTime: 30 * 1000, // Cache 30 วินาที
     refetchOnMount: true,
-    refetchOnWindowFocus: false,
   });
 
   const allPayments = batchData?.payments || [];
@@ -327,12 +326,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
 
   const notificationsByBranch = useMemo(() => {
     console.log('🔍 [NotificationPanel] useMemo triggered - isOpen:', isOpen, 'paymentsLoading:', paymentsLoading);
-    // ⚡ แก้ไข: ไม่ return {} ตอน loading - ให้คืนค่า cache เก่าก่อน
-    if (!isOpen) return {};
-    if (paymentsLoading && (!batchData || !allPayments.length)) {
-      console.log('⏳ Still loading, no cached data yet');
-      return {};
-    }
+    if (!isOpen || paymentsLoading) return {};
     
     const now = getCurrentDate();
     console.log('🔍 [NotificationPanel] Current date:', now.toISOString());
@@ -967,33 +961,20 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center relative shadow-md">
                     <Bell className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                    {totalUnreadCount > 0 && (
+                    {unreadCount > 0 && (
                       <motion.div 
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-gradient-to-r from-red-500 to-pink-600 rounded-full flex items-center justify-center shadow-md text-white text-[10px] md:text-xs font-bold"
                       >
-                        {paymentsLoading ? (
-                          <Loader2 className="w-3 h-3 animate-spin text-white" />
-                        ) : (
-                          totalUnreadCount > 99 ? '99+' : totalUnreadCount
-                        )}
+                        {unreadCount > 99 ? '99+' : unreadCount}
                       </motion.div>
                     )}
                   </div>
                   <div>
                     <h2 className="text-base md:text-xl text-slate-900 font-bold">การแจ้งเตือน</h2>
                     <p className="text-xs text-slate-600">
-                      {paymentsLoading && totalUnreadCount === 0 ? (
-                        <span className="flex items-center gap-2">
-                          <Loader2 className="w-3 h-3 animate-spin" />
-                          กำลังโหลด...
-                        </span>
-                      ) : totalUnreadCount > 0 ? (
-                        `${totalUnreadCount} รายการใหม่`
-                      ) : (
-                        'ไม่มีรายการใหม่'
-                      )}
+                      {totalUnreadCount > 0 ? `${totalUnreadCount} รายการใหม่` : 'ไม่มีรายการใหม่'}
                     </p>
                   </div>
                 </div>
