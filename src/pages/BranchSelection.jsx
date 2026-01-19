@@ -461,15 +461,15 @@ export default function BranchSelection() {
   const handleSelectBranch = (branch) => {
     if (isNavigating) return;
     
-    setIsNavigating(true);
     setSelectedBranchId(branch.id);
+    setIsNavigating(true);
     localStorage.setItem('selected_branch_id', branch.id);
     localStorage.setItem('selected_branch_name', branch.branch_name);
     
-    // Navigate ทันทีหลังจาก localStorage sync
-    requestAnimationFrame(() => {
+    setTimeout(() => {
       navigate(createPageUrl('Dashboard'));
-    });
+      setIsNavigating(false);
+    }, 300);
   };
 
   const handleViewReports = () => {
