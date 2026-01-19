@@ -58,8 +58,16 @@ export default function Dashboard() {
   };
 
   const { data: configs = [] } = useQuery({
-    queryKey: ['configs'],
-    queryFn: () => base44.entities.Config.list(),
+    queryKey: ['configs', selectedBranchId],
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      // 🔒 SECURITY: ดึงเฉพาะ config ของสาขาที่เลือก + global config
+      const allConfigs = await base44.entities.Config.list();
+      return allConfigs.filter(c => 
+        !c.branch_id || c.branch_id === selectedBranchId
+      );
+    },
+    enabled: !!selectedBranchId,
     ...retryConfig,
     staleTime: 4 * 60 * 60 * 1000,
     gcTime: 8 * 60 * 60 * 1000,

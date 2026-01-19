@@ -417,16 +417,22 @@ export default function Settings() {
   });
 
   const { data: configs = [] } = useQuery({
-    queryKey: ['configs'],
+    queryKey: ['configs', currentUser?.email],
     queryFn: async () => {
+      if (!currentUser?.email) return [];
+      
       const allConfigs = await base44.entities.Config.list();
-      // Filter เฉพาะ configs ที่เกี่ยวข้องกับสาขาที่มีสิทธิ์
+      
+      // 🔒 SECURITY: Developer ดูทุก config, Owner/Others ดูเฉพาะของสาขาตัวเอง
       if (userRole === 'developer') return allConfigs;
       
-      const accessibleBranchIds = currentUser?.accessible_branches || [];
+      // ดึงสาขาที่ตัวเองเป็นเจ้าของ
+      const myBranches = await base44.entities.Branch.filter({ owner_id: currentUser.email });
+      const myBranchIds = myBranches.map(b => b.id);
+      
+      // กรองเฉพาะ config ที่เป็น global หรือเป็นของสาขาตัวเอง
       return allConfigs.filter(c => 
-        !c.branch_id || // Global configs
-        accessibleBranchIds.includes(c.branch_id) // Configs ของสาขาที่เข้าถึงได้
+        !c.branch_id || myBranchIds.includes(c.branch_id)
       );
     },
     enabled: !!currentUser,
