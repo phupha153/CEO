@@ -1623,20 +1623,28 @@ export default function Layout({ children, currentPageName }) {
                     } else if (item.title.includes('ลบ')) {
                       return (
                         <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton
-                            onClick={() => {
-                              if (confirm('🗑️ ลบข้อมูลทั้งหมด?')) {
-                                deleteTestDataMutation.mutate();
-                              }
-                            }}
-                            disabled={deleteTestDataMutation.isPending}
-                            className="group hover:bg-gradient-to-r hover:from-red-50/80 hover:to-orange-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 bg-red-600 hover:bg-red-700 text-white"
-                            title={item.title}
-                          >
-                            <item.icon className="w-5 h-5 flex-shrink-0" />
-                            <span className="font-medium group-data-[collapsible=icon]:hidden truncate">{item.title}</span>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
+                           <SidebarMenuButton
+                             onClick={() => {
+                               if (confirm('🗑️ ลบข้อมูลทั้งหมด?')) {
+                                 deleteTestDataMutation.mutate();
+                               }
+                             }}
+                             disabled={deleteTestDataMutation.isPending}
+                             className={`group hover:bg-gradient-to-r hover:from-red-50/80 hover:to-orange-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 ${
+                               deleteTestDataMutation.isPending ? 'bg-red-500 opacity-70' : 'bg-red-600 hover:bg-red-700'
+                             } text-white`}
+                             title={item.title}
+                           >
+                             {deleteTestDataMutation.isPending ? (
+                               <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />
+                             ) : (
+                               <item.icon className="w-5 h-5 flex-shrink-0" />
+                             )}
+                             <span className="font-medium group-data-[collapsible=icon]:hidden truncate">
+                               {deleteTestDataMutation.isPending ? 'กำลังลบ...' : item.title}
+                             </span>
+                           </SidebarMenuButton>
+                         </SidebarMenuItem>
                       );
                     }
                   }
