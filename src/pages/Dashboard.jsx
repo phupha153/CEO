@@ -1004,12 +1004,12 @@ export default function Dashboard() {
 
           <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 }}>
-              <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
+              <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden h-full">
                 <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-48 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
                 <CardHeader className="relative pb-3 md:pb-4">
                   <CardTitle className="text-sm md:text-lg font-bold text-slate-800">สถานะห้องพัก</CardTitle>
                 </CardHeader>
-                <CardContent className="relative">
+                <CardContent className="relative flex flex-col h-[calc(100%-60px)]">
                   <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
                       <Pie
