@@ -697,7 +697,7 @@ export default function Layout({ children, currentPageName }) {
   });
 
   // ⭐ ดึงข้อมูลแพ็กเกจของเจ้าของสาขา
-  const { data: branchOwnerStatus } = useQuery({
+  const { data: branchOwnerStatus, isLoading: branchOwnerLoading } = useQuery({
     queryKey: ['branchOwnerStatus', selectedBranch?.id],
     queryFn: async () => {
       if (!selectedBranch?.id) return null;
@@ -710,6 +710,7 @@ export default function Layout({ children, currentPageName }) {
     staleTime: 5 * 60 * 1000,
     retry: 1,
     throwOnError: false,
+    placeholderData: (previousData) => previousData, // ⭐ ใช้ cache เก่าขณะ refetch
   });
 
   const getConfigValue = (key, defaultValue = '') => {
@@ -1323,8 +1324,14 @@ export default function Layout({ children, currentPageName }) {
 
   // ⭐ User trial banner - แสดงของเจ้าของสาขา
   const renderSubscriptionBanner = () => {
+    // ⚡ FIX: รอให้ branchOwnerStatus โหลดเสร็จก่อน (ถ้ามีการเปิด query)
+    const isQueryEnabled = !!selectedBranch && !!currentUser && isOnline;
+    const shouldWaitForBranchOwner = isQueryEnabled && branchOwnerLoading;
+    
     // รอให้โหลดข้อมูลเสร็จก่อน
-    if (isLoading || configsLoading || branchesLoading || !currentUser) return null;
+    if (isLoading || configsLoading || branchesLoading || !currentUser || shouldWaitForBranchOwner) {
+      return null; // ⭐ ไม่แสดงอะไรเลยขณะโหลด (ป้องกัน flash)
+    }
 
     // ⭐ ถ้ามีสาขาเลือก ให้ดู status ของเจ้าของสาขา, ถ้าไม่มีให้ดูของตัวเอง
     const planStatus = branchOwnerStatus?.plan_status || currentUser.plan_status || 'trial';
