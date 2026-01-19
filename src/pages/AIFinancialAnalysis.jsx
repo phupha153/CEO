@@ -24,6 +24,32 @@ export default function AIFinancialAnalysis() {
     to: endOfMonth(new Date())
   });
 
+  const { data: currentUser } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me(),
+    staleTime: 60 * 60 * 1000,
+  });
+
+  const { data: allBranches = [] } = useQuery({
+    queryKey: ['branches', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser?.email) return [];
+      // 🔒 SECURITY: ดึงเฉพาะสาขาที่ตัวเองเป็น owner
+      return base44.entities.Branch.filter({ owner_id: currentUser.email });
+    },
+    enabled: !!currentUser,
+  });
+
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userAccessibleBranches = currentUser?.accessible_branches;
+  const canViewAllBranches = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+
+  // กรองสาขาตามสิทธิ์
+  const branches = React.useMemo(() => {
+    if (canViewAllBranches) return allBranches;
+    return allBranches.filter(b => userAccessibleBranches && userAccessibleBranches.includes(b.id));
+  }, [allBranches, canViewAllBranches, userAccessibleBranches]);
+
   const { data: rooms = [] } = useQuery({
     queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
@@ -84,32 +110,6 @@ export default function AIFinancialAnalysis() {
     },
     enabled: !!selectedBranchId,
   });
-
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-    staleTime: 60 * 60 * 1000,
-  });
-
-  const { data: allBranches = [] } = useQuery({
-    queryKey: ['branches', currentUser?.email],
-    queryFn: async () => {
-      if (!currentUser?.email) return [];
-      // 🔒 SECURITY: ดึงเฉพาะสาขาที่ตัวเองเป็น owner
-      return base44.entities.Branch.filter({ owner_id: currentUser.email });
-    },
-    enabled: !!currentUser,
-  });
-
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
-  const userAccessibleBranches = currentUser?.accessible_branches;
-  const canViewAllBranches = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
-
-  // กรองสาขาตามสิทธิ์
-  const branches = React.useMemo(() => {
-    if (canViewAllBranches) return allBranches;
-    return allBranches.filter(b => userAccessibleBranches && userAccessibleBranches.includes(b.id));
-  }, [allBranches, canViewAllBranches, userAccessibleBranches]);
 
   const getDateRange = () => {
     const now = new Date();
