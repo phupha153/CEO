@@ -1323,7 +1323,8 @@ export default function Layout({ children, currentPageName }) {
 
   // ⭐ User trial banner - แสดงของเจ้าของสาขา
   const renderSubscriptionBanner = () => {
-    if (isLoading || configsLoading || !currentUser) return null;
+    // รอให้โหลดข้อมูลเสร็จก่อน
+    if (isLoading || configsLoading || branchesLoading || !currentUser) return null;
 
     // ⭐ ถ้ามีสาขาเลือก ให้ดู status ของเจ้าของสาขา, ถ้าไม่มีให้ดูของตัวเอง
     const planStatus = branchOwnerStatus?.plan_status || currentUser.plan_status || 'trial';
@@ -1335,20 +1336,23 @@ export default function Layout({ children, currentPageName }) {
         const trialEndDate = startOfDay(parseISO(trialEndsAt));
         const today = startOfDay(new Date());
         const daysRemaining = differenceInDays(trialEndDate, today);
-        
+
         if (daysRemaining >= 0) {
         return (
-        <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
+        <button 
+          onClick={() => navigate(createPageUrl('PackageSelection'))}
+          className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between hover:from-amber-600 hover:to-orange-600 transition-all"
+        >
         <div className="flex items-center gap-3">
         <Crown className="w-5 h-5" />
-        <div>
+        <div className="text-left">
           <p className="font-semibold text-sm">
             🎉 {isOwner ? 'กำลังทดลองใช้งาน' : `แพ็กเกจของ ${branchOwnerStatus?.owner_name || 'เจ้าของ'}`}
           </p>
-          <p className="text-xs opacity-90">เหลืออีก {Math.max(0, daysRemaining)} วัน</p>
+          <p className="text-xs opacity-90">เหลืออีก {Math.max(0, daysRemaining)} วัน • คลิกเพื่อดูแพ็กเกจ</p>
         </div>
         </div>
-        </div>
+        </button>
         );
         }
       } catch {}
