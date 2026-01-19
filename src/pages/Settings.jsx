@@ -3444,8 +3444,8 @@ export default function Settings() {
                             </div>
                           </div>
 
-                          <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-                            <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
+                          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                            <h4 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
                               <Zap className="w-5 h-5" />
                               Webhook URL สำหรับสาขานี้
                             </h4>
