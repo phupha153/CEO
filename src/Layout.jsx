@@ -167,7 +167,8 @@ const navigationItems = [
     url: createPageUrl("ActivityLog"),
     icon: Shield,
     requiredPermission: "settings_view",
-    requiredFeature: "settings_view"
+    requiredFeature: "settings_view",
+    hideOnMobile: true
   },
   {
     title: "ตั้งค่า",

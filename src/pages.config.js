@@ -1,6 +1,5 @@
 import AIGuidelines from './pages/AIGuidelines';
 import AccountingData from './pages/AccountingData';
-import ActivityLog from './pages/ActivityLog';
 import AllBranchesDashboard from './pages/AllBranchesDashboard';
 import Announcements from './pages/Announcements';
 import BannerManagement from './pages/BannerManagement';
@@ -55,13 +54,13 @@ import reports from './pages/reports';
 import AIFinancialAnalysis from './pages/AIFinancialAnalysis';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
+import ActivityLog from './pages/ActivityLog';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "AIGuidelines": AIGuidelines,
     "AccountingData": AccountingData,
-    "ActivityLog": ActivityLog,
     "AllBranchesDashboard": AllBranchesDashboard,
     "Announcements": Announcements,
     "BannerManagement": BannerManagement,
@@ -116,6 +115,7 @@ export const PAGES = {
     "AIFinancialAnalysis": AIFinancialAnalysis,
     "Dashboard": Dashboard,
     "Settings": Settings,
+    "ActivityLog": ActivityLog,
 }
 
 export const pagesConfig = {
