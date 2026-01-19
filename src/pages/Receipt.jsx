@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Download, Loader2, CheckCircle, RefreshCw, Building2, Users, ArrowLeft } from "lucide-react";
@@ -83,14 +82,6 @@ export default function Receipt() {
   const [showDebug, setShowDebug] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const receiptRef = useRef(null);
-
-  // ⭐ ดึงข้อมูล User เพื่อเช็ค role
-  const { data: currentUser } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-    staleTime: Infinity,
-  });
-  const isDeveloper = currentUser?.role === 'admin' || currentUser?.custom_role === 'developer';
 
   const fetchReceipt = async () => {
     if (!paymentId) {
@@ -358,86 +349,84 @@ export default function Receipt() {
 
   return (
     <div className="min-h-screen bg-slate-50 print:bg-white">
-      {/* Debug Dialog - Developer Only */}
-      {isDeveloper && (
-        <Dialog open={showDebug} onOpenChange={setShowDebug}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>🐛 Debug ข้อมูลค่าปรับ</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 text-sm">
-              <div className="bg-purple-100 p-3 rounded border-2 border-purple-300">
-                <p className="font-bold mb-2 text-purple-800">🔍 ข้อมูลดิบจาก API Response:</p>
-                <p>• Branch ID: <span className={debugInfo.branchIdIsUndefined ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>{debugInfo.branchId || '❌ undefined/null'}</span></p>
-                <p>• Type: {debugInfo.branchIdType}</p>
-                <p>• Is undefined? {debugInfo.branchIdIsUndefined ? '✅ YES (ปัญหา!)' : '❌ NO'}</p>
-                <p>• Is null? {debugInfo.branchIdIsNull ? '✅ YES' : '❌ NO'}</p>
-                <p className="mt-2 font-semibold">Keys in response:</p>
-                <p className="text-xs bg-white p-2 rounded">{debugInfo.raw_response_keys.join(', ')}</p>
-              </div>
-
-              <div className="bg-slate-100 p-3 rounded">
-                <p className="font-bold mb-2">ข้อมูล Payment:</p>
-                <p>• ID: {debugInfo.paymentId}</p>
-                <p>• Branch ID: {debugInfo.branchId}</p>
-                <p>• Status: {debugInfo.status}</p>
-                <p>• ค่าปรับที่บันทึก (late_fee_amount): {debugInfo.payment_late_fee_amount} บาท</p>
-                <p>• วันเกินกำหนด: {debugInfo.daysOverdue} วัน</p>
-              </div>
-
-              <div className="bg-yellow-100 p-3 rounded">
-                <p className="font-bold mb-2">ค่าปรับที่คำนวณได้:</p>
-                <p>• แสดงในบิล: {debugInfo.display_late_fee} บาท</p>
-              </div>
-
-              <div className="bg-blue-100 p-3 rounded">
-                <p className="font-bold mb-2">Config สาขานี้:</p>
-                {debugInfo.configs_for_branch.length > 0 ? (
-                  debugInfo.configs_for_branch.map((c, i) => (
-                    <div key={i} className="ml-4">
-                      <p>• branch_id: {c.branch_id}</p>
-                      <p>• value: {c.value} บาท/วัน</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-red-600">❌ ไม่มี config สำหรับสาขานี้</p>
-                )}
-              </div>
-
-              <div className="bg-green-100 p-3 rounded">
-                <p className="font-bold mb-2">Config ระดับ Global:</p>
-                {debugInfo.configs_global.length > 0 ? (
-                  debugInfo.configs_global.map((c, i) => (
-                    <div key={i} className="ml-4">
-                      <p>• value: {c.value} บาท/วัน</p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-slate-500">ไม่มี global config</p>
-                )}
-              </div>
-
-              <div className="bg-red-100 p-3 rounded">
-                <p className="font-bold mb-2">⚠️ Config ทั้งหมดในระบบ (late_payment_fee_per_day):</p>
-                {debugInfo.all_late_fee_configs.map((c, i) => (
-                  <div key={i} className="ml-4 mb-2 border-b pb-1">
-                    <p>• branch_id: {c.branch_id || 'null (global)'}</p>
-                    <p>• value: {c.value} บาท/วัน</p>
-                    <p>• id: {c.id}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="bg-orange-100 p-3 rounded border-2 border-orange-400">
-                <p className="font-bold mb-2 text-orange-800">📦 Full Receipt Data Object:</p>
-                <pre className="text-xs bg-white p-2 rounded overflow-auto max-h-96 border">
-                  {JSON.stringify(debugInfo.full_receiptData, null, 2)}
-                </pre>
-              </div>
+      {/* Debug Dialog */}
+      <Dialog open={showDebug} onOpenChange={setShowDebug}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>🐛 Debug ข้อมูลค่าปรับ</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div className="bg-purple-100 p-3 rounded border-2 border-purple-300">
+              <p className="font-bold mb-2 text-purple-800">🔍 ข้อมูลดิบจาก API Response:</p>
+              <p>• Branch ID: <span className={debugInfo.branchIdIsUndefined ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>{debugInfo.branchId || '❌ undefined/null'}</span></p>
+              <p>• Type: {debugInfo.branchIdType}</p>
+              <p>• Is undefined? {debugInfo.branchIdIsUndefined ? '✅ YES (ปัญหา!)' : '❌ NO'}</p>
+              <p>• Is null? {debugInfo.branchIdIsNull ? '✅ YES' : '❌ NO'}</p>
+              <p className="mt-2 font-semibold">Keys in response:</p>
+              <p className="text-xs bg-white p-2 rounded">{debugInfo.raw_response_keys.join(', ')}</p>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+
+            <div className="bg-slate-100 p-3 rounded">
+              <p className="font-bold mb-2">ข้อมูล Payment:</p>
+              <p>• ID: {debugInfo.paymentId}</p>
+              <p>• Branch ID: {debugInfo.branchId}</p>
+              <p>• Status: {debugInfo.status}</p>
+              <p>• ค่าปรับที่บันทึก (late_fee_amount): {debugInfo.payment_late_fee_amount} บาท</p>
+              <p>• วันเกินกำหนด: {debugInfo.daysOverdue} วัน</p>
+            </div>
+
+            <div className="bg-yellow-100 p-3 rounded">
+              <p className="font-bold mb-2">ค่าปรับที่คำนวณได้:</p>
+              <p>• แสดงในบิล: {debugInfo.display_late_fee} บาท</p>
+            </div>
+
+            <div className="bg-blue-100 p-3 rounded">
+              <p className="font-bold mb-2">Config สาขานี้:</p>
+              {debugInfo.configs_for_branch.length > 0 ? (
+                debugInfo.configs_for_branch.map((c, i) => (
+                  <div key={i} className="ml-4">
+                    <p>• branch_id: {c.branch_id}</p>
+                    <p>• value: {c.value} บาท/วัน</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-red-600">❌ ไม่มี config สำหรับสาขานี้</p>
+              )}
+            </div>
+
+            <div className="bg-green-100 p-3 rounded">
+              <p className="font-bold mb-2">Config ระดับ Global:</p>
+              {debugInfo.configs_global.length > 0 ? (
+                debugInfo.configs_global.map((c, i) => (
+                  <div key={i} className="ml-4">
+                    <p>• value: {c.value} บาท/วัน</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-slate-500">ไม่มี global config</p>
+              )}
+            </div>
+
+            <div className="bg-red-100 p-3 rounded">
+              <p className="font-bold mb-2">⚠️ Config ทั้งหมดในระบบ (late_payment_fee_per_day):</p>
+              {debugInfo.all_late_fee_configs.map((c, i) => (
+                <div key={i} className="ml-4 mb-2 border-b pb-1">
+                  <p>• branch_id: {c.branch_id || 'null (global)'}</p>
+                  <p>• value: {c.value} บาท/วัน</p>
+                  <p>• id: {c.id}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-orange-100 p-3 rounded border-2 border-orange-400">
+              <p className="font-bold mb-2 text-orange-800">📦 Full Receipt Data Object:</p>
+              <pre className="text-xs bg-white p-2 rounded overflow-auto max-h-96 border">
+                {JSON.stringify(debugInfo.full_receiptData, null, 2)}
+              </pre>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       {/* Print Styles - ปรับปรุงสำหรับ A4 */}
       <style>{`
         @media print {
@@ -537,16 +526,14 @@ export default function Receipt() {
             ย้อนกลับ
           </Button>
           <div className="flex gap-2">
-            {isDeveloper && (
-              <Button
-                onClick={() => setShowDebug(true)}
-                size="sm"
-                variant="outline"
-                className="gap-2 text-xs border-purple-600 text-purple-600 hover:bg-purple-50"
-              >
-                🐛 Debug
-              </Button>
-            )}
+            <Button
+              onClick={() => setShowDebug(true)}
+              size="sm"
+              variant="outline"
+              className="gap-2 text-xs border-purple-600 text-purple-600 hover:bg-purple-50"
+            >
+              🐛 Debug ค่าปรับ
+            </Button>
             {receiptData?.receipt_image_url && (
               <a 
                 href={receiptData.receipt_image_url} 
@@ -714,8 +701,8 @@ export default function Receipt() {
                   </span>
                   {/* ตราประทับชำระแล้ว */}
                   <div className="border-2 border-green-600 rounded px-1.5 md:px-2.5 py-0.5 md:py-1 text-center transform rotate-[-3deg]">
-                    <p className="text-[9px] md:text-xs font-bold text-green-700">✓ ชำระแล้ว</p>
-                    <p className="text-[8px] md:text-[9px] text-green-600">{paymentDate}</p>
+                    <p className="text-[9px] md:text-xs font-bold text-green-700">✓ ชำระ<span className="hidden md:inline">แล้ว</span></p>
+                    <p className="text-[8px] md:text-[9px] text-green-600 md:hidden">{paymentDate.split(' ')[0]}</p>
                   </div>
                 </div>
               </div>

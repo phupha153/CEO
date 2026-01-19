@@ -478,8 +478,8 @@ export default function PublicReceipt() {
                     {(receiptData.total_amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                   <div className="border-2 border-green-600 rounded px-1.5 md:px-2.5 py-0.5 md:py-1 text-center transform rotate-[-3deg]">
-                    <p className="text-[9px] md:text-xs font-bold text-green-700">✓ ชำระแล้ว</p>
-                    <p className="text-[8px] md:text-[9px] text-green-600">{paymentDate}</p>
+                    <p className="text-[9px] md:text-xs font-bold text-green-700">✓ ชำระ<span className="hidden md:inline">แล้ว</span></p>
+                    <p className="text-[8px] md:text-[9px] text-green-600 md:block hidden">{paymentDate}</p>
                   </div>
                 </div>
               </div>

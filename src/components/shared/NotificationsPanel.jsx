@@ -323,12 +323,10 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     const branchNotifications = {};
 
     const selectedBranchId = localStorage.getItem('selected_branch_id');
-    // ⭐ ใช้ accessibleBranches แทน userAccessibleBranches เพื่อกรองสาขาที่มีสิทธิ์อย่างถูกต้อง
-    const accessibleBranchIds = accessibleBranches.map(b => b.id);
     const branchesToCheck = showAllBranches 
-      ? accessibleBranchIds
-      : accessibleBranchIds.length > 0
-      ? accessibleBranchIds
+      ? branches.map(b => b.id)
+      : userAccessibleBranches.length > 0
+      ? userAccessibleBranches
       : [selectedBranchId].filter(Boolean);
 
     branchesToCheck.forEach(branchId => {

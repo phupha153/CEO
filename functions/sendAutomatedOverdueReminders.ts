@@ -383,12 +383,9 @@ Deno.serve(async (req) => {
             });
         }
 
-       console.log(`\n💰 ========== STEP 1: CALCULATING LATE FEES (PRODUCTION-GRADE) ==========`);
-// ⭐ แก้ให้ใช้วันที่ไทย (UTC+7)
-const nowForCalc = new Date();
-const thaiDateForCalc = new Date(nowForCalc.getTime() + (7 * 60 * 60 * 1000));
-const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
-
+        // ⭐⭐⭐ ขั้นตอนที่ 1: คำนวณและอัปเดตค่าปรับก่อน (ต้องทำก่อนสร้างรูป)
+        console.log(`\n💰 ========== STEP 1: CALCULATING LATE FEES (PRODUCTION-GRADE) ==========`);
+        const todayDateStr = new Date().toISOString().split('T')[0];
         let feeCalculated = 0;
         let feeSkipped = 0;
         

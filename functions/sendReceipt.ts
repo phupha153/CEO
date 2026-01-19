@@ -526,10 +526,10 @@ Deno.serve(async (req) => {
                             margin: "lg",
                             spacing: "xs",
                             contents: [
-                               
+                                { type: "text", text: "ขอบคุณที่ชำระเงินตรงเวลา", size: "xs", color: "#aaaaaa", align: "center" },
                                 { type: "text", text: `ผู้รับเงิน: ${lessorName}`, size: "xs", color: "#aaaaaa", align: "center", margin: "sm" },
                                 { type: "text", text: "เอกสารนี้สร้างโดยระบบอัตโนมัติ", size: "xxs", color: "#aaaaaa", align: "center", margin: "sm" },
-                               
+                                { type: "text", text: "กรุณาเก็บใบเสร็จนี้ไว้เป็นหลักฐาน", size: "xxs", color: "#aaaaaa", align: "center", margin: "xs" }
                             ]
                         }
                     ]
