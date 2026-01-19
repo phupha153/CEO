@@ -33,7 +33,6 @@ export default function PageHeader({
     queryFn: async () => {
       if (!selectedBranchId) return [];
       const payments = await base44.entities.Payment.filter({ branch_id: selectedBranchId });
-      console.log('🔔 PageHeader: Loaded payments for branch', selectedBranchId, '- Total:', payments.length);
       return payments;
     },
     enabled: showNotifications && !!selectedBranchId,
@@ -46,7 +45,6 @@ export default function PageHeader({
     queryFn: async () => {
       if (!selectedBranchId) return [];
       const requests = await base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId });
-      console.log('🔔 PageHeader: Loaded maintenance for branch', selectedBranchId, '- Total:', requests.length);
       return requests;
     },
     enabled: showNotifications && !!selectedBranchId,

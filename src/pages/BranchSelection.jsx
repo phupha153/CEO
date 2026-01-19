@@ -176,18 +176,9 @@ export default function BranchSelection() {
     // ⭐ ถ้า custom_role ยัง undefined และ CRM ส่ง role มาแล้ว ให้ใช้จาก CRM
     if (!effectiveRole && crmAccess && !crmAccessLoading && crmAccess.role) {
       effectiveRole = crmAccess.role;
-      console.log('💡 BranchSelection: Using CRM role as fallback:', effectiveRole);
     }
     
     const finalRole = effectiveRole || 'employee';
-    console.log('👤 BranchSelection Role Calculation:', {
-      currentUserCustomRole: currentUser?.custom_role,
-      currentUserBaseRole: currentUser?.role,
-      crmRole: crmAccess?.role,
-      crmLoading: crmAccessLoading,
-      effectiveRole,
-      finalRole
-    });
     
     return finalRole;
   })();
@@ -218,21 +209,6 @@ export default function BranchSelection() {
     // Employee/Manager ที่ไม่มี accessible_branches = ไม่เห็นสาขาใดเลย
     return [];
   }, [branches, userRole, hasAccessibleBranchesSet, userAccessibleBranches, currentUser?.email]);
-
-  console.log('🔍 BranchSelection Debug:', {
-    userRole,
-    isDeveloper: userRole === 'developer',
-    isOwner: userRole === 'owner',
-    canSeeBranchManagementButton: userRole === 'developer' || userRole === 'owner',
-    currentUser: currentUser?.email,
-    customRole: currentUser?.custom_role,
-    role: currentUser?.role,
-    hasAccessibleBranchesSet,
-    accessibleBranches: userAccessibleBranches,
-    filteredBranchesCount: filteredBranches.length,
-    totalBranchesCount: branches.length,
-    ownedBranches: branches.filter(b => b.owner_id === currentUser?.email).length
-  });
 
   const { data: crmPackages } = useQuery({
     queryKey: ['crmPackages'],
@@ -394,7 +370,6 @@ export default function BranchSelection() {
         
         if (configsToCreate.length > 0) {
           await base44.entities.Config.bulkCreate(configsToCreate);
-          console.log(`✅ Created ${configsToCreate.length} configs for new branch`);
         }
       } catch (error) {
         console.error('Failed to create configs:', error);

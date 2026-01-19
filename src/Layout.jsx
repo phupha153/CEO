@@ -380,12 +380,8 @@ export default function Layout({ children, currentPageName }) {
         version: 'v18.0'
       });
 
-      console.log('✅ Facebook SDK initialized with App ID:', FACEBOOK_APP_ID);
-
       // Check login status when SDK is ready
-      window.FB.getLoginStatus(function(response) {
-        console.log('Initial Facebook Status:', response);
-      });
+      window.FB.getLoginStatus(function(response) {});
     };
 
     // Load Facebook SDK
@@ -410,7 +406,6 @@ export default function Layout({ children, currentPageName }) {
     // Setup Facebook Login Status Callback
     window.checkLoginState = function() {
       window.FB.getLoginStatus(function(response) {
-        console.log('Facebook Login Response:', response);
         if (response.status === 'connected') {
           const accessToken = response.authResponse.accessToken;
           const userID = response.authResponse.userID;
@@ -419,7 +414,6 @@ export default function Layout({ children, currentPageName }) {
           window.FB.api('/me/accounts', function(pagesResponse) {
             if (pagesResponse && pagesResponse.data) {
               const pages = pagesResponse.data;
-              console.log('Facebook Pages:', pages);
               
               if (pages.length === 0) {
                 alert('ไม่พบ Facebook Page ที่คุณเป็นผู้ดูแล');
@@ -440,7 +434,6 @@ export default function Layout({ children, currentPageName }) {
             }
           });
         } else {
-          console.log('User not authenticated');
           alert('กรุณาเข้าสู่ระบบ Facebook ก่อน');
         }
       });
@@ -526,12 +519,6 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['currentUser'],
     queryFn: async () => {
       const user = await base44.auth.me();
-      console.log('👤 Current User Loaded:', {
-        email: user?.email,
-        role: user?.role,
-        custom_role: user?.custom_role,
-        plan_status: user?.plan_status
-      });
       setRetryCount(0);
       return user;
     },
@@ -553,14 +540,6 @@ export default function Layout({ children, currentPageName }) {
   const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError, refetch: refetchCRMAccess } = useQuery({
     queryKey: ['crmAccess', currentUser?.email],
     queryFn: async () => {
-      console.log('🔍 CRM Check Starting for:', currentUser?.email);
-      console.log('📌 Current User State:', {
-        email: currentUser?.email,
-        custom_role: currentUser?.custom_role,
-        role: currentUser?.role,
-        id: currentUser?.id
-      });
-
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -570,15 +549,6 @@ export default function Layout({ children, currentPageName }) {
         });
         clearTimeout(timeoutId);
         const data = response.data;
-
-        console.log('📊 CRM Response:', {
-          hasAccess: data?.hasAccess,
-          role: data?.role,
-          email: data?.email,
-          currentUserEmail: currentUser?.email,
-          currentCustomRole: currentUser?.custom_role,
-          fullResponse: data
-        });
 
         // 🔒 FAIL-CLOSED: ถ้ามี error/timeout → DENY
         if (!data || data.error || data.timeout) {
@@ -600,27 +570,16 @@ export default function Layout({ children, currentPageName }) {
         if (data.hasAccess && data.role && currentUser) {
           // ⭐ Admin users ใน Base44 = developer เสมอ ไม่ sync จาก CRM
           if (currentUser.role === 'admin') {
-            console.log('🔒 Admin user - no sync needed');
             return data;
           }
 
           const currentRole = currentUser.custom_role || null;
           const crmRole = data.role?.trim();
 
-          console.log('🔄 Role Sync Check:', {
-            currentRole,
-            crmRole,
-            needsSync: currentRole !== crmRole,
-            userEmail: currentUser.email
-          });
-
           // ⭐ อัพเดทเฉพาะเมื่อ role ไม่ตรงกัน
           if (currentRole !== crmRole) {
-            console.log('⚡ Updating role from', currentRole, 'to', crmRole);
-
             try {
               await base44.auth.updateMe({ custom_role: crmRole });
-              console.log('✅ Role updated successfully to:', crmRole);
               await queryClient.invalidateQueries(['currentUser']);
               await new Promise(resolve => setTimeout(resolve, 500));
               window.location.reload();
@@ -628,15 +587,7 @@ export default function Layout({ children, currentPageName }) {
               console.error('❌ Role update failed:', error.message);
               console.error('Full error:', error);
             }
-          } else {
-            console.log('✅ Role already synced:', crmRole);
           }
-        } else {
-          console.warn('⚠️ No role in CRM response:', {
-            hasAccess: data?.hasAccess,
-            role: data?.role,
-            hasCurrentUser: !!currentUser
-          });
         }
 
         return data;
@@ -644,7 +595,6 @@ export default function Layout({ children, currentPageName }) {
         clearTimeout(timeoutId);
         
         if (error.name === 'AbortError') {
-          console.warn('⏱️ CRM Timeout - allowing grace period');
           return { hasAccess: true, timeout: true, cached: true };
         }
         
@@ -776,11 +726,6 @@ export default function Layout({ children, currentPageName }) {
   const userRole = (() => {
     // ⭐ Admin users = developer เสมอ (ไม่สนใจ custom_role)
     if (currentUser?.role === 'admin') {
-      console.log('👤 User Role Calculation: Admin → Developer', {
-        custom_role: currentUser?.custom_role,
-        base_role: currentUser?.role,
-        calculated_role: 'developer'
-      });
       return 'developer';
     }
     
@@ -789,16 +734,9 @@ export default function Layout({ children, currentPageName }) {
     // ⭐ FIX: ใช้ crmAccess.role เป็น fallback ถ้า custom_role ยัง undefined
     if (!effectiveRole && crmAccess && !crmAccessLoading && crmAccess.role) {
       effectiveRole = crmAccess.role;
-      console.log('💡 Layout: Using CRM role as fallback:', effectiveRole);
     }
     
     const role = effectiveRole || 'employee';
-    console.log('👤 User Role Calculation:', {
-      custom_role: currentUser?.custom_role,
-      crm_role: crmAccess?.role,
-      base_role: currentUser?.role,
-      calculated_role: role
-    });
     return role;
   })();
   const userPermissions = currentUser?.permissions || [];
@@ -858,7 +796,6 @@ export default function Layout({ children, currentPageName }) {
 
       // ⭐ FORCE REFETCH: ถ้า custom_role = undefined ให้ refetch CRM
       if (!currentUser.custom_role && !crmAccessLoading) {
-        console.log('⚡ Force CRM refetch: custom_role is undefined');
         try {
           await refetchCRMAccess();
         } catch (error) {
@@ -877,13 +814,11 @@ export default function Layout({ children, currentPageName }) {
 
       // เฉพาะ Owner ที่ยังไม่มี plan_status เลย (developer ไม่ต้อง init trial)
       if (userRole === 'owner' && !currentUser.plan_status && !isCreatingTrial) {
-        console.log('🎉 Owner ไม่มี plan_status - กำลังสร้าง Trial อัตโนมัติ');
         setIsCreatingTrial(true);
 
         try {
           await base44.functions.invoke('initUserTrial');
           await queryClient.invalidateQueries(['currentUser']);
-          console.log('✅ สร้าง Trial สำเร็จ');
         } catch (error) {
           console.error('❌ สร้าง Trial ไม่สำเร็จ:', error);
         } finally {
@@ -927,7 +862,6 @@ export default function Layout({ children, currentPageName }) {
 
       // ⭐ FIX: รอ CRM check เสร็จก่อนถ้า custom_role ยัง undefined (ป้องกัน race condition)
       if (!currentUser.custom_role && crmAccessLoading) {
-        console.log('⏳ Waiting for CRM role sync before checking subscription...');
         return;
       }
 
@@ -957,16 +891,6 @@ export default function Layout({ children, currentPageName }) {
   }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading]);
 
   useEffect(() => {
-    console.log('🔍 Layout Branch Check:', {
-      currentPageName,
-      hasUser: !!currentUser,
-      isLoading,
-      branchesLoading,
-      selectedBranch: selectedBranch?.id,
-      canAccessBranch,
-      branchesCount: branches.length
-    });
-
     if (!currentUser || isLoading || branchesLoading) return;
 
     // Pages that don't require a selected branch
@@ -983,13 +907,11 @@ export default function Layout({ children, currentPageName }) {
         currentPageName === 'Invoice' ||
         currentPageName === 'Receipt' ||
         currentPageName === 'Welcome') {
-      console.log('✅ หน้านี้ไม่ต้องเลือกสาขา - อนุญาต');
       return;
     }
 
     // If user has a selected branch but no access to it, clear and redirect
     if (selectedBranch && !canAccessBranch) {
-      console.log('🚫 ไม่มีสิทธิ์เข้าสาขานี้ - redirect');
       localStorage.removeItem('selected_branch_id');
       localStorage.removeItem('selected_branch_name');
       setSelectedBranch(null);
@@ -999,7 +921,6 @@ export default function Layout({ children, currentPageName }) {
 
     // If no branch is selected and there are branches available, redirect to branch selection
     if (!selectedBranch && branches.length > 0) {
-      console.log('⚠️ ไม่ได้เลือกสาขา - redirect ไป BranchSelection');
       navigate(createPageUrl('BranchSelection'), { replace: true });
     }
   }, [currentUser?.id, selectedBranch?.id, canAccessBranch, isLoading, branchesLoading, currentPageName, branches.length, navigate, userRole]);
@@ -1492,8 +1413,6 @@ export default function Layout({ children, currentPageName }) {
       </>
     );
   }
-  
-  console.log('✅ Layout กำลัง render ปกติ', { currentPageName, selectedBranch: selectedBranch?.id });
 
   // If a branch is selected but user doesn't have access
   if (selectedBranch && !canAccessBranch) {
@@ -1551,14 +1470,6 @@ export default function Layout({ children, currentPageName }) {
       const trialEndDate = startOfDay(parseISO(trialEndsAt));
       const today = startOfDay(new Date());
       const daysRemaining = differenceInDays(trialEndDate, today);
-
-      // Log สำหรับ debug
-      console.log('🔍 Trial Days Calculation (Layout):', {
-        trialEndDate: trialEndDate.toISOString(),
-        today: today.toISOString(),
-        daysRemaining,
-        rawTrialEndsAt: trialEndsAt
-      });
     } catch (error) {
       console.error('Error calculating trial days:', error);
     }

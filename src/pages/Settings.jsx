@@ -420,8 +420,6 @@ export default function Settings() {
   const { data: configs = [] } = useQuery({
     queryKey: ['configs', selectedBranch?.id],
     queryFn: async () => {
-      console.log('📥 [CONFIGS] Fetching configs for branch:', selectedBranch?.id);
-      
       if (!selectedBranch?.id) {
         // 🔒 SECURITY FIX: ไม่มีสาขา = ดึง global configs เท่านั้น
         return await base44.entities.Config.filter({ branch_id: null }, '', 1000);
@@ -432,8 +430,6 @@ export default function Settings() {
         base44.entities.Config.filter({ branch_id: selectedBranch.id }, '', 1000),
         base44.entities.Config.filter({ branch_id: null }, '', 1000)
       ]);
-      
-      console.log('📥 [CONFIGS] Loaded:', branchConfigs.length, 'branch +', globalConfigs.length, 'global');
       
       return [...branchConfigs, ...globalConfigs];
     },
@@ -482,14 +478,7 @@ export default function Settings() {
       // 🔒 SECURITY FIX: ดึงเฉพาะสาขาที่เป็นเจ้าของ
       const ownerEmail = branchOwnerStatus?.owner_email || currentUser.email;
       
-      console.log('🏢 [DEBUG] Loading branches with owner_id:', ownerEmail, {
-        branchOwnerStatusLoaded: !!branchOwnerStatus,
-        usingFallback: !branchOwnerStatus?.owner_email
-      });
-      
       const result = await base44.entities.Branch.filter({ owner_id: ownerEmail }, '', 1000);
-      
-      console.log('🏢 [DEBUG] Branches loaded:', result.length, 'branches');
       
       return result;
     },
@@ -672,13 +661,6 @@ export default function Settings() {
       const today = startOfDay(new Date());
       const days = differenceInDays(endDate, today);
       
-      console.log('🔍 Trial Days Calculation (Settings):', {
-        endDate: endDate.toISOString(),
-        today: today.toISOString(),
-        daysRemaining: days,
-        rawEndDate: activeSubscription.subscription_end_date
-      });
-      
       return Math.max(0, days);
     } catch (e) {
       console.error("Error parsing subscription end date:", e);
@@ -701,14 +683,6 @@ export default function Settings() {
       
       // ✅ ดึงค่าจากสาขาที่เลือกก่อนเสมอ
       const branchConfig = configs.find(c => c.key === key && c.branch_id === selectedBranch.id);
-      
-      console.log(`🔍 Config Lookup [${key}]:`, {
-        selectedBranchId: selectedBranch?.id,
-        selectedBranchName: selectedBranch?.name,
-        branchConfigFound: !!branchConfig,
-        branchConfigValue: branchConfig?.value || null,
-        allowGlobalFallback
-      });
       
       if (branchConfig) return branchConfig;
       
@@ -777,58 +751,6 @@ export default function Settings() {
     const facebookVerifyTokenConfig = getConfigValue('facebook_verify_token', false);
     const allowMeterHistoryEditingConfig = getConfigValue('allow_meter_history_editing', false);
 
-    const allLineTokenConfigs = configs.filter(c => c.key === 'line_channel_access_token');
-    
-    // Log for debugging
-    const logMsg1 = `🔄 กำลังโหลด LINE Config - สาขา: ${selectedBranch?.name || 'null'}`;
-    const logMsg2 = `   พบ Config ทั้งหมด: ${allLineTokenConfigs.length} ตัว`;
-    const logMsg3 = lineTokenConfig 
-      ? `   ✅ โหลด Config จากสาขา: ${lineTokenConfig.branch_id ? (branches.find(b => b.id === lineTokenConfig.branch_id)?.branch_name || 'ไม่พบชื่อ') : 'Global'}`
-      : `   ❌ ไม่พบ Config - ใช้ค่าว่าง`;
-    
-    addDebugLog(logMsg1);
-    addDebugLog(logMsg2);
-    addDebugLog(logMsg3);
-    
-    console.log('');
-    console.log('🔄 ============= กำลังโหลด LINE Config =============');
-    console.log('📍 ข้อมูลสาขา:');
-    console.log('   - selectedBranch.id:', selectedBranch?.id || 'null');
-    console.log('   - selectedBranch.name:', selectedBranch?.name || 'null');
-    console.log('   - Toggle ทุกสาขา:', applyToAllBranches_line ? '✅ เปิด' : '❌ ปิด');
-    console.log('');
-    console.log('🔍 ค้นหา Config จาก Database:');
-    
-    console.log(`   - พบ LINE Token Config ทั้งหมด: ${allLineTokenConfigs.length} ตัว`);
-    allLineTokenConfigs.forEach((cfg, idx) => {
-      const branchName = cfg.branch_id ? (branches.find(b => b.id === cfg.branch_id)?.branch_name || 'ไม่พบชื่อ') : 'Global';
-      console.log(`   ${idx + 1}. ${branchName}`);
-      console.log(`      - Config ID: ${cfg.id}`);
-      console.log(`      - Branch ID: ${cfg.branch_id || 'null'}`);
-      console.log(`      - Token: ${cfg.value ? cfg.value.substring(0, 30) + '...' : '(ว่าง)'}`);
-      console.log(`      - Match กับสาขาที่เลือก: ${cfg.branch_id === selectedBranch?.id ? '✅ ใช่' : '❌ ไม่ใช่'}`);
-    });
-    
-    console.log('');
-    console.log('📥 Config ที่จะโหลดมาในฟอร์ม:');
-    if (lineTokenConfig) {
-      const branchName = lineTokenConfig.branch_id ? (branches.find(b => b.id === lineTokenConfig.branch_id)?.branch_name || 'ไม่พบชื่อ') : 'Global';
-      console.log(`   ✅ พบ Config: ${branchName}`);
-      console.log(`   - Config ID: ${lineTokenConfig.id}`);
-      console.log(`   - Branch ID: ${lineTokenConfig.branch_id || 'null'}`);
-      console.log(`   - Token: ${lineTokenConfig.value ? lineTokenConfig.value.substring(0, 40) + '...' : '(ว่าง)'}`);
-    } else {
-      console.log('   ❌ ไม่พบ Config เลย - จะใช้ค่าว่าง');
-    }
-    
-    if (lineSecretConfig) {
-      console.log(`   ✅ พบ Secret Config`);
-      console.log(`   - Secret: ${lineSecretConfig.value ? lineSecretConfig.value.substring(0, 40) + '...' : '(ว่าง)'}`);
-    } else {
-      console.log('   ❌ ไม่พบ Secret Config');
-    }
-    console.log('');
-
     setBuildingLogo(buildingLogoConfig?.value || '');
     setSignatureImage(signatureConfig?.value || '');
     setStampImage(stampConfig?.value || '');
@@ -836,10 +758,6 @@ export default function Settings() {
     // ✅ อัปเดต LINE settings - อัปเดตทุกครั้งเพื่อให้แน่ใจว่าสอดคล้องกับ config
     const newTokenValue = lineTokenConfig?.value || '';
     const newSecretValue = lineSecretConfig?.value || '';
-    
-    console.log('🔄 กำลังอัปเดต State:');
-    console.log(`   - Token ใหม่: ${newTokenValue ? newTokenValue.substring(0, 40) + '...' : '(ว่าง)'}`);
-    console.log(`   - Secret ใหม่: ${newSecretValue ? newSecretValue.substring(0, 40) + '...' : '(ว่าง)'}`);
     
     setLineSettings(prev => {
       const newSettings = {
@@ -1019,8 +937,6 @@ export default function Settings() {
     mutationFn: async ({ key, value, description, category, value_type = 'string', applyToAllBranches }) => {
       const isDeveloper = userRole === 'developer';
       
-      console.log('💾 [MUTATION START]', { key, applyToAllBranches, isDeveloper, userRole });
-      
       // Helper function to process items in chunks to avoid Rate Limits (429 Errors)
       const processInChunks = async (items, fn, chunkSize = 3) => {
         const results = [];
@@ -1039,22 +955,9 @@ export default function Settings() {
         // 🔒 SECURITY: Filter only branches where user is owner
         const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
         
-        console.log('💾 [DEBUG] Save All Branches - Step 1:', {
-          applyToAllBranches,
-          isDeveloper,
-          ownerEmail,
-          totalBranchesAvailable: branches.length,
-          branchesData: branches.map(b => ({ id: b.id, name: b.branch_name, owner: b.owner_id }))
-        });
-        
         const ownedBranchIds = branches
           .filter(b => b.owner_id === ownerEmail || b.created_by === ownerEmail)
           .map(b => b.id);
-        
-        console.log('💾 [DEBUG] Save All Branches - Step 2:', {
-          ownedBranchIds,
-          count: ownedBranchIds.length
-        });
         
         if (ownedBranchIds.length === 0) {
           console.error('❌ [ERROR] No owned branches found!', {
@@ -1065,35 +968,27 @@ export default function Settings() {
           throw new Error('ไม่พบสาขาที่คุณเป็นเจ้าของ - ตรวจสอบว่า branches โหลดเสร็จหรือยัง');
         }
         
-        console.log('💾 [MUTATION] Saving to', ownedBranchIds.length, 'branches...');
-        
         return processInChunks(ownedBranchIds, async (branchId, index) => {
-          console.log(`💾 [${index + 1}/${ownedBranchIds.length}] Saving ${key} to branch:`, branchId);
-          
           const existingConfigs = configs.filter(c => c.key === key && c.branch_id === branchId);
           
           if (existingConfigs.length > 0) {
             const first = existingConfigs[0];
             // Optimization: Skip update if value hasn't changed
             if (first.value === value.toString()) {
-              console.log(`  ⏭️ Skipped (no change)`);
               return first;
             }
 
             // Update the first match
-            console.log(`  ✏️ Updating existing config...`);
             const result = await base44.entities.Config.update(first.id, { 
               value: value.toString(),
               value_type,
               description,
               category: category || 'billing' 
             });
-            console.log(`  ✅ Updated:`, result);
             
             return result;
           } else {
             // Create new
-            console.log(`  ➕ Creating new config...`);
             const result = await base44.entities.Config.create({
               key,
               value: value.toString(),
@@ -1102,15 +997,12 @@ export default function Settings() {
               category: category || 'billing',
               branch_id: branchId
             });
-            console.log(`  ✅ Created:`, result);
             return result;
           }
         });
       }
 
       // ⭐ Case 2: Specific Branch (Single update)
-      console.log('💾 [SINGLE BRANCH] Saving to specific branch:', selectedBranch?.id);
-      
       const targetBranchId = selectedBranch?.id;
       // Safety check
       if (!targetBranchId) {
@@ -1122,21 +1014,17 @@ export default function Settings() {
       if (branchConfigs.length > 0) {
           const first = branchConfigs[0];
           if (first.value !== value.toString()) {
-              console.log(`  ✏️ Updating ${key} from "${first.value}" to "${value}"`);
               const result = await base44.entities.Config.update(first.id, { 
                   value: value.toString(),
                   value_type,
                   description,
                   category: category || 'billing'
               });
-              console.log(`  ✅ Updated successfully:`, result);
               return result;
           } else {
-              console.log(`  ⏭️ Skipped (same value)`);
               return first;
           }
       } else {
-          console.log(`  ➕ Creating new config for ${key}`);
           const result = await base44.entities.Config.create({
               key,
               value: value.toString(),
@@ -1145,13 +1033,10 @@ export default function Settings() {
               category: category || 'billing',
               branch_id: targetBranchId
           });
-          console.log(`  ✅ Created successfully:`, result);
           return result;
       }
     },
     onSuccess: () => {
-      console.log('✅ [CONFIG SAVED] Success - No refetch needed');
-      
       // ⭐ ULTIMATE FIX: ไม่ invalidate เลย เพราะ:
       // 1. UI ใช้ local state (buildingInfo, billingRates, etc.)
       // 2. กด Save = อัปเดต DB แล้ว, local state ถูกต้องอยู่แล้ว
@@ -1222,16 +1107,9 @@ export default function Settings() {
         // 🔒 SECURITY: Filter only branches where user is owner
         const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
         
-        console.log('💾 [NOTIF] Save All Branches:', {
-          ownerEmail,
-          branches: branches.length
-        });
-        
         const ownedBranchIds = branches
           .filter(b => b.owner_id === ownerEmail || b.created_by === ownerEmail)
           .map(b => b.id);
-        
-        console.log('💾 [NOTIF] Owned branches:', ownedBranchIds.length);
         
         if (ownedBranchIds.length === 0) {
           console.error('❌ [NOTIF] No branches!');
@@ -1596,18 +1474,9 @@ export default function Settings() {
       // 🔒 SECURITY: บันทึกเฉพาะสาขาที่ผู้ใช้เป็นเจ้าของ
       const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
       
-      console.log('💾 [LINE] Save All Branches:', {
-        ownerEmail,
-        branchOwnerStatus,
-        totalBranches: branches.length,
-        branchesPreview: branches.slice(0, 3).map(b => ({ id: b.id, name: b.branch_name, owner: b.owner_id }))
-      });
-      
       const ownedBranches = branches.filter(b => 
         b.owner_id === ownerEmail || b.created_by === ownerEmail
       );
-      
-      console.log('💾 [LINE] Owned branches:', ownedBranches.length);
       
       if (ownedBranches.length === 0) {
         console.error('❌ [LINE] No owned branches!', {
@@ -1624,25 +1493,8 @@ export default function Settings() {
       targetBranchIds = [selectedBranch?.id].filter(Boolean);
     }
     
-    addDebugLog('🚀 เริ่มบันทึก LINE Settings', 'info');
-    addDebugLog(`📝 Token: ${lineSettings.line_channel_access_token.substring(0, 40)}...`);
-    addDebugLog(`📝 Toggle: ${applyToAllBranches_line ? '✅ ทุกสาขา' : '❌ เฉพาะสาขา ' + selectedBranch?.name}`);
-    addDebugLog(`📝 Target: ${targetBranchIds.length} สาขา`);
-    
-    console.log('');
-    console.log('🚀 ============= เริ่มบันทึก LINE Settings =============');
-    console.log('📝 ข้อมูลที่กำลังจะบันทึก:');
-    console.log('   - Token:', lineSettings.line_channel_access_token.substring(0, 40) + '...');
-    console.log('   - Secret:', lineSettings.line_channel_secret ? lineSettings.line_channel_secret.substring(0, 40) + '...' : '(ไม่มี)');
-    console.log('   - Toggle ทุกสาขา:', applyToAllBranches_line ? '✅ เปิด' : '❌ ปิด');
-    console.log('   - สาขาที่เลือก:', selectedBranch);
-    console.log('   - User accessible branches:', userAccessibleBranches);
-    console.log('   - Target branch IDs (จะบันทึกไปที่):', targetBranchIds);
-    console.log('');
-    
     if (targetBranchIds.length === 0) {
       console.error('❌ ERROR: ไม่มี targetBranchIds - ไม่สามารถบันทึกได้');
-      addDebugLog('❌ ERROR: ไม่มีสาขาที่จะบันทึก', 'error');
       toast.error('ไม่พบสาขาที่จะบันทึก - กรุณาเลือกสาขาก่อน');
       setIsSavingLineSettings(false);
       return;
@@ -1703,43 +1555,15 @@ export default function Settings() {
       
       const savedResults = await Promise.all(savePromises);
       
-      addDebugLog('✅ บันทึกเสร็จทั้งหมด', 'success');
-      savedResults.forEach((result, idx) => {
-        addDebugLog(`   ${idx + 1}. ${result.branchName} - ✅ สำเร็จ`);
-      });
-      
-      console.log('');
-      console.log('✅ ============= บันทึกเสร็จทั้งหมด =============');
-      console.log('📊 สรุปผลลัพธ์:');
-      savedResults.forEach((result, idx) => {
-        console.log(`   ${idx + 1}. ${result.branchName} (ID: ${result.branchId.substring(0, 12)}...) - ✅ บันทึกสำเร็จ`);
-      });
-      console.log('');
-      console.log('🔄 กำลัง refetch queries เพื่อ refresh ข้อมูล...');
-      
-      addDebugLog('🔄 กำลัง refresh ข้อมูล...');
-      
       // ⭐ ใช้ refetchQueries แทน invalidateQueries เพื่อหลีกเลี่ยง Race Condition
       await queryClient.refetchQueries({ queryKey: ['configs'], type: 'active' });
-      
-      console.log('✅ Refetch queries เสร็จแล้ว');
-      console.log('');
-      
-      addDebugLog('✅ Refresh ข้อมูลเสร็จแล้ว', 'success');
       
       const branchCount = targetBranchIds.length;
       toast.success(`บันทึก LINE Token สำเร็จ - ${branchCount} สาขา`, {
         description: savedResults.map(r => `✅ ${r.branchName}`).join('\n')
       });
     } catch (error) {
-      addDebugLog('❌ เกิดข้อผิดพลาด: ' + (error?.message || 'Unknown'), 'error');
-      
-      console.error('');
-      console.error('❌ ============= เกิดข้อผิดพลาด =============');
-      console.error('Error:', error);
-      console.error('Error message:', error?.message);
-      console.error('Error response:', error?.response?.data);
-      console.error('');
+      console.error('LINE settings save error:', error);
       toast.error('ไม่สามารถบันทึกได้: ' + (error?.message || 'กรุณาลองใหม่'));
     } finally {
       setIsSavingLineSettings(false);
@@ -1779,16 +1603,9 @@ export default function Settings() {
       // 🔒 SECURITY: บันทึกเฉพาะสาขาที่ผู้ใช้เป็นเจ้าของ
       const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
       
-      console.log('💾 [FB] Save All Branches:', {
-        ownerEmail,
-        totalBranches: branches.length
-      });
-      
       const ownedBranches = branches.filter(b => 
         b.owner_id === ownerEmail || b.created_by === ownerEmail
       );
-      
-      console.log('💾 [FB] Owned branches:', ownedBranches.length);
       
       if (ownedBranches.length === 0) {
         console.error('❌ [FB] No owned branches!');
@@ -2113,17 +1930,6 @@ export default function Settings() {
                               const isElite = !isTrial && !isBasic && !isPro;
 
                               const pkgIcon = isTrial ? Package : isBasic ? SettingsIcon : isPro ? Sparkles : Crown;
-
-                              // ⭐ Log สำหรับ Debug
-                              console.log('🔍 Package Display Debug:', {
-                                packageName: pkgName,
-                                status: activeSubscription?.status,
-                                packageId: activeSubscription?.package_id,
-                                isTrial,
-                                isBasic,
-                                isPro,
-                                isElite
-                              });
 
                               return (
                                 <>

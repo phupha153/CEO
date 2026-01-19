@@ -270,7 +270,6 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   // ⭐ Mutation สำหรับยืนยันชำระเงิน
   const confirmPaymentMutation = useMutation({
     mutationFn: async (paymentId) => {
-      console.log('🔄 NotificationsPanel: Confirming payment:', paymentId);
       const now = new Date();
       const paymentDate = now.toISOString().split('T')[0];
       
@@ -281,11 +280,9 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         notes: '✅ ยืนยันชำระแล้ว (ผ่านการตรวจสอบด้วยตนเอง)'
       });
       
-      console.log('✅ NotificationsPanel: Payment confirmed:', result);
       return { success: true, paymentId };
     },
     onSuccess: (data) => {
-      console.log('✅ NotificationsPanel: Success callback triggered for:', data.paymentId);
       toast.success('ยืนยันชำระเงินสำเร็จ');
       setConfirmingPaymentId(null);
       // ⭐ ซ่อนการแจ้งเตือนนี้ทันที (optimistic update)
@@ -295,7 +292,6 @@ export default function NotificationsPanel({ isOpen, onClose }) {
       queryClient.invalidateQueries(['payments']);
     },
     onError: (error) => {
-      console.error('❌ NotificationsPanel: Confirm payment error:', error);
       toast.error('เกิดข้อผิดพลาด: ' + error.message);
       setConfirmingPaymentId(null);
     }
@@ -325,13 +321,9 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   };
 
   const notificationsByBranch = useMemo(() => {
-    console.log('🔍 [NotificationPanel] useMemo triggered - isOpen:', isOpen, 'paymentsLoading:', paymentsLoading);
     if (!isOpen || paymentsLoading) return {};
     
     const now = getCurrentDate();
-    console.log('🔍 [NotificationPanel] Current date:', now.toISOString());
-    console.log('🔍 [NotificationPanel] Test date config:', configs.find(c => c.key === 'test_current_date'));
-    console.log('🔍 [NotificationPanel] All Payments Count:', allPayments.length);
     const branchNotifications = {};
 
     const selectedBranchId = localStorage.getItem('selected_branch_id');
@@ -357,21 +349,6 @@ export default function NotificationsPanel({ isOpen, onClose }) {
       const bookings = allBookings.filter(b => b.branch_id === branchId);
       const materialDeliveries = allMaterialDeliveries.filter(d => d.branch_id === branchId);
       const tenants = allTenants.filter(t => t.branch_id === branchId);
-      
-      // ⭐ Debug log
-      if (branchId === '69256957890d2b5aaaca1d3f') {
-        const unpaidPayments = payments.filter(p => p.status !== 'paid');
-        console.log('🔍 Processing branch:', branchName, {
-          totalPayments: payments.length,
-          pendingPayments: unpaidPayments.length,
-          totalRooms: rooms.length,
-          unpaidPaymentsDueDates: unpaidPayments.map(p => ({
-            room: rooms.find(r => r.id === p.room_id)?.room_number,
-            dueDate: p.due_date,
-            status: p.status
-          }))
-        });
-      }
 
       const vacantDaysThreshold = getConfig(branchId, 'vacant_room_days', 7);
       const urgentMaintenanceEnabled = getConfig(branchId, 'urgent_maintenance_enabled', true);
@@ -438,16 +415,6 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         }
       });
 
-      // ⭐ Debug log สำหรับสาขา 12345
-      if (branchId === '69256957890d2b5aaaca1d3f') {
-        console.log('🔍 Overdue payments found:', overduePayments.length, overduePayments.map(p => ({
-          room: rooms.find(r => r.id === p.room_id)?.room_number,
-          dueDate: p.due_date,
-          status: p.status,
-          amount: p.total_amount
-        })));
-      }
-
       if (overduePayments.length > 10) {
         const totalOverdueAmount = overduePayments.reduce((sum, p) => sum + (p.total_amount || 0), 0);
         const mostRecentTime = overduePayments.reduce((latest, p) => {
@@ -493,15 +460,6 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         overduePayments.forEach(payment => {
           const room = rooms.find(r => r.id === payment.room_id);
           const tenant = tenants.find(t => t.id === payment.tenant_id);
-          
-          // ⭐ Debug log สำหรับ N/A
-          if (!room) {
-            console.warn(`⚠️ Room not found for payment ${payment.id}:`, {
-              room_id: payment.room_id,
-              tenant_name: tenant?.full_name,
-              available_rooms: rooms.length
-            });
-          }
           
           const daysOverdue = payment.due_date ? differenceInDays(now, parseISO(payment.due_date)) : 0;
           const roomNumber = room?.room_number || tenant?.full_name || 'N/A';
@@ -1223,13 +1181,9 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                                                onClick={(e) => {
                                                  e.preventDefault();
                                                  e.stopPropagation();
-                                                 console.log('🔘 NotificationsPanel: Confirm button clicked for:', notif.paymentId);
                                                  if (confirm(`ยืนยันชำระเงิน ${notif.totalAmount?.toLocaleString()} บาท?`)) {
-                                                   console.log('✅ User confirmed, executing mutation...');
                                                    setConfirmingPaymentId(notif.paymentId);
                                                    confirmPaymentMutation.mutate(notif.paymentId);
-                                                 } else {
-                                                   console.log('❌ User cancelled confirmation');
                                                  }
                                                }}
                                              >
