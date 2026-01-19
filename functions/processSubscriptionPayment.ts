@@ -427,9 +427,9 @@ Deno.serve(async (req) => {
 
     // ⭐ ส่งข้อมูลการชำระเงินไป CRM
     const crmWebhookUrl = Deno.env.get('CRM_WEBHOOK_URL');
-    const crmApiKey = Deno.env.get('CRM_API_KEY');
+    const crmWebhookSecret = Deno.env.get('CRM_WEBHOOK_SECRET');
 
-    if (crmWebhookUrl && crmApiKey) {
+    if (crmWebhookUrl && crmWebhookSecret) {
       try {
         console.log('\n=== Sending to CRM Webhook ===');
         const crmPayload = {
@@ -463,7 +463,7 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': crmApiKey
+            'api_key': crmWebhookSecret
           },
           body: JSON.stringify(crmPayload)
         });
