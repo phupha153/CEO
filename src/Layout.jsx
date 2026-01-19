@@ -1057,6 +1057,41 @@ export default function Layout({ children, currentPageName }) {
     return badges[role] || badges.employee;
   };
 
+  // Trial mutations
+  const generateConnectedTestDataMutation = useMutation({
+    mutationFn: async (count) => {
+      const response = await base44.functions.invoke('generateConnectedTestData', {
+        branch_id: selectedBranch?.id,
+        count: count
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(`✅ สร้างข้อมูลสำเร็จ!`);
+      queryClient.invalidateQueries();
+      setShowConnectedDataOptions(false);
+    },
+    onError: (error) => {
+      toast.error(`❌ เกิดข้อผิดพลาด: ${error.message}`);
+    }
+  });
+
+  const deleteTestDataMutation = useMutation({
+    mutationFn: async () => {
+      const response = await base44.functions.invoke('deleteTestDataForBranch', {
+        branch_id: selectedBranch?.id
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success(`✅ ลบข้อมูลสำเร็จ!`);
+      queryClient.invalidateQueries();
+    },
+    onError: (error) => {
+      toast.error(`❌ เกิดข้อผิดพลาด: ${error.message}`);
+    }
+  });
+
   const visibleMenuItems = currentUser ? navigationItems.filter(item => {
     // Handle trial mode items specially
     if (item.isTrial) {
