@@ -298,6 +298,7 @@ export default function Settings() {
   const [showLineConnectDialog, setShowLineConnectDialog] = useState(false);
   const [selectedUserForLineConnect, setSelectedUserForLineConnect] = useState(null);
   const [availableLineChats, setAvailableLineChats] = useState([]);
+  const [showWebhookUrl, setShowWebhookUrl] = useState(false);
 
   const [meterSettings, setMeterSettings] = useState({
     allow_editing_history: false
@@ -3450,13 +3451,24 @@ export default function Settings() {
                               Webhook URL สำหรับสาขานี้
                             </h4>
                             <div className="space-y-3">
-                              <p className="text-sm text-purple-800 font-semibold">
-                                ⚠️ URL นี้เฉพาะสาขา "{selectedBranch?.name || 'ไม่ระบุ'}" - คัดลอกไปใส่ในหน้า LINE Developers Console:
+                              <p className="text-sm text-slate-600">
+                                ⚠️ URL นี้เฉพาะสาขา "{selectedBranch?.name || 'ไม่ระบุ'}" - คัดลอกไปใส่ในหน้า LINE Developers Console
                               </p>
-                              <div className="bg-white rounded-lg p-3 border-2 border-purple-300 flex items-center gap-2">
-                                <code className="flex-1 text-sm text-purple-900 font-mono break-all">
-                                  {`https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}`}
+                              <div className="bg-white rounded-lg p-3 border border-slate-200 flex items-center gap-2">
+                                <code className="flex-1 text-sm text-slate-700 font-mono break-all">
+                                  {showWebhookUrl 
+                                    ? `https://app-483eff6e.base44.app/api/apps/6904ea5ce861be65483eff6e/functions/lineWebhookHandler?branch_id=${selectedBranch?.id || ''}`
+                                    : '••••••••••••••••••••••••••••••••••••••••••••••'}
                                 </code>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setShowWebhookUrl(!showWebhookUrl)}
+                                  className="flex-shrink-0"
+                                >
+                                  {showWebhookUrl ? 'ซ่อน' : 'ดู'}
+                                </Button>
                                 <Button
                                   type="button"
                                   size="sm"
@@ -3470,7 +3482,7 @@ export default function Settings() {
                                   คัดลอก
                                 </Button>
                               </div>
-                              <p className="text-xs text-purple-700">
+                              <p className="text-xs text-slate-500">
                                 💡 แต่ละสาขาต้องใช้ Webhook URL คนละอัน เมื่อสร้างสาขาใหม่ ให้นำ URL ใหม่ไปตั้งค่าใน LINE OA ของสาขานั้น
                               </p>
                             </div>
