@@ -217,11 +217,19 @@ export default function MeterReadings() {
   });
 
   const { data: configs = [] } = useQuery({
-    queryKey: ['configs'], // Removed selectedBranchId, now fetches all configs
+    queryKey: ['configs'],
     queryFn: async () => {
-      return base44.entities.Config.list(); // Fetch all configs
+      const allConfigs = await base44.entities.Config.list();
+      // 🔒 Security: Filter configs based on accessible branches
+      if (userRole === 'developer') return allConfigs;
+      
+      const accessibleBranchIds = currentUser?.accessible_branches || [];
+      return allConfigs.filter(c => 
+        !c.branch_id || // Global configs
+        accessibleBranchIds.includes(c.branch_id) // Only configs from accessible branches
+      );
     },
-    enabled: canView, // Enabled when canView
+    enabled: canView && !!currentUser,
     ...retryConfig,
     staleTime: 60 * 60 * 1000,
     gcTime: 2 * 60 * 60 * 1000,
