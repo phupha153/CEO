@@ -425,7 +425,70 @@ Deno.serve(async (req) => {
       console.log('✅ New AppSubscription created');
     }
 
-    // ⭐ ปิดการส่งข้อมูลไป CRM
+    // ⭐ ส่งข้อมูลการชำระเงินไป CRM
+    const crmWebhookUrl = Deno.env.get('CRM_WEBHOOK_URL');
+    const crmWebhookSecret = Deno.env.get('CRM_WEBHOOK_SECRET');
+
+    if (crmWebhookUrl && crmWebhookSecret) {
+      try {
+        console.log('\n=== Sending to CRM Webhook ===');
+        const crmPayload = {
+          event_type: 'subscription_payment',
+          customer_email: user.email,
+          customer_name: user.full_name,
+          customer_phone: currentUser?.phone || '',
+          package_id: package_id,
+          package_name: package_name,
+          subscription_start_date: startDate.toISOString().split('T')[0],
+          subscription_end_date: endDate.toISOString().split('T')[0],
+          duration_months: duration_months,
+          price_per_month: price_per_month,
+          total_amount: total_amount,
+          verified_amount: is_free ? 0 : slipAmount,
+          payment_date: new Date().toISOString().split('T')[0],
+          slip_url: slip_url || null,
+          sender_name: is_free ? 'FREE_PACKAGE' : senderName,
+          sender_account: is_free ? 'N/A' : senderAccount,
+          receiver_account: is_free ? 'N/A' : receiverAccount,
+          receiver_name: is_free ? 'N/A' : receiverName,
+          app_mode: appMode,
+          branch_ids: Array.isArray(branch_ids) ? branch_ids : [branch_ids].filter(Boolean),
+          test_mode: testModeEnabled,
+          timestamp: new Date().toISOString(),
+          discount_code: discount_code || null,
+          discount_amount: discount_amount || 0
+        };
+
+        const crmResponse = await fetch(crmWebhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': crmWebhookSecret
+          },
+          body: JSON.stringify(crmPayload)
+        });
+
+        const crmResponseText = await crmResponse.text();
+        let crmData;
+        try {
+          crmData = JSON.parse(crmResponseText);
+        } catch (e) {
+          crmData = { raw: crmResponseText };
+        }
+
+        if (crmResponse.ok && crmData?.success) {
+          console.log('✅ CRM webhook sent successfully');
+          console.log('📡 CRM Response:', crmData);
+        } else {
+          console.warn('⚠️ CRM webhook returned error:', crmData || crmResponseText);
+        }
+      } catch (crmError) {
+        console.error('⚠️ CRM webhook error (non-blocking):', crmError.message);
+        // ไม่ block main flow - เป็นเพียง notification เท่านั้น
+      }
+    } else {
+      console.warn('⚠️ CRM_WEBHOOK_URL หรือ CRM_WEBHOOK_SECRET ไม่ได้ตั้งค่า');
+    }
 
     try {
       if (user.line_user_id) {
