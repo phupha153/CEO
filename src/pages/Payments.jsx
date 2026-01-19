@@ -3750,7 +3750,7 @@ Return JSON.`;
                         <p className="text-slate-700 font-semibold text-lg">กำลังโหลดข้อมูลห้อง...</p>
                         <p className="text-slate-500 text-sm mt-2">กรุณารอสักครู่</p>
                       </div>
-                    ) : ((() => {
+                    ) : (() => {
                       const roomsByFloor = rooms.reduce((acc, room) => {
                         const floor = room.floor || 1;
                         if (!acc[floor]) acc[floor] = [];
@@ -4210,8 +4210,6 @@ Return JSON.`;
                                        </div>
                                        ));
                                        })()}
-                                       </>
-                                       )}
                                        </CardContent>
                                        </Card>
                                        )}
