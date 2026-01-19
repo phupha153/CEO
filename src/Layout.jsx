@@ -1365,20 +1365,23 @@ export default function Layout({ children, currentPageName }) {
           const endDate = startOfDay(parseISO(activeSub.subscription_end_date));
           const today = startOfDay(new Date());
           const daysLeft = differenceInDays(endDate, today);
-          
+
           if (daysLeft >= 0 && daysLeft < 30) {
             return (
-              <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between">
+              <button 
+                onClick={() => navigate(createPageUrl('PackageSelection'))}
+                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-3 flex items-center justify-between hover:from-yellow-600 hover:to-orange-600 transition-all"
+              >
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="w-5 h-5" />
-                  <div>
+                  <div className="text-left">
                     <p className="font-semibold text-sm">
                       ⚠️ {isOwner ? 'แพ็กเกจใกล้หมดอายุ' : `แพ็กเกจของ ${branchOwnerStatus?.owner_name || 'เจ้าของ'} ใกล้หมด`}
                     </p>
-                    <p className="text-xs opacity-90">เหลืออีก {daysLeft} วัน</p>
+                    <p className="text-xs opacity-90">เหลืออีก {daysLeft} วัน • คลิกเพื่อต่ออายุ</p>
                   </div>
                 </div>
-              </div>
+              </button>
             );
           }
         } catch {}
