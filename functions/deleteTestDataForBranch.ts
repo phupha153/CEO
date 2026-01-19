@@ -38,15 +38,36 @@ Deno.serve(async (req) => {
     for (const entityName of entitiesToDelete) {
       try {
         console.log(`📦 Deleting ${entityName}...`);
-        const response = await base44.asServiceRole.functions.invoke('deletePaymentsByBranch', {
-          branch_id,
-          entity_name: entityName,
-          batchSize: 1000
-        });
         
-        const deleted = response.data?.totalDeleted || 0;
-        totalDeleted += deleted;
-        console.log(`✅ Deleted ${deleted} ${entityName} records`);
+        // ลบทีละ batch เพื่อไม่ให้โอเวอร์โหลด
+        let hasMore = true;
+        let batchDeleted = 0;
+        
+        while (hasMore) {
+          const records = await base44.asServiceRole.entities[entityName].filter(
+            { branch_id },
+            '-created_date',
+            1000
+          );
+          
+          if (records.length === 0) {
+            hasMore = false;
+            break;
+          }
+          
+          // ลบทีละรายการ
+          for (const record of records) {
+            try {
+              await base44.asServiceRole.entities[entityName].delete(record.id);
+              batchDeleted++;
+            } catch (err) {
+              console.warn(`⚠️ Error deleting ${entityName} ${record.id}:`, err.message);
+            }
+          }
+        }
+        
+        totalDeleted += batchDeleted;
+        console.log(`✅ Deleted ${batchDeleted} ${entityName} records`);
       } catch (error) {
         console.warn(`⚠️ Error deleting ${entityName}:`, error.message);
       }
