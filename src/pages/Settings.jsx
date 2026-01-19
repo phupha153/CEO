@@ -3451,9 +3451,6 @@ export default function Settings() {
                               Webhook URL สำหรับสาขานี้
                             </h4>
                             <div className="space-y-3">
-                              <p className="text-sm text-slate-600">
-                                ⚠️ URL นี้เฉพาะสาขา "{selectedBranch?.name || 'ไม่ระบุ'}" - คัดลอกไปใส่ในหน้า LINE Developers Console
-                              </p>
                               <div className="bg-white rounded-lg p-3 border border-slate-200 flex items-center gap-2">
                                 <code className="flex-1 text-sm text-slate-700 font-mono break-all">
                                   {showWebhookUrl 
@@ -3482,9 +3479,6 @@ export default function Settings() {
                                   คัดลอก
                                 </Button>
                               </div>
-                              <p className="text-xs text-slate-500">
-                                💡 แต่ละสาขาต้องใช้ Webhook URL คนละอัน เมื่อสร้างสาขาใหม่ ให้นำ URL ใหม่ไปตั้งค่าใน LINE OA ของสาขานั้น
-                              </p>
                             </div>
                           </div>
 
