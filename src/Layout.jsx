@@ -1644,7 +1644,7 @@ export default function Layout({ children, currentPageName }) {
 
                     return (
                       <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
+                        <SidebarMenuButtonWithAutoClose
                           onClick={() => navigate(item.url)}
                           className={`group hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 ${
                             isActive ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30' : ''
@@ -1660,7 +1660,7 @@ export default function Layout({ children, currentPageName }) {
                               {item.badge}
                             </span>
                           )}
-                        </SidebarMenuButton>
+                        </SidebarMenuButtonWithAutoClose>
                       </SidebarMenuItem>
                     );
                   })}
