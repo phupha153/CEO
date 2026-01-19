@@ -59,6 +59,21 @@ export default function Dashboard() {
     retryDelay: 0,
   };
 
+  // 🔒 Security: Get current date from config (supports time travel testing)
+  const getCurrentDate = () => {
+    const testDateConfig = configs.find(c => c.key === 'test_current_date');
+    if (testDateConfig && testDateConfig.value) {
+      try {
+        const date = parseISO(testDateConfig.value);
+        if (isNaN(date.getTime())) return new Date();
+        return date;
+      } catch {
+        return new Date();
+      }
+    }
+    return new Date();
+  };
+
   const { data: configs = [] } = useQuery({
     queryKey: ['configs', selectedBranchId],
     queryFn: async () => {
@@ -85,26 +100,6 @@ export default function Dashboard() {
     gcTime: 8 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
-
-  const getCurrentDate = () => {
-    const testDateConfig = configs.find(c => c.key === 'test_current_date');
-    if (testDateConfig && testDateConfig.value) {
-      try {
-        const date = parseISO(testDateConfig.value);
-        if (isNaN(date.getTime())) return new Date();
-        return date;
-      } catch {
-        return new Date();
-      }
-    }
-    return new Date();
-  };
-
-  // Debug: ดูค่า userRole
-  console.log('🔍 Dashboard - Current User:', currentUser);
-  console.log('🔍 Dashboard - User Role:', userRole);
-  console.log('🔍 Dashboard - custom_role:', currentUser?.custom_role);
-  console.log('🔍 Dashboard - role:', currentUser?.role);
 
   const generateTestDataMutation = useMutation({
     mutationFn: async () => {
