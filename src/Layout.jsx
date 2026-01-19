@@ -72,6 +72,22 @@ const TUTORIAL_STEPS = [
   { id: 5 }
 ];
 
+// ⭐ Component ที่ปิด sidebar อัตโนมัติบน mobile
+function SidebarMenuButtonWithAutoClose(props) {
+  const { setOpen } = useSidebar();
+  
+  const handleClick = (e) => {
+    props.onClick?.(e);
+    
+    // ⭐ ปิด sidebar บน mobile เมื่อกดเลือกเมนู
+    if (window.innerWidth < 768) {
+      setOpen(false);
+    }
+  };
+  
+  return <SidebarMenuButton {...props} onClick={handleClick} />;
+}
+
 const navigationItems = [
   {
     title: "ภาพรวมทั้งหมด",
