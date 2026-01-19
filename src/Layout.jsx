@@ -1050,7 +1050,13 @@ export default function Layout({ children, currentPageName }) {
     return badges[role] || badges.employee;
   };
 
-  const visibleMenuItems = currentUser ? navigationItems.filter(canAccessMenuItem) : [];
+  const visibleMenuItems = currentUser ? navigationItems.filter(item => {
+    // Handle trial mode items specially
+    if (item.isTrial) {
+      return currentUser?.plan_status === 'trial';
+    }
+    return canAccessMenuItem(item);
+  }) : [];
   // Admin items - show for both developer and owner
   const visibleAdminItems = currentUser && (userRole === 'developer' || userRole === 'owner') ? adminOnlyItems.filter(canAccessMenuItem) : [];
 
