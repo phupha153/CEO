@@ -42,8 +42,21 @@ Deno.serve(async (req) => {
         // ลบทีละ batch เพื่อไม่ให้โอเวอร์โหลด
         let hasMore = true;
         let batchDeleted = 0;
+        const cancelKey = `DELETE_CANCEL_${branch_id}`;
         
         while (hasMore) {
+          // ⏸️ เช็คว่าถูกยกเลิกหรือไม่
+          if (globalThis.deleteCancellations?.[cancelKey]) {
+            console.log(`⏸️ Deletion cancelled for branch: ${branch_id}`);
+            delete globalThis.deleteCancellations[cancelKey];
+            return Response.json({
+              success: true,
+              totalDeleted,
+              cancelled: true,
+              message: `ยกเลิกการลบแล้ว ลบได้ ${totalDeleted} รายการ`
+            });
+          }
+
           const records = await base44.asServiceRole.entities[entityName].filter(
             { branch_id },
             '-created_date',
