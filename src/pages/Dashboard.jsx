@@ -38,6 +38,7 @@ export default function Dashboard() {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
   const [showDebugDialog, setShowDebugDialog] = useState(false);
   const [showDeleteBranchDataDialog, setShowDeleteBranchDataDialog] = useState(false);
+  const [isCancellingDelete, setIsCancellingDelete] = useState(false);
 
   const selectedBranchId = localStorage.getItem('selected_branch_id');
   const selectedBranchName = localStorage.getItem('selected_branch_name');
