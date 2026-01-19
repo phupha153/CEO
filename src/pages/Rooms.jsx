@@ -1638,11 +1638,25 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
   if ((roomsLoading || roomsFetching) && rooms.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-slate-700 text-lg font-medium">กำลังโหลดข้อมูลห้องพัก...</p>
-          <p className="text-slate-500 text-sm mt-1">กรุณารอสักครู่</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
+        <PageHeader
+          title="จัดการห้องพัก"
+          subtitle={`สาขา ${selectedBranchName}`}
+          icon={DoorOpen}
+        />
+        <div className="px-4 md:px-8 py-6">
+          <div className="max-w-7xl mx-auto space-y-3 animate-pulse">
+            {[...Array(10)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-slate-200 rounded-lg"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-slate-200 rounded" style={{ width: `${60 + Math.random() * 30}%` }}></div>
+                  <div className="h-3 bg-slate-200 rounded" style={{ width: `${40 + Math.random() * 20}%` }}></div>
+                </div>
+                <div className="w-20 h-6 bg-slate-200 rounded"></div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

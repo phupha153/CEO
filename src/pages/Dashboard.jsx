@@ -612,11 +612,18 @@ export default function Dashboard() {
             icon={LayoutDashboard}
           />
           <div className="px-4 md:px-8 py-6">
-            <div className="flex items-center justify-center py-20">
-              <div className="text-center max-w-md">
-                <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-                <p className="text-slate-600 text-lg mb-2">กำลังโหลดข้อมูลห้องพัก...</p>
-                <p className="text-slate-500 text-sm">กรุณารอสักครู่</p>
+            <div className="max-w-7xl mx-auto space-y-6">
+              <div className="space-y-3 animate-pulse">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-slate-200 rounded-lg"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-slate-200 rounded" style={{ width: `${60 + Math.random() * 30}%` }}></div>
+                      <div className="h-3 bg-slate-200 rounded" style={{ width: `${40 + Math.random() * 20}%` }}></div>
+                    </div>
+                    <div className="w-20 h-6 bg-slate-200 rounded"></div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -1011,9 +1018,17 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent className="relative">
                   {paymentsLoading ? (
-                      <div className="flex flex-col items-center justify-center h-[200px] text-slate-500">
-                        <Loader2 className="w-8 h-8 animate-spin mb-2" />
-                        <p className="text-sm">กำลังโหลดข้อมูลการเงิน...</p>
+                      <div className="space-y-3 animate-pulse">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-slate-200 rounded-lg"></div>
+                            <div className="flex-1 space-y-2">
+                              <div className="h-4 bg-slate-200 rounded" style={{ width: `${50 + Math.random() * 30}%` }}></div>
+                              <div className="h-3 bg-slate-200 rounded" style={{ width: `${30 + Math.random() * 20}%` }}></div>
+                            </div>
+                            <div className="w-16 h-5 bg-slate-200 rounded"></div>
+                          </div>
+                        ))}
                       </div>
                     ) : (
                     <div className="space-y-3 md:space-y-4">
