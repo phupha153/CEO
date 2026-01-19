@@ -705,20 +705,31 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const { data: configs = [], isLoading: configsLoading } = useQuery({
-    queryKey: ['configs'],
+    queryKey: ['configs', selectedBranch?.id, currentUser?.email],
     queryFn: async () => {
-      const allConfigs = await base44.entities.Config.list();
-      // 🔒 Security: Filter configs based on accessible branches
+      if (!currentUser?.email) return [];
+      
       const role = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
-      if (role === 'developer') return allConfigs;
+      
+      // 🔒 Multi-Tenancy: Developer can see all configs
+      if (role === 'developer') {
+        const allConfigs = await base44.entities.Config.list('', 1000);
+        return allConfigs || [];
+      }
 
+      // 🔒 Multi-Tenancy: Non-developers only see:
+      // 1. Global configs (no branch_id)
+      // 2. Configs from their accessible branches
       const accessibleBranchIds = currentUser?.accessible_branches || [];
-      return allConfigs.filter(c => 
+      
+      // Filter client-side with safe fallback
+      const allConfigs = await base44.entities.Config.list('', 1000);
+      return (allConfigs || []).filter(c => 
         !c.branch_id || // Global configs
         accessibleBranchIds.includes(c.branch_id) // Only configs from accessible branches
       );
     },
-    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage, // ⚡ ไม่โหลดถ้าเป็น public page
+    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
     staleTime: Infinity,
     gcTime: Infinity,
     retry: 2,
