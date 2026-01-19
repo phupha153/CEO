@@ -436,7 +436,7 @@ Deno.serve(async (req) => {
           event_type: 'subscription_payment',
           customer_email: user.email,
           customer_name: user.full_name,
-          customer_phone: user.phone || '',
+          customer_phone: user.phone || null,
           package_id: package_id,
           package_name: package_name,
           subscription_start_date: startDate.toISOString().split('T')[0],
