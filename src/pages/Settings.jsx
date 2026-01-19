@@ -3129,12 +3129,12 @@ export default function Settings() {
                 </Card>
               )}
 
-              {activeTab === 'notifications' && (
+              {activeTab === 'notifications' && userRole === 'developer' && (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-xl font-bold text-slate-800 mb-1">การตั้งค่าการแจ้งเตือน</h3>
-                      <p className="text-sm text-slate-600">ตั้งค่าเกณฑ์การแจ้งเตือนต่างๆ</p>
+                      <p className="text-sm text-slate-600">ตั้งค่าเกณฑ์การแจ้งเตือนต่างๆ (เฉพาะผู้พัฒนา)</p>
                     </div>
                     {canSetGlobalConfig && (
                       <BranchToggle
