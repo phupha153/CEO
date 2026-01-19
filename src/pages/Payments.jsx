@@ -3740,15 +3740,17 @@ Return JSON.`;
                     </div>
 
                     {roomViewFetching && roomViewPayments.length === 0 ? (
-                      <div className="text-center py-12">
-                        <div className="relative w-20 h-20 mx-auto mb-4">
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full blur-xl opacity-30 animate-pulse" style={{ animationDuration: '3s' }} />
-                          <div className="relative w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
-                            <Loader2 className="w-10 h-10 text-white animate-spin" />
+                      <div className="space-y-3 py-6">
+                        {[...Array(8)].map((_, i) => (
+                          <div key={i} className="flex items-center gap-3 animate-pulse">
+                            <div className="w-12 h-12 bg-slate-200 rounded-lg"></div>
+                            <div className="flex-1 space-y-2">
+                              <div className="h-4 bg-slate-200 rounded" style={{ width: `${60 + Math.random() * 30}%` }}></div>
+                              <div className="h-3 bg-slate-200 rounded" style={{ width: `${40 + Math.random() * 20}%` }}></div>
+                            </div>
+                            <div className="w-20 h-6 bg-slate-200 rounded"></div>
                           </div>
-                        </div>
-                        <p className="text-slate-700 font-semibold text-lg">กำลังโหลดข้อมูลห้อง...</p>
-                        <p className="text-slate-500 text-sm mt-2">กรุณารอสักครู่</p>
+                        ))}
                       </div>
                     ) : (() => {
                       const roomsByFloor = rooms.reduce((acc, room) => {
