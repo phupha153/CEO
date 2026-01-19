@@ -665,10 +665,15 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const { data: appSubscriptions = [] } = useQuery({
-    queryKey: ['appSubscriptions'],
-    queryFn: () => base44.entities.AppSubscription.list('-created_date', 1),
-    enabled: !isLoading && !!currentUser,
+    queryKey: ['appSubscriptions', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser?.email) return [];
+      const response = await base44.entities.AppSubscription.filter({ created_by: currentUser.email }, '-created_date', 1);
+      return response || [];
+    },
+    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
     staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     retry: 2,
