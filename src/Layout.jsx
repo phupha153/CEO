@@ -39,19 +39,24 @@ import {
         Trash2
       } from "lucide-react";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+        Sidebar,
+        SidebarContent,
+        SidebarGroup,
+        SidebarGroupContent,
+        SidebarGroupLabel,
+        SidebarMenu,
+        SidebarMenuButton,
+        SidebarMenuItem,
+        SidebarHeader,
+        SidebarFooter,
+        SidebarProvider,
+        SidebarTrigger,
+      } from "@/components/ui/sidebar";
+      import {
+        Popover,
+        PopoverTrigger,
+        PopoverContent,
+      } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Toaster, toast } from "sonner";
