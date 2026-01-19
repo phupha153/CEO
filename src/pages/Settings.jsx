@@ -475,12 +475,18 @@ export default function Settings() {
   const users = usersData?.users || [];
 
   const { data: branches = [] } = useQuery({
-    queryKey: ['branches'],
+    queryKey: ['branches', currentUser?.email],
     queryFn: async () => {
-      const allBranches = await base44.entities.Branch.list();
-      if (userRole === 'developer') return allBranches;
+      if (!currentUser?.email) return [];
       
-      const accessibleBranchIds = currentUser?.accessible_branches;
+      const allBranches = await base44.entities.Branch.list();
+      
+      // 🔒 Calculate role inside queryFn to avoid initialization errors
+      const role = currentUser.custom_role || (currentUser.role === 'admin' ? 'developer' : 'employee');
+      
+      if (role === 'developer') return allBranches;
+      
+      const accessibleBranchIds = currentUser.accessible_branches;
       
       // ⭐ ถ้ามี accessible_branches set = กรองตาม list นั้น
       if (accessibleBranchIds !== null && accessibleBranchIds !== undefined) {
@@ -489,7 +495,7 @@ export default function Settings() {
       
       // ⭐ ถ้าไม่ได้ set accessible_branches = แสดงเฉพาะสาขาที่เป็นเจ้าของ (owner_id)
       return allBranches.filter(b => 
-        b.owner_id === currentUser?.email || b.created_by === currentUser?.email
+        b.owner_id === currentUser.email || b.created_by === currentUser.email
       );
     },
     enabled: !!currentUser,
@@ -500,13 +506,18 @@ export default function Settings() {
   });
 
   const { data: notificationConfigs = [] } = useQuery({
-    queryKey: ['notificationConfigs'],
+    queryKey: ['notificationConfigs', currentUser?.email],
     queryFn: async () => {
-      const allConfigs = await base44.entities.NotificationConfig.list();
-      // Filter เฉพาะ configs ของสาขาที่มีสิทธิ์
-      if (userRole === 'developer') return allConfigs;
+      if (!currentUser?.email) return [];
       
-      const accessibleBranchIds = currentUser?.accessible_branches || [];
+      const allConfigs = await base44.entities.NotificationConfig.list();
+      
+      // 🔒 Calculate role inside queryFn
+      const role = currentUser.custom_role || (currentUser.role === 'admin' ? 'developer' : 'employee');
+      
+      if (role === 'developer') return allConfigs;
+      
+      const accessibleBranchIds = currentUser.accessible_branches || [];
       return allConfigs.filter(c => 
         !c.branch_id || // Global configs
         accessibleBranchIds.includes(c.branch_id)
