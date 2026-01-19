@@ -1596,6 +1596,91 @@ export default function Layout({ children, currentPageName }) {
               <SidebarMenu>
                   {visibleMenuItems.map((item, index) => {
                     const isActive = location.pathname === item.url;
+
+                    // Trial mode items with popover
+                    if (item.isTrial) {
+                      if (item.title.includes('สร้าง')) {
+                        return (
+                          <SidebarMenuItem key={item.title}>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <SidebarMenuButton
+                                  className="group hover:bg-gradient-to-r hover:from-green-50/80 hover:to-emerald-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white"
+                                  title={item.title}
+                                >
+                                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                                  <span className="font-medium group-data-[collapsible=icon]:hidden truncate">{item.title}</span>
+                                </SidebarMenuButton>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-40 p-2" align="end">
+                                <div className="space-y-2">
+                                  <p className="text-xs font-semibold text-slate-800 px-2">จำนวน</p>
+                                  <div className="flex flex-col gap-1.5">
+                                    <Button
+                                      onClick={() => {
+                                        if (confirm('🔗 สร้าง 50 ห้อง?')) {
+                                          base44.functions.invoke('generateConnectedTestData', {
+                                            branch_id: selectedBranch?.id,
+                                            count: 50
+                                          }).then(() => {
+                                            toast.success('✅ สร้างข้อมูลสำเร็จ!');
+                                            queryClient.invalidateQueries();
+                                          }).catch(e => toast.error('❌ ' + e.message));
+                                        }
+                                      }}
+                                      size="sm"
+                                      className="w-full h-7 text-xs bg-blue-500 hover:bg-blue-600"
+                                    >
+                                      50 ห้อง
+                                    </Button>
+                                    <Button
+                                      onClick={() => {
+                                        if (confirm('🔗 สร้าง 100 ห้อง?')) {
+                                          base44.functions.invoke('generateConnectedTestData', {
+                                            branch_id: selectedBranch?.id,
+                                            count: 100
+                                          }).then(() => {
+                                            toast.success('✅ สร้างข้อมูลสำเร็จ!');
+                                            queryClient.invalidateQueries();
+                                          }).catch(e => toast.error('❌ ' + e.message));
+                                        }
+                                      }}
+                                      size="sm"
+                                      className="w-full h-7 text-xs bg-indigo-500 hover:bg-indigo-600"
+                                    >
+                                      100 ห้อง
+                                    </Button>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </SidebarMenuItem>
+                        );
+                      } else if (item.title.includes('ลบ')) {
+                        return (
+                          <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                              onClick={() => {
+                                if (confirm('🗑️ ลบข้อมูลทั้งหมด?')) {
+                                  base44.functions.invoke('deleteTestDataForBranch', {
+                                    branch_id: selectedBranch?.id
+                                  }).then(() => {
+                                    toast.success('✅ ลบข้อมูลสำเร็จ!');
+                                    queryClient.invalidateQueries();
+                                  }).catch(e => toast.error('❌ ' + e.message));
+                                }
+                              }}
+                              className="group hover:bg-gradient-to-r hover:from-red-50/80 hover:to-orange-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 bg-red-600 hover:bg-red-700 text-white"
+                              title={item.title}
+                            >
+                              <item.icon className="w-5 h-5 flex-shrink-0" />
+                              <span className="font-medium group-data-[collapsible=icon]:hidden truncate">{item.title}</span>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        );
+                      }
+                    }
+
                     return (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
