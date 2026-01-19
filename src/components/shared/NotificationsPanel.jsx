@@ -39,12 +39,9 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   const allowedBranchIds = useMemo(() => {
     if (userRole === 'developer') return null; // null = ทุกสาขา
     
-    // Owner = สาขาที่เป็น owner_id (ดูจาก allBranches)
+    // Owner = สาขาที่เป็น owner_id
     if (userRole === 'owner') {
-      const ownedBranches = allBranches.filter(b => 
-        b.owner_id === currentUser?.email || b.created_by === currentUser?.email
-      );
-      return ownedBranches.map(b => b.id);
+      return null; // จะกรองใน backend ด้วย owner_id
     }
     
     // Employee/Manager = เฉพาะ accessible_branches
@@ -54,7 +51,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     
     // ถ้าไม่มีสิทธิ์เลย = block
     return [];
-  }, [userRole, userAccessibleBranches, allBranches, currentUser?.email]);
+  }, [userRole, userAccessibleBranches]);
 
   // 🔒 Block queries ถ้าไม่มีสิทธิ์เลย
   const canLoadData = allowedBranchIds === null || allowedBranchIds.length > 0;
@@ -68,25 +65,15 @@ export default function NotificationsPanel({ isOpen, onClose }) {
 
   // 🔒 Security: กรองสาขาเฉพาะที่มีสิทธิ์เข้าถึง
   const branches = useMemo(() => {
-    // Developer เห็นทุกสาขา
-    if (userRole === 'developer') {
-      return allBranches;
+    if (userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0)) {
+      return allBranches; // Developer เห็นทุกสาขา
     }
     
-    // Owner เห็นสาขาที่ตัวเองเป็น owner_id
-    if (userRole === 'owner') {
-      return allBranches.filter(b => 
-        b.owner_id === currentUser?.email || b.created_by === currentUser?.email
-      );
-    }
-    
-    // Employee/Manager = เฉพาะสาขาที่อยู่ใน accessible_branches
-    if (userAccessibleBranches && userAccessibleBranches.length > 0) {
-      return allBranches.filter(b => userAccessibleBranches.includes(b.id));
-    }
-    
-    return [];
-  }, [allBranches, userRole, userAccessibleBranches, currentUser?.email]);
+    // กรองเฉพาะสาขาที่อยู่ใน accessible_branches
+    return allBranches.filter(b => 
+      userAccessibleBranches && userAccessibleBranches.includes(b.id)
+    );
+  }, [allBranches, userRole, userAccessibleBranches]);
 
   // 🚀 Optimization: ดึงข้อมูลทั้งหมดในครั้งเดียว (1 API call แทน 6 calls)
   const { data: batchData, isLoading: paymentsLoading } = useQuery({
@@ -349,25 +336,11 @@ export default function NotificationsPanel({ isOpen, onClose }) {
 
     const selectedBranchId = localStorage.getItem('selected_branch_id');
     // ⭐ กรองสาขาที่มีสิทธิ์เข้าถึง
-    const accessibleBranchIds = (() => {
-      // Developer = ทุกสาขา
-      if (userRole === 'developer') return branches.map(b => b.id);
-      
-      // Owner = สาขาที่ตัวเองเป็น owner_id
-      if (userRole === 'owner') {
-        return branches.filter(b => 
-          b.owner_id === currentUser?.email || b.created_by === currentUser?.email
-        ).map(b => b.id);
-      }
-      
-      // Employee/Manager = เฉพาะ accessible_branches
-      if (userAccessibleBranches && userAccessibleBranches.length > 0) {
-        return userAccessibleBranches;
-      }
-      
-      // Fallback = สาขาปัจจุบัน
-      return [selectedBranchId].filter(Boolean);
-    })();
+    const accessibleBranchIds = showAllBranches 
+      ? branches.map(b => b.id)
+      : (userAccessibleBranches && userAccessibleBranches.length > 0)
+      ? userAccessibleBranches
+      : [selectedBranchId].filter(Boolean);
     
     const branchesToCheck = accessibleBranchIds;
 
