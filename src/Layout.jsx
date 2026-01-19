@@ -51,7 +51,6 @@ import {
         SidebarFooter,
         SidebarProvider,
         SidebarTrigger,
-        useSidebar,
       } from "@/components/ui/sidebar";
       import {
         Popover,
@@ -71,22 +70,6 @@ const TUTORIAL_STEPS = [
   { id: 4 },
   { id: 5 }
 ];
-
-// ⭐ Component ที่ปิด sidebar อัตโนมัติบน mobile
-function SidebarMenuButtonWithAutoClose(props) {
-  const { setOpen } = useSidebar();
-  
-  const handleClick = (e) => {
-    props.onClick?.(e);
-    
-    // ⭐ ปิด sidebar บน mobile เมื่อกดเลือกเมนู
-    if (window.innerWidth < 768) {
-      setOpen(false);
-    }
-  };
-  
-  return <SidebarMenuButton {...props} onClick={handleClick} />;
-}
 
 const navigationItems = [
   {
@@ -1660,7 +1643,7 @@ export default function Layout({ children, currentPageName }) {
 
                     return (
                       <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButtonWithAutoClose
+                        <SidebarMenuButton
                           onClick={() => navigate(item.url)}
                           className={`group hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 ${
                             isActive ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30' : ''
@@ -1676,7 +1659,7 @@ export default function Layout({ children, currentPageName }) {
                               {item.badge}
                             </span>
                           )}
-                        </SidebarMenuButtonWithAutoClose>
+                        </SidebarMenuButton>
                       </SidebarMenuItem>
                     );
                   })}
@@ -1694,7 +1677,7 @@ export default function Layout({ children, currentPageName }) {
                       const isActive = location.pathname === item.url;
                       return (
                         <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButtonWithAutoClose
+                          <SidebarMenuButton
                             onClick={() => navigate(item.url)}
                             className={`hover:bg-gradient-to-r hover:from-purple-50/80 hover:to-pink-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 ${
                               isActive ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30' : ''
@@ -1710,7 +1693,7 @@ export default function Layout({ children, currentPageName }) {
                                 {item.badge}
                               </span>
                             )}
-                          </SidebarMenuButtonWithAutoClose>
+                          </SidebarMenuButton>
                         </SidebarMenuItem>
                     );
                     })}
