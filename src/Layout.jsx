@@ -1652,84 +1652,8 @@ export default function Layout({ children, currentPageName }) {
             )}
           </SidebarContent>
 
-          <SidebarFooter className="relative z-10 border-t border-white/40 p-3 group-data-[collapsible=icon]:p-2 bg-gradient-to-br from-white/30 to-white/20 flex-shrink-0 space-y-2">
-            {/* Trial Mode: Create & Delete Buttons */}
-            {currentUser?.plan_status === 'trial' && userRole === 'owner' && selectedBranch && (
-              <div className="flex flex-col gap-2 group-data-[collapsible=icon]:hidden">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      size="sm"
-                      className="w-full h-9 text-xs bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 justify-start"
-                    >
-                      <Database className="w-4 h-4 mr-2" />
-                      สร้างข้อมูล
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-40 p-2" align="end">
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-slate-800 px-2">จำนวน</p>
-                      <div className="flex flex-col gap-1.5">
-                        <Button
-                          onClick={() => {
-                            if (confirm('🔗 สร้าง 50 ห้อง?')) {
-                              base44.functions.invoke('generateConnectedTestData', {
-                                branch_id: selectedBranch.id,
-                                count: 50
-                              }).then(() => {
-                                toast.success('✅ สร้างข้อมูลสำเร็จ!');
-                                queryClient.invalidateQueries();
-                              }).catch(e => toast.error('❌ ' + e.message));
-                            }
-                          }}
-                          size="sm"
-                          className="w-full h-7 text-xs bg-blue-500 hover:bg-blue-600"
-                        >
-                          50 ห้อง
-                        </Button>
-                        <Button
-                          onClick={() => {
-                            if (confirm('🔗 สร้าง 100 ห้อง?')) {
-                              base44.functions.invoke('generateConnectedTestData', {
-                                branch_id: selectedBranch.id,
-                                count: 100
-                              }).then(() => {
-                                toast.success('✅ สร้างข้อมูลสำเร็จ!');
-                                queryClient.invalidateQueries();
-                              }).catch(e => toast.error('❌ ' + e.message));
-                            }
-                          }}
-                          size="sm"
-                          className="w-full h-7 text-xs bg-indigo-500 hover:bg-indigo-600"
-                        >
-                          100 ห้อง
-                        </Button>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-
-                <Button
-                  onClick={() => {
-                    if (confirm('🗑️ ลบข้อมูลทั้งหมด?')) {
-                      base44.functions.invoke('deleteTestDataForBranch', {
-                        branch_id: selectedBranch.id
-                      }).then(() => {
-                        toast.success('✅ ลบข้อมูลสำเร็จ!');
-                        queryClient.invalidateQueries();
-                      }).catch(e => toast.error('❌ ' + e.message));
-                    }
-                  }}
-                  size="sm"
-                  className="w-full h-9 text-xs bg-red-600 hover:bg-red-700 justify-start"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  ลบข้อมูล
-                </Button>
-              </div>
-            )}
-
-            <div className="flex items-center gap-3 px-2 group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:pl-1 pt-2 border-t border-white/30">
+          <SidebarFooter className="relative z-10 border-t border-white/40 p-4 group-data-[collapsible=icon]:p-2 bg-gradient-to-br from-white/30 to-white/20 flex-shrink-0">
+            <div className="flex items-center gap-3 px-2 group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:pl-1">
               <div className="relative flex-shrink-0">
                 <div className={`absolute inset-0 bg-gradient-to-br ${getRoleBadge(userRole).color} rounded-full blur-md opacity-50`} />
                 <div className={`relative w-10 h-10 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 bg-gradient-to-br ${getRoleBadge(userRole).color} rounded-full flex items-center justify-center shadow-lg`}>
