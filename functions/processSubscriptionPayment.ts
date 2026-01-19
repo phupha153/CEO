@@ -429,12 +429,16 @@ Deno.serve(async (req) => {
     const crmWebhookUrl = Deno.env.get('CRM_WEBHOOK_URL');
     const crmWebhookSecret = Deno.env.get('CRM_WEBHOOK_SECRET');
 
+    console.log('\n❓ CRM DEBUG:');
+    console.log('📍 CRM_WEBHOOK_URL exists?', !!crmWebhookUrl);
+    console.log('📍 CRM_WEBHOOK_URL value:', crmWebhookUrl || 'NOT SET');
+    console.log('🔑 CRM_WEBHOOK_SECRET exists?', !!crmWebhookSecret);
+    console.log('🔑 CRM_WEBHOOK_SECRET length:', crmWebhookSecret?.length || 0);
+    console.log('🔑 CRM_WEBHOOK_SECRET first 10 chars:', crmWebhookSecret?.substring(0, 10) || 'NOT SET');
+
     if (crmWebhookUrl && crmWebhookSecret) {
       try {
-        console.log('\n=== Sending to CRM Webhook ===');
-        console.log('🔑 API Key length:', crmWebhookSecret?.length || 0);
-        console.log('🔑 API Key first 10 chars:', crmWebhookSecret?.substring(0, 10) || 'MISSING');
-        console.log('📍 CRM URL:', crmWebhookUrl);
+        console.log('\n=== ✅ Sending to CRM Webhook (Both vars set) ===');
         const crmPayload = {
           event_type: 'subscription_payment',
           customer_email: user.email,
