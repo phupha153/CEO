@@ -1661,26 +1661,23 @@ ${JSON.stringify(roomsWithAC, null, 2)}
         icon={DoorOpen}
         actions={
           <>
-            {currentUser?.plan_status !== 'trial' && (
-              <>
-                <Button
-                  onClick={handleDownloadExistingRooms}
-                  variant="outline"
-                  className="border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md"
-                >
-                  <Download className="w-4 h-4 md:mr-2" />
-                  <span className="hidden md:inline">ดาวน์โหลดข้อมูล</span>
-                </Button>
-                <Button
-                  onClick={() => setShowUploadDialog(true)}
-                  variant="outline"
-                  className="border-green-600 text-green-600 hover:bg-green-50 shadow-md"
-                >
-                  <Upload className="w-4 h-4 md:mr-2" />
-                  <span className="hidden md:inline">นำเข้าข้อมูล</span>
-                </Button>
-              </>
-            )}
+            
+            <Button
+              onClick={handleDownloadExistingRooms}
+              variant="outline"
+              className="border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md"
+            >
+              <Download className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">ดาวน์โหลดข้อมูล</span>
+            </Button>
+            <Button
+              onClick={() => setShowUploadDialog(true)}
+              variant="outline"
+              className="border-green-600 text-green-600 hover:bg-green-50 shadow-md"
+            >
+              <Upload className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">นำเข้าข้อมูล</span>
+            </Button>
             {roomsWithoutBranch.length > 0 && (userRole === 'developer' || userRole === 'owner') && (
               <Button
                 onClick={() => setShowBranchIdFixDialog(true)}
