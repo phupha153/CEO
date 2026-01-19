@@ -672,7 +672,18 @@ export default function Layout({ children, currentPageName }) {
 
   const { data: configs = [], isLoading: configsLoading } = useQuery({
     queryKey: ['configs'],
-    queryFn: () => base44.entities.Config.list(),
+    queryFn: async () => {
+      const allConfigs = await base44.entities.Config.list();
+      // 🔒 Security: Filter configs based on accessible branches
+      const role = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
+      if (role === 'developer') return allConfigs;
+
+      const accessibleBranchIds = currentUser?.accessible_branches || [];
+      return allConfigs.filter(c => 
+        !c.branch_id || // Global configs
+        accessibleBranchIds.includes(c.branch_id) // Only configs from accessible branches
+      );
+    },
     enabled: !isLoading && !!currentUser && isOnline && !isPublicPage, // ⚡ ไม่โหลดถ้าเป็น public page
     staleTime: Infinity,
     gcTime: Infinity,
