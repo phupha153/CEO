@@ -1143,7 +1143,7 @@ export default function Dashboard() {
                         ))}
                       </div>
                     ) : (
-                    <div className="space-y-3 md:space-y-4">
+                    <div className="space-y-3 md:space-y-4 flex-1 overflow-y-auto">
                       {recentPayments.length > 0 ? (
                         recentPayments.map((payment) => {
                                       const room = rooms.find(r => r.id === payment.room_id);
