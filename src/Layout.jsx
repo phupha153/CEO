@@ -1678,7 +1678,7 @@ export default function Layout({ children, currentPageName }) {
                       const isActive = location.pathname === item.url;
                       return (
                         <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton
+                          <SidebarMenuButtonWithAutoClose
                             onClick={() => navigate(item.url)}
                             className={`hover:bg-gradient-to-r hover:from-purple-50/80 hover:to-pink-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 ${
                               isActive ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30' : ''
@@ -1694,7 +1694,7 @@ export default function Layout({ children, currentPageName }) {
                                 {item.badge}
                               </span>
                             )}
-                          </SidebarMenuButton>
+                          </SidebarMenuButtonWithAutoClose>
                         </SidebarMenuItem>
                     );
                     })}
