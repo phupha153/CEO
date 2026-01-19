@@ -1290,6 +1290,26 @@ export default function Dashboard() {
                     </Button>
 
                     <Button
+                      onClick={() => setShowDeleteBranchDataDialog(true)}
+                      disabled={deleteBranchDataMutation.isPending}
+                      size="sm"
+                      variant="destructive"
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      {deleteBranchDataMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          กำลังลบ...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          ลบข้อมูลทั้งหมด
+                        </>
+                      )}
+                    </Button>
+
+                    <Button
                       onClick={() => setShowDebugDialog(true)}
                       size="sm"
                       className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
