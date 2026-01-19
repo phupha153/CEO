@@ -471,15 +471,25 @@ export default function Settings() {
   const users = usersData?.users || [];
 
   const { data: branches = [] } = useQuery({
-    queryKey: ['branches', currentUser?.email],
+    queryKey: ['branches', currentUser?.email, branchOwnerStatus?.owner_email],
     queryFn: async () => {
       if (!currentUser?.email) return [];
       
       // 🔒 SECURITY FIX: ดึงเฉพาะสาขาที่เป็นเจ้าของ
       const ownerEmail = branchOwnerStatus?.owner_email || currentUser.email;
-      return await base44.entities.Branch.filter({ owner_id: ownerEmail }, '', 1000);
+      
+      console.log('🏢 [DEBUG] Loading branches with owner_id:', ownerEmail, {
+        branchOwnerStatusLoaded: !!branchOwnerStatus,
+        usingFallback: !branchOwnerStatus?.owner_email
+      });
+      
+      const result = await base44.entities.Branch.filter({ owner_id: ownerEmail }, '', 1000);
+      
+      console.log('🏢 [DEBUG] Branches loaded:', result.length, 'branches');
+      
+      return result;
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && branchOwnerStatus !== undefined,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -1022,12 +1032,31 @@ export default function Settings() {
       if (applyToAllBranches && !isDeveloper) {
         // 🔒 SECURITY: Filter only branches where user is owner
         const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
+        
+        console.log('💾 [DEBUG] Save All Branches - Step 1:', {
+          applyToAllBranches,
+          isDeveloper,
+          ownerEmail,
+          totalBranchesAvailable: branches.length,
+          branchesData: branches.map(b => ({ id: b.id, name: b.branch_name, owner: b.owner_id }))
+        });
+        
         const ownedBranchIds = branches
           .filter(b => b.owner_id === ownerEmail || b.created_by === ownerEmail)
           .map(b => b.id);
         
+        console.log('💾 [DEBUG] Save All Branches - Step 2:', {
+          ownedBranchIds,
+          count: ownedBranchIds.length
+        });
+        
         if (ownedBranchIds.length === 0) {
-          throw new Error('ไม่พบสาขาที่คุณเป็นเจ้าของ');
+          console.error('❌ [ERROR] No owned branches found!', {
+            ownerEmail,
+            allBranches: branches,
+            branchOwnerStatus
+          });
+          throw new Error('ไม่พบสาขาที่คุณเป็นเจ้าของ - ตรวจสอบว่า branches โหลดเสร็จหรือยัง');
         }
         
         return processInChunks(ownedBranchIds, async (branchId) => {
@@ -1192,11 +1221,20 @@ export default function Settings() {
       if (applyToAllBranches_billNotif && !isDeveloper) {
         // 🔒 SECURITY: Filter only branches where user is owner
         const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
+        
+        console.log('💾 [NOTIF] Save All Branches:', {
+          ownerEmail,
+          branches: branches.length
+        });
+        
         const ownedBranchIds = branches
           .filter(b => b.owner_id === ownerEmail || b.created_by === ownerEmail)
           .map(b => b.id);
         
+        console.log('💾 [NOTIF] Owned branches:', ownedBranchIds.length);
+        
         if (ownedBranchIds.length === 0) {
+          console.error('❌ [NOTIF] No branches!');
           throw new Error('ไม่พบสาขาที่คุณเป็นเจ้าของ');
         }
         
@@ -1557,12 +1595,26 @@ export default function Settings() {
     if (applyToAllBranches_line) {
       // 🔒 SECURITY: บันทึกเฉพาะสาขาที่ผู้ใช้เป็นเจ้าของ
       const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
+      
+      console.log('💾 [LINE] Save All Branches:', {
+        ownerEmail,
+        branchOwnerStatus,
+        totalBranches: branches.length,
+        branchesPreview: branches.slice(0, 3).map(b => ({ id: b.id, name: b.branch_name, owner: b.owner_id }))
+      });
+      
       const ownedBranches = branches.filter(b => 
         b.owner_id === ownerEmail || b.created_by === ownerEmail
       );
       
+      console.log('💾 [LINE] Owned branches:', ownedBranches.length);
+      
       if (ownedBranches.length === 0) {
-        toast.error('ไม่พบสาขาที่คุณเป็นเจ้าของ');
+        console.error('❌ [LINE] No owned branches!', {
+          ownerEmail,
+          allBranches: branches.map(b => ({ owner: b.owner_id, created_by: b.created_by }))
+        });
+        toast.error('ไม่พบสาขาที่คุณเป็นเจ้าของ - branches.length=' + branches.length);
         setIsSavingLineSettings(false);
         return;
       }
@@ -1726,12 +1778,21 @@ export default function Settings() {
     if (applyToAllBranches_facebook) {
       // 🔒 SECURITY: บันทึกเฉพาะสาขาที่ผู้ใช้เป็นเจ้าของ
       const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
+      
+      console.log('💾 [FB] Save All Branches:', {
+        ownerEmail,
+        totalBranches: branches.length
+      });
+      
       const ownedBranches = branches.filter(b => 
         b.owner_id === ownerEmail || b.created_by === ownerEmail
       );
       
+      console.log('💾 [FB] Owned branches:', ownedBranches.length);
+      
       if (ownedBranches.length === 0) {
-        toast.error('ไม่พบสาขาที่คุณเป็นเจ้าของ');
+        console.error('❌ [FB] No owned branches!');
+        toast.error('ไม่พบสาขาที่คุณเป็นเจ้าของ - branches=' + branches.length);
         setIsSavingFacebookSettings(false);
         return;
       }
