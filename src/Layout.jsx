@@ -1642,24 +1642,6 @@ export default function Layout({ children, currentPageName }) {
                   // Trial mode items with popover
                   if (item.isTrial) {
                     if (item.title.includes('สร้าง')) {
-                      const [showConnectedDataOptions, setShowConnectedDataOptions] = useState(false);
-                      const generateConnectedTestDataMutation = useMutation({
-                        mutationFn: async (count) => {
-                          const response = await base44.functions.invoke('generateConnectedTestData', {
-                            branch_id: selectedBranch?.id,
-                            count: count
-                          });
-                          return response.data;
-                        },
-                        onSuccess: (data) => {
-                          toast.success(`✅ สร้างข้อมูลสำเร็จ!`);
-                          queryClient.invalidateQueries();
-                          setShowConnectedDataOptions(false);
-                        },
-                        onError: (error) => {
-                          toast.error(`❌ เกิดข้อผิดพลาด: ${error.message}`);
-                        }
-                      });
                       return (
                         <SidebarMenuItem key={item.title}>
                           <Popover open={showConnectedDataOptions} onOpenChange={setShowConnectedDataOptions}>
@@ -1707,21 +1689,6 @@ export default function Layout({ children, currentPageName }) {
                         </SidebarMenuItem>
                       );
                     } else if (item.title.includes('ลบ')) {
-                      const deleteTestDataMutation = useMutation({
-                        mutationFn: async () => {
-                          const response = await base44.functions.invoke('deleteTestDataForBranch', {
-                            branch_id: selectedBranch?.id
-                          });
-                          return response.data;
-                        },
-                        onSuccess: (data) => {
-                          toast.success(`✅ ลบข้อมูลสำเร็จ!`);
-                          queryClient.invalidateQueries();
-                        },
-                        onError: (error) => {
-                          toast.error(`❌ เกิดข้อผิดพลาด: ${error.message}`);
-                        }
-                      });
                       return (
                         <SidebarMenuItem key={item.title}>
                           <SidebarMenuButton
