@@ -420,6 +420,8 @@ export default function Settings() {
   const { data: configs = [] } = useQuery({
     queryKey: ['configs', selectedBranch?.id],
     queryFn: async () => {
+      console.log('📥 [CONFIGS] Fetching configs for branch:', selectedBranch?.id);
+      
       if (!selectedBranch?.id) {
         // 🔒 SECURITY FIX: ไม่มีสาขา = ดึง global configs เท่านั้น
         return await base44.entities.Config.filter({ branch_id: null }, '', 1000);
@@ -431,11 +433,13 @@ export default function Settings() {
         base44.entities.Config.filter({ branch_id: null }, '', 1000)
       ]);
       
+      console.log('📥 [CONFIGS] Loaded:', branchConfigs.length, 'branch +', globalConfigs.length, 'global');
+      
       return [...branchConfigs, ...globalConfigs];
     },
     enabled: !!currentUser,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // ⚡ เพิ่มจาก 5 นาที → 30 นาที (configs ไม่เปลี่ยนบ่อย)
+    gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
@@ -1059,21 +1063,30 @@ export default function Settings() {
           throw new Error('ไม่พบสาขาที่คุณเป็นเจ้าของ - ตรวจสอบว่า branches โหลดเสร็จหรือยัง');
         }
         
-        return processInChunks(ownedBranchIds, async (branchId) => {
+        console.log('💾 [MUTATION] Saving to', ownedBranchIds.length, 'branches...');
+        
+        return processInChunks(ownedBranchIds, async (branchId, index) => {
+          console.log(`💾 [${index + 1}/${ownedBranchIds.length}] Saving ${key} to branch:`, branchId);
+          
           const existingConfigs = configs.filter(c => c.key === key && c.branch_id === branchId);
           
           if (existingConfigs.length > 0) {
             const first = existingConfigs[0];
             // Optimization: Skip update if value hasn't changed
-            if (first.value === value.toString()) return first;
+            if (first.value === value.toString()) {
+              console.log(`  ⏭️ Skipped (no change)`);
+              return first;
+            }
 
             // Update the first match
+            console.log(`  ✏️ Updating existing config...`);
             await base44.entities.Config.update(first.id, { 
               value: value.toString(),
               value_type,
               description,
               category: category || 'billing' 
             });
+            console.log(`  ✅ Updated`);
             
             // Cleanup of duplicates disabled to prevent rate limiting
             // This was causing 429 errors when many duplicates existed
@@ -1081,7 +1094,8 @@ export default function Settings() {
             return first;
           } else {
             // Create new
-            return base44.entities.Config.create({
+            console.log(`  ➕ Creating new config...`);
+            const result = await base44.entities.Config.create({
               key,
               value: value.toString(),
               value_type,
@@ -1089,6 +1103,8 @@ export default function Settings() {
               category: category || 'billing',
               branch_id: branchId
             });
+            console.log(`  ✅ Created`);
+            return result;
           }
         });
       }
@@ -1153,11 +1169,15 @@ export default function Settings() {
       }
     },
     onSuccess: () => {
-      // ⭐ ใช้ refetchQueries แทน invalidateQueries เพื่อควบคุม refetch ได้ละเอียดขึ้น
-      queryClient.refetchQueries({ 
-        queryKey: ['configs'], 
-        type: 'active' 
+      console.log('✅ [CONFIG SAVED] Invalidating configs query...');
+      
+      // ⭐ FIX: ใช้ invalidateQueries แทน refetchQueries (ป้องกัน 429 Rate Limit)
+      // invalidate = mark เป็น stale, จะ refetch เมื่อหน้านั้นต้องใช้จริงๆ (lazy)
+      queryClient.invalidateQueries({ 
+        queryKey: ['configs']
       });
+      
+      // ⭐ ไม่ต้อง refetch ทันที - ให้แต่ละหน้า refetch เองเมื่อต้องใช้
     },
     onError: (error) => {
       toast.error('เกิดข้อผิดพลาด: ' + (error.message || 'ไม่สามารถบันทึกได้'));
