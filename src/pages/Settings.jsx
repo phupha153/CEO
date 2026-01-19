@@ -1019,6 +1019,8 @@ export default function Settings() {
     mutationFn: async ({ key, value, description, category, value_type = 'string', applyToAllBranches }) => {
       const isDeveloper = userRole === 'developer';
       
+      console.log('💾 [MUTATION START]', { key, applyToAllBranches, isDeveloper, userRole });
+      
       // Helper function to process items in chunks to avoid Rate Limits (429 Errors)
       const processInChunks = async (items, fn, chunkSize = 3) => {
         const results = [];
@@ -1032,8 +1034,8 @@ export default function Settings() {
         return results;
       };
 
-      // ⭐ Case 1: Owner saving to ALL owned branches
-      if (applyToAllBranches && !isDeveloper) {
+      // ⭐ Case 1: Saving to ALL owned branches (Developer OR Owner)
+      if (applyToAllBranches) {
         // 🔒 SECURITY: Filter only branches where user is owner
         const ownerEmail = branchOwnerStatus?.owner_email || currentUser?.email;
         
@@ -1080,18 +1082,15 @@ export default function Settings() {
 
             // Update the first match
             console.log(`  ✏️ Updating existing config...`);
-            await base44.entities.Config.update(first.id, { 
+            const result = await base44.entities.Config.update(first.id, { 
               value: value.toString(),
               value_type,
               description,
               category: category || 'billing' 
             });
-            console.log(`  ✅ Updated`);
+            console.log(`  ✅ Updated:`, result);
             
-            // Cleanup of duplicates disabled to prevent rate limiting
-            // This was causing 429 errors when many duplicates existed
-            
-            return first;
+            return result;
           } else {
             // Create new
             console.log(`  ➕ Creating new config...`);
@@ -1103,41 +1102,18 @@ export default function Settings() {
               category: category || 'billing',
               branch_id: branchId
             });
-            console.log(`  ✅ Created`);
+            console.log(`  ✅ Created:`, result);
             return result;
           }
         });
       }
-      
-      // ⭐ Case 2: Developer Global (branch_id = null)
-      if (applyToAllBranches && isDeveloper) {
-          const globalConfigs = configs.filter(c => c.key === key && !c.branch_id);
-          
-          if (globalConfigs.length > 0) {
-              const first = globalConfigs[0];
-              if (first.value !== value.toString()) {
-                  await base44.entities.Config.update(first.id, { value: value.toString() });
-              }
-              
-              // Cleanup of duplicates disabled to prevent rate limiting
-              
-              return first;
-          } else {
-              return base44.entities.Config.create({
-                  key,
-                  value: value.toString(),
-                  value_type,
-                  description,
-                  category: category || 'billing',
-                  branch_id: null
-              });
-          }
-      }
 
-      // ⭐ Case 3: Specific Branch (Single update)
+      // ⭐ Case 2: Specific Branch (Single update)
+      console.log('💾 [SINGLE BRANCH] Saving to specific branch:', selectedBranch?.id);
+      
       const targetBranchId = selectedBranch?.id;
       // Safety check
-      if (!applyToAllBranches && !targetBranchId) {
+      if (!targetBranchId) {
           throw new Error("ไม่พบข้อมูลสาขา กรุณาเลือกสาขาก่อนบันทึก");
       }
 
@@ -1146,19 +1122,22 @@ export default function Settings() {
       if (branchConfigs.length > 0) {
           const first = branchConfigs[0];
           if (first.value !== value.toString()) {
-              await base44.entities.Config.update(first.id, { 
+              console.log(`  ✏️ Updating ${key} from "${first.value}" to "${value}"`);
+              const result = await base44.entities.Config.update(first.id, { 
                   value: value.toString(),
                   value_type,
                   description,
                   category: category || 'billing'
               });
+              console.log(`  ✅ Updated successfully:`, result);
+              return result;
+          } else {
+              console.log(`  ⏭️ Skipped (same value)`);
+              return first;
           }
-          
-          // Cleanup of duplicates disabled to prevent rate limiting
-          
-          return first;
       } else {
-          return base44.entities.Config.create({
+          console.log(`  ➕ Creating new config for ${key}`);
+          const result = await base44.entities.Config.create({
               key,
               value: value.toString(),
               value_type,
@@ -1166,6 +1145,8 @@ export default function Settings() {
               category: category || 'billing',
               branch_id: targetBranchId
           });
+          console.log(`  ✅ Created successfully:`, result);
+          return result;
       }
     },
     onSuccess: () => {
