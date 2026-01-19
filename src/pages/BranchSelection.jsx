@@ -468,6 +468,23 @@ export default function BranchSelection() {
     localStorage.setItem('selected_branch_id', branch.id);
     localStorage.setItem('selected_branch_name', branch.branch_name);
     
+    // ⭐ ปิด sidebar บนมือถือ (< 768px)
+    if (window.innerWidth < 768) {
+      const sidebarTrigger = document.querySelector('button[data-sidebar-trigger]');
+      if (!sidebarTrigger) {
+        // หา trigger button โดยค้นหา button แรกที่มี SidebarTrigger icon
+        const buttons = document.querySelectorAll('button');
+        for (const btn of buttons) {
+          if (btn.getAttribute('class')?.includes('sidebar-trigger') || btn.parentElement?.getAttribute('class')?.includes('sidebar')) {
+            btn.click();
+            break;
+          }
+        }
+      } else {
+        sidebarTrigger.click();
+      }
+    }
+    
     // ⭐ Trigger custom event เพื่อให้ Layout sync ทันที
     window.dispatchEvent(new Event('storage'));
     
