@@ -1397,31 +1397,45 @@ export default function Dashboard() {
                 onClick={() => setShowDeleteBranchDataDialog(false)}
                 variant="outline"
                 className="flex-1"
+                disabled={deleteBranchDataMutation.isPending && !isCancellingDelete}
               >
-                ยกเลิก
+                ปิด
               </Button>
-              <Button
-                onClick={() => {
-                  if (confirm(`⚠️ ยืนยันการลบข้อมูลทั้งหมดของสาขา "${selectedBranchName}"?\n\nข้อมูลที่ลบแล้วไม่สามารถกู้คืนได้!`)) {
-                    deleteBranchDataMutation.mutate();
-                  }
-                }}
-                variant="destructive"
-                className="flex-1"
-                disabled={deleteBranchDataMutation.isPending}
-              >
-                {deleteBranchDataMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    กำลังลบ...
-                  </>
-                ) : (
+              {deleteBranchDataMutation.isPending ? (
+                <Button
+                  onClick={handleCancelDelete}
+                  variant="destructive"
+                  className="flex-1 bg-orange-600 hover:bg-orange-700"
+                  disabled={isCancellingDelete}
+                >
+                  {isCancellingDelete ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      กำลังยกเลิก...
+                    </>
+                  ) : (
+                    <>
+                      <X className="w-4 h-4 mr-2" />
+                      ยกเลิกการลบ
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    if (confirm(`⚠️ ยืนยันการลบข้อมูลทั้งหมดของสาขา "${selectedBranchName}"?\n\nข้อมูลที่ลบแล้วไม่สามารถกู้คืนได้!`)) {
+                      deleteBranchDataMutation.mutate({});
+                    }
+                  }}
+                  variant="destructive"
+                  className="flex-1"
+                >
                   <>
                     <Trash2 className="w-4 h-4 mr-2" />
                     ลบข้อมูลทั้งหมด
                   </>
-                )}
-              </Button>
+                </Button>
+              )}
             </div>
           </div>
         </DialogContent>
