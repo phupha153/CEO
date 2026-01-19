@@ -684,9 +684,14 @@ export default function Layout({ children, currentPageName }) {
 
 
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
-    queryKey: ['branches'],
-    queryFn: () => base44.entities.Branch.list(),
-    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage, // ⚡ ไม่โหลดถ้าเป็น public page
+    queryKey: ['branches', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser?.email) return [];
+      // 🔒 Multi-Tenancy: Filter branches by owner_id (เจ้าของสาขา)
+      const response = await base44.entities.Branch.filter({ owner_id: currentUser.email }, '', 1000);
+      return response || [];
+    },
+    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
     staleTime: Infinity,
     gcTime: Infinity,
     retry: 2,
