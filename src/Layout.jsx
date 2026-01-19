@@ -1511,7 +1511,7 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       <div className="min-h-screen flex w-full h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
-        <Sidebar collapsible="icon" className="border-r-0 bg-transparent flex-shrink-0 z-50 transition-all duration-300 ease-in-out" style={{ '--sidebar-width': '240px', '--sidebar-width-icon': '48px' }}>
+        <Sidebar collapsible="icon" className="border-r-0 bg-transparent flex-shrink-0 z-50 transition-all duration-300 ease-in-out max-md:w-[200px] max-md:[--sidebar-width:200px]" style={{ '--sidebar-width': '240px', '--sidebar-width-icon': '48px' }}>
           <div className="absolute inset-0 bg-white/70 backdrop-blur-2xl border-r border-white/50" />
           
           <SidebarHeader className="relative z-10 border-b border-white/40 p-2 group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:pl-2 bg-gradient-to-br from-white/30 to-white/20 flex-shrink-0">
