@@ -177,6 +177,22 @@ const navigationItems = [
     requiredPermission: "settings_view",
     requiredFeature: "settings_view"
   },
+  // Trial Mode: Create & Delete Test Data (appears under Settings)
+  ...(currentUser?.plan_status === 'trial' ? [{
+    title: "📊 สร้างข้อมูลทดสอบ",
+    url: "#create-test-data",
+    icon: Database,
+    requiredPermission: "settings_view",
+    requiredFeature: "settings_view",
+    isTrial: true
+  }, {
+    title: "🗑️ ลบข้อมูลทดสอบ",
+    url: "#delete-test-data",
+    icon: Trash2,
+    requiredPermission: "settings_view",
+    requiredFeature: "settings_view",
+    isTrial: true
+  }] : []),
 ];
 
 const adminOnlyItems = [
