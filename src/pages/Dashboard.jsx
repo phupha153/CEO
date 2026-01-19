@@ -1377,7 +1377,6 @@ export default function Dashboard() {
                 onClick={() => setShowDeleteBranchDataDialog(false)}
                 variant="outline"
                 className="flex-1"
-                disabled={deleteBranchDataMutation.isPending}
               >
                 ยกเลิก
               </Button>
