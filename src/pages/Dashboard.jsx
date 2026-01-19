@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, DoorOpen, Users, Wallet, TrendingUp, ArrowUpRight, ArrowDownRight, AlertTriangle, RefreshCw, Loader2, CreditCard, Database, Trash2, Bug } from "lucide-react";
+import { CalendarIcon, DoorOpen, Users, Wallet, TrendingUp, ArrowUpRight, ArrowDownRight, AlertTriangle, RefreshCw, Loader2, CreditCard, Database, Trash2, Bug, X } from "lucide-react";
 import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, isWithinInterval, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
