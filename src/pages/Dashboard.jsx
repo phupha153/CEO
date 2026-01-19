@@ -60,19 +60,26 @@ export default function Dashboard() {
   };
 
   const { data: configs = [] } = useQuery({
-    queryKey: ['configs'],
+    queryKey: ['configs', selectedBranchId],
     queryFn: async () => {
-      const allConfigs = await base44.entities.Config.list();
-      // 🔒 Security: Filter configs based on accessible branches
-      if (userRole === 'developer') return allConfigs;
+      if (!selectedBranchId) return [];
+      // 🔒 SECURITY FIX: Use backend function to filter configs
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Config',
+        filters: { branch_id: selectedBranchId },
+        limit: 1000
+      });
       
-      const accessibleBranchIds = currentUser?.accessible_branches || [];
-      return allConfigs.filter(c => 
-        !c.branch_id || // Global configs
-        accessibleBranchIds.includes(c.branch_id) // Only configs from accessible branches
-      );
+      // รวมกับ global configs (branch_id = null)
+      const globalResponse = await base44.functions.invoke('getSecureData', {
+        entity: 'Config',
+        filters: { branch_id: null },
+        limit: 1000
+      });
+      
+      return [...(response.data?.data || []), ...(globalResponse.data?.data || [])];
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser && !!selectedBranchId,
     ...retryConfig,
     staleTime: 4 * 60 * 60 * 1000,
     gcTime: 8 * 60 * 60 * 1000,

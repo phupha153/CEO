@@ -126,8 +126,17 @@ export default function TenantsPage() {
   const selectedBranchId = localStorage.getItem('selected_branch_id');
 
   const { data: configs = [] } = useQuery({
-    queryKey: ['configs'],
-    queryFn: () => base44.entities.Config.list(),
+    queryKey: ['configs', selectedBranchId],
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      // 🔒 SECURITY FIX: ดึงเฉพาะ configs ของสาขานี้ + global
+      const [branchConfigs, globalConfigs] = await Promise.all([
+        base44.entities.Config.filter({ branch_id: selectedBranchId }, '', 1000),
+        base44.entities.Config.filter({ branch_id: null }, '', 1000)
+      ]);
+      return [...branchConfigs, ...globalConfigs];
+    },
+    enabled: !!selectedBranchId,
     staleTime: 60 * 60 * 1000,
   });
 
@@ -145,8 +154,13 @@ export default function TenantsPage() {
   });
 
   const { data: branches = [] } = useQuery({
-    queryKey: ['branches'],
-    queryFn: async () => base44.entities.Branch.list('-created_date', 500),
+    queryKey: ['branches', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser?.email) return [];
+      // 🔒 SECURITY FIX: ดึงเฉพาะสาขาที่เป็นเจ้าของ
+      return await base44.entities.Branch.filter({ owner_id: currentUser.email }, '-created_date', 500);
+    },
+    enabled: !!currentUser,
     staleTime: 60 * 60 * 1000,
     gcTime: 2 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -286,8 +300,8 @@ export default function TenantsPage() {
     queryKey: ['contracts', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allContracts = await base44.entities.Contract.list('-contract_date', 200);
-      return allContracts.filter(contract => contract.branch_id === selectedBranchId);
+      // 🔒 SECURITY FIX: ใช้ filter ตรงๆ แทน list + client filter
+      return await base44.entities.Contract.filter({ branch_id: selectedBranchId }, '-contract_date', 500);
     },
     enabled: canView && !!selectedBranchId,
     ...retryConfig,

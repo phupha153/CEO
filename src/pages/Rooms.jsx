@@ -185,9 +185,25 @@ export default function RoomsPage() {
   });
 
   const { data: allRooms = [] } = useQuery({
-    queryKey: ['allRooms', 'v2'],
-    queryFn: () => base44.entities.Room.list('-created_date', 10000),
-    enabled: canView && (userRole === 'developer' || userRole === 'owner'),
+    queryKey: ['allRooms', 'v2', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser?.email) return [];
+      // 🔒 SECURITY FIX: ดึงเฉพาะห้องในสาขาที่เป็นเจ้าของ
+      const ownerEmail = currentUser.email;
+      const ownedBranches = await base44.entities.Branch.filter({ owner_id: ownerEmail }, '', 100);
+      const ownedBranchIds = ownedBranches.map(b => b.id);
+      
+      if (ownedBranchIds.length === 0) return [];
+      
+      // ดึงห้องทั้งหมดในสาขาที่เป็นเจ้าของ
+      const allRooms = [];
+      for (const branchId of ownedBranchIds) {
+        const rooms = await base44.entities.Room.filter({ branch_id: branchId }, '-created_date', 1000);
+        allRooms.push(...rooms);
+      }
+      return allRooms;
+    },
+    enabled: canView && (userRole === 'developer' || userRole === 'owner') && !!currentUser,
     ...retryConfig,
     staleTime: 60 * 60 * 1000,
     gcTime: 2 * 60 * 60 * 1000,
@@ -284,19 +300,17 @@ export default function RoomsPage() {
   });
 
   const { data: configs = [] } = useQuery({
-    queryKey: ['configs'],
+    queryKey: ['configs', selectedBranchId],
     queryFn: async () => {
-      const allConfigs = await base44.entities.Config.list();
-      // 🔒 Security: Filter configs based on accessible branches
-      if (userRole === 'developer') return allConfigs;
-      
-      const accessibleBranchIds = currentUser?.accessible_branches || [];
-      return allConfigs.filter(c => 
-        !c.branch_id || // Global configs
-        accessibleBranchIds.includes(c.branch_id) // Only configs from accessible branches
-      );
+      if (!selectedBranchId) return [];
+      // 🔒 SECURITY FIX: ดึงเฉพาะ configs ของสาขานี้ + global
+      const [branchConfigs, globalConfigs] = await Promise.all([
+        base44.entities.Config.filter({ branch_id: selectedBranchId }, '', 1000),
+        base44.entities.Config.filter({ branch_id: null }, '', 1000)
+      ]);
+      return [...branchConfigs, ...globalConfigs];
     },
-    enabled: canView && !!currentUser,
+    enabled: canView && !!currentUser && !!selectedBranchId,
     staleTime: 5 * 60 * 1000,
   });
 

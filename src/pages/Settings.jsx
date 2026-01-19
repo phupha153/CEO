@@ -418,17 +418,20 @@ export default function Settings() {
   });
 
   const { data: configs = [] } = useQuery({
-    queryKey: ['configs'],
+    queryKey: ['configs', selectedBranch?.id],
     queryFn: async () => {
-      const allConfigs = await base44.entities.Config.list();
-      // Filter เฉพาะ configs ที่เกี่ยวข้องกับสาขาที่มีสิทธิ์
-      if (userRole === 'developer') return allConfigs;
+      if (!selectedBranch?.id) {
+        // 🔒 SECURITY FIX: ไม่มีสาขา = ดึง global configs เท่านั้น
+        return await base44.entities.Config.filter({ branch_id: null }, '', 1000);
+      }
       
-      const accessibleBranchIds = currentUser?.accessible_branches || [];
-      return allConfigs.filter(c => 
-        !c.branch_id || // Global configs
-        accessibleBranchIds.includes(c.branch_id) // Configs ของสาขาที่เข้าถึงได้
-      );
+      // 🔒 SECURITY FIX: ดึงเฉพาะ configs ของสาขานี้ + global
+      const [branchConfigs, globalConfigs] = await Promise.all([
+        base44.entities.Config.filter({ branch_id: selectedBranch.id }, '', 1000),
+        base44.entities.Config.filter({ branch_id: null }, '', 1000)
+      ]);
+      
+      return [...branchConfigs, ...globalConfigs];
     },
     enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
@@ -468,22 +471,13 @@ export default function Settings() {
   const users = usersData?.users || [];
 
   const { data: branches = [] } = useQuery({
-    queryKey: ['branches'],
+    queryKey: ['branches', currentUser?.email],
     queryFn: async () => {
-      const allBranches = await base44.entities.Branch.list();
-      if (userRole === 'developer') return allBranches;
+      if (!currentUser?.email) return [];
       
-      const accessibleBranchIds = currentUser?.accessible_branches;
-      
-      // ⭐ ถ้ามี accessible_branches set = กรองตาม list นั้น
-      if (accessibleBranchIds !== null && accessibleBranchIds !== undefined) {
-        return allBranches.filter(b => accessibleBranchIds.includes(b.id));
-      }
-      
-      // ⭐ ถ้าไม่ได้ set accessible_branches = แสดงเฉพาะสาขาที่เป็นเจ้าของ (owner_id)
-      return allBranches.filter(b => 
-        b.owner_id === currentUser?.email || b.created_by === currentUser?.email
-      );
+      // 🔒 SECURITY FIX: ดึงเฉพาะสาขาที่เป็นเจ้าของ
+      const ownerEmail = branchOwnerStatus?.owner_email || currentUser.email;
+      return await base44.entities.Branch.filter({ owner_id: ownerEmail }, '', 1000);
     },
     enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
@@ -493,17 +487,20 @@ export default function Settings() {
   });
 
   const { data: notificationConfigs = [] } = useQuery({
-    queryKey: ['notificationConfigs'],
+    queryKey: ['notificationConfigs', selectedBranch?.id],
     queryFn: async () => {
-      const allConfigs = await base44.entities.NotificationConfig.list();
-      // Filter เฉพาะ configs ของสาขาที่มีสิทธิ์
-      if (userRole === 'developer') return allConfigs;
+      if (!selectedBranch?.id) {
+        // 🔒 SECURITY FIX: ดึง global configs เท่านั้น
+        return await base44.entities.NotificationConfig.filter({ branch_id: null }, '', 1000);
+      }
       
-      const accessibleBranchIds = currentUser?.accessible_branches || [];
-      return allConfigs.filter(c => 
-        !c.branch_id || // Global configs
-        accessibleBranchIds.includes(c.branch_id)
-      );
+      // 🔒 SECURITY FIX: ดึงเฉพาะของสาขานี้ + global
+      const [branchConfigs, globalConfigs] = await Promise.all([
+        base44.entities.NotificationConfig.filter({ branch_id: selectedBranch.id }, '', 1000),
+        base44.entities.NotificationConfig.filter({ branch_id: null }, '', 1000)
+      ]);
+      
+      return [...branchConfigs, ...globalConfigs];
     },
     enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
@@ -513,8 +510,13 @@ export default function Settings() {
   });
 
   const { data: appSubscriptions = [] } = useQuery({
-    queryKey: ['appSubscriptions'],
-    queryFn: () => base44.entities.AppSubscription.list('-created_date', 10),
+    queryKey: ['appSubscriptions', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser?.email) return [];
+      // 🔒 SECURITY FIX: ดึงเฉพาะ subscriptions ของตัวเอง
+      return await base44.entities.AppSubscription.filter({ created_by: currentUser.email }, '-created_date', 100);
+    },
+    enabled: !!currentUser,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -522,9 +524,28 @@ export default function Settings() {
   });
 
   const { data: branchPackages = [], isLoading: branchPackagesLoading } = useQuery({
-    queryKey: ['branchPackages'],
-    queryFn: () => base44.entities.BranchPackage.list('-created_date', 200),
-    enabled: !!currentUser,
+    queryKey: ['branchPackages', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser?.email) return [];
+      // 🔒 SECURITY FIX: ดึงเฉพาะ packages ของสาขาที่เป็นเจ้าของ
+      const ownerEmail = branchOwnerStatus?.owner_email || currentUser.email;
+      const ownedBranchIds = branches.map(b => b.id);
+      
+      if (ownedBranchIds.length === 0) return [];
+      
+      // ดึงทีละ batch เพื่อป้องกัน query ใหญ่เกินไป
+      const allPackages = [];
+      const chunkSize = 10;
+      for (let i = 0; i < ownedBranchIds.length; i += chunkSize) {
+        const chunk = ownedBranchIds.slice(i, i + chunkSize);
+        for (const branchId of chunk) {
+          const pkgs = await base44.entities.BranchPackage.filter({ branch_id: branchId }, '-created_date', 100);
+          allPackages.push(...pkgs);
+        }
+      }
+      return allPackages;
+    },
+    enabled: !!currentUser && branches.length > 0,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
