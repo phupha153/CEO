@@ -56,12 +56,24 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   // 🔒 Block queries ถ้าไม่มีสิทธิ์เลย
   const canLoadData = allowedBranchIds === null || allowedBranchIds.length > 0;
 
-  const { data: branches = [] } = useQuery({
+  const { data: allBranches = [] } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
-    enabled: showAllBranches && isOpen && canLoadData,
+    enabled: isOpen && canLoadData,
     staleTime: 60 * 60 * 1000,
   });
+
+  // 🔒 Security: กรองสาขาเฉพาะที่มีสิทธิ์เข้าถึง
+  const branches = useMemo(() => {
+    if (userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0)) {
+      return allBranches; // Developer เห็นทุกสาขา
+    }
+    
+    // กรองเฉพาะสาขาที่อยู่ใน accessible_branches
+    return allBranches.filter(b => 
+      userAccessibleBranches && userAccessibleBranches.includes(b.id)
+    );
+  }, [allBranches, userRole, userAccessibleBranches]);
 
   // 🚀 Optimization: ดึงข้อมูลทั้งหมดในครั้งเดียว (1 API call แทน 6 calls)
   const { data: batchData, isLoading: paymentsLoading } = useQuery({
