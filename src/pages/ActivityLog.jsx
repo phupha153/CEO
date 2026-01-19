@@ -66,11 +66,10 @@ export default function ActivityLog() {
 
   const filteredLogs = activityLogs
     .filter(log => {
-      // กรองตามสาขา
+      // กรองตามสาขา (ถ้าเลือกสาขาเฉพาะ)
       if (branchFilter !== 'all' && log.branch_id !== branchFilter) return false;
       
-      // ถ้าไม่ใช่ developer และไม่มีการเลือกสาขาในฟิลเตอร์ ให้แสดงเฉพาะสาขาที่เลือก
-      if (userRole !== 'developer' && branchFilter === 'all' && log.branch_id !== selectedBranchId) return false;
+      // 🔒 ไม่กรองอีกครั้ง - query function กรองตาม accessible_branches ไว้แล้ว
       
       if (actionFilter !== 'all' && log.action_type !== actionFilter) return false;
       if (entityFilter !== 'all' && log.entity_type !== entityFilter) return false;
