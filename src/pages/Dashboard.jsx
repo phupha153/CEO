@@ -1052,81 +1052,8 @@ export default function Dashboard() {
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }}>
               <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden h-full">
                 <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-48 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
-                <CardHeader className="relative pb-3 md:pb-4 flex items-center justify-between">
+                <CardHeader className="relative pb-3 md:pb-4">
                   <CardTitle className="text-sm md:text-lg font-bold text-slate-800">การชำระเงินล่าสุด</CardTitle>
-                  {currentUser?.plan_status === 'trial' && (
-                    <div className="flex items-center gap-2">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            disabled={generateConnectedTestDataMutation.isPending}
-                            size="sm"
-                            className="h-8 text-xs bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
-                          >
-                            {generateConnectedTestDataMutation.isPending ? (
-                              <>
-                                <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                                สร้าง...
-                              </>
-                            ) : (
-                              <>
-                                <Database className="w-3 h-3 mr-1" />
-                                สร้าง
-                              </>
-                            )}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-48 p-2">
-                          <div className="space-y-2">
-                            <p className="text-xs font-semibold text-slate-800">จำนวน</p>
-                            <div className="flex flex-col gap-1.5">
-                              <Button
-                                onClick={() => {
-                                  if (confirm('🔗 สร้าง 50 ห้อง?')) {
-                                    generateConnectedTestDataMutation.mutate(50);
-                                  }
-                                }}
-                                size="sm"
-                                className="w-full h-7 text-xs bg-blue-500 hover:bg-blue-600"
-                              >
-                                50 ห้อง
-                              </Button>
-                              <Button
-                                onClick={() => {
-                                  if (confirm('🔗 สร้าง 100 ห้อง?')) {
-                                    generateConnectedTestDataMutation.mutate(100);
-                                  }
-                                }}
-                                size="sm"
-                                className="w-full h-7 text-xs bg-indigo-500 hover:bg-indigo-600"
-                              >
-                                100 ห้อง
-                              </Button>
-                            </div>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-
-                      <Button
-                        onClick={() => setShowDeleteBranchDataDialog(true)}
-                        disabled={deleteBranchDataMutation.isPending}
-                        size="sm"
-                        className="h-8 text-xs bg-red-600 hover:bg-red-700"
-                      >
-                        {deleteBranchDataMutation.isPending ? (
-                          <>
-                            <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                            ลบ...
-                          </>
-                        ) : (
-                          <>
-                            <Trash2 className="w-3 h-3 mr-1" />
-                            ลบ
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  )}
                 </CardHeader>
                 <CardContent className="relative flex-1 flex flex-col overflow-hidden">
                   {paymentsLoading ? (
