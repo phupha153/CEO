@@ -487,7 +487,7 @@ Deno.serve(async (req) => {
         // ไม่ block main flow - เป็นเพียง notification เท่านั้น
       }
     } else {
-      console.warn('⚠️ CRM_WEBHOOK_URL หรือ CRM_WEBHOOK_SECRET ไม่ได้ตั้งค่า');
+      console.warn('⚠️ CRM_WEBHOOK_URL หรือ CRM_API_KEY ไม่ได้ตั้งค่า');
     }
 
     try {
