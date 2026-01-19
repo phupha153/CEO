@@ -1511,7 +1511,7 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       <div className="min-h-screen flex w-full h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
-        <Sidebar collapsible="icon" className="border-r-0 bg-transparent flex-shrink-0 z-50 transition-all duration-300 ease-in-out max-md:w-[200px] max-md:[--sidebar-width:200px]" style={{ '--sidebar-width': '240px', '--sidebar-width-icon': '48px' }}>
+        <Sidebar collapsible="icon" className="border-r-0 bg-transparent flex-shrink-0 z-50 transition-all duration-300 ease-in-out" style={{ '--sidebar-width': '240px', '--sidebar-width-icon': '48px', 'width': '240px' }} data-state="expanded">
           <div className="absolute inset-0 bg-white/70 backdrop-blur-2xl border-r border-white/50" />
           
           <SidebarHeader className="relative z-10 border-b border-white/40 p-2 group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:pl-2 bg-gradient-to-br from-white/30 to-white/20 flex-shrink-0">
@@ -1740,25 +1740,25 @@ export default function Layout({ children, currentPageName }) {
           {/* Subscription Status Banner */}
           {renderSubscriptionBanner()}
 
-          <header className="relative z-30 bg-white/40 backdrop-blur-2xl border-b border-white/40 px-6 py-4 md:hidden shadow-sm flex-shrink-0">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <SidebarTrigger className="hover:bg-white/50 p-2 rounded-2xl transition-all duration-300 z-40" />
-                <div className="flex items-center gap-2">
+          <header className="relative z-30 bg-white/40 backdrop-blur-2xl border-b border-white/40 px-3 py-3 md:hidden shadow-sm flex-shrink-0">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <SidebarTrigger className="hover:bg-white/50 p-1.5 rounded-xl transition-all duration-300 z-40 flex-shrink-0" />
+                <div className="flex items-center gap-1.5 min-w-0">
                   <img
                     src={buildingLogo}
                     alt={`${buildingName} Logo`}
-                    className="w-8 h-8 object-contain"
+                    className="w-6 h-6 object-contain flex-shrink-0"
                     onError={(e) => {
                       e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
                     }}
                   />
-                  <div>
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
+                  <div className="min-w-0">
+                    <h1 className="text-sm font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent truncate">
                       {buildingName}
                     </h1>
                     {selectedBranch && (
-                      <p className="text-xs text-slate-500">{selectedBranch.branch_name}</p>
+                      <p className="text-[10px] text-slate-500 truncate">{selectedBranch.branch_name}</p>
                     )}
                   </div>
                 </div>
