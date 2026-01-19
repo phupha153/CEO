@@ -675,29 +675,9 @@ export default function Layout({ children, currentPageName }) {
   });
 
   const { data: configs = [], isLoading: configsLoading } = useQuery({
-    queryKey: ['configs', currentUser?.email],
-    queryFn: async () => {
-      if (!currentUser?.email) return [];
-      
-      // 🔒 Calculate role inside queryFn to avoid initialization errors
-      const role = currentUser.custom_role || (currentUser.role === 'admin' ? 'developer' : 'employee');
-      
-      // 🔒 SECURITY: Developer ดูทุก config
-      if (role === 'developer') {
-        return base44.entities.Config.list();
-      }
-      
-      // ดึงสาขาที่ตัวเองเป็นเจ้าของ
-      const myBranches = await base44.entities.Branch.filter({ owner_id: currentUser.email });
-      const myBranchIds = myBranches.map(b => b.id);
-      
-      // กรองเฉพาะ config ที่เป็น global หรือเป็นของสาขาตัวเอง
-      const allConfigs = await base44.entities.Config.list();
-      return allConfigs.filter(c => 
-        !c.branch_id || myBranchIds.includes(c.branch_id)
-      );
-    },
-    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
+    queryKey: ['configs'],
+    queryFn: () => base44.entities.Config.list(),
+    enabled: !isLoading && !!currentUser && isOnline && !isPublicPage, // ⚡ ไม่โหลดถ้าเป็น public page
     staleTime: Infinity,
     gcTime: Infinity,
     retry: 2,

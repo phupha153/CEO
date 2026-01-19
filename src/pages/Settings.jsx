@@ -417,24 +417,16 @@ export default function Settings() {
   });
 
   const { data: configs = [] } = useQuery({
-    queryKey: ['configs', currentUser?.email],
+    queryKey: ['configs'],
     queryFn: async () => {
-      if (!currentUser?.email) return [];
-      
       const allConfigs = await base44.entities.Config.list();
+      // Filter เฉพาะ configs ที่เกี่ยวข้องกับสาขาที่มีสิทธิ์
+      if (userRole === 'developer') return allConfigs;
       
-      // 🔒 SECURITY: Calculate role inside queryFn to avoid initialization errors
-      const role = currentUser.custom_role || (currentUser.role === 'admin' ? 'developer' : 'employee');
-      
-      if (role === 'developer') return allConfigs;
-      
-      // ดึงสาขาที่ตัวเองเป็นเจ้าของ
-      const myBranches = await base44.entities.Branch.filter({ owner_id: currentUser.email });
-      const myBranchIds = myBranches.map(b => b.id);
-      
-      // กรองเฉพาะ config ที่เป็น global หรือเป็นของสาขาตัวเอง
+      const accessibleBranchIds = currentUser?.accessible_branches || [];
       return allConfigs.filter(c => 
-        !c.branch_id || myBranchIds.includes(c.branch_id)
+        !c.branch_id || // Global configs
+        accessibleBranchIds.includes(c.branch_id) // Configs ของสาขาที่เข้าถึงได้
       );
     },
     enabled: !!currentUser,
@@ -475,18 +467,12 @@ export default function Settings() {
   const users = usersData?.users || [];
 
   const { data: branches = [] } = useQuery({
-    queryKey: ['branches', currentUser?.email],
+    queryKey: ['branches'],
     queryFn: async () => {
-      if (!currentUser?.email) return [];
-      
       const allBranches = await base44.entities.Branch.list();
+      if (userRole === 'developer') return allBranches;
       
-      // 🔒 Calculate role inside queryFn to avoid initialization errors
-      const role = currentUser.custom_role || (currentUser.role === 'admin' ? 'developer' : 'employee');
-      
-      if (role === 'developer') return allBranches;
-      
-      const accessibleBranchIds = currentUser.accessible_branches;
+      const accessibleBranchIds = currentUser?.accessible_branches;
       
       // ⭐ ถ้ามี accessible_branches set = กรองตาม list นั้น
       if (accessibleBranchIds !== null && accessibleBranchIds !== undefined) {
@@ -495,7 +481,7 @@ export default function Settings() {
       
       // ⭐ ถ้าไม่ได้ set accessible_branches = แสดงเฉพาะสาขาที่เป็นเจ้าของ (owner_id)
       return allBranches.filter(b => 
-        b.owner_id === currentUser.email || b.created_by === currentUser.email
+        b.owner_id === currentUser?.email || b.created_by === currentUser?.email
       );
     },
     enabled: !!currentUser,
@@ -506,18 +492,13 @@ export default function Settings() {
   });
 
   const { data: notificationConfigs = [] } = useQuery({
-    queryKey: ['notificationConfigs', currentUser?.email],
+    queryKey: ['notificationConfigs'],
     queryFn: async () => {
-      if (!currentUser?.email) return [];
-      
       const allConfigs = await base44.entities.NotificationConfig.list();
+      // Filter เฉพาะ configs ของสาขาที่มีสิทธิ์
+      if (userRole === 'developer') return allConfigs;
       
-      // 🔒 Calculate role inside queryFn
-      const role = currentUser.custom_role || (currentUser.role === 'admin' ? 'developer' : 'employee');
-      
-      if (role === 'developer') return allConfigs;
-      
-      const accessibleBranchIds = currentUser.accessible_branches || [];
+      const accessibleBranchIds = currentUser?.accessible_branches || [];
       return allConfigs.filter(c => 
         !c.branch_id || // Global configs
         accessibleBranchIds.includes(c.branch_id)
@@ -1000,10 +981,8 @@ export default function Settings() {
 
   const updateConfigMutation = useMutation({
     mutationFn: async ({ key, value, description, category, value_type = 'string', applyToAllBranches }) => {
-      // 🔒 Calculate role inside mutation to avoid initialization errors
-      const role = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
       const userAccessibleBranches = currentUser?.accessible_branches || [];
-      const isDeveloper = role === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+      const isDeveloper = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
       
       // Helper function to process items in chunks to avoid Rate Limits (429 Errors)
       const processInChunks = async (items, fn, chunkSize = 3) => {
@@ -1164,10 +1143,8 @@ export default function Settings() {
   // NEW: Mutation for NotificationConfig
   const saveNotificationSettingsMutation = useMutation({
     mutationFn: async (data) => {
-      // 🔒 Calculate role inside mutation to avoid initialization errors
-      const role = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
       const userAccessibleBranches = currentUser?.accessible_branches || [];
-      const isDeveloper = role === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+      const isDeveloper = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
       
       // Helper function to process items in chunks (Inline definition to avoid dependency issues)
       const processInChunks = async (items, fn, chunkSize = 3) => {
