@@ -152,7 +152,8 @@ const navigationItems = [
     url: createPageUrl("AccountingData"),
     icon: Database,
     requiredPermission: "accounting_view_all",
-    requiredFeature: "accounting_view_all"
+    requiredFeature: "accounting_view_all",
+    hideOnMobile: true
   },
   {
     title: "ส่งข้อความประกาศ",
@@ -951,6 +952,11 @@ export default function Layout({ children, currentPageName }) {
 
     // ซ่อนเมนูที่มี hideInMultiTenant เมื่ออยู่ในโหมดหลายคน
     if (item.hideInMultiTenant && appMode === 'multi_tenant') {
+      return false;
+    }
+
+    // ⭐ ซ่อนเมนูที่มี hideOnMobile บนมือถือ
+    if (item.hideOnMobile && window.innerWidth < 768) {
       return false;
     }
 
