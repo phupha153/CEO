@@ -365,6 +365,7 @@ export default function Layout({ children, currentPageName }) {
   const [retryCount, setRetryCount] = useState(0);
   const [isCreatingTrial, setIsCreatingTrial] = useState(false);
   const [onboardingMinimized, setOnboardingMinimized] = useState(false);
+  const [showConnectedDataOptions, setShowConnectedDataOptions] = useState(false);
 
   // Initialize Facebook SDK
   useEffect(() => {
