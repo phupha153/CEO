@@ -60,6 +60,7 @@ export default function BookingsPage() {
   const [currentCalendarDate, setCurrentCalendarDate] = useState(new Date());
   const [editingBooking, setEditingBooking] = useState(null);
   const [uploadingSlip, setUploadingSlip] = useState(false);
+  const [dialogBookingType, setDialogBookingType] = useState('daily');
   const [formData, setFormData] = useState({
     room_id: '',
     guest_name: '',
@@ -877,7 +878,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       total_booking_amount: totalBookingAmount,
       remaining_amount: remainingAmount,
       total_amount: 0,
-      booking_type: 'daily',
+      booking_type: dialogBookingType,
       status: 'active'
     };
 
@@ -894,6 +895,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       return;
     }
     setEditingBooking(booking);
+    setDialogBookingType(booking.booking_type || 'daily');
     setFormData({
       room_id: booking.room_id || '',
       guest_name: booking.guest_name || '',
@@ -1047,6 +1049,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
               <Button
                 onClick={() => {
                   setEditingBooking(null);
+                  setDialogBookingType('daily');
                   setFormData({
                     room_id: '',
                     guest_name: '',
@@ -1054,7 +1057,6 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                     guest_email: '',
                     check_in_date: new Date().toISOString().split('T')[0],
                     check_out_date: '',
-                    booking_type: 'daily',
                     deposit_amount: 0,
                     deposit_payment_method: 'cash',
                     total_amount: 0,
@@ -1539,9 +1541,22 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
           }}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto pointer-events-auto">
               <DialogHeader>
-                <DialogTitle>{editingBooking ? 'แก้ไขการจองห้องรายวัน' : 'จองห้องพักรายวัน'}</DialogTitle>
+                <DialogTitle>{editingBooking ? 'แก้ไขการจอง' : 'จองห้องพัก'}</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label>ประเภทการเช่า *</Label>
+                  <Select value={dialogBookingType} onValueChange={setDialogBookingType}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">รายวัน</SelectItem>
+                      <SelectItem value="monthly">รายเดือน</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div>
                   <Label>เลือกห้อง *</Label>
                   <select
@@ -1652,14 +1667,14 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                   </div>
                 </div>
 
-                {/* วันที่และเงื่อนไขสัญญา */}
+                {/* วันที่พัก */}
                 <div className="border-t pt-4">
                   <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    📅 วันที่และเงื่อนไขสัญญา
+                    📅 {dialogBookingType === 'daily' ? 'วันที่พัก' : 'วันที่และเงื่อนไขสัญญา'}
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>วันที่จอง/เข้าพัก *</Label>
+                      <Label>{dialogBookingType === 'daily' ? 'วันที่เข้าพัก' : 'วันที่จอง/เข้าพัก'} *</Label>
                       <Input
                         type="date"
                         value={formData.check_in_date}
@@ -1669,39 +1684,56 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                       />
                     </div>
                     <div>
-                      <Label>ระยะเวลาสัญญา</Label>
-                      <Select
-                        value={formData.contract_duration}
-                        onValueChange={(value) => setFormData({ ...formData, contract_duration: value })}
+                      <Label>{dialogBookingType === 'daily' ? 'วันที่ออก *' : 'วันที่สิ้นสุด (ถ้ามี)'}</Label>
+                      <Input
+                        type="date"
+                        value={formData.check_out_date}
+                        onChange={(e) => setFormData({ ...formData, check_out_date: e.target.value })}
+                        required={dialogBookingType === 'daily'}
                         disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="เลือกระยะเวลา" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1 เดือน">1 เดือน</SelectItem>
-                          <SelectItem value="3 เดือน">3 เดือน</SelectItem>
-                          <SelectItem value="6 เดือน">6 เดือน</SelectItem>
-                          <SelectItem value="1 ปี">1 ปี</SelectItem>
-                          <SelectItem value="2 ปี">2 ปี</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      />
                     </div>
                   </div>
-                  <div className="mt-3">
-                    <Label>กำหนดทำสัญญาภายในวันที่</Label>
-                    <Input
-                      type="date"
-                      value={formData.contract_deadline}
-                      onChange={(e) => setFormData({ ...formData, contract_deadline: e.target.value })}
-                      disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
-                    />
-                    <p className="text-xs text-slate-500 mt-1">หากพ้นกำหนดนี้ถือว่าสละสิทธิ์</p>
-                  </div>
+                  {dialogBookingType === 'monthly' && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4 mt-3">
+                        <div>
+                          <Label>ระยะเวลาสัญญา</Label>
+                          <Select
+                            value={formData.contract_duration}
+                            onValueChange={(value) => setFormData({ ...formData, contract_duration: value })}
+                            disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="เลือกระยะเวลา" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1 เดือน">1 เดือน</SelectItem>
+                              <SelectItem value="3 เดือน">3 เดือน</SelectItem>
+                              <SelectItem value="6 เดือน">6 เดือน</SelectItem>
+                              <SelectItem value="1 ปี">1 ปี</SelectItem>
+                              <SelectItem value="2 ปี">2 ปี</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>กำหนดทำสัญญาภายในวันที่</Label>
+                          <Input
+                            type="date"
+                            value={formData.contract_deadline}
+                            onChange={(e) => setFormData({ ...formData, contract_deadline: e.target.value })}
+                            disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2">หากพ้นกำหนดนี้ถือว่าสละสิทธิ์</p>
+                    </>
+                  )}
                 </div>
 
-                {/* รายละเอียดการชำระเงิน */}
-                <div className="border-t pt-4">
+                {/* รายละเอียดการชำระเงิน - เฉพาะรายเดือน */}
+                {dialogBookingType === 'monthly' && (
+                  <div className="border-t pt-4">
                   <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
                     💰 รายละเอียดการชำระเงิน
                   </h3>
@@ -1803,69 +1835,69 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               ).toLocaleString()} บาท
                             </span>
                           </div>
-                          </div>
-                          </div>
-                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <Label>วิธีการชำระเงิน</Label>
+                      <Select
+                        value={formData.deposit_payment_method}
+                        onValueChange={(value) => setFormData({ ...formData, deposit_payment_method: value })}
+                        disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">💵 เงินสด</SelectItem>
+                          <SelectItem value="transfer">🏦 โอนเงิน</SelectItem>
+                          <SelectItem value="qr_code">📱 QR Code</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                          <div>
-                          <Label>วิธีการชำระเงิน</Label>
-                          <Select
-                          value={formData.deposit_payment_method}
-                          onValueChange={(value) => setFormData({ ...formData, deposit_payment_method: value })}
-                          disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
-                          >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="cash">💵 เงินสด</SelectItem>
-                            <SelectItem value="transfer">🏦 โอนเงิน</SelectItem>
-                            <SelectItem value="qr_code">📱 QR Code</SelectItem>
-                          </SelectContent>
-                          </Select>
+                    {(formData.deposit_payment_method === 'transfer' || formData.deposit_payment_method === 'qr_code') && (
+                      <div>
+                        <Label>หลักฐานการโอน / สลิป</Label>
+                        <div className="mt-2">
+                          <label className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-colors">
+                            <Upload className="w-5 h-5 text-slate-600" />
+                            <span className="text-sm text-slate-600">
+                              {uploadingSlip ? 'กำลังอัปโหลด...' : 'คลิกเพื่ออัปโหลดสลิป'}
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleSlipUpload}
+                              disabled={uploadingSlip || createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                        {formData.deposit_slip_url && (
+                          <div className="mt-3 relative">
+                            <img
+                              src={formData.deposit_slip_url}
+                              alt="สลิปการโอนเงิน"
+                              className="w-full max-w-xs h-48 object-cover rounded-lg border-2 border-slate-200"
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="mt-2"
+                              onClick={() => setFormData({ ...formData, deposit_slip_url: '' })}
+                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                            >
+                              ลบรูป
+                            </Button>
                           </div>
-
-                          {(formData.deposit_payment_method === 'transfer' || formData.deposit_payment_method === 'qr_code') && (
-                          <div>
-                          <Label>หลักฐานการโอน / สลิป</Label>
-                          <div className="mt-2">
-                            <label className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-colors">
-                              <Upload className="w-5 h-5 text-slate-600" />
-                              <span className="text-sm text-slate-600">
-                                {uploadingSlip ? 'กำลังอัปโหลด...' : 'คลิกเพื่ออัปโหลดสลิป'}
-                              </span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleSlipUpload}
-                                disabled={uploadingSlip || createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
-                                className="hidden"
-                              />
-                            </label>
-                          </div>
-                          {formData.deposit_slip_url && (
-                            <div className="mt-3 relative">
-                              <img
-                                src={formData.deposit_slip_url}
-                                alt="สลิปการโอนเงิน"
-                                className="w-full max-w-xs h-48 object-cover rounded-lg border-2 border-slate-200"
-                              />
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="mt-2"
-                                onClick={() => setFormData({ ...formData, deposit_slip_url: '' })}
-                                disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
-                              >
-                                ลบรูป
-                              </Button>
-                            </div>
-                          )}
-                          </div>
-                          )}
-                          </div>
-                          )}
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div>
                   <Label>หมายเหตุ</Label>
