@@ -569,6 +569,10 @@ Deno.serve(async (req) => {
 
                     if (existingBill) {
                         skippedDueToExistingBill++;
+                        // ⭐ Log: ห้องที่ข้ามเพราะมีบิลเก่าแล้ว
+                        if (skippedDueToExistingBill <= 10) {
+                            console.log(`   ⏭️ Room ${room.room_number}: Skip - บิล ${targetDueYearMonth} มีแล้ว`);
+                        }
                         continue;
                     }
                 }
