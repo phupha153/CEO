@@ -499,6 +499,11 @@ Deno.serve(async (req) => {
                 if (!activeBooking) continue;
 
                 const roomBranchId = room.branch_id;
+                
+                // ⭐ นับจำนวนบิลต่อสาขา
+                if (branchTimings[roomBranchId]) {
+                    branchTimings[roomBranchId].createdCount++;
+                }
                 const roomPayDay = parseInt(getConfigValue('pay_day', '5', roomBranchId));
 
                 let roomDueYear = currentYear;
