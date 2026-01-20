@@ -692,7 +692,7 @@ Deno.serve(async (req) => {
             }
         }
 
-        // 6. Update Prepaid Balances + Calculate Payment Scores
+        // 6. Update Prepaid Balances + Calculate Payment Scores (Parallel Chunked)
         if (updatesToProcess.length > 0) {
             console.log(`💰 Updating ${updatesToProcess.length} balances...`);
 
@@ -707,32 +707,55 @@ Deno.serve(async (req) => {
 
             console.log(`📊 Grouped into ${Object.keys(groupedUpdates).length} unique tenants`);
 
-            // อัปเดต prepaid ครั้งเดียวต่อ tenant
-            for (const [tenantId, data] of Object.entries(groupedUpdates)) {
-                await retryOperation(async () => {
-                    const tenant = tenants.find(t => t.id === tenantId);
-                    const currentBalance = tenant?.prepaid_balance || 0;
-                    const newBalance = currentBalance - data.totalDeduction;
+            // ⭐ อัปเดต prepaid แบบ Parallel Chunked (ปลอดภัยจาก rate limit)
+            const entries = Object.entries(groupedUpdates);
+            const CHUNK_SIZE = 10; // 10 parallel at a time
 
-                    await base44.asServiceRole.entities.Tenant.update(tenantId, {
-                        prepaid_balance: newBalance
-                    });
+            for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
+                const chunk = entries.slice(i, i + CHUNK_SIZE);
+                console.log(`   📍 Processing chunk: ${i + 1}-${Math.min(i + CHUNK_SIZE, entries.length)} / ${entries.length}`);
 
-                    console.log(`💰 Tenant ${tenantId.slice(0, 8)}: ${currentBalance} - ${data.totalDeduction} = ${newBalance}`);
+                const results = await Promise.allSettled(
+                    chunk.map(([tenantId, data]) =>
+                        (async () => {
+                            try {
+                                const tenant = tenants.find(t => t.id === tenantId);
+                                const currentBalance = tenant?.prepaid_balance || 0;
+                                const newBalance = Math.max(0, currentBalance - data.totalDeduction);
 
-                    // ⭐ คำนวณคะแนนอัตโนมัติหลังชำระผ่าน prepaid
-                    try {
-                        const response = await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
-                            tenant_id: tenantId
-                        });
-                        if (response.data?.success) {
-                            console.log(`✅ Score updated: avg=${response.data.avg_payment_score}`);
-                        }
-                    } catch (scoreError) {
-                        console.warn(`⚠️ Failed to calculate scores:`, scoreError.message);
-                    }
-                });
-                await delay(100);
+                                await retryOperation(async () => {
+                                    await base44.asServiceRole.entities.Tenant.update(tenantId, {
+                                        prepaid_balance: newBalance
+                                    });
+                                });
+
+                                console.log(`   💰 Tenant ${tenantId.slice(0, 8)}: ${currentBalance} - ${data.totalDeduction} = ${newBalance}`);
+
+                                // ⭐ คำนวณคะแนนอัตโนมัติหลังชำระผ่าน prepaid
+                                try {
+                                    const response = await base44.asServiceRole.functions.invoke('calculatePaymentScores', {
+                                        tenant_id: tenantId
+                                    });
+                                    if (response.data?.success) {
+                                        console.log(`   ✅ Score: avg=${response.data.avg_payment_score}`);
+                                    }
+                                } catch (scoreError) {
+                                    console.warn(`   ⚠️ Score failed: ${scoreError.message}`);
+                                }
+                            } catch (err) {
+                                console.error(`   ❌ Tenant update failed: ${err.message}`);
+                                throw err;
+                            }
+                        })()
+                    )
+                );
+
+                // ⭐ Log chunk results
+                const successful = results.filter(r => r.status === 'fulfilled').length;
+                const failed = results.filter(r => r.status === 'rejected').length;
+                console.log(`   ✅ Chunk done: ${successful} success, ${failed} failed`);
+
+                await delay(200); // Rate limit between chunks
             }
         }
 
