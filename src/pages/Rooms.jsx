@@ -24,6 +24,7 @@ import AISearchBox from "../components/shared/AISearchBox";
 import AIResultCard from "../components/shared/AIResultCard";
 import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import ReservationDialog from "../components/rooms/ReservationDialog";
+import BookingActionDialog from "../components/rooms/BookingActionDialog";
 import { addMonths } from "date-fns";
 import BulkRoomGenerator from "../components/rooms/BulkRoomGenerator";
 import { Link, useNavigate } from "react-router-dom";
@@ -3171,16 +3172,31 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             </DialogContent>
           </Dialog>
 
+          <BookingActionDialog
+            open={showBookingActionDialog}
+            onOpenChange={setShowBookingActionDialog}
+            room={reservingRoom}
+            onBooking={() => {
+              setBookingActionMode('booking');
+              setShowReservationDialog(true);
+            }}
+            onAddTenant={() => {
+              setBookingActionMode('add_tenant');
+              setShowReservationDialog(true);
+            }}
+          />
+
           <ReservationDialog 
             open={showReservationDialog} 
             onOpenChange={setShowReservationDialog}
             room={reservingRoom}
             currentBookings={bookings}
             tenants={tenants}
-            selectTenantOnly={true}
+            selectTenantOnly={bookingActionMode === 'add_tenant'}
             onSuccess={() => {
               queryClient.invalidateQueries(['rooms']);
               queryClient.invalidateQueries(['bookings']);
+              setBookingActionMode(null);
             }}
           />
 
