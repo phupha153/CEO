@@ -17,11 +17,10 @@ export default function QueueMonitor({ branchId }) {
     queryFn: async () => {
       const filters = branchId ? { branch_id: branchId } : {};
       const jobs = await base44.entities.InvoiceQueue.filter(filters, '-created_date', 50);
-      console.log('🔍 QueueMonitor Query Result:', { filters, jobs_count: jobs?.length, jobs });
       return jobs || [];
     },
-    refetchInterval: 5000, // Auto-refresh ทุก 5 วิ (เร็วขึ้น)
-    staleTime: 2000,
+    refetchInterval: 10000, // Auto-refresh ทุก 10 วิ
+    staleTime: 5000,
   });
 
   const processQueueMutation = useMutation({
@@ -63,14 +62,6 @@ export default function QueueMonitor({ branchId }) {
   const pendingCount = queueJobs.filter(j => j.status === 'pending').length;
   const processingCount = queueJobs.filter(j => j.status === 'processing').length;
 
-  console.log('🎯 QueueMonitor Render:', { 
-    branchId, 
-    jobs_count: queueJobs.length, 
-    pendingCount, 
-    processingCount,
-    isLoading 
-  });
-
   return (
     <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 shadow-lg">
       <CardContent className="p-4 space-y-4">
@@ -82,7 +73,7 @@ export default function QueueMonitor({ branchId }) {
             <div>
               <p className="font-bold text-slate-800">🔄 Bill Generation Queue</p>
               <p className="text-xs text-slate-600">
-                {pendingCount} รอ | {processingCount} กำลังทำ | {queueJobs.length} ทั้งหมด
+                {pendingCount} รอ | {processingCount} กำลังทำ
               </p>
             </div>
           </div>
