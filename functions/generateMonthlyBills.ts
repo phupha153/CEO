@@ -770,12 +770,6 @@ Deno.serve(async (req) => {
         if (skippedDueToLimit > 0) {
             summaryMessage += `, ⚠️ เหลืออีก ${skippedDueToLimit} ห้อง (รันอีกครั้ง)`;
         }
-        if (pendingImageCount > 0) {
-            summaryMessage += `, รอสร้างรูป ${pendingImageCount} ใบ`;
-        }
-        if (sentCount > 0 || failedCount > 0) {
-            summaryMessage += `, ส่ง ${sentCount} (ล้มเหลว ${failedCount})`;
-        }
 
         const summaryData = {
             success: true,
