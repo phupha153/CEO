@@ -62,6 +62,9 @@ export default function QueueMonitor({ branchId }) {
   const pendingCount = queueJobs.filter(j => j.status === 'pending').length;
   const processingCount = queueJobs.filter(j => j.status === 'processing').length;
 
+  // ⭐ ซ่อนเมื่อไม่มี jobs เลย
+  if (queueJobs.length === 0) return null;
+
   return (
     <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 shadow-lg">
       <CardContent className="p-4 space-y-4">
