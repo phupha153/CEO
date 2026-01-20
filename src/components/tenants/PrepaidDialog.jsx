@@ -32,12 +32,7 @@ export default function PrepaidDialog({ open, onOpenChange, tenant, onSuccess })
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!tenant) {
-      toast.error('ไม่มีข้อมูลผู้เช่า');
-      return;
-    }
-
+    
     if (!amount || parseFloat(amount) <= 0) {
       toast.error('กรุณาระบุจำนวนเงิน');
       return;
@@ -78,13 +73,10 @@ export default function PrepaidDialog({ open, onOpenChange, tenant, onSuccess })
     }
   };
 
-  // ⭐ Prevent rendering if tenant is null
-  if (!tenant) return null;
-
   const currentBalance = tenant?.prepaid_balance || 0;
 
   return (
-    <Dialog open={open && !!tenant} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
