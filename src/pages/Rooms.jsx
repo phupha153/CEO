@@ -26,10 +26,11 @@ import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import ReservationDialog from "../components/rooms/ReservationDialog";
 import { addMonths } from "date-fns";
 import BulkRoomGenerator from "../components/rooms/BulkRoomGenerator";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
 export default function RoomsPage() {
+  const navigate = useNavigate();
   const [showDialog, setShowDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -2960,7 +2961,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                       <Button 
                                         onClick={() => { 
                                           setShowDetailDialog(false); 
-                                          window.location.href = `${createPageUrl('Tenants')}?action=add&room_id=${selectedRoom.id}`;
+                                          navigate(`${createPageUrl('Tenants')}?action=add&room_id=${selectedRoom.id}`);
                                         }} 
                                         variant="outline" 
                                         className="border-blue-600 text-blue-600 hover:bg-blue-50"
