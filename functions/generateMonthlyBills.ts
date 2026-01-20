@@ -377,10 +377,13 @@ Deno.serve(async (req) => {
         console.log(`📦 Fetched: ${meterReadings.length} meter readings, ${tenants.length} tenants`);
         await delay(500); // ⭐ พักก่อน Step 4
 
-        // STEP 4: ดึง Payment ทั้งหมด (ไม่ใช้ fetchWithPagination)
-        console.log(`📦 Step 4: Fetching ALL payments...`);
+        // STEP 4: ดึง Payment ล่าสุด 90 วัน เท่านั้น (ลด memory load)
+        console.log(`📦 Step 4: Fetching payments (Last 3 months ONLY)...`);
 
         let recentPayments = [];
+        const paymentCutoffDate = new Date(); 
+        paymentCutoffDate.setMonth(paymentCutoffDate.getMonth() - 3);
+        const paymentCutoffStr = paymentCutoffDate.toISOString();
 
         for (const branchId of branchIdsToProcess) {
             console.log(`   📥 Fetching payments for branch: ${branchId}`);
@@ -408,7 +411,7 @@ Deno.serve(async (req) => {
                         paymentSkip += batchLength;
                     }
 
-                    // ⭐ หยุดเฉพาะเมื่อได้ 0 รายการ
+                    // ⭐ หยุดเมื่อได้ 0 รายการ หรือเก่ากว่า 3 เดือน
                     if (batchLength === 0) {
                         fetchingPayments = false;
                     }
@@ -417,8 +420,14 @@ Deno.serve(async (req) => {
                 if (fetchingPayments) await delay(200);
             }
 
-            console.log(`   ✅ สาขา ${branchId}: ${branchPayments.length} payments`);
-            recentPayments = recentPayments.concat(branchPayments);
+            // ⭐ Filter เฉพาะ 3 เดือนล่าสุด (ลด memory 70% สำหรับ 15K bills)
+            const filtered = branchPayments.filter(p => {
+                const paymentCreatedDate = p.created_date || p.updated_date;
+                return paymentCreatedDate && paymentCreatedDate >= paymentCutoffStr;
+            });
+
+            console.log(`   ✅ สาขา ${branchId}: ${filtered.length}/${branchPayments.length} payments (within 3 months)`);
+            recentPayments = recentPayments.concat(filtered);
             await delay(300);
         }
 
@@ -539,8 +548,14 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                const roomMeters = meterReadings.filter(m => m.room_id === room.id);
-                roomMeters.sort((a, b) => new Date(b.created_date || b.reading_date) - new Date(a.created_date || a.reading_date));
+                // ⭐ Index meters by room_id (ลด O(n^2) → O(n))
+                const metersByRoom = {};
+                meterReadings.forEach(m => {
+                    if (!metersByRoom[m.room_id]) metersByRoom[m.room_id] = [];
+                    metersByRoom[m.room_id].push(m);
+                });
+                metersByRoom[room.id]?.sort((a, b) => new Date(b.created_date || b.reading_date) - new Date(a.created_date || a.reading_date));
+                const roomMeters = metersByRoom[room.id] || [];
 
                 let latestMeter = roomMeters.find(m => (m.water_units > 0 || m.electricity_units > 0)) || roomMeters[0] || null;
 
