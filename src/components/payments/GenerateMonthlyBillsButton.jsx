@@ -28,10 +28,13 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
       if (useQueue) {
         toast.info('กำลังเพิ่มเข้า Queue...', { duration: 2000 });
         
+        console.log('🔄 Calling queueBillGeneration:', { branchId });
         const response = await base44.functions.invoke('queueBillGeneration', {
           branch_id: branchId,
           force: true
         });
+        
+        console.log('✅ Response received:', response);
 
         if (response.data?.success) {
           toast.success(
@@ -46,7 +49,8 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
 
           if (onSuccess) onSuccess();
         } else {
-          toast.error(response.data?.message || 'เพิ่ม Queue ไม่สำเร็จ');
+          console.error('❌ Response not successful:', response.data);
+          toast.error(`❌ ${response.data?.message || response.data?.error || 'เพิ่ม Queue ไม่สำเร็จ'}`);
         }
       } else {
         toast.info('กำลังสร้างบิลประจำเดือน...', { duration: 3000 });
@@ -102,8 +106,8 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
         }
       }
     } catch (error) {
-      console.error('Generate bills error:', error);
-      toast.error('เกิดข้อผิดพลาดในการสร้างบิล');
+      console.error('❌ Generate bills error:', error);
+      toast.error(`❌ เกิดข้อผิดพลาด: ${error.message || error}`);
     } finally {
       setGenerating(false);
     }
