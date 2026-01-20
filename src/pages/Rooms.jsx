@@ -795,7 +795,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     return ratings.length > 0 ? ratings[0] : null;
   };
 
-  const getMaintenanceHistory = (roomId, limit = 5) => {
+  const getMaintenanceHistory = (roomId) => {
     const roomMaintenance = maintenanceRequests
       .filter(m => m.room_id === roomId)
       .sort((a, b) => {
@@ -808,7 +808,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
           return 0;
         }
       });
-    return roomMaintenance.slice(0, limit);
+    return roomMaintenance;
   };
 
 
@@ -2752,8 +2752,11 @@ ${JSON.stringify(roomsWithAC, null, 2)}
           </Dialog>
 
           <Dialog open={showDetailDialog} onOpenChange={(open) => {
-            setShowDetailDialog(open);
-            if (!open) setSelectedRoom(null);
+           setShowDetailDialog(open);
+           if (!open) {
+             setSelectedRoom(null);
+             setMaintenanceHistoryPage(1);
+           }
           }}>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
@@ -3038,52 +3041,86 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                               ประวัติการซ่อม ({maintenanceHistory.length} รายการ)
                             </h3>
                             {maintenanceHistory.length > 0 ? (
-                              <div className="space-y-2 max-h-96 overflow-y-auto p-1">
-                                {maintenanceHistory.map((request) => (
-                                  <div key={request.id} className="bg-white rounded-lg p-3 border border-orange-200 shadow-sm">
-                                    <div className="flex justify-between items-start mb-2">
-                                      <div>
-                                        <p className="font-semibold text-slate-800">{request.title}</p>
-                                        <p className="text-xs text-slate-500 mt-1">
-                                          {format(parseISO(request.created_date), 'd MMM yyyy', { locale: th })}
-                                        </p>
+                              <>
+                                <div className="space-y-2 max-h-96 overflow-y-auto p-1">
+                                  {(() => {
+                                    const itemsPerPage = 10;
+                                    const startIdx = (maintenanceHistoryPage - 1) * itemsPerPage;
+                                    const paginatedItems = maintenanceHistory.slice(startIdx, startIdx + itemsPerPage);
+                                    return paginatedItems.map((request) => (
+                                      <div key={request.id} className="bg-white rounded-lg p-3 border border-orange-200 shadow-sm">
+                                        <div className="flex justify-between items-start mb-2">
+                                          <div>
+                                            <p className="font-semibold text-slate-800">{request.title}</p>
+                                            <p className="text-xs text-slate-500 mt-1">
+                                              {format(parseISO(request.created_date), 'd MMM yyyy', { locale: th })}
+                                            </p>
+                                          </div>
+                                          <Badge className={`text-xs flex-shrink-0 ${
+                                            request.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                            request.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                            request.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                            'bg-yellow-100 text-yellow-800'
+                                          }`}>
+                                            {request.status === 'completed' ? 'เสร็จแล้ว' :
+                                             request.status === 'in_progress' ? 'กำลังซ่อม' :
+                                             request.status === 'cancelled' ? 'ยกเลิก' :
+                                             'รอดำเนินการ'}
+                                          </Badge>
+                                        </div>
+                                        {request.description && (
+                                          <p className="text-sm text-slate-700 mb-2">{request.description}</p>
+                                        )}
+                                        <div className="flex flex-wrap gap-2 text-xs">
+                                          <Badge variant="outline" className="bg-gray-50">
+                                            {request.category}
+                                          </Badge>
+                                          {request.priority && (
+                                            <Badge variant="outline" className={
+                                              request.priority === 'urgent' ? 'bg-red-50 border-red-200' :
+                                              request.priority === 'high' ? 'bg-orange-50 border-orange-200' :
+                                              request.priority === 'medium' ? 'bg-yellow-50 border-yellow-200' :
+                                              'bg-blue-50 border-blue-200'
+                                            }>
+                                              {request.priority === 'urgent' ? '🔴 ด่วนมาก' :
+                                               request.priority === 'high' ? '🟠 สำคัญ' :
+                                               request.priority === 'medium' ? '🟡 ปกติ' :
+                                               '🔵 ต่ำ'}
+                                            </Badge>
+                                          )}
+                                        </div>
                                       </div>
-                                      <Badge className={`text-xs flex-shrink-0 ${
-                                        request.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                        request.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                        request.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                                        'bg-yellow-100 text-yellow-800'
-                                      }`}>
-                                        {request.status === 'completed' ? 'เสร็จแล้ว' :
-                                         request.status === 'in_progress' ? 'กำลังซ่อม' :
-                                         request.status === 'cancelled' ? 'ยกเลิก' :
-                                         'รอดำเนินการ'}
-                                      </Badge>
-                                    </div>
-                                    {request.description && (
-                                      <p className="text-sm text-slate-700 mb-2">{request.description}</p>
-                                    )}
-                                    <div className="flex flex-wrap gap-2 text-xs">
-                                      <Badge variant="outline" className="bg-gray-50">
-                                        {request.category}
-                                      </Badge>
-                                      {request.priority && (
-                                        <Badge variant="outline" className={
-                                          request.priority === 'urgent' ? 'bg-red-50 border-red-200' :
-                                          request.priority === 'high' ? 'bg-orange-50 border-orange-200' :
-                                          request.priority === 'medium' ? 'bg-yellow-50 border-yellow-200' :
-                                          'bg-blue-50 border-blue-200'
-                                        }>
-                                          {request.priority === 'urgent' ? '🔴 ด่วนมาก' :
-                                           request.priority === 'high' ? '🟠 สำคัญ' :
-                                           request.priority === 'medium' ? '🟡 ปกติ' :
-                                           '🔵 ต่ำ'}
-                                        </Badge>
-                                      )}
+                                    ));
+                                  })()}
+                                </div>
+                                {maintenanceHistory.length > 10 && (
+                                  <div className="flex items-center justify-between pt-3 border-t border-orange-200 text-xs">
+                                    <span className="text-slate-600">
+                                      หน้า {maintenanceHistoryPage} จาก {Math.ceil(maintenanceHistory.length / 10)}
+                                    </span>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setMaintenanceHistoryPage(prev => Math.max(1, prev - 1))}
+                                        disabled={maintenanceHistoryPage === 1}
+                                        className="h-7"
+                                      >
+                                        ก่อนหน้า
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setMaintenanceHistoryPage(prev => Math.min(Math.ceil(maintenanceHistory.length / 10), prev + 1))}
+                                        disabled={maintenanceHistoryPage === Math.ceil(maintenanceHistory.length / 10)}
+                                        className="h-7"
+                                      >
+                                        ถัดไป
+                                      </Button>
                                     </div>
                                   </div>
-                                ))}
-                              </div>
+                                )}
+                              </>
                             ) : (
                               <p className="text-center text-slate-500 py-8">ไม่มีประวัติการซ่อม</p>
                             )}
