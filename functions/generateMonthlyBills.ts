@@ -826,14 +826,17 @@ Deno.serve(async (req) => {
                 message: summaryMessage,
                 execution_time_ms: executionTime,
                 total_sent: createdCount,
-                triggered_by: targetBranchId ? 'manual_branch' : 'cron',
+                triggered_by: jobId ? 'queue' : (targetBranchId ? 'manual_branch' : 'cron'),
                 details: summaryData
             });
         } catch (logError) {
             console.error('⚠️ Log error:', logError.message);
         }
 
-        return Response.json(summaryData);
+        return Response.json({
+            ...summaryData,
+            job_id: jobId
+        });
 
     } catch (err) {
         console.error('❌ FATAL ERROR:', err);
