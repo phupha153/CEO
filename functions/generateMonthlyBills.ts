@@ -380,29 +380,54 @@ Deno.serve(async (req) => {
         console.log(`📦 Fetched: ${meterReadings.length} meter readings, ${tenants.length} tenants`);
         await delay(500); // ⭐ พักก่อน Step 4
 
-        // STEP 4: ดึง Payment ทั้งหมด (ไม่ใช้ fetchWithPagination)
-        console.log(`📦 Step 4: Fetching ALL payments...`);
+        // STEP 4: ดึง Payment สำหรับเดือนที่จะสร้างบิล (Smart Filter)
+        console.log(`📦 Step 4: Fetching payments for TARGET MONTHS ONLY...`);
 
         let recentPayments = [];
 
         for (const branchId of branchIdsToProcess) {
-            console.log(`   📥 Fetching payments for branch: ${branchId}`);
+            // ⭐ สร้าง Map: branchId → targetMonth เพื่อดึงเฉพาะเดือนที่จะสร้างบิล
+            const branchMonths = new Set();
+            roomsWithBooking
+                .filter(r => r.branch_id === branchId)
+                .forEach(room => {
+                    const payDay = parseInt(getConfigValue('pay_day', '5', branchId));
+                    let dueMonth = currentMonth;
+                    let dueYear = currentYear;
+                    const genDay = parseInt(getConfigValue('bill_generation_day', '27', branchId));
 
-            let branchPayments = [];
-            let paymentSkip = 0;
-            let fetchingPayments = true;
-            let batchNum = 0;
+                    if (genDay > payDay) {
+                        dueMonth = currentMonth + 1;
+                        if (dueMonth > 11) { dueMonth = 0; dueYear = currentYear + 1; }
+                    }
 
-            while (fetchingPayments && batchNum < 100) {
-                batchNum++;
+                    const monthStr = `${dueYear}-${String(dueMonth + 1).padStart(2, '0')}`;
+                    branchMonths.add(monthStr);
+                });
 
-                await retryOperation(async () => {
-                    const batch = await base44.asServiceRole.entities.Payment.filter(
-                        { branch_id: branchId },
-                        '-created_date',
-                        300,
-                        paymentSkip
-                    );
+            console.log(`   📥 Branch ${branchId.substring(0, 8)}: Fetching ${branchMonths.size} target month(s)`);
+
+            for (const targetMonth of branchMonths) {
+                let branchPayments = [];
+                let paymentSkip = 0;
+                let fetchingPayments = true;
+                let batchNum = 0;
+
+                console.log(`      🔍 Month: ${targetMonth}`);
+
+                while (fetchingPayments && batchNum < 100) {
+                    batchNum++;
+
+                    await retryOperation(async () => {
+                        const batch = await base44.asServiceRole.entities.Payment.filter(
+                            { 
+                                branch_id: branchId,
+                                due_date: { $gte: `${targetMonth}-01`, $lte: `${targetMonth}-31` }
+                            },
+                            '-created_date',
+                            300,
+                            paymentSkip
+                        );
 
                     const batchLength = Array.isArray(batch) ? batch.length : 0;
 
@@ -415,15 +440,17 @@ Deno.serve(async (req) => {
                     if (batchLength === 0) {
                         fetchingPayments = false;
                     }
-                });
+                    });
 
-                if (fetchingPayments) await delay(200);
-            }
+                    if (fetchingPayments) await delay(200);
+                    }
 
-            console.log(`   ✅ สาขา ${branchId}: ${branchPayments.length} payments`);
-            recentPayments = recentPayments.concat(branchPayments);
-            await delay(300);
-        }
+                    console.log(`         ✅ Month ${targetMonth}: ${branchPayments.length} payments`);
+                    recentPayments = recentPayments.concat(branchPayments);
+                    await delay(100);
+                    }
+                    await delay(300);
+                    }
 
         console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments.length}`);
 
