@@ -762,10 +762,13 @@ Deno.serve(async (req) => {
                 // ⭐ Log chunk results
                 const successful = results.filter(r => r.status === 'fulfilled').length;
                 const failed = results.filter(r => r.status === 'rejected').length;
-                console.log(`   ✅ Chunk done: ${successful} success, ${failed} failed`);
+                const chunkTime = Date.now() - chunkStartTime;
+                console.log(`   ✅ Chunk done: ${successful} success, ${failed} failed (${chunkTime}ms)`);
 
                 await delay(200); // Rate limit between chunks
-            }
+                }
+                stepTimings.step6 = Date.now() - step6StartTime;
+                console.log(`⏱️ Step 6 (Update Balances): ${stepTimings.step6}ms`);
         }
 
         // Summary
