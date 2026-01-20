@@ -2548,6 +2548,10 @@ Return JSON.`;
             </Button>
           )}
 
+          {userRole === 'developer' && (
+            <QueueMonitor branchId={selectedBranchId} />
+          )}
+
           {userRole === 'developer' && showDebugPanel && (
             <Card className="bg-purple-50 border-purple-200">
               <CardContent className="p-4">
