@@ -42,6 +42,8 @@ export default function RoomsPage() {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showReservationDialog, setShowReservationDialog] = useState(false);
   const [reservingRoom, setReservingRoom] = useState(null);
+  const [showBookingActionDialog, setShowBookingActionDialog] = useState(false);
+  const [bookingActionMode, setBookingActionMode] = useState(null);
     const [showBulkGenerator, setShowBulkGenerator] = useState(false);
   const [renewBooking, setRenewBooking] = useState(null);
   const [renewMonths, setRenewMonths] = useState(12);
@@ -1396,7 +1398,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
   const handleReserve = (room) => {
     setReservingRoom(room);
-    setShowReservationDialog(true);
+    setBookingActionMode(null);
+    setShowBookingActionDialog(true);
   };
 
   const getRoomColor = (status) => {
