@@ -129,6 +129,7 @@ Deno.serve(async (req) => {
             if (text && text.trim()) {
                 const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
+                jobId = body.job_id || null;
                 forceCreate = body.force === true;
                 resendNotifications = body.resend_notifications === true;
                 forceSkipDuplicateCheck = body.force_skip_duplicate_check === true;
