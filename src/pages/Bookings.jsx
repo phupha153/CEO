@@ -1896,6 +1896,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                         )}
                       </div>
                     )}
+                    </div>
                   </div>
                 )}
 
