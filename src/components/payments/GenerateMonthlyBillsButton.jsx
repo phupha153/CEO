@@ -26,7 +26,6 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
     setGenerating(true);
     try {
       if (useQueue) {
-        // ✅ ใช้ Queue System
         toast.info('กำลังเพิ่มเข้า Queue...', { duration: 2000 });
         
         const response = await base44.functions.invoke('queueBillGeneration', {
@@ -44,7 +43,6 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
           toast.error(response.data?.message || 'เพิ่ม Queue ไม่สำเร็จ');
         }
       } else {
-        // ⚠️ สร้างทันที (Direct)
         toast.info('กำลังสร้างบิลประจำเดือน...', { duration: 3000 });
         
         const response = await base44.functions.invoke('generateMonthlyBills', {
@@ -62,7 +60,6 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
               { duration: 5000 }
             );
 
-            // ⭐ ถ้ามีบิลที่ต้องสร้างรูป = ถามว่าจะส่งทันทีไหม
             if (pending > 0) {
               const shouldSend = confirm(`ต้องการสร้างรูปและส่ง LINE ทันทีไหม?\n(${pending} ใบ - ใช้เวลาประมาณ ${Math.ceil(pending * 2)} วินาที)`);
               
