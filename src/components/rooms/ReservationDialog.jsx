@@ -243,17 +243,26 @@ export default function ReservationDialog({
             </div>
           )}
 
-          <div>
+          <div className="space-y-2">
             <Label className="font-semibold text-base">ประเภทการเช่า</Label>
-            <Select value={bookingType} onValueChange={setBookingType}>
-              <SelectTrigger className="h-12 text-base">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="monthly">รายเดือน</SelectItem>
-                <SelectItem value="daily">รายวัน</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant={bookingType === 'monthly' ? 'default' : 'outline'}
+                className={`h-14 text-base font-semibold ${bookingType === 'monthly' ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : ''}`}
+                onClick={() => setBookingType('monthly')}
+              >
+                📅 รายเดือน
+              </Button>
+              <Button
+                type="button"
+                variant={bookingType === 'daily' ? 'default' : 'outline'}
+                className={`h-14 text-base font-semibold ${bookingType === 'daily' ? 'bg-gradient-to-r from-green-600 to-emerald-600' : ''}`}
+                onClick={() => setBookingType('daily')}
+              >
+                🏨 รายวัน
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
