@@ -44,11 +44,25 @@ Deno.serve(async (req) => {
         if (!payment) {
             console.error('❌ Payment not found in database');
             console.error(`   Searched for ID: ${paymentId}`);
-            console.error(`   Sample IDs: ${allPayments.slice(0, 3).map(p => p.id).join(', ')}`);
-            return Response.json({ 
-                success: false, 
-                error: 'ไม่พบใบแจ้งหนี้ในระบบ กรุณาตรวจสอบลิงก์อีกครั้ง' 
-            }, { status: 404 });
+            console.error(`   Query returned: ${JSON.stringify(paymentList)}`);
+            
+            // ⭐ Try fallback: list all + manual find
+            console.warn('⚠️ Fallback: Attempting full list...');
+            const allPaymentsFallback = await base44.asServiceRole.entities.Payment.list();
+            const allArray = Array.isArray(allPaymentsFallback) ? allPaymentsFallback : [];
+            console.log(`   Fallback result: ${allArray.length} payments`);
+            const fallbackPayment = allArray.find(p => p.id === paymentId);
+            if (fallbackPayment) {
+                console.log(`   ✅ Found via fallback: ${fallbackPayment.id}`);
+                // ⭐ Update payment reference
+                Object.assign(payment, fallbackPayment);
+            } else {
+                console.error(`   Sample IDs from fallback: ${allArray.slice(0, 3).map(p => p.id).join(', ')}`);
+                return Response.json({ 
+                    success: false, 
+                    error: 'ไม่พบใบแจ้งหนี้ในระบบ กรุณาตรวจสอบลิงก์อีกครั้ง' 
+                }, { status: 404 });
+            }
         }
 
         // ⭐ DEBUG: ดูข้อมูลจาก DB
@@ -88,9 +102,12 @@ Deno.serve(async (req) => {
         
         if (!room || !tenant || !branch) {
             console.error(`❌ Missing data: room=${!!room}, tenant=${!!tenant}, branch=${!!branch}`);
+            console.error(`   Room search result: ${JSON.stringify(roomResults)}`);
+            console.error(`   Tenant search result: ${JSON.stringify(tenantResults)}`);
+            console.error(`   Branch search result: ${JSON.stringify(branchResults)}`);
             return Response.json({ 
                 success: false, 
-                error: 'ข้อมูลไม่ครบถ้วน' 
+                error: `ข้อมูลไม่ครบถ้วน: room=${!!room}, tenant=${!!tenant}, branch=${!!branch}` 
             }, { status: 500 });
         }
 
