@@ -122,7 +122,29 @@ export default function ReservationDialog({
         notes: data.notes
       };
 
-      return await base44.entities.Booking.create(bookingData);
+      const newBooking = await base44.entities.Booking.create(bookingData);
+
+      // สร้าง Payment สำหรับรายวัน (ถ้ามียอดคงเหลือ)
+      if (bookingType === 'daily') {
+        const depositAmount = parseFloat(data.deposit_amount || 0);
+        const totalAmount = parseFloat(data.room_price || 0);
+        const remainingAmount = totalAmount - depositAmount;
+
+        if (remainingAmount > 0) {
+          await base44.entities.Payment.create({
+            branch_id: room.branch_id,
+            booking_id: newBooking.id,
+            room_id: room.id,
+            payment_category: 'booking_deposit',
+            total_amount: remainingAmount,
+            paid_amount: 0,
+            status: 'pending',
+            payment_date: new Date().toISOString().split('T')[0]
+          });
+        }
+      }
+
+      return newBooking;
     },
     onSuccess: () => {
       toast.success("บันทึกการจองสำเร็จ");

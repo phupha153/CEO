@@ -1778,6 +1778,35 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                             />
                           </div>
                         </div>
+
+                        {/* แสดงยอดคงเหลือสำหรับรายวัน */}
+                        {(formData.deposit_amount || formData.security_deposit) && (
+                          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                            <h4 className="font-semibold text-blue-800 mb-2">สรุปยอดเงิน</h4>
+                            <div className="space-y-1 text-sm">
+                              {formData.security_deposit > 0 && (
+                                <div className="flex justify-between">
+                                  <span>ค่าใช้จ่ายทั้งหมด:</span>
+                                  <span>{Number(formData.security_deposit).toLocaleString()} บาท</span>
+                                </div>
+                              )}
+                              {formData.deposit_amount > 0 && (
+                                <div className="flex justify-between text-green-700">
+                                  <span>ชำระแล้ว (มัดจำ):</span>
+                                  <span>-{Number(formData.deposit_amount).toLocaleString()} บาท</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between font-bold text-orange-600 border-t border-blue-300 pt-2 mt-2">
+                                <span>💰 ยอดคงเหลือ (รอชำระ):</span>
+                                <span>
+                                  {Math.max(0, 
+                                    Number(formData.security_deposit || 0) - Number(formData.deposit_amount || 0)
+                                  ).toLocaleString()} บาท
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <>
