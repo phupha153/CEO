@@ -3174,6 +3174,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             room={reservingRoom}
             currentBookings={bookings}
             tenants={tenants}
+            selectTenantOnly={true}
             onSuccess={() => {
               queryClient.invalidateQueries(['rooms']);
               queryClient.invalidateQueries(['bookings']);

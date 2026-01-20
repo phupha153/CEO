@@ -39,6 +39,7 @@ import PrintReceipts from './pages/PrintReceipts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import PublicInvoice from './pages/PublicInvoice';
 import PublicReceipt from './pages/PublicReceipt';
+import Receipt from './pages/Receipt';
 import Rooms from './pages/Rooms';
 import Settings from './pages/Settings';
 import SupportTickets from './pages/SupportTickets';
@@ -54,7 +55,6 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import Receipt from './pages/Receipt';
 import __Layout from './Layout.jsx';
 
 
@@ -100,6 +100,7 @@ export const PAGES = {
     "PrivacyPolicy": PrivacyPolicy,
     "PublicInvoice": PublicInvoice,
     "PublicReceipt": PublicReceipt,
+    "Receipt": Receipt,
     "Rooms": Rooms,
     "Settings": Settings,
     "SupportTickets": SupportTickets,
@@ -115,7 +116,6 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "Receipt": Receipt,
 }
 
 export const pagesConfig = {
