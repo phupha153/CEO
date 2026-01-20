@@ -1734,11 +1734,11 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                 {/* รายละเอียดการชำระเงิน - เฉพาะรายเดือน */}
                 {dialogBookingType === 'monthly' && (
                   <div className="border-t pt-4">
-                  <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    💰 รายละเอียดการชำระเงิน
-                  </h3>
+                    <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                      💰 รายละเอียดการชำระเงิน
+                    </h3>
 
-                  <div className="space-y-3">
+                    <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>เงินจองห้อง (บาท)</Label>
