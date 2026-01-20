@@ -1,15 +1,20 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
-import { Calendar, Loader2 } from "lucide-react";
+import { Calendar, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills = 0, onSuccess, compact = false }) {
   const [generating, setGenerating] = useState(false);
   const [processingQueue, setProcessingQueue] = useState(false);
+  const [useQueue, setUseQueue] = useState(false);
 
   const handleGenerateBills = async () => {
-    if (!confirm('คุณต้องการสร้างบิลประจำเดือนนี้ใช่หรือไม่?')) {
+    const message = useQueue 
+      ? 'เพิ่ม job เข้า Queue?\n\n✅ ไม่มี timeout risk\n✅ ประมวลผลทีละ job\n\n(คลิก OK เพื่อเพิ่มเข้า Queue)'
+      : 'คุณต้องการสร้างบิลประจำเดือนนี้ใช่หรือไม่?\n\n⚠️ สร้างทันที (อาจ timeout ถ้าข้อมูลเยอะ)';
+
+    if (!confirm(message)) {
       return;
     }
 
@@ -20,13 +25,32 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
 
     setGenerating(true);
     try {
-      toast.info('กำลังสร้างบิลประจำเดือน...', { duration: 3000 });
-      
-      // ⭐ ไม่ใช้ force_skip_duplicate_check เพื่อให้เช็คบิลซ้ำ
-      const response = await base44.functions.invoke('generateMonthlyBills', {
-        branch_id: branchId,
-        force: true
-      });
+      if (useQueue) {
+        // ✅ ใช้ Queue System
+        toast.info('กำลังเพิ่มเข้า Queue...', { duration: 2000 });
+        
+        const response = await base44.functions.invoke('queueBillGeneration', {
+          branch_id: branchId,
+          force: true
+        });
+
+        if (response.data?.success) {
+          toast.success(
+            `✅ ${response.data.message}\n\nJob ID: ${response.data.job_id}\n\nRefresh หน้าเพื่อดู progress`,
+            { duration: 8000 }
+          );
+          if (onSuccess) onSuccess();
+        } else {
+          toast.error(response.data?.message || 'เพิ่ม Queue ไม่สำเร็จ');
+        }
+      } else {
+        // ⚠️ สร้างทันที (Direct)
+        toast.info('กำลังสร้างบิลประจำเดือน...', { duration: 3000 });
+        
+        const response = await base44.functions.invoke('generateMonthlyBills', {
+          branch_id: branchId,
+          force: true
+        });
 
       if (response.data?.success) {
         const created = response.data.generatedCount || response.data.created || 0;
