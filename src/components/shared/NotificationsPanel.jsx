@@ -910,7 +910,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: -20, opacity: 0, scale: 0.95 }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          className="absolute top-4 right-2 md:top-16 md:right-8 w-[96vw] md:w-full max-w-md shadow-2xl max-h-[95vh] md:max-h-none"
+          className="absolute top-20 right-2 md:top-16 md:right-8 w-[96vw] md:w-full max-w-md shadow-2xl max-h-[85vh] md:max-h-none"
           onClick={(e) => e.stopPropagation()}
         >
           <Card className="bg-white shadow-2xl border border-slate-200 rounded-xl md:rounded-2xl overflow-hidden flex flex-col max-h-[95vh]">
