@@ -1037,7 +1037,9 @@ export default function Layout({ children, currentPageName }) {
   const visibleMenuItems = currentUser ? navigationItems.filter(item => {
     // Handle trial mode items specially
     if (item.isTrial) {
-      return currentUser?.plan_status === 'trial';
+      // ใช้ plan_status ของเจ้าของสาขา (ถ้ามี) หรือของตัวเอง
+      const effectivePlanStatus = branchOwnerStatus?.plan_status || currentUser?.plan_status;
+      return effectivePlanStatus === 'trial';
     }
     return canAccessMenuItem(item);
   }) : [];
