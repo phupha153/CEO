@@ -2043,35 +2043,41 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
   const tenantSchema = {
     type: "object",
     properties: {
-      full_name: { type: "string" },
-      phone: { type: "string" },
-      line_id: { type: "string" },
-      national_id: { type: "string" },
-      email: { type: "string" },
-      address: { type: "string" },
-      emergency_contact: { type: "string" },
-      notes: { type: "string" },
-      room_number: { type: "string" },
-      check_in_date: { type: "string" },
-      check_out_date: { type: "string" },
-      deposit_amount: { type: "number" }
+      "ชื่อ-นามสกุล": { type: "string" },
+      "เบอร์โทร": { type: "string" },
+      "เพศ": { type: "string" },
+      "อายุ": { type: "number" },
+      "LINE ID": { type: "string" },
+      "เลขบัตรประชาชน": { type: "string" },
+      "อีเมล": { type: "string" },
+      "ที่อยู่": { type: "string" },
+      "เบอร์ติดต่อฉุกเฉิน": { type: "string" },
+      "หมายเหตุ": { type: "string" },
+      "เลขห้อง": { type: "string" },
+      "วันเริ่มสัญญา": { type: "string" },
+      "วันสิ้นสุดสัญญา": { type: "string" },
+      "เงินมัดจำ": { type: "number" },
+      "สถานะการจอง": { type: "string" }
     },
-    required: ["full_name"]
+    required: ["ชื่อ-นามสกุล"]
   };
 
   const templateData = [{
-    "full_name": "สมชาย ใจดี",
-    "phone": "0812345678",
-    "line_id": "somchai123",
-    "national_id": "1234567890123",
-    "email": "somchai@email.com",
-    "address": "123 ถนนสุขุมวิท กรุงเทพฯ",
-    "emergency_contact": "0898765432",
-    "notes": "ผู้เช่าดี จ่ายตรงเวลา",
-    "room_number": "101",
-    "check_in_date": "2025-01-01",
-    "check_out_date": "2026-01-01",
-    "deposit_amount": 5000
+    "ชื่อ-นามสกุล": "สมชาย ใจดี",
+    "เบอร์โทร": "0812345678",
+    "เพศ": "male",
+    "อายุ": 30,
+    "LINE ID": "somchai123",
+    "เลขบัตรประชาชน": "1234567890123",
+    "อีเมล": "somchai@email.com",
+    "ที่อยู่": "123 ถนนสุขุมวิท กรุงเทพฯ",
+    "เบอร์ติดต่อฉุกเฉิน": "0898765432",
+    "หมายเหตุ": "ผู้เช่าดี จ่ายตรงเวลา",
+    "เลขห้อง": "101",
+    "วันเริ่มสัญญา": "2025-01-01",
+    "วันสิ้นสุดสัญญา": "2026-01-01",
+    "เงินมัดจำ": 5000,
+    "สถานะการจอง": "active"
   }];
 
 
