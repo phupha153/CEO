@@ -767,11 +767,35 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
         });
       }
 
-      // 1. Find and delete all bookings for the tenant, and update room status
+      // 1. Delete all payments for this tenant
+      try {
+        const tenantPayments = await base44.entities.Payment.filter({ tenant_id: id });
+        if (tenantPayments && tenantPayments.length > 0) {
+          for (const payment of tenantPayments) {
+            await base44.entities.Payment.delete(payment.id);
+          }
+        }
+      } catch (e) {
+        console.warn(`Could not delete payments for tenant ${id}: ${e.message}`);
+      }
+
+      // 2. Delete all contracts for this tenant
+      try {
+        const tenantContracts = await base44.entities.Contract.filter({ tenant_id: id });
+        if (tenantContracts && tenantContracts.length > 0) {
+          for (const contract of tenantContracts) {
+            await base44.entities.Contract.delete(contract.id);
+          }
+        }
+      } catch (e) {
+        console.warn(`Could not delete contracts for tenant ${id}: ${e.message}`);
+      }
+
+      // 3. Find and delete all bookings for the tenant, and update room status
       const tenantBookings = await base44.entities.Booking.filter({ tenant_id: id });
       if (tenantBookings && tenantBookings.length > 0) {
         for (const booking of tenantBookings) {
-          if (booking.room_id && booking.status === 'active') { // Only free up room if booking was active
+          if (booking.room_id && booking.status === 'active') {
             try {
               await base44.entities.Room.update(booking.room_id, { status: 'available' });
             } catch (e) {
@@ -782,7 +806,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
         }
       }
 
-      // 2. Delete ratings
+      // 4. Delete ratings
       const tenantRatings = await base44.entities.TenantRating.filter({ tenant_id: id });
       if (tenantRatings && tenantRatings.length > 0) {
         for (const rating of tenantRatings) {
@@ -790,7 +814,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
         }
       }
 
-      // 3. Finally, delete the tenant
+      // 5. Finally, delete the tenant
       return await base44.entities.Tenant.delete(id);
     },
     onSuccess: () => {

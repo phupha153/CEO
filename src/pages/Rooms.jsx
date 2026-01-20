@@ -1063,6 +1063,11 @@ ${JSON.stringify(roomsWithAC, null, 2)}
         const promises = chunk.map(id => base44.entities.Room.update(id, updates));
         const chunkResults = await Promise.all(promises);
         results.push(...chunkResults);
+        
+        // ⚡ Delay to prevent rate limit
+        if (i + chunkSize < roomIds.length) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
       return results;
     },
