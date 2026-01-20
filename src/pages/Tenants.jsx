@@ -2190,16 +2190,31 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
         createdCount++;
       }
 
-      // 2. If room_number is provided, create/update booking
+      // 2. ⭐ สร้าง/อัพเดท Booking ถ้ามีข้อมูลเลขห้อง
       const roomNumber = record.room_number || record['เลขห้อง'];
+      
+      console.log(`🔍 [Import] Tenant: ${fullName}, Room Number: ${roomNumber}`);
+      
       if (roomNumber && roomNumber.toString().trim() !== '') {
-        const room = branchRooms.find(r => r.room_number === roomNumber.toString().trim());
+        const roomNumStr = roomNumber.toString().trim();
+        const room = branchRooms.find(r => r.room_number === roomNumStr);
+
+        console.log(`  🏠 Found room:`, room ? `${room.room_number} (ID: ${room.id})` : 'NOT FOUND');
 
         if (room) {
           const checkInDate = record.check_in_date || record['วันเริ่มสัญญา'] || format(new Date(), 'yyyy-MM-dd');
           const checkOutDate = record.check_out_date || record['วันสิ้นสุดสัญญา'] || null;
           const depositAmount = parseFloat(record.deposit_amount || record['เงินมัดจำ'] || 0);
           const bookingStatus = record.booking_status || record['สถานะการจอง'] || 'active';
+          
+          console.log(`  📅 Booking Details:`, {
+            checkInDate,
+            checkOutDate,
+            depositAmount,
+            bookingStatus,
+            roomId: room.id,
+            tenantId: finalTenant.id
+          });
 
           // ตรวจสอบว่าห้องนี้มี booking active จากผู้เช่าคนอื่นหรือไม่
           const existingRoomBooking = existingBookings.find(b => 
@@ -2248,22 +2263,32 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
 
           if (existingTenantBooking) {
             // อัพเดท booking เดิม
+            console.log(`  ♻️ Updating existing booking: ${existingTenantBooking.id}`);
             await base44.entities.Booking.update(existingTenantBooking.id, bookingData);
             bookingUpdatedCount++;
           } else {
             // สร้าง booking ใหม่
+            console.log(`  ✨ Creating NEW booking for room ${room.room_number}`);
             const newBooking = await base44.entities.Booking.create(bookingData);
+            console.log(`  ✅ Booking created successfully! ID: ${newBooking.id}`);
             existingBookings.push(newBooking);
             bookingUpdatedCount++;
           }
 
           // Update Room Status
+          const newRoomStatus = bookingStatus === 'active' ? 'occupied' : 'available';
+          console.log(`  🚪 Updating room ${room.room_number} status: ${room.status} → ${newRoomStatus}`);
           await base44.entities.Room.update(room.id, { 
-            status: bookingStatus === 'active' ? 'occupied' : 'available' 
+            status: newRoomStatus
           });
+          
+          console.log(`  ✅ Room ${room.room_number} - Booking completed successfully!`);
         } else {
-          console.warn(`Room ${roomNumber} not found in branch`);
+          console.warn(`  ❌ Room ${roomNumber} NOT FOUND in branch ${selectedBranchName}`);
+          console.warn(`     Available rooms:`, branchRooms.map(r => r.room_number).join(', '));
         }
+      } else {
+        console.log(`  ⏭️ No room number provided - skipping booking creation`);
       }
     }
 
