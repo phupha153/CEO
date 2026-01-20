@@ -13,6 +13,30 @@ Deno.serve(async (req) => {
 
     console.log('🔄 Processing Queue...');
 
+    // 🔧 STUCK JOB RECOVERY: Reset jobs that are stuck in "processing" for >5 minutes
+    const stuckJobs = await base44.asServiceRole.entities.InvoiceQueue.filter(
+      { status: 'processing' },
+      'created_date',
+      10
+    );
+
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    for (const stuckJob of stuckJobs) {
+      try {
+        const startedAt = stuckJob.started_at ? new Date(stuckJob.started_at) : null;
+        if (!startedAt || startedAt < fiveMinutesAgo) {
+          console.log(`🔧 Resetting stuck job: ${stuckJob.id}`);
+          await base44.asServiceRole.entities.InvoiceQueue.update(stuckJob.id, {
+            status: 'pending',
+            started_at: null,
+            error_message: 'Auto-reset after timeout'
+          });
+        }
+      } catch (e) {
+        console.error(`Failed to reset stuck job ${stuckJob.id}:`, e);
+      }
+    }
+
     // Fetch pending jobs (1 at a time, ordered by created_date)
     const pendingJobs = await base44.asServiceRole.entities.InvoiceQueue.filter(
       { status: 'pending' },
