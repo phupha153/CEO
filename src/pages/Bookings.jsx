@@ -1746,114 +1746,144 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                   )}
                 </div>
 
-                {/* รายละเอียดการชำระเงิน - เฉพาะรายเดือน */}
-                {dialogBookingType === 'monthly' && (
-                  <div className="border-t pt-4">
-                    <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                      💰 รายละเอียดการชำระเงิน
-                    </h3>
+                {/* รายละเอียดการชำระเงิน */}
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                    💰 รายละเอียดการชำระเงิน
+                  </h3>
 
-                    <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>เงินจองห้อง (บาท)</Label>
-                        <Input
-                          type="number"
-                          value={formData.deposit_amount}
-                          onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
-                          placeholder="2,000"
-                          disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
-                        />
-                      </div>
-                      <div>
-                        <Label>เงินประกันห้อง (บาท)</Label>
-                        <Input
-                          type="number"
-                          value={formData.security_deposit}
-                          onChange={(e) => setFormData({ ...formData, security_deposit: e.target.value })}
-                          placeholder="6,000"
-                          disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>ค่าเช่าล่วงหน้า (บาท)</Label>
-                        <Input
-                          type="number"
-                          value={formData.advance_rent}
-                          onChange={(e) => setFormData({ ...formData, advance_rent: e.target.value })}
-                          placeholder="3,900"
-                          disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
-                        />
-                      </div>
-                      <div>
-                        <Label>รวมส่วนกลาง (บาท)</Label>
-                        <Input
-                          type="number"
-                          value={formData.common_fee_included}
-                          onChange={(e) => setFormData({ ...formData, common_fee_included: e.target.value })}
-                          placeholder="0"
-                          disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* แสดงสรุปยอดเงิน */}
-                    {(formData.deposit_amount || formData.security_deposit || formData.advance_rent) && (
-                      <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mt-3">
-                        <h4 className="font-semibold text-blue-800 mb-2">สรุปยอดเงิน</h4>
-                        <div className="space-y-1 text-sm">
-                          {formData.deposit_amount > 0 && (
-                            <div className="flex justify-between">
-                              <span>เงินจองห้อง:</span>
-                              <span>{Number(formData.deposit_amount).toLocaleString()} บาท</span>
-                            </div>
-                          )}
-                          {formData.security_deposit > 0 && (
-                            <div className="flex justify-between">
-                              <span>เงินประกันห้อง:</span>
-                              <span>{Number(formData.security_deposit).toLocaleString()} บาท</span>
-                            </div>
-                          )}
-                          {formData.advance_rent > 0 && (
-                            <div className="flex justify-between">
-                              <span>ค่าเช่าล่วงหน้า:</span>
-                              <span>{Number(formData.advance_rent).toLocaleString()} บาท</span>
-                            </div>
-                          )}
-                          {formData.common_fee_included > 0 && (
-                            <div className="flex justify-between">
-                              <span>รวมส่วนกลาง:</span>
-                              <span>{Number(formData.common_fee_included).toLocaleString()} บาท</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between font-bold text-blue-800 border-t border-blue-300 pt-2 mt-2">
-                            <span>รวมสุทธิ:</span>
-                            <span>
-                              {(
-                                Number(formData.deposit_amount || 0) +
-                                Number(formData.security_deposit || 0) +
-                                Number(formData.advance_rent || 0) +
-                                Number(formData.common_fee_included || 0)
-                              ).toLocaleString()} บาท
-                            </span>
+                  <div className="space-y-3">
+                    {dialogBookingType === 'daily' ? (
+                      <>
+                        {/* ฟอร์มรายวัน - แบบง่าย */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>เงินมัดจำ (บาท)</Label>
+                            <Input
+                              type="number"
+                              value={formData.deposit_amount}
+                              onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
+                              placeholder="500"
+                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                            />
                           </div>
-                          <div className="flex justify-between text-green-700 font-semibold">
-                            <span>* คงเหลือชำระทีหลัง:</span>
-                            <span>
-                              {(
-                                Number(formData.security_deposit || 0) +
-                                Number(formData.advance_rent || 0) +
-                                Number(formData.common_fee_included || 0)
-                              ).toLocaleString()} บาท
-                            </span>
+                          <div>
+                            <Label>ค่าใช้จ่ายทั้งหมด (บาท)</Label>
+                            <Input
+                              type="number"
+                              value={formData.security_deposit}
+                              onChange={(e) => setFormData({ ...formData, security_deposit: e.target.value })}
+                              placeholder="3,000"
+                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                            />
                           </div>
                         </div>
-                      </div>
+                      </>
+                    ) : (
+                      <>
+                        {/* ฟอร์มรายเดือน - แบบละเอียด */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>เงินจองห้อง (บาท)</Label>
+                            <Input
+                              type="number"
+                              value={formData.deposit_amount}
+                              onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
+                              placeholder="2,000"
+                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                            />
+                          </div>
+                          <div>
+                            <Label>เงินประกันห้อง (บาท)</Label>
+                            <Input
+                              type="number"
+                              value={formData.security_deposit}
+                              onChange={(e) => setFormData({ ...formData, security_deposit: e.target.value })}
+                              placeholder="6,000"
+                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>ค่าเช่าล่วงหน้า (บาท)</Label>
+                            <Input
+                              type="number"
+                              value={formData.advance_rent}
+                              onChange={(e) => setFormData({ ...formData, advance_rent: e.target.value })}
+                              placeholder="3,900"
+                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                            />
+                          </div>
+                          <div>
+                            <Label>รวมส่วนกลาง (บาท)</Label>
+                            <Input
+                              type="number"
+                              value={formData.common_fee_included}
+                              onChange={(e) => setFormData({ ...formData, common_fee_included: e.target.value })}
+                              placeholder="0"
+                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                            />
+                          </div>
+                        </div>
+
+                        {/* แสดงสรุปยอดเงิน */}
+                        {(formData.deposit_amount || formData.security_deposit || formData.advance_rent) && (
+                          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mt-3">
+                            <h4 className="font-semibold text-blue-800 mb-2">สรุปยอดเงิน</h4>
+                            <div className="space-y-1 text-sm">
+                              {formData.deposit_amount > 0 && (
+                                <div className="flex justify-between">
+                                  <span>เงินจองห้อง:</span>
+                                  <span>{Number(formData.deposit_amount).toLocaleString()} บาท</span>
+                                </div>
+                              )}
+                              {formData.security_deposit > 0 && (
+                                <div className="flex justify-between">
+                                  <span>เงินประกันห้อง:</span>
+                                  <span>{Number(formData.security_deposit).toLocaleString()} บาท</span>
+                                </div>
+                              )}
+                              {formData.advance_rent > 0 && (
+                                <div className="flex justify-between">
+                                  <span>ค่าเช่าล่วงหน้า:</span>
+                                  <span>{Number(formData.advance_rent).toLocaleString()} บาท</span>
+                                </div>
+                              )}
+                              {formData.common_fee_included > 0 && (
+                                <div className="flex justify-between">
+                                  <span>รวมส่วนกลาง:</span>
+                                  <span>{Number(formData.common_fee_included).toLocaleString()} บาท</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between font-bold text-blue-800 border-t border-blue-300 pt-2 mt-2">
+                                <span>รวมสุทธิ:</span>
+                                <span>
+                                  {(
+                                    Number(formData.deposit_amount || 0) +
+                                    Number(formData.security_deposit || 0) +
+                                    Number(formData.advance_rent || 0) +
+                                    Number(formData.common_fee_included || 0)
+                                  ).toLocaleString()} บาท
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-green-700 font-semibold">
+                                <span>* คงเหลือชำระทีหลัง:</span>
+                                <span>
+                                  {(
+                                    Number(formData.security_deposit || 0) +
+                                    Number(formData.advance_rent || 0) +
+                                    Number(formData.common_fee_included || 0)
+                                  ).toLocaleString()} บาท
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
-                    
+
                     <div>
                       <Label>วิธีการชำระเงิน</Label>
                       <Select
@@ -1911,9 +1941,8 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                         )}
                       </div>
                     )}
-                    </div>
                   </div>
-                )}
+                </div>
 
                 <div>
                   <Label>หมายเหตุ</Label>
