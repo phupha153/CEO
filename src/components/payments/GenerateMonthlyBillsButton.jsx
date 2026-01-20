@@ -7,10 +7,9 @@ import { toast } from "sonner";
 export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills = 0, onSuccess, compact = false, queryClient }) {
   const [generating, setGenerating] = useState(false);
   const [processingQueue, setProcessingQueue] = useState(false);
-  const [useQueue, setUseQueue] = useState(false);
 
-  const handleGenerateBills = async () => {
-    const message = useQueue 
+  const handleGenerateBills = async (shouldUseQueue = false) => {
+    const message = shouldUseQueue 
       ? 'เพิ่ม job เข้า Queue?\n\n✅ ไม่มี timeout risk\n✅ ประมวลผลทีละ job\n\n(คลิก OK เพื่อเพิ่มเข้า Queue)'
       : 'คุณต้องการสร้างบิลประจำเดือนนี้ใช่หรือไม่?\n\n⚠️ สร้างทันที (อาจ timeout ถ้าข้อมูลเยอะ)';
 
@@ -25,7 +24,7 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
 
     setGenerating(true);
     try {
-      if (useQueue) {
+      if (shouldUseQueue) {
         toast.info('กำลังเพิ่มเข้า Queue...', { duration: 2000 });
         
         console.log('🔄 Calling queueBillGeneration:', { branchId });
@@ -119,15 +118,12 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
     return (
       <div className="flex gap-2">
         <Button
-          onClick={() => {
-            setUseQueue(false);
-            handleGenerateBills();
-          }}
+          onClick={() => handleGenerateBills(false)}
           disabled={isLoading || roomsNeedingBills === 0}
           size="sm"
           className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
         >
-          {isLoading && !useQueue ? (
+          {isLoading ? (
             <Loader2 className="w-4 h-4 mr-1 animate-spin" />
           ) : (
             <Calendar className="w-4 h-4 mr-1" />
@@ -135,16 +131,13 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
           สร้างบิลเดือนนี้{roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}
         </Button>
         <Button
-          onClick={() => {
-            setUseQueue(true);
-            handleGenerateBills();
-          }}
+          onClick={() => handleGenerateBills(true)}
           disabled={isLoading || roomsNeedingBills === 0}
           size="sm"
           variant="outline"
           className="border-purple-300 text-purple-700 hover:bg-purple-50"
         >
-          {isLoading && useQueue ? (
+          {isLoading ? (
             <Loader2 className="w-4 h-4 mr-1 animate-spin" />
           ) : (
             <Plus className="w-4 h-4 mr-1" />
@@ -157,10 +150,7 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
 
   return (
     <Button
-      onClick={() => {
-        setUseQueue(false);
-        handleGenerateBills();
-      }}
+      onClick={() => handleGenerateBills(false)}
       disabled={isLoading || roomsNeedingBills === 0}
       className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
     >
