@@ -760,10 +760,7 @@ Deno.serve(async (req) => {
             generatedCount: createdCount,
             skippedDueToExistingBill,
             skippedDueToLimit,
-            needMoreRuns: skippedDueToLimit > 0,
-            pendingImageCount,
-            sentCount,
-            failedCount
+            needMoreRuns: skippedDueToLimit > 0
         };
 
         try {
