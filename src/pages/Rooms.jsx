@@ -42,7 +42,8 @@ export default function RoomsPage() {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showReservationDialog, setShowReservationDialog] = useState(false);
   const [reservingRoom, setReservingRoom] = useState(null);
-    const [showBulkGenerator, setShowBulkGenerator] = useState(false);
+  const [showBulkGenerator, setShowBulkGenerator] = useState(false);
+  const [dialogBookingType, setDialogBookingType] = useState('daily');
   const [renewBooking, setRenewBooking] = useState(null);
   const [renewMonths, setRenewMonths] = useState(12);
   const [showRenewDialog, setShowRenewDialog] = useState(false);
@@ -125,7 +126,24 @@ export default function RoomsPage() {
     water_rate: '',
     electricity_rate: '',
     common_fee: '',
-    other_monthly_fees: []
+    other_monthly_fees: [],
+    // Booking fields
+    guest_name: '',
+    guest_phone: '',
+    guest_email: '',
+    guest_national_id: '',
+    guest_address: '',
+    check_in_date: '',
+    check_out_date: '',
+    contract_duration: '1 ปี',
+    deposit_amount: '',
+    security_deposit: '',
+    advance_rent: '',
+    common_fee_included: '',
+    contract_deadline: '',
+    deposit_payment_method: 'transfer',
+    deposit_slip_url: '',
+    notes: ''
   });
 
   const queryClient = useQueryClient();
@@ -1233,6 +1251,53 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     }
   });
 
+  const createBookingMutation = useMutation({
+    mutationFn: async (data) => {
+      const room = rooms.find(r => r.id === data.room_id);
+      if (!room) throw new Error('ไม่พบห้องที่เลือก');
+
+      const bookingData = {
+        ...data,
+        branch_id: selectedBranchId,
+        booking_type: dialogBookingType,
+        status: 'active',
+        total_amount: 0
+      };
+
+      const newBooking = await base44.entities.Booking.create(bookingData);
+      
+      // อัปเดตสถานะห้อง
+      if (dialogBookingType === 'monthly') {
+        await base44.entities.Room.update(room.id, { status: 'occupied' });
+      }
+      
+      return { booking: newBooking, room };
+    },
+    onSuccess: async ({ booking, room }) => {
+      await queryClient.invalidateQueries(['rooms', selectedBranchId]);
+      await queryClient.invalidateQueries(['bookings', selectedBranchId]);
+      
+      // บันทึก log
+      await base44.entities.ActivityLog.create({
+        branch_id: selectedBranchId,
+        action_type: 'create',
+        entity_type: 'Booking',
+        entity_id: booking.id,
+        entity_name: `ห้อง ${room.room_number} - ${booking.guest_name || 'รายวัน'}`,
+        user_email: currentUser?.email,
+        user_name: currentUser?.full_name,
+        description: `จองห้อง ${room.room_number} (${dialogBookingType === 'daily' ? 'รายวัน' : 'รายเดือน'})`
+      });
+      
+      setShowReservationDialog(false);
+      setReservingRoom(null);
+      toast.success('จองห้องสำเร็จ');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'เกิดข้อผิดพลาด');
+    }
+  });
+
   const handleLongPressStart = (e, roomId) => {
     if (isSelectionMode) return;
     
@@ -1375,6 +1440,20 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     setUploadingImage(false);
   };
 
+  const handleSlipUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      setFormData(prev => ({ ...prev, deposit_slip_url: file_url }));
+      toast.success('อัปโหลดสลิปสำเร็จ');
+    } catch (error) {
+      toast.error('อัปโหลดสลิปไม่สำเร็จ');
+    }
+    setUploadingImage(false);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -1454,6 +1533,40 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
   const handleReserve = (room) => {
     setReservingRoom(room);
+    setDialogBookingType(room.room_type || 'daily');
+    setFormData({
+      room_number: '',
+      floor: '',
+      room_type: 'monthly',
+      price: '',
+      status: 'available',
+      size: '',
+      amenities: [],
+      description: '',
+      image_urls: [],
+      last_ac_cleaning_date: '',
+      water_rate: '',
+      electricity_rate: '',
+      common_fee: '',
+      other_monthly_fees: [],
+      room_id: room.id,
+      guest_name: '',
+      guest_phone: '',
+      guest_email: '',
+      guest_national_id: '',
+      guest_address: '',
+      check_in_date: new Date().toISOString().split('T')[0],
+      check_out_date: '',
+      contract_duration: '1 ปี',
+      deposit_amount: '',
+      security_deposit: room.price?.toString() || '',
+      advance_rent: room.price?.toString() || '',
+      common_fee_included: room.common_fee?.toString() || '',
+      contract_deadline: '',
+      deposit_payment_method: 'transfer',
+      deposit_slip_url: '',
+      notes: ''
+    });
     setShowReservationDialog(true);
   };
 
@@ -3232,17 +3345,465 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             </DialogContent>
           </Dialog>
 
-          <ReservationDialog 
-            open={showReservationDialog} 
-            onOpenChange={setShowReservationDialog}
-            room={reservingRoom}
-            currentBookings={bookings}
-            tenants={tenants}
-            onSuccess={() => {
-              queryClient.invalidateQueries(['rooms']);
-              queryClient.invalidateQueries(['bookings']);
-            }}
-          />
+          <Dialog open={showReservationDialog} onOpenChange={(open) => {
+            setShowReservationDialog(open);
+            if (!open) setReservingRoom(null);
+          }}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto pointer-events-auto">
+              <DialogHeader>
+                <DialogTitle>จองห้อง {reservingRoom?.room_number}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                
+                const depositAmount = formData.deposit_amount ? parseFloat(formData.deposit_amount) : 0;
+                const securityDeposit = formData.security_deposit ? parseFloat(formData.security_deposit) : 0;
+                const advanceRent = formData.advance_rent ? parseFloat(formData.advance_rent) : 0;
+                const commonFeeIncluded = formData.common_fee_included ? parseFloat(formData.common_fee_included) : 0;
+                const totalBookingAmount = depositAmount + securityDeposit + advanceRent + commonFeeIncluded;
+                const remainingAmount = securityDeposit + advanceRent + commonFeeIncluded;
+                
+                const bookingNo = format(new Date(), 'dd-MM-yy');
+                
+                const data = {
+                  room_id: formData.room_id,
+                  guest_name: formData.guest_name,
+                  guest_phone: formData.guest_phone,
+                  guest_email: formData.guest_email,
+                  guest_national_id: formData.guest_national_id,
+                  guest_address: formData.guest_address,
+                  check_in_date: formData.check_in_date,
+                  check_out_date: formData.check_out_date,
+                  contract_duration: formData.contract_duration,
+                  booking_no: bookingNo,
+                  deposit_amount: depositAmount,
+                  security_deposit: securityDeposit,
+                  advance_rent: advanceRent,
+                  common_fee_included: commonFeeIncluded,
+                  total_booking_amount: totalBookingAmount,
+                  remaining_amount: remainingAmount,
+                  contract_deadline: formData.contract_deadline,
+                  deposit_payment_method: formData.deposit_payment_method,
+                  deposit_slip_url: formData.deposit_slip_url,
+                  notes: formData.notes
+                };
+
+                createBookingMutation.mutate(data);
+              }} className="space-y-4">
+                <div>
+                  <Label className="mb-2 block">ประเภทการเช่า *</Label>
+                  <div className="flex gap-2 p-1 bg-slate-100 rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => setDialogBookingType('daily')}
+                      className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
+                        dialogBookingType === 'daily'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-800'
+                      }`}
+                    >
+                      รายวัน
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDialogBookingType('monthly')}
+                      className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
+                        dialogBookingType === 'monthly'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-800'
+                      }`}
+                    >
+                      รายเดือน
+                    </button>
+                  </div>
+                </div>
+
+                {/* ข้อมูลผู้จอง */}
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                    👤 ข้อมูลผู้จอง
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>ชื่อผู้เข้าพัก *</Label>
+                      <Input
+                        value={formData.guest_name}
+                        onChange={(e) => setFormData({ ...formData, guest_name: e.target.value })}
+                        required
+                        placeholder="ชื่อ-นามสกุล"
+                        disabled={createBookingMutation.isPending}
+                      />
+                    </div>
+                    <div>
+                      <Label>เบอร์โทรศัพท์ *</Label>
+                      <Input
+                        value={formData.guest_phone}
+                        onChange={(e) => setFormData({ ...formData, guest_phone: e.target.value })}
+                        required
+                        placeholder="0812345678"
+                        disabled={createBookingMutation.isPending}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <Label>เลขบัตรประชาชน</Label>
+                      <Input
+                        value={formData.guest_national_id}
+                        onChange={(e) => setFormData({ ...formData, guest_national_id: e.target.value })}
+                        placeholder="1234567890123"
+                        maxLength={13}
+                        disabled={createBookingMutation.isPending}
+                      />
+                    </div>
+                    <div>
+                      <Label>อีเมล</Label>
+                      <Input
+                        type="email"
+                        value={formData.guest_email}
+                        onChange={(e) => setFormData({ ...formData, guest_email: e.target.value })}
+                        placeholder="email@example.com"
+                        disabled={createBookingMutation.isPending}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3">
+                    <Label>ที่อยู่</Label>
+                    <Input
+                      value={formData.guest_address}
+                      onChange={(e) => setFormData({ ...formData, guest_address: e.target.value })}
+                      placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด"
+                      disabled={createBookingMutation.isPending}
+                    />
+                  </div>
+                </div>
+
+                {/* วันที่พัก */}
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                    📅 {dialogBookingType === 'daily' ? 'วันที่พัก' : 'วันที่และเงื่อนไขสัญญา'}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>{dialogBookingType === 'daily' ? 'วันที่เข้าพัก' : 'วันที่จอง/เข้าพัก'} *</Label>
+                      <Input
+                        type="date"
+                        value={formData.check_in_date}
+                        onChange={(e) => setFormData({ ...formData, check_in_date: e.target.value })}
+                        required
+                        disabled={createBookingMutation.isPending}
+                      />
+                    </div>
+                    <div>
+                      <Label>{dialogBookingType === 'daily' ? 'วันที่ออก *' : 'วันที่สิ้นสุด (ถ้ามี)'}</Label>
+                      <Input
+                        type="date"
+                        value={formData.check_out_date}
+                        onChange={(e) => setFormData({ ...formData, check_out_date: e.target.value })}
+                        required={dialogBookingType === 'daily'}
+                        disabled={createBookingMutation.isPending}
+                      />
+                    </div>
+                  </div>
+                  {dialogBookingType === 'monthly' && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4 mt-3">
+                        <div>
+                          <Label>ระยะเวลาสัญญา</Label>
+                          <Select
+                            value={formData.contract_duration}
+                            onValueChange={(value) => setFormData({ ...formData, contract_duration: value })}
+                            disabled={createBookingMutation.isPending}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="เลือกระยะเวลา" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1 เดือน">1 เดือน</SelectItem>
+                              <SelectItem value="3 เดือน">3 เดือน</SelectItem>
+                              <SelectItem value="6 เดือน">6 เดือน</SelectItem>
+                              <SelectItem value="1 ปี">1 ปี</SelectItem>
+                              <SelectItem value="2 ปี">2 ปี</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label>กำหนดทำสัญญาภายในวันที่</Label>
+                          <Input
+                            type="date"
+                            value={formData.contract_deadline}
+                            onChange={(e) => setFormData({ ...formData, contract_deadline: e.target.value })}
+                            disabled={createBookingMutation.isPending}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2">หากพ้นกำหนดนี้ถือว่าสละสิทธิ์</p>
+                    </>
+                  )}
+                </div>
+
+                {/* รายละเอียดการชำระเงิน */}
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                    💰 รายละเอียดการชำระเงิน
+                  </h3>
+
+                  <div className="space-y-3">
+                    {dialogBookingType === 'daily' ? (
+                      <>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>เงินมัดจำ (บาท)</Label>
+                            <Input
+                              type="number"
+                              value={formData.deposit_amount}
+                              onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
+                              placeholder="500"
+                              disabled={createBookingMutation.isPending}
+                            />
+                          </div>
+                          <div>
+                            <Label>ค่าใช้จ่ายทั้งหมด (บาท)</Label>
+                            <Input
+                              type="number"
+                              value={formData.security_deposit}
+                              onChange={(e) => setFormData({ ...formData, security_deposit: e.target.value })}
+                              placeholder="3,000"
+                              disabled={createBookingMutation.isPending}
+                            />
+                          </div>
+                        </div>
+
+                        {(formData.deposit_amount || formData.security_deposit) && (
+                          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                            <h4 className="font-semibold text-blue-800 mb-2">สรุปยอดเงิน</h4>
+                            <div className="space-y-1 text-sm">
+                              {formData.security_deposit > 0 && (
+                                <div className="flex justify-between">
+                                  <span>ค่าใช้จ่ายทั้งหมด:</span>
+                                  <span>{Number(formData.security_deposit).toLocaleString()} บาท</span>
+                                </div>
+                              )}
+                              {formData.deposit_amount > 0 && (
+                                <div className="flex justify-between text-green-700">
+                                  <span>ชำระแล้ว (มัดจำ):</span>
+                                  <span>-{Number(formData.deposit_amount).toLocaleString()} บาท</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between font-bold text-orange-600 border-t border-blue-300 pt-2 mt-2">
+                                <span>💰 ยอดคงเหลือ (รอชำระ):</span>
+                                <span>
+                                  {Math.max(0, 
+                                    Number(formData.security_deposit || 0) - Number(formData.deposit_amount || 0)
+                                  ).toLocaleString()} บาท
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>เงินจองห้อง (บาท)</Label>
+                            <Input
+                              type="number"
+                              value={formData.deposit_amount}
+                              onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
+                              placeholder="2,000"
+                              disabled={createBookingMutation.isPending}
+                            />
+                          </div>
+                          <div>
+                            <Label>เงินประกันห้อง (บาท)</Label>
+                            <Input
+                              type="number"
+                              value={formData.security_deposit}
+                              onChange={(e) => setFormData({ ...formData, security_deposit: e.target.value })}
+                              placeholder="6,000"
+                              disabled={createBookingMutation.isPending}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>ค่าเช่าล่วงหน้า (บาท)</Label>
+                            <Input
+                              type="number"
+                              value={formData.advance_rent}
+                              onChange={(e) => setFormData({ ...formData, advance_rent: e.target.value })}
+                              placeholder="3,900"
+                              disabled={createBookingMutation.isPending}
+                            />
+                          </div>
+                          <div>
+                            <Label>รวมส่วนกลาง (บาท)</Label>
+                            <Input
+                              type="number"
+                              value={formData.common_fee_included}
+                              onChange={(e) => setFormData({ ...formData, common_fee_included: e.target.value })}
+                              placeholder="0"
+                              disabled={createBookingMutation.isPending}
+                            />
+                          </div>
+                        </div>
+
+                        {(formData.deposit_amount || formData.security_deposit || formData.advance_rent) && (
+                          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mt-3">
+                            <h4 className="font-semibold text-blue-800 mb-2">สรุปยอดเงิน</h4>
+                            <div className="space-y-1 text-sm">
+                              {formData.deposit_amount > 0 && (
+                                <div className="flex justify-between">
+                                  <span>เงินจองห้อง:</span>
+                                  <span>{Number(formData.deposit_amount).toLocaleString()} บาท</span>
+                                </div>
+                              )}
+                              {formData.security_deposit > 0 && (
+                                <div className="flex justify-between">
+                                  <span>เงินประกันห้อง:</span>
+                                  <span>{Number(formData.security_deposit).toLocaleString()} บาท</span>
+                                </div>
+                              )}
+                              {formData.advance_rent > 0 && (
+                                <div className="flex justify-between">
+                                  <span>ค่าเช่าล่วงหน้า:</span>
+                                  <span>{Number(formData.advance_rent).toLocaleString()} บาท</span>
+                                </div>
+                              )}
+                              {formData.common_fee_included > 0 && (
+                                <div className="flex justify-between">
+                                  <span>รวมส่วนกลาง:</span>
+                                  <span>{Number(formData.common_fee_included).toLocaleString()} บาท</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between font-bold text-blue-800 border-t border-blue-300 pt-2 mt-2">
+                                <span>รวมสุทธิ:</span>
+                                <span>
+                                  {(
+                                    Number(formData.deposit_amount || 0) +
+                                    Number(formData.security_deposit || 0) +
+                                    Number(formData.advance_rent || 0) +
+                                    Number(formData.common_fee_included || 0)
+                                  ).toLocaleString()} บาท
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-green-700 font-semibold">
+                                <span>* คงเหลือชำระทีหลัง:</span>
+                                <span>
+                                  {(
+                                    Number(formData.security_deposit || 0) +
+                                    Number(formData.advance_rent || 0) +
+                                    Number(formData.common_fee_included || 0)
+                                  ).toLocaleString()} บาท
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    <div>
+                      <Label>วิธีการชำระเงิน</Label>
+                      <Select
+                        value={formData.deposit_payment_method}
+                        onValueChange={(value) => setFormData({ ...formData, deposit_payment_method: value })}
+                        disabled={createBookingMutation.isPending}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">💵 เงินสด</SelectItem>
+                          <SelectItem value="transfer">🏦 โอนเงิน</SelectItem>
+                          <SelectItem value="qr_code">📱 QR Code</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {(formData.deposit_payment_method === 'transfer' || formData.deposit_payment_method === 'qr_code') && (
+                      <div>
+                        <Label>หลักฐานการโอน / สลิป</Label>
+                        <div className="mt-2">
+                          <label className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-colors">
+                            <Upload className="w-5 h-5 text-slate-600" />
+                            <span className="text-sm text-slate-600">
+                              {uploadingImage ? 'กำลังอัปโหลด...' : 'คลิกเพื่ออัปโหลดสลิป'}
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleSlipUpload}
+                              disabled={uploadingImage || createBookingMutation.isPending}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                        {formData.deposit_slip_url && (
+                          <div className="mt-3 relative">
+                            <img
+                              src={formData.deposit_slip_url}
+                              alt="สลิปการโอนเงิน"
+                              className="w-full max-w-xs h-48 object-cover rounded-lg border-2 border-slate-200"
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="mt-2"
+                              onClick={() => setFormData({ ...formData, deposit_slip_url: '' })}
+                              disabled={createBookingMutation.isPending}
+                            >
+                              ลบรูป
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <Label>หมายเหตุ</Label>
+                  <Input
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    disabled={createBookingMutation.isPending}
+                    placeholder="หมายเหตุเพิ่มเติม..."
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowReservationDialog(false)}
+                    disabled={createBookingMutation.isPending}
+                  >
+                    ยกเลิก
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600"
+                    disabled={createBookingMutation.isPending}
+                  >
+                    {createBookingMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        กำลังบันทึก...
+                      </>
+                    ) : (
+                      'จองห้อง'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
 
           <BulkRoomGenerator 
             open={showBulkGenerator} 
