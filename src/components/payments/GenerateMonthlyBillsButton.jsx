@@ -35,9 +35,17 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
 
         if (response.data?.success) {
           toast.success(
-            `✅ ${response.data.message}\n\nJob ID: ${response.data.job_id}\n\nRefresh หน้าเพื่อดู progress`,
-            { duration: 8000 }
+            `✅ ${response.data.message}\n\nJob ID: ${response.data.job_id}`,
+            { duration: 6000 }
           );
+
+          // ⚡ Refetch Queue ทันที
+          const { queryClient } = await import('@tanstack/react-query');
+          const qc = queryClient.getQueryClient?.() || (await import('@/api/base44Client')).queryClient;
+          if (qc) {
+            await qc.invalidateQueries({ queryKey: ['invoiceQueue'] });
+          }
+
           if (onSuccess) onSuccess();
         } else {
           toast.error(response.data?.message || 'เพิ่ม Queue ไม่สำเร็จ');
