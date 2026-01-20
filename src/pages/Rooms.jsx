@@ -2954,26 +2954,15 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                 <CardContent className="p-6 text-center space-y-4">
                                     <User className="w-12 h-12 text-slate-400 mx-auto" />
                                     <p className="text-slate-600">ห้องนี้ยังไม่มีผู้เช่า</p>
-                                    <div className="flex gap-3">
-                                      <Button 
-                                        onClick={() => { 
-                                          navigate(createPageUrl('Bookings'), { state: { selectedRoomId: selectedRoom.id } });
-                                          setShowDetailDialog(false); 
-                                        }} 
-                                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                                      >
-                                        <Calendar className="w-4 h-4 mr-2" /> จอง
-                                      </Button>
-                                      <Button 
-                                        onClick={() => { 
-                                          handleReserve(selectedRoom); 
-                                          setShowDetailDialog(false); 
-                                        }} 
-                                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                                      >
-                                        <User className="w-4 h-4 mr-2" /> เพิ่มผู้เช่า
-                                      </Button>
-                                    </div>
+                                    <Button 
+                                      onClick={() => { 
+                                        handleReserve(selectedRoom); 
+                                        setShowDetailDialog(false); 
+                                      }} 
+                                      className="bg-blue-600 hover:bg-blue-700 text-white w-full"
+                                    >
+                                      <User className="w-4 h-4 mr-2" /> เพิ่มผู้เช่า
+                                    </Button>
                                 </CardContent>
                             </Card>
                           );
