@@ -1545,16 +1545,31 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label>ประเภทการเช่า *</Label>
-                  <Select value={dialogBookingType} onValueChange={setDialogBookingType}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="daily">รายวัน</SelectItem>
-                      <SelectItem value="monthly">รายเดือน</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="mb-2 block">ประเภทการเช่า *</Label>
+                  <div className="flex gap-2 p-1 bg-slate-100 rounded-lg">
+                    <button
+                      type="button"
+                      onClick={() => setDialogBookingType('daily')}
+                      className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
+                        dialogBookingType === 'daily'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-800'
+                      }`}
+                    >
+                      รายวัน
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDialogBookingType('monthly')}
+                      className={`flex-1 py-2 px-4 rounded-md font-medium transition-all ${
+                        dialogBookingType === 'monthly'
+                          ? 'bg-white text-blue-600 shadow-sm'
+                          : 'text-slate-600 hover:text-slate-800'
+                      }`}
+                    >
+                      รายเดือน
+                    </button>
+                  </div>
                 </div>
 
                 <div>
