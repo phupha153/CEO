@@ -674,6 +674,7 @@ Deno.serve(async (req) => {
         }
 
         // 5. Bulk Create Payments
+        const step5StartTime = Date.now();
         let createdCount = 0;
         if (paymentsToCreate.length > 0) {
             console.log(`🚀 Creating ${paymentsToCreate.length} bills...`);
