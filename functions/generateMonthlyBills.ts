@@ -388,22 +388,20 @@ Deno.serve(async (req) => {
         for (const branchId of branchIdsToProcess) {
             // ⭐ สร้าง Map: branchId → targetMonth เพื่อดึงเฉพาะเดือนที่จะสร้างบิล
             const branchMonths = new Set();
-            roomsWithBooking
-                .filter(r => r.branch_id === branchId)
-                .forEach(room => {
-                    const payDay = parseInt(getConfigValue('pay_day', '5', branchId));
-                    let dueMonth = currentMonth;
-                    let dueYear = currentYear;
-                    const genDay = parseInt(getConfigValue('bill_generation_day', '27', branchId));
+            const payDay = parseInt(getConfigValue('pay_day', '5', branchId));
+            const genDay = parseInt(getConfigValue('bill_generation_day', '27', branchId));
 
-                    if (genDay > payDay) {
-                        dueMonth = currentMonth + 1;
-                        if (dueMonth > 11) { dueMonth = 0; dueYear = currentYear + 1; }
-                    }
+            let billDueMonth = currentMonth;
+            let billDueYear = currentYear;
+            if (genDay > payDay) {
+                billDueMonth = currentMonth + 1;
+                if (billDueMonth > 11) { billDueMonth = 0; billDueYear = currentYear + 1; }
+            }
 
-                    const monthStr = `${dueYear}-${String(dueMonth + 1).padStart(2, '0')}`;
-                    branchMonths.add(monthStr);
-                });
+            const monthStr = `${billDueYear}-${String(billDueMonth + 1).padStart(2, '0')}`;
+            branchMonths.add(monthStr);
+
+            console.log(`   📌 Branch ${branchId.substring(0, 8)}: genDay=${genDay}, payDay=${payDay}, billDueMonth=${monthStr}`);
 
             console.log(`   📥 Branch ${branchId.substring(0, 8)}: Fetching ${branchMonths.size} target month(s)`);
 
@@ -526,16 +524,18 @@ Deno.serve(async (req) => {
                 if (!activeBooking) continue;
 
                 const roomBranchId = room.branch_id;
-                
+
                 // ⭐ นับจำนวนบิลต่อสาขา
                 if (branchTimings[roomBranchId]) {
                     branchTimings[roomBranchId].createdCount++;
                 }
+
+                // ⭐ CRITICAL: ต้องใช้ logic เดียวกับ Step 4 (fetch payments)
                 const roomPayDay = parseInt(getConfigValue('pay_day', '5', roomBranchId));
+                const roomGenDay = parseInt(getConfigValue('bill_generation_day', '27', roomBranchId));
 
                 let roomDueYear = currentYear;
                 let roomDueMonth = currentMonth;
-                const roomGenDay = parseInt(getConfigValue('bill_generation_day', '27', roomBranchId));
 
                 if (roomGenDay > roomPayDay) {
                     roomDueMonth = currentMonth + 1;
