@@ -3127,18 +3127,30 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
                     <div className="flex justify-end gap-2 pt-4 border-t">
                        <Button variant="outline" onClick={() => setShowDetailDialog(false)}>ปิด</Button>
-                       {canEdit && (
-                        <Button
-                          onClick={() => {
-                            handleEdit(selectedRoom);
-                            setShowDetailDialog(false);
-                          }}
-                        >
-                          <Edit2 className="w-4 h-4 mr-2" />
-                          แก้ไขห้อง
-                        </Button>
+                       {!booking && (
+                         <Button
+                           onClick={() => {
+                             handleReserve(selectedRoom);
+                             setShowDetailDialog(false);
+                           }}
+                           className="bg-blue-600 hover:bg-blue-700 text-white"
+                         >
+                           <Calendar className="w-4 h-4 mr-2" />
+                           จอง
+                         </Button>
                        )}
-                    </div>
+                       {canEdit && (
+                         <Button
+                           onClick={() => {
+                             handleEdit(selectedRoom);
+                             setShowDetailDialog(false);
+                           }}
+                         >
+                           <Edit2 className="w-4 h-4 mr-2" />
+                           แก้ไขห้อง
+                         </Button>
+                       )}
+                     </div>
                   </div>
                 )
               })()}
