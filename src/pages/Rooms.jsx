@@ -24,7 +24,6 @@ import AISearchBox from "../components/shared/AISearchBox";
 import AIResultCard from "../components/shared/AIResultCard";
 import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import ReservationDialog from "../components/rooms/ReservationDialog";
-import BookingActionDialog from "../components/rooms/BookingActionDialog";
 import { addMonths } from "date-fns";
 import BulkRoomGenerator from "../components/rooms/BulkRoomGenerator";
 import { Link, useNavigate } from "react-router-dom";
@@ -43,8 +42,6 @@ export default function RoomsPage() {
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [showReservationDialog, setShowReservationDialog] = useState(false);
   const [reservingRoom, setReservingRoom] = useState(null);
-  const [showBookingActionDialog, setShowBookingActionDialog] = useState(false);
-  const [bookingActionMode, setBookingActionMode] = useState(null);
     const [showBulkGenerator, setShowBulkGenerator] = useState(false);
   const [renewBooking, setRenewBooking] = useState(null);
   const [renewMonths, setRenewMonths] = useState(12);
@@ -1399,8 +1396,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
   const handleReserve = (room) => {
     setReservingRoom(room);
-    setBookingActionMode(null);
-    setShowBookingActionDialog(true);
+    setShowReservationDialog(true);
   };
 
   const getRoomColor = (status) => {
@@ -3172,31 +3168,16 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             </DialogContent>
           </Dialog>
 
-          <BookingActionDialog
-            open={showBookingActionDialog}
-            onOpenChange={setShowBookingActionDialog}
-            room={reservingRoom}
-            onBooking={() => {
-              setBookingActionMode('booking');
-              setShowReservationDialog(true);
-            }}
-            onAddTenant={() => {
-              setBookingActionMode('add_tenant');
-              setShowReservationDialog(true);
-            }}
-          />
-
           <ReservationDialog 
             open={showReservationDialog} 
             onOpenChange={setShowReservationDialog}
             room={reservingRoom}
             currentBookings={bookings}
             tenants={tenants}
-            selectTenantOnly={bookingActionMode === 'add_tenant'}
+            selectTenantOnly={true}
             onSuccess={() => {
               queryClient.invalidateQueries(['rooms']);
               queryClient.invalidateQueries(['bookings']);
-              setBookingActionMode(null);
             }}
           />
 
