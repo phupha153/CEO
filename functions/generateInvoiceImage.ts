@@ -131,8 +131,25 @@ Deno.serve(async (req) => {
 
         const items = [];
         if (payment.rent_amount > 0) items.push({ name: 'ค่าเช่า', qty: 1, price: payment.rent_amount });
-        if (payment.electricity_amount > 0) items.push({ name: `ค่าไฟ (${payment.electricity_units || 0} หน่วย)`, qty: 1, price: payment.electricity_amount });
-        if (payment.water_amount > 0) items.push({ name: `ค่าน้ำ (${payment.water_units || 0} หน่วย)`, qty: 1, price: payment.water_amount });
+        
+        // ⭐ แสดงค่าไฟเสมอ (แม้เป็น 0 บาท) เพื่อให้เห็นหน่วยที่ใช้
+        const elecUnits = payment.electricity_units || 0;
+        const elecAmount = payment.electricity_amount || 0;
+        items.push({ 
+            name: `ค่าไฟ (${elecUnits} หน่วย)`, 
+            qty: 1, 
+            price: elecAmount 
+        });
+        
+        // ⭐ แสดงค่าน้ำเสมอ (แม้เป็น 0 บาท) เพื่อให้เห็นหน่วยที่ใช้
+        const waterUnits = payment.water_units || 0;
+        const waterAmount = payment.water_amount || 0;
+        items.push({ 
+            name: `ค่าน้ำ (${waterUnits} หน่วย)`, 
+            qty: 1, 
+            price: waterAmount 
+        });
+        
         if (payment.common_fee_amount > 0) items.push({ name: 'ค่าส่วนกลาง', qty: 1, price: payment.common_fee_amount });
         if (payment.parking_fee_amount > 0) items.push({ name: 'ค่าที่จอดรถ', qty: 1, price: payment.parking_fee_amount });
         if (payment.internet_amount > 0) items.push({ name: 'ค่าอินเทอร์เน็ต', qty: 1, price: payment.internet_amount });

@@ -125,35 +125,37 @@ Deno.serve(async (req) => {
             lineItems.push({ name: 'ค่าเช่า', quantity: 1, price: payment.rent_amount, total: payment.rent_amount });
         }
         
-        if (payment.electricity_amount > 0) {
-            const calculatedElecAmount = (payment.electricity_units || 0) * (payment.electricity_rate || 0);
-            const isElecMinimum = (payment.electricity_units || 0) === 0 || Math.abs(calculatedElecAmount - payment.electricity_amount) > 0.01;
-            const elecMeterText = (payment.electricity_previous || payment.electricity_current) ? ` (${payment.electricity_previous}-${payment.electricity_current})` : '';
-            
-            lineItems.push({
-                name: isElecMinimum 
-                    ? `ค่าไฟฟ้า${elecMeterText} ใช้ ${payment.electricity_units || 0} หน่วย - คิดขั้นต่ำ`
-                    : `ค่าไฟฟ้า${elecMeterText} ${payment.electricity_units || 0} หน่วย × ${payment.electricity_rate || 0} บาท`,
-                quantity: 1,
-                price: payment.electricity_amount,
-                total: payment.electricity_amount
-            });
-        }
+        // ⭐ แสดงค่าไฟเสมอ (แม้เป็น 0 บาท) เพื่อให้เห็นหน่วยที่ใช้
+        const elecUnits = payment.electricity_units || 0;
+        const elecAmount = payment.electricity_amount || 0;
+        const calculatedElecAmount = elecUnits * (payment.electricity_rate || 0);
+        const isElecMinimum = elecUnits === 0 || Math.abs(calculatedElecAmount - elecAmount) > 0.01;
+        const elecMeterText = (payment.electricity_previous || payment.electricity_current) ? ` (${payment.electricity_previous}-${payment.electricity_current})` : '';
         
-        if (payment.water_amount > 0) {
-            const calculatedWaterAmount = (payment.water_units || 0) * (payment.water_rate || 0);
-            const isWaterMinimum = (payment.water_units || 0) === 0 || Math.abs(calculatedWaterAmount - payment.water_amount) > 0.01;
-            const waterMeterText = (payment.water_previous || payment.water_current) ? ` (${payment.water_previous}-${payment.water_current})` : '';
-            
-            lineItems.push({
-                name: isWaterMinimum 
-                    ? `ค่าน้ำประปา${waterMeterText} ใช้ ${payment.water_units || 0} หน่วย - คิดขั้นต่ำ`
-                    : `ค่าน้ำประปา${waterMeterText} ${payment.water_units || 0} หน่วย × ${payment.water_rate || 0} บาท`,
-                quantity: 1,
-                price: payment.water_amount,
-                total: payment.water_amount
-            });
-        }
+        lineItems.push({
+            name: isElecMinimum 
+                ? `ค่าไฟฟ้า${elecMeterText} ใช้ ${elecUnits} หน่วย${elecAmount === 0 ? '' : ' - คิดขั้นต่ำ'}`
+                : `ค่าไฟฟ้า${elecMeterText} ${elecUnits} หน่วย × ${payment.electricity_rate || 0} บาท`,
+            quantity: 1,
+            price: elecAmount,
+            total: elecAmount
+        });
+        
+        // ⭐ แสดงค่าน้ำเสมอ (แม้เป็น 0 บาท) เพื่อให้เห็นหน่วยที่ใช้
+        const waterUnits = payment.water_units || 0;
+        const waterAmount = payment.water_amount || 0;
+        const calculatedWaterAmount = waterUnits * (payment.water_rate || 0);
+        const isWaterMinimum = waterUnits === 0 || Math.abs(calculatedWaterAmount - waterAmount) > 0.01;
+        const waterMeterText = (payment.water_previous || payment.water_current) ? ` (${payment.water_previous}-${payment.water_current})` : '';
+        
+        lineItems.push({
+            name: isWaterMinimum 
+                ? `ค่าน้ำประปา${waterMeterText} ใช้ ${waterUnits} หน่วย${waterAmount === 0 ? '' : ' - คิดขั้นต่ำ'}`
+                : `ค่าน้ำประปา${waterMeterText} ${waterUnits} หน่วย × ${payment.water_rate || 0} บาท`,
+            quantity: 1,
+            price: waterAmount,
+            total: waterAmount
+        });
         
         if (payment.internet_amount > 0) lineItems.push({ name: 'ค่าอินเทอร์เน็ต', quantity: 1, price: payment.internet_amount, total: payment.internet_amount });
         if (payment.common_fee_amount > 0) lineItems.push({ name: 'ค่าส่วนกลาง', quantity: 1, price: payment.common_fee_amount, total: payment.common_fee_amount });
