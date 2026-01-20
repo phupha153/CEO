@@ -3000,9 +3000,20 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
             }}
           >
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-
               {selectedTenant && (
-                <div className="space-y-6">
+                <Tabs defaultValue="info" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 bg-slate-100 p-1 rounded-xl mb-6">
+                    <TabsTrigger value="info" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                      <User className="w-4 h-4 mr-2" />
+                      ข้อมูลทั่วไป
+                    </TabsTrigger>
+                    <TabsTrigger value="contract" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                      <ScrollText className="w-4 h-4 mr-2" />
+                      สัญญาเช่า
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="info" className="space-y-6">
                   {(() => {
                     const avgRating = getTenantAverageRating(selectedTenant.id);
                     const latestRating = getLatestRating(selectedTenant.id);
@@ -3282,200 +3293,6 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                     </Card>
                   )}
 
-                  {(() => {
-                    const activeBookings = getActiveBookings(selectedTenant.id);
-                    if (activeBookings.length > 0) {
-                      return (
-                        <Card className="bg-green-50 border-green-200">
-                          <CardContent className="p-4 space-y-3">
-                            <div className="flex justify-between items-center">
-                              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                <Home className="w-5 h-5 text-green-600" />
-                                สัญญาเช่ารายเดือนปัจจุบัน ({activeBookings.length} ห้อง)
-                              </h3>
-                              {canAddContract && (
-                                <Button
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleAddBooking(selectedTenant);
-                                  }}
-                                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                                >
-                                  <Plus className="w-4 h-4 mr-1" />
-                                  เพิ่มสัญญาใหม่
-                                </Button>
-                              )}
-                            </div>
-                            <div className="space-y-4">
-                              {activeBookings.map((booking) => {
-                                  const room = getRoomInfo(booking.room_id);
-                                  const daysLeft = getDaysUntilExpiry(booking);
-                                  const expiringSoon = isContractExpiringSoon(booking);
-                                  const paymentStatus = getPaymentStatus(booking);
-                                  const isExpired = daysLeft !== null && daysLeft < 0;
-
-                                  return (
-                                    <div key={booking.id} className={`rounded-lg p-4 border relative group ${isExpired ? 'bg-red-50 border-red-200' : 'bg-white border-green-200'}`}>
-                                      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {!isExpired && canEditContract && (
-                                           <Button
-                                              size="sm"
-                                              variant="ghost"
-                                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                                              title="ทำให้หมดอายุ"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (confirm(`คุณแน่ใจว่าต้องการสิ้นสุดสัญญาเช่าห้อง ${room?.room_number}? การดำเนินการนี้จะเปลี่ยนสถานะห้องเป็นว่าง`)) {
-                                                  expireBookingMutation.mutate(booking);
-                                                }
-                                              }}
-                                              disabled={expireBookingMutation.isPending}
-                                          >
-                                              <XCircle className="w-4 h-4" />
-                                          </Button>
-                                        )}
-                                        {canEditContract && (
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleEditBooking(selectedTenant, booking);
-                                            }}
-                                          >
-                                            <Edit2 className="w-4 h-4" />
-                                          </Button>
-                                        )}
-                                        {canDeleteContract && (
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              if (confirm('คุณแน่ใจว่าต้องการลบสัญญาเช่านี้?')) {
-                                                deleteBookingMutation.mutate(booking);
-                                              }
-                                            }}
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </Button>
-                                        )}
-                                      </div>
-                                      <div className="flex items-start justify-between mb-3">
-                                        <div>
-                                          <p className="font-bold text-lg text-slate-800">
-                                            ห้อง {room?.room_number || 'N/A'}
-                                          </p>
-                                          <p className="text-sm text-slate-600">ผู้เช่า: {selectedTenant.full_name}</p>
-                                        </div>
-                                        {isExpired ? (
-                                            <Badge className="bg-red-500 text-white">หมดอายุ</Badge>
-                                        ) : expiringSoon && daysLeft !== null && (
-                                          <Badge className="bg-red-500 text-white">
-                                            <AlertTriangle className="w-3 h-3 mr-1" />
-                                            เหลือ {daysLeft} วัน
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      <div className="grid grid-cols-2 gap-3 text-sm mb-3">
-                                        {booking.check_in_date && (
-                                         <div>
-                                           <Label className="text-slate-600">วันเริ่มสัญญา</Label>
-                                           <p className="font-semibold flex items-center gap-1">
-                                             <Calendar className="w-3 h-3 text-green-600" />
-                                             {typeof booking.check_in_date === 'string' ? (
-                                               <>
-                                                 {format(parseISO(booking.check_in_date), 'd MMM', { locale: th })} {parseInt(booking.check_in_date.split('-')[0]) + 543}
-                                               </>
-                                             ) : 'N/A'}
-                                           </p>
-                                         </div>
-                                        )}
-                                        {booking.check_out_date && (
-                                          <div>
-                                            <Label className="text-slate-600">วันสิ้นสุดสัญญา</Label>
-                                            <p className={`font-semibold flex items-center gap-1 ${isExpired ? 'text-red-600' : ''}`}>
-                                              <Calendar className="w-3 h-3 text-red-600" />
-                                              {typeof booking.check_out_date === 'string' ? (
-                                                <>
-                                                  {format(parseISO(booking.check_out_date), 'd MMM', { locale: th })} {parseInt(booking.check_out_date.split('-')[0]) + 543}
-                                                </>
-                                              ) : 'N/A'}
-                                            </p>
-                                          </div>
-                                        )}
-                                        {booking.deposit_amount > 0 && (
-                                          <div>
-                                            <Label className="text-slate-600">เงินมัดจำ</Label>
-                                            <p className="font-semibold">{booking.deposit_amount.toLocaleString()} บาท</p>
-                                          </div>
-                                        )}
-                                      </div>
-
-                                      {paymentStatus && paymentStatus.payment && !isExpired && (
-                                        <div className="pt-3 border-t border-green-200">
-                                          <Label className="text-slate-600 flex items-center gap-2 mb-2">
-                                            <DollarSign className="w-4 h-4" />
-                                            การชำระเงินล่าสุด
-                                          </Label>
-                                          <div className={`p-3 rounded-lg ${
-                                            paymentStatus.isOverdue ? 'bg-red-100 border-red-300' : 'bg-yellow-100 border-yellow-300'
-                                          } border`}>
-                                            <p className="font-semibold text-sm">
-                                              {paymentStatus.isOverdue ? (
-                                                <span className="text-red-700 flex items-center gap-1">
-                                                  <DollarSign className="w-4 h-4" />
-                                                  เกินกำหนดชำระแล้ว {Math.abs(paymentStatus.daysUntilDue)} วัน
-                                                </span>
-                                              ) : (
-                                                <span className="text-yellow-700 flex items-center gap-1">
-                                                  <Clock className="w-4 h-4" />
-                                                  ใกล้ถึงกำหนดชำระ (อีก {paymentStatus.daysUntilDue} วัน)
-                                                </span>
-                                              )}
-                                            </p>
-                                            <p className="text-xs text-slate-600 mt-1">
-                                              ครบกำหนด: {paymentStatus.payment.due_date && typeof paymentStatus.payment.due_date === 'string' ? format(parseISO(paymentStatus.payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A'}
-                                            </p>
-                                            <p className="text-sm font-bold mt-1">
-                                              จำนวน: {paymentStatus.payment.total_amount?.toLocaleString() || 0} บาท
-                                            </p>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    } else {
-                      return (
-                        <Card className="bg-slate-50 border-slate-200">
-                          <CardContent className="p-6 text-center">
-                            <FileText className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-                            <p className="text-slate-600 mb-4">ยังไม่มีสัญญาเช่าสำหรับผู้เช่ารายนี้</p>
-                            {canAddContract && (
-                              <Button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAddBooking(selectedTenant);
-                                }}
-                                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                              >
-                                <Plus className="w-4 h-4 mr-2" />
-                                เพิ่มสัญญาเช่าใหม่
-                              </Button>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    }
-                  })()}
-
                   {selectedTenant.notes && (
                     <Card className="bg-amber-50 border-amber-200">
                       <CardContent className="p-4">
@@ -3485,6 +3302,353 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                     </Card>
                   )}
 
+                  </TabsContent>
+
+                  <TabsContent value="contract" className="space-y-6">
+                    {(() => {
+                      const activeBookings = getActiveBookings(selectedTenant.id);
+                      if (activeBookings.length > 0) {
+                        return (
+                          <Card className="bg-green-50 border-green-200">
+                            <CardContent className="p-4 space-y-3">
+                              <div className="flex justify-between items-center">
+                                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                  <Home className="w-5 h-5 text-green-600" />
+                                  สัญญาเช่ารายเดือนปัจจุบัน ({activeBookings.length} ห้อง)
+                                </h3>
+                                {canAddContract && (
+                                  <Button
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleAddBooking(selectedTenant);
+                                    }}
+                                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                                  >
+                                    <Plus className="w-4 h-4 mr-1" />
+                                    เพิ่มสัญญาใหม่
+                                  </Button>
+                                )}
+                              </div>
+                              <div className="space-y-4">
+                                {activeBookings.map((booking) => {
+                                    const room = getRoomInfo(booking.room_id);
+                                    const daysLeft = getDaysUntilExpiry(booking);
+                                    const expiringSoon = isContractExpiringSoon(booking);
+                                    const paymentStatus = getPaymentStatus(booking);
+                                    const isExpired = daysLeft !== null && daysLeft < 0;
+
+                                    return (
+                                      <div key={booking.id} className={`rounded-lg p-4 border relative group ${isExpired ? 'bg-red-50 border-red-200' : 'bg-white border-green-200'}`}>
+                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          {!isExpired && canEditContract && (
+                                             <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                                title="ทำให้หมดอายุ"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  if (confirm(`คุณแน่ใจว่าต้องการสิ้นสุดสัญญาเช่าห้อง ${room?.room_number}? การดำเนินการนี้จะเปลี่ยนสถานะห้องเป็นว่าง`)) {
+                                                    expireBookingMutation.mutate(booking);
+                                                  }
+                                                }}
+                                                disabled={expireBookingMutation.isPending}
+                                            >
+                                                <XCircle className="w-4 h-4" />
+                                            </Button>
+                                          )}
+                                          {canEditContract && (
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleEditBooking(selectedTenant, booking);
+                                              }}
+                                            >
+                                              <Edit2 className="w-4 h-4" />
+                                            </Button>
+                                          )}
+                                          {canDeleteContract && (
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (confirm('คุณแน่ใจว่าต้องการลบสัญญาเช่านี้?')) {
+                                                  deleteBookingMutation.mutate(booking);
+                                                }
+                                              }}
+                                            >
+                                              <Trash2 className="w-4 h-4" />
+                                            </Button>
+                                          )}
+                                        </div>
+                                        <div className="flex items-start justify-between mb-3">
+                                          <div>
+                                            <p className="font-bold text-lg text-slate-800">
+                                              ห้อง {room?.room_number || 'N/A'}
+                                            </p>
+                                            <p className="text-sm text-slate-600">ผู้เช่า: {selectedTenant.full_name}</p>
+                                          </div>
+                                          {isExpired ? (
+                                              <Badge className="bg-red-500 text-white">หมดอายุ</Badge>
+                                          ) : expiringSoon && daysLeft !== null && (
+                                            <Badge className="bg-red-500 text-white">
+                                              <AlertTriangle className="w-3 h-3 mr-1" />
+                                              เหลือ {daysLeft} วัน
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                                          {booking.check_in_date && (
+                                           <div>
+                                             <Label className="text-slate-600">วันเริ่มสัญญา</Label>
+                                             <p className="font-semibold flex items-center gap-1">
+                                               <Calendar className="w-3 h-3 text-green-600" />
+                                               {typeof booking.check_in_date === 'string' ? (
+                                                 <>
+                                                   {format(parseISO(booking.check_in_date), 'd MMM', { locale: th })} {parseInt(booking.check_in_date.split('-')[0]) + 543}
+                                                 </>
+                                               ) : 'N/A'}
+                                             </p>
+                                           </div>
+                                          )}
+                                          {booking.check_out_date && (
+                                            <div>
+                                              <Label className="text-slate-600">วันสิ้นสุดสัญญา</Label>
+                                              <p className={`font-semibold flex items-center gap-1 ${isExpired ? 'text-red-600' : ''}`}>
+                                                <Calendar className="w-3 h-3 text-red-600" />
+                                                {typeof booking.check_out_date === 'string' ? (
+                                                  <>
+                                                    {format(parseISO(booking.check_out_date), 'd MMM', { locale: th })} {parseInt(booking.check_out_date.split('-')[0]) + 543}
+                                                  </>
+                                                ) : 'N/A'}
+                                              </p>
+                                            </div>
+                                          )}
+                                          {booking.deposit_amount > 0 && (
+                                            <div>
+                                              <Label className="text-slate-600">เงินมัดจำ</Label>
+                                              <p className="font-semibold">{booking.deposit_amount.toLocaleString()} บาท</p>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {paymentStatus && paymentStatus.payment && !isExpired && (
+                                          <div className="pt-3 border-t border-green-200">
+                                            <Label className="text-slate-600 flex items-center gap-2 mb-2">
+                                              <DollarSign className="w-4 h-4" />
+                                              การชำระเงินล่าสุด
+                                            </Label>
+                                            <div className={`p-3 rounded-lg ${
+                                              paymentStatus.isOverdue ? 'bg-red-100 border-red-300' : 'bg-yellow-100 border-yellow-300'
+                                            } border`}>
+                                              <p className="font-semibold text-sm">
+                                                {paymentStatus.isOverdue ? (
+                                                  <span className="text-red-700 flex items-center gap-1">
+                                                    <DollarSign className="w-4 h-4" />
+                                                    เกินกำหนดชำระแล้ว {Math.abs(paymentStatus.daysUntilDue)} วัน
+                                                  </span>
+                                                ) : (
+                                                  <span className="text-yellow-700 flex items-center gap-1">
+                                                    <Clock className="w-4 h-4" />
+                                                    ใกล้ถึงกำหนดชำระ (อีก {paymentStatus.daysUntilDue} วัน)
+                                                  </span>
+                                                )}
+                                              </p>
+                                              <p className="text-xs text-slate-600 mt-1">
+                                                ครบกำหนด: {paymentStatus.payment.due_date && typeof paymentStatus.payment.due_date === 'string' ? format(parseISO(paymentStatus.payment.due_date), 'd MMM yyyy', { locale: th }) : 'N/A'}
+                                              </p>
+                                              <p className="text-sm font-bold mt-1">
+                                                จำนวน: {paymentStatus.payment.total_amount?.toLocaleString() || 0} บาท
+                                              </p>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      } else {
+                        return (
+                          <Card className="bg-slate-50 border-slate-200">
+                            <CardContent className="p-6 text-center">
+                              <FileText className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+                              <p className="text-slate-600 mb-4">ยังไม่มีสัญญาเช่าสำหรับผู้เช่ารายนี้</p>
+                              {canAddContract && (
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAddBooking(selectedTenant);
+                                  }}
+                                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                                >
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  เพิ่มสัญญาเช่าใหม่
+                                </Button>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      }
+                    })()}
+
+                    {/* รูปภาพสัญญาเช่า */}
+                    <Card className="bg-blue-50 border-blue-200">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex justify-between items-center">
+                          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                            <Camera className="w-5 h-5 text-blue-600" />
+                            รูปภาพสัญญาเช่า
+                          </h3>
+                          {canEdit && (selectedTenant.contract_images?.length || 0) < 10 && (
+                            <label className="cursor-pointer">
+                              <Button
+                                size="sm"
+                                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                                asChild
+                              >
+                                <span>
+                                  <Plus className="w-4 h-4 mr-1" />
+                                  เพิ่มรูป
+                                </span>
+                              </Button>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  
+                                  try {
+                                    toast.info('กำลังอัปโหลดรูปสัญญา...');
+                                    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                                    const currentImages = selectedTenant.contract_images || [];
+                                    
+                                    if (currentImages.length >= 10) {
+                                      toast.error('อัปโหลดได้สูงสุด 10 รูปเท่านั้น');
+                                      return;
+                                    }
+                                    
+                                    await base44.entities.Tenant.update(selectedTenant.id, {
+                                      contract_images: [...currentImages, file_url]
+                                    });
+                                    
+                                    queryClient.invalidateQueries(['tenants', selectedBranchId]);
+                                    setSelectedTenant({ ...selectedTenant, contract_images: [...currentImages, file_url] });
+                                    toast.success('เพิ่มรูปสัญญาสำเร็จ');
+                                  } catch (error) {
+                                    toast.error('อัปโหลดรูปไม่สำเร็จ');
+                                  }
+                                }}
+                                className="hidden"
+                              />
+                            </label>
+                          )}
+                        </div>
+
+                        {selectedTenant.contract_images?.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-3">
+                            {selectedTenant.contract_images.map((imageUrl, index) => (
+                              <div key={index} className="relative group">
+                                <img
+                                  src={imageUrl}
+                                  alt={`สัญญา ${index + 1}`}
+                                  className="w-full h-32 object-cover rounded-lg border-2 border-blue-200 cursor-pointer hover:scale-105 transition-transform"
+                                  onClick={() => window.open(imageUrl, '_blank')}
+                                />
+                                {canEdit && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="absolute top-1 right-1 bg-white/90 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:bg-red-50"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      if (confirm('ลบรูปนี้?')) {
+                                        const newImages = selectedTenant.contract_images.filter((_, i) => i !== index);
+                                        await base44.entities.Tenant.update(selectedTenant.id, {
+                                          contract_images: newImages
+                                        });
+                                        queryClient.invalidateQueries(['tenants', selectedBranchId]);
+                                        setSelectedTenant({ ...selectedTenant, contract_images: newImages });
+                                        toast.success('ลบรูปสำเร็จ');
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                )}
+                                <div className="absolute bottom-1 left-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
+                                  {index + 1}/{selectedTenant.contract_images.length}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="bg-white rounded-lg p-8 text-center border-2 border-dashed border-blue-300">
+                            <Camera className="w-12 h-12 text-blue-300 mx-auto mb-3" />
+                            <p className="text-slate-600 mb-3">ยังไม่มีรูปสัญญาเช่า</p>
+                            {canEdit && (
+                              <label className="cursor-pointer">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                                  asChild
+                                >
+                                  <span>
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    อัปโหลดรูปสัญญา
+                                  </span>
+                                </Button>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    
+                                    try {
+                                      toast.info('กำลังอัปโหลดรูปสัญญา...');
+                                      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                                      
+                                      await base44.entities.Tenant.update(selectedTenant.id, {
+                                        contract_images: [file_url]
+                                      });
+                                      
+                                      queryClient.invalidateQueries(['tenants', selectedBranchId]);
+                                      setSelectedTenant({ ...selectedTenant, contract_images: [file_url] });
+                                      toast.success('เพิ่มรูปสัญญาสำเร็จ');
+                                    } catch (error) {
+                                      toast.error('อัปโหลดรูปไม่สำเร็จ');
+                                    }
+                                  }}
+                                  className="hidden"
+                                />
+                              </label>
+                            )}
+                          </div>
+                        )}
+
+                        {selectedTenant.contract_images?.length > 0 && (
+                          <p className="text-xs text-slate-500 text-center">
+                            คลิกที่รูปเพื่อดูขนาดเต็ม • อัปโหลดได้สูงสุด 10 รูป
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              )}
+
+              {selectedTenant && (
+                <div className="pt-4 border-t">
                   {/* Messaging Platforms Connection - Responsive Layout */}
                   <div className="space-y-3">
                     {/* LINE */}
@@ -3567,7 +3731,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-4 border-t">
+                  <div className="flex justify-end gap-2 pt-4">
                     {selectedTenant.status !== 'moved_out' && canEdit && (
                       <Button
                         variant="outline"
