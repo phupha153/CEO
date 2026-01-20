@@ -232,7 +232,7 @@ export default function PaymentsPage() {
         },
         search_query: '',
         page: 1,
-        limit: 500,
+        limit: 5000,
         sort_by: 'room'
       });
       

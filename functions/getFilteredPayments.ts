@@ -126,8 +126,8 @@ Deno.serve(async (req) => {
     const skip = (page - 1) * limit;
     
     // ⭐ ถ้ามี date range = โหลดเฉพาะช่วงนั้น (ประหยัดหน่วยความจำ)
-    // ถ้าไม่มี = จำกัดแค่ 1,000 records ล่าสุด
-    const fetchLimit = dateRange ? 20000 : 1000;
+    // ถ้าไม่มี = จำกัดแค่ 5,000 records ล่าสุด (เพิ่มจาก 1000)
+    const fetchLimit = dateRange ? 20000 : 5000;
     
     let payments = await base44.asServiceRole.entities.Payment.filter(
       filterQuery,
