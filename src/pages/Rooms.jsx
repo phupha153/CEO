@@ -47,6 +47,11 @@ export default function RoomsPage() {
   const [renewMonths, setRenewMonths] = useState(12);
   const [showRenewDialog, setShowRenewDialog] = useState(false);
   const [maintenanceHistoryPage, setMaintenanceHistoryPage] = useState(1);
+  const [showConnectTenantDialog, setShowConnectTenantDialog] = useState(false);
+  const [connectingRoom, setConnectingRoom] = useState(null);
+  const [selectedTenantId, setSelectedTenantId] = useState('');
+  const [connectCheckInDate, setConnectCheckInDate] = useState('');
+  const [connectCheckOutDate, setConnectCheckOutDate] = useState('');
   
   // Bulk Selection State
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -1172,6 +1177,59 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     },
     onError: (error) => {
       toast.error(error.message || 'เกิดข้อผิดพลาดในการต่อสัญญา');
+    }
+  });
+
+  const connectTenantMutation = useMutation({
+    mutationFn: async ({ roomId, tenantId, checkInDate, checkOutDate }) => {
+      const room = rooms.find(r => r.id === roomId);
+      const tenant = tenants.find(t => t.id === tenantId);
+      
+      if (!room || !tenant) throw new Error('ไม่พบข้อมูลห้องหรือผู้เช่า');
+      
+      // สร้าง Booking
+      const newBooking = await base44.entities.Booking.create({
+        branch_id: selectedBranchId,
+        room_id: roomId,
+        tenant_id: tenantId,
+        booking_type: room.room_type,
+        check_in_date: checkInDate,
+        check_out_date: checkOutDate,
+        status: 'active'
+      });
+      
+      // อัปเดตสถานะห้องเป็น occupied
+      await base44.entities.Room.update(roomId, { status: 'occupied' });
+      
+      return { booking: newBooking, room, tenant };
+    },
+    onSuccess: async ({ booking, room, tenant }) => {
+      await queryClient.invalidateQueries(['rooms', selectedBranchId]);
+      await queryClient.invalidateQueries(['bookings', selectedBranchId]);
+      
+      // บันทึก log
+      await base44.entities.ActivityLog.create({
+        branch_id: selectedBranchId,
+        action_type: 'create',
+        entity_type: 'Booking',
+        entity_id: booking.id,
+        entity_name: `ห้อง ${room.room_number} - ${tenant.full_name}`,
+        user_email: currentUser?.email,
+        user_name: currentUser?.full_name,
+        description: `เชื่อมต่อผู้เช่า ${tenant.full_name} กับห้อง ${room.room_number}`
+      });
+      
+      setShowConnectTenantDialog(false);
+      setShowDetailDialog(false);
+      setConnectingRoom(null);
+      setSelectedTenantId('');
+      setConnectCheckInDate('');
+      setConnectCheckOutDate('');
+      
+      toast.success(`เชื่อมต่อ ${tenant.full_name} กับห้อง ${room.room_number} สำเร็จ`);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'เกิดข้อผิดพลาด');
     }
   });
 
@@ -2960,13 +3018,13 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                       </Button>
                                       <Button 
                                         onClick={() => { 
-                                          setShowDetailDialog(false); 
-                                          navigate(`${createPageUrl('Tenants')}?action=add&room_id=${selectedRoom.id}`);
+                                          setConnectingRoom(selectedRoom);
+                                          setShowConnectTenantDialog(true);
                                         }} 
                                         variant="outline" 
                                         className="border-blue-600 text-blue-600 hover:bg-blue-50"
                                       >
-                                        <User className="w-4 h-4 mr-2" /> เพิ่มผู้เช่า
+                                        <User className="w-4 h-4 mr-2" /> เชื่อมต่อผู้เช่า
                                       </Button>
                                     </div>
                                 </CardContent>
@@ -3543,6 +3601,123 @@ ${JSON.stringify(roomsWithAC, null, 2)}
               className="bg-green-600 hover:bg-green-700"
             >
               {renewBookingMutation.isPending ? 'กำลังต่อสัญญา...' : 'ยืนยันการต่อสัญญา'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showConnectTenantDialog} onOpenChange={setShowConnectTenantDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="w-5 h-5 text-blue-600" />
+              เชื่อมต่อผู้เช่ากับห้อง {connectingRoom?.room_number}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <Label className="mb-2 block">เลือกผู้เช่า *</Label>
+              <Select value={selectedTenantId} onValueChange={setSelectedTenantId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกผู้เช่าจากระบบ" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tenants
+                    .filter(t => {
+                      // แสดงเฉพาะผู้เช่าที่ยังไม่มีห้อง (ไม่มี active booking)
+                      const hasActiveBooking = bookings.some(b => 
+                        b.tenant_id === t.id && 
+                        b.status === 'active'
+                      );
+                      return t.status === 'active' && !hasActiveBooking;
+                    })
+                    .map(tenant => (
+                      <SelectItem key={tenant.id} value={tenant.id}>
+                        {tenant.full_name} - {tenant.phone}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500 mt-1">
+                แสดงเฉพาะผู้เช่าที่ยังไม่มีห้องพัก
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>วันเข้าพัก *</Label>
+                <Input
+                  type="date"
+                  value={connectCheckInDate}
+                  onChange={(e) => setConnectCheckInDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label>วันสิ้นสุดสัญญา *</Label>
+                <Input
+                  type="date"
+                  value={connectCheckOutDate}
+                  onChange={(e) => setConnectCheckOutDate(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {selectedTenantId && connectCheckInDate && connectCheckOutDate && (
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-4">
+                  <h4 className="font-semibold text-blue-900 mb-2">สรุป:</h4>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="text-slate-600">ผู้เช่า:</span> <span className="font-semibold">{tenants.find(t => t.id === selectedTenantId)?.full_name}</span></p>
+                    <p><span className="text-slate-600">ห้อง:</span> <span className="font-semibold">{connectingRoom?.room_number} (ชั้น {connectingRoom?.floor})</span></p>
+                    <p><span className="text-slate-600">ราคา:</span> <span className="font-semibold">{connectingRoom?.price?.toLocaleString()} บาท/{connectingRoom?.room_type === 'monthly' ? 'เดือน' : 'วัน'}</span></p>
+                    <p><span className="text-slate-600">ระยะเวลา:</span> <span className="font-semibold">
+                      {format(parseISO(connectCheckInDate), 'd MMM yyyy', { locale: th })} - {format(parseISO(connectCheckOutDate), 'd MMM yyyy', { locale: th })}
+                    </span></p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowConnectTenantDialog(false);
+                setSelectedTenantId('');
+                setConnectCheckInDate('');
+                setConnectCheckOutDate('');
+              }}
+            >
+              ยกเลิก
+            </Button>
+            <Button
+              onClick={() => {
+                if (!selectedTenantId || !connectCheckInDate || !connectCheckOutDate) {
+                  toast.error('กรุณากรอกข้อมูลให้ครบถ้วน');
+                  return;
+                }
+                connectTenantMutation.mutate({
+                  roomId: connectingRoom.id,
+                  tenantId: selectedTenantId,
+                  checkInDate: connectCheckInDate,
+                  checkOutDate: connectCheckOutDate
+                });
+              }}
+              disabled={connectTenantMutation.isPending || !selectedTenantId || !connectCheckInDate || !connectCheckOutDate}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {connectTenantMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  กำลังเชื่อมต่อ...
+                </>
+              ) : (
+                'ยืนยันการเชื่อมต่อ'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
