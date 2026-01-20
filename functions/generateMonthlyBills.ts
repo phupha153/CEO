@@ -340,6 +340,13 @@ Deno.serve(async (req) => {
             });
         }
 
+        // ⭐ Log: ทำไมถึงสร้างบิลวันนี้
+        if (forceCreate) {
+            console.log(`🔓 FORCE MODE: สร้างบิลโดยไม่เช็ควัน`);
+        } else {
+            console.log(`✅ วันนี้ (${currentDay}) ตรงกับวันสร้างบิล`);
+        }
+
         // STEP 3: ดึงข้อมูลเพิ่มเติม (ทีละสาขา)
         console.log(`📦 Step 3: Fetching data for ${branchIdsToProcess.length} branches...`);
 
