@@ -721,6 +721,7 @@ Deno.serve(async (req) => {
 
             for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
                 const chunk = entries.slice(i, i + CHUNK_SIZE);
+                const chunkStartTime = Date.now();
                 console.log(`   📍 Processing chunk: ${i + 1}-${Math.min(i + CHUNK_SIZE, entries.length)} / ${entries.length}`);
 
                 const results = await Promise.allSettled(
