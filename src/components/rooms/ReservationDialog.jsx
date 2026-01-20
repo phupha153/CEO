@@ -161,6 +161,20 @@ export default function ReservationDialog({
   });
 
   const handleSubmit = () => {
+    if (selectTenantOnly) {
+      if (!formData.tenant_id) {
+        toast.error("กรุณาเลือกผู้เช่า");
+        return;
+      }
+      // Auto-submit with tenant selection only
+      createBookingMutation.mutate({
+        ...formData,
+        check_in_date: formData.check_in_date || format(new Date(), 'yyyy-MM-dd'),
+        check_out_date: ""
+      });
+      return;
+    }
+    
     if (!formData.check_in_date) {
       toast.error("กรุณาระบุวันเข้าพัก");
       return;
@@ -215,7 +229,7 @@ export default function ReservationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>จองห้องพัก {room?.room_number}</DialogTitle>
+          <DialogTitle>{selectTenantOnly ? `เพิ่มผู้เช่าห้อง ${room?.room_number}` : `จองห้องพัก ${room?.room_number}`}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
