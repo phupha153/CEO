@@ -254,42 +254,42 @@ export default function Receipt() {
       total: receiptData.rent_amount
     });
   }
-  if (receiptData.electricity_amount > 0) {
-    const calculatedElecAmount = receiptData.electricity_units * receiptData.electricity_rate;
-    const isElecMinimum = Math.abs(calculatedElecAmount - receiptData.electricity_amount) > 0.01;
+  
+  // ⭐ แสดงค่าไฟเสมอ (แม้เป็น 0 บาท) เพื่อให้เห็นหน่วยที่ใช้
+  const elecUnits = receiptData.electricity_units || 0;
+  const elecAmount = receiptData.electricity_amount || 0;
+  const calculatedElecAmount = elecUnits * (receiptData.electricity_rate || 0);
+  const isElecMinimum = elecUnits === 0 || Math.abs(calculatedElecAmount - elecAmount) > 0.01;
+  const elecMeterText = (receiptData.electricity_previous || receiptData.electricity_current) 
+    ? ` (${receiptData.electricity_previous}-${receiptData.electricity_current})` 
+    : '';
 
-    // แสดงมิเตอร์ก่อน-หลัง ถ้ามี
-    const elecMeterText = (receiptData.electricity_previous || receiptData.electricity_current) 
-      ? ` (${receiptData.electricity_previous}-${receiptData.electricity_current})` 
-      : '';
+  lineItems.push({
+    name: isElecMinimum 
+      ? `ค่าไฟฟ้า${elecMeterText} ใช้ ${elecUnits} หน่วย${elecAmount === 0 ? '' : ' - คิดขั้นต่ำ'}`
+      : `ค่าไฟฟ้า${elecMeterText} ${elecUnits} หน่วย × ${receiptData.electricity_rate} บาท`,
+    quantity: 1,
+    price: elecAmount,
+    total: elecAmount
+  });
+  
+  // ⭐ แสดงค่าน้ำเสมอ (แม้เป็น 0 บาท) เพื่อให้เห็นหน่วยที่ใช้
+  const waterUnits = receiptData.water_units || 0;
+  const waterAmount = receiptData.water_amount || 0;
+  const calculatedWaterAmount = waterUnits * (receiptData.water_rate || 0);
+  const isWaterMinimum = waterUnits === 0 || Math.abs(calculatedWaterAmount - waterAmount) > 0.01;
+  const waterMeterText = (receiptData.water_previous || receiptData.water_current) 
+    ? ` (${receiptData.water_previous}-${receiptData.water_current})` 
+    : '';
 
-    lineItems.push({
-      name: isElecMinimum 
-        ? `ค่าไฟฟ้า${elecMeterText} ใช้ ${receiptData.electricity_units} หน่วย - คิดขั้นต่ำ`
-        : `ค่าไฟฟ้า${elecMeterText} ${receiptData.electricity_units} หน่วย × ${receiptData.electricity_rate} บาท`,
-      quantity: 1,
-      price: receiptData.electricity_amount,
-      total: receiptData.electricity_amount
-    });
-  }
-  if (receiptData.water_amount > 0) {
-    const calculatedWaterAmount = receiptData.water_units * receiptData.water_rate;
-    const isWaterMinimum = Math.abs(calculatedWaterAmount - receiptData.water_amount) > 0.01;
-
-    // แสดงมิเตอร์ก่อน-หลัง ถ้ามี
-    const waterMeterText = (receiptData.water_previous || receiptData.water_current) 
-      ? ` (${receiptData.water_previous}-${receiptData.water_current})` 
-      : '';
-
-    lineItems.push({
-      name: isWaterMinimum 
-        ? `ค่าน้ำประปา${waterMeterText} ใช้ ${receiptData.water_units} หน่วย - คิดขั้นต่ำ`
-        : `ค่าน้ำประปา${waterMeterText} ${receiptData.water_units} หน่วย × ${receiptData.water_rate} บาท`,
-      quantity: 1,
-      price: receiptData.water_amount,
-      total: receiptData.water_amount
-    });
-  }
+  lineItems.push({
+    name: isWaterMinimum 
+      ? `ค่าน้ำประปา${waterMeterText} ใช้ ${waterUnits} หน่วย${waterAmount === 0 ? '' : ' - คิดขั้นต่ำ'}`
+      : `ค่าน้ำประปา${waterMeterText} ${waterUnits} หน่วย × ${receiptData.water_rate} บาท`,
+    quantity: 1,
+    price: waterAmount,
+    total: waterAmount
+  });
   if (receiptData.internet_amount > 0) {
     lineItems.push({
       name: 'ค่าอินเทอร์เน็ต',

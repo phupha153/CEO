@@ -193,38 +193,42 @@ export default function PublicInvoice() {
       total: invoiceData.rent_amount
     });
   }
-  if (invoiceData.electricity_amount > 0) {
-    const calculatedElecAmount = invoiceData.electricity_units * invoiceData.electricity_rate;
-    const isElecMinimum = invoiceData.electricity_units === 0 || Math.abs(calculatedElecAmount - invoiceData.electricity_amount) > 0.01;
-    const elecMeterText = (invoiceData.electricity_previous || invoiceData.electricity_current) 
-      ? ` (${invoiceData.electricity_previous}-${invoiceData.electricity_current})` 
-      : '';
+  
+  // ⭐ แสดงค่าไฟเสมอ (แม้เป็น 0 บาท) เพื่อให้เห็นหน่วยที่ใช้
+  const elecUnits = invoiceData.electricity_units || 0;
+  const elecAmount = invoiceData.electricity_amount || 0;
+  const calculatedElecAmount = elecUnits * (invoiceData.electricity_rate || 0);
+  const isElecMinimum = elecUnits === 0 || Math.abs(calculatedElecAmount - elecAmount) > 0.01;
+  const elecMeterText = (invoiceData.electricity_previous || invoiceData.electricity_current) 
+    ? ` (${invoiceData.electricity_previous}-${invoiceData.electricity_current})` 
+    : '';
 
-    lineItems.push({
-      name: isElecMinimum 
-        ? `ค่าไฟฟ้า${elecMeterText} ใช้ ${invoiceData.electricity_units} หน่วย - คิดขั้นต่ำ`
-        : `ค่าไฟฟ้า${elecMeterText} ${invoiceData.electricity_units} หน่วย × ${invoiceData.electricity_rate} บาท`,
-      quantity: 1,
-      price: invoiceData.electricity_amount,
-      total: invoiceData.electricity_amount
-    });
-  }
-  if (invoiceData.water_amount > 0) {
-    const calculatedWaterAmount = invoiceData.water_units * invoiceData.water_rate;
-    const isWaterMinimum = invoiceData.water_units === 0 || Math.abs(calculatedWaterAmount - invoiceData.water_amount) > 0.01;
-    const waterMeterText = (invoiceData.water_previous || invoiceData.water_current) 
-      ? ` (${invoiceData.water_previous}-${invoiceData.water_current})` 
-      : '';
+  lineItems.push({
+    name: isElecMinimum 
+      ? `ค่าไฟฟ้า${elecMeterText} ใช้ ${elecUnits} หน่วย${elecAmount === 0 ? '' : ' - คิดขั้นต่ำ'}`
+      : `ค่าไฟฟ้า${elecMeterText} ${elecUnits} หน่วย × ${invoiceData.electricity_rate} บาท`,
+    quantity: 1,
+    price: elecAmount,
+    total: elecAmount
+  });
+  
+  // ⭐ แสดงค่าน้ำเสมอ (แม้เป็น 0 บาท) เพื่อให้เห็นหน่วยที่ใช้
+  const waterUnits = invoiceData.water_units || 0;
+  const waterAmount = invoiceData.water_amount || 0;
+  const calculatedWaterAmount = waterUnits * (invoiceData.water_rate || 0);
+  const isWaterMinimum = waterUnits === 0 || Math.abs(calculatedWaterAmount - waterAmount) > 0.01;
+  const waterMeterText = (invoiceData.water_previous || invoiceData.water_current) 
+    ? ` (${invoiceData.water_previous}-${invoiceData.water_current})` 
+    : '';
 
-    lineItems.push({
-      name: isWaterMinimum 
-        ? `ค่าน้ำประปา${waterMeterText} ใช้ ${invoiceData.water_units} หน่วย - คิดขั้นต่ำ`
-        : `ค่าน้ำประปา${waterMeterText} ${invoiceData.water_units} หน่วย × ${invoiceData.water_rate} บาท`,
-      quantity: 1,
-      price: invoiceData.water_amount,
-      total: invoiceData.water_amount
-    });
-  }
+  lineItems.push({
+    name: isWaterMinimum 
+      ? `ค่าน้ำประปา${waterMeterText} ใช้ ${waterUnits} หน่วย${waterAmount === 0 ? '' : ' - คิดขั้นต่ำ'}`
+      : `ค่าน้ำประปา${waterMeterText} ${waterUnits} หน่วย × ${invoiceData.water_rate} บาท`,
+    quantity: 1,
+    price: waterAmount,
+    total: waterAmount
+  });
   if (invoiceData.internet_amount > 0) {
     lineItems.push({
       name: 'ค่าอินเทอร์เน็ต',
