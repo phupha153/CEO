@@ -2083,7 +2083,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
 
     const handleDownloadExistingTenants = () => {
     // รวมข้อมูล booking ด้วย
-    const headers = ["รหัส", "รหัสสาขา", "ชื่อ-นามสกุล", "เบอร์โทร", "เพศ", "อายุ", "LINE ID", "เลขบัตรประชาชน", "อีเมล", "ที่อยู่", "เบอร์ฉุกเฉิน", "สถานะผู้เช่า", "หมายเหตุ", "เลขห้อง", "วันเริ่มสัญญา", "วันสิ้นสุดสัญญา", "เงินมัดจำ", "สถานะการจอง"];
+    const headers = ["ชื่อ-นามสกุล", "เบอร์โทร", "เพศ", "อายุ", "LINE ID", "เลขบัตรประชาชน", "อีเมล", "ที่อยู่", "เบอร์ติดต่อฉุกเฉิน", "สถานะผู้เช่า", "หมายเหตุ", "เลขห้อง", "วันเริ่มสัญญา", "วันสิ้นสุดสัญญา", "เงินมัดจำ", "สถานะการจอง"];
     const csvContent = [
         headers.join(','),
         ...tenants.map(t => {
@@ -2092,8 +2092,6 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
             const room = activeBooking ? rooms.find(r => r.id === activeBooking.room_id) : null;
             
             return [
-                t.id,
-                t.branch_id,
                 `"${t.full_name || ''}"`,
                 t.phone || '',
                 t.gender || '',
