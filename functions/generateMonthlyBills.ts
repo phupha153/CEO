@@ -694,6 +694,7 @@ Deno.serve(async (req) => {
         }
 
         // 6. Update Prepaid Balances + Calculate Payment Scores (Parallel Chunked)
+        const step6StartTime = Date.now();
         if (updatesToProcess.length > 0) {
             console.log(`💰 Updating ${updatesToProcess.length} balances...`);
 
