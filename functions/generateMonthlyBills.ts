@@ -294,17 +294,19 @@ Deno.serve(async (req) => {
         console.log(`📋 Rooms with active booking: ${roomsWithBooking.length}`);
 
         // STEP 2: หาสาขาที่ตรงวันสร้างบิล
-        const branchIds = [...new Set(roomsWithBooking.map(r => r.branch_id).filter(Boolean))];
-        const branchGenDayMap = {};
-        const branchesToProcess = [];
-        const branchesSkipped = [];
+              const branchIds = [...new Set(roomsWithBooking.map(r => r.branch_id).filter(Boolean))];
+              const branchGenDayMap = {};
+              const branchesToProcess = [];
+              const branchesSkipped = [];
+              const branchTimings = {}; // ⭐ เก็บเวลาต่อสาขา
 
-        for (const branchId of branchIds) {
-            const genDayConfig = getConfigValue('bill_generation_day', '27', branchId);
-            const genDay = parseInt(genDayConfig);
-            branchGenDayMap[branchId] = genDay;
+              for (const branchId of branchIds) {
+                  const genDayConfig = getConfigValue('bill_generation_day', '27', branchId);
+                  const genDay = parseInt(genDayConfig);
+                  branchGenDayMap[branchId] = genDay;
+                  branchTimings[branchId] = { startTime: Date.now(), createdCount: 0 }; // ⭐ เริ่มจับเวลา
 
-            console.log(`🔍 Branch ${branchId}: genDayConfig="${genDayConfig}", genDay=${genDay}, currentDay=${currentDay}, match=${currentDay === genDay}`);
+                  console.log(`🔍 Branch ${branchId}: genDayConfig="${genDayConfig}", genDay=${genDay}, currentDay=${currentDay}, match=${currentDay === genDay}`);
 
             if (forceCreate || currentDay === genDay) {
                 branchesToProcess.push({ branchId, genDay });
