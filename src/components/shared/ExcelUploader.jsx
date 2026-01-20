@@ -28,6 +28,12 @@ export default function ExcelUploader({
 
   const downloadTemplate = () => {
     try {
+      // ตรวจสอบว่ามี templateData และไม่ใช่ array ว่าง
+      if (!templateData || !Array.isArray(templateData) || templateData.length === 0) {
+        toast.error('ไม่มี Template สำหรับดาวน์โหลด');
+        return;
+      }
+      
       const headers = Object.keys(templateData[0] || {});
       const csvContent = [
         headers.join(','),
