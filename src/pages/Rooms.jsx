@@ -2954,11 +2954,9 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                 <CardContent className="p-6 text-center space-y-4">
                                     <User className="w-12 h-12 text-slate-400 mx-auto" />
                                     <p className="text-slate-600">ห้องนี้ยังไม่มีผู้เช่า</p>
-                                    <div className="flex flex-col gap-2">
-                                      <Button onClick={() => { handleReserve(selectedRoom); setShowDetailDialog(false); }} className="bg-blue-600 hover:bg-blue-700 text-white">
-                                        <User className="w-4 h-4 mr-2" /> เพิ่มผู้เช่า
-                                      </Button>
-                                    </div>
+                                    <Button onClick={() => { handleReserve(selectedRoom); setShowDetailDialog(false); }} className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                                      <CalendarIcon className="w-4 h-4 mr-2" /> จองห้อง
+                                    </Button>
                                 </CardContent>
                             </Card>
                           );
