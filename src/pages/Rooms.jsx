@@ -2954,15 +2954,21 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                 <CardContent className="p-6 text-center space-y-4">
                                     <User className="w-12 h-12 text-slate-400 mx-auto" />
                                     <p className="text-slate-600">ห้องนี้ยังไม่มีผู้เช่า</p>
-                                    <Button 
-                                      onClick={() => { 
-                                        handleReserve(selectedRoom); 
-                                        setShowDetailDialog(false); 
-                                      }} 
-                                      className="bg-blue-600 hover:bg-blue-700 text-white w-full"
-                                    >
-                                      <User className="w-4 h-4 mr-2" /> เพิ่มผู้เช่า
-                                    </Button>
+                                    <div className="flex flex-col gap-2">
+                                      <Button onClick={() => { handleReserve(selectedRoom); setShowDetailDialog(false); }} className="bg-purple-600 hover:bg-purple-700 text-white">
+                                        <CalendarIcon className="w-4 h-4 mr-2" /> จองห้อง
+                                      </Button>
+                                      <Button 
+                                        onClick={() => { 
+                                          setShowDetailDialog(false); 
+                                          navigate(`${createPageUrl('Tenants')}?action=add&room_id=${selectedRoom.id}`);
+                                        }} 
+                                        variant="outline" 
+                                        className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                                      >
+                                        <User className="w-4 h-4 mr-2" /> เพิ่มผู้เช่า
+                                      </Button>
+                                    </div>
                                 </CardContent>
                             </Card>
                           );
@@ -3127,30 +3133,18 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
                     <div className="flex justify-end gap-2 pt-4 border-t">
                        <Button variant="outline" onClick={() => setShowDetailDialog(false)}>ปิด</Button>
-                       {!booking && (
-                         <Button
-                           onClick={() => {
-                             handleReserve(selectedRoom);
-                             setShowDetailDialog(false);
-                           }}
-                           className="bg-blue-600 hover:bg-blue-700 text-white"
-                         >
-                           <Calendar className="w-4 h-4 mr-2" />
-                           จอง
-                         </Button>
-                       )}
                        {canEdit && (
-                         <Button
-                           onClick={() => {
-                             handleEdit(selectedRoom);
-                             setShowDetailDialog(false);
-                           }}
-                         >
-                           <Edit2 className="w-4 h-4 mr-2" />
-                           แก้ไขห้อง
-                         </Button>
+                        <Button
+                          onClick={() => {
+                            handleEdit(selectedRoom);
+                            setShowDetailDialog(false);
+                          }}
+                        >
+                          <Edit2 className="w-4 h-4 mr-2" />
+                          แก้ไขห้อง
+                        </Button>
                        )}
-                     </div>
+                    </div>
                   </div>
                 )
               })()}
@@ -3186,7 +3180,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             room={reservingRoom}
             currentBookings={bookings}
             tenants={tenants}
-            selectTenantOnly={true}
             onSuccess={() => {
               queryClient.invalidateQueries(['rooms']);
               queryClient.invalidateQueries(['bookings']);

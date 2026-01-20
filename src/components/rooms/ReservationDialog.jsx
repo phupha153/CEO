@@ -20,12 +20,11 @@ export default function ReservationDialog({
   room, 
   currentBookings = [], 
   tenants = [],
-  onSuccess,
-  selectTenantOnly = false 
+  onSuccess 
 }) {
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
-  const [bookingType, setBookingType] = useState(selectTenantOnly ? "monthly" : "monthly");
+  const [bookingType, setBookingType] = useState("monthly");
   
   // Form State
   const [formData, setFormData] = useState({
@@ -161,20 +160,6 @@ export default function ReservationDialog({
   });
 
   const handleSubmit = () => {
-    if (selectTenantOnly) {
-      if (!formData.tenant_id) {
-        toast.error("กรุณาเลือกผู้เช่า");
-        return;
-      }
-      // Auto-submit with tenant selection only
-      createBookingMutation.mutate({
-        ...formData,
-        check_in_date: formData.check_in_date || format(new Date(), 'yyyy-MM-dd'),
-        check_out_date: ""
-      });
-      return;
-    }
-    
     if (!formData.check_in_date) {
       toast.error("กรุณาระบุวันเข้าพัก");
       return;
@@ -229,37 +214,35 @@ export default function ReservationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{selectTenantOnly ? `เพิ่มผู้เช่าห้อง ${room?.room_number}` : `จองห้องพัก ${room?.room_number}`}</DialogTitle>
+          <DialogTitle>จองห้องพัก {room?.room_number}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
-           {activeBooking && (
-             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex gap-3 items-start">
-               <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
-               <div className="text-sm text-yellow-800">
-                 <p className="font-semibold">ห้องนี้มีผู้เช่าอยู่แล้ว</p>
-                 <p>สิ้นสุดสัญญา: {activeBooking.check_out_date ? format(parseISO(activeBooking.check_out_date), "d MMM yyyy", { locale: th }) : "ไม่มีกำหนด"}</p>
-                 <p className="text-xs mt-1 opacity-80">การจองใหม่ควรเริ่มหลังจากวันที่สิ้นสุดสัญญา</p>
-               </div>
-             </div>
-           )}
+          {activeBooking && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex gap-3 items-start">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
+              <div className="text-sm text-yellow-800">
+                <p className="font-semibold">ห้องนี้มีผู้เช่าอยู่แล้ว</p>
+                <p>สิ้นสุดสัญญา: {activeBooking.check_out_date ? format(parseISO(activeBooking.check_out_date), "d MMM yyyy", { locale: th }) : "ไม่มีกำหนด"}</p>
+                <p className="text-xs mt-1 opacity-80">การจองใหม่ควรเริ่มหลังจากวันที่สิ้นสุดสัญญา</p>
+              </div>
+            </div>
+          )}
 
-           {!selectTenantOnly && (
-             <div>
-               <Label>ประเภทการเช่า</Label>
-               <Select value={bookingType} onValueChange={setBookingType}>
-                 <SelectTrigger>
-                   <SelectValue />
-                 </SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="monthly">รายเดือน</SelectItem>
-                   <SelectItem value="daily">รายวัน</SelectItem>
-                 </SelectContent>
-               </Select>
-             </div>
-           )}
+          <div>
+            <Label>ประเภทการเช่า</Label>
+            <Select value={bookingType} onValueChange={setBookingType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">รายเดือน</SelectItem>
+                <SelectItem value="daily">รายวัน</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          {!selectTenantOnly && bookingType === 'daily' ? (
+          {bookingType === 'daily' ? (
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>วันที่เข้าพัก</Label>
@@ -343,7 +326,7 @@ export default function ReservationDialog({
             </div>
           )}
 
-          {(!selectTenantOnly ? bookingType === 'monthly' : true) && (
+          {bookingType === 'monthly' && (
             <div className="space-y-3 border p-3 rounded-lg bg-slate-50">
               <Label className="flex justify-between">
                 ผู้เช่า
@@ -429,7 +412,7 @@ export default function ReservationDialog({
             </div>
           )}
 
-          {!selectTenantOnly && bookingType === 'daily' && (
+          {bookingType === 'daily' && (
             <div className="space-y-2">
               <Label>ข้อมูลผู้เข้าพัก</Label>
               <Input 
@@ -445,7 +428,7 @@ export default function ReservationDialog({
             </div>
           )}
 
-          {!selectTenantOnly && bookingType === 'monthly' && (
+          {bookingType === 'monthly' && (
             <div>
               <Label>เงินมัดจำ (บาท)</Label>
               <Input 
@@ -457,16 +440,14 @@ export default function ReservationDialog({
             </div>
           )}
 
-          {!selectTenantOnly && (
-            <div>
-              <Label>หมายเหตุ</Label>
-              <Textarea 
-                value={formData.notes}
-                onChange={e => setFormData({...formData, notes: e.target.value})}
-                placeholder="รายละเอียดเพิ่มเติม..."
-              />
-            </div>
-          )}
+          <div>
+            <Label>หมายเหตุ</Label>
+            <Textarea 
+              value={formData.notes}
+              onChange={e => setFormData({...formData, notes: e.target.value})}
+              placeholder="รายละเอียดเพิ่มเติม..."
+            />
+          </div>
         </div>
 
         <DialogFooter>
