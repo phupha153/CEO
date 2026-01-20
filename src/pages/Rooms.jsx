@@ -1430,28 +1430,28 @@ ${JSON.stringify(roomsWithAC, null, 2)}
   const roomSchema = {
     type: "object",
     properties: {
-      room_number: { type: "string" },
-      floor: { type: "integer" },
-      room_type: { type: "string" }, // Relaxed schema to allow Thai input
-      price: { type: "number" },
-      status: { type: "string" }, // Relaxed schema to allow Thai input
-      size: { type: "number" },
-      description: { type: "string" },
-      last_ac_cleaning_date: { type: "string", format: "date" }
+      "หมายเลขห้อง": { type: "string" },
+      "ชั้น": { type: "integer" },
+      "ประเภทห้อง": { type: "string" },
+      "ราคา": { type: "number" },
+      "สถานะ": { type: "string" },
+      "ขนาด": { type: "number" },
+      "รายละเอียด": { type: "string" },
+      "วันที่ล้างแอร์ล่าสุด": { type: "string", format: "date" }
     },
-    required: ["room_number", "floor", "room_type", "price"]
+    required: ["หมายเลขห้อง", "ชั้น", "ประเภทห้อง", "ราคา"]
   };
 
   const templateData = [
     {
-      "room_number": "101",
-      "floor": "1",
-      "room_type": "รายเดือน",
-      "price": "3500",
-      "status": "ว่าง",
-      "size": "25",
-      "description": "ห้องพักรายเดือน มีแอร์ เฟอร์นิเจอร์ครบ",
-      "last_ac_cleaning_date": "2023-01-15"
+      "หมายเลขห้อง": "101",
+      "ชั้น": "1",
+      "ประเภทห้อง": "รายเดือน",
+      "ราคา": "3500",
+      "สถานะ": "ว่าง",
+      "ขนาด": "25",
+      "รายละเอียด": "ห้องพักรายเดือน มีแอร์ เฟอร์นิเจอร์ครบ",
+      "วันที่ล้างแอร์ล่าสุด": "2023-01-15"
     }
   ];
 
@@ -1460,9 +1460,14 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     const mapStatus = { 'ว่าง': 'available', 'มีผู้เช่า': 'occupied', 'จอง': 'reserved' };
     
     return {
-      ...data,
-      room_type: mapRoomType[data.room_type] || data.room_type,
-      status: mapStatus[data.status] || data.status
+      room_number: data["หมายเลขห้อง"] || data.room_number,
+      floor: data["ชั้น"] || data.floor,
+      room_type: mapRoomType[data["ประเภทห้อง"]] || mapRoomType[data.room_type] || data.room_type,
+      price: data["ราคา"] || data.price,
+      status: mapStatus[data["สถานะ"]] || mapStatus[data.status] || data.status,
+      size: data["ขนาด"] || data.size,
+      description: data["รายละเอียด"] || data.description,
+      last_ac_cleaning_date: data["วันที่ล้างแอร์ล่าสุด"] || data.last_ac_cleaning_date
     };
   };
 
@@ -1473,7 +1478,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
 
     const handleDownloadExistingRooms = () => {
-    const headers = ["ไอดี", "ไอดีสาขา", "หมายเลขห้อง", "ชั้น", "ประเภทห้อง", "ราคา", "สถานะ", "ขนาด", "รายละเอียด", "วันที่ล้างแอร์ล่าสุด", "ค่าน้ำต่อหน่วย", "ค่าไฟต่อหน่วย", "ค่าส่วนกลาง"];
+    const headers = ["หมายเลขห้อง", "ชั้น", "ประเภทห้อง", "ราคา", "สถานะ", "ขนาด", "รายละเอียด", "วันที่ล้างแอร์ล่าสุด", "ค่าน้ำต่อหน่วย", "ค่าไฟต่อหน่วย", "ค่าส่วนกลาง"];
     const statusMap = {
       'available': 'ว่าง',
       'occupied': 'มีผู้เช่า',
@@ -1486,8 +1491,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     const csvContent = [
         headers.join(','),
         ...rooms.map(r => [
-            r.id,
-            r.branch_id,
             r.room_number,
             r.floor,
             roomTypeMap[r.room_type] || r.room_type,
@@ -3056,6 +3059,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
               <ExcelUploader
                 entityName="Room"
                 schema={roomSchema}
+                templateData={templateData}
+                templateFilename={`room_template_${selectedBranchName}.csv`}
                 onSuccess={() => {
                   queryClient.invalidateQueries(['rooms', selectedBranchId, 'v2']);
                   queryClient.invalidateQueries(['allRooms', 'v2']);
