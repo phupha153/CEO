@@ -52,50 +52,51 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
           force: true
         });
 
-      if (response.data?.success) {
-        const created = response.data.generatedCount || response.data.created || 0;
-        const pending = response.data.pendingImageCount || 0;
-        
-        if (created > 0) {
-          toast.success(
-            `สร้างบิลสำเร็จ ${created} รายการ${pending > 0 ? ` (รอสร้างรูป ${pending} ใบ)` : ''}`,
-            { duration: 5000 }
-          );
+        if (response.data?.success) {
+          const created = response.data.generatedCount || response.data.created || 0;
+          const pending = response.data.pendingImageCount || 0;
+          
+          if (created > 0) {
+            toast.success(
+              `สร้างบิลสำเร็จ ${created} รายการ${pending > 0 ? ` (รอสร้างรูป ${pending} ใบ)` : ''}`,
+              { duration: 5000 }
+            );
 
-          // ⭐ ถ้ามีบิลที่ต้องสร้างรูป = ถามว่าจะส่งทันทีไหม
-          if (pending > 0) {
-            const shouldSend = confirm(`ต้องการสร้างรูปและส่ง LINE ทันทีไหม?\n(${pending} ใบ - ใช้เวลาประมาณ ${Math.ceil(pending * 2)} วินาที)`);
-            
-            if (shouldSend) {
-              setProcessingQueue(true);
-              toast.info('กำลังสร้างรูปและส่ง LINE...', { duration: 3000 });
+            // ⭐ ถ้ามีบิลที่ต้องสร้างรูป = ถามว่าจะส่งทันทีไหม
+            if (pending > 0) {
+              const shouldSend = confirm(`ต้องการสร้างรูปและส่ง LINE ทันทีไหม?\n(${pending} ใบ - ใช้เวลาประมาณ ${Math.ceil(pending * 2)} วินาที)`);
               
-              try {
-                const queueResponse = await base44.functions.invoke('processInvoiceImageQueue', {
-                  branch_id: branchId,
-                  batch_size: pending,
-                  concurrent_limit: 1
-                });
+              if (shouldSend) {
+                setProcessingQueue(true);
+                toast.info('กำลังสร้างรูปและส่ง LINE...', { duration: 3000 });
                 
-                if (queueResponse.data?.success) {
-                  const sent = queueResponse.data.lineSent || 0;
-                  const failed = queueResponse.data.lineFailed || 0;
-                  toast.success(`ส่งสำเร็จ ${sent} ใบ${failed > 0 ? `, ล้มเหลว ${failed}` : ''}`, { duration: 5000 });
+                try {
+                  const queueResponse = await base44.functions.invoke('processInvoiceImageQueue', {
+                    branch_id: branchId,
+                    batch_size: pending,
+                    concurrent_limit: 1
+                  });
+                  
+                  if (queueResponse.data?.success) {
+                    const sent = queueResponse.data.lineSent || 0;
+                    const failed = queueResponse.data.lineFailed || 0;
+                    toast.success(`ส่งสำเร็จ ${sent} ใบ${failed > 0 ? `, ล้มเหลว ${failed}` : ''}`, { duration: 5000 });
+                  }
+                } catch (queueError) {
+                  toast.error('เกิดข้อผิดพลาดในการส่งบิล');
+                } finally {
+                  setProcessingQueue(false);
                 }
-              } catch (queueError) {
-                toast.error('เกิดข้อผิดพลาดในการส่งบิล');
-              } finally {
-                setProcessingQueue(false);
               }
             }
+          } else {
+            toast.info('ไม่มีบิลที่ต้องสร้างใหม่', { duration: 4000 });
           }
-        } else {
-          toast.info('ไม่มีบิลที่ต้องสร้างใหม่', { duration: 4000 });
-        }
 
-        if (onSuccess) onSuccess();
-      } else {
-        toast.error(response.data?.error || 'เกิดข้อผิดพลาดในการสร้างบิล');
+          if (onSuccess) onSuccess();
+        } else {
+          toast.error(response.data?.error || 'เกิดข้อผิดพลาดในการสร้างบิล');
+        }
       }
     } catch (error) {
       console.error('Generate bills error:', error);
