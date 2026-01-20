@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Loader2, Plus } from "lucide-react";
 import { toast } from "sonner";
 
-export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills = 0, onSuccess, compact = false }) {
+export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills = 0, onSuccess, compact = false, queryClient }) {
   const [generating, setGenerating] = useState(false);
   const [processingQueue, setProcessingQueue] = useState(false);
   const [useQueue, setUseQueue] = useState(false);
@@ -40,10 +40,8 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
           );
 
           // ⚡ Refetch Queue ทันที
-          const { queryClient } = await import('@tanstack/react-query');
-          const qc = queryClient.getQueryClient?.() || (await import('@/api/base44Client')).queryClient;
-          if (qc) {
-            await qc.invalidateQueries({ queryKey: ['invoiceQueue'] });
+          if (queryClient) {
+            await queryClient.invalidateQueries({ queryKey: ['invoiceQueue'] });
           }
 
           if (onSuccess) onSuccess();

@@ -2676,6 +2676,7 @@ Return JSON.`;
                   roomsNeedingBills={roomsNeedingBills}
                   onSuccess={() => queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] })} 
                   compact 
+                  queryClient={queryClient}
                 />
               )}
               {canSendReminder && (
