@@ -231,7 +231,7 @@ export default function ExcelUploader({
   return (
     <>
       <div className="flex gap-2">
-        {!hideDownloadTemplate && (
+        {!hideDownloadTemplate && templateData && Array.isArray(templateData) && templateData.length > 0 && (
           <Button
             variant="outline"
             onClick={downloadTemplate}
