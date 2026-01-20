@@ -33,13 +33,13 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        // ดึงข้อมูล Payment - ใช้ service role เพื่อเข้าถึงข้อมูลได้โดยไม่ต้อง auth
-        console.log('📥 Querying Database...');
-        const allPaymentsRaw = await base44.asServiceRole.entities.Payment.list();
-        const allPayments = Array.isArray(allPaymentsRaw) ? allPaymentsRaw : (allPaymentsRaw?.data || []);
-        console.log(`📊 Total payments in DB: ${allPayments.length}, type: ${typeof allPaymentsRaw}`);
+        // ดึงข้อมูล Payment - ใช้ filter แทน list เพื่อลดการโหลดข้อมูล
+        console.log('📥 Querying Database with filter...');
+        const paymentResults = await base44.asServiceRole.entities.Payment.filter({ id: paymentId });
+        const paymentList = Array.isArray(paymentResults) ? paymentResults : (paymentResults?.data || []);
+        console.log(`📊 Query result: ${paymentList.length} payment(s)`);
         
-        const payment = Array.isArray(allPayments) && allPayments.find ? allPayments.find(p => p.id === paymentId) : null;
+        const payment = paymentList && paymentList.length > 0 ? paymentList[0] : null;
 
         if (!payment) {
             console.error('❌ Payment not found in database');
