@@ -33,8 +33,15 @@ export default function ReservationDialog({
     tenant_id: "",
     guest_name: "", // For new tenant or daily
     guest_phone: "",
+    guest_email: "",
+    guest_national_id: "",
+    guest_address: "",
     guest_line_id: "",
     deposit_amount: "",
+    security_deposit: "",
+    advance_rent: "",
+    common_fee: "",
+    contract_duration: "",
     room_price: "",
     notes: ""
   });
@@ -70,8 +77,15 @@ export default function ReservationDialog({
         tenant_id: "",
         guest_name: "",
         guest_phone: "",
+        guest_email: "",
+        guest_national_id: "",
+        guest_address: "",
         guest_line_id: "",
         deposit_amount: "",
+        security_deposit: "",
+        advance_rent: "",
+        common_fee: "",
+        contract_duration: "",
         room_price: room.price?.toString() || "",
         notes: ""
       });
@@ -91,7 +105,7 @@ export default function ReservationDialog({
     mutationFn: async (data) => {
       let finalTenantId = data.tenant_id;
 
-      // Create tenant if new
+      // Create tenant if new (monthly only)
       if (bookingType === 'monthly' && isNewTenant) {
         if (!data.guest_name || !data.guest_phone) {
           throw new Error("กรุณาระบุชื่อและเบอร์โทรผู้เช่า");
@@ -100,6 +114,9 @@ export default function ReservationDialog({
           branch_id: room.branch_id,
           full_name: data.guest_name,
           phone: data.guest_phone,
+          email: data.guest_email,
+          national_id: data.guest_national_id,
+          address: data.guest_address,
           line_id: data.guest_line_id,
           status: 'active'
         });
@@ -113,11 +130,18 @@ export default function ReservationDialog({
         tenant_id: bookingType === 'monthly' ? finalTenantId : undefined,
         guest_name: bookingType === 'daily' ? data.guest_name : undefined,
         guest_phone: bookingType === 'daily' ? data.guest_phone : undefined,
+        guest_email: bookingType === 'daily' ? data.guest_email : undefined,
+        guest_national_id: bookingType === 'daily' ? data.guest_national_id : undefined,
+        guest_address: bookingType === 'daily' ? data.guest_address : undefined,
         check_in_date: data.check_in_date,
         check_out_date: data.check_out_date || undefined,
         booking_type: bookingType,
         status: 'active',
-        deposit_amount: data.deposit_amount ? parseFloat(data.deposit_amount) : 0,
+        deposit_amount: bookingType === 'daily' ? (data.deposit_amount ? parseFloat(data.deposit_amount) : 0) : 0,
+        security_deposit: bookingType === 'monthly' ? (data.security_deposit ? parseFloat(data.security_deposit) : 0) : undefined,
+        advance_rent: bookingType === 'monthly' ? (data.advance_rent ? parseFloat(data.advance_rent) : 0) : undefined,
+        common_fee_included: bookingType === 'monthly' ? (data.common_fee ? parseFloat(data.common_fee) : 0) : undefined,
+        contract_duration: bookingType === 'monthly' ? data.contract_duration : undefined,
         total_amount: data.room_price ? parseFloat(data.room_price) : 0,
         notes: data.notes
       };
@@ -142,8 +166,20 @@ export default function ReservationDialog({
       toast.error("กรุณาระบุวันเข้าพัก");
       return;
     }
+    if (bookingType === 'daily' && !formData.check_out_date) {
+      toast.error("กรุณาระบุวันที่ออก (สำหรับรายวัน)");
+      return;
+    }
+    if (bookingType === 'daily' && !formData.guest_name) {
+      toast.error("กรุณาระบุชื่อผู้เข้าพัก");
+      return;
+    }
     if (bookingType === 'monthly' && !isNewTenant && !formData.tenant_id) {
       toast.error("กรุณาเลือกผู้เช่า");
+      return;
+    }
+    if (bookingType === 'monthly' && isNewTenant && (!formData.guest_name || !formData.guest_phone)) {
+      toast.error("กรุณาระบุชื่อและเบอร์โทรผู้เช่า");
       return;
     }
     
@@ -207,32 +243,22 @@ export default function ReservationDialog({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>ประเภทการเช่า</Label>
-              <Select value={bookingType} onValueChange={setBookingType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">รายเดือน</SelectItem>
-                  <SelectItem value="daily">รายวัน</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>ค่าเช่า/ราคา</Label>
-              <Input 
-                type="number" 
-                value={formData.room_price} 
-                onChange={e => setFormData({...formData, room_price: e.target.value})} 
-              />
-            </div>
+          <div>
+            <Label className="font-semibold text-base">ประเภทการเช่า</Label>
+            <Select value={bookingType} onValueChange={setBookingType}>
+              <SelectTrigger className="h-12 text-base">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">รายเดือน</SelectItem>
+                <SelectItem value="daily">รายวัน</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>วันที่เข้าพัก (Check-in)</Label>
+              <Label>วันที่เข้าพัก *</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal">
@@ -251,12 +277,12 @@ export default function ReservationDialog({
               </Popover>
             </div>
             <div>
-              <Label>วันที่สิ้นสุด (Check-out)</Label>
+              <Label>วันที่ออก {bookingType === 'daily' ? '*' : '(ไม่บังคับ)'}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start text-left font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.check_out_date ? format(parseISO(formData.check_out_date), "d MMM yyyy", { locale: th }) : "เลือกวันที่ (ถ้ามี)"}
+                    {formData.check_out_date ? format(parseISO(formData.check_out_date), "d MMM yyyy", { locale: th }) : "เลือกวันที่"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -293,18 +319,33 @@ export default function ReservationDialog({
                     value={formData.guest_name}
                     onChange={e => setFormData({...formData, guest_name: e.target.value})}
                   />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input 
-                      placeholder="เบอร์โทร *" 
-                      value={formData.guest_phone}
-                      onChange={e => setFormData({...formData, guest_phone: e.target.value})}
-                    />
-                    <Input 
-                      placeholder="LINE ID" 
-                      value={formData.guest_line_id}
-                      onChange={e => setFormData({...formData, guest_line_id: e.target.value})}
-                    />
-                  </div>
+                  <Input 
+                    placeholder="เบอร์โทร *" 
+                    value={formData.guest_phone}
+                    onChange={e => setFormData({...formData, guest_phone: e.target.value})}
+                  />
+                  <Input 
+                    placeholder="อีเมล" 
+                    type="email"
+                    value={formData.guest_email}
+                    onChange={e => setFormData({...formData, guest_email: e.target.value})}
+                  />
+                  <Input 
+                    placeholder="เลขบัตรประชาชน" 
+                    value={formData.guest_national_id}
+                    onChange={e => setFormData({...formData, guest_national_id: e.target.value})}
+                  />
+                  <Textarea 
+                    placeholder="ที่อยู่เดิม" 
+                    value={formData.guest_address}
+                    onChange={e => setFormData({...formData, guest_address: e.target.value})}
+                    rows={2}
+                  />
+                  <Input 
+                    placeholder="LINE ID" 
+                    value={formData.guest_line_id}
+                    onChange={e => setFormData({...formData, guest_line_id: e.target.value})}
+                  />
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -328,7 +369,7 @@ export default function ReservationDialog({
                             className={`p-2 text-sm cursor-pointer hover:bg-slate-100 flex justify-between ${formData.tenant_id === t.id ? 'bg-blue-50' : ''}`}
                             onClick={() => {
                               setFormData({...formData, tenant_id: t.id});
-                              setSearchQuery(""); // Clear search
+                              setSearchQuery("");
                             }}
                           >
                             <span>{t.full_name}</span>
@@ -358,30 +399,104 @@ export default function ReservationDialog({
           )}
 
           {bookingType === 'daily' && (
-            <div className="space-y-2">
-              <Label>ข้อมูลผู้เข้าพัก</Label>
+            <div className="space-y-3 border p-3 rounded-lg bg-blue-50">
+              <Label className="font-semibold">ข้อมูลผู้เข้าพัก</Label>
               <Input 
-                placeholder="ชื่อผู้เข้าพัก" 
+                placeholder="ชื่อ-นามสกุล *" 
                 value={formData.guest_name}
                 onChange={e => setFormData({...formData, guest_name: e.target.value})}
               />
               <Input 
-                placeholder="เบอร์โทรติดต่อ" 
+                placeholder="เบอร์โทร *" 
                 value={formData.guest_phone}
                 onChange={e => setFormData({...formData, guest_phone: e.target.value})}
+              />
+              <Input 
+                placeholder="อีเมล" 
+                type="email"
+                value={formData.guest_email}
+                onChange={e => setFormData({...formData, guest_email: e.target.value})}
+              />
+              <Input 
+                placeholder="เลขบัตรประชาชน" 
+                value={formData.guest_national_id}
+                onChange={e => setFormData({...formData, guest_national_id: e.target.value})}
+              />
+              <Textarea 
+                placeholder="ที่อยู่" 
+                value={formData.guest_address}
+                onChange={e => setFormData({...formData, guest_address: e.target.value})}
+                rows={2}
               />
             </div>
           )}
 
           <div>
-            <Label>เงินมัดจำ (บาท)</Label>
+            <Label>ค่าเช่า (บาท) *</Label>
             <Input 
-              type="number"
-              value={formData.deposit_amount}
-              onChange={e => setFormData({...formData, deposit_amount: e.target.value})}
-              placeholder="0.00"
+              type="number" 
+              value={formData.room_price} 
+              onChange={e => setFormData({...formData, room_price: e.target.value})}
+              placeholder={room?.price?.toString() || "0"}
             />
           </div>
+
+          {bookingType === 'monthly' && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>เงินประกันห้อง (บาท)</Label>
+                  <Input 
+                    type="number"
+                    value={formData.security_deposit}
+                    onChange={e => setFormData({...formData, security_deposit: e.target.value})}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <Label>ค่าเช่าล่วงหน้า (บาท)</Label>
+                  <Input 
+                    type="number"
+                    value={formData.advance_rent}
+                    onChange={e => setFormData({...formData, advance_rent: e.target.value})}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>ค่าส่วนกลาง (บาท)</Label>
+                  <Input 
+                    type="number"
+                    value={formData.common_fee}
+                    onChange={e => setFormData({...formData, common_fee: e.target.value})}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <Label>ระยะเวลาสัญญา (เช่น 1 ปี)</Label>
+                  <Input 
+                    placeholder="เช่น 1 ปี, 6 เดือน" 
+                    value={formData.contract_duration}
+                    onChange={e => setFormData({...formData, contract_duration: e.target.value})}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {bookingType === 'daily' && (
+            <div>
+              <Label>เงินมัดจำ (บาท)</Label>
+              <Input 
+                type="number"
+                value={formData.deposit_amount}
+                onChange={e => setFormData({...formData, deposit_amount: e.target.value})}
+                placeholder="0"
+              />
+            </div>
+          )}
 
           <div>
             <Label>หมายเหตุ</Label>
