@@ -207,69 +207,102 @@ export default function ReservationDialog({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>ประเภทการเช่า</Label>
-              <Select value={bookingType} onValueChange={setBookingType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">รายเดือน</SelectItem>
-                  <SelectItem value="daily">รายวัน</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>ค่าเช่า/ราคา</Label>
-              <Input 
-                type="number" 
-                value={formData.room_price} 
-                onChange={e => setFormData({...formData, room_price: e.target.value})} 
-              />
-            </div>
+          <div>
+            <Label>ประเภทการเช่า</Label>
+            <Select value={bookingType} onValueChange={setBookingType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">รายเดือน</SelectItem>
+                <SelectItem value="daily">รายวัน</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>วันที่เข้าพัก (Check-in)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.check_in_date ? format(parseISO(formData.check_in_date), "d MMM yyyy", { locale: th }) : "เลือกวันที่"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData.check_in_date ? parseISO(formData.check_in_date) : undefined}
-                    onSelect={(date) => setFormData({...formData, check_in_date: date ? format(date, "yyyy-MM-dd") : ""})}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+          {bookingType === 'daily' ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>วันที่เข้าพัก</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.check_in_date ? format(parseISO(formData.check_in_date), "d MMM yyyy", { locale: th }) : "เลือกวันที่"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.check_in_date ? parseISO(formData.check_in_date) : undefined}
+                      onSelect={(date) => setFormData({...formData, check_in_date: date ? format(date, "yyyy-MM-dd") : ""})}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <Label>วันที่ออก</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.check_out_date ? format(parseISO(formData.check_out_date), "d MMM yyyy", { locale: th }) : "เลือกวันที่"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.check_out_date ? parseISO(formData.check_out_date) : undefined}
+                      onSelect={(date) => setFormData({...formData, check_out_date: date ? format(date, "yyyy-MM-dd") : ""})}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
-            <div>
-              <Label>วันที่สิ้นสุด (Check-out)</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.check_out_date ? format(parseISO(formData.check_out_date), "d MMM yyyy", { locale: th }) : "เลือกวันที่ (ถ้ามี)"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={formData.check_out_date ? parseISO(formData.check_out_date) : undefined}
-                    onSelect={(date) => setFormData({...formData, check_out_date: date ? format(date, "yyyy-MM-dd") : ""})}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>วันที่เข้าพัก (Check-in)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.check_in_date ? format(parseISO(formData.check_in_date), "d MMM yyyy", { locale: th }) : "เลือกวันที่"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.check_in_date ? parseISO(formData.check_in_date) : undefined}
+                      onSelect={(date) => setFormData({...formData, check_in_date: date ? format(date, "yyyy-MM-dd") : ""})}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <Label>วันที่สิ้นสุด (Check-out)</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.check_out_date ? format(parseISO(formData.check_out_date), "d MMM yyyy", { locale: th }) : "เลือกวันที่ (ถ้ามี)"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={formData.check_out_date ? parseISO(formData.check_out_date) : undefined}
+                      onSelect={(date) => setFormData({...formData, check_out_date: date ? format(date, "yyyy-MM-dd") : ""})}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
-          </div>
+          )}
 
           {bookingType === 'monthly' && (
             <div className="space-y-3 border p-3 rounded-lg bg-slate-50">
@@ -373,15 +406,17 @@ export default function ReservationDialog({
             </div>
           )}
 
-          <div>
-            <Label>เงินมัดจำ (บาท)</Label>
-            <Input 
-              type="number"
-              value={formData.deposit_amount}
-              onChange={e => setFormData({...formData, deposit_amount: e.target.value})}
-              placeholder="0.00"
-            />
-          </div>
+          {bookingType === 'monthly' && (
+            <div>
+              <Label>เงินมัดจำ (บาท)</Label>
+              <Input 
+                type="number"
+                value={formData.deposit_amount}
+                onChange={e => setFormData({...formData, deposit_amount: e.target.value})}
+                placeholder="0.00"
+              />
+            </div>
+          )}
 
           <div>
             <Label>หมายเหตุ</Label>
