@@ -15,6 +15,9 @@ export default function PrepaidDialog({ open, onOpenChange, tenant, onSuccess })
   const [uploadingSlip, setUploadingSlip] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // ⭐ Guard: Don't render if tenant is not loaded yet
+  if (!open || !tenant?.id) return null;
+
   const handleSlipUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -40,7 +43,12 @@ export default function PrepaidDialog({ open, onOpenChange, tenant, onSuccess })
 
     setSaving(true);
     try {
-      const currentBalance = tenant.prepaid_balance || 0;
+      // ⭐ Guard: Validate tenant before accessing properties
+      if (!tenant?.id) {
+        toast.error('ไม่สามารถโหลดข้อมูลผู้เช่า');
+        return;
+      }
+      const currentBalance = tenant?.prepaid_balance || 0;
       const newBalance = currentBalance + parseFloat(amount);
 
       await base44.entities.Tenant.update(tenant.id, {
