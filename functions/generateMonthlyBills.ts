@@ -408,11 +408,11 @@ Deno.serve(async (req) => {
             const genDay = parseInt(getConfigValue('bill_generation_day', '27', branchId));
 
             let billDueMonth = currentMonth;
-            let billDueYear = currentYear;
-            if (genDay > payDay) {
-                billDueMonth = currentMonth + 1;
-                if (billDueMonth > 11) { billDueMonth = 0; billDueYear = currentYear + 1; }
-            }
+                              let billDueYear = currentYear;
+                              if (currentDay > payDay) {
+                                  billDueMonth = currentMonth + 1;
+                                  if (billDueMonth > 11) { billDueMonth = 0; billDueYear = currentYear + 1; }
+                              }
 
             const monthStr = `${billDueYear}-${String(billDueMonth + 1).padStart(2, '0')}`;
             branchMonths.add(monthStr);
@@ -551,12 +551,12 @@ Deno.serve(async (req) => {
                 const roomGenDay = parseInt(getConfigValue('bill_generation_day', '27', roomBranchId));
 
                 let roomDueYear = currentYear;
-                let roomDueMonth = currentMonth;
+                                      let roomDueMonth = currentMonth;
 
-                if (roomGenDay > roomPayDay) {
-                    roomDueMonth = currentMonth + 1;
-                    if (roomDueMonth > 11) { roomDueMonth = 0; roomDueYear = currentYear + 1; }
-                }
+                                      if (currentDay > roomPayDay) {
+                                          roomDueMonth = currentMonth + 1;
+                                          if (roomDueMonth > 11) { roomDueMonth = 0; roomDueYear = currentYear + 1; }
+                                      }
 
                 const targetDueYearMonth = `${roomDueYear}-${String(roomDueMonth + 1).padStart(2, '0')}`;
                 const mapKey = `${room.id}|${targetDueYearMonth}`;
