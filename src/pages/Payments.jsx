@@ -26,7 +26,6 @@ import GenerateMonthlyBillsButton from "@/components/payments/GenerateMonthlyBil
 import SlipPreviewDialog from "@/components/shared/SlipPreviewDialog";
 import SendReminderDialog from "@/components/payments/SendReminderDialog";
 import ConfirmPaymentDialog from "@/components/payments/ConfirmPaymentDialog";
-import QueueMonitor from "@/components/payments/QueueMonitor";
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
@@ -2548,10 +2547,6 @@ Return JSON.`;
             </Button>
           )}
 
-          {userRole === 'developer' && (
-            <QueueMonitor branchId={selectedBranchId} />
-          )}
-
           {userRole === 'developer' && showDebugPanel && (
             <Card className="bg-purple-50 border-purple-200">
               <CardContent className="p-4">
@@ -2676,7 +2671,6 @@ Return JSON.`;
                   roomsNeedingBills={roomsNeedingBills}
                   onSuccess={() => queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] })} 
                   compact 
-                  queryClient={queryClient}
                 />
               )}
               {canSendReminder && (

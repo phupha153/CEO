@@ -91,7 +91,6 @@ Deno.serve(async (req) => {
 
     let base44 = null;
     let targetBranchId = null;
-    let jobId = null;
     let forceCreate = false;
     let resendNotifications = false;
     let forceSkipDuplicateCheck = false;
@@ -129,7 +128,6 @@ Deno.serve(async (req) => {
             if (text && text.trim()) {
                 const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
-                jobId = body.job_id || null;
                 forceCreate = body.force === true;
                 resendNotifications = body.resend_notifications === true;
                 forceSkipDuplicateCheck = body.force_skip_duplicate_check === true;
@@ -826,17 +824,14 @@ Deno.serve(async (req) => {
                 message: summaryMessage,
                 execution_time_ms: executionTime,
                 total_sent: createdCount,
-                triggered_by: jobId ? 'queue' : (targetBranchId ? 'manual_branch' : 'cron'),
+                triggered_by: targetBranchId ? 'manual_branch' : 'cron',
                 details: summaryData
             });
         } catch (logError) {
             console.error('⚠️ Log error:', logError.message);
         }
 
-        return Response.json({
-            ...summaryData,
-            job_id: jobId
-        });
+        return Response.json(summaryData);
 
     } catch (err) {
         console.error('❌ FATAL ERROR:', err);
