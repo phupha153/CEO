@@ -753,38 +753,6 @@ Deno.serve(async (req) => {
             }
         }
 
-        // 7. Process invoice queue
-        let sentCount = 0;
-        let failedCount = 0;
-        let pendingImageCount = 0;
-
-        if (billsToSend.length > 0) {
-            console.log(`📝 ${billsToSend.length} bills for images`);
-            pendingImageCount = billsToSend.length;
-
-            const shouldAutoProcess = getConfigValue('auto_process_invoice_queue_after_generation', 'false', targetBranchId) === 'true';
-
-            if (shouldAutoProcess && billsToSend.length <= 30) {
-                console.log(`🚀 Auto-processing...`);
-
-                try {
-                    const queueResult = await base44.asServiceRole.functions.invoke('processInvoiceImageQueue', {
-                        branch_id: targetBranchId,
-                        batch_size: Math.min(billsToSend.length, 30),
-                        concurrent_limit: 3
-                    });
-
-                    if (queueResult.data?.success) {
-                        sentCount = queueResult.data.lineSent || 0;
-                        failedCount = queueResult.data.lineFailed || 0;
-                        console.log(`✅ Queue done: sent ${sentCount}, failed ${failedCount}`);
-                    }
-                } catch (queueError) {
-                    console.error(`⚠️ Queue error:`, queueError.message);
-                }
-            }
-        }
-
         // Summary
         const executionTime = Date.now() - startTime;
         const monthName = thailandTime.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
