@@ -171,6 +171,27 @@ export default function ExcelUploader({
 
     setImporting(true);
     try {
+      // ⚡ OPTIMIZATION: Use bulk import function for Tenant entity (10+ records)
+      if (entityName === 'Tenant' && extractedData.length >= 10 && additionalData?.branch_id) {
+        const response = await base44.functions.invoke('bulkImportTenants', {
+          branch_id: additionalData.branch_id,
+          tenants_data: extractedData
+        });
+        
+        if (response.data.success) {
+          const s = response.data.summary;
+          toast.success(
+            `✅ นำเข้าสำเร็จ!\nสร้างใหม่: ${s.tenants_created} คน | อัพเดท: ${s.tenants_updated} คน\nสัญญา: ${s.bookings_created + s.bookings_updated} รายการ`,
+            { duration: 6000 }
+          );
+          setShowDialog(false);
+          setExtractedData(null);
+          setErrorMessage(null);
+          if (onSuccess) onSuccess();
+          return;
+        }
+      }
+
       // ถ้ามี onImport prop ให้ใช้ตัวนั้นแทน
       if (onImport) {
         await onImport(extractedData);
