@@ -45,6 +45,7 @@ export default function RoomsPage() {
   const [renewBooking, setRenewBooking] = useState(null);
   const [renewMonths, setRenewMonths] = useState(12);
   const [showRenewDialog, setShowRenewDialog] = useState(false);
+  const [maintenanceHistoryPage, setMaintenanceHistoryPage] = useState(1);
   
   // Bulk Selection State
   const [isSelectionMode, setIsSelectionMode] = useState(false);
