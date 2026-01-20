@@ -702,21 +702,6 @@ export default function Receipt() {
               </table>
             </div>
 
-            {/* Status Badge */}
-            <div className="mb-2 md:mb-3 text-[9px] md:text-xs">
-              <span className={`px-2 md:px-3 py-1 rounded-full font-bold inline-block ${
-                receiptData.status === 'paid' ? 'bg-green-100 text-green-700' :
-                receiptData.status === 'partial_paid' ? 'bg-yellow-100 text-yellow-700' :
-                receiptData.status === 'overdue' ? 'bg-red-100 text-red-700' :
-                'bg-blue-100 text-blue-700'
-              }`}>
-                {receiptData.status === 'paid' ? '✓ ชำระสมบูรณ์' :
-                 receiptData.status === 'partial_paid' ? '⊘ ชำระบางส่วน' :
-                 receiptData.status === 'overdue' ? '✕ เกินกำหนด' :
-                 '○ รอชำระเงิน'}
-              </span>
-            </div>
-
             {/* Total Amount & Stamp - Responsive */}
             <div className="mb-2 md:mb-4 border-t-2 border-slate-300 pt-2 md:pt-3">
               <div className="flex justify-between items-center">
@@ -728,12 +713,10 @@ export default function Receipt() {
                     {(receiptData.total_amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                   {/* ตราประทับชำระแล้ว */}
-                  {receiptData.status === 'paid' && (
-                    <div className="border-2 border-green-600 rounded px-1.5 md:px-2.5 py-0.5 md:py-1 text-center transform rotate-[-3deg]">
-                      <p className="text-[9px] md:text-xs font-bold text-green-700">✓ ชำระแล้ว</p>
-                      <p className="text-[8px] md:text-[9px] text-green-600">{paymentDate}</p>
-                    </div>
-                  )}
+                  <div className="border-2 border-green-600 rounded px-1.5 md:px-2.5 py-0.5 md:py-1 text-center transform rotate-[-3deg]">
+                    <p className="text-[9px] md:text-xs font-bold text-green-700">✓ ชำระแล้ว</p>
+                    <p className="text-[8px] md:text-[9px] text-green-600">{paymentDate}</p>
+                  </div>
                 </div>
               </div>
               <p className="text-[8px] md:text-xs text-slate-500 mt-1 md:mt-0 md:inline md:ml-2">({numberToThaiText(receiptData.total_amount || 0)})</p>
