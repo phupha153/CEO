@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Edit2, Trash2, Upload, Building2, User, Phone, Calendar as CalendarIcon, AlertTriangle, Eye, Clock, DollarSign, X, Check, Search, ChevronLeft, ChevronRight, Wind, DoorOpen, Sparkles, Loader2, FileText, ExternalLink, CheckSquare, Download, LogOut, Gauge, Star } from "lucide-react";
+import { Plus, Edit2, Trash2, Upload, Building2, User, Phone, Calendar as CalendarIcon, AlertTriangle, Eye, Clock, DollarSign, X, Check, Search, ChevronLeft, ChevronRight, Wind, DoorOpen, Sparkles, Loader2, FileText, ExternalLink, CheckSquare, Download, LogOut, Gauge, Star, Wrench } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
