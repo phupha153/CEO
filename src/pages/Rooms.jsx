@@ -2772,12 +2772,13 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 return (
                   <div className="space-y-4">
                     <Tabs defaultValue="room-info" className="w-full">
-                      <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="room-info">ข้อมูลห้อง</TabsTrigger>
-                        <TabsTrigger value="tenant-info">ข้อมูลผู้เช่า</TabsTrigger>
-                        <TabsTrigger value="payment-history">ประวัติการชำระ</TabsTrigger>
-                        <TabsTrigger value="meter-history">ข้อมูลมิเตอร์</TabsTrigger>
-                      </TabsList>
+                       <TabsList className="grid w-full grid-cols-5">
+                         <TabsTrigger value="room-info">ข้อมูลห้อง</TabsTrigger>
+                         <TabsTrigger value="tenant-info">ข้อมูลผู้เช่า</TabsTrigger>
+                         <TabsTrigger value="payment-history">ประวัติการชำระ</TabsTrigger>
+                         <TabsTrigger value="meter-history">ข้อมูลมิเตอร์</TabsTrigger>
+                         <TabsTrigger value="maintenance-history">ประวัติการซ่อม</TabsTrigger>
+                       </TabsList>
                       
                       <TabsContent value="room-info" className="pt-4 space-y-4">
                         <Card className="bg-slate-50 border-slate-200">
@@ -3041,6 +3042,67 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                               </div>
                             ) : (
                               <p className="text-center text-slate-500 py-8">ไม่มีประวัติการจดมิเตอร์</p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </TabsContent>
+
+                      <TabsContent value="maintenance-history" className="pt-4">
+                        <Card className="bg-orange-50 border-orange-200">
+                          <CardContent className="p-4 space-y-3">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                              <Wrench className="w-5 h-5 text-orange-600" />
+                              ประวัติการซ่อม ({maintenanceHistory.length} รายการ)
+                            </h3>
+                            {maintenanceHistory.length > 0 ? (
+                              <div className="space-y-2 max-h-96 overflow-y-auto p-1">
+                                {maintenanceHistory.map((request) => (
+                                  <div key={request.id} className="bg-white rounded-lg p-3 border border-orange-200 shadow-sm">
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div>
+                                        <p className="font-semibold text-slate-800">{request.title}</p>
+                                        <p className="text-xs text-slate-500 mt-1">
+                                          {format(parseISO(request.created_date), 'd MMM yyyy', { locale: th })}
+                                        </p>
+                                      </div>
+                                      <Badge className={`text-xs flex-shrink-0 ${
+                                        request.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                        request.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                        request.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                        'bg-yellow-100 text-yellow-800'
+                                      }`}>
+                                        {request.status === 'completed' ? 'เสร็จแล้ว' :
+                                         request.status === 'in_progress' ? 'กำลังซ่อม' :
+                                         request.status === 'cancelled' ? 'ยกเลิก' :
+                                         'รอดำเนินการ'}
+                                      </Badge>
+                                    </div>
+                                    {request.description && (
+                                      <p className="text-sm text-slate-700 mb-2">{request.description}</p>
+                                    )}
+                                    <div className="flex flex-wrap gap-2 text-xs">
+                                      <Badge variant="outline" className="bg-gray-50">
+                                        {request.category}
+                                      </Badge>
+                                      {request.priority && (
+                                        <Badge variant="outline" className={
+                                          request.priority === 'urgent' ? 'bg-red-50 border-red-200' :
+                                          request.priority === 'high' ? 'bg-orange-50 border-orange-200' :
+                                          request.priority === 'medium' ? 'bg-yellow-50 border-yellow-200' :
+                                          'bg-blue-50 border-blue-200'
+                                        }>
+                                          {request.priority === 'urgent' ? '🔴 ด่วนมาก' :
+                                           request.priority === 'high' ? '🟠 สำคัญ' :
+                                           request.priority === 'medium' ? '🟡 ปกติ' :
+                                           '🔵 ต่ำ'}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-center text-slate-500 py-8">ไม่มีประวัติการซ่อม</p>
                             )}
                           </CardContent>
                         </Card>
