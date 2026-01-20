@@ -110,25 +110,50 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
 
   if (compact) {
     return (
-      <Button
-        onClick={handleGenerateBills}
-        disabled={isLoading || roomsNeedingBills === 0}
-        size="sm"
-        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-      >
-        {isLoading ? (
-          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-        ) : (
-          <Calendar className="w-4 h-4 mr-1" />
-        )}
-        สร้างบิลเดือนนี้{roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          onClick={() => {
+            setUseQueue(false);
+            handleGenerateBills();
+          }}
+          disabled={isLoading || roomsNeedingBills === 0}
+          size="sm"
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+        >
+          {isLoading && !useQueue ? (
+            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+          ) : (
+            <Calendar className="w-4 h-4 mr-1" />
+          )}
+          สร้างบิลเดือนนี้{roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}
+        </Button>
+        <Button
+          onClick={() => {
+            setUseQueue(true);
+            handleGenerateBills();
+          }}
+          disabled={isLoading || roomsNeedingBills === 0}
+          size="sm"
+          variant="outline"
+          className="border-purple-300 text-purple-700 hover:bg-purple-50"
+        >
+          {isLoading && useQueue ? (
+            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+          ) : (
+            <Plus className="w-4 h-4 mr-1" />
+          )}
+          Queue
+        </Button>
+      </div>
     );
   }
 
   return (
     <Button
-      onClick={handleGenerateBills}
+      onClick={() => {
+        setUseQueue(false);
+        handleGenerateBills();
+      }}
       disabled={isLoading || roomsNeedingBills === 0}
       className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
     >
