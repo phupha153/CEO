@@ -336,9 +336,10 @@ Deno.serve(async (req) => {
             return Response.json({
                 success: true,
                 message: reason,
-                generatedCount: 0
+                generatedCount: 0,
+                existingPaymentsFound: recentPayments.length
             });
-        }
+            }
 
         // STEP 3: ดึงข้อมูลเพิ่มเติม (ทีละสาขา)
         console.log(`📦 Step 3: Fetching data for ${branchIdsToProcess.length} branches...`);
@@ -453,6 +454,7 @@ Deno.serve(async (req) => {
                     }
 
         console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments.length}`);
+        console.log(`📌 ⭐ ข้อมูลนี้จะใช้เพื่อเช็คว่ามีบิลเก่าแล้วหรือยัง`);
 
         const normalizedPayments = [];
 
@@ -808,13 +810,25 @@ Deno.serve(async (req) => {
         // Summary
         const executionTime = Date.now() - startTime;
         const monthName = thailandTime.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+
+        console.log('\n========================================');
+        console.log('📊 SUMMARY:');
+        console.log('========================================');
+        console.log(`📝 บิลเก่ากี่รายการ: ${recentPayments.length}`);
+        console.log(`⏭️ ข้ามเพราะสร้างแล้ว: ${skippedDueToExistingBill}`);
+        console.log(`✅ สร้างบิลใหม่: ${createdCount}`);
+        if (skippedDueToLimit > 0) {
+            console.log(`⚠️ เหลืออีก: ${skippedDueToLimit} (เกิน limit 1000)`);
+        }
+        console.log('========================================\n');
+
         let summaryMessage = `สร้างบิลสำเร็จ ${createdCount} รายการ`;
 
         if (skippedDueToExistingBill > 0) {
-            summaryMessage += `, ข้าม ${skippedDueToExistingBill} ห้อง`;
+            summaryMessage += `, ข้าม ${skippedDueToExistingBill} ห้อง (สร้างแล้ว)`;
         }
         if (skippedDueToLimit > 0) {
-            summaryMessage += `, ⚠️ เหลืออีก ${skippedDueToLimit} ห้อง (รันอีกครั้ง)`;
+            summaryMessage += `, ⚠️ เหลืออีก ${skippedDueToLimit} (รันอีกครั้ง)`;
         }
 
         // ⭐ แสดงเวลาต่อสาขา
@@ -837,6 +851,7 @@ Deno.serve(async (req) => {
             success: true,
             message: summaryMessage,
             generatedCount: createdCount,
+            existingBillsFound: recentPayments.length,
             skippedDueToExistingBill,
             skippedDueToLimit,
             needMoreRuns: skippedDueToLimit > 0
