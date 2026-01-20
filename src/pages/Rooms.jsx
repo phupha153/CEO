@@ -2893,24 +2893,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             )}
                           </CardContent>
                         </Card>
-                         {maintenanceHistory.length > 0 && (
-                            <Card className="bg-orange-50 border-orange-200">
-                              <CardContent className="p-4 space-y-3">
-                                <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                  <FileText className="w-5 h-5 text-orange-600" />
-                                  ประวัติการซ่อม ({maintenanceHistory.length} รายการ)
-                                </h3>
-                                <div className="space-y-2 max-h-60 overflow-y-auto">
-                                  {maintenanceHistory.map((request) => (
-                                    <div key={request.id} className="bg-white rounded-lg p-3 border border-orange-200">
-                                      {/* ... content for maintenance item */}
-                                    </div>
-                                  ))}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          )}
-                      </TabsContent>
+                        </TabsContent>
 
                       <TabsContent value="tenant-info" className="pt-4 space-y-4">
                         {(() => {
