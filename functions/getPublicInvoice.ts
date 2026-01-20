@@ -35,10 +35,11 @@ Deno.serve(async (req) => {
 
         // ดึงข้อมูล Payment - ใช้ service role เพื่อเข้าถึงข้อมูลได้โดยไม่ต้อง auth
         console.log('📥 Querying Database...');
-        const allPayments = await base44.asServiceRole.entities.Payment.list();
-        console.log(`📊 Total payments in DB: ${allPayments.length}`);
+        const allPaymentsRaw = await base44.asServiceRole.entities.Payment.list();
+        const allPayments = Array.isArray(allPaymentsRaw) ? allPaymentsRaw : (allPaymentsRaw?.data || []);
+        console.log(`📊 Total payments in DB: ${allPayments.length}, type: ${typeof allPaymentsRaw}`);
         
-        const payment = allPayments.find(p => p.id === paymentId);
+        const payment = Array.isArray(allPayments) && allPayments.find ? allPayments.find(p => p.id === paymentId) : null;
 
         if (!payment) {
             console.error('❌ Payment not found in database');
