@@ -772,8 +772,7 @@ Deno.serve(async (req) => {
                 message: summaryMessage,
                 execution_time_ms: executionTime,
                 total_sent: createdCount,
-                triggered_by: targetBranchId ? 'manual_branch' : 'cron',
-                details: summaryData
+                triggered_by: targetBranchId ? 'manual_branch' : 'cron'
             });
         } catch (logError) {
             console.error('⚠️ Log error:', logError.message);
