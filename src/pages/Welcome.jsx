@@ -70,7 +70,7 @@ export default function Welcome() {
             <img 
               src={buildingLogo} 
               alt="หลังหอพัก" 
-              className="w-16 h-16 object-contain rounded-2xl"
+              className="w-12 h-12 object-contain rounded-xl"
               onError={(e) => e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/58da6a306_DC4395DB-4B27-4859-85B3-4F2948654F9E.png'}
             />
           </div>
