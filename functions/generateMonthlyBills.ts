@@ -527,13 +527,6 @@ Deno.serve(async (req) => {
 
                     if (existingBill) {
                         skippedDueToExistingBill++;
-
-                        if (resendNotifications) {
-                            const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
-                            if (tenant?.line_user_id) {
-                                billsToSend.push({ payment: existingBill, tenant, room });
-                            }
-                        }
                         continue;
                     }
                 }
