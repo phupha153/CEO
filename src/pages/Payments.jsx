@@ -26,6 +26,7 @@ import GenerateMonthlyBillsButton from "@/components/payments/GenerateMonthlyBil
 import SlipPreviewDialog from "@/components/shared/SlipPreviewDialog";
 import SendReminderDialog from "@/components/payments/SendReminderDialog";
 import ConfirmPaymentDialog from "@/components/payments/ConfirmPaymentDialog";
+import QueueMonitor from "@/components/payments/QueueMonitor";
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
