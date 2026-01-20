@@ -481,7 +481,6 @@ Deno.serve(async (req) => {
         // 4. Prepare Payments
         const paymentsToCreate = [];
         const updatesToProcess = [];
-        const billsToSend = [];
         let skippedDueToExistingBill = 0;
         let skippedDueToLimit = 0;
         const paymentReferenceMap = new Map();
