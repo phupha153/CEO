@@ -928,6 +928,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
 
   const resetForm = () => {
     setEditingBooking(null);
+    setDialogBookingType('daily');
     setFormData({
       room_id: '',
       guest_name: '',
@@ -1802,69 +1803,69 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               ).toLocaleString()} บาท
                             </span>
                           </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div>
-                      <Label>วิธีการชำระเงิน</Label>
-                      <Select
-                        value={formData.deposit_payment_method}
-                        onValueChange={(value) => setFormData({ ...formData, deposit_payment_method: value })}
-                        disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="cash">💵 เงินสด</SelectItem>
-                          <SelectItem value="transfer">🏦 โอนเงิน</SelectItem>
-                          <SelectItem value="qr_code">📱 QR Code</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {(formData.deposit_payment_method === 'transfer' || formData.deposit_payment_method === 'qr_code') && (
-                      <div>
-                        <Label>หลักฐานการโอน / สลิป</Label>
-                        <div className="mt-2">
-                          <label className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-colors">
-                            <Upload className="w-5 h-5 text-slate-600" />
-                            <span className="text-sm text-slate-600">
-                              {uploadingSlip ? 'กำลังอัปโหลด...' : 'คลิกเพื่ออัปโหลดสลิป'}
-                            </span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleSlipUpload}
-                              disabled={uploadingSlip || createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
-                              className="hidden"
-                            />
-                          </label>
-                        </div>
-                        {formData.deposit_slip_url && (
-                          <div className="mt-3 relative">
-                            <img
-                              src={formData.deposit_slip_url}
-                              alt="สลิปการโอนเงิน"
-                              className="w-full max-w-xs h-48 object-cover rounded-lg border-2 border-slate-200"
-                            />
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              className="mt-2"
-                              onClick={() => setFormData({ ...formData, deposit_slip_url: '' })}
-                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
-                            >
-                              ลบรูป
-                            </Button>
                           </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                          </div>
+                          )}
+
+                          <div>
+                          <Label>วิธีการชำระเงิน</Label>
+                          <Select
+                          value={formData.deposit_payment_method}
+                          onValueChange={(value) => setFormData({ ...formData, deposit_payment_method: value })}
+                          disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                          >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cash">💵 เงินสด</SelectItem>
+                            <SelectItem value="transfer">🏦 โอนเงิน</SelectItem>
+                            <SelectItem value="qr_code">📱 QR Code</SelectItem>
+                          </SelectContent>
+                          </Select>
+                          </div>
+
+                          {(formData.deposit_payment_method === 'transfer' || formData.deposit_payment_method === 'qr_code') && (
+                          <div>
+                          <Label>หลักฐานการโอน / สลิป</Label>
+                          <div className="mt-2">
+                            <label className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-50 border-2 border-dashed border-slate-300 rounded-lg hover:border-blue-500 hover:bg-blue-50 cursor-pointer transition-colors">
+                              <Upload className="w-5 h-5 text-slate-600" />
+                              <span className="text-sm text-slate-600">
+                                {uploadingSlip ? 'กำลังอัปโหลด...' : 'คลิกเพื่ออัปโหลดสลิป'}
+                              </span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleSlipUpload}
+                                disabled={uploadingSlip || createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                                className="hidden"
+                              />
+                            </label>
+                          </div>
+                          {formData.deposit_slip_url && (
+                            <div className="mt-3 relative">
+                              <img
+                                src={formData.deposit_slip_url}
+                                alt="สลิปการโอนเงิน"
+                                className="w-full max-w-xs h-48 object-cover rounded-lg border-2 border-slate-200"
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="mt-2"
+                                onClick={() => setFormData({ ...formData, deposit_slip_url: '' })}
+                                disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                              >
+                                ลบรูป
+                              </Button>
+                            </div>
+                          )}
+                          </div>
+                          )}
+                          </div>
+                          )}
 
                 <div>
                   <Label>หมายเหตุ</Label>
