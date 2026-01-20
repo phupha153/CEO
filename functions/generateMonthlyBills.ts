@@ -685,13 +685,18 @@ Deno.serve(async (req) => {
             }
 
             for (const batch of batches) {
+                const batchStartTime = Date.now();
                 await retryOperation(async () => {
                     const created = await base44.asServiceRole.entities.Payment.bulkCreate(batch);
 
                     createdCount += created.length;
                 });
+                const batchTime = Date.now() - batchStartTime;
+                console.log(`   ✅ Batch: +${batch.length} bills (${batchTime}ms)`);
                 await delay(500);
             }
+            stepTimings.step5 = Date.now() - step5StartTime;
+            console.log(`⏱️ Step 5 (Create Bills): ${stepTimings.step5}ms`);
         }
 
         // 6. Update Prepaid Balances + Calculate Payment Scores (Parallel Chunked)
