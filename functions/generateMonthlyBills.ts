@@ -216,6 +216,7 @@ Deno.serve(async (req) => {
 
         // STEP 1: Fetch rooms and bookings - ใช้ limit สูงสุด
         console.log('📦 Step 1: Fetching all data...');
+        const stepTimings = {};
 
         const filter = targetBranchId ? { branch_id: targetBranchId } : {};
 
