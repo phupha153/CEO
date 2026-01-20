@@ -1037,7 +1037,13 @@ export default function Layout({ children, currentPageName }) {
   const visibleMenuItems = currentUser ? navigationItems.filter(item => {
     // Handle trial mode items specially
     if (item.isTrial) {
-      // ใช้ plan_status ของเจ้าของสาขา (ถ้ามี) หรือของตัวเอง
+      // ⭐ แสดงเฉพาะ Developer หรือ Owner ที่อยู่ในโหมด Trial เท่านั้น
+      if (userRole === 'developer') return true;
+      
+      // ⭐ รอให้ branchOwnerStatus โหลดเสร็จก่อน (ป้องกัน flash)
+      if (branchOwnerLoading) return false;
+      
+      // ⭐ เช็คว่าเจ้าของสาขาอยู่ใน trial หรือไม่
       const effectivePlanStatus = branchOwnerStatus?.plan_status || currentUser?.plan_status;
       return effectivePlanStatus === 'trial';
     }
