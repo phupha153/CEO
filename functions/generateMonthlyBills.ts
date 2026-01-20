@@ -790,6 +790,22 @@ Deno.serve(async (req) => {
             summaryMessage += `, ⚠️ เหลืออีก ${skippedDueToLimit} ห้อง (รันอีกครั้ง)`;
         }
 
+        // ⭐ แสดงเวลาต่อสาขา
+        console.log('\n========================================');
+        console.log('⏱️ TIMING PER BRANCH:');
+        console.log('========================================');
+        for (const branchId of branchIdsToProcess) {
+            const timing = branchTimings[branchId];
+            if (timing) {
+                const elapsed = Date.now() - timing.startTime;
+                const seconds = (elapsed / 1000).toFixed(2);
+                console.log(`📍 Branch ${branchId.slice(0, 8)}: ${timing.createdCount} บิล | ⏱️ ${seconds}s`);
+            }
+        }
+        console.log('========================================');
+        console.log(`⏱️ TOTAL TIME: ${(executionTime / 1000).toFixed(2)}s`);
+        console.log('========================================');
+
         const summaryData = {
             success: true,
             message: summaryMessage,
