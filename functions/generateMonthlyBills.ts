@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
 
     let base44 = null;
     let targetBranchId = null;
+    let jobId = null;
     let forceCreate = false;
     let resendNotifications = false;
     let forceSkipDuplicateCheck = false;
