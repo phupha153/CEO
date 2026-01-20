@@ -268,11 +268,12 @@ Deno.serve(async (req) => {
                 }
             });
 
-            if (fetchingBookings) await delay(200);
+            if (fetchingBookings) await delay(100); // ⭐ OPTIMIZED: Reduced from 200ms
         }
 
         console.log(`✅ Total bookings: ${bookings.length}`);
-        await delay(500); // ⭐ พักหลัง Step 1
+        const bookingsMap = new Map(bookings.filter(b => b.status === 'active').map(b => [b.room_id, b])); // ⭐ NEW: Map for O(1) lookup
+        // await delay(500); // ⭐ REMOVED: Unnecessary delay
 
         const normalizeEntity = (entity) => {
             if (!entity) return null;
@@ -383,9 +384,17 @@ Deno.serve(async (req) => {
 
         meterReadings = meterReadings.map(normalizeEntity).filter(Boolean);
         tenants = tenants.map(normalizeEntity).filter(Boolean);
+        const tenantsMap = new Map(tenants.map(t => [t.id, t])); // ⭐ NEW: Map for O(1) lookup
+        const metersMapByRoom = new Map(); // ⭐ NEW: Group meters by room for O(1) lookup
+        for (const meter of meterReadings) {
+            if (!metersMapByRoom.has(meter.room_id)) {
+                metersMapByRoom.set(meter.room_id, []);
+            }
+            metersMapByRoom.get(meter.room_id).push(meter);
+        }
 
         console.log(`📦 Fetched: ${meterReadings.length} meter readings, ${tenants.length} tenants`);
-        await delay(500); // ⭐ พักก่อน Step 4
+        // await delay(500); // ⭐ REMOVED: Unnecessary delay
 
         // STEP 4: ดึง Payment สำหรับเดือนที่จะสร้างบิล (Smart Filter)
         console.log(`📦 Step 4: Fetching payments for TARGET MONTHS ONLY...`);
@@ -452,9 +461,9 @@ Deno.serve(async (req) => {
 
                     console.log(`         ✅ Month ${targetMonth}: ${branchPayments.length} payments`);
                     recentPayments = recentPayments.concat(branchPayments);
-                    await delay(100);
+                    // await delay(100); // ⭐ REMOVED: Unnecessary delay
                     }
-                    await delay(300);
+                    // await delay(300); // ⭐ REMOVED: Unnecessary delay
                     }
 
         console.log(`⭐ TOTAL PAYMENTS FETCHED: ${recentPayments.length}`);
@@ -527,7 +536,7 @@ Deno.serve(async (req) => {
                 continue;
             }
             try {
-                const activeBooking = bookings.find(b => b.room_id === room.id && b.status === 'active');
+                const activeBooking = bookingsMap.get(room.id); // ⭐ OPTIMIZED: O(1) lookup instead of .find()
                 if (!activeBooking) continue;
 
                 const roomBranchId = room.branch_id;
@@ -556,16 +565,7 @@ Deno.serve(async (req) => {
                 const dueDate = new Date(roomDueYear, roomDueMonth, roomPayDay);
 
                 if (!forceSkipDuplicateCheck) {
-                    let existingBill = existingPaymentsMap.get(mapKey) || null;
-
-                    if (!existingBill) {
-                        for (const p of normalizedPayments) {
-                            if (p.room_id === room.id && p.due_date && p.due_date.substring(0, 7) === targetDueYearMonth) {
-                                existingBill = p;
-                                break;
-                            }
-                        }
-                    }
+                    const existingBill = existingPaymentsMap.get(mapKey) || null; // ⭐ OPTIMIZED: Remove fallback loop
 
                     if (existingBill) {
                         skippedDueToExistingBill++;
@@ -577,8 +577,7 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                const roomMeters = meterReadings.filter(m => m.room_id === room.id);
-                roomMeters.sort((a, b) => new Date(b.created_date || b.reading_date) - new Date(a.created_date || a.reading_date));
+                const roomMeters = (metersMapByRoom.get(room.id) || []).slice().sort((a, b) => new Date(b.created_date || b.reading_date) - new Date(a.created_date || a.reading_date)); // ⭐ OPTIMIZED: O(1) map lookup instead of .filter()
 
                 let latestMeter = roomMeters.find(m => (m.water_units > 0 || m.electricity_units > 0)) || roomMeters[0] || null;
 
@@ -626,7 +625,7 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                const tenant = tenants.find(t => t.id === activeBooking.tenant_id);
+                const tenant = tenantsMap.get(activeBooking.tenant_id); // ⭐ OPTIMIZED: O(1) lookup instead of .find()
 
                 if (!tenant || tenant.status === 'moved_out') {
                     console.log(`⏭️ Room ${room.room_number}: Tenant moved out - skip`);
@@ -738,7 +737,7 @@ Deno.serve(async (req) => {
                 });
                 const batchTime = Date.now() - batchStartTime;
                 console.log(`   ✅ Batch: +${batch.length} bills (${batchTime}ms)`);
-                await delay(500);
+                await delay(100); // ⭐ OPTIMIZED: Reduced from 500ms
             }
             stepTimings.step5 = Date.now() - step5StartTime;
             console.log(`⏱️ Step 5 (Create Bills): ${stepTimings.step5}ms`);
@@ -773,7 +772,7 @@ Deno.serve(async (req) => {
                     chunk.map(([tenantId, data]) =>
                         (async () => {
                             try {
-                                const tenant = tenants.find(t => t.id === tenantId);
+                                const tenant = tenantsMap.get(tenantId); // ⭐ OPTIMIZED: O(1) lookup instead of .find()
                                 const currentBalance = tenant?.prepaid_balance || 0;
                                 const newBalance = Math.max(0, currentBalance - data.totalDeduction);
 
@@ -810,7 +809,7 @@ Deno.serve(async (req) => {
                 const chunkTime = Date.now() - chunkStartTime;
                 console.log(`   ✅ Chunk done: ${successful} success, ${failed} failed (${chunkTime}ms)`);
 
-                await delay(200); // Rate limit between chunks
+                await delay(50); // ⭐ OPTIMIZED: Reduced from 200ms (chunk already has 10 parallel operations)
                 }
                 stepTimings.step6 = Date.now() - step6StartTime;
                 console.log(`⏱️ Step 6 (Update Balances): ${stepTimings.step6}ms`);
@@ -854,7 +853,7 @@ Deno.serve(async (req) => {
         };
 
         try {
-            await delay(1000);
+            // await delay(1000); // ⭐ REMOVED: Unnecessary delay before logging
             await base44.asServiceRole.entities.FunctionLog.create({
                 function_name: 'generateMonthlyBills',
                 run_timestamp: new Date().toISOString(),
