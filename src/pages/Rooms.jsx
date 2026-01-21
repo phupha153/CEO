@@ -3126,13 +3126,13 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 return (
                   <div className="space-y-4">
                     <Tabs defaultValue="room-info" className="w-full">
-                       <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
-                         <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-5 gap-1">
-                           <TabsTrigger value="room-info" className="whitespace-nowrap px-3 md:px-4 flex-shrink-0">ข้อมูลห้อง</TabsTrigger>
-                           <TabsTrigger value="tenant-info" className="whitespace-nowrap px-3 md:px-4 flex-shrink-0">ผู้เช่า</TabsTrigger>
-                           <TabsTrigger value="payment-history" className="whitespace-nowrap px-3 md:px-4 flex-shrink-0">ประวัติชำระ</TabsTrigger>
-                           <TabsTrigger value="meter-history" className="whitespace-nowrap px-3 md:px-4 flex-shrink-0">มิเตอร์</TabsTrigger>
-                           <TabsTrigger value="maintenance-history" className="whitespace-nowrap px-3 md:px-4 flex-shrink-0">ซ่อม</TabsTrigger>
+                       <div className="overflow-x-auto -mx-1 px-1 pb-2">
+                         <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-5">
+                           <TabsTrigger value="room-info" className="text-xs md:text-sm whitespace-nowrap px-2 md:px-4">ข้อมูลห้อง</TabsTrigger>
+                           <TabsTrigger value="tenant-info" className="text-xs md:text-sm whitespace-nowrap px-2 md:px-4">ผู้เช่า</TabsTrigger>
+                           <TabsTrigger value="payment-history" className="text-xs md:text-sm whitespace-nowrap px-2 md:px-4">ประวัติชำระ</TabsTrigger>
+                           <TabsTrigger value="meter-history" className="text-xs md:text-sm whitespace-nowrap px-2 md:px-4">มิเตอร์</TabsTrigger>
+                           <TabsTrigger value="maintenance-history" className="text-xs md:text-sm whitespace-nowrap px-2 md:px-4">ซ่อม</TabsTrigger>
                          </TabsList>
                        </div>
                       
