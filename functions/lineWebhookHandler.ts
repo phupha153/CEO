@@ -268,6 +268,16 @@ async function getBranchIdFromDestination(base44, destination) {
 Deno.serve(async (req) => {
     const url = new URL(req.url);
     const queryBranchId = url.searchParams.get('branch_id');
+    const challenge = url.searchParams.get('challenge');
+
+    // ⭐ LINE Challenge Request (verification)
+    if (challenge) {
+        console.log(`✅ LINE Challenge received: ${challenge.substring(0, 20)}...`);
+        return new Response(challenge, {
+            status: 200,
+            headers: { 'Content-Type': 'text/plain' }
+        });
+    }
 
     if (!queryBranchId) {
         return new Response(JSON.stringify({ 
