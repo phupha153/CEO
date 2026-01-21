@@ -968,7 +968,15 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   const getRoomInfo = (roomId) => rooms.find(r => r.id === roomId);
 
   const filteredBookings = useMemo(() => {
-    const bookingsToFilter = selectedFilter === 'monthly' ? monthlyBookings : dailyBookings;
+    let bookingsToFilter;
+    if (selectedFilter === 'monthly') {
+      bookingsToFilter = monthlyBookings;
+    } else if (selectedFilter === 'daily') {
+      bookingsToFilter = dailyBookings;
+    } else {
+      // "all" - combine both daily and monthly
+      bookingsToFilter = [...dailyBookings, ...monthlyBookings];
+    }
     
     if (!debouncedSearch.trim()) return bookingsToFilter;
 
