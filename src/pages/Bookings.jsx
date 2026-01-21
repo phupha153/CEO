@@ -127,7 +127,7 @@ export default function BookingsPage() {
     queryFn: async () => {
       const response = await base44.functions.invoke('getSecureData', {
         entity: 'Booking',
-        filters: { branch_id: selectedBranchId },
+        filters: { branch_id: selectedBranchId, tenant_id: null },
         limit: 5000
       });
       return response.data.data;
