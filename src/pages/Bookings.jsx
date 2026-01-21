@@ -189,7 +189,7 @@ export default function BookingsPage() {
   });
 
   const selectedBranchName = useMemo(() => {
-    return branches.find(branch => branch.id === selectedBranchId)?.name || 'ไม่ระบุสาขา';
+    return branches.find(branch => branch.id === selectedBranchId)?.branch_name || 'ไม่ระบุสาขา';
   }, [branches, selectedBranchId]);
 
   const allBookings = useMemo(() => bookings, [bookings]);
