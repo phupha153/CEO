@@ -766,6 +766,17 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   const [checkInConfirmDialog, setCheckInConfirmDialog] = useState(false);
   const [pendingCheckInBooking, setPendingCheckInBooking] = useState(null);
   const [createPaymentOnCheckIn, setCreatePaymentOnCheckIn] = useState(true);
+  
+  const [confirmTenantDialog, setConfirmTenantDialog] = useState(false);
+  const [pendingTempBooking, setPendingTempBooking] = useState(null);
+  const [selectedTenant, setSelectedTenant] = useState(null);
+  const [createNewTenant, setCreateNewTenant] = useState(false);
+  const [tenantFormData, setTenantFormData] = useState({
+    full_name: '',
+    phone: '',
+    national_id: '',
+    email: ''
+  });
 
   const confirmCheckInMutation = useMutation({
     mutationFn: async ({ booking, shouldCreatePayment }) => {
