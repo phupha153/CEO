@@ -1257,17 +1257,17 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                   <p className="text-[10px] md:text-xs text-slate-500 font-semibold uppercase tracking-wide">ผู้เข้าพัก</p>
                                   <p className="text-sm font-bold text-slate-800 truncate">{booking.guest_name || 'ไม่ระบุ'}</p>
                                   {booking.guest_phone && (
-                                    <p className="text-xs text-slate-600 mt-0.5">{booking.guest_phone}</p>
+                                    <p className="text-[10px] md:text-xs text-slate-600 mt-0.5">{booking.guest_phone}</p>
                                   )}
                                 </div>
                               </div>
-                              <div className="flex items-start gap-3">
-                                <CalendarIcon className="w-5 h-5 text-indigo-600 mt-0.5 flex-shrink-0" />
+                              <div className="flex items-start gap-2 md:gap-3">
+                                <CalendarIcon className="w-4 md:w-5 h-4 md:h-5 text-indigo-600 mt-0.5 flex-shrink-0" />
                                 <div className="min-w-0">
-                                  <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide">วันที่</p>
-                                  <p className="text-sm font-bold text-slate-800">{format(parseISO(booking.check_in_date), 'd MMM', { locale: th })}</p>
+                                  <p className="text-[10px] md:text-xs text-slate-500 font-semibold uppercase tracking-wide">วันที่</p>
+                                  <p className="text-xs md:text-sm font-bold text-slate-800">{format(parseISO(booking.check_in_date), 'd MMM', { locale: th })}</p>
                                   {booking.check_out_date && (
-                                    <p className="text-xs text-slate-600 mt-0.5">
+                                    <p className="text-[10px] md:text-xs text-slate-600 mt-0.5">
                                       ถึง {format(parseISO(booking.check_out_date), 'd MMM', { locale: th })}
                                     </p>
                                   )}
