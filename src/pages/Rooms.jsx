@@ -3126,13 +3126,15 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 return (
                   <div className="space-y-4">
                     <Tabs defaultValue="room-info" className="w-full">
-                       <TabsList className="grid w-full grid-cols-5">
-                         <TabsTrigger value="room-info">ข้อมูลห้อง</TabsTrigger>
-                         <TabsTrigger value="tenant-info">ข้อมูลผู้เช่า</TabsTrigger>
-                         <TabsTrigger value="payment-history">ประวัติการชำระ</TabsTrigger>
-                         <TabsTrigger value="meter-history">ข้อมูลมิเตอร์</TabsTrigger>
-                         <TabsTrigger value="maintenance-history">ประวัติการซ่อม</TabsTrigger>
-                       </TabsList>
+                       <div className="w-full overflow-x-auto pb-2 -mx-2 px-2">
+                         <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-5">
+                           <TabsTrigger value="room-info" className="whitespace-nowrap px-3 md:px-4">ข้อมูลห้อง</TabsTrigger>
+                           <TabsTrigger value="tenant-info" className="whitespace-nowrap px-3 md:px-4">ข้อมูลผู้เช่า</TabsTrigger>
+                           <TabsTrigger value="payment-history" className="whitespace-nowrap px-3 md:px-4">ประวัติการชำระ</TabsTrigger>
+                           <TabsTrigger value="meter-history" className="whitespace-nowrap px-3 md:px-4">ข้อมูลมิเตอร์</TabsTrigger>
+                           <TabsTrigger value="maintenance-history" className="whitespace-nowrap px-3 md:px-4">ประวัติการซ่อม</TabsTrigger>
+                         </TabsList>
+                       </div>
                       
                       <TabsContent value="room-info" className="pt-4 space-y-4">
                         <Card className="bg-slate-50 border-slate-200">
