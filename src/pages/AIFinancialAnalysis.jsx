@@ -409,8 +409,8 @@ export default function AIFinancialAnalysis() {
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
                   
                   {/* Branch Selector */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-semibold text-slate-700">เลือกสาขา</label>
+                  <div className="flex flex-col gap-1.5 md:gap-2">
+                    <label className="text-xs md:text-sm font-semibold text-slate-700">เลือกสาขา</label>
                     <Select value={selectedBranchId} onValueChange={setSelectedBranchId}>
                       <SelectTrigger className="bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl">
                         <SelectValue placeholder="เลือกสาขา" />
