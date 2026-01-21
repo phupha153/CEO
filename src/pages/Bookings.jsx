@@ -192,7 +192,7 @@ export default function BookingsPage() {
     return branches.find(branch => branch.id === selectedBranchId)?.name || 'ไม่ระบุสาขา';
   }, [branches, selectedBranchId]);
 
-  const dailyBookings = useMemo(() => bookings.filter(b => b.booking_type === 'daily'), [bookings]);
+  const allBookings = useMemo(() => bookings, [bookings]);
 
   const handleAISearch = async () => {
     if (!searchQuery.trim()) {
@@ -726,8 +726,8 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       return booking;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['bookings', selectedBranchId]);
-      queryClient.invalidateQueries(['rooms', selectedBranchId]);
+      queryClient.invalidateQueries(['bookings', selectedBranchId, 'secure']);
+      queryClient.invalidateQueries(['rooms', selectedBranchId, 'secure']);
       queryClient.invalidateQueries(['expenses', selectedBranchId]);
       setShowDialog(false);
       resetForm();
@@ -746,8 +746,8 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       return base44.entities.Booking.delete(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['bookings', selectedBranchId]);
-      queryClient.invalidateQueries(['rooms', selectedBranchId]);
+      queryClient.invalidateQueries(['bookings', selectedBranchId, 'secure']);
+      queryClient.invalidateQueries(['rooms', selectedBranchId, 'secure']);
       toast.success('ลบการจองสำเร็จ');
     },
     onError: (error) => {
@@ -763,8 +763,8 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       await base44.entities.Booking.update(booking.id, { status: 'cancelled' });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['bookings', selectedBranchId]);
-      queryClient.invalidateQueries(['rooms', selectedBranchId]);
+      queryClient.invalidateQueries(['bookings', selectedBranchId, 'secure']);
+      queryClient.invalidateQueries(['rooms', selectedBranchId, 'secure']);
       toast.success('ยกเลิกการจองสำเร็จ');
     },
     onError: (error) => {
@@ -823,7 +823,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       return booking;
     },
     onSuccess: (booking) => {
-      queryClient.invalidateQueries(['bookings', selectedBranchId]);
+      queryClient.invalidateQueries(['bookings', selectedBranchId, 'secure']);
       queryClient.invalidateQueries(['payments', selectedBranchId]);
       setCheckInConfirmDialog(false);
       setPendingCheckInBooking(null);
@@ -964,16 +964,16 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   const getRoomInfo = (roomId) => rooms.find(r => r.id === roomId);
 
   const filteredBookings = useMemo(() => {
-    if (!debouncedSearch.trim()) return dailyBookings;
+    if (!debouncedSearch.trim()) return allBookings;
 
     const query = debouncedSearch.toLowerCase();
-    return dailyBookings.filter(booking => {
+    return allBookings.filter(booking => {
       const room = getRoomInfo(booking.room_id);
       return booking.guest_name?.toLowerCase().includes(query) ||
              booking.guest_phone?.toLowerCase().includes(query) ||
              room?.room_number?.toLowerCase().includes(query);
     });
-  }, [dailyBookings, debouncedSearch, rooms]);
+  }, [allBookings, debouncedSearch, rooms]);
 
   const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
   const paginatedBookings = useMemo(() => {
@@ -1212,7 +1212,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               <h3 className="text-xl font-bold text-slate-800">
                                 ห้อง {room?.room_number || 'N/A'}
                               </h3>
-                              <p className="text-sm text-slate-500">รายวัน</p>
+                              <p className="text-sm text-slate-500">{booking.booking_type === 'daily' ? 'รายวัน' : 'รายเดือน'}</p>
                             </div>
                             {getStatusBadge(booking.status)}
                           </div>
