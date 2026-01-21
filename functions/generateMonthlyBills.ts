@@ -579,7 +579,8 @@ Deno.serve(async (req) => {
 
                 const roomMeters = (metersMapByRoom.get(room.id) || []).slice().sort((a, b) => new Date(b.created_date || b.reading_date) - new Date(a.created_date || a.reading_date)); // ⭐ OPTIMIZED: O(1) map lookup instead of .filter()
 
-                let latestMeter = roomMeters.find(m => (m.water_units > 0 || m.electricity_units > 0)) || roomMeters[0] || null;
+                // ⭐ FIX: ใช้มิเตอร์ล่าสุดเสมอ (ไม่ว่าจะ 0 หรือไม่) - ป้องกันเอาค่าเก่ามาใช้
+                let latestMeter = roomMeters[0] || null;
 
                 let waterUnits = latestMeter?.water_units || 0;
                 let elecUnits = latestMeter?.electricity_units || 0;
