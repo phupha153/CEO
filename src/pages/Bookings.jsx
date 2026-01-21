@@ -1234,7 +1234,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                         <div className="flex flex-col md:flex-row justify-between gap-5">
                           <div className="flex-1 space-y-4">
                             <div className="flex items-start gap-4">
-                              <div className="w-14 h-14 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                              <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
                                 <DoorOpen className="w-7 h-7 text-white" />
                               </div>
                               <div className="flex-1 pt-1">
