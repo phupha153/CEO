@@ -2749,13 +2749,27 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 </div>
 
                 {/* ค่าขั้นต่ำน้ำ-ไฟ */}
-                <div className="space-y-3 p-4 border rounded-lg bg-slate-50/50">
-                  <Label>ค่าขั้นต่ำน้ำ-ไฟ (เฉพาะห้องนี้)</Label>
-                  <p className="text-xs text-slate-500">ถ้าไม่ตั้ง = ใช้ค่าสาขา</p>
+                <div className="space-y-3 p-4 border-2 border-blue-200 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base font-semibold text-slate-800">ค่าขั้นต่ำน้ำ-ไฟ (เฉพาะห้องนี้)</Label>
+                      <p className="text-xs text-slate-500 mt-1">ถ้าไม่ตั้ง = ใช้ค่าสาขา</p>
+                    </div>
+                  </div>
                   
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 p-3 bg-white rounded-lg border-2 border-blue-300 hover:border-blue-400 transition-all cursor-pointer" onClick={() => {
+                        const newChecked = !enableMinWater;
+                        setEnableMinWater(newChecked);
+                        if (!newChecked) {
+                          setFormData({ 
+                            ...formData, 
+                            min_water_units: '', 
+                            min_water_charge: '' 
+                          });
+                        }
+                      }}>
                         <Checkbox
                           id="enable-min-water"
                           checked={enableMinWater}
@@ -2770,39 +2784,52 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             }
                           }}
                         />
-                        <Label htmlFor="enable-min-water" className="text-sm cursor-pointer">
+                        <Label htmlFor="enable-min-water" className="text-sm font-medium cursor-pointer flex-1">
                           ตั้งค่าขั้นต่ำค่าน้ำ
                         </Label>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs text-slate-600">หน่วย</Label>
-                          <Input
-                            type="number"
-                            placeholder="เช่น 5"
-                            value={formData.min_water_units}
-                            onChange={(e) => setFormData({ ...formData, min_water_units: e.target.value })}
-                            onWheel={(e) => e.target.blur()}
-                            disabled={!enableMinWater}
-                          />
+                      
+                      {enableMinWater && (
+                        <div className="grid grid-cols-2 gap-2 pl-2">
+                          <div>
+                            <Label className="text-xs text-slate-600">หน่วย</Label>
+                            <Input
+                              type="number"
+                              placeholder="เช่น 5"
+                              value={formData.min_water_units}
+                              onChange={(e) => setFormData({ ...formData, min_water_units: e.target.value })}
+                              onWheel={(e) => e.target.blur()}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-slate-600">คิดค่า (บาท)</Label>
+                            <Input
+                              type="number"
+                              placeholder="เช่น 50"
+                              value={formData.min_water_charge}
+                              onChange={(e) => setFormData({ ...formData, min_water_charge: e.target.value })}
+                              onWheel={(e) => e.target.blur()}
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <Label className="text-xs text-slate-600">คิดค่า (บาท)</Label>
-                          <Input
-                            type="number"
-                            placeholder="เช่น 50"
-                            value={formData.min_water_charge}
-                            onChange={(e) => setFormData({ ...formData, min_water_charge: e.target.value })}
-                            onWheel={(e) => e.target.blur()}
-                            disabled={!enableMinWater}
-                          />
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-slate-500">ถ้าใช้น้อยกว่า X หน่วย คิด Y บาท</p>
+                      )}
+                      {enableMinWater && (
+                        <p className="text-[10px] text-slate-500 pl-2">ถ้าใช้น้อยกว่า X หน่วย คิด Y บาท</p>
+                      )}
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 p-3 bg-white rounded-lg border-2 border-orange-300 hover:border-orange-400 transition-all cursor-pointer" onClick={() => {
+                        const newChecked = !enableMinElectricity;
+                        setEnableMinElectricity(newChecked);
+                        if (!newChecked) {
+                          setFormData({ 
+                            ...formData, 
+                            min_electricity_units: '', 
+                            min_electricity_charge: '' 
+                          });
+                        }
+                      }}>
                         <Checkbox
                           id="enable-min-electricity"
                           checked={enableMinElectricity}
@@ -2817,35 +2844,38 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             }
                           }}
                         />
-                        <Label htmlFor="enable-min-electricity" className="text-sm cursor-pointer">
+                        <Label htmlFor="enable-min-electricity" className="text-sm font-medium cursor-pointer flex-1">
                           ตั้งค่าขั้นต่ำค่าไฟ
                         </Label>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs text-slate-600">หน่วย</Label>
-                          <Input
-                            type="number"
-                            placeholder="เช่น 10"
-                            value={formData.min_electricity_units}
-                            onChange={(e) => setFormData({ ...formData, min_electricity_units: e.target.value })}
-                            onWheel={(e) => e.target.blur()}
-                            disabled={!enableMinElectricity}
-                          />
+                      
+                      {enableMinElectricity && (
+                        <div className="grid grid-cols-2 gap-2 pl-2">
+                          <div>
+                            <Label className="text-xs text-slate-600">หน่วย</Label>
+                            <Input
+                              type="number"
+                              placeholder="เช่น 10"
+                              value={formData.min_electricity_units}
+                              onChange={(e) => setFormData({ ...formData, min_electricity_units: e.target.value })}
+                              onWheel={(e) => e.target.blur()}
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs text-slate-600">คิดค่า (บาท)</Label>
+                            <Input
+                              type="number"
+                              placeholder="เช่น 100"
+                              value={formData.min_electricity_charge}
+                              onChange={(e) => setFormData({ ...formData, min_electricity_charge: e.target.value })}
+                              onWheel={(e) => e.target.blur()}
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <Label className="text-xs text-slate-600">คิดค่า (บาท)</Label>
-                          <Input
-                            type="number"
-                            placeholder="เช่น 100"
-                            value={formData.min_electricity_charge}
-                            onChange={(e) => setFormData({ ...formData, min_electricity_charge: e.target.value })}
-                            onWheel={(e) => e.target.blur()}
-                            disabled={!enableMinElectricity}
-                          />
-                        </div>
-                      </div>
-                      <p className="text-[10px] text-slate-500">ถ้าใช้น้อยกว่า X หน่วย คิด Y บาท</p>
+                      )}
+                      {enableMinElectricity && (
+                        <p className="text-[10px] text-slate-500 pl-2">ถ้าใช้น้อยกว่า X หน่วย คิด Y บาท</p>
+                      )}
                     </div>
                   </div>
                 </div>
