@@ -721,13 +721,14 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   });
 
   const confirmTempBookingMutation = useMutation({
-    mutationFn: async (tempBooking) => {
+    mutationFn: async ({ tempBooking, tenantId }) => {
       // สร้าง Booking ปกติจากข้อมูล TemporaryBooking
       const bookingData = {
         ...tempBooking,
         status: 'active',
         booking_no: format(new Date(), 'dd-MM-yy'),
-        total_amount: 0
+        total_amount: 0,
+        tenant_id: tenantId || null
       };
       delete bookingData.id;
       delete bookingData.created_date;
@@ -741,7 +742,13 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
     onSuccess: () => {
       queryClient.invalidateQueries(['bookings', selectedBranchId]);
       queryClient.invalidateQueries(['temporaryBookings', selectedBranchId]);
+      queryClient.invalidateQueries(['tenants', selectedBranchId]);
       toast.success('ยืนยันการจองสำเร็จ');
+      setConfirmTenantDialog(false);
+      setPendingTempBooking(null);
+      setSelectedTenant(null);
+      setCreateNewTenant(false);
+      setTenantFormData({ full_name: '', phone: '', national_id: '', email: '' });
     },
     onError: (error) => {
       toast.error(error.message || 'เกิดข้อผิดพลาด');
