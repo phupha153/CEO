@@ -1250,11 +1250,11 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               </div>
                             </div>
 
-                            <div className="grid md:grid-cols-2 gap-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 border border-slate-200">
-                              <div className="flex items-start gap-3">
-                                <User className="w-5 h-5 text-indigo-600 mt-0.5 flex-shrink-0" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg md:rounded-xl p-3 md:p-4 border border-slate-200">
+                              <div className="flex items-start gap-2 md:gap-3">
+                                <User className="w-4 md:w-5 h-4 md:h-5 text-indigo-600 mt-0.5 flex-shrink-0" />
                                 <div className="min-w-0">
-                                  <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide">ผู้เข้าพัก</p>
+                                  <p className="text-[10px] md:text-xs text-slate-500 font-semibold uppercase tracking-wide">ผู้เข้าพัก</p>
                                   <p className="text-sm font-bold text-slate-800 truncate">{booking.guest_name || 'ไม่ระบุ'}</p>
                                   {booking.guest_phone && (
                                     <p className="text-xs text-slate-600 mt-0.5">{booking.guest_phone}</p>
