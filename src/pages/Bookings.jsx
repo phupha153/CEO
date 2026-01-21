@@ -1229,7 +1229,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                     exit={{ opacity: 0, y: -20 }}
                   >
                     <Card className="relative overflow-hidden bg-white border-0 shadow-md hover:shadow-2xl transition-all duration-300 group">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 via-purple-500 to-blue-500 group-hover:w-2 transition-all duration-300" />
+                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600 group-hover:w-2 transition-all duration-300" />
                       <CardContent className="p-5 pl-6">
                         <div className="flex flex-col md:flex-row justify-between gap-5">
                           <div className="flex-1 space-y-4">
