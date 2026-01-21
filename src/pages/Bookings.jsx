@@ -1310,10 +1310,10 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                             )}
                           </div>
 
-                          <div className="flex md:flex-col gap-2 justify-end md:justify-start">
+                          <div className="flex flex-wrap md:flex-col gap-1.5 md:gap-2 justify-end md:justify-start">
                             <Button
-                               size="sm"
-                               className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-4"
+                                size="sm"
+                                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-3 md:px-4 text-xs md:text-sm"
                                onClick={() => {
                                  if (booking.booking_type === 'monthly') {
                                    // แสดง Dialog เพื่อยืนยันผู้เช่าสำหรับรายเดือน
