@@ -2737,7 +2737,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="flex items-center gap-2">
-                      💧 ค่าน้ำขั้นต่ำ (บาท/เดือน)
+                      ค่าน้ำขั้นต่ำ (บาท/เดือน)
                       <span className="text-xs text-slate-500">(ถ้าไม่ระบุใช้ค่าสาขา)</span>
                     </Label>
                     <Input
@@ -2750,7 +2750,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                   </div>
                   <div>
                     <Label className="flex items-center gap-2">
-                      ⚡ ค่าไฟขั้นต่ำ (บาท/เดือน)
+                      ค่าไฟขั้นต่ำ (บาท/เดือน)
                       <span className="text-xs text-slate-500">(ถ้าไม่ระบุใช้ค่าสาขา)</span>
                     </Label>
                     <Input
@@ -3070,7 +3070,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             <div className="grid grid-cols-2 gap-4 bg-amber-50 p-3 rounded-lg border border-amber-200">
                               <div>
                                 <Label className="text-slate-600 text-xs flex items-center gap-1">
-                                  💧 ค่าน้ำขั้นต่ำ
+                                  ค่าน้ำขั้นต่ำ
                                 </Label>
                                 <p className="font-semibold text-blue-700">
                                   {selectedRoom.min_water_charge !== null && selectedRoom.min_water_charge !== undefined ? `${selectedRoom.min_water_charge.toLocaleString()} บาท/เดือน` : <span className="text-slate-400 text-sm">(ใช้ค่าสาขา)</span>}
@@ -3078,7 +3078,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                               </div>
                               <div>
                                 <Label className="text-slate-600 text-xs flex items-center gap-1">
-                                  ⚡ ค่าไฟขั้นต่ำ
+                                  ค่าไฟขั้นต่ำ
                                 </Label>
                                 <p className="font-semibold text-orange-700">
                                   {selectedRoom.min_electricity_charge !== null && selectedRoom.min_electricity_charge !== undefined ? `${selectedRoom.min_electricity_charge.toLocaleString()} บาท/เดือน` : <span className="text-slate-400 text-sm">(ใช้ค่าสาขา)</span>}
