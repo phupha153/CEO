@@ -183,6 +183,26 @@ export default function PackageSelectionPage() {
         monthlyPrice = totalPrice / 12;
         savings = (baseMonthlyPrice * 12) - totalPrice;
       }
+    } else if (months === 24) {
+      if (hasNewStructure) {
+        totalPrice = pricing.two_years || (baseMonthlyPrice * 24);
+        monthlyPrice = pricing.two_years_per_month || (totalPrice / 24);
+        savings = pricing.two_years_savings || 0;
+      } else {
+        totalPrice = selectedPackage.price_2_years || (baseMonthlyPrice * 24);
+        monthlyPrice = totalPrice / 24;
+        savings = (baseMonthlyPrice * 24) - totalPrice;
+      }
+    } else if (months === 36) {
+      if (hasNewStructure) {
+        totalPrice = pricing.three_years || (baseMonthlyPrice * 36);
+        monthlyPrice = pricing.three_years_per_month || (totalPrice / 36);
+        savings = pricing.three_years_savings || 0;
+      } else {
+        totalPrice = selectedPackage.price_3_years || (baseMonthlyPrice * 36);
+        monthlyPrice = totalPrice / 36;
+        savings = (baseMonthlyPrice * 36) - totalPrice;
+      }
     }
     
     const subtotal = totalPrice;
