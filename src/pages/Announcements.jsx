@@ -964,10 +964,11 @@ export default function Announcements() {
 
                     <div className="border rounded-lg overflow-hidden max-h-[300px] overflow-y-auto bg-white">
                       {tenantsWithLine
-                        .filter(t => 
-                          t.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (t.room_number && t.room_number.toLowerCase().includes(searchTerm.toLowerCase()))
-                        )
+                        .filter(t => {
+                          const searchLower = searchTerm.toLowerCase();
+                          const displayName = `${t.full_name}${t.room_number ? ` - ${t.room_number}` : ''}`.toLowerCase();
+                          return displayName.includes(searchLower);
+                        })
                         .map(tenant => (
                         <label 
                           key={tenant.id} 
