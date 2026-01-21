@@ -171,6 +171,7 @@ export default function CronJobSettings() {
   const [deletingPayments, setDeletingPayments] = useState(false);
   const [deleteResult, setDeleteResult] = useState(null);
   const [selectedStatsBranch, setSelectedStatsBranch] = useState('all');
+  const [branchSearchQuery, setBranchSearchQuery] = useState('');
   const [cronDeleteEntities, setCronDeleteEntities] = useState({
     Payment: true,
     MeterReading: true,
@@ -225,6 +226,12 @@ export default function CronJobSettings() {
   const { data: allRooms = [], isLoading: roomsLoading } = useQuery({
     queryKey: ['allRooms'],
     queryFn: () => base44.entities.Room.list('-created_date', 10000),
+    refetchInterval: 30000,
+  });
+
+  const { data: allUsers = [], isLoading: usersLoading } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: () => base44.entities.User.list('-created_date', 10000),
     refetchInterval: 30000,
   });
 
@@ -998,7 +1005,16 @@ export default function CronJobSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {paymentsLoading || tenantsLoading || roomsLoading ? (
+            <div className="mb-4">
+              <Input
+                type="text"
+                placeholder="🔍 ค้นหา: ชื่อสาขา, รหัส, อีเมลเจ้าของ..."
+                value={branchSearchQuery}
+                onChange={(e) => setBranchSearchQuery(e.target.value)}
+                className="max-w-md"
+              />
+            </div>
+            {paymentsLoading || tenantsLoading || roomsLoading || usersLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
               </div>
@@ -1011,6 +1027,8 @@ export default function CronJobSettings() {
                       <th className="border border-slate-300 px-2 py-2 text-left font-bold text-slate-700">สาขา</th>
                       <th className="border border-slate-300 px-2 py-2 text-left font-bold text-slate-700">รหัสสาขา</th>
                       <th className="border border-slate-300 px-2 py-2 text-left font-bold text-slate-700">เจ้าของสาขา</th>
+                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">สถานะ</th>
+                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ทดลองหมดอายุ</th>
                       <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ผู้ใช้</th>
                       <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ห้อง</th>
                       <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ผู้เช่า</th>
@@ -1025,11 +1043,20 @@ export default function CronJobSettings() {
                   <tbody>
                     {allBranches.length === 0 ? (
                       <tr>
-                        <td colSpan="13" className="border border-slate-300 px-4 py-8 text-center text-slate-500">
+                        <td colSpan="15" className="border border-slate-300 px-4 py-8 text-center text-slate-500">
                           ไม่มีข้อมูลสาขา
                         </td>
                       </tr>
-                    ) : allBranches.map((branch, index) => {
+                    ) : allBranches.filter(branch => {
+                      if (!branchSearchQuery.trim()) return true;
+                      const query = branchSearchQuery.toLowerCase();
+                      return (
+                        branch.branch_name?.toLowerCase().includes(query) ||
+                        branch.branch_code?.toLowerCase().includes(query) ||
+                        branch.owner_id?.toLowerCase().includes(query) ||
+                        branch.created_by?.toLowerCase().includes(query)
+                      );
+                    }).map((branch, index) => {
                       const branchPayments = allPayments.filter(p => p.branch_id === branch.id);
                       const branchTenants = allTenants.filter(t => t.branch_id === branch.id);
                       const branchRooms = allRooms.filter(r => r.branch_id === branch.id);
@@ -1066,8 +1093,15 @@ export default function CronJobSettings() {
                         !p.overdue_reminder_sent_date
                       ).length;
 
+                      // หาเจ้าของสาขา
+                      const owner = allUsers.find(u => u.email === branch.owner_id || u.email === branch.created_by);
+                      const trialEndsAt = owner?.trial_ends_at;
+                      const planStatus = owner?.plan_status;
+
                       // นับจำนวน User ที่เป็นเจ้าของสาขานี้
-                      const usersCount = 1; // ยังไม่มีข้อมูล accessible_branches จาก User entity
+                      const usersCount = allUsers.filter(u => 
+                        u.accessible_branches && u.accessible_branches.includes(branch.id)
+                      ).length || 1;
                       
                       return (
                         <tr key={branch.id} className="hover:bg-slate-50">
@@ -1080,8 +1114,49 @@ export default function CronJobSettings() {
                           <td className="border border-slate-300 px-2 py-2 text-slate-600">
                             {branch.branch_code || '-'}
                           </td>
-                          <td className="border border-slate-300 px-2 py-2 text-slate-600" title={branch.owner_id || branch.created_by}>
+                          <td className="border border-slate-300 px-2 py-2 text-slate-600 text-xs" title={branch.owner_id || branch.created_by}>
                             {branch.owner_id || branch.created_by || '-'}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-center">
+                            {planStatus === 'trial' && (
+                              <Badge className="bg-amber-500 text-white text-xs">Trial</Badge>
+                            )}
+                            {planStatus === 'active' && (
+                              <Badge className="bg-green-500 text-white text-xs">Active</Badge>
+                            )}
+                            {planStatus === 'expired' && (
+                              <Badge className="bg-red-500 text-white text-xs">Expired</Badge>
+                            )}
+                            {!planStatus && (
+                              <span className="text-slate-400 text-xs">-</span>
+                            )}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-center text-xs">
+                            {trialEndsAt ? (
+                              <span className={(() => {
+                                const endDate = new Date(trialEndsAt);
+                                const today = new Date();
+                                const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                                if (daysLeft < 0) return 'text-red-600 font-bold';
+                                if (daysLeft <= 7) return 'text-orange-600 font-bold';
+                                return 'text-slate-600';
+                              })()}>
+                                {new Date(trialEndsAt).toLocaleDateString('th-TH', { 
+                                  day: '2-digit', 
+                                  month: 'short', 
+                                  year: 'numeric' 
+                                })}
+                                <br/>
+                                <span className="text-[10px]">
+                                  ({(() => {
+                                    const daysLeft = Math.ceil((new Date(trialEndsAt) - new Date()) / (1000 * 60 * 60 * 24));
+                                    return daysLeft < 0 ? `เกิน ${Math.abs(daysLeft)} วัน` : `เหลือ ${daysLeft} วัน`;
+                                  })()})
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
                           </td>
                           <td className="border border-slate-300 px-2 py-2 text-center text-slate-700 font-medium">
                             {usersCount}
@@ -1118,6 +1193,9 @@ export default function CronJobSettings() {
                     <tr className="bg-slate-200 font-bold">
                       <td className="border border-slate-400 px-2 py-2 text-center" colSpan="4">
                         รวมทั้งหมด
+                      </td>
+                      <td className="border border-slate-400 px-2 py-2 text-center text-slate-800" colSpan="2">
+                        {allUsers.filter(u => u.plan_status === 'trial').length} Trial / {allUsers.filter(u => u.plan_status === 'active').length} Active
                       </td>
                       <td className="border border-slate-400 px-2 py-2 text-center text-slate-800">
                         {allBranches.length}
