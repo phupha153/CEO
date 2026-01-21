@@ -1054,7 +1054,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
       <PageHeader
         title="การจองห้อง"
         subtitle={`สาขา ${selectedBranchName}`}
@@ -1067,7 +1067,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                 setShowCalendarDialog(true);
               }}
               variant="outline"
-              className="border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md"
+              className="border-purple-600 text-purple-600 hover:bg-purple-50 shadow-md"
             >
               <CalendarIcon className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">ปฏิทิน</span>
@@ -1284,21 +1284,8 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                       {booking.deposit_amount.toLocaleString()} ฿
                                     </p>
                                   </div>
-                                  <div className="text-right space-y-2">
-                                    <Badge className="bg-blue-600 text-white text-xs">{paymentMethodLabel}</Badge>
-                                    {booking.booking_type === 'monthly' && (
-                                      <a
-                                        href={`#`}
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          toast.info('ยังไม่มีสัญญา - สร้างเมื่อยืนยันการจอง');
-                                        }}
-                                        className="flex items-center justify-end gap-1 mt-2 text-blue-600 hover:text-blue-700 text-xs font-semibold hover:underline cursor-pointer"
-                                      >
-                                        <FileText className="w-3.5 h-3.5" />
-                                        ดูสัญญา
-                                      </a>
-                                    )}
+                                  <div className="text-right">
+                                    <Badge className="bg-indigo-600 text-white text-xs">{paymentMethodLabel}</Badge>
                                     {booking.deposit_slip_url && (
                                       <a
                                         href={booking.deposit_slip_url}
