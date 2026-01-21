@@ -980,14 +980,10 @@ export default function Announcements() {
                             className="w-4 h-4 text-blue-600 rounded border-slate-300 flex-shrink-0"
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-center gap-2">
-                              <p className="font-medium text-xs md:text-sm text-slate-800 truncate">{tenant.full_name}</p>
-                              {tenant.room_number && (
-                                <Badge variant="outline" className="text-xs bg-slate-50 text-slate-600 border-slate-200 flex-shrink-0">
-                                  {tenant.room_number}
-                                </Badge>
-                              )}
-                            </div>
+                            <p className="font-medium text-xs md:text-sm text-slate-800 truncate">
+                              {tenant.full_name}
+                              {tenant.room_number && <span className="text-slate-500"> - {tenant.room_number}</span>}
+                            </p>
                           </div>
                         </label>
                       ))}
