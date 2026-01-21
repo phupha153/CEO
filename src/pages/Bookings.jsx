@@ -1017,7 +1017,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
 
   if (!canView) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
+      <div className="flex items-center justify-center min-h-screen bg-blue-50">
         <Card className="p-8 text-center">
           <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold">คุณไม่มีสิทธิ์เข้าถึงหน้านี้</h2>
