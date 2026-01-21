@@ -1233,13 +1233,13 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                       <CardContent className="p-3 md:p-5 md:pl-6">
                         <div className="flex flex-col md:flex-row justify-between gap-3 md:gap-5">
                           <div className="flex-1 space-y-3 md:space-y-4">
-                            <div className="flex items-start gap-4">
-                              <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
-                                <DoorOpen className="w-7 h-7 text-white" />
+                            <div className="flex items-start gap-2 md:gap-4">
+                              <div className="w-12 md:w-14 h-12 md:h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                <DoorOpen className="w-6 md:w-7 h-6 md:h-7 text-white" />
                               </div>
-                              <div className="flex-1 pt-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h3 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                              <div className="flex-1 pt-0 md:pt-1">
+                                <div className="flex items-center gap-1 md:gap-2 mb-1 flex-wrap">
+                                  <h3 className="text-lg md:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
                                     ห้อง {room?.room_number || 'N/A'}
                                   </h3>
                                   <Badge className={`text-xs font-semibold px-2 py-0.5 ${booking.booking_type === 'daily' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
