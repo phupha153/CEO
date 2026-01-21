@@ -541,30 +541,34 @@ export default function PackageSelectionPage() {
                               {/* Price */}
                               <div className="mb-2">
                                 {(() => {
-                                  const months = parseInt(billingCycle);
-                                  const pricing = pkg.pricing || {};
-                                  const hasNewStructure = pricing.monthly !== undefined;
+                                     const months = parseInt(billingCycle);
+                                     const pricing = pkg.pricing || {};
+                                     const hasNewStructure = pricing.monthly !== undefined;
 
-                                  const basePrice = hasNewStructure ? (pricing.monthly || 0) : (pkg.price_monthly || 0);
-                                  let displayPrice = basePrice;
+                                     const basePrice = hasNewStructure ? (pricing.monthly || 0) : (pkg.price_monthly || 0);
+                                     let displayPrice = basePrice;
 
-                                  if (months === 3) {
-                                    displayPrice = hasNewStructure ? (pricing.three_months_per_month || basePrice) : ((pkg.price_3_months || (basePrice * 3)) / 3);
-                                  } else if (months === 6) {
-                                    displayPrice = hasNewStructure ? (pricing.six_months_per_month || basePrice) : ((pkg.price_6_months || (basePrice * 6)) / 6);
-                                  } else if (months === 12) {
-                                    displayPrice = hasNewStructure ? (pricing.yearly_per_month || basePrice) : ((pkg.price_yearly || (basePrice * 12)) / 12);
-                                  }
+                                     if (months === 3) {
+                                       displayPrice = hasNewStructure ? (pricing.three_months_per_month || basePrice) : ((pkg.price_3_months || (basePrice * 3)) / 3);
+                                     } else if (months === 6) {
+                                       displayPrice = hasNewStructure ? (pricing.six_months_per_month || basePrice) : ((pkg.price_6_months || (basePrice * 6)) / 6);
+                                     } else if (months === 12) {
+                                       displayPrice = hasNewStructure ? (pricing.yearly_per_month || basePrice) : ((pkg.price_yearly || (basePrice * 12)) / 12);
+                                     } else if (months === 24) {
+                                       displayPrice = (pkg.price_2_years || (basePrice * 24)) / 24;
+                                     } else if (months === 36) {
+                                       displayPrice = (pkg.price_3_years || (basePrice * 36)) / 36;
+                                     }
 
-                                  return (
-                                    <div className="flex items-baseline gap-1">
-                                      <span className={`text-4xl font-bold ${isBasic ? 'text-white' : isElite ? 'text-amber-900' : 'text-slate-900'}`}>
-                                        ฿{Math.round(displayPrice).toLocaleString()}
-                                      </span>
-                                      <span className={`text-sm ${isBasic ? 'text-slate-400' : isElite ? 'text-amber-700' : 'text-slate-600'}`}>/เดือน</span>
-                                    </div>
-                                  );
-                                })()}
+                                     return (
+                                       <div className="flex items-baseline gap-1">
+                                         <span className={`text-4xl font-bold ${isBasic ? 'text-white' : isElite ? 'text-amber-900' : 'text-slate-900'}`}>
+                                           ฿{Math.round(displayPrice).toLocaleString()}
+                                         </span>
+                                         <span className={`text-sm ${isBasic ? 'text-slate-400' : isElite ? 'text-amber-700' : 'text-slate-600'}`}>/เดือน</span>
+                                       </div>
+                                     );
+                                   })()}
                               </div>
 
                               {/* Description */}
