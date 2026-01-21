@@ -1017,7 +1017,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
 
   if (!canView) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-blue-50">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
         <Card className="p-8 text-center">
           <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold">คุณไม่มีสิทธิ์เข้าถึงหน้านี้</h2>
@@ -1029,7 +1029,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
 
   if (bookingsLoading && bookings.length === 0) {
     return (
-      <div className="min-h-screen bg-blue-50">
+      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
         <PageHeader
           title="การจองห้อง"
           subtitle={`สาขา ${selectedBranchName}`}
@@ -1054,7 +1054,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   }
 
   return (
-    <div className="min-h-screen bg-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
       <PageHeader
         title="การจองห้อง"
         subtitle={`สาขา ${selectedBranchName}`}
@@ -1313,17 +1313,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                           <div className="flex md:flex-col gap-2 justify-end md:justify-start">
                             <Button
                               size="sm"
-                              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-4"
-                              onClick={() => navigate(createPageUrl('ContractTemplate'), { state: { tempBooking: booking } })}
-                              variant={booking.booking_type === 'monthly' ? 'default' : 'ghost'}
-                              disabled={booking.booking_type !== 'monthly'}
-                            >
-                              <FileText className="w-4 h-4 mr-1.5" />
-                              สัญญา
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-4"
+                              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-4"
                               onClick={() => {
                                 if (booking.booking_type === 'monthly') {
                                   // แสดง Dialog เพื่อยืนยันผู้เช่าสำหรับรายเดือน
