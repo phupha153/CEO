@@ -1519,73 +1519,69 @@ export default function MeterReadings() {
           {/* Floor Filter + View Mode Toggle */}
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
             <CardContent className="p-4">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-slate-600" />
-                    <select
-                      value={selectedFloor}
-                      onChange={(e) => setSelectedFloor(e.target.value)}
-                      className="p-2 border rounded-md"
-                    >
-                      <option value="all">ทุกชั้น</option>
-                      {sortedFloorsForDropdown.map(floor => (
-                        <option key={floor} value={floor}>ชั้น {floor}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-slate-600" />
-                    <select
-                      value={selectedMonth}
-                      onChange={(e) => setSelectedMonth(e.target.value)}
-                      className="p-2 border rounded-md text-sm"
-                    >
-                      {(() => {
-                        const months = [];
-                        const now = new Date();
-                        for (let i = 0; i < 12; i++) {
-                          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                          const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                          const label = format(d, 'MMM yyyy', { locale: th });
-                          months.push(<option key={value} value={value}>{label}</option>);
-                        }
-                        return months;
-                      })()}
-                    </select>
-                  </div>
-                </div>
-                
+              <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <Button
-                    onClick={handleAIAnalysis}
-                    variant="outline"
-                    size="sm"
-                    className="border-purple-600 text-purple-600 hover:bg-purple-50"
-                    disabled={isAnalyzing}
+                  <Building2 className="w-5 h-5 text-slate-600" />
+                  <select
+                    value={selectedFloor}
+                    onChange={(e) => setSelectedFloor(e.target.value)}
+                    className="p-2 border rounded-md"
                   >
-                    {isAnalyzing ? (
-                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 mr-1" />
-                    )}
-                    AI
-                  </Button>
-                  
-                  <Button
-                    onClick={() => setViewMode(viewMode === 'card' ? 'table' : 'card')}
-                    variant="outline"
-                    size="sm"
-                    className="border-slate-400 text-slate-600 hover:bg-slate-50"
-                  >
-                    {viewMode === 'card' ? (
-                      <><List className="w-4 h-4 mr-1" />ตาราง</>
-                    ) : (
-                      <><Grid className="w-4 h-4 mr-1" />การ์ด</>
-                    )}
-                  </Button>
+                    <option value="all">ทุกชั้น</option>
+                    {sortedFloorsForDropdown.map(floor => (
+                      <option key={floor} value={floor}>ชั้น {floor}</option>
+                    ))}
+                  </select>
                 </div>
+
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-slate-600" />
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    className="p-2 border rounded-md text-sm"
+                  >
+                    {(() => {
+                      const months = [];
+                      const now = new Date();
+                      for (let i = 0; i < 12; i++) {
+                        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                        const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                        const label = format(d, 'MMM yyyy', { locale: th });
+                        months.push(<option key={value} value={value}>{label}</option>);
+                      }
+                      return months;
+                    })()}
+                  </select>
+                </div>
+
+                <Button
+                  onClick={handleAIAnalysis}
+                  variant="outline"
+                  size="sm"
+                  className="border-purple-600 text-purple-600 hover:bg-purple-50"
+                  disabled={isAnalyzing}
+                >
+                  {isAnalyzing ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 mr-1" />
+                  )}
+                  AI
+                </Button>
+
+                <Button
+                  onClick={() => setViewMode(viewMode === 'card' ? 'table' : 'card')}
+                  variant="outline"
+                  size="sm"
+                  className="border-slate-400 text-slate-600 hover:bg-slate-50"
+                >
+                  {viewMode === 'card' ? (
+                    <><List className="w-4 h-4 mr-1" />ตาราง</>
+                  ) : (
+                    <><Grid className="w-4 h-4 mr-1" />การ์ด</>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
