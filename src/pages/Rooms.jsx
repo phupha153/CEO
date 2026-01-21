@@ -112,8 +112,6 @@ export default function RoomsPage() {
   const [executingAction, setExecutingAction] = useState(false);
   const itemsPerPage = 50;
 
-  const [useDefaultMinCharges, setUseDefaultMinCharges] = useState(true);
-  
   const [formData, setFormData] = useState({
     room_number: '',
     floor: '',
@@ -1478,11 +1476,10 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       water_rate: formData.water_rate !== '' ? parseFloat(formData.water_rate) : null,
       electricity_rate: formData.electricity_rate !== '' ? parseFloat(formData.electricity_rate) : null,
       common_fee: formData.common_fee !== '' ? parseFloat(formData.common_fee) : null,
-      // ⭐ ถ้าติ๊ก "ใช้ค่าสาขา" ให้ส่ง null ทั้งหมด
-      min_water_units: !useDefaultMinCharges && formData.min_water_units !== '' ? parseFloat(formData.min_water_units) : null,
-      min_water_charge: !useDefaultMinCharges && formData.min_water_charge !== '' ? parseFloat(formData.min_water_charge) : null,
-      min_electricity_units: !useDefaultMinCharges && formData.min_electricity_units !== '' ? parseFloat(formData.min_electricity_units) : null,
-      min_electricity_charge: !useDefaultMinCharges && formData.min_electricity_charge !== '' ? parseFloat(formData.min_electricity_charge) : null,
+      min_water_units: formData.min_water_units !== '' ? parseFloat(formData.min_water_units) : null,
+      min_water_charge: formData.min_water_charge !== '' ? parseFloat(formData.min_water_charge) : null,
+      min_electricity_units: formData.min_electricity_units !== '' ? parseFloat(formData.min_electricity_units) : null,
+      min_electricity_charge: formData.min_electricity_charge !== '' ? parseFloat(formData.min_electricity_charge) : null,
       other_monthly_fees: formData.other_monthly_fees || []
     };
     if (editingRoom) {
@@ -1498,12 +1495,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       return;
     }
     setEditingRoom(room);
-    
-    // เช็คว่ามีค่าขั้นต่ำตั้งไว้หรือไม่
-    const hasCustomMinCharges = room.min_water_units || room.min_water_charge || 
-                                  room.min_electricity_units || room.min_electricity_charge;
-    setUseDefaultMinCharges(!hasCustomMinCharges);
-    
     setFormData({
       room_number: room.room_number || '',
       floor: room.floor?.toString() || '',
@@ -1529,7 +1520,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
   const resetForm = () => {
     setEditingRoom(null);
-    setUseDefaultMinCharges(true);
     setFormData({
       room_number: '',
       floor: '',
@@ -2754,110 +2744,67 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                   </div>
                 </div>
 
-                {/* ค่าขั้นต่ำน้ำ-ไฟ - โดดเด่น */}
-                <div className="space-y-4 p-6 border-4 border-purple-300 rounded-2xl bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 shadow-lg relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-purple-200/30 rounded-full blur-2xl" />
-                  <div className="relative">
-                    <div className="flex items-center justify-between mb-4">
-                      <Label className="font-bold text-lg text-purple-900 flex items-center gap-2">
-                        <DollarSign className="w-6 h-6 text-purple-600" />
-                        ⚡ ค่าขั้นต่ำน้ำ-ไฟ (เฉพาะห้องนี้)
-                      </Label>
+                {/* ค่าขั้นต่ำน้ำ-ไฟ */}
+                <div className="space-y-3 p-4 border rounded-lg bg-blue-50/50">
+                  <Label className="font-semibold text-blue-900">⚡ ค่าขั้นต่ำ (ถ้าไม่ตั้ง = ใช้ค่าสาขา)</Label>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-blue-700">💧 ค่าน้ำขั้นต่ำ</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[10px] text-slate-600">หน่วย</Label>
+                          <Input
+                            type="number"
+                            placeholder="เช่น 5"
+                            value={formData.min_water_units}
+                            onChange={(e) => setFormData({ ...formData, min_water_units: e.target.value })}
+                            onWheel={(e) => e.target.blur()}
+                            className="text-sm"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] text-slate-600">คิดค่า (บาท)</Label>
+                          <Input
+                            type="number"
+                            placeholder="เช่น 50"
+                            value={formData.min_water_charge}
+                            onChange={(e) => setFormData({ ...formData, min_water_charge: e.target.value })}
+                            onWheel={(e) => e.target.blur()}
+                            className="text-sm"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-slate-500">ถ้าใช้น้อยกว่า X หน่วย → คิด Y บาท</p>
                     </div>
-                    
-                    <label className="flex items-center gap-3 p-3 rounded-xl bg-white/80 backdrop-blur-sm border-2 border-purple-200 cursor-pointer hover:bg-white transition-all mb-4">
-                      <Checkbox
-                        checked={useDefaultMinCharges}
-                        onCheckedChange={(checked) => {
-                          setUseDefaultMinCharges(checked);
-                          if (checked) {
-                            // ล้างค่าเมื่อเลือกใช้ค่าสาขา
-                            setFormData({
-                              ...formData,
-                              min_water_units: '',
-                              min_water_charge: '',
-                              min_electricity_units: '',
-                              min_electricity_charge: ''
-                            });
-                          }
-                        }}
-                      />
-                      <div className="flex-1">
-                        <span className="font-semibold text-slate-800">ใช้ค่าขั้นต่ำจากการตั้งค่าสาขา</span>
-                        <p className="text-xs text-slate-500 mt-0.5">ติ๊กเพื่อใช้ค่าเริ่มต้นของสาขา, ถอดเพื่อตั้งค่าเอง</p>
-                      </div>
-                    </label>
 
-                    <div className={`grid grid-cols-2 gap-4 transition-opacity ${useDefaultMinCharges ? 'opacity-40' : 'opacity-100'}`}>
-                      <div className="space-y-2 p-4 border-2 border-blue-300 rounded-xl bg-white/60">
-                        <Label className="text-sm font-bold text-blue-800 flex items-center gap-2">
-                          💧 ค่าน้ำขั้นต่ำ
-                        </Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label className="text-[10px] text-slate-600 font-semibold">หน่วยต่ำสุด</Label>
-                            <Input
-                              type="number"
-                              placeholder="เช่น 5"
-                              value={formData.min_water_units}
-                              onChange={(e) => setFormData({ ...formData, min_water_units: e.target.value })}
-                              onWheel={(e) => e.target.blur()}
-                              disabled={useDefaultMinCharges}
-                              className="text-sm"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-[10px] text-slate-600 font-semibold">คิดค่า (บาท)</Label>
-                            <Input
-                              type="number"
-                              placeholder="เช่น 50"
-                              value={formData.min_water_charge}
-                              onChange={(e) => setFormData({ ...formData, min_water_charge: e.target.value })}
-                              onWheel={(e) => e.target.blur()}
-                              disabled={useDefaultMinCharges}
-                              className="text-sm"
-                            />
-                          </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-orange-700">⚡ ค่าไฟขั้นต่ำ</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-[10px] text-slate-600">หน่วย</Label>
+                          <Input
+                            type="number"
+                            placeholder="เช่น 10"
+                            value={formData.min_electricity_units}
+                            onChange={(e) => setFormData({ ...formData, min_electricity_units: e.target.value })}
+                            onWheel={(e) => e.target.blur()}
+                            className="text-sm"
+                          />
                         </div>
-                        <p className="text-[10px] text-blue-700 bg-blue-100/50 p-2 rounded-lg">
-                          ถ้าใช้ &lt; X หน่วย → คิด Y บาท
-                        </p>
-                      </div>
-
-                      <div className="space-y-2 p-4 border-2 border-orange-300 rounded-xl bg-white/60">
-                        <Label className="text-sm font-bold text-orange-800 flex items-center gap-2">
-                          ⚡ ค่าไฟขั้นต่ำ
-                        </Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <Label className="text-[10px] text-slate-600 font-semibold">หน่วยต่ำสุด</Label>
-                            <Input
-                              type="number"
-                              placeholder="เช่น 10"
-                              value={formData.min_electricity_units}
-                              onChange={(e) => setFormData({ ...formData, min_electricity_units: e.target.value })}
-                              onWheel={(e) => e.target.blur()}
-                              disabled={useDefaultMinCharges}
-                              className="text-sm"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-[10px] text-slate-600 font-semibold">คิดค่า (บาท)</Label>
-                            <Input
-                              type="number"
-                              placeholder="เช่น 100"
-                              value={formData.min_electricity_charge}
-                              onChange={(e) => setFormData({ ...formData, min_electricity_charge: e.target.value })}
-                              onWheel={(e) => e.target.blur()}
-                              disabled={useDefaultMinCharges}
-                              className="text-sm"
-                            />
-                          </div>
+                        <div>
+                          <Label className="text-[10px] text-slate-600">คิดค่า (บาท)</Label>
+                          <Input
+                            type="number"
+                            placeholder="เช่น 100"
+                            value={formData.min_electricity_charge}
+                            onChange={(e) => setFormData({ ...formData, min_electricity_charge: e.target.value })}
+                            onWheel={(e) => e.target.blur()}
+                            className="text-sm"
+                          />
                         </div>
-                        <p className="text-[10px] text-orange-700 bg-orange-100/50 p-2 rounded-lg">
-                          ถ้าใช้ &lt; X หน่วย → คิด Y บาท
-                        </p>
                       </div>
+                      <p className="text-[10px] text-slate-500">ถ้าใช้น้อยกว่า X หน่วย → คิด Y บาท</p>
                     </div>
                   </div>
                 </div>
