@@ -1230,9 +1230,9 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                   >
                     <Card className="relative overflow-hidden bg-white border-0 shadow-md hover:shadow-2xl transition-all duration-300 group">
                       <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-400 via-blue-500 to-blue-600 group-hover:w-2 transition-all duration-300" />
-                      <CardContent className="p-5 pl-6">
-                        <div className="flex flex-col md:flex-row justify-between gap-5">
-                          <div className="flex-1 space-y-4">
+                      <CardContent className="p-3 md:p-5 md:pl-6">
+                        <div className="flex flex-col md:flex-row justify-between gap-3 md:gap-5">
+                          <div className="flex-1 space-y-3 md:space-y-4">
                             <div className="flex items-start gap-4">
                               <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
                                 <DoorOpen className="w-7 h-7 text-white" />
