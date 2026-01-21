@@ -761,22 +761,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
 
 
 
-  const cancelMutation = useMutation({
-    mutationFn: async (booking) => {
-      if (!canCancel) {
-        throw new Error('คุณไม่มีสิทธิ์ยกเลิกการจอง');
-      }
-      await base44.entities.Booking.update(booking.id, { status: 'cancelled' });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['bookings', selectedBranchId]);
-      queryClient.invalidateQueries(['rooms', selectedBranchId]);
-      toast.success('ยกเลิกการจองสำเร็จ');
-    },
-    onError: (error) => {
-      toast.error(error.message || 'เกิดข้อผิดพลาด');
-    }
-  });
+
 
   const [checkInConfirmDialog, setCheckInConfirmDialog] = useState(false);
   const [pendingCheckInBooking, setPendingCheckInBooking] = useState(null);
@@ -1427,11 +1412,10 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => handleEdit(booking)}
-                              disabled={updateMutation.isPending}
                               title="แก้ไข"
+                              disabled={true}
                             >
-                              <Edit2 className="w-4 h-4" />
+                              <Edit2 className="w-4 h-4 opacity-50" />
                             </Button>
                           )}
                           {canDelete && (
@@ -1439,11 +1423,10 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               variant="outline"
                               size="icon"
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              onClick={() => handleDelete(booking.id)}
-                              disabled={deleteMutation.isPending}
                               title="ลบ"
+                              disabled={true}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4 opacity-50" />
                             </Button>
                           )}
                           {booking.status === 'active' && !booking.actual_check_in_date && canCheckIn && (
@@ -1463,21 +1446,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               ยืนยันแล้ว
                             </Badge>
                           )}
-                          {booking.status === 'active' && canCancel && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="md:mt-auto"
-                              onClick={() => {
-                                if (confirm('คุณแน่ใจว่าต้องการยกเลิกการจองนี้?')) {
-                                  cancelMutation.mutate(booking);
-                                }
-                              }}
-                              disabled={cancelMutation.isPending}
-                            >
-                              ยกเลิกการจอง
-                            </Button>
-                          )}
+
                           <Button
                             variant="outline"
                             size="sm"
