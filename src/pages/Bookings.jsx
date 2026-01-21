@@ -1213,95 +1213,137 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
             </CardContent>
           </Card>
 
-          {/* Temporary Bookings (รอยืนยัน) */}
+          {/* Temporary Bookings */}
           {filteredTempBookings.length > 0 && (
-            <Card className="bg-yellow-50 border-yellow-200">
-              <CardContent className="p-6">
-                <h3 className="font-bold text-yellow-800 mb-4 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5" />
-                  📋 การจองชั่วคราว (รอยืนยัน) - {filteredTempBookings.length} รายการ
-                </h3>
-                <div className="grid grid-cols-1 gap-4">
-                  {filteredTempBookings.map((booking) => {
-                    const room = getRoomInfo(booking.room_id);
-                    return (
-                      <motion.div
-                        key={booking.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                      >
-                        <Card className="bg-white border-yellow-300">
-                          <CardContent className="p-4">
-                            <div className="flex flex-col md:flex-row justify-between gap-4">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-3">
-                                  <div className="w-10 h-10 bg-yellow-500 rounded-lg flex items-center justify-center">
-                                    <DoorOpen className="w-5 h-5 text-white" />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-semibold text-slate-800">ห้อง {room?.room_number || 'N/A'}</h4>
-                                    <p className="text-xs text-slate-500">{booking.booking_type === 'daily' ? 'รายวัน' : 'รายเดือน'}</p>
-                                  </div>
-                                  <Badge className="bg-yellow-200 text-yellow-800">ชั่วคราว</Badge>
-                                </div>
-                                <div className="grid md:grid-cols-2 gap-3 text-sm">
-                                  <div>
-                                    <p className="text-slate-600"><strong>ผู้เข้าพัก:</strong> {booking.guest_name}</p>
-                                    {booking.guest_phone && <p className="text-slate-500 text-xs">{booking.guest_phone}</p>}
-                                  </div>
-                                  <div>
-                                    <p className="text-slate-600"><strong>วันที่:</strong> {format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th })}</p>
-                                    {booking.check_out_date && <p className="text-slate-500 text-xs">ถึง {format(parseISO(booking.check_out_date), 'd MMM yyyy', { locale: th })}</p>}
-                                  </div>
+            <div className="space-y-4">
+              {filteredTempBookings.map((booking) => {
+                const room = getRoomInfo(booking.room_id);
+                const paymentMethodLabel = {
+                  'cash': '💵 เงินสด',
+                  'transfer': '🏦 โอนเงิน',
+                  'qr_code': '📱 QR Code'
+                }[booking.deposit_payment_method] || '-';
+
+                return (
+                  <motion.div
+                    key={booking.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                  >
+                    <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg hover:shadow-xl transition-all">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col md:flex-row justify-between gap-4">
+                          <div className="flex-1 space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                                <DoorOpen className="w-6 h-6 text-white" />
+                              </div>
+                              <div>
+                               <h3 className="text-xl font-bold text-slate-800">
+                                 ห้อง {room?.room_number || 'N/A'}
+                               </h3>
+                               <p className="text-sm text-slate-500">{booking.booking_type === 'daily' ? 'รายวัน' : 'รายเดือน'}</p>
+                             </div>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-4">
+                              <div className="flex items-center gap-2 text-slate-600">
+                                <User className="w-4 h-4" />
+                                <div>
+                                  <span className="text-sm font-semibold">{booking.guest_name || 'ไม่ระบุ'}</span>
+                                  {booking.guest_phone && (
+                                    <p className="text-xs text-slate-500">{booking.guest_phone}</p>
+                                  )}
                                 </div>
                               </div>
-                              <div className="flex md:flex-col gap-2">
-                                <Button
-                                  size="sm"
-                                  className="bg-green-600 hover:bg-green-700"
-                                  onClick={() => {
-                                    if (confirm('ยืนยันการจองนี้ใช่ไหม?')) {
-                                      confirmTempBookingMutation.mutate(booking);
-                                    }
-                                  }}
-                                  disabled={confirmTempBookingMutation.isPending}
-                                >
-                                  {confirmTempBookingMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
-                                  ยืนยัน
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEdit(booking)}
-                                  className="text-blue-600"
-                                >
-                                  <Edit2 className="w-4 h-4 mr-1" />
-                                  แก้ไข
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  onClick={() => {
-                                    if (confirm('ลบการจองนี้ใช่ไหม?')) {
-                                      deleteTempBookingMutation.mutate(booking.id);
-                                    }
-                                  }}
-                                  disabled={deleteTempBookingMutation.isPending}
-                                >
-                                  <Trash2 className="w-4 h-4 mr-1" />
-                                  ลบ
-                                </Button>
+                              <div className="flex items-center gap-2 text-slate-600">
+                                <CalendarIcon className="w-4 h-4" />
+                                <div className="text-sm">
+                                  <p>{format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th })}</p>
+                                  {booking.check_out_date && (
+                                    <p className="text-xs text-slate-500">
+                                      ถึง {format(parseISO(booking.check_out_date), 'd MMM yyyy', { locale: th })}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+
+                            {booking.deposit_amount > 0 && (
+                              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                                <p className="text-sm font-semibold text-blue-800 mb-1">
+                                  💰 เงินมัดจำ: {booking.deposit_amount.toLocaleString()} บาท
+                                </p>
+                                <div className="flex items-center gap-4 text-xs text-blue-700">
+                                  <span>ชำระผ่าน: {paymentMethodLabel}</span>
+                                  {booking.deposit_slip_url && (
+                                    <a
+                                      href={booking.deposit_slip_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 hover:underline"
+                                    >
+                                      <Camera className="w-3 h-3" />
+                                      ดูสลิป
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {booking.notes && (
+                              <p className="text-sm text-slate-600">
+                                หมายเหตุ: {booking.notes}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex md:flex-col gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => {
+                                if (confirm('ยืนยันการจองนี้ใช่ไหม?')) {
+                                  confirmTempBookingMutation.mutate(booking);
+                                }
+                              }}
+                              disabled={confirmTempBookingMutation.isPending}
+                            >
+                              {confirmTempBookingMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+                              ยืนยัน
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEdit(booking)}
+                              className="text-blue-600"
+                            >
+                              <Edit2 className="w-4 h-4 mr-1" />
+                              แก้ไข
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                if (confirm('ลบการจองนี้ใช่ไหม?')) {
+                                  deleteTempBookingMutation.mutate(booking.id);
+                                }
+                              }}
+                              disabled={deleteTempBookingMutation.isPending}
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              ลบ
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
           )}
 
 
