@@ -61,7 +61,6 @@ export default function BookingsPage() {
   const [editingBooking, setEditingBooking] = useState(null);
   const [uploadingSlip, setUploadingSlip] = useState(false);
   const [dialogBookingType, setDialogBookingType] = useState('daily');
-  const [activeBookingFilter, setActiveBookingFilter] = useState('daily');
   const [formData, setFormData] = useState({
     room_id: '',
     guest_name: '',
@@ -194,7 +193,6 @@ export default function BookingsPage() {
   }, [branches, selectedBranchId]);
 
   const dailyBookings = useMemo(() => bookings.filter(b => b.booking_type === 'daily'), [bookings]);
-  const monthlyBookings = useMemo(() => bookings.filter(b => b.booking_type === 'monthly'), [bookings]);
 
   const handleAISearch = async () => {
     if (!searchQuery.trim()) {
@@ -966,25 +964,16 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   const getRoomInfo = (roomId) => rooms.find(r => r.id === roomId);
 
   const filteredBookings = useMemo(() => {
-    let baseBookings = [];
-    if (activeBookingFilter === 'daily') {
-      baseBookings = dailyBookings;
-    } else if (activeBookingFilter === 'monthly') {
-      baseBookings = monthlyBookings;
-    } else {
-      baseBookings = bookings;
-    }
-
-    if (!debouncedSearch.trim()) return baseBookings;
+    if (!debouncedSearch.trim()) return dailyBookings;
 
     const query = debouncedSearch.toLowerCase();
-    return baseBookings.filter(booking => {
+    return dailyBookings.filter(booking => {
       const room = getRoomInfo(booking.room_id);
       return booking.guest_name?.toLowerCase().includes(query) ||
              booking.guest_phone?.toLowerCase().includes(query) ||
              room?.room_number?.toLowerCase().includes(query);
     });
-  }, [dailyBookings, monthlyBookings, bookings, debouncedSearch, rooms, activeBookingFilter]);
+  }, [dailyBookings, debouncedSearch, rooms]);
 
   const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
   const paginatedBookings = useMemo(() => {
@@ -1056,43 +1045,6 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
               <CalendarIcon className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">ปฏิทิน</span>
             </Button>
-            
-            <div className="hidden md:flex items-center gap-2 p-1 bg-slate-100 rounded-lg">
-              <button
-                type="button"
-                onClick={() => setActiveBookingFilter('daily')}
-                className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${
-                  activeBookingFilter === 'daily'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                รายวัน
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveBookingFilter('monthly')}
-                className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${
-                  activeBookingFilter === 'monthly'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                รายเดือน
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveBookingFilter('all')}
-                className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${
-                  activeBookingFilter === 'all'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                ทั้งหมด
-              </button>
-            </div>
-
             {canAdd && (
               <Button
                 onClick={() => {
@@ -1230,7 +1182,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
               </Card>
             ) : (
               <Card className="col-span-full p-6 text-center text-slate-600">
-                <p>ไม่พบการจอง{activeBookingFilter === 'daily' ? 'รายวัน' : activeBookingFilter === 'monthly' ? 'รายเดือน' : ''}ในระบบ หรือไม่ตรงกับคำค้นหาของคุณ</p>
+                <p>ไม่พบการจองรายวันในระบบ หรือไม่ตรงกับคำค้นหาของคุณ</p>
               </Card>
             ))}
             {paginatedBookings.map((booking) => {
@@ -1260,9 +1212,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               <h3 className="text-xl font-bold text-slate-800">
                                 ห้อง {room?.room_number || 'N/A'}
                               </h3>
-                              <p className="text-sm text-slate-500">
-                                {booking.booking_type === 'daily' ? 'รายวัน' : 'รายเดือน'}
-                              </p>
+                              <p className="text-sm text-slate-500">รายวัน</p>
                             </div>
                             {getStatusBadge(booking.status)}
                           </div>
