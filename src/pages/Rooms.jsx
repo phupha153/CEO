@@ -53,6 +53,7 @@ export default function RoomsPage() {
   const [selectedTenantId, setSelectedTenantId] = useState('');
   const [connectCheckInDate, setConnectCheckInDate] = useState('');
   const [connectCheckOutDate, setConnectCheckOutDate] = useState('');
+  const [showMinCharges, setShowMinCharges] = useState(false);
   const [enableMinWater, setEnableMinWater] = useState(false);
   const [enableMinElectricity, setEnableMinElectricity] = useState(false);
   
@@ -1517,8 +1518,11 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       min_electricity_charge: room.min_electricity_charge?.toString() || '',
       other_monthly_fees: room.other_monthly_fees || []
     });
-    setEnableMinWater(!!(room.min_water_units || room.min_water_charge));
-    setEnableMinElectricity(!!(room.min_electricity_units || room.min_electricity_charge));
+    const hasMinWater = !!(room.min_water_units || room.min_water_charge);
+    const hasMinElec = !!(room.min_electricity_units || room.min_electricity_charge);
+    setShowMinCharges(hasMinWater || hasMinElec);
+    setEnableMinWater(hasMinWater);
+    setEnableMinElectricity(hasMinElec);
     setShowDialog(true);
   };
 
@@ -2749,11 +2753,36 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 </div>
 
                 {/* ค่าขั้นต่ำน้ำ-ไฟ */}
-                <div className="space-y-3 p-4 border rounded-lg bg-slate-50/50">
-                  <Label>ค่าขั้นต่ำน้ำ-ไฟ (เฉพาะห้องนี้)</Label>
-                  <p className="text-xs text-slate-500">ถ้าไม่ตั้ง = ใช้ค่าสาขา</p>
-                  
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="show-min-charges"
+                      checked={showMinCharges}
+                      onCheckedChange={(checked) => {
+                        setShowMinCharges(checked);
+                        if (!checked) {
+                          setEnableMinWater(false);
+                          setEnableMinElectricity(false);
+                          setFormData({ 
+                            ...formData, 
+                            min_water_units: '', 
+                            min_water_charge: '',
+                            min_electricity_units: '', 
+                            min_electricity_charge: ''
+                          });
+                        }
+                      }}
+                    />
+                    <Label htmlFor="show-min-charges" className="cursor-pointer font-medium">
+                      คิดค่าน้ำค่าไฟขั้นต่ำเฉพาะห้องนี้
+                    </Label>
+                  </div>
+
+                  {showMinCharges && (
+                    <div className="p-4 border rounded-lg bg-slate-50/50 space-y-3">
+                      <p className="text-xs text-slate-500">ถ้าไม่ตั้ง = ใช้ค่าสาขา</p>
+                      
+                      <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 mb-2">
                         <Checkbox
@@ -2848,6 +2877,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       <p className="text-[10px] text-slate-500">ถ้าใช้น้อยกว่า X หน่วย คิด Y บาท</p>
                     </div>
                   </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Other Monthly Fees */}
