@@ -1067,7 +1067,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                 setShowCalendarDialog(true);
               }}
               variant="outline"
-              className="border-purple-600 text-purple-600 hover:bg-purple-50 shadow-md"
+              className="border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md"
             >
               <CalendarIcon className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">ปฏิทิน</span>
