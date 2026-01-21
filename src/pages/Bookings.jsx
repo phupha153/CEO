@@ -1284,8 +1284,21 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                       {booking.deposit_amount.toLocaleString()} ฿
                                     </p>
                                   </div>
-                                  <div className="text-right">
-                                    <Badge className="bg-indigo-600 text-white text-xs">{paymentMethodLabel}</Badge>
+                                  <div className="text-right space-y-2">
+                                    <Badge className="bg-blue-600 text-white text-xs">{paymentMethodLabel}</Badge>
+                                    {booking.booking_type === 'monthly' && (
+                                      <a
+                                        href={`#`}
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          toast.info('ยังไม่มีสัญญา - สร้างเมื่อยืนยันการจอง');
+                                        }}
+                                        className="flex items-center justify-end gap-1 mt-2 text-blue-600 hover:text-blue-700 text-xs font-semibold hover:underline cursor-pointer"
+                                      >
+                                        <FileText className="w-3.5 h-3.5" />
+                                        ดูสัญญา
+                                      </a>
+                                    )}
                                     {booking.deposit_slip_url && (
                                       <a
                                         href={booking.deposit_slip_url}
