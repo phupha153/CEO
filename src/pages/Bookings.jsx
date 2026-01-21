@@ -131,8 +131,13 @@ export default function BookingsPage() {
         filters: { branch_id: selectedBranchId },
         limit: 5000
       });
-      console.log('📊 Bookings Response:', { count: response.data.data.length, entity: response.data.meta.entity, first3: response.data.data.slice(0, 3) });
-      return response.data.data;
+      const bookingData = response.data.data;
+      console.log('📊 Bookings Response:', { count: bookingData.length, entity: response.data.meta.entity });
+      if (bookingData.length > 0) {
+        console.log('🔍 First Booking Fields:', Object.keys(bookingData[0]));
+        console.log('🔍 First Booking Data:', bookingData[0]);
+      }
+      return bookingData;
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
