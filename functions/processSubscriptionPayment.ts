@@ -427,16 +427,16 @@ Deno.serve(async (req) => {
 
     // ⭐ ส่งข้อมูลการชำระเงินไป CRM
     const crmWebhookUrl = Deno.env.get('CRM_WEBHOOK_URL');
-    const crmWebhookSecret = Deno.env.get('CRM_WEBHOOK_SECRET');
+    const crmApiKey = Deno.env.get('CRM_API_KEY'); // ← ใช้ CRM_API_KEY แทน WEBHOOK_SECRET
 
     console.log('\n❓ CRM DEBUG:');
     console.log('📍 CRM_WEBHOOK_URL exists?', !!crmWebhookUrl);
     console.log('📍 CRM_WEBHOOK_URL value:', crmWebhookUrl || 'NOT SET');
-    console.log('🔑 CRM_WEBHOOK_SECRET exists?', !!crmWebhookSecret);
-    console.log('🔑 CRM_WEBHOOK_SECRET length:', crmWebhookSecret?.length || 0);
-    console.log('🔑 CRM_WEBHOOK_SECRET first 10 chars:', crmWebhookSecret?.substring(0, 10) || 'NOT SET');
+    console.log('🔑 CRM_API_KEY exists?', !!crmApiKey);
+    console.log('🔑 CRM_API_KEY length:', crmApiKey?.length || 0);
+    console.log('🔑 CRM_API_KEY first 10 chars:', crmApiKey?.substring(0, 10) || 'NOT SET');
 
-    if (crmWebhookUrl && crmWebhookSecret) {
+    if (crmWebhookUrl && crmApiKey) {
       try {
         console.log('\n=== ✅ Sending to CRM Webhook (Both vars set) ===');
         const crmPayload = {
@@ -470,7 +470,7 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'x-api-key': crmWebhookSecret
+            'x-api-key': crmApiKey
           },
           body: JSON.stringify(crmPayload)
         });
@@ -494,7 +494,7 @@ Deno.serve(async (req) => {
         // ไม่ block main flow - เป็นเพียง notification เท่านั้น
       }
     } else {
-      console.warn('⚠️ CRM_WEBHOOK_URL หรือ CRM_WEBHOOK_SECRET ไม่ได้ตั้งค่า');
+      console.warn('⚠️ CRM_WEBHOOK_URL หรือ CRM_API_KEY ไม่ได้ตั้งค่า');
     }
 
     try {
