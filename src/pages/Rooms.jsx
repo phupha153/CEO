@@ -126,6 +126,8 @@ export default function RoomsPage() {
     water_rate: '',
     electricity_rate: '',
     common_fee: '',
+    min_water_charge: '',
+    min_electricity_charge: '',
     other_monthly_fees: [],
     // Booking fields
     guest_name: '',
@@ -1472,6 +1474,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       water_rate: formData.water_rate !== '' ? parseFloat(formData.water_rate) : null,
       electricity_rate: formData.electricity_rate !== '' ? parseFloat(formData.electricity_rate) : null,
       common_fee: formData.common_fee !== '' ? parseFloat(formData.common_fee) : null,
+      min_water_charge: formData.min_water_charge !== '' ? parseFloat(formData.min_water_charge) : null,
+      min_electricity_charge: formData.min_electricity_charge !== '' ? parseFloat(formData.min_electricity_charge) : null,
       other_monthly_fees: formData.other_monthly_fees || []
     };
     if (editingRoom) {
@@ -1501,6 +1505,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       water_rate: room.water_rate?.toString() || '',
       electricity_rate: room.electricity_rate?.toString() || '',
       common_fee: room.common_fee?.toString() || '',
+      min_water_charge: room.min_water_charge?.toString() || '',
+      min_electricity_charge: room.min_electricity_charge?.toString() || '',
       other_monthly_fees: room.other_monthly_fees || []
     });
     setShowDialog(true);
@@ -1522,6 +1528,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       water_rate: '',
       electricity_rate: '',
       common_fee: '',
+      min_water_charge: '',
+      min_electricity_charge: '',
       other_monthly_fees: []
     });
   };
@@ -1911,7 +1919,13 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                     amenities: [],
                     description: '',
                     image_urls: [],
-                    last_ac_cleaning_date: ''
+                    last_ac_cleaning_date: '',
+                    water_rate: '',
+                    electricity_rate: '',
+                    common_fee: '',
+                    min_water_charge: '',
+                    min_electricity_charge: '',
+                    other_monthly_fees: []
                   });
                   setShowDialog(true);
                 }}
@@ -2720,6 +2734,35 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="flex items-center gap-2">
+                      💧 ค่าน้ำขั้นต่ำ (บาท/เดือน)
+                      <span className="text-xs text-slate-500">(ถ้าไม่ระบุใช้ค่าสาขา)</span>
+                    </Label>
+                    <Input
+                      type="number"
+                      placeholder={getConfigValue('min_water_charge') || "ไม่มีขั้นต่ำ"}
+                      value={formData.min_water_charge}
+                      onChange={(e) => setFormData({ ...formData, min_water_charge: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
+                    />
+                  </div>
+                  <div>
+                    <Label className="flex items-center gap-2">
+                      ⚡ ค่าไฟขั้นต่ำ (บาท/เดือน)
+                      <span className="text-xs text-slate-500">(ถ้าไม่ระบุใช้ค่าสาขา)</span>
+                    </Label>
+                    <Input
+                      type="number"
+                      placeholder={getConfigValue('min_electricity_charge') || "ไม่มีขั้นต่ำ"}
+                      value={formData.min_electricity_charge}
+                      onChange={(e) => setFormData({ ...formData, min_electricity_charge: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
+                    />
+                  </div>
+                </div>
+
                 {/* Other Monthly Fees */}
                 <div className="space-y-2 p-4 border rounded-lg bg-slate-50/50">
                   <Label className="flex items-center gap-2">
@@ -3022,6 +3065,25 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                   </p>
                                 </div>
                               ))}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 bg-amber-50 p-3 rounded-lg border border-amber-200">
+                              <div>
+                                <Label className="text-slate-600 text-xs flex items-center gap-1">
+                                  💧 ค่าน้ำขั้นต่ำ
+                                </Label>
+                                <p className="font-semibold text-blue-700">
+                                  {selectedRoom.min_water_charge !== null && selectedRoom.min_water_charge !== undefined ? `${selectedRoom.min_water_charge.toLocaleString()} บาท/เดือน` : <span className="text-slate-400 text-sm">(ใช้ค่าสาขา)</span>}
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="text-slate-600 text-xs flex items-center gap-1">
+                                  ⚡ ค่าไฟขั้นต่ำ
+                                </Label>
+                                <p className="font-semibold text-orange-700">
+                                  {selectedRoom.min_electricity_charge !== null && selectedRoom.min_electricity_charge !== undefined ? `${selectedRoom.min_electricity_charge.toLocaleString()} บาท/เดือน` : <span className="text-slate-400 text-sm">(ใช้ค่าสาขา)</span>}
+                                </p>
+                              </div>
                             </div>
 
                             {selectedRoom.size && (
