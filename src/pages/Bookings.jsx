@@ -1342,35 +1342,37 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                  onClick={() => {
                                    navigate(`${createPageUrl('BookingReceipt')}?tempId=${booking.id}`);
                                  }}
-                                 className="border-purple-300 text-purple-600 hover:bg-purple-50 font-semibold px-4"
+                                 className="border-purple-300 text-purple-600 hover:bg-purple-50 font-semibold px-2.5 md:px-4 text-xs md:text-sm"
                                >
-                                 <FileText className="w-4 h-4 mr-1.5" />
-                                 ดูใบจอง
+                                 <FileText className="w-3 md:w-4 h-3 md:h-4 mr-0.5 md:mr-1.5" />
+                                 <span className="hidden sm:inline">ดูใบจอง</span>
+                                 <span className="sm:hidden">ดู</span>
                                </Button>
                              )}
                              <Button
                                variant="outline"
                                size="sm"
                                onClick={() => handleEdit(booking)}
-                               className="border-blue-300 text-blue-600 hover:bg-blue-50 font-semibold px-4"
+                               className="border-blue-300 text-blue-600 hover:bg-blue-50 font-semibold px-2.5 md:px-4 text-xs md:text-sm"
                              >
-                               <Edit2 className="w-4 h-4 mr-1.5" />
-                               แก้ไข
+                               <Edit2 className="w-3 md:w-4 h-3 md:h-4 mr-0.5 md:mr-1.5" />
+                               <span className="hidden sm:inline">แก้ไข</span>
+                               <span className="sm:hidden">แก</span>
                              </Button>
-                            <Button
+                             <Button
                               variant="outline"
                               size="sm"
-                              className="border-red-300 text-red-600 hover:bg-red-50 font-semibold px-4"
+                              className="border-red-300 text-red-600 hover:bg-red-50 font-semibold px-2.5 md:px-4 text-xs md:text-sm"
                               onClick={() => {
                                 if (confirm('ลบการจองนี้ใช่ไหม?')) {
                                   deleteTempBookingMutation.mutate(booking.id);
                                 }
                               }}
                               disabled={deleteTempBookingMutation.isPending}
-                            >
-                              <Trash2 className="w-4 h-4 mr-1.5" />
-                              ลบ
-                            </Button>
+                             >
+                              <Trash2 className="w-3 md:w-4 h-3 md:h-4 mr-0.5 md:mr-1.5" />
+                              <span className="hidden sm:inline">ลบ</span>
+                             </Button>
                           </div>
                         </div>
                       </CardContent>
