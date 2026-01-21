@@ -1342,8 +1342,19 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               size="sm"
                               className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-4"
                               onClick={() => {
-                                if (confirm('ยืนยันการจองนี้ใช่ไหม?')) {
-                                  confirmTempBookingMutation.mutate(booking);
+                                if (booking.booking_type === 'monthly') {
+                                  // แสดง Dialog เพื่อยืนยันผู้เช่าสำหรับรายเดือน
+                                  setPendingTempBooking(booking);
+                                  setTenantFormData({
+                                    full_name: booking.guest_name || '',
+                                    phone: booking.guest_phone || '',
+                                    national_id: booking.guest_national_id || '',
+                                    email: booking.guest_email || ''
+                                  });
+                                  setConfirmTenantDialog(true);
+                                } else {
+                                  // รายวัน ยืนยันโดยตรง
+                                  confirmTempBookingMutation.mutate({ tempBooking: booking, tenantId: null });
                                 }
                               }}
                               disabled={confirmTempBookingMutation.isPending}
