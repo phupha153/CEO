@@ -1009,12 +1009,11 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       return base44.entities.Room.update(id, data);
     },
     onSuccess: async (updatedRoom) => {
-      await queryClient.invalidateQueries(['rooms', selectedBranchId, 'v2']);
-      await queryClient.refetchQueries(['rooms', selectedBranchId, 'v2']);
-      await queryClient.invalidateQueries(['allRooms', 'v2']);
+      queryClient.invalidateQueries(['rooms', selectedBranchId, 'v2']);
+      queryClient.invalidateQueries(['allRooms', 'v2']);
       
       // บันทึก log
-      await base44.entities.ActivityLog.create({
+      base44.entities.ActivityLog.create({
         branch_id: selectedBranchId,
         action_type: 'update',
         entity_type: 'Room',
@@ -1023,7 +1022,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
         user_email: currentUser?.email,
         user_name: currentUser?.full_name,
         description: `แก้ไขข้อมูลห้อง ${updatedRoom.room_number}`
-      });
+      }).catch(() => {}); // Log ไม่จำเป็นต้องรอ
       
       setShowDialog(false);
       resetForm();
