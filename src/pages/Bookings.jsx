@@ -125,19 +125,12 @@ export default function BookingsPage() {
   const { data: bookings = [], isLoading: bookingsLoading, isFetching: bookingsFetching } = useQuery({
     queryKey: ['bookings', selectedBranchId, 'secure'],
     queryFn: async () => {
-      console.log('🔍 Bookings Query - Entity: Booking, Branch:', selectedBranchId);
       const response = await base44.functions.invoke('getSecureData', {
         entity: 'Booking',
         filters: { branch_id: selectedBranchId },
         limit: 5000
       });
-      const bookingData = response.data.data;
-      console.log('📊 Bookings Response:', { count: bookingData.length, entity: response.data.meta.entity });
-      if (bookingData.length > 0) {
-        console.log('🔍 First Booking Fields:', Object.keys(bookingData[0]));
-        console.log('🔍 First Booking Data:', bookingData[0]);
-      }
-      return bookingData;
+      return response.data.data;
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
