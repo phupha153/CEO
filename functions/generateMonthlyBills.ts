@@ -605,22 +605,28 @@ Deno.serve(async (req) => {
                 const originalWaterUnits = waterUnits;
                 const originalElecUnits = elecUnits;
 
-                const waterMinEnabled = getConfigValue('water_minimum_enabled', 'false', roomBranchId) === 'true';
-                if (waterMinEnabled) {
-                    const minUnits = parseFloat(getConfigValue('water_minimum_units', '3', roomBranchId));
-                    const minCharge = parseFloat(getConfigValue('water_minimum_charge', '0', roomBranchId));
-                    if (waterUnits <= minUnits && minCharge > 0) {
-                        waterMinimumCharge = minCharge;
+                // ⭐ ค่าขั้นต่ำน้ำ - ลำดับความสำคัญ: ห้อง > Config
+                const roomMinWater = (room.min_water_charge !== undefined && room.min_water_charge !== null) 
+                    ? parseFloat(room.min_water_charge) 
+                    : parseFloat(getConfigValue('min_water_charge', '0', roomBranchId));
+                
+                if (roomMinWater > 0) {
+                    const calculatedWater = waterUnits * waterRate;
+                    if (calculatedWater < roomMinWater) {
+                        waterMinimumCharge = roomMinWater;
                         waterMinimumApplied = true;
                     }
                 }
 
-                const elecMinEnabled = getConfigValue('electricity_minimum_enabled', 'false', roomBranchId) === 'true';
-                if (elecMinEnabled) {
-                    const minUnits = parseFloat(getConfigValue('electricity_minimum_units', '3', roomBranchId));
-                    const minCharge = parseFloat(getConfigValue('electricity_minimum_charge', '0', roomBranchId));
-                    if (elecUnits <= minUnits && minCharge > 0) {
-                        electricityMinimumCharge = minCharge;
+                // ⭐ ค่าขั้นต่ำไฟ - ลำดับความสำคัญ: ห้อง > Config
+                const roomMinElec = (room.min_electricity_charge !== undefined && room.min_electricity_charge !== null)
+                    ? parseFloat(room.min_electricity_charge)
+                    : parseFloat(getConfigValue('min_electricity_charge', '0', roomBranchId));
+                
+                if (roomMinElec > 0) {
+                    const calculatedElec = elecUnits * elecRate;
+                    if (calculatedElec < roomMinElec) {
+                        electricityMinimumCharge = roomMinElec;
                         electricityMinimumApplied = true;
                     }
                 }
