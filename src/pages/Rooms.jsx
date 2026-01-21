@@ -3109,7 +3109,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
              setMaintenanceHistoryPage(1);
            }
           }}>
-            <DialogContent className="max-w-[95vw] md:max-w-3xl max-h-[85vh] overflow-y-auto p-3 md:p-6">
+            <DialogContent className="max-w-[92vw] md:max-w-3xl max-h-[85vh] overflow-y-auto p-3 md:p-6">
               <DialogHeader>
                 <DialogTitle>รายละเอียดห้อง {selectedRoom?.room_number}</DialogTitle>
               </DialogHeader>
