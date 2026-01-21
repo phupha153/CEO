@@ -210,10 +210,10 @@ export default function RoomsPage() {
     enabled: canView && !!selectedBranchId,
     retry: 2,
     retryDelay: 1000,
-    staleTime: 1 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: 'always',
+    staleTime: 3 * 60 * 1000, // ⚡ เพิ่ม cache time
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false, // ⚡ ปิด auto-refetch
+    refetchOnMount: false, // ⚡ ใช้ cache ก่อน
   });
 
   const { data: allRooms = [] } = useQuery({
@@ -257,10 +257,10 @@ export default function RoomsPage() {
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 1 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: 'always',
+    staleTime: 2 * 60 * 1000, // ⚡ เพิ่ม cache time
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false, // ⚡ ปิด auto-refetch
+    refetchOnMount: false, // ⚡ ใช้ cache ก่อน
   });
 
   const { data: tenants = [] } = useQuery({
@@ -275,10 +275,10 @@ export default function RoomsPage() {
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: 'always',
+    staleTime: 5 * 60 * 1000, // ⚡ เพิ่ม cache time
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false, // ⚡ ปิด auto-refetch
+    refetchOnMount: false, // ⚡ ใช้ cache ก่อน
   });
 
   const { data: payments = [] } = useQuery({
@@ -293,10 +293,10 @@ export default function RoomsPage() {
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 1 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: 'always',
+    staleTime: 3 * 60 * 1000, // ⚡ เพิ่ม cache time
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false, // ⚡ ปิด auto-refetch
+    refetchOnMount: false, // ⚡ ใช้ cache ก่อน
   });
 
   const { data: maintenanceRequests = [] } = useQuery({
@@ -304,30 +304,30 @@ export default function RoomsPage() {
     queryFn: () => base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
-    refetchOnMount: 'always',
+    staleTime: 5 * 60 * 1000, // ⚡ เพิ่ม cache time
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false, // ⚡ ปิด auto-refetch
+    refetchOnMount: false, // ⚡ ใช้ cache ก่อน
   });
 
   const { data: meterReadings = [] } = useQuery({
     queryKey: ['meterReadings', selectedBranchId],
     queryFn: () => base44.entities.MeterReading.filter({ branch_id: selectedBranchId }, '-reading_date', 5000),
-    enabled: canView && !!selectedBranchId,
-    staleTime: 1 * 60 * 1000,
+    enabled: false, // ⚡ โหลดเฉพาะเมื่อเปิด Room Detail
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: contracts = [] } = useQuery({
     queryKey: ['contracts', selectedBranchId],
     queryFn: () => base44.entities.Contract.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
-    enabled: canView && !!selectedBranchId,
+    enabled: false, // ⚡ โหลดเฉพาะเมื่อเปิด Room Detail
     staleTime: 5 * 60 * 1000,
   });
 
   const { data: tenantRatings = [] } = useQuery({
     queryKey: ['tenantRatings', selectedBranchId],
     queryFn: () => base44.entities.TenantRating.filter({ branch_id: selectedBranchId }, '-rating_date', 5000),
-    enabled: canView && !!selectedBranchId,
+    enabled: false, // ⚡ โหลดเฉพาะเมื่อเปิด Room Detail
     staleTime: 5 * 60 * 1000,
   });
 
