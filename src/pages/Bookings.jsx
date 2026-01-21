@@ -1313,7 +1313,17 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                           <div className="flex md:flex-col gap-2 justify-end md:justify-start">
                             <Button
                               size="sm"
-                              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-4"
+                              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-4"
+                              onClick={() => navigate(createPageUrl('ContractTemplate'), { state: { tempBooking: booking } })}
+                              variant={booking.booking_type === 'monthly' ? 'default' : 'ghost'}
+                              disabled={booking.booking_type !== 'monthly'}
+                            >
+                              <FileText className="w-4 h-4 mr-1.5" />
+                              สัญญา
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-4"
                               onClick={() => {
                                 if (booking.booking_type === 'monthly') {
                                   // แสดง Dialog เพื่อยืนยันผู้เช่าสำหรับรายเดือน
