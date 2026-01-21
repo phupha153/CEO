@@ -511,7 +511,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       bookingData.status = 'active';
       bookingData.total_amount = 0;
 
-      await createMutation.mutateAsync(bookingData);
+      await createTempMutation.mutateAsync(bookingData);
 
       setAiAction(null);
       setAiResult(null);
@@ -2066,7 +2066,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               type="file"
                               accept="image/*"
                               onChange={handleSlipUpload}
-                              disabled={uploadingSlip || createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                              disabled={uploadingSlip || createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                               className="hidden"
                             />
                           </label>
@@ -2110,7 +2110,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                     type="button"
                     variant="outline"
                     onClick={() => setShowDialog(false)}
-                    disabled={createMutation.isPending || updateMutation.isPending}
+                    disabled={createTempMutation.isPending || updateTempMutation.isPending}
                   >
                     ยกเลิก
                   </Button>
@@ -2118,8 +2118,8 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                     type="submit"
                     className="bg-gradient-to-r from-blue-600 to-indigo-600"
                     disabled={
-                      createMutation.isPending ||
-                      updateMutation.isPending ||
+                      createTempMutation.isPending ||
+                      updateTempMutation.isPending ||
                       (editingBooking ? !canEdit : !canAdd)
                     }
                   >
