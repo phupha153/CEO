@@ -1215,7 +1215,13 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
 
           {/* Temporary Bookings */}
           {filteredTempBookings.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 px-2">
+                <Badge className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white">
+                  📋 รอยืนยัน
+                </Badge>
+                <span className="text-sm font-semibold text-slate-700">{filteredTempBookings.length} รายการ</span>
+              </div>
               {filteredTempBookings.map((booking) => {
                 const room = getRoomInfo(booking.room_id);
                 const paymentMethodLabel = {
@@ -1231,39 +1237,47 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                   >
-                    <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg hover:shadow-xl transition-all">
-                      <CardContent className="p-6">
-                        <div className="flex flex-col md:flex-row justify-between gap-4">
-                          <div className="flex-1 space-y-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                                <DoorOpen className="w-6 h-6 text-white" />
+                    <Card className="relative overflow-hidden bg-white border-0 shadow-md hover:shadow-2xl transition-all duration-300 group">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 via-purple-500 to-blue-500 group-hover:w-2 transition-all duration-300" />
+                      <CardContent className="p-5 pl-6">
+                        <div className="flex flex-col md:flex-row justify-between gap-5">
+                          <div className="flex-1 space-y-4">
+                            <div className="flex items-start gap-4">
+                              <div className="w-14 h-14 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                <DoorOpen className="w-7 h-7 text-white" />
                               </div>
-                              <div>
-                               <h3 className="text-xl font-bold text-slate-800">
-                                 ห้อง {room?.room_number || 'N/A'}
-                               </h3>
-                               <p className="text-sm text-slate-500">{booking.booking_type === 'daily' ? 'รายวัน' : 'รายเดือน'}</p>
-                             </div>
+                              <div className="flex-1 pt-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                                    ห้อง {room?.room_number || 'N/A'}
+                                  </h3>
+                                  <Badge className={`text-xs font-semibold px-2 py-0.5 ${booking.booking_type === 'daily' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                                    {booking.booking_type === 'daily' ? '📅 รายวัน' : '🏠 รายเดือน'}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-slate-500 font-medium">ชั้น {room?.floor || '-'}</p>
+                              </div>
                             </div>
 
-                            <div className="grid md:grid-cols-2 gap-4">
-                              <div className="flex items-center gap-2 text-slate-600">
-                                <User className="w-4 h-4" />
-                                <div>
-                                  <span className="text-sm font-semibold">{booking.guest_name || 'ไม่ระบุ'}</span>
+                            <div className="grid md:grid-cols-2 gap-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl p-4 border border-slate-200">
+                              <div className="flex items-start gap-3">
+                                <User className="w-5 h-5 text-indigo-600 mt-0.5 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide">ผู้เข้าพัก</p>
+                                  <p className="text-sm font-bold text-slate-800 truncate">{booking.guest_name || 'ไม่ระบุ'}</p>
                                   {booking.guest_phone && (
-                                    <p className="text-xs text-slate-500">{booking.guest_phone}</p>
+                                    <p className="text-xs text-slate-600 mt-0.5">{booking.guest_phone}</p>
                                   )}
                                 </div>
                               </div>
-                              <div className="flex items-center gap-2 text-slate-600">
-                                <CalendarIcon className="w-4 h-4" />
-                                <div className="text-sm">
-                                  <p>{format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th })}</p>
+                              <div className="flex items-start gap-3">
+                                <CalendarIcon className="w-5 h-5 text-indigo-600 mt-0.5 flex-shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-xs text-slate-500 font-semibold uppercase tracking-wide">วันที่</p>
+                                  <p className="text-sm font-bold text-slate-800">{format(parseISO(booking.check_in_date), 'd MMM', { locale: th })}</p>
                                   {booking.check_out_date && (
-                                    <p className="text-xs text-slate-500">
-                                      ถึง {format(parseISO(booking.check_out_date), 'd MMM yyyy', { locale: th })}
+                                    <p className="text-xs text-slate-600 mt-0.5">
+                                      ถึง {format(parseISO(booking.check_out_date), 'd MMM', { locale: th })}
                                     </p>
                                   )}
                                 </div>
@@ -1271,38 +1285,44 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                             </div>
 
                             {booking.deposit_amount > 0 && (
-                              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                                <p className="text-sm font-semibold text-blue-800 mb-1">
-                                  💰 เงินมัดจำ: {booking.deposit_amount.toLocaleString()} บาท
-                                </p>
-                                <div className="flex items-center gap-4 text-xs text-blue-700">
-                                  <span>ชำระผ่าน: {paymentMethodLabel}</span>
-                                  {booking.deposit_slip_url && (
-                                    <a
-                                      href={booking.deposit_slip_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-1 hover:underline"
-                                    >
-                                      <Camera className="w-3 h-3" />
-                                      ดูสลิป
-                                    </a>
-                                  )}
+                              <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-blue-50 rounded-xl p-4 border border-indigo-200 shadow-sm">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-xs text-indigo-600 font-semibold uppercase tracking-wide mb-1">เงินมัดจำ</p>
+                                    <p className="text-lg font-bold text-indigo-900">
+                                      {booking.deposit_amount.toLocaleString()} ฿
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <Badge className="bg-indigo-600 text-white text-xs">{paymentMethodLabel}</Badge>
+                                    {booking.deposit_slip_url && (
+                                      <a
+                                        href={booking.deposit_slip_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center justify-end gap-1 mt-2 text-indigo-600 hover:text-indigo-700 text-xs font-semibold hover:underline"
+                                      >
+                                        <Camera className="w-3.5 h-3.5" />
+                                        ดูสลิป
+                                      </a>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             )}
 
                             {booking.notes && (
-                              <p className="text-sm text-slate-600">
-                                หมายเหตุ: {booking.notes}
-                              </p>
+                              <div className="bg-slate-100 rounded-lg p-3 border-l-4 border-slate-400">
+                                <p className="text-xs text-slate-600 font-semibold uppercase tracking-wide mb-1">หมายเหตุ</p>
+                                <p className="text-sm text-slate-700">{booking.notes}</p>
+                              </div>
                             )}
                           </div>
 
-                          <div className="flex md:flex-col gap-2">
+                          <div className="flex md:flex-col gap-2 justify-end md:justify-start">
                             <Button
                               size="sm"
-                              className="bg-green-600 hover:bg-green-700"
+                              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-4"
                               onClick={() => {
                                 if (confirm('ยืนยันการจองนี้ใช่ไหม?')) {
                                   confirmTempBookingMutation.mutate(booking);
@@ -1310,22 +1330,22 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               }}
                               disabled={confirmTempBookingMutation.isPending}
                             >
-                              {confirmTempBookingMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+                              {confirmTempBookingMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1.5" />}
                               ยืนยัน
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleEdit(booking)}
-                              className="text-blue-600"
+                              className="border-blue-300 text-blue-600 hover:bg-blue-50 font-semibold px-4"
                             >
-                              <Edit2 className="w-4 h-4 mr-1" />
+                              <Edit2 className="w-4 h-4 mr-1.5" />
                               แก้ไข
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="border-red-300 text-red-600 hover:bg-red-50 font-semibold px-4"
                               onClick={() => {
                                 if (confirm('ลบการจองนี้ใช่ไหม?')) {
                                   deleteTempBookingMutation.mutate(booking.id);
@@ -1333,7 +1353,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               }}
                               disabled={deleteTempBookingMutation.isPending}
                             >
-                              <Trash2 className="w-4 h-4 mr-1" />
+                              <Trash2 className="w-4 h-4 mr-1.5" />
                               ลบ
                             </Button>
                           </div>
