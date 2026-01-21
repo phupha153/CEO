@@ -1239,11 +1239,11 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               <DoorOpen className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                              <h3 className="text-xl font-bold text-slate-800">
-                                ห้อง {room?.room_number || 'N/A'}
-                              </h3>
-                              <p className="text-sm text-slate-500">รายวัน</p>
-                            </div>
+                               <h3 className="text-xl font-bold text-slate-800">
+                                 ห้อง {room?.room_number || 'N/A'}
+                               </h3>
+                               <p className="text-sm text-slate-500">{booking.booking_type === 'daily' ? 'รายวัน' : 'รายเดือน'}</p>
+                             </div>
                             {getStatusBadge(booking.status)}
                           </div>
 
