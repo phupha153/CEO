@@ -127,17 +127,17 @@ export default function BookingsPage() {
     queryFn: async () => {
       const response = await base44.functions.invoke('getSecureData', {
         entity: 'Booking',
-        filters: { branch_id: selectedBranchId, is_temporary_booking: true },
+        filters: { branch_id: selectedBranchId }, // ⚡ แสดงทุก booking ไม่กรอง is_temporary_booking
         limit: 5000
       });
       return response.data.data;
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 1 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: 'always',
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: 'stale',
   });
 
   const { data: rooms = [] } = useQuery({
