@@ -605,38 +605,22 @@ Deno.serve(async (req) => {
                 const originalWaterUnits = waterUnits;
                 const originalElecUnits = elecUnits;
 
-                // ⭐ ค่าน้ำขั้นต่ำ - ใช้ logic แบบเดิม (ถ้าใช้ต่ำกว่า X หน่วย → คิดขั้นต่ำ Y บาท)
                 const waterMinEnabled = getConfigValue('water_minimum_enabled', 'false', roomBranchId) === 'true';
-                
                 if (waterMinEnabled) {
-                    // ดึงค่าขั้นต่ำจากห้องก่อน ถ้าไม่มีค่อยใช้ของสาขา
-                    const roomMinWaterCharge = (room.min_water_charge !== undefined && room.min_water_charge !== null) 
-                        ? parseFloat(room.min_water_charge) 
-                        : parseFloat(getConfigValue('min_water_charge', '0', roomBranchId));
-                    
-                    // เช็คว่าใช้น้ำต่ำกว่าหน่วยขั้นต่ำหรือไม่ (เทียบกับหน่วยขั้นต่ำที่ตั้งไว้ในสาขา)
                     const minUnits = parseFloat(getConfigValue('water_minimum_units', '3', roomBranchId));
-                    
-                    if (waterUnits <= minUnits && roomMinWaterCharge > 0) {
-                        waterMinimumCharge = roomMinWaterCharge;
+                    const minCharge = parseFloat(getConfigValue('water_minimum_charge', '0', roomBranchId));
+                    if (waterUnits <= minUnits && minCharge > 0) {
+                        waterMinimumCharge = minCharge;
                         waterMinimumApplied = true;
                     }
                 }
 
-                // ⭐ ค่าไฟขั้นต่ำ - ใช้ logic แบบเดิม (ถ้าใช้ต่ำกว่า X หน่วย → คิดขั้นต่ำ Y บาท)
                 const elecMinEnabled = getConfigValue('electricity_minimum_enabled', 'false', roomBranchId) === 'true';
-                
                 if (elecMinEnabled) {
-                    // ดึงค่าขั้นต่ำจากห้องก่อน ถ้าไม่มีค่อยใช้ของสาขา
-                    const roomMinElecCharge = (room.min_electricity_charge !== undefined && room.min_electricity_charge !== null)
-                        ? parseFloat(room.min_electricity_charge)
-                        : parseFloat(getConfigValue('min_electricity_charge', '0', roomBranchId));
-                    
-                    // เช็คว่าใช้ไฟต่ำกว่าหน่วยขั้นต่ำหรือไม่ (เทียบกับหน่วยขั้นต่ำที่ตั้งไว้ในสาขา)
                     const minUnits = parseFloat(getConfigValue('electricity_minimum_units', '3', roomBranchId));
-                    
-                    if (elecUnits <= minUnits && roomMinElecCharge > 0) {
-                        electricityMinimumCharge = roomMinElecCharge;
+                    const minCharge = parseFloat(getConfigValue('electricity_minimum_charge', '0', roomBranchId));
+                    if (elecUnits <= minUnits && minCharge > 0) {
+                        electricityMinimumCharge = minCharge;
                         electricityMinimumApplied = true;
                     }
                 }

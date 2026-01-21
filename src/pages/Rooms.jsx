@@ -112,7 +112,6 @@ export default function RoomsPage() {
   const [executingAction, setExecutingAction] = useState(false);
   const itemsPerPage = 50;
 
-  const [showMinimumCharges, setShowMinimumCharges] = useState(false);
   const [formData, setFormData] = useState({
     room_number: '',
     floor: '',
@@ -127,8 +126,6 @@ export default function RoomsPage() {
     water_rate: '',
     electricity_rate: '',
     common_fee: '',
-    min_water_charge: '',
-    min_electricity_charge: '',
     other_monthly_fees: [],
     // Booking fields
     guest_name: '',
@@ -1475,8 +1472,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       water_rate: formData.water_rate !== '' ? parseFloat(formData.water_rate) : null,
       electricity_rate: formData.electricity_rate !== '' ? parseFloat(formData.electricity_rate) : null,
       common_fee: formData.common_fee !== '' ? parseFloat(formData.common_fee) : null,
-      min_water_charge: formData.min_water_charge !== '' ? parseFloat(formData.min_water_charge) : null,
-      min_electricity_charge: formData.min_electricity_charge !== '' ? parseFloat(formData.min_electricity_charge) : null,
       other_monthly_fees: formData.other_monthly_fees || []
     };
     if (editingRoom) {
@@ -1492,9 +1487,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       return;
     }
     setEditingRoom(room);
-    const hasMinCharges = (room.min_water_charge !== null && room.min_water_charge !== undefined) || 
-                          (room.min_electricity_charge !== null && room.min_electricity_charge !== undefined);
-    setShowMinimumCharges(hasMinCharges);
     setFormData({
       room_number: room.room_number || '',
       floor: room.floor?.toString() || '',
@@ -1509,8 +1501,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       water_rate: room.water_rate?.toString() || '',
       electricity_rate: room.electricity_rate?.toString() || '',
       common_fee: room.common_fee?.toString() || '',
-      min_water_charge: room.min_water_charge?.toString() || '',
-      min_electricity_charge: room.min_electricity_charge?.toString() || '',
       other_monthly_fees: room.other_monthly_fees || []
     });
     setShowDialog(true);
@@ -1518,7 +1508,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
   const resetForm = () => {
     setEditingRoom(null);
-    setShowMinimumCharges(false);
     setFormData({
       room_number: '',
       floor: '',
@@ -1533,8 +1522,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       water_rate: '',
       electricity_rate: '',
       common_fee: '',
-      min_water_charge: '',
-      min_electricity_charge: '',
       other_monthly_fees: []
     });
   };
@@ -1924,13 +1911,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                     amenities: [],
                     description: '',
                     image_urls: [],
-                    last_ac_cleaning_date: '',
-                    water_rate: '',
-                    electricity_rate: '',
-                    common_fee: '',
-                    min_water_charge: '',
-                    min_electricity_charge: '',
-                    other_monthly_fees: []
+                    last_ac_cleaning_date: ''
                   });
                   setShowDialog(true);
                 }}
@@ -2739,65 +2720,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 cursor-pointer border border-slate-200">
-                    <Checkbox
-                      checked={showMinimumCharges}
-                      onCheckedChange={(checked) => {
-                        setShowMinimumCharges(checked);
-                        if (!checked) {
-                          setFormData({ 
-                            ...formData, 
-                            min_water_charge: '', 
-                            min_electricity_charge: '' 
-                          });
-                        }
-                      }}
-                    />
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-800">ตั้งค่าขั้นต่ำน้ำ-ไฟเฉพาะห้องนี้</p>
-                      <p className="text-xs text-slate-500">
-                        กำหนดค่าน้ำและค่าไฟขั้นต่ำแยกต่างหากจากค่าสาขา
-                      </p>
-                    </div>
-                  </label>
-
-                  {showMinimumCharges && (
-                    <div className="grid grid-cols-2 gap-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
-                      <div>
-                        <Label className="text-slate-700">
-                          ค่าน้ำขั้นต่ำ (บาท/เดือน)
-                        </Label>
-                        <Input
-                          type="number"
-                          placeholder={getConfigValue('min_water_charge') || "0"}
-                          value={formData.min_water_charge}
-                          onChange={(e) => setFormData({ ...formData, min_water_charge: e.target.value })}
-                          onWheel={(e) => e.target.blur()}
-                        />
-                        <p className="text-xs text-slate-500 mt-1">
-                          ค่าสาขา: {getConfigValue('min_water_charge') || '0'} บาท
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-slate-700">
-                          ค่าไฟขั้นต่ำ (บาท/เดือน)
-                        </Label>
-                        <Input
-                          type="number"
-                          placeholder={getConfigValue('min_electricity_charge') || "0"}
-                          value={formData.min_electricity_charge}
-                          onChange={(e) => setFormData({ ...formData, min_electricity_charge: e.target.value })}
-                          onWheel={(e) => e.target.blur()}
-                        />
-                        <p className="text-xs text-slate-500 mt-1">
-                          ค่าสาขา: {getConfigValue('min_electricity_charge') || '0'} บาท
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
                 {/* Other Monthly Fees */}
                 <div className="space-y-2 p-4 border rounded-lg bg-slate-50/50">
                   <Label className="flex items-center gap-2">
@@ -3100,25 +3022,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                   </p>
                                 </div>
                               ))}
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 bg-amber-50 p-3 rounded-lg border border-amber-200">
-                              <div>
-                                <Label className="text-slate-600 text-xs flex items-center gap-1">
-                                  ค่าน้ำขั้นต่ำ
-                                </Label>
-                                <p className="font-semibold text-blue-700">
-                                  {selectedRoom.min_water_charge !== null && selectedRoom.min_water_charge !== undefined ? `${selectedRoom.min_water_charge.toLocaleString()} บาท/เดือน` : <span className="text-slate-400 text-sm">(ใช้ค่าสาขา)</span>}
-                                </p>
-                              </div>
-                              <div>
-                                <Label className="text-slate-600 text-xs flex items-center gap-1">
-                                  ค่าไฟขั้นต่ำ
-                                </Label>
-                                <p className="font-semibold text-orange-700">
-                                  {selectedRoom.min_electricity_charge !== null && selectedRoom.min_electricity_charge !== undefined ? `${selectedRoom.min_electricity_charge.toLocaleString()} บาท/เดือน` : <span className="text-slate-400 text-sm">(ใช้ค่าสาขา)</span>}
-                                </p>
-                              </div>
                             </div>
 
                             {selectedRoom.size && (
