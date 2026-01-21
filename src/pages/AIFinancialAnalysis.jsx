@@ -399,14 +399,14 @@ export default function AIFinancialAnalysis() {
         }
       />
 
-      <div className="px-4 md:px-8 py-6 relative z-10">
+      <div className="px-3 md:px-8 py-4 md:py-6 relative z-10">
         <div className="max-w-5xl mx-auto">
 
           {/* Filters Card */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-            <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-xl rounded-3xl overflow-hidden">
-              <CardContent className="p-4 md:p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-4 md:mb-6">
+            <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-xl rounded-2xl md:rounded-3xl overflow-hidden">
+              <CardContent className="p-3 md:p-6">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
                   
                   {/* Branch Selector */}
                   <div className="flex flex-col gap-2">
