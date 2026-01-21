@@ -3126,13 +3126,15 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 return (
                   <div className="space-y-4">
                     <Tabs defaultValue="room-info" className="w-full">
-                       <TabsList className="grid w-full grid-cols-5">
-                         <TabsTrigger value="room-info">ข้อมูลห้อง</TabsTrigger>
-                         <TabsTrigger value="tenant-info">ข้อมูลผู้เช่า</TabsTrigger>
-                         <TabsTrigger value="payment-history">ประวัติการชำระ</TabsTrigger>
-                         <TabsTrigger value="meter-history">ข้อมูลมิเตอร์</TabsTrigger>
-                         <TabsTrigger value="maintenance-history">ประวัติการซ่อม</TabsTrigger>
-                       </TabsList>
+                       <div className="w-full overflow-x-auto -mx-2 px-2 md:mx-0 md:px-0 md:overflow-visible">
+                         <TabsList className="inline-flex w-auto md:grid md:w-full md:grid-cols-5">
+                           <TabsTrigger value="room-info" className="whitespace-nowrap text-xs md:text-sm px-2 md:px-3">ข้อมูลห้อง</TabsTrigger>
+                           <TabsTrigger value="tenant-info" className="whitespace-nowrap text-xs md:text-sm px-2 md:px-3">ผู้เช่า</TabsTrigger>
+                           <TabsTrigger value="payment-history" className="whitespace-nowrap text-xs md:text-sm px-2 md:px-3">การชำระ</TabsTrigger>
+                           <TabsTrigger value="meter-history" className="whitespace-nowrap text-xs md:text-sm px-2 md:px-3">มิเตอร์</TabsTrigger>
+                           <TabsTrigger value="maintenance-history" className="whitespace-nowrap text-xs md:text-sm px-2 md:px-3">การซ่อม</TabsTrigger>
+                         </TabsList>
+                       </div>
                       
                       <TabsContent value="room-info" className="pt-4 space-y-4">
                         <Card className="bg-slate-50 border-slate-200">
@@ -3144,49 +3146,49 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                 ))}
                               </div>
                             )}
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                              <DoorOpen className="w-5 h-5" />
-                              ข้อมูลห้อง
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base">
+                             <DoorOpen className="w-4 h-4 md:w-5 md:h-5" />
+                             ข้อมูลห้อง
                             </h3>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <Label className="text-slate-600">หมายเลขห้อง</Label>
-                                <p className="text-xl font-bold text-slate-800">{selectedRoom.room_number}</p>
-                              </div>
-                              <div>
-                                <Label className="text-slate-600">ชั้น</Label>
-                                <p className="text-xl font-bold text-slate-800">{selectedRoom.floor}</p>
-                              </div>
-                              <div>
-                                <Label className="text-slate-600">ประเภท</Label>
-                                <p className="text-lg font-semibold text-slate-800">
-                                  {selectedRoom.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
-                                </p>
-                              </div>
-                              <div>
-                                <Label className="text-slate-600">ราคา</Label>
-                                <p className="text-xl font-bold text-green-600">
-                                  {selectedRoom.price?.toLocaleString()} บาท
-                                </p>
-                              </div>
+                            <div className="grid grid-cols-2 gap-3 md:gap-4">
+                             <div>
+                               <Label className="text-slate-600 text-xs md:text-sm">หมายเลขห้อง</Label>
+                               <p className="text-base md:text-xl font-bold text-slate-800">{selectedRoom.room_number}</p>
+                             </div>
+                             <div>
+                               <Label className="text-slate-600 text-xs md:text-sm">ชั้น</Label>
+                               <p className="text-base md:text-xl font-bold text-slate-800">{selectedRoom.floor}</p>
+                             </div>
+                             <div>
+                               <Label className="text-slate-600 text-xs md:text-sm">ประเภท</Label>
+                               <p className="text-sm md:text-lg font-semibold text-slate-800">
+                                 {selectedRoom.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
+                               </p>
+                             </div>
+                             <div>
+                               <Label className="text-slate-600 text-xs md:text-sm">ราคา</Label>
+                               <p className="text-base md:text-xl font-bold text-green-600">
+                                 {selectedRoom.price?.toLocaleString()} บาท
+                               </p>
+                             </div>
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-100 p-3 rounded-lg">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 bg-slate-100 p-2 md:p-3 rounded-lg">
                               <div>
-                                <Label className="text-slate-600 text-xs">ค่าน้ำ/หน่วย</Label>
-                                <p className="font-semibold text-blue-600">
-                                  {selectedRoom.water_rate !== null && selectedRoom.water_rate !== undefined ? `${selectedRoom.water_rate} บาท` : <span className="text-slate-400 text-sm">(ใช้ค่ากลาง)</span>}
+                                <Label className="text-slate-600 text-[10px] md:text-xs">ค่าน้ำ/หน่วย</Label>
+                                <p className="font-semibold text-blue-600 text-xs md:text-sm">
+                                  {selectedRoom.water_rate !== null && selectedRoom.water_rate !== undefined ? `${selectedRoom.water_rate} บาท` : <span className="text-slate-400 text-[10px] md:text-sm">(ใช้ค่ากลาง)</span>}
                                 </p>
                               </div>
                               <div>
-                                <Label className="text-slate-600 text-xs">ค่าไฟ/หน่วย</Label>
-                                <p className="font-semibold text-orange-600">
-                                  {selectedRoom.electricity_rate !== null && selectedRoom.electricity_rate !== undefined ? `${selectedRoom.electricity_rate} บาท` : <span className="text-slate-400 text-sm">(ใช้ค่ากลาง)</span>}
+                                <Label className="text-slate-600 text-[10px] md:text-xs">ค่าไฟ/หน่วย</Label>
+                                <p className="font-semibold text-orange-600 text-xs md:text-sm">
+                                  {selectedRoom.electricity_rate !== null && selectedRoom.electricity_rate !== undefined ? `${selectedRoom.electricity_rate} บาท` : <span className="text-slate-400 text-[10px] md:text-sm">(ใช้ค่ากลาง)</span>}
                                 </p>
                               </div>
                               <div>
-                                <Label className="text-slate-600 text-xs">ค่าส่วนกลาง</Label>
-                                <p className="font-semibold text-slate-700">
+                                <Label className="text-slate-600 text-[10px] md:text-xs">ค่าส่วนกลาง</Label>
+                                <p className="font-semibold text-slate-700 text-xs md:text-sm">
                                   {selectedRoom.common_fee !== undefined && selectedRoom.common_fee !== null
                                     ? (selectedRoom.common_fee === 0 ? '0 บาท (ไม่เสีย)' : `${selectedRoom.common_fee.toLocaleString()} บาท`)
                                     : (branchCommonFee ? `${parseFloat(branchCommonFee).toLocaleString()} บาท (ค่ากลาง)` : '-')}
@@ -3194,8 +3196,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                               </div>
                               {selectedRoom.other_monthly_fees && selectedRoom.other_monthly_fees.map((fee, index) => (
                                 <div key={index}>
-                                  <Label className="text-slate-600 text-xs">{fee.name}</Label>
-                                  <p className="font-semibold text-purple-600">
+                                  <Label className="text-slate-600 text-[10px] md:text-xs">{fee.name}</Label>
+                                  <p className="font-semibold text-purple-600 text-xs md:text-sm">
                                     {fee.amount?.toLocaleString()} บาท
                                   </p>
                                 </div>
@@ -3204,17 +3206,17 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
                             {selectedRoom.size && (
                               <div>
-                                <Label className="text-slate-600">ขนาดห้อง</Label>
-                                <p className="text-lg font-semibold text-slate-800">{selectedRoom.size} ตร.ม.</p>
+                                <Label className="text-slate-600 text-xs md:text-sm">ขนาดห้อง</Label>
+                                <p className="text-sm md:text-lg font-semibold text-slate-800">{selectedRoom.size} ตร.ม.</p>
                               </div>
                             )}
 
                             {selectedRoom.amenities && selectedRoom.amenities.length > 0 && (
                               <div>
-                                <Label className="text-slate-600 mb-2 block">สิ่งอำนวยความสะดวก</Label>
-                                <div className="flex flex-wrap gap-2">
+                                <Label className="text-slate-600 mb-2 block text-xs md:text-sm">สิ่งอำนวยความสะดวก</Label>
+                                <div className="flex flex-wrap gap-1 md:gap-2">
                                   {selectedRoom.amenities.map((amenity, index) => (
-                                    <Badge key={index} className="bg-green-100 text-green-700">
+                                    <Badge key={index} className="bg-green-100 text-green-700 text-[10px] md:text-xs">
                                       {amenity}
                                     </Badge>
                                   ))}
@@ -3224,15 +3226,15 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
                             {selectedRoom.description && (
                               <div>
-                                <Label className="text-slate-600">รายละเอียด</Label>
-                                <p className="text-slate-800 mt-1">{selectedRoom.description}</p>
+                                <Label className="text-slate-600 text-xs md:text-sm">รายละเอียด</Label>
+                                <p className="text-slate-800 mt-1 text-xs md:text-sm">{selectedRoom.description}</p>
                               </div>
                             )}
 
                             {selectedRoom.last_ac_cleaning_date && (
                               <div>
-                                <Label className="text-slate-600">ล้างแอร์ครั้งล่าสุด</Label>
-                                <p className="text-lg font-semibold text-slate-800">
+                                <Label className="text-slate-600 text-xs md:text-sm">ล้างแอร์ครั้งล่าสุด</Label>
+                                <p className="text-sm md:text-lg font-semibold text-slate-800">
                                   {(() => {
                                     try {
                                       const date = parseISO(selectedRoom.last_ac_cleaning_date);
@@ -3284,14 +3286,14 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                       </Button>
                                     </div>
                                   </div>
-                                  <div className="grid grid-cols-2 gap-3 text-sm">
-                                    <div><Label className="text-slate-600">ชื่อ-นามสกุล</Label><Link to={`${createPageUrl('Tenants')}?search=${encodeURIComponent(tenant.full_name)}`} onClick={() => setShowDetailDialog(false)} className="font-semibold text-blue-600 hover:underline">{tenant.full_name}</Link></div>
-                                    <div><Label className="text-slate-600">เบอร์โทร</Label><p className="font-semibold flex items-center gap-1"><Phone className="w-3 h-3" />{tenant.phone || '-'}</p></div>
-                                    {tenant.line_id && <div><Label className="text-slate-600">LINE ID</Label><p className="font-semibold">{tenant.line_id}</p></div>}
-                                    {tenant.email && <div><Label className="text-slate-600">อีเมล</Label><p className="font-semibold">{tenant.email}</p></div>}
-                                    {tenant.national_id && <div><Label className="text-slate-600">เลขบัตรประชาชน</Label><p className="font-semibold">{tenant.national_id}</p></div>}
-                                    {booking.check_in_date && <div><Label className="text-slate-600">วันเข้าพัก</Label><p className="font-semibold flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th })}</p></div>}
-                                    {booking.check_out_date && <div className="col-span-2"><Label className="text-slate-600">วันสิ้นสุดสัญญา</Label><div className="flex items-center gap-2"><p className="font-semibold flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{format(parseISO(booking.check_out_date), 'd MMM yyyy', { locale: th })}</p>{daysLeft !== null && daysLeft >= 0 && daysLeft <= 30 && (<Badge className="bg-red-500 text-white"><AlertTriangle className="w-3 h-3 mr-1" />เหลือ {daysLeft} วัน</Badge>)}</div></div>}
+                                  <div className="grid grid-cols-2 gap-2 md:gap-3 text-xs md:text-sm">
+                                    <div><Label className="text-slate-600 text-[10px] md:text-xs">ชื่อ-นามสกุล</Label><Link to={`${createPageUrl('Tenants')}?search=${encodeURIComponent(tenant.full_name)}`} onClick={() => setShowDetailDialog(false)} className="font-semibold text-blue-600 hover:underline text-xs md:text-sm">{tenant.full_name}</Link></div>
+                                    <div><Label className="text-slate-600 text-[10px] md:text-xs">เบอร์โทร</Label><p className="font-semibold flex items-center gap-1 text-xs md:text-sm"><Phone className="w-2.5 h-2.5 md:w-3 md:h-3" />{tenant.phone || '-'}</p></div>
+                                    {tenant.line_id && <div><Label className="text-slate-600 text-[10px] md:text-xs">LINE ID</Label><p className="font-semibold text-xs md:text-sm">{tenant.line_id}</p></div>}
+                                    {tenant.email && <div><Label className="text-slate-600 text-[10px] md:text-xs">อีเมล</Label><p className="font-semibold text-xs md:text-sm">{tenant.email}</p></div>}
+                                    {tenant.national_id && <div><Label className="text-slate-600 text-[10px] md:text-xs">เลขบัตรประชาชน</Label><p className="font-semibold text-xs md:text-sm">{tenant.national_id}</p></div>}
+                                    {booking.check_in_date && <div><Label className="text-slate-600 text-[10px] md:text-xs">วันเข้าพัก</Label><p className="font-semibold flex items-center gap-1 text-xs md:text-sm"><CalendarIcon className="w-2.5 h-2.5 md:w-3 md:h-3" />{format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th })}</p></div>}
+                                    {booking.check_out_date && <div className="col-span-2"><Label className="text-slate-600 text-[10px] md:text-xs">วันสิ้นสุดสัญญา</Label><div className="flex items-center gap-2"><p className="font-semibold flex items-center gap-1 text-xs md:text-sm"><CalendarIcon className="w-2.5 h-2.5 md:w-3 md:h-3" />{format(parseISO(booking.check_out_date), 'd MMM yyyy', { locale: th })}</p>{daysLeft !== null && daysLeft >= 0 && daysLeft <= 30 && (<Badge className="bg-red-500 text-white text-[9px] md:text-xs"><AlertTriangle className="w-2.5 h-2.5 md:w-3 md:h-3 mr-1" />เหลือ {daysLeft} วัน</Badge>)}</div></div>}
                                   </div>
                                 </CardContent>
                               </Card>
@@ -3327,8 +3329,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       <TabsContent value="payment-history" className="pt-4">
                         <Card className="bg-green-50 border-green-200">
                           <CardContent className="p-4 space-y-3">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                              <DollarSign className="w-5 h-5 text-green-600" />
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base">
+                              <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
                               ประวัติการชำระเงิน
                             </h3>
                             {recentPayments.length > 0 ? (
@@ -3357,8 +3359,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       <TabsContent value="meter-history" className="pt-4">
                         <Card className="bg-purple-50 border-purple-200">
                           <CardContent className="p-4 space-y-3">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                              <Gauge className="w-5 h-5 text-purple-600" />
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base">
+                              <Gauge className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
                               ประวัติมิเตอร์
                             </h3>
                             {meterHistory.length > 0 ? (
@@ -3387,8 +3389,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       <TabsContent value="maintenance-history" className="pt-4">
                         <Card className="bg-orange-50 border-orange-200">
                           <CardContent className="p-4 space-y-3">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                              <Wrench className="w-5 h-5 text-orange-600" />
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base">
+                              <Wrench className="w-4 h-4 md:w-5 md:h-5 text-orange-600" />
                               ประวัติการซ่อม ({maintenanceHistory.length} รายการ)
                             </h3>
                             {maintenanceHistory.length > 0 ? (
