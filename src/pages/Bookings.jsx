@@ -1312,38 +1312,53 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
 
                           <div className="flex md:flex-col gap-2 justify-end md:justify-start">
                             <Button
-                              size="sm"
-                              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-4"
-                              onClick={() => {
-                                if (booking.booking_type === 'monthly') {
-                                  // แสดง Dialog เพื่อยืนยันผู้เช่าสำหรับรายเดือน
-                                  setPendingTempBooking(booking);
-                                  setTenantFormData({
-                                    full_name: booking.guest_name || '',
-                                    phone: booking.guest_phone || '',
-                                    national_id: booking.guest_national_id || '',
-                                    email: booking.guest_email || ''
-                                  });
-                                  setConfirmTenantDialog(true);
-                                } else {
-                                  // รายวัน ยืนยันโดยตรง
-                                  confirmTempBookingMutation.mutate({ tempBooking: booking, tenantId: null });
-                                }
-                              }}
-                              disabled={confirmTempBookingMutation.isPending}
-                            >
-                              {confirmTempBookingMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1.5" />}
-                              ยืนยัน
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(booking)}
-                              className="border-blue-300 text-blue-600 hover:bg-blue-50 font-semibold px-4"
-                            >
-                              <Edit2 className="w-4 h-4 mr-1.5" />
-                              แก้ไข
-                            </Button>
+                               size="sm"
+                               className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-4"
+                               onClick={() => {
+                                 if (booking.booking_type === 'monthly') {
+                                   // แสดง Dialog เพื่อยืนยันผู้เช่าสำหรับรายเดือน
+                                   setPendingTempBooking(booking);
+                                   setTenantFormData({
+                                     full_name: booking.guest_name || '',
+                                     phone: booking.guest_phone || '',
+                                     national_id: booking.guest_national_id || '',
+                                     email: booking.guest_email || ''
+                                   });
+                                   setConfirmTenantDialog(true);
+                                 } else {
+                                   // รายวัน ยืนยันโดยตรง
+                                   confirmTempBookingMutation.mutate({ tempBooking: booking, tenantId: null });
+                                 }
+                               }}
+                               disabled={confirmTempBookingMutation.isPending}
+                             >
+                               {confirmTempBookingMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1.5" />}
+                               ยืนยัน
+                             </Button>
+                             {booking.booking_type === 'monthly' && (
+                               <Button
+                                 variant="outline"
+                                 size="sm"
+                                 onClick={() => {
+                                   // Create a temporary booking first, then navigate
+                                   const tempBookingWithId = { ...booking, id: booking.id };
+                                   navigate(`${createPageUrl('BookingReceipt')}?id=${booking.id}`);
+                                 }}
+                                 className="border-purple-300 text-purple-600 hover:bg-purple-50 font-semibold px-4"
+                               >
+                                 <FileText className="w-4 h-4 mr-1.5" />
+                                 ดูใบจอง
+                               </Button>
+                             )}
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               onClick={() => handleEdit(booking)}
+                               className="border-blue-300 text-blue-600 hover:bg-blue-50 font-semibold px-4"
+                             >
+                               <Edit2 className="w-4 h-4 mr-1.5" />
+                               แก้ไข
+                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
