@@ -560,25 +560,6 @@ export default function Announcements() {
           title="ข้อความและประกาศ"
           subtitle={`สาขา ${selectedBranchName || 'ไม่ระบุสาขา'}`}
           icon={Megaphone}
-          actions={
-            <Button
-              onClick={handleSend}
-              disabled={sending || !message.trim() || tenantsWithLine.length === 0 || !selectedBranchId}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
-            >
-              {sending ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  กำลังส่ง...
-                </>
-              ) : (
-                <>
-                  <Send className="w-5 h-5 mr-2" />
-                  ส่งข้อความ ({targetType === 'all' ? tenantsWithLine.length : selectedTenants.size} คน)
-                </>
-              )}
-            </Button>
-          }
         />
       )}
 
