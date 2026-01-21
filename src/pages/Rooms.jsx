@@ -3108,13 +3108,28 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 return (
                   <div className="space-y-4">
                     <Tabs defaultValue="room-info" className="w-full">
-                       <TabsList className="grid w-full grid-cols-5">
-                         <TabsTrigger value="room-info">ข้อมูลห้อง</TabsTrigger>
-                         <TabsTrigger value="tenant-info">ข้อมูลผู้เช่า</TabsTrigger>
-                         <TabsTrigger value="payment-history">ประวัติการชำระ</TabsTrigger>
-                         <TabsTrigger value="meter-history">ข้อมูลมิเตอร์</TabsTrigger>
-                         <TabsTrigger value="maintenance-history">ประวัติการซ่อม</TabsTrigger>
-                       </TabsList>
+                      <TabsList className="grid w-full grid-cols-5">
+                        <TabsTrigger value="room-info">
+                          <span className="md:hidden">ห้อง</span>
+                          <span className="hidden md:inline">ข้อมูลห้อง</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="tenant-info">
+                          <span className="md:hidden">ผู้เช่า</span>
+                          <span className="hidden md:inline">ข้อมูลผู้เช่า</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="payment-history">
+                          <span className="md:hidden">ชำระ</span>
+                          <span className="hidden md:inline">ประวัติการชำระ</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="meter-history">
+                          <span className="md:hidden">มิเตอร์</span>
+                          <span className="hidden md:inline">ข้อมูลมิเตอร์</span>
+                        </TabsTrigger>
+                        <TabsTrigger value="maintenance-history">
+                          <span className="md:hidden">ซ่อม</span>
+                          <span className="hidden md:inline">ประวัติการซ่อม</span>
+                        </TabsTrigger>
+                      </TabsList>
                       
                       <TabsContent value="room-info" className="pt-4 space-y-4">
                         <Card className="bg-slate-50 border-slate-200">
