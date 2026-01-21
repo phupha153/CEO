@@ -463,8 +463,18 @@ Deno.serve(async (req) => {
           test_mode: testModeEnabled,
           timestamp: new Date().toISOString(),
           discount_code: discount_code || null,
-          discount_amount: discount_amount || 0
+          discount_amount: discount_amount || 0,
+          data_summary: `✅ Package: ${package_name} | Duration: ${duration_months} months | Contract: ${startDate.toISOString().split('T')[0]} - ${endDate.toISOString().split('T')[0]} | Amount: ${total_amount} THB${is_free ? ' (FREE - 100% discount)' : ''}`
         };
+
+        console.log('📊 CRM Payload Summary:');
+        console.log('  📦 Package:', package_name);
+        console.log('  ⏱️  Duration:', duration_months, 'months');
+        console.log('  📅 Start Date:', startDate.toISOString().split('T')[0]);
+        console.log('  📅 End Date:', endDate.toISOString().split('T')[0]);
+        console.log('  💰 Amount:', total_amount, 'THB');
+        console.log('  👤 Customer:', user.email);
+        console.log('  🎁 Free Package?:', is_free ? 'YES' : 'NO');
 
         const crmResponse = await fetch(crmWebhookUrl, {
           method: 'POST',
