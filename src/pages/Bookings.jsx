@@ -700,8 +700,8 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       return booking;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['bookings', selectedBranchId]);
-      queryClient.invalidateQueries(['rooms', selectedBranchId]);
+      queryClient.invalidateQueries(['bookings', selectedBranchId, 'secure']);
+      queryClient.invalidateQueries(['rooms', selectedBranchId, 'secure']);
       queryClient.invalidateQueries(['expenses', selectedBranchId]);
       setShowDialog(false);
       resetForm();
