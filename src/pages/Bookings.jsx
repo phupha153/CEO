@@ -1303,9 +1303,9 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                             )}
 
                             {booking.notes && (
-                              <div className="bg-slate-100 rounded-lg p-3 border-l-4 border-slate-400">
-                                <p className="text-xs text-slate-600 font-semibold uppercase tracking-wide mb-1">หมายเหตุ</p>
-                                <p className="text-sm text-slate-700">{booking.notes}</p>
+                              <div className="bg-slate-100 rounded-lg p-2 md:p-3 border-l-4 border-slate-400">
+                                <p className="text-[10px] md:text-xs text-slate-600 font-semibold uppercase tracking-wide mb-1">หมายเหตุ</p>
+                                <p className="text-xs md:text-sm text-slate-700 line-clamp-2">{booking.notes}</p>
                               </div>
                             )}
                           </div>
