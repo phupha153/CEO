@@ -112,6 +112,7 @@ export default function RoomsPage() {
   const [executingAction, setExecutingAction] = useState(false);
   const itemsPerPage = 50;
 
+  const [showMinimumCharges, setShowMinimumCharges] = useState(false);
   const [formData, setFormData] = useState({
     room_number: '',
     floor: '',
@@ -1491,6 +1492,9 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       return;
     }
     setEditingRoom(room);
+    const hasMinCharges = (room.min_water_charge !== null && room.min_water_charge !== undefined) || 
+                          (room.min_electricity_charge !== null && room.min_electricity_charge !== undefined);
+    setShowMinimumCharges(hasMinCharges);
     setFormData({
       room_number: room.room_number || '',
       floor: room.floor?.toString() || '',
@@ -1514,6 +1518,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
   const resetForm = () => {
     setEditingRoom(null);
+    setShowMinimumCharges(false);
     setFormData({
       room_number: '',
       floor: '',
@@ -2734,33 +2739,63 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="flex items-center gap-2">
-                      ค่าน้ำขั้นต่ำ (บาท/เดือน)
-                      <span className="text-xs text-slate-500">(ถ้าไม่ระบุใช้ค่าสาขา)</span>
-                    </Label>
-                    <Input
-                      type="number"
-                      placeholder={getConfigValue('min_water_charge') || "ไม่มีขั้นต่ำ"}
-                      value={formData.min_water_charge}
-                      onChange={(e) => setFormData({ ...formData, min_water_charge: e.target.value })}
-                      onWheel={(e) => e.target.blur()}
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 cursor-pointer border border-slate-200">
+                    <Checkbox
+                      checked={showMinimumCharges}
+                      onCheckedChange={(checked) => {
+                        setShowMinimumCharges(checked);
+                        if (!checked) {
+                          setFormData({ 
+                            ...formData, 
+                            min_water_charge: '', 
+                            min_electricity_charge: '' 
+                          });
+                        }
+                      }}
                     />
-                  </div>
-                  <div>
-                    <Label className="flex items-center gap-2">
-                      ค่าไฟขั้นต่ำ (บาท/เดือน)
-                      <span className="text-xs text-slate-500">(ถ้าไม่ระบุใช้ค่าสาขา)</span>
-                    </Label>
-                    <Input
-                      type="number"
-                      placeholder={getConfigValue('min_electricity_charge') || "ไม่มีขั้นต่ำ"}
-                      value={formData.min_electricity_charge}
-                      onChange={(e) => setFormData({ ...formData, min_electricity_charge: e.target.value })}
-                      onWheel={(e) => e.target.blur()}
-                    />
-                  </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-800">ตั้งค่าขั้นต่ำน้ำ-ไฟเฉพาะห้องนี้</p>
+                      <p className="text-xs text-slate-500">
+                        กำหนดค่าน้ำและค่าไฟขั้นต่ำแยกต่างหากจากค่าสาขา
+                      </p>
+                    </div>
+                  </label>
+
+                  {showMinimumCharges && (
+                    <div className="grid grid-cols-2 gap-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                      <div>
+                        <Label className="text-slate-700">
+                          ค่าน้ำขั้นต่ำ (บาท/เดือน)
+                        </Label>
+                        <Input
+                          type="number"
+                          placeholder={getConfigValue('min_water_charge') || "0"}
+                          value={formData.min_water_charge}
+                          onChange={(e) => setFormData({ ...formData, min_water_charge: e.target.value })}
+                          onWheel={(e) => e.target.blur()}
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          ค่าสาขา: {getConfigValue('min_water_charge') || '0'} บาท
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-slate-700">
+                          ค่าไฟขั้นต่ำ (บาท/เดือน)
+                        </Label>
+                        <Input
+                          type="number"
+                          placeholder={getConfigValue('min_electricity_charge') || "0"}
+                          value={formData.min_electricity_charge}
+                          onChange={(e) => setFormData({ ...formData, min_electricity_charge: e.target.value })}
+                          onWheel={(e) => e.target.blur()}
+                        />
+                        <p className="text-xs text-slate-500 mt-1">
+                          ค่าสาขา: {getConfigValue('min_electricity_charge') || '0'} บาท
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Other Monthly Fees */}
