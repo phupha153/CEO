@@ -1340,9 +1340,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                  variant="outline"
                                  size="sm"
                                  onClick={() => {
-                                   // Create a temporary booking first, then navigate
-                                   const tempBookingWithId = { ...booking, id: booking.id };
-                                   navigate(`${createPageUrl('BookingReceipt')}?id=${booking.id}`);
+                                   navigate(`${createPageUrl('BookingReceipt')}?tempId=${booking.id}`);
                                  }}
                                  className="border-purple-300 text-purple-600 hover:bg-purple-50 font-semibold px-4"
                                >
