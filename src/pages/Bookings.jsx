@@ -967,16 +967,18 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   const getRoomInfo = (roomId) => rooms.find(r => r.id === roomId);
 
   const filteredBookings = useMemo(() => {
-    if (!debouncedSearch.trim()) return dailyBookings;
+    const bookingsToFilter = selectedFilter === 'monthly' ? monthlyBookings : dailyBookings;
+    
+    if (!debouncedSearch.trim()) return bookingsToFilter;
 
     const query = debouncedSearch.toLowerCase();
-    return dailyBookings.filter(booking => {
+    return bookingsToFilter.filter(booking => {
       const room = getRoomInfo(booking.room_id);
       return booking.guest_name?.toLowerCase().includes(query) ||
              booking.guest_phone?.toLowerCase().includes(query) ||
              room?.room_number?.toLowerCase().includes(query);
     });
-  }, [dailyBookings, debouncedSearch, rooms]);
+  }, [selectedFilter, dailyBookings, monthlyBookings, debouncedSearch, rooms]);
 
   const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
   const paginatedBookings = useMemo(() => {
