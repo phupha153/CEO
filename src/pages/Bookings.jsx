@@ -1054,7 +1054,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
+    <div className="min-h-screen bg-blue-50">
       <PageHeader
         title="การจองห้อง"
         subtitle={`สาขา ${selectedBranchName}`}
