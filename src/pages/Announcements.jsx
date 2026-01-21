@@ -983,8 +983,12 @@ export default function Announcements() {
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-xs md:text-sm text-slate-800 truncate">
                               {tenant.full_name}
-                              {tenant.room_number && <span className="text-slate-500"> - {tenant.room_number}</span>}
                             </p>
+                            {tenant.room_number && (
+                              <p className="text-xs text-slate-500 truncate">
+                                {tenant.room_number}
+                              </p>
+                            )}
                           </div>
                         </label>
                       ))}
