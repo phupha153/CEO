@@ -1275,7 +1275,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               </div>
                             </div>
 
-                            {booking.deposit_amount > 0 && (
+                            {(booking.deposit_amount > 0 || booking.booking_type === 'monthly') && (
                               <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-blue-50 rounded-xl p-4 border border-indigo-200 shadow-sm">
                                 <div className="flex items-start justify-between gap-3">
                                   <div>
