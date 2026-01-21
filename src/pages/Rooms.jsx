@@ -3126,13 +3126,13 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 return (
                   <div className="space-y-4">
                     <Tabs defaultValue="room-info" className="w-full">
-                       <div className="w-full overflow-x-auto pb-2 -mx-2 px-2">
-                         <TabsList className="inline-flex w-auto min-w-full md:grid md:w-full md:grid-cols-5">
-                           <TabsTrigger value="room-info" className="whitespace-nowrap px-3 md:px-4">ข้อมูลห้อง</TabsTrigger>
-                           <TabsTrigger value="tenant-info" className="whitespace-nowrap px-3 md:px-4">ข้อมูลผู้เช่า</TabsTrigger>
-                           <TabsTrigger value="payment-history" className="whitespace-nowrap px-3 md:px-4">ประวัติการชำระ</TabsTrigger>
-                           <TabsTrigger value="meter-history" className="whitespace-nowrap px-3 md:px-4">ข้อมูลมิเตอร์</TabsTrigger>
-                           <TabsTrigger value="maintenance-history" className="whitespace-nowrap px-3 md:px-4">ประวัติการซ่อม</TabsTrigger>
+                       <div className="w-full overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-2">
+                         <TabsList className="inline-flex w-auto md:grid md:w-full md:grid-cols-5 gap-1">
+                           <TabsTrigger value="room-info" className="whitespace-nowrap text-xs md:text-sm px-3 md:px-4">ข้อมูลห้อง</TabsTrigger>
+                           <TabsTrigger value="tenant-info" className="whitespace-nowrap text-xs md:text-sm px-3 md:px-4">ผู้เช่า</TabsTrigger>
+                           <TabsTrigger value="payment-history" className="whitespace-nowrap text-xs md:text-sm px-3 md:px-4">ชำระเงิน</TabsTrigger>
+                           <TabsTrigger value="meter-history" className="whitespace-nowrap text-xs md:text-sm px-3 md:px-4">มิเตอร์</TabsTrigger>
+                           <TabsTrigger value="maintenance-history" className="whitespace-nowrap text-xs md:text-sm px-3 md:px-4">การซ่อม</TabsTrigger>
                          </TabsList>
                        </div>
                       
