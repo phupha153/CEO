@@ -864,12 +864,7 @@ async function handleMaintenanceReport(base44, lineUserId, problemDescription, b
             console.error('Error details:', roomError.message);
         }
         
-        let successMessage = `✅ บันทึกการแจ้งซ่อมสำเร็จ\n\n`;
-        successMessage += `🏠 ห้อง: ${roomNumber}\n`;
-        successMessage += `🔧 ปัญหา: ${analysisResult.title}\n`;
-        successMessage += `📋 หมวดหมู่: ${categoryTh[analysisResult.category]}\n`;
-        successMessage += `📝 รายละเอียด: ${analysisResult.description}\n\n`;
-        successMessage += `เจ้าหน้าที่จะดำเนินการแก้ไขโดยเร็วที่สุดค่ะ 🙏`;
+        let successMessage = `✅ รับเรื่องแจ้งซ่อมแล้ว ทางเราขะรีบดำเนินการครับ 🔧`;
         
         console.log('📤 Sending success message with REPLY token...');
         await sendMessage(base44, lineUserId, successMessage, tenantBranchId, replyToken);
