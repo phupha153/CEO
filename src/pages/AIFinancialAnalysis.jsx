@@ -426,9 +426,9 @@ export default function AIFinancialAnalysis() {
                   </div>
 
                   {/* Date Range Selector */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-semibold text-slate-700">ช่วงเวลา</label>
-                    <div className="flex gap-2">
+                  <div className="flex flex-col gap-1.5 md:gap-2">
+                    <label className="text-xs md:text-sm font-semibold text-slate-700">ช่วงเวลา</label>
+                    <div className="flex gap-2 flex-col md:flex-row">
                       <Select value={dateRangeType} onValueChange={setDateRangeType}>
                         <SelectTrigger className="bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl">
                           <SelectValue />
