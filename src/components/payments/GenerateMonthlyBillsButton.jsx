@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Calendar, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills = 0, onSuccess, compact = false }) {
+  const queryClient = useQueryClient();
   const [generating, setGenerating] = useState(false);
   const [processingQueue, setProcessingQueue] = useState(false);
 
@@ -37,6 +39,14 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
             `สร้างบิลสำเร็จ ${created} รายการ${pending > 0 ? ` (รอสร้างรูป ${pending} ใบ)` : ''}`,
             { duration: 5000 }
           );
+
+          // ⭐ Invalidate ทุก query ที่เกี่ยวข้อง
+          await Promise.all([
+            queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
+            queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
+            queryClient.invalidateQueries({ queryKey: ['payments-room-view'] }),
+            queryClient.invalidateQueries({ queryKey: ['payments'] })
+          ]);
 
           // ⭐ ถ้ามีบิลที่ต้องสร้างรูป = ถามว่าจะส่งทันทีไหม
           if (pending > 0) {

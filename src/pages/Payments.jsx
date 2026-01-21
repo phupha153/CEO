@@ -948,8 +948,10 @@ export default function PaymentsPage() {
       );
     },
     enabled: canView && !!selectedBranchId,
-    staleTime: 2 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    staleTime: 10 * 1000,
+    gcTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const roomsNeedingBills = useMemo(() => {
