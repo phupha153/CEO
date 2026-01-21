@@ -1104,34 +1104,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       <div className="px-4 md:px-8 py-6 relative z-10">
         <div className="max-w-7xl mx-auto space-y-6">
 
-          {/* ตัวกรอง Daily / Monthly */}
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              variant={selectedFilter === 'all' ? 'default' : 'outline'}
-              onClick={() => setSelectedFilter('all')}
-              className={selectedFilter === 'all' ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : ''}
-            >
-              ทั้งหมด
-            </Button>
-            <Button
-              variant={selectedFilter === 'daily' ? 'default' : 'outline'}
-              onClick={() => setSelectedFilter('daily')}
-              className={selectedFilter === 'daily' ? 'bg-gradient-to-r from-orange-600 to-red-600' : ''}
-            >
-              รายวัน ({dailyBookings.length})
-            </Button>
-            <Button
-              variant={selectedFilter === 'monthly' ? 'default' : 'outline'}
-              onClick={() => setSelectedFilter('monthly')}
-              className={selectedFilter === 'monthly' ? 'bg-gradient-to-r from-blue-600 to-purple-600' : ''}
-            >
-              รายเดือน ({monthlyBookings.length})
-            </Button>
-            <div className="w-px bg-slate-300"></div>
-            <Badge className="bg-yellow-100 text-yellow-800 py-1 px-3 flex items-center gap-1">
-              ⏳ รอยืนยัน ({filteredTempBookings.length})
-            </Badge>
-          </div>
+
 
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg rounded-3xl">
             <CardContent className="p-6 md:p-8 space-y-6">
