@@ -127,7 +127,7 @@ export default function BookingsPage() {
     queryFn: async () => {
       const response = await base44.functions.invoke('getSecureData', {
         entity: 'Booking',
-        filters: { branch_id: selectedBranchId }, // ⚡ แสดงทุก booking ไม่กรอง is_temporary_booking
+        filters: { branch_id: selectedBranchId },
         limit: 5000
       });
       return response.data.data;
@@ -136,6 +136,17 @@ export default function BookingsPage() {
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: 'stale',
+  });
+
+  const { data: temporaryBookings = [] } = useQuery({
+    queryKey: ['temporaryBookings', selectedBranchId],
+    queryFn: () => base44.entities.TemporaryBooking.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
+    enabled: canView && !!selectedBranchId,
+    retry: 2,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: 'stale',
   });
@@ -196,6 +207,9 @@ export default function BookingsPage() {
 
   const dailyBookings = useMemo(() => bookings.filter(b => b.booking_type === 'daily'), [bookings]);
   const monthlyBookings = useMemo(() => bookings.filter(b => b.booking_type === 'monthly'), [bookings]);
+  
+  const dailyTempBookings = useMemo(() => temporaryBookings.filter(b => b.booking_type === 'daily'), [temporaryBookings]);
+  const monthlyTempBookings = useMemo(() => temporaryBookings.filter(b => b.booking_type === 'monthly'), [temporaryBookings]);
 
   const handleAISearch = async () => {
     if (!searchQuery.trim()) {
@@ -663,7 +677,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
     }
   };
 
-  const createMutation = useMutation({
+  const createTempMutation = useMutation({
     mutationFn: async (data) => {
       if (!canAdd) {
         throw new Error('คุณไม่มีสิทธิ์เพิ่มการจอง');
@@ -674,64 +688,29 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
         throw new Error('ไม่พบห้องที่เลือก');
       }
 
-      const checkInDate = parseISO(data.check_in_date);
-      const checkOutDate = data.check_out_date ? parseISO(data.check_out_date) : null;
-
-      const conflictBooking = dailyBookings.find(b =>
-        b.room_id === data.room_id &&
-        b.status === 'active' &&
-        ((isWithinInterval(checkInDate, {
-          start: parseISO(b.check_in_date),
-          end: parseISO(b.check_out_date || '9999-12-31')
-        })) || (checkOutDate && isWithinInterval(checkOutDate, {
-          start: parseISO(b.check_in_date),
-          end: parseISO(b.check_out_date || '9999-12-31')
-        })) || (
-          parseISO(b.check_in_date) <= checkInDate &&
-          parseISO(b.check_out_date || '9999-12-31') >= (checkOutDate || checkInDate)
-        ))
-      );
-
-      if (conflictBooking) {
-        throw new Error('ห้องนี้มีการจองอยู่แล้วในช่วงเวลาที่เลือก');
-      }
-
-      const booking = await base44.entities.Booking.create({ ...data, branch_id: selectedBranchId });
-      
-
-      
-      return booking;
+      return await base44.entities.TemporaryBooking.create(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['bookings', selectedBranchId]);
-      queryClient.invalidateQueries(['rooms', selectedBranchId]);
-      queryClient.invalidateQueries(['expenses', selectedBranchId]);
+      queryClient.invalidateQueries(['temporaryBookings', selectedBranchId]);
       setShowDialog(false);
       resetForm();
-      toast.success('จองห้องสำเร็จ');
+      toast.success('บันทึกการจองชั่วคราว');
     },
     onError: (error) => {
       toast.error(error.message || 'เกิดข้อผิดพลาด');
     }
   });
 
-  const updateMutation = useMutation({
+  const updateTempMutation = useMutation({
     mutationFn: async ({ id, data }) => {
       if (!canEdit) {
         throw new Error('คุณไม่มีสิทธิ์แก้ไขการจอง');
       }
       
-      const oldBooking = bookings.find(b => b.id === id);
-      const booking = await base44.entities.Booking.update(id, data);
-      
-
-      
-      return booking;
+      return await base44.entities.TemporaryBooking.update(id, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['bookings', selectedBranchId]);
-      queryClient.invalidateQueries(['rooms', selectedBranchId]);
-      queryClient.invalidateQueries(['expenses', selectedBranchId]);
+      queryClient.invalidateQueries(['temporaryBookings', selectedBranchId]);
       setShowDialog(false);
       resetForm();
       toast.success('อัปเดตการจองสำเร็จ');
@@ -741,22 +720,46 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
     }
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (id) => {
-      if (!canDelete) {
-        throw new Error('คุณไม่มีสิทธิ์ลบการจอง');
-      }
-      return base44.entities.Booking.delete(id);
+  const confirmTempBookingMutation = useMutation({
+    mutationFn: async (tempBooking) => {
+      // สร้าง Booking ปกติจากข้อมูล TemporaryBooking
+      const bookingData = {
+        ...tempBooking,
+        status: 'active',
+        booking_no: format(new Date(), 'dd-MM-yy'),
+        total_amount: 0
+      };
+      delete bookingData.id;
+      delete bookingData.created_date;
+      delete bookingData.updated_date;
+      delete bookingData.created_by;
+
+      await base44.entities.Booking.create(bookingData);
+      // ลบ TemporaryBooking
+      await base44.entities.TemporaryBooking.delete(tempBooking.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['bookings', selectedBranchId]);
-      queryClient.invalidateQueries(['rooms', selectedBranchId]);
-      toast.success('ลบการจองสำเร็จ');
+      queryClient.invalidateQueries(['temporaryBookings', selectedBranchId]);
+      toast.success('ยืนยันการจองสำเร็จ');
     },
     onError: (error) => {
       toast.error(error.message || 'เกิดข้อผิดพลาด');
     }
   });
+
+  const deleteTempBookingMutation = useMutation({
+    mutationFn: (id) => base44.entities.TemporaryBooking.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['temporaryBookings', selectedBranchId]);
+      toast.success('ลบการจองชั่วคราวสำเร็จ');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'เกิดข้อผิดพลาด');
+    }
+  });
+
+
 
   const cancelMutation = useMutation({
     mutationFn: async (booking) => {
@@ -860,36 +863,25 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // คำนวณยอดรวม
     const depositAmount = formData.deposit_amount ? parseFloat(formData.deposit_amount) : 0;
     const securityDeposit = formData.security_deposit ? parseFloat(formData.security_deposit) : 0;
     const advanceRent = formData.advance_rent ? parseFloat(formData.advance_rent) : 0;
     const commonFeeIncluded = formData.common_fee_included ? parseFloat(formData.common_fee_included) : 0;
-    const totalBookingAmount = depositAmount + securityDeposit + advanceRent + commonFeeIncluded;
-    const remainingAmount = securityDeposit + advanceRent + commonFeeIncluded;
-    
-    // สร้างเลขที่ใบจอง
-    const bookingNo = formData.booking_no || format(new Date(), 'dd-MM-yy');
     
     const data = {
       ...formData,
-      booking_no: bookingNo,
       deposit_amount: depositAmount,
       security_deposit: securityDeposit,
       advance_rent: advanceRent,
       common_fee_included: commonFeeIncluded,
-      total_booking_amount: totalBookingAmount,
-      remaining_amount: remainingAmount,
-      total_amount: 0,
       booking_type: dialogBookingType,
-      status: 'active',
-      is_temporary_booking: true
+      branch_id: selectedBranchId
     };
 
     if (editingBooking) {
-      updateMutation.mutate({ id: editingBooking.id, data });
+      updateTempMutation.mutate({ id: editingBooking.id, data });
     } else {
-      createMutation.mutate(data);
+      createTempMutation.mutate(data);
     }
   };
 
@@ -974,7 +966,6 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
     } else if (selectedFilter === 'daily') {
       bookingsToFilter = dailyBookings;
     } else {
-      // "all" - combine both daily and monthly
       bookingsToFilter = [...dailyBookings, ...monthlyBookings];
     }
     
@@ -988,6 +979,27 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
              room?.room_number?.toLowerCase().includes(query);
     });
   }, [selectedFilter, dailyBookings, monthlyBookings, debouncedSearch, rooms]);
+
+  const filteredTempBookings = useMemo(() => {
+    let bookingsToFilter;
+    if (selectedFilter === 'monthly') {
+      bookingsToFilter = monthlyTempBookings;
+    } else if (selectedFilter === 'daily') {
+      bookingsToFilter = dailyTempBookings;
+    } else {
+      bookingsToFilter = [...dailyTempBookings, ...monthlyTempBookings];
+    }
+    
+    if (!debouncedSearch.trim()) return bookingsToFilter;
+
+    const query = debouncedSearch.toLowerCase();
+    return bookingsToFilter.filter(booking => {
+      const room = getRoomInfo(booking.room_id);
+      return booking.guest_name?.toLowerCase().includes(query) ||
+             booking.guest_phone?.toLowerCase().includes(query) ||
+             room?.room_number?.toLowerCase().includes(query);
+    });
+  }, [selectedFilter, dailyTempBookings, monthlyTempBookings, debouncedSearch, rooms]);
 
   const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
   const paginatedBookings = useMemo(() => {
@@ -1628,7 +1640,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                     }}
                     required
                     className="w-full p-2 border rounded-md"
-                    disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                    disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                   >
                     <option value="">เลือกห้อง</option>
                     {rooms
@@ -1672,7 +1684,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                         onChange={(e) => setFormData({ ...formData, guest_name: e.target.value })}
                         required
                         placeholder="ชื่อ-นามสกุล"
-                        disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                        disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                       />
                     </div>
                     <div>
@@ -1682,7 +1694,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                         onChange={(e) => setFormData({ ...formData, guest_phone: e.target.value })}
                         required
                         placeholder="0812345678"
-                        disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                        disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                       />
                     </div>
                   </div>
@@ -1695,7 +1707,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                         onChange={(e) => setFormData({ ...formData, guest_national_id: e.target.value })}
                         placeholder="1234567890123"
                         maxLength={13}
-                        disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                        disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                       />
                     </div>
                     <div>
@@ -1705,7 +1717,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                         value={formData.guest_email}
                         onChange={(e) => setFormData({ ...formData, guest_email: e.target.value })}
                         placeholder="email@example.com"
-                        disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                        disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                       />
                     </div>
                   </div>
@@ -1716,7 +1728,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                       value={formData.guest_address}
                       onChange={(e) => setFormData({ ...formData, guest_address: e.target.value })}
                       placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด"
-                      disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                      disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                     />
                   </div>
                 </div>
@@ -1734,7 +1746,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                         value={formData.check_in_date}
                         onChange={(e) => setFormData({ ...formData, check_in_date: e.target.value })}
                         required
-                        disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                        disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                       />
                     </div>
                     <div>
@@ -1744,7 +1756,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                         value={formData.check_out_date}
                         onChange={(e) => setFormData({ ...formData, check_out_date: e.target.value })}
                         required={dialogBookingType === 'daily'}
-                        disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                        disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                       />
                     </div>
                   </div>
@@ -1756,7 +1768,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                           <Select
                             value={formData.contract_duration}
                             onValueChange={(value) => setFormData({ ...formData, contract_duration: value })}
-                            disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                            disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="เลือกระยะเวลา" />
@@ -1776,7 +1788,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                             type="date"
                             value={formData.contract_deadline}
                             onChange={(e) => setFormData({ ...formData, contract_deadline: e.target.value })}
-                            disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                            disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                           />
                         </div>
                       </div>
@@ -1803,7 +1815,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               value={formData.deposit_amount}
                               onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
                               placeholder="500"
-                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                              disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                             />
                           </div>
                           <div>
@@ -1813,7 +1825,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               value={formData.security_deposit}
                               onChange={(e) => setFormData({ ...formData, security_deposit: e.target.value })}
                               placeholder="3,000"
-                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                              disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                             />
                           </div>
                         </div>
@@ -1858,7 +1870,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               value={formData.deposit_amount}
                               onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
                               placeholder="2,000"
-                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                              disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                             />
                           </div>
                           <div>
@@ -1868,7 +1880,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               value={formData.security_deposit}
                               onChange={(e) => setFormData({ ...formData, security_deposit: e.target.value })}
                               placeholder="6,000"
-                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                              disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                             />
                           </div>
                         </div>
@@ -1881,7 +1893,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               value={formData.advance_rent}
                               onChange={(e) => setFormData({ ...formData, advance_rent: e.target.value })}
                               placeholder="3,900"
-                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                              disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                             />
                           </div>
                           <div>
@@ -1891,7 +1903,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               value={formData.common_fee_included}
                               onChange={(e) => setFormData({ ...formData, common_fee_included: e.target.value })}
                               placeholder="0"
-                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                              disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                             />
                           </div>
                         </div>
@@ -1957,7 +1969,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                       <Select
                         value={formData.deposit_payment_method}
                         onValueChange={(value) => setFormData({ ...formData, deposit_payment_method: value })}
-                        disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                        disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -2001,7 +2013,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                               variant="outline"
                               className="mt-2"
                               onClick={() => setFormData({ ...formData, deposit_slip_url: '' })}
-                              disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                              disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                             >
                               ลบรูป
                             </Button>
@@ -2017,7 +2029,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                   <Input
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    disabled={createMutation.isPending || updateMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
+                    disabled={createTempMutation.isPending || updateTempMutation.isPending || (editingBooking ? !canEdit : !canAdd)}
                     placeholder="หมายเหตุเพิ่มเติม..."
                   />
                 </div>
@@ -2040,7 +2052,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                       (editingBooking ? !canEdit : !canAdd)
                     }
                   >
-                    {createMutation.isPending || updateMutation.isPending ? 'กำลังบันทึก...' : (editingBooking ? 'อัปเดต' : 'จองห้อง')}
+                    {createTempMutation.isPending || updateTempMutation.isPending ? 'กำลังบันทึก...' : (editingBooking ? 'อัปเดต' : 'จองห้อง')}
                   </Button>
                 </div>
               </form>
