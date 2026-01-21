@@ -1519,13 +1519,13 @@ export default function MeterReadings() {
           {/* Floor Filter + View Mode Toggle */}
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
             <CardContent className="p-4">
-              <div className="flex flex-wrap items-center gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                 <div className="flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-slate-600" />
                   <select
                     value={selectedFloor}
                     onChange={(e) => setSelectedFloor(e.target.value)}
-                    className="p-2 border rounded-md"
+                    className="p-2 border rounded-md flex-1 md:flex-none"
                   >
                     <option value="all">ทุกชั้น</option>
                     {sortedFloorsForDropdown.map(floor => (
@@ -1539,7 +1539,7 @@ export default function MeterReadings() {
                   <select
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="p-2 border rounded-md text-sm"
+                    className="p-2 border rounded-md text-sm flex-1 md:flex-none"
                   >
                     {(() => {
                       const months = [];
