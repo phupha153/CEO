@@ -3127,12 +3127,12 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                   <div className="space-y-4">
                     <Tabs defaultValue="room-info" className="w-full">
                        <div className="w-full overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 pb-2 scrollbar-hide">
-                         <TabsList className="inline-flex w-auto md:grid md:w-full md:grid-cols-5 gap-1">
-                           <TabsTrigger value="room-info" className="whitespace-nowrap text-[11px] md:text-sm px-2.5 md:px-4">ข้อมูลห้อง</TabsTrigger>
-                           <TabsTrigger value="tenant-info" className="whitespace-nowrap text-[11px] md:text-sm px-2.5 md:px-4">ผู้เช่า</TabsTrigger>
-                           <TabsTrigger value="payment-history" className="whitespace-nowrap text-[11px] md:text-sm px-2.5 md:px-4">การชำระ</TabsTrigger>
-                           <TabsTrigger value="meter-history" className="whitespace-nowrap text-[11px] md:text-sm px-2.5 md:px-4">มิเตอร์</TabsTrigger>
-                           <TabsTrigger value="maintenance-history" className="whitespace-nowrap text-[11px] md:text-sm px-2.5 md:px-4">ซ่อม</TabsTrigger>
+                         <TabsList className="inline-flex w-auto md:grid md:w-full md:grid-cols-5 gap-1 h-auto">
+                           <TabsTrigger value="room-info" className="whitespace-nowrap text-xs md:text-sm px-4 md:px-4 py-2.5">ข้อมูลห้อง</TabsTrigger>
+                           <TabsTrigger value="tenant-info" className="whitespace-nowrap text-xs md:text-sm px-4 md:px-4 py-2.5">ผู้เช่า</TabsTrigger>
+                           <TabsTrigger value="payment-history" className="whitespace-nowrap text-xs md:text-sm px-4 md:px-4 py-2.5">การชำระ</TabsTrigger>
+                           <TabsTrigger value="meter-history" className="whitespace-nowrap text-xs md:text-sm px-4 md:px-4 py-2.5">มิเตอร์</TabsTrigger>
+                           <TabsTrigger value="maintenance-history" className="whitespace-nowrap text-xs md:text-sm px-4 md:px-4 py-2.5">ซ่อม</TabsTrigger>
                          </TabsList>
                        </div>
                       
