@@ -882,7 +882,8 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       remaining_amount: remainingAmount,
       total_amount: 0,
       booking_type: dialogBookingType,
-      status: 'active'
+      status: 'active',
+      is_temporary_booking: true
     };
 
     if (editingBooking) {
