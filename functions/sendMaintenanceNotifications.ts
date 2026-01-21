@@ -74,42 +74,11 @@ Deno.serve(async (req) => {
         const errors = [];
 
         for (const recipientId of recipientIds) {
-            let message = `🔧 แจ้งเตือนคำขอซ่อม\n\n`;
-            message += `พบคำขอซ่อมที่รอดำเนินการ ${pendingMaintenance.length} รายการ\n\n`;
+            let message = `🔧 แจ้งเตือนการซ่อม\n\nได้รับคำขอซ่อม ${pendingMaintenance.length} รายการ ขะรีบดำเนินการครับ`;
 
-            // จัดกลุ่มตามความสำคัญ
+            // จัดกลุ่มตามความสำคัญ (ไม่แสดงในข้อความ เพื่อความเรียบง่าย)
             const urgent = pendingMaintenance.filter(m => m.priority === 'urgent');
             const high = pendingMaintenance.filter(m => m.priority === 'high');
-            const medium = pendingMaintenance.filter(m => m.priority === 'medium');
-            const low = pendingMaintenance.filter(m => m.priority === 'low');
-
-            if (urgent.length > 0) {
-                message += `🔴 เร่งด่วนมาก (${urgent.length} รายการ):\n`;
-                urgent.slice(0, 3).forEach((m, i) => {
-                    const room = allRooms.find(r => r.id === m.room_id);
-                    message += `   ${i + 1}. ${m.title} - ห้อง ${room?.room_number || 'N/A'}\n`;
-                });
-                message += `\n`;
-            }
-
-            if (high.length > 0) {
-                message += `🟠 เร่งด่วน (${high.length} รายการ):\n`;
-                high.slice(0, 3).forEach((m, i) => {
-                    const room = allRooms.find(r => r.id === m.room_id);
-                    message += `   ${i + 1}. ${m.title} - ห้อง ${room?.room_number || 'N/A'}\n`;
-                });
-                message += `\n`;
-            }
-
-            if (medium.length > 0) {
-                message += `🟡 ปานกลาง: ${medium.length} รายการ\n`;
-            }
-
-            if (low.length > 0) {
-                message += `⚪ ต่ำ: ${low.length} รายการ\n`;
-            }
-
-            message += `\n💡 กรุณาตรวจสอบและดำเนินการ`;
 
             try {
                 const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
