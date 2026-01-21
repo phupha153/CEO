@@ -3091,9 +3091,9 @@ ${JSON.stringify(roomsWithAC, null, 2)}
              setMaintenanceHistoryPage(1);
            }
           }}>
-            <DialogContent className="max-w-3xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto p-3 md:p-6">
-              <DialogHeader className="pb-2 md:pb-4">
-                <DialogTitle className="text-lg md:text-xl">รายละเอียดห้อง {selectedRoom?.room_number}</DialogTitle>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>รายละเอียดห้อง {selectedRoom?.room_number}</DialogTitle>
               </DialogHeader>
 
               {selectedRoom && (() => {
@@ -3106,79 +3106,79 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 const maintenanceHistory = getMaintenanceHistory(selectedRoom.id);
 
                 return (
-                  <div className="space-y-2 md:space-y-4">
+                  <div className="space-y-4">
                     <Tabs defaultValue="room-info" className="w-full">
-                       <TabsList className="grid w-full grid-cols-5 h-8 md:h-10 text-[10px] md:text-sm p-0.5 md:p-1">
-                         <TabsTrigger value="room-info" className="text-[10px] md:text-sm px-1 md:px-3">ห้อง</TabsTrigger>
-                         <TabsTrigger value="tenant-info" className="text-[10px] md:text-sm px-1 md:px-3">ผู้เช่า</TabsTrigger>
-                         <TabsTrigger value="payment-history" className="text-[10px] md:text-sm px-1 md:px-3">ชำระ</TabsTrigger>
-                         <TabsTrigger value="meter-history" className="text-[10px] md:text-sm px-1 md:px-3">มิเตอร์</TabsTrigger>
-                         <TabsTrigger value="maintenance-history" className="text-[10px] md:text-sm px-1 md:px-3">ซ่อม</TabsTrigger>
+                       <TabsList className="grid w-full grid-cols-5">
+                         <TabsTrigger value="room-info">ข้อมูลห้อง</TabsTrigger>
+                         <TabsTrigger value="tenant-info">ข้อมูลผู้เช่า</TabsTrigger>
+                         <TabsTrigger value="payment-history">ประวัติการชำระ</TabsTrigger>
+                         <TabsTrigger value="meter-history">ข้อมูลมิเตอร์</TabsTrigger>
+                         <TabsTrigger value="maintenance-history">ประวัติการซ่อม</TabsTrigger>
                        </TabsList>
                       
-                      <TabsContent value="room-info" className="pt-2 md:pt-4 space-y-2 md:space-y-4">
+                      <TabsContent value="room-info" className="pt-4 space-y-4">
                         <Card className="bg-slate-50 border-slate-200">
-                          <CardContent className="p-3 md:p-4 space-y-2 md:space-y-3">
+                          <CardContent className="p-4 space-y-3">
                             {selectedRoom.image_urls && selectedRoom.image_urls.length > 0 && (
-                              <div className="grid grid-cols-2 gap-2 md:gap-3 mb-2 md:mb-4">
+                              <div className="grid grid-cols-2 gap-3 mb-4">
                                 {selectedRoom.image_urls.map((url, index) => (
-                                  <img key={index} src={url} alt={`ห้อง ${index + 1}`} className="w-full h-32 md:h-48 object-cover rounded-lg" />
+                                  <img key={index} src={url} alt={`ห้อง ${index + 1}`} className="w-full h-48 object-cover rounded-lg" />
                                 ))}
                               </div>
                             )}
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base">
-                              <DoorOpen className="w-4 h-4 md:w-5 md:h-5" />
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                              <DoorOpen className="w-5 h-5" />
                               ข้อมูลห้อง
                             </h3>
-                            <div className="grid grid-cols-2 gap-2 md:gap-4">
+                            <div className="grid grid-cols-2 gap-4">
                               <div>
-                                <Label className="text-slate-600 text-xs md:text-sm">หมายเลขห้อง</Label>
-                                <p className="text-lg md:text-xl font-bold text-slate-800">{selectedRoom.room_number}</p>
+                                <Label className="text-slate-600">หมายเลขห้อง</Label>
+                                <p className="text-xl font-bold text-slate-800">{selectedRoom.room_number}</p>
                               </div>
                               <div>
-                                <Label className="text-slate-600 text-xs md:text-sm">ชั้น</Label>
-                                <p className="text-lg md:text-xl font-bold text-slate-800">{selectedRoom.floor}</p>
+                                <Label className="text-slate-600">ชั้น</Label>
+                                <p className="text-xl font-bold text-slate-800">{selectedRoom.floor}</p>
                               </div>
                               <div>
-                                <Label className="text-slate-600 text-xs md:text-sm">ประเภท</Label>
-                                <p className="text-base md:text-lg font-semibold text-slate-800">
+                                <Label className="text-slate-600">ประเภท</Label>
+                                <p className="text-lg font-semibold text-slate-800">
                                   {selectedRoom.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
                                 </p>
                               </div>
                               <div>
-                                <Label className="text-slate-600 text-xs md:text-sm">ราคา</Label>
-                                <p className="text-lg md:text-xl font-bold text-green-600">
-                                  {selectedRoom.price?.toLocaleString()} ฿
+                                <Label className="text-slate-600">ราคา</Label>
+                                <p className="text-xl font-bold text-green-600">
+                                  {selectedRoom.price?.toLocaleString()} บาท
                                 </p>
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 bg-slate-100 p-2 md:p-3 rounded-lg">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-100 p-3 rounded-lg">
                               <div>
-                                <Label className="text-slate-600 text-[10px] md:text-xs">ค่าน้ำ/หน่วย</Label>
-                                <p className="font-semibold text-blue-600 text-xs md:text-sm">
-                                  {selectedRoom.water_rate !== null && selectedRoom.water_rate !== undefined ? `${selectedRoom.water_rate} ฿` : <span className="text-slate-400 text-[10px] md:text-xs">(ค่ากลาง)</span>}
+                                <Label className="text-slate-600 text-xs">ค่าน้ำ/หน่วย</Label>
+                                <p className="font-semibold text-blue-600">
+                                  {selectedRoom.water_rate !== null && selectedRoom.water_rate !== undefined ? `${selectedRoom.water_rate} บาท` : <span className="text-slate-400 text-sm">(ใช้ค่ากลาง)</span>}
                                 </p>
                               </div>
                               <div>
-                                <Label className="text-slate-600 text-[10px] md:text-xs">ค่าไฟ/หน่วย</Label>
-                                <p className="font-semibold text-orange-600 text-xs md:text-sm">
-                                  {selectedRoom.electricity_rate !== null && selectedRoom.electricity_rate !== undefined ? `${selectedRoom.electricity_rate} ฿` : <span className="text-slate-400 text-[10px] md:text-xs">(ค่ากลาง)</span>}
+                                <Label className="text-slate-600 text-xs">ค่าไฟ/หน่วย</Label>
+                                <p className="font-semibold text-orange-600">
+                                  {selectedRoom.electricity_rate !== null && selectedRoom.electricity_rate !== undefined ? `${selectedRoom.electricity_rate} บาท` : <span className="text-slate-400 text-sm">(ใช้ค่ากลาง)</span>}
                                 </p>
                               </div>
-                              <div className="col-span-2 md:col-span-1">
-                                <Label className="text-slate-600 text-[10px] md:text-xs">ส่วนกลาง</Label>
-                                <p className="font-semibold text-slate-700 text-xs md:text-sm">
+                              <div>
+                                <Label className="text-slate-600 text-xs">ค่าส่วนกลาง</Label>
+                                <p className="font-semibold text-slate-700">
                                   {selectedRoom.common_fee !== undefined && selectedRoom.common_fee !== null
-                                    ? (selectedRoom.common_fee === 0 ? '0 ฿' : `${selectedRoom.common_fee.toLocaleString()} ฿`)
-                                    : (branchCommonFee ? `${parseFloat(branchCommonFee).toLocaleString()} ฿` : '-')}
+                                    ? (selectedRoom.common_fee === 0 ? '0 บาท (ไม่เสีย)' : `${selectedRoom.common_fee.toLocaleString()} บาท`)
+                                    : (branchCommonFee ? `${parseFloat(branchCommonFee).toLocaleString()} บาท (ค่ากลาง)` : '-')}
                                 </p>
                               </div>
                               {selectedRoom.other_monthly_fees && selectedRoom.other_monthly_fees.map((fee, index) => (
                                 <div key={index}>
-                                  <Label className="text-slate-600 text-[10px] md:text-xs truncate">{fee.name}</Label>
-                                  <p className="font-semibold text-purple-600 text-xs md:text-sm">
-                                    {fee.amount?.toLocaleString()} ฿
+                                  <Label className="text-slate-600 text-xs">{fee.name}</Label>
+                                  <p className="font-semibold text-purple-600">
+                                    {fee.amount?.toLocaleString()} บาท
                                   </p>
                                 </div>
                               ))}
@@ -3186,17 +3186,17 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
                             {selectedRoom.size && (
                               <div>
-                                <Label className="text-slate-600 text-xs md:text-sm">ขนาดห้อง</Label>
-                                <p className="text-base md:text-lg font-semibold text-slate-800">{selectedRoom.size} ตร.ม.</p>
+                                <Label className="text-slate-600">ขนาดห้อง</Label>
+                                <p className="text-lg font-semibold text-slate-800">{selectedRoom.size} ตร.ม.</p>
                               </div>
                             )}
 
                             {selectedRoom.amenities && selectedRoom.amenities.length > 0 && (
                               <div>
-                                <Label className="text-slate-600 mb-1 md:mb-2 block text-xs md:text-sm">สิ่งอำนวยความสะดวก</Label>
-                                <div className="flex flex-wrap gap-1 md:gap-2">
+                                <Label className="text-slate-600 mb-2 block">สิ่งอำนวยความสะดวก</Label>
+                                <div className="flex flex-wrap gap-2">
                                   {selectedRoom.amenities.map((amenity, index) => (
-                                    <Badge key={index} className="bg-green-100 text-green-700 text-[10px] md:text-xs px-1.5 md:px-2 py-0.5">
+                                    <Badge key={index} className="bg-green-100 text-green-700">
                                       {amenity}
                                     </Badge>
                                   ))}
@@ -3206,15 +3206,15 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
                             {selectedRoom.description && (
                               <div>
-                                <Label className="text-slate-600 text-xs md:text-sm">รายละเอียด</Label>
-                                <p className="text-slate-800 mt-1 text-xs md:text-sm">{selectedRoom.description}</p>
+                                <Label className="text-slate-600">รายละเอียด</Label>
+                                <p className="text-slate-800 mt-1">{selectedRoom.description}</p>
                               </div>
                             )}
 
                             {selectedRoom.last_ac_cleaning_date && (
                               <div>
-                                <Label className="text-slate-600 text-xs md:text-sm">ล้างแอร์ครั้งล่าสุด</Label>
-                                <p className="text-sm md:text-lg font-semibold text-slate-800">
+                                <Label className="text-slate-600">ล้างแอร์ครั้งล่าสุด</Label>
+                                <p className="text-lg font-semibold text-slate-800">
                                   {(() => {
                                     try {
                                       const date = parseISO(selectedRoom.last_ac_cleaning_date);
@@ -3231,7 +3231,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                         </Card>
                         </TabsContent>
 
-                      <TabsContent value="tenant-info" className="pt-2 md:pt-4 space-y-2 md:space-y-4">
+                      <TabsContent value="tenant-info" className="pt-4 space-y-4">
                         {(() => {
                           if (selectedRoom.status === 'occupied' && !booking) {
                             return (
@@ -3248,32 +3248,32 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                           if (tenant && booking) {
                             return (
                               <Card className="bg-blue-50 border-blue-200">
-                                <CardContent className="p-3 md:p-4 space-y-2 md:space-y-3">
-                                  <div className="flex justify-between items-start gap-2">
-                                    <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base">
-                                      <User className="w-4 h-4 md:w-5 md:h-5" />
+                                <CardContent className="p-4 space-y-3">
+                                  <div className="flex justify-between items-start">
+                                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                      <User className="w-5 h-5" />
                                       ข้อมูลผู้เช่า
                                     </h3>
-                                    <div className="flex flex-col gap-1 md:gap-2 items-end">
+                                    <div className="flex flex-col gap-2 items-end">
                                       {isContractExpiringSoon(booking) && (
-                                        <Button onClick={() => { setRenewBooking(booking); setShowRenewDialog(true); }} className="bg-green-600 hover:bg-green-700 text-white text-xs md:text-sm h-7 md:h-9 px-2 md:px-4" size="sm">
-                                          <FileText className="w-3 h-3 md:w-4 md:h-4 md:mr-2" /> <span className="hidden md:inline">ต่อสัญญา</span>
+                                        <Button onClick={() => { setRenewBooking(booking); setShowRenewDialog(true); }} className="bg-green-600 hover:bg-green-700 text-white" size="sm">
+                                          <FileText className="w-4 h-4 mr-2" /> ต่อสัญญา
                                         </Button>
                                       )}
-                                      <Button variant="outline" size="sm" onClick={() => { if (confirm(`ยืนยันการย้ายออก ${tenant.full_name} จากห้อง ${selectedRoom.room_number}?`)) { moveOutMutation.mutate(selectedRoom); } }} disabled={moveOutMutation.isPending} className="text-orange-600 border-orange-300 hover:bg-orange-50 text-xs md:text-sm h-7 md:h-9 px-2 md:px-4">
-                                        {moveOutMutation.isPending ? <Loader2 className="w-3 h-3 md:w-4 md:h-4 animate-spin" /> : <LogOut className="w-3 h-3 md:w-4 md:h-4" />}
-                                        <span className="ml-1 md:ml-2">ย้ายออก</span>
+                                      <Button variant="outline" size="sm" onClick={() => { if (confirm(`ยืนยันการย้ายออก ${tenant.full_name} จากห้อง ${selectedRoom.room_number}?`)) { moveOutMutation.mutate(selectedRoom); } }} disabled={moveOutMutation.isPending} className="text-orange-600 border-orange-300 hover:bg-orange-50">
+                                        {moveOutMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+                                        <span className="ml-2">ย้ายออก</span>
                                       </Button>
                                     </div>
                                   </div>
-                                  <div className="grid grid-cols-2 gap-2 md:gap-3 text-xs md:text-sm">
-                                    <div><Label className="text-slate-600 text-[10px] md:text-xs">ชื่อ-นามสกุล</Label><Link to={`${createPageUrl('Tenants')}?search=${encodeURIComponent(tenant.full_name)}`} onClick={() => setShowDetailDialog(false)} className="font-semibold text-blue-600 hover:underline text-xs md:text-sm">{tenant.full_name}</Link></div>
-                                    <div><Label className="text-slate-600 text-[10px] md:text-xs">เบอร์โทร</Label><p className="font-semibold flex items-center gap-1 text-xs md:text-sm"><Phone className="w-3 h-3" />{tenant.phone || '-'}</p></div>
-                                    {tenant.line_id && <div><Label className="text-slate-600 text-[10px] md:text-xs">LINE ID</Label><p className="font-semibold text-xs md:text-sm">{tenant.line_id}</p></div>}
-                                    {tenant.email && <div><Label className="text-slate-600 text-[10px] md:text-xs">อีเมล</Label><p className="font-semibold text-xs md:text-sm truncate">{tenant.email}</p></div>}
-                                    {tenant.national_id && <div><Label className="text-slate-600 text-[10px] md:text-xs">บัตรประชาชน</Label><p className="font-semibold text-xs md:text-sm">{tenant.national_id}</p></div>}
-                                    {booking.check_in_date && <div><Label className="text-slate-600 text-[10px] md:text-xs">วันเข้าพัก</Label><p className="font-semibold flex items-center gap-1 text-xs md:text-sm"><CalendarIcon className="w-3 h-3" />{format(parseISO(booking.check_in_date), 'd MMM yy', { locale: th })}</p></div>}
-                                    {booking.check_out_date && <div className="col-span-2"><Label className="text-slate-600 text-[10px] md:text-xs">วันสิ้นสุดสัญญา</Label><div className="flex items-center gap-1 md:gap-2 flex-wrap"><p className="font-semibold flex items-center gap-1 text-xs md:text-sm"><CalendarIcon className="w-3 h-3" />{format(parseISO(booking.check_out_date), 'd MMM yy', { locale: th })}</p>{daysLeft !== null && daysLeft >= 0 && daysLeft <= 30 && (<Badge className="bg-red-500 text-white text-[10px] md:text-xs px-1 md:px-2"><AlertTriangle className="w-2.5 h-2.5 md:w-3 md:h-3 mr-0.5 md:mr-1" />เหลือ {daysLeft} วัน</Badge>)}</div></div>}
+                                  <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div><Label className="text-slate-600">ชื่อ-นามสกุล</Label><Link to={`${createPageUrl('Tenants')}?search=${encodeURIComponent(tenant.full_name)}`} onClick={() => setShowDetailDialog(false)} className="font-semibold text-blue-600 hover:underline">{tenant.full_name}</Link></div>
+                                    <div><Label className="text-slate-600">เบอร์โทร</Label><p className="font-semibold flex items-center gap-1"><Phone className="w-3 h-3" />{tenant.phone || '-'}</p></div>
+                                    {tenant.line_id && <div><Label className="text-slate-600">LINE ID</Label><p className="font-semibold">{tenant.line_id}</p></div>}
+                                    {tenant.email && <div><Label className="text-slate-600">อีเมล</Label><p className="font-semibold">{tenant.email}</p></div>}
+                                    {tenant.national_id && <div><Label className="text-slate-600">เลขบัตรประชาชน</Label><p className="font-semibold">{tenant.national_id}</p></div>}
+                                    {booking.check_in_date && <div><Label className="text-slate-600">วันเข้าพัก</Label><p className="font-semibold flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th })}</p></div>}
+                                    {booking.check_out_date && <div className="col-span-2"><Label className="text-slate-600">วันสิ้นสุดสัญญา</Label><div className="flex items-center gap-2"><p className="font-semibold flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{format(parseISO(booking.check_out_date), 'd MMM yyyy', { locale: th })}</p>{daysLeft !== null && daysLeft >= 0 && daysLeft <= 30 && (<Badge className="bg-red-500 text-white"><AlertTriangle className="w-3 h-3 mr-1" />เหลือ {daysLeft} วัน</Badge>)}</div></div>}
                                   </div>
                                 </CardContent>
                               </Card>
@@ -3282,12 +3282,12 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
                           return (
                             <Card className="bg-slate-50 border-slate-200">
-                                <CardContent className="p-4 md:p-6 text-center space-y-2 md:space-y-4">
-                                    <User className="w-8 h-8 md:w-12 md:h-12 text-slate-400 mx-auto" />
-                                    <p className="text-slate-600 text-xs md:text-sm">ห้องนี้ยังไม่มีผู้เช่า</p>
-                                    <div className="flex flex-col gap-1.5 md:gap-2">
-                                      <Button onClick={() => { handleReserve(selectedRoom); setShowDetailDialog(false); }} className="bg-purple-600 hover:bg-purple-700 text-white text-xs md:text-sm h-8 md:h-10">
-                                        <CalendarIcon className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> จองห้อง
+                                <CardContent className="p-6 text-center space-y-4">
+                                    <User className="w-12 h-12 text-slate-400 mx-auto" />
+                                    <p className="text-slate-600">ห้องนี้ยังไม่มีผู้เช่า</p>
+                                    <div className="flex flex-col gap-2">
+                                      <Button onClick={() => { handleReserve(selectedRoom); setShowDetailDialog(false); }} className="bg-purple-600 hover:bg-purple-700 text-white">
+                                        <CalendarIcon className="w-4 h-4 mr-2" /> จองห้อง
                                       </Button>
                                       <Button 
                                         onClick={() => { 
@@ -3295,9 +3295,9 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                           setShowConnectTenantDialog(true);
                                         }} 
                                         variant="outline" 
-                                        className="border-blue-600 text-blue-600 hover:bg-blue-50 text-xs md:text-sm h-8 md:h-10"
+                                        className="border-blue-600 text-blue-600 hover:bg-blue-50"
                                       >
-                                        <User className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" /> เชื่อมต่อผู้เช่า
+                                        <User className="w-4 h-4 mr-2" /> เชื่อมต่อผู้เช่า
                                       </Button>
                                     </div>
                                 </CardContent>
@@ -3306,90 +3306,90 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                         })()}
                       </TabsContent>
 
-                      <TabsContent value="payment-history" className="pt-2 md:pt-4">
+                      <TabsContent value="payment-history" className="pt-4">
                         <Card className="bg-green-50 border-green-200">
-                          <CardContent className="p-3 md:p-4 space-y-2 md:space-y-3">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base">
-                              <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
+                          <CardContent className="p-4 space-y-3">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                              <DollarSign className="w-5 h-5 text-green-600" />
                               ประวัติการชำระเงิน
                             </h3>
                             {recentPayments.length > 0 ? (
-                              <div className="space-y-1.5 md:space-y-2 max-h-64 md:max-h-96 overflow-y-auto p-1">
+                              <div className="space-y-2 max-h-96 overflow-y-auto p-1">
                                 {recentPayments.map((payment) => (
-                                  <div key={payment.id} className="bg-white rounded-lg p-2 md:p-3 border border-green-200 shadow-sm">
-                                    <div className="flex justify-between items-center text-xs md:text-sm">
+                                  <div key={payment.id} className="bg-white rounded-lg p-3 border border-green-200 shadow-sm">
+                                    <div className="flex justify-between items-center text-sm">
                                       <span className="font-semibold text-slate-700">
-                                        {format(parseISO(payment.payment_date), 'd MMM yy', { locale: th })}
+                                        {format(parseISO(payment.payment_date), 'd MMM yyyy', { locale: th })}
                                       </span>
                                       <span className="font-bold text-green-700">
                                         {payment.total_amount?.toLocaleString()} ฿
                                       </span>
                                     </div>
-                                    <p className="text-[10px] md:text-xs text-slate-500 mt-0.5 md:mt-1">ครบกำหนด: {format(parseISO(payment.due_date), 'd MMM yy', { locale: th })}</p>
+                                    <p className="text-xs text-slate-500 mt-1">ครบกำหนด: {format(parseISO(payment.due_date), 'd MMM yyyy', { locale: th })}</p>
                                   </div>
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-center text-slate-500 py-4 md:py-8 text-xs md:text-sm">ไม่มีประวัติการชำระเงิน</p>
+                              <p className="text-center text-slate-500 py-8">ไม่มีประวัติการชำระเงิน</p>
                             )}
                           </CardContent>
                         </Card>
                       </TabsContent>
 
-                      <TabsContent value="meter-history" className="pt-2 md:pt-4">
+                      <TabsContent value="meter-history" className="pt-4">
                         <Card className="bg-purple-50 border-purple-200">
-                          <CardContent className="p-3 md:p-4 space-y-2 md:space-y-3">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base">
-                              <Gauge className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
+                          <CardContent className="p-4 space-y-3">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                              <Gauge className="w-5 h-5 text-purple-600" />
                               ประวัติมิเตอร์
                             </h3>
                             {meterHistory.length > 0 ? (
-                              <div className="space-y-1.5 md:space-y-2 max-h-64 md:max-h-96 overflow-y-auto p-1">
+                              <div className="space-y-2 max-h-96 overflow-y-auto p-1">
                                 {meterHistory.map((reading) => (
-                                  <div key={reading.id} className="bg-white rounded-lg p-2 md:p-3 border border-purple-200 shadow-sm">
-                                    <div className="flex justify-between items-center text-xs md:text-sm mb-1 md:mb-2">
+                                  <div key={reading.id} className="bg-white rounded-lg p-3 border border-purple-200 shadow-sm">
+                                    <div className="flex justify-between items-center text-sm mb-2">
                                        <span className="font-semibold text-slate-700">
-                                        {format(parseISO(reading.reading_date), 'd MMM yy', { locale: th })}
+                                        {format(parseISO(reading.reading_date), 'd MMMM yyyy', { locale: th })}
                                       </span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-1.5 md:gap-2 text-[10px] md:text-xs">
-                                        <p>💧 น้ำ: <span className="font-semibold text-blue-700">{reading.water_units || 0}</span> หน่วย</p>
-                                        <p>⚡ ไฟ: <span className="font-semibold text-orange-700">{reading.electricity_units || 0}</span> หน่วย</p>
+                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                        <p>💧 ค่าน้ำ: <span className="font-semibold text-blue-700">{reading.water_units || 0}</span> หน่วย</p>
+                                        <p>⚡️ ค่าไฟ: <span className="font-semibold text-orange-700">{reading.electricity_units || 0}</span> หน่วย</p>
                                     </div>
                                   </div>
                                 ))}
                               </div>
                             ) : (
-                              <p className="text-center text-slate-500 py-4 md:py-8 text-xs md:text-sm">ไม่มีประวัติการจดมิเตอร์</p>
+                              <p className="text-center text-slate-500 py-8">ไม่มีประวัติการจดมิเตอร์</p>
                             )}
                           </CardContent>
                         </Card>
                       </TabsContent>
 
-                      <TabsContent value="maintenance-history" className="pt-2 md:pt-4">
+                      <TabsContent value="maintenance-history" className="pt-4">
                         <Card className="bg-orange-50 border-orange-200">
-                          <CardContent className="p-3 md:p-4 space-y-2 md:space-y-3">
-                            <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base">
-                              <Wrench className="w-4 h-4 md:w-5 md:h-5 text-orange-600" />
-                              ประวัติการซ่อม ({maintenanceHistory.length})
+                          <CardContent className="p-4 space-y-3">
+                            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                              <Wrench className="w-5 h-5 text-orange-600" />
+                              ประวัติการซ่อม ({maintenanceHistory.length} รายการ)
                             </h3>
                             {maintenanceHistory.length > 0 ? (
                               <>
-                                <div className="space-y-1.5 md:space-y-2 max-h-64 md:max-h-96 overflow-y-auto p-1">
+                                <div className="space-y-2 max-h-96 overflow-y-auto p-1">
                                   {(() => {
                                     const itemsPerPage = 10;
                                     const startIdx = (maintenanceHistoryPage - 1) * itemsPerPage;
                                     const paginatedItems = maintenanceHistory.slice(startIdx, startIdx + itemsPerPage);
                                     return paginatedItems.map((request) => (
-                                      <div key={request.id} className="bg-white rounded-lg p-2 md:p-3 border border-orange-200 shadow-sm">
-                                        <div className="flex justify-between items-start mb-1 md:mb-2 gap-2">
-                                          <div className="min-w-0">
-                                            <p className="font-semibold text-slate-800 text-xs md:text-sm truncate">{request.title}</p>
-                                            <p className="text-[10px] md:text-xs text-slate-500 mt-0.5 md:mt-1">
-                                              {format(parseISO(request.created_date), 'd MMM yy', { locale: th })}
+                                      <div key={request.id} className="bg-white rounded-lg p-3 border border-orange-200 shadow-sm">
+                                        <div className="flex justify-between items-start mb-2">
+                                          <div>
+                                            <p className="font-semibold text-slate-800">{request.title}</p>
+                                            <p className="text-xs text-slate-500 mt-1">
+                                              {format(parseISO(request.created_date), 'd MMM yyyy', { locale: th })}
                                             </p>
                                           </div>
-                                          <Badge className={`text-[10px] md:text-xs flex-shrink-0 px-1.5 md:px-2 ${
+                                          <Badge className={`text-xs flex-shrink-0 ${
                                             request.status === 'completed' ? 'bg-green-100 text-green-800' :
                                             request.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
                                             request.status === 'cancelled' ? 'bg-red-100 text-red-800' :
@@ -3402,23 +3402,23 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                           </Badge>
                                         </div>
                                         {request.description && (
-                                          <p className="text-xs md:text-sm text-slate-700 mb-1 md:mb-2 line-clamp-2">{request.description}</p>
+                                          <p className="text-sm text-slate-700 mb-2">{request.description}</p>
                                         )}
-                                        <div className="flex flex-wrap gap-1 md:gap-2 text-[10px] md:text-xs">
-                                          <Badge variant="outline" className="bg-gray-50 text-[10px] md:text-xs px-1 md:px-2">
+                                        <div className="flex flex-wrap gap-2 text-xs">
+                                          <Badge variant="outline" className="bg-gray-50">
                                             {request.category}
                                           </Badge>
                                           {request.priority && (
-                                            <Badge variant="outline" className={`text-[10px] md:text-xs px-1 md:px-2 ${
+                                            <Badge variant="outline" className={
                                               request.priority === 'urgent' ? 'bg-red-50 border-red-200' :
                                               request.priority === 'high' ? 'bg-orange-50 border-orange-200' :
                                               request.priority === 'medium' ? 'bg-yellow-50 border-yellow-200' :
                                               'bg-blue-50 border-blue-200'
-                                            }`}>
-                                              {request.priority === 'urgent' ? 'ด่วน' :
-                                               request.priority === 'high' ? 'สำคัญ' :
-                                               request.priority === 'medium' ? 'ปกติ' :
-                                               'ต่ำ'}
+                                            }>
+                                              {request.priority === 'urgent' ? '🔴 ด่วนมาก' :
+                                               request.priority === 'high' ? '🟠 สำคัญ' :
+                                               request.priority === 'medium' ? '🟡 ปกติ' :
+                                               '🔵 ต่ำ'}
                                             </Badge>
                                           )}
                                         </div>
@@ -3427,26 +3427,26 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                   })()}
                                 </div>
                                 {maintenanceHistory.length > 10 && (
-                                  <div className="flex items-center justify-between pt-2 md:pt-3 border-t border-orange-200 text-[10px] md:text-xs">
+                                  <div className="flex items-center justify-between pt-3 border-t border-orange-200 text-xs">
                                     <span className="text-slate-600">
-                                      {maintenanceHistoryPage}/{Math.ceil(maintenanceHistory.length / 10)}
+                                      หน้า {maintenanceHistoryPage} จาก {Math.ceil(maintenanceHistory.length / 10)}
                                     </span>
-                                    <div className="flex gap-1 md:gap-2">
+                                    <div className="flex gap-2">
                                       <Button
                                         size="sm"
                                         variant="outline"
                                         onClick={() => setMaintenanceHistoryPage(prev => Math.max(1, prev - 1))}
                                         disabled={maintenanceHistoryPage === 1}
-                                        className="h-6 md:h-7 text-[10px] md:text-xs px-2 md:px-3"
+                                        className="h-7"
                                       >
-                                        ก่อน
+                                        ก่อนหน้า
                                       </Button>
                                       <Button
                                         size="sm"
                                         variant="outline"
                                         onClick={() => setMaintenanceHistoryPage(prev => Math.min(Math.ceil(maintenanceHistory.length / 10), prev + 1))}
                                         disabled={maintenanceHistoryPage === Math.ceil(maintenanceHistory.length / 10)}
-                                        className="h-6 md:h-7 text-[10px] md:text-xs px-2 md:px-3"
+                                        className="h-7"
                                       >
                                         ถัดไป
                                       </Button>
@@ -3455,25 +3455,24 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                 )}
                               </>
                             ) : (
-                              <p className="text-center text-slate-500 py-4 md:py-8 text-xs md:text-sm">ไม่มีประวัติการซ่อม</p>
+                              <p className="text-center text-slate-500 py-8">ไม่มีประวัติการซ่อม</p>
                             )}
                           </CardContent>
                         </Card>
                       </TabsContent>
                     </Tabs>
 
-                    <div className="flex justify-end gap-1.5 md:gap-2 pt-2 md:pt-4 border-t">
-                       <Button variant="outline" onClick={() => setShowDetailDialog(false)} className="text-xs md:text-sm h-8 md:h-10 px-3 md:px-4">ปิด</Button>
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                       <Button variant="outline" onClick={() => setShowDetailDialog(false)}>ปิด</Button>
                        {canEdit && (
                         <Button
                           onClick={() => {
                             handleEdit(selectedRoom);
                             setShowDetailDialog(false);
                           }}
-                          className="text-xs md:text-sm h-8 md:h-10 px-3 md:px-4"
                         >
-                          <Edit2 className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
-                          แก้ไข
+                          <Edit2 className="w-4 h-4 mr-2" />
+                          แก้ไขห้อง
                         </Button>
                        )}
                     </div>
