@@ -346,6 +346,22 @@ export default function Layout({ children, currentPageName }) {
   const mainContentRef = useRef(null);
   const queryClient = useQueryClient();
 
+  // ⭐ Add global CSS for hiding scrollbar
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+
   // ⭐⭐⭐ Check if public page (variable only - return happens AFTER all hooks)
   const isPublicPage = currentPageName === 'Welcome' || 
                        currentPageName === 'Invoice' || 
