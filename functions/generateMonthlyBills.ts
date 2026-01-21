@@ -605,23 +605,49 @@ Deno.serve(async (req) => {
                 const originalWaterUnits = waterUnits;
                 const originalElecUnits = elecUnits;
 
-                const waterMinEnabled = getConfigValue('water_minimum_enabled', 'false', roomBranchId) === 'true';
-                if (waterMinEnabled) {
-                    const minUnits = parseFloat(getConfigValue('water_minimum_units', '3', roomBranchId));
-                    const minCharge = parseFloat(getConfigValue('water_minimum_charge', '0', roomBranchId));
+                // ⭐ ค่าขั้นต่ำน้ำ - ดูที่ห้องก่อน ถ้าไม่มีค่อยดูสาขา
+                if (room.min_water_units !== null && room.min_water_units !== undefined && 
+                    room.min_water_charge !== null && room.min_water_charge !== undefined) {
+                    // ใช้ค่าห้อง
+                    const minUnits = parseFloat(room.min_water_units);
+                    const minCharge = parseFloat(room.min_water_charge);
                     if (waterUnits <= minUnits && minCharge > 0) {
                         waterMinimumCharge = minCharge;
                         waterMinimumApplied = true;
                     }
+                } else {
+                    // ใช้ค่าสาขา
+                    const waterMinEnabled = getConfigValue('water_minimum_enabled', 'false', roomBranchId) === 'true';
+                    if (waterMinEnabled) {
+                        const minUnits = parseFloat(getConfigValue('water_minimum_units', '3', roomBranchId));
+                        const minCharge = parseFloat(getConfigValue('water_minimum_charge', '0', roomBranchId));
+                        if (waterUnits <= minUnits && minCharge > 0) {
+                            waterMinimumCharge = minCharge;
+                            waterMinimumApplied = true;
+                        }
+                    }
                 }
 
-                const elecMinEnabled = getConfigValue('electricity_minimum_enabled', 'false', roomBranchId) === 'true';
-                if (elecMinEnabled) {
-                    const minUnits = parseFloat(getConfigValue('electricity_minimum_units', '3', roomBranchId));
-                    const minCharge = parseFloat(getConfigValue('electricity_minimum_charge', '0', roomBranchId));
+                // ⭐ ค่าขั้นต่ำไฟ - ดูที่ห้องก่อน ถ้าไม่มีค่อยดูสาขา
+                if (room.min_electricity_units !== null && room.min_electricity_units !== undefined && 
+                    room.min_electricity_charge !== null && room.min_electricity_charge !== undefined) {
+                    // ใช้ค่าห้อง
+                    const minUnits = parseFloat(room.min_electricity_units);
+                    const minCharge = parseFloat(room.min_electricity_charge);
                     if (elecUnits <= minUnits && minCharge > 0) {
                         electricityMinimumCharge = minCharge;
                         electricityMinimumApplied = true;
+                    }
+                } else {
+                    // ใช้ค่าสาขา
+                    const elecMinEnabled = getConfigValue('electricity_minimum_enabled', 'false', roomBranchId) === 'true';
+                    if (elecMinEnabled) {
+                        const minUnits = parseFloat(getConfigValue('electricity_minimum_units', '3', roomBranchId));
+                        const minCharge = parseFloat(getConfigValue('electricity_minimum_charge', '0', roomBranchId));
+                        if (elecUnits <= minUnits && minCharge > 0) {
+                            electricityMinimumCharge = minCharge;
+                            electricityMinimumApplied = true;
+                        }
                     }
                 }
 
