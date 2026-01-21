@@ -309,73 +309,34 @@ export default function PackageSelectionPage() {
                 </div>
               </div>
               
-              {/* Billing Cycle Toggle */}
+              {/* Duration Selection - 6 Presets (1 month - 3 years) */}
               <div className="flex justify-center mb-8 mt-8">
-                <div className="inline-flex items-center gap-1.5 bg-white rounded-full p-1.5 shadow-lg border border-slate-200">
-                  <button
-                    onClick={() => setBillingCycle('1')}
-                    className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
-                      billingCycle === '1'
-                        ? 'bg-slate-900 text-white shadow-md'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    1 เดือน
-                  </button>
-                  <button
-                    onClick={() => setBillingCycle('3')}
-                    className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
-                      billingCycle === '3'
-                        ? 'bg-slate-900 text-white shadow-md'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    3 เดือน
-                  </button>
-                  <button
-                    onClick={() => setBillingCycle('6')}
-                    className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
-                      billingCycle === '6'
-                        ? 'bg-slate-900 text-white shadow-md'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    6 เดือน
-                    {(() => {
-                      const sixMonthsSavings = selectedPackage?.pricing?.six_months_savings;
-                      const savings = (typeof sixMonthsSavings === 'number' ? sixMonthsSavings : 0) || 
-                        (selectedPackage?.price_monthly && selectedPackage?.price_6_months 
-                          ? (selectedPackage.price_monthly * 6 - selectedPackage.price_6_months) 
-                          : 0);
-                      return savings > 0 ? (
-                        <span className="ml-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
-                          ประหยัด ฿{Number(savings).toLocaleString()}
+                <div className="inline-flex flex-wrap items-center gap-2 bg-white rounded-2xl p-3 shadow-lg border border-slate-200 justify-center max-w-2xl">
+                  {[
+                    { months: '1', label: '1 เดือน', badge: null },
+                    { months: '3', label: '3 เดือน', badge: 'ประหยัด 5%' },
+                    { months: '6', label: '6 เดือน', badge: 'ประหยัด 10%' },
+                    { months: '12', label: '1 ปี', badge: 'ประหยัด 15%' },
+                    { months: '24', label: '2 ปี', badge: 'ประหยัด 25%' },
+                    { months: '36', label: '3 ปี', badge: 'ประหยัด 35%' }
+                  ].map(({ months, label, badge }) => (
+                    <button
+                      key={months}
+                      onClick={() => setBillingCycle(months)}
+                      className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+                        billingCycle === months
+                          ? 'bg-slate-900 text-white shadow-md scale-105'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      {label}
+                      {badge && (
+                        <span className="ml-1.5 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold">
+                          {badge}
                         </span>
-                      ) : null;
-                    })()}
-                  </button>
-                  <button
-                    onClick={() => setBillingCycle('12')}
-                    className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all ${
-                      billingCycle === '12'
-                        ? 'bg-slate-900 text-white shadow-md'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    1 ปี
-                    {(() => {
-                      const yearlySavings = selectedPackage?.pricing?.yearly_savings;
-                      const savings = (typeof yearlySavings === 'number' ? yearlySavings : 0) || 
-                        (selectedPackage?.price_monthly && selectedPackage?.price_yearly 
-                          ? (selectedPackage.price_monthly * 12 - selectedPackage.price_yearly) 
-                          : 0);
-                      return savings > 0 ? (
-                        <span className="ml-2 text-xs bg-orange-500 text-white px-2 py-0.5 rounded-full">
-                          ประหยัด ฿{Number(savings).toLocaleString()}
-                        </span>
-                      ) : null;
-                    })()}
-                  </button>
+                      )}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
