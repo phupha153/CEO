@@ -470,7 +470,7 @@ Deno.serve(async (req) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'api_key': crmWebhookSecret
+            'x-api-key': crmWebhookSecret
           },
           body: JSON.stringify(crmPayload)
         });
