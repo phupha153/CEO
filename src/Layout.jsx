@@ -1748,13 +1748,13 @@ export default function Layout({ children, currentPageName }) {
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-400/10 to-pink-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
           </div>
 
+          {/* Subscription Status Banner - Top */}
+          {renderSubscriptionBanner()}
+
           {/* Desktop Notification Bell */}
           <div className="hidden md:block absolute top-4 right-6 z-40">
             {currentUser && <NotificationsPanel />}
           </div>
-
-          {/* Subscription Status Banner */}
-          {renderSubscriptionBanner()}
 
           <header className="relative z-30 bg-white/40 backdrop-blur-2xl border-b border-white/40 px-3 py-3 md:hidden shadow-sm flex-shrink-0">
             <div className="flex items-center justify-between gap-2">
