@@ -72,6 +72,7 @@ export default function BookingReceiptPage() {
   
   const urlParams = new URLSearchParams(window.location.search);
   const bookingId = urlParams.get('id');
+  const tempBookingId = urlParams.get('tempId');
   const isCopy = urlParams.get('copy') === 'true';
   
   const [isEditing, setIsEditing] = useState(false);
@@ -81,12 +82,18 @@ export default function BookingReceiptPage() {
   const [aiLoading, setAiLoading] = useState(false);
 
   const { data: booking, isLoading: bookingLoading } = useQuery({
-    queryKey: ['booking', bookingId],
+    queryKey: ['booking', bookingId, tempBookingId],
     queryFn: async () => {
-      const bookings = await base44.entities.Booking.filter({ id: bookingId });
-      return bookings[0];
+      if (bookingId) {
+        const bookings = await base44.entities.Booking.filter({ id: bookingId });
+        return bookings[0];
+      } else if (tempBookingId) {
+        const tempBookings = await base44.entities.TemporaryBooking.filter({ id: tempBookingId });
+        return tempBookings[0];
+      }
+      return null;
     },
-    enabled: !!bookingId
+    enabled: !!(bookingId || tempBookingId)
   });
 
   const { data: room } = useQuery({
