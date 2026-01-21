@@ -210,10 +210,10 @@ export default function RoomsPage() {
     enabled: canView && !!selectedBranchId,
     retry: 2,
     retryDelay: 1000,
-    staleTime: 3 * 60 * 1000, // ⚡ เพิ่ม cache time
+    staleTime: 3 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false, // ⚡ ปิด auto-refetch
-    refetchOnMount: false, // ⚡ ใช้ cache ก่อน
+    refetchOnWindowFocus: false,
+    refetchOnMount: "stale", // ⚡ โหลดครั้งแรก เก็บ cache หลังจากนั้น
   });
 
   const { data: allRooms = [] } = useQuery({
@@ -257,10 +257,10 @@ export default function RoomsPage() {
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 2 * 60 * 1000, // ⚡ เพิ่ม cache time
+    staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false, // ⚡ ปิด auto-refetch
-    refetchOnMount: false, // ⚡ ใช้ cache ก่อน
+    refetchOnWindowFocus: false,
+    refetchOnMount: "stale", // ⚡ โหลดครั้งแรก เก็บ cache หลังจากนั้น
   });
 
   const { data: tenants = [] } = useQuery({
@@ -275,10 +275,10 @@ export default function RoomsPage() {
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 5 * 60 * 1000, // ⚡ เพิ่ม cache time
+    staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false, // ⚡ ปิด auto-refetch
-    refetchOnMount: false, // ⚡ ใช้ cache ก่อน
+    refetchOnWindowFocus: false,
+    refetchOnMount: "stale", // ⚡ โหลดครั้งแรก เก็บ cache หลังจากนั้น
   });
 
   const { data: payments = [] } = useQuery({
@@ -293,10 +293,10 @@ export default function RoomsPage() {
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 3 * 60 * 1000, // ⚡ เพิ่ม cache time
+    staleTime: 3 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false, // ⚡ ปิด auto-refetch
-    refetchOnMount: false, // ⚡ ใช้ cache ก่อน
+    refetchOnWindowFocus: false,
+    refetchOnMount: "stale", // ⚡ โหลดครั้งแรก เก็บ cache หลังจากนั้น
   });
 
   const { data: maintenanceRequests = [] } = useQuery({
@@ -304,10 +304,10 @@ export default function RoomsPage() {
     queryFn: () => base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 5 * 60 * 1000, // ⚡ เพิ่ม cache time
+    staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false, // ⚡ ปิด auto-refetch
-    refetchOnMount: false, // ⚡ ใช้ cache ก่อน
+    refetchOnWindowFocus: false,
+    refetchOnMount: "stale", // ⚡ โหลดครั้งแรก เก็บ cache หลังจากนั้น
   });
 
   const { data: meterReadings = [] } = useQuery({
