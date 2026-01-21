@@ -351,6 +351,274 @@ export default function CronJobSettings() {
           </Button>
         </div>
 
+        {/* ⭐ ตารางสาขาทั้งหมดแบบละเอียด */}
+        <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Database className="w-5 h-5 text-indigo-600" />
+              📊 ตารางสาขาทั้งหมด (เจ้าของ + ข้อมูล)
+            </CardTitle>
+            <CardDescription>
+              รายละเอียดทุกสาขา: เจ้าของ, ผู้ใช้, ห้อง, บิล, บิลที่ส่ง (รองรับข้อมูล 1M+ รายการ)
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <Input
+                type="text"
+                placeholder="🔍 ค้นหา: ชื่อสาขา, รหัส, อีเมลเจ้าของ..."
+                value={branchSearchQuery}
+                onChange={(e) => setBranchSearchQuery(e.target.value)}
+                className="max-w-md"
+              />
+            </div>
+            {paymentsLoading || tenantsLoading || roomsLoading || usersLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead className="bg-slate-100 sticky top-0">
+                    <tr>
+                      <th className="border border-slate-300 px-2 py-2 text-left font-bold text-slate-700 w-8">#</th>
+                      <th className="border border-slate-300 px-2 py-2 text-left font-bold text-slate-700">สาขา</th>
+                      <th className="border border-slate-300 px-2 py-2 text-left font-bold text-slate-700">รหัสสาขา</th>
+                      <th className="border border-slate-300 px-2 py-2 text-left font-bold text-slate-700">เจ้าของสาขา</th>
+                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">สถานะ</th>
+                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ทดลองหมดอายุ</th>
+                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ผู้ใช้</th>
+                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ห้อง</th>
+                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ผู้เช่า</th>
+                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">บิลทั้งหมด</th>
+                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">มีรูปแล้ว</th>
+                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ส่งแล้ว</th>
+                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">รอส่ง</th>
+                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">แจ้งครบกำหนด</th>
+                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">แจ้งเกินกำหนด</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allBranches.length === 0 ? (
+                      <tr>
+                        <td colSpan="15" className="border border-slate-300 px-4 py-8 text-center text-slate-500">
+                          ไม่มีข้อมูลสาขา
+                        </td>
+                      </tr>
+                    ) : allBranches.filter(branch => {
+                      if (!branchSearchQuery.trim()) return true;
+                      const query = branchSearchQuery.toLowerCase();
+                      return (
+                        branch.branch_name?.toLowerCase().includes(query) ||
+                        branch.branch_code?.toLowerCase().includes(query) ||
+                        branch.owner_id?.toLowerCase().includes(query) ||
+                        branch.created_by?.toLowerCase().includes(query)
+                      );
+                    }).map((branch, index) => {
+                      const branchPayments = allPayments.filter(p => p.branch_id === branch.id);
+                      const branchTenants = allTenants.filter(t => t.branch_id === branch.id);
+                      const branchRooms = allRooms.filter(r => r.branch_id === branch.id);
+                      
+                      const paymentsWithInvoice = branchPayments.filter(p => p.invoice_image_url);
+                      const billsSent = branchPayments.filter(p => 
+                        p.invoice_image_url && 
+                        (p.bill_sent_date || p.advance_reminder_sent_date || p.due_date_reminder_sent_date) && 
+                        p.status !== 'paid'
+                      );
+
+                      const advanceReminderEnabled = configs.find(c => 
+                        c.key === 'send_advance_reminder' && c.branch_id === branch.id
+                      )?.value === 'true';
+
+                      const billsReady = branchPayments.filter(p => 
+                        p.status !== 'paid' && 
+                        p.invoice_image_url && 
+                        !p.bill_sent_date && 
+                        advanceReminderEnabled
+                      );
+
+                      const today = new Date().toISOString().split('T')[0];
+                      const dueTodayCount = branchPayments.filter(p => 
+                        p.status !== 'paid' && 
+                        p.due_date === today &&
+                        !p.due_date_reminder_sent_date
+                      ).length;
+
+                      const overdueCount = branchPayments.filter(p => 
+                        p.status !== 'paid' && 
+                        p.due_date && 
+                        p.due_date < today && 
+                        !p.overdue_reminder_sent_date
+                      ).length;
+
+                      // หาเจ้าของสาขา
+                      const owner = allUsers.find(u => u.email === branch.owner_id || u.email === branch.created_by);
+                      const trialEndsAt = owner?.trial_ends_at;
+                      const planStatus = owner?.plan_status;
+
+                      // นับจำนวน User ที่เป็นเจ้าของสาขานี้
+                      const usersCount = allUsers.filter(u => 
+                        u.accessible_branches && u.accessible_branches.includes(branch.id)
+                      ).length || 1;
+                      
+                      return (
+                        <tr key={branch.id} className="hover:bg-slate-50">
+                          <td className="border border-slate-300 px-2 py-2 text-center text-slate-600">
+                            {index + 1}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-slate-800 font-medium">
+                            {branch.branch_name}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-slate-600">
+                            {branch.branch_code || '-'}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-slate-600 text-xs" title={branch.owner_id || branch.created_by}>
+                            {branch.owner_id || branch.created_by || '-'}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-center">
+                            {planStatus === 'trial' && (
+                              <Badge className="bg-amber-500 text-white text-xs">Trial</Badge>
+                            )}
+                            {planStatus === 'active' && (
+                              <Badge className="bg-green-500 text-white text-xs">Active</Badge>
+                            )}
+                            {planStatus === 'expired' && (
+                              <Badge className="bg-red-500 text-white text-xs">Expired</Badge>
+                            )}
+                            {!planStatus && (
+                              <span className="text-slate-400 text-xs">-</span>
+                            )}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-center text-xs">
+                            {trialEndsAt ? (
+                              <span className={(() => {
+                                const endDate = new Date(trialEndsAt);
+                                const today = new Date();
+                                const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+                                if (daysLeft < 0) return 'text-red-600 font-bold';
+                                if (daysLeft <= 7) return 'text-orange-600 font-bold';
+                                return 'text-slate-600';
+                              })()}>
+                                {new Date(trialEndsAt).toLocaleDateString('th-TH', { 
+                                  day: '2-digit', 
+                                  month: 'short', 
+                                  year: 'numeric' 
+                                })}
+                                <br/>
+                                <span className="text-[10px]">
+                                  ({(() => {
+                                    const daysLeft = Math.ceil((new Date(trialEndsAt) - new Date()) / (1000 * 60 * 60 * 24));
+                                    return daysLeft < 0 ? `เกิน ${Math.abs(daysLeft)} วัน` : `เหลือ ${daysLeft} วัน`;
+                                  })()})
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="text-slate-400">-</span>
+                            )}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-center text-slate-700 font-medium">
+                            {usersCount}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-center text-slate-700 font-medium">
+                            {branchRooms.length.toLocaleString()}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-center text-slate-700 font-medium">
+                            {branchTenants.length.toLocaleString()}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-center text-blue-700 font-bold">
+                            {branchPayments.length.toLocaleString()}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-center text-green-700 font-bold">
+                            {paymentsWithInvoice.length.toLocaleString()}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-center text-purple-700 font-bold">
+                            {billsSent.length.toLocaleString()}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-center text-amber-700 font-bold">
+                            {billsReady.length.toLocaleString()}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-center text-red-600 font-bold">
+                            {dueTodayCount.toLocaleString()}
+                          </td>
+                          <td className="border border-slate-300 px-2 py-2 text-center text-orange-600 font-bold">
+                            {overdueCount.toLocaleString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    
+                    {/* ⭐ แถวรวม */}
+                    <tr className="bg-slate-200 font-bold">
+                      <td className="border border-slate-400 px-2 py-2 text-center" colSpan="4">
+                        รวมทั้งหมด
+                      </td>
+                      <td className="border border-slate-400 px-2 py-2 text-center text-slate-800" colSpan="2">
+                        {allUsers.filter(u => u.plan_status === 'trial').length} Trial / {allUsers.filter(u => u.plan_status === 'active').length} Active
+                      </td>
+                      <td className="border border-slate-400 px-2 py-2 text-center text-slate-800">
+                        {allBranches.length}
+                      </td>
+                      <td className="border border-slate-400 px-2 py-2 text-center text-slate-800">
+                        {allRooms.length.toLocaleString()}
+                      </td>
+                      <td className="border border-slate-400 px-2 py-2 text-center text-slate-800">
+                        {allTenants.length.toLocaleString()}
+                      </td>
+                      <td className="border border-slate-400 px-2 py-2 text-center text-blue-800">
+                        {allPayments.length.toLocaleString()}
+                      </td>
+                      <td className="border border-slate-400 px-2 py-2 text-center text-green-800">
+                        {allPayments.filter(p => p.invoice_image_url).length.toLocaleString()}
+                      </td>
+                      <td className="border border-slate-400 px-2 py-2 text-center text-purple-800">
+                        {allPayments.filter(p => 
+                          p.invoice_image_url && 
+                          (p.bill_sent_date || p.advance_reminder_sent_date || p.due_date_reminder_sent_date) && 
+                          p.status !== 'paid'
+                        ).length.toLocaleString()}
+                      </td>
+                      <td className="border border-slate-400 px-2 py-2 text-center text-amber-800">
+                        {(() => {
+                          const enabledBranchIds = configs
+                            .filter(c => c.key === 'send_advance_reminder' && c.value === 'true')
+                            .map(c => c.branch_id);
+                          return allPayments.filter(p => 
+                            p.status !== 'paid' && 
+                            p.invoice_image_url && 
+                            !p.bill_sent_date && 
+                            enabledBranchIds.includes(p.branch_id)
+                          ).length.toLocaleString();
+                        })()}
+                      </td>
+                      <td className="border border-slate-400 px-2 py-2 text-center text-red-800">
+                        {(() => {
+                          const today = new Date().toISOString().split('T')[0];
+                          return allPayments.filter(p => 
+                            p.status !== 'paid' && 
+                            p.due_date === today &&
+                            !p.due_date_reminder_sent_date
+                          ).length.toLocaleString();
+                        })()}
+                      </td>
+                      <td className="border border-slate-400 px-2 py-2 text-center text-orange-800">
+                        {(() => {
+                          const today = new Date().toISOString().split('T')[0];
+                          return allPayments.filter(p => 
+                            p.status !== 'paid' && 
+                            p.due_date && 
+                            p.due_date < today && 
+                            !p.overdue_reminder_sent_date
+                          ).length.toLocaleString();
+                        })()}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Payment Statistics Card */}
         <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
           <CardHeader>
@@ -990,274 +1258,6 @@ export default function CronJobSettings() {
             <p className="text-xs text-red-600">
               ⚠️ Cron Job จะลบข้อมูลทดสอบ (is_sample, TEST, 12345, 5555, COPY) ของสาขาและประเภทข้อมูลที่เลือกเท่านั้น
             </p>
-          </CardContent>
-        </Card>
-
-        {/* ⭐ ตารางสาขาทั้งหมดแบบละเอียด */}
-        <Card className="border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Database className="w-5 h-5 text-indigo-600" />
-              📊 ตารางสาขาทั้งหมด (เจ้าของ + ข้อมูล)
-            </CardTitle>
-            <CardDescription>
-              รายละเอียดทุกสาขา: เจ้าของ, ผู้ใช้, ห้อง, บิล, บิลที่ส่ง (รองรับข้อมูล 1M+ รายการ)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4">
-              <Input
-                type="text"
-                placeholder="🔍 ค้นหา: ชื่อสาขา, รหัส, อีเมลเจ้าของ..."
-                value={branchSearchQuery}
-                onChange={(e) => setBranchSearchQuery(e.target.value)}
-                className="max-w-md"
-              />
-            </div>
-            {paymentsLoading || tenantsLoading || roomsLoading || usersLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
-                  <thead className="bg-slate-100 sticky top-0">
-                    <tr>
-                      <th className="border border-slate-300 px-2 py-2 text-left font-bold text-slate-700 w-8">#</th>
-                      <th className="border border-slate-300 px-2 py-2 text-left font-bold text-slate-700">สาขา</th>
-                      <th className="border border-slate-300 px-2 py-2 text-left font-bold text-slate-700">รหัสสาขา</th>
-                      <th className="border border-slate-300 px-2 py-2 text-left font-bold text-slate-700">เจ้าของสาขา</th>
-                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">สถานะ</th>
-                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ทดลองหมดอายุ</th>
-                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ผู้ใช้</th>
-                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ห้อง</th>
-                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ผู้เช่า</th>
-                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">บิลทั้งหมด</th>
-                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">มีรูปแล้ว</th>
-                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">ส่งแล้ว</th>
-                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">รอส่ง</th>
-                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">แจ้งครบกำหนด</th>
-                      <th className="border border-slate-300 px-2 py-2 text-center font-bold text-slate-700">แจ้งเกินกำหนด</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allBranches.length === 0 ? (
-                      <tr>
-                        <td colSpan="15" className="border border-slate-300 px-4 py-8 text-center text-slate-500">
-                          ไม่มีข้อมูลสาขา
-                        </td>
-                      </tr>
-                    ) : allBranches.filter(branch => {
-                      if (!branchSearchQuery.trim()) return true;
-                      const query = branchSearchQuery.toLowerCase();
-                      return (
-                        branch.branch_name?.toLowerCase().includes(query) ||
-                        branch.branch_code?.toLowerCase().includes(query) ||
-                        branch.owner_id?.toLowerCase().includes(query) ||
-                        branch.created_by?.toLowerCase().includes(query)
-                      );
-                    }).map((branch, index) => {
-                      const branchPayments = allPayments.filter(p => p.branch_id === branch.id);
-                      const branchTenants = allTenants.filter(t => t.branch_id === branch.id);
-                      const branchRooms = allRooms.filter(r => r.branch_id === branch.id);
-                      
-                      const paymentsWithInvoice = branchPayments.filter(p => p.invoice_image_url);
-                      const billsSent = branchPayments.filter(p => 
-                        p.invoice_image_url && 
-                        (p.bill_sent_date || p.advance_reminder_sent_date || p.due_date_reminder_sent_date) && 
-                        p.status !== 'paid'
-                      );
-
-                      const advanceReminderEnabled = configs.find(c => 
-                        c.key === 'send_advance_reminder' && c.branch_id === branch.id
-                      )?.value === 'true';
-
-                      const billsReady = branchPayments.filter(p => 
-                        p.status !== 'paid' && 
-                        p.invoice_image_url && 
-                        !p.bill_sent_date && 
-                        advanceReminderEnabled
-                      );
-
-                      const today = new Date().toISOString().split('T')[0];
-                      const dueTodayCount = branchPayments.filter(p => 
-                        p.status !== 'paid' && 
-                        p.due_date === today &&
-                        !p.due_date_reminder_sent_date
-                      ).length;
-
-                      const overdueCount = branchPayments.filter(p => 
-                        p.status !== 'paid' && 
-                        p.due_date && 
-                        p.due_date < today && 
-                        !p.overdue_reminder_sent_date
-                      ).length;
-
-                      // หาเจ้าของสาขา
-                      const owner = allUsers.find(u => u.email === branch.owner_id || u.email === branch.created_by);
-                      const trialEndsAt = owner?.trial_ends_at;
-                      const planStatus = owner?.plan_status;
-
-                      // นับจำนวน User ที่เป็นเจ้าของสาขานี้
-                      const usersCount = allUsers.filter(u => 
-                        u.accessible_branches && u.accessible_branches.includes(branch.id)
-                      ).length || 1;
-                      
-                      return (
-                        <tr key={branch.id} className="hover:bg-slate-50">
-                          <td className="border border-slate-300 px-2 py-2 text-center text-slate-600">
-                            {index + 1}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-slate-800 font-medium">
-                            {branch.branch_name}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-slate-600">
-                            {branch.branch_code || '-'}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-slate-600 text-xs" title={branch.owner_id || branch.created_by}>
-                            {branch.owner_id || branch.created_by || '-'}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-center">
-                            {planStatus === 'trial' && (
-                              <Badge className="bg-amber-500 text-white text-xs">Trial</Badge>
-                            )}
-                            {planStatus === 'active' && (
-                              <Badge className="bg-green-500 text-white text-xs">Active</Badge>
-                            )}
-                            {planStatus === 'expired' && (
-                              <Badge className="bg-red-500 text-white text-xs">Expired</Badge>
-                            )}
-                            {!planStatus && (
-                              <span className="text-slate-400 text-xs">-</span>
-                            )}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-center text-xs">
-                            {trialEndsAt ? (
-                              <span className={(() => {
-                                const endDate = new Date(trialEndsAt);
-                                const today = new Date();
-                                const daysLeft = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
-                                if (daysLeft < 0) return 'text-red-600 font-bold';
-                                if (daysLeft <= 7) return 'text-orange-600 font-bold';
-                                return 'text-slate-600';
-                              })()}>
-                                {new Date(trialEndsAt).toLocaleDateString('th-TH', { 
-                                  day: '2-digit', 
-                                  month: 'short', 
-                                  year: 'numeric' 
-                                })}
-                                <br/>
-                                <span className="text-[10px]">
-                                  ({(() => {
-                                    const daysLeft = Math.ceil((new Date(trialEndsAt) - new Date()) / (1000 * 60 * 60 * 24));
-                                    return daysLeft < 0 ? `เกิน ${Math.abs(daysLeft)} วัน` : `เหลือ ${daysLeft} วัน`;
-                                  })()})
-                                </span>
-                              </span>
-                            ) : (
-                              <span className="text-slate-400">-</span>
-                            )}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-center text-slate-700 font-medium">
-                            {usersCount}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-center text-slate-700 font-medium">
-                            {branchRooms.length.toLocaleString()}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-center text-slate-700 font-medium">
-                            {branchTenants.length.toLocaleString()}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-center text-blue-700 font-bold">
-                            {branchPayments.length.toLocaleString()}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-center text-green-700 font-bold">
-                            {paymentsWithInvoice.length.toLocaleString()}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-center text-purple-700 font-bold">
-                            {billsSent.length.toLocaleString()}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-center text-amber-700 font-bold">
-                            {billsReady.length.toLocaleString()}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-center text-red-600 font-bold">
-                            {dueTodayCount.toLocaleString()}
-                          </td>
-                          <td className="border border-slate-300 px-2 py-2 text-center text-orange-600 font-bold">
-                            {overdueCount.toLocaleString()}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    
-                    {/* ⭐ แถวรวม */}
-                    <tr className="bg-slate-200 font-bold">
-                      <td className="border border-slate-400 px-2 py-2 text-center" colSpan="4">
-                        รวมทั้งหมด
-                      </td>
-                      <td className="border border-slate-400 px-2 py-2 text-center text-slate-800" colSpan="2">
-                        {allUsers.filter(u => u.plan_status === 'trial').length} Trial / {allUsers.filter(u => u.plan_status === 'active').length} Active
-                      </td>
-                      <td className="border border-slate-400 px-2 py-2 text-center text-slate-800">
-                        {allBranches.length}
-                      </td>
-                      <td className="border border-slate-400 px-2 py-2 text-center text-slate-800">
-                        {allRooms.length.toLocaleString()}
-                      </td>
-                      <td className="border border-slate-400 px-2 py-2 text-center text-slate-800">
-                        {allTenants.length.toLocaleString()}
-                      </td>
-                      <td className="border border-slate-400 px-2 py-2 text-center text-blue-800">
-                        {allPayments.length.toLocaleString()}
-                      </td>
-                      <td className="border border-slate-400 px-2 py-2 text-center text-green-800">
-                        {allPayments.filter(p => p.invoice_image_url).length.toLocaleString()}
-                      </td>
-                      <td className="border border-slate-400 px-2 py-2 text-center text-purple-800">
-                        {allPayments.filter(p => 
-                          p.invoice_image_url && 
-                          (p.bill_sent_date || p.advance_reminder_sent_date || p.due_date_reminder_sent_date) && 
-                          p.status !== 'paid'
-                        ).length.toLocaleString()}
-                      </td>
-                      <td className="border border-slate-400 px-2 py-2 text-center text-amber-800">
-                        {(() => {
-                          const enabledBranchIds = configs
-                            .filter(c => c.key === 'send_advance_reminder' && c.value === 'true')
-                            .map(c => c.branch_id);
-                          return allPayments.filter(p => 
-                            p.status !== 'paid' && 
-                            p.invoice_image_url && 
-                            !p.bill_sent_date && 
-                            enabledBranchIds.includes(p.branch_id)
-                          ).length.toLocaleString();
-                        })()}
-                      </td>
-                      <td className="border border-slate-400 px-2 py-2 text-center text-red-800">
-                        {(() => {
-                          const today = new Date().toISOString().split('T')[0];
-                          return allPayments.filter(p => 
-                            p.status !== 'paid' && 
-                            p.due_date === today &&
-                            !p.due_date_reminder_sent_date
-                          ).length.toLocaleString();
-                        })()}
-                      </td>
-                      <td className="border border-slate-400 px-2 py-2 text-center text-orange-800">
-                        {(() => {
-                          const today = new Date().toISOString().split('T')[0];
-                          return allPayments.filter(p => 
-                            p.status !== 'paid' && 
-                            p.due_date && 
-                            p.due_date < today && 
-                            !p.overdue_reminder_sent_date
-                          ).length.toLocaleString();
-                        })()}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
           </CardContent>
         </Card>
 
