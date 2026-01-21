@@ -1276,24 +1276,24 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                             </div>
 
                             {booking.deposit_amount > 0 && (
-                              <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-blue-50 rounded-xl p-4 border border-indigo-200 shadow-sm">
-                                <div className="flex items-start justify-between gap-3">
-                                  <div>
-                                    <p className="text-xs text-indigo-600 font-semibold uppercase tracking-wide mb-1">เงินมัดจำ</p>
-                                    <p className="text-lg font-bold text-indigo-900">
+                              <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-blue-50 rounded-lg md:rounded-xl p-3 md:p-4 border border-indigo-200 shadow-sm">
+                                <div className="flex items-start justify-between gap-2 md:gap-3">
+                                  <div className="min-w-0">
+                                    <p className="text-[10px] md:text-xs text-indigo-600 font-semibold uppercase tracking-wide mb-1">เงินมัดจำ</p>
+                                    <p className="text-base md:text-lg font-bold text-indigo-900 truncate">
                                       {booking.deposit_amount.toLocaleString()} ฿
                                     </p>
                                   </div>
-                                  <div className="text-right">
-                                    <Badge className="bg-indigo-600 text-white text-xs">{paymentMethodLabel}</Badge>
+                                  <div className="text-right flex-shrink-0">
+                                    <Badge className="bg-indigo-600 text-white text-[10px] md:text-xs whitespace-nowrap">{paymentMethodLabel}</Badge>
                                     {booking.deposit_slip_url && (
                                       <a
                                         href={booking.deposit_slip_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="flex items-center justify-end gap-1 mt-2 text-indigo-600 hover:text-indigo-700 text-xs font-semibold hover:underline"
+                                        className="flex items-center justify-end gap-0.5 md:gap-1 mt-1 md:mt-2 text-indigo-600 hover:text-indigo-700 text-[10px] md:text-xs font-semibold hover:underline"
                                       >
-                                        <Camera className="w-3.5 h-3.5" />
+                                        <Camera className="w-3 h-3 md:w-3.5 md:h-3.5" />
                                         ดูสลิป
                                       </a>
                                     )}
