@@ -192,7 +192,10 @@ export default function BookingsPage() {
     return branches.find(branch => branch.id === selectedBranchId)?.name || 'ไม่ระบุสาขา';
   }, [branches, selectedBranchId]);
 
+  const [selectedFilter, setSelectedFilter] = useState('all');
+
   const dailyBookings = useMemo(() => bookings.filter(b => b.booking_type === 'daily'), [bookings]);
+  const monthlyBookings = useMemo(() => bookings.filter(b => b.booking_type === 'monthly'), [bookings]);
 
   const handleAISearch = async () => {
     if (!searchQuery.trim()) {
