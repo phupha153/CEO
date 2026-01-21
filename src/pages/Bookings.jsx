@@ -905,15 +905,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
     }
   };
 
-  const handleDelete = (id) => {
-    if (!canDelete) {
-      toast.error('คุณไม่มีสิทธิ์ลบการจอง');
-      return;
-    }
-    if (confirm('คุณแน่ใจว่าต้องการลบการจองนี้?')) {
-      deleteMutation.mutate(id);
-    }
-  };
+
 
   const resetForm = () => {
     setEditingBooking(null);
