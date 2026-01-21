@@ -2625,10 +2625,10 @@ ${JSON.stringify(roomsWithAC, null, 2)}
           )}
 
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-3 md:p-6">
+              <DialogHeader className="pb-2 md:pb-4">
                 <div className="flex justify-between items-center">
-                  <DialogTitle>{editingRoom ? 'แก้ไขห้องพัก' : 'เพิ่มห้องใหม่'}</DialogTitle>
+                  <DialogTitle className="text-base md:text-lg">{editingRoom ? 'แก้ไขห้องพัก' : 'เพิ่มห้องใหม่'}</DialogTitle>
                   {!editingRoom && (
                     <Button
                       type="button"
@@ -2646,33 +2646,35 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                   )}
                 </div>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+                <div className="grid grid-cols-2 gap-2 md:gap-4">
                   <div>
-                    <Label>หมายเลขห้อง *</Label>
+                    <Label className="text-xs md:text-sm">หมายเลขห้อง *</Label>
                     <Input
                       value={formData.room_number}
                       onChange={(e) => setFormData({ ...formData, room_number: e.target.value })}
                       required
+                      className="h-8 md:h-9 text-sm"
                     />
                   </div>
                   <div>
-                    <Label>ชั้น *</Label>
+                    <Label className="text-xs md:text-sm">ชั้น *</Label>
                     <Input
                       type="number"
                       value={formData.floor}
                       onChange={(e) => setFormData({ ...formData, floor: e.target.value })}
                       onWheel={(e) => e.target.blur()}
                       required
+                      className="h-8 md:h-9 text-sm"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-2 md:gap-4">
                   <div>
-                    <Label>ประเภทห้อง *</Label>
+                    <Label className="text-xs md:text-sm">ประเภทห้อง *</Label>
                     <Select value={formData.room_type} onValueChange={(value) => setFormData({ ...formData, room_type: value })}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-8 md:h-9 text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -2682,22 +2684,23 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                     </Select>
                   </div>
                   <div>
-                    <Label>ราคา (บาท) *</Label>
+                    <Label className="text-xs md:text-sm">ราคา (บาท) *</Label>
                     <Input
                       type="number"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                       onWheel={(e) => e.target.blur()}
                       required
+                      className="h-8 md:h-9 text-sm"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-2 md:gap-4">
                   <div>
-                    <Label>สถานะ</Label>
+                    <Label className="text-xs md:text-sm">สถานะ</Label>
                     <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-8 md:h-9 text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -2708,51 +2711,55 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                     </Select>
                   </div>
                   <div>
-                    <Label>ขนาด (ตร.ม.)</Label>
+                    <Label className="text-xs md:text-sm">ขนาด (ตร.ม.)</Label>
                     <Input
                       type="number"
                       value={formData.size}
                       onChange={(e) => setFormData({ ...formData, size: e.target.value })}
                       onWheel={(e) => e.target.blur()}
+                      className="h-8 md:h-9 text-sm"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4">
                   <div>
-                    <Label>ค่าน้ำ (บาท/หน่วย)</Label>
+                    <Label className="text-xs md:text-sm">ค่าน้ำ (บาท/หน่วย)</Label>
                     <Input
                       type="number"
                       placeholder={branchWaterRate ? `${branchWaterRate} (ค่ากลาง)` : "0"}
                       value={formData.water_rate}
                       onChange={(e) => setFormData({ ...formData, water_rate: e.target.value })}
                       onWheel={(e) => e.target.blur()}
+                      className="h-8 md:h-9 text-sm"
                     />
                   </div>
                   <div>
-                    <Label>ค่าไฟ (บาท/หน่วย)</Label>
+                    <Label className="text-xs md:text-sm">ค่าไฟ (บาท/หน่วย)</Label>
                     <Input
                       type="number"
                       placeholder={branchElecRate ? `${branchElecRate} (ค่ากลาง)` : "0"}
                       value={formData.electricity_rate}
                       onChange={(e) => setFormData({ ...formData, electricity_rate: e.target.value })}
                       onWheel={(e) => e.target.blur()}
+                      className="h-8 md:h-9 text-sm"
                     />
                   </div>
                   <div>
-                    <Label>ค่าส่วนกลาง (บาท/เดือน)</Label>
+                    <Label className="text-xs md:text-sm">ค่าส่วนกลาง (บาท/เดือน)</Label>
                     <Input
                       type="number"
                       placeholder={branchCommonFee ? `${branchCommonFee} (ค่ากลาง)` : "0"}
                       value={formData.common_fee}
                       onChange={(e) => setFormData({ ...formData, common_fee: e.target.value })}
                       onWheel={(e) => e.target.blur()}
+                      className="h-8 md:h-9 text-sm"
                     />
                   </div>
                 </div>
 
                 {/* ค่าขั้นต่ำน้ำ-ไฟ */}
-                <div className="space-y-3">
+                <div className="space-y-2 md:space-y-3">
                   <div className="flex items-center gap-2">
                     <Checkbox
                       id="show-min-charges"
@@ -2772,18 +2779,18 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                         }
                       }}
                     />
-                    <Label htmlFor="show-min-charges" className="cursor-pointer font-medium">
+                    <Label htmlFor="show-min-charges" className="cursor-pointer font-medium text-xs md:text-sm">
                       คิดค่าน้ำค่าไฟขั้นต่ำเฉพาะห้องนี้
                     </Label>
                   </div>
 
                   {showMinCharges && (
-                    <div className="p-4 border rounded-lg bg-slate-50/50 space-y-3">
-                      <p className="text-xs text-slate-500">ถ้าไม่ตั้ง = ใช้ค่าสาขา</p>
+                    <div className="p-2 md:p-4 border rounded-lg bg-slate-50/50 space-y-2 md:space-y-3">
+                      <p className="text-[10px] md:text-xs text-slate-500">ถ้าไม่ตั้ง = ใช้ค่าสาขา</p>
                       
-                      <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-4">
+                    <div className="space-y-1 md:space-y-2">
+                      <div className="flex items-center gap-2 mb-1">
                         <Checkbox
                           id="enable-min-water"
                           checked={enableMinWater}
@@ -2798,39 +2805,41 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             }
                           }}
                         />
-                        <Label htmlFor="enable-min-water" className="text-sm cursor-pointer">
+                        <Label htmlFor="enable-min-water" className="text-xs md:text-sm cursor-pointer">
                           ตั้งค่าขั้นต่ำค่าน้ำ
                         </Label>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-1.5 md:gap-2">
                         <div>
-                          <Label className="text-xs text-slate-600">หน่วย</Label>
+                          <Label className="text-[10px] md:text-xs text-slate-600">หน่วย</Label>
                           <Input
                             type="number"
-                            placeholder="เช่น 5"
+                            placeholder="5"
                             value={formData.min_water_units}
                             onChange={(e) => setFormData({ ...formData, min_water_units: e.target.value })}
                             onWheel={(e) => e.target.blur()}
                             disabled={!enableMinWater}
+                            className="h-7 md:h-9 text-xs md:text-sm"
                           />
                         </div>
                         <div>
-                          <Label className="text-xs text-slate-600">คิดค่า (บาท)</Label>
+                          <Label className="text-[10px] md:text-xs text-slate-600">คิดค่า (฿)</Label>
                           <Input
                             type="number"
-                            placeholder="เช่น 50"
+                            placeholder="50"
                             value={formData.min_water_charge}
                             onChange={(e) => setFormData({ ...formData, min_water_charge: e.target.value })}
                             onWheel={(e) => e.target.blur()}
                             disabled={!enableMinWater}
+                            className="h-7 md:h-9 text-xs md:text-sm"
                           />
                         </div>
                       </div>
-                      <p className="text-[10px] text-slate-500">ถ้าใช้น้อยกว่า X หน่วย คิด Y บาท</p>
+                      <p className="text-[9px] md:text-[10px] text-slate-500">ถ้าใช้น้อยกว่า X หน่วย คิด Y บาท</p>
                     </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div className="space-y-1 md:space-y-2">
+                      <div className="flex items-center gap-2 mb-1">
                         <Checkbox
                           id="enable-min-electricity"
                           checked={enableMinElectricity}
@@ -2845,35 +2854,37 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             }
                           }}
                         />
-                        <Label htmlFor="enable-min-electricity" className="text-sm cursor-pointer">
+                        <Label htmlFor="enable-min-electricity" className="text-xs md:text-sm cursor-pointer">
                           ตั้งค่าขั้นต่ำค่าไฟ
                         </Label>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-1.5 md:gap-2">
                         <div>
-                          <Label className="text-xs text-slate-600">หน่วย</Label>
+                          <Label className="text-[10px] md:text-xs text-slate-600">หน่วย</Label>
                           <Input
                             type="number"
-                            placeholder="เช่น 10"
+                            placeholder="10"
                             value={formData.min_electricity_units}
                             onChange={(e) => setFormData({ ...formData, min_electricity_units: e.target.value })}
                             onWheel={(e) => e.target.blur()}
                             disabled={!enableMinElectricity}
+                            className="h-7 md:h-9 text-xs md:text-sm"
                           />
                         </div>
                         <div>
-                          <Label className="text-xs text-slate-600">คิดค่า (บาท)</Label>
+                          <Label className="text-[10px] md:text-xs text-slate-600">คิดค่า (฿)</Label>
                           <Input
                             type="number"
-                            placeholder="เช่น 100"
+                            placeholder="100"
                             value={formData.min_electricity_charge}
                             onChange={(e) => setFormData({ ...formData, min_electricity_charge: e.target.value })}
                             onWheel={(e) => e.target.blur()}
                             disabled={!enableMinElectricity}
+                            className="h-7 md:h-9 text-xs md:text-sm"
                           />
                         </div>
                       </div>
-                      <p className="text-[10px] text-slate-500">ถ้าใช้น้อยกว่า X หน่วย คิด Y บาท</p>
+                      <p className="text-[9px] md:text-[10px] text-slate-500">ถ้าใช้น้อยกว่า X หน่วย คิด Y บาท</p>
                     </div>
                   </div>
                     </div>
@@ -2881,15 +2892,15 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 </div>
 
                 {/* Other Monthly Fees */}
-                <div className="space-y-2 p-4 border rounded-lg bg-slate-50/50">
-                  <Label className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4" />
+                <div className="space-y-2 p-2 md:p-4 border rounded-lg bg-slate-50/50">
+                  <Label className="flex items-center gap-2 text-xs md:text-sm">
+                    <DollarSign className="w-3 h-3 md:w-4 md:h-4" />
                     ค่าใช้จ่ายอื่นๆ รายเดือน (เฉพาะห้องนี้)
                   </Label>
                   {(formData.other_monthly_fees || []).map((fee, index) => (
-                    <div key={index} className="flex gap-2 items-end">
+                    <div key={index} className="flex gap-1.5 md:gap-2 items-end">
                       <div className="flex-1">
-                        <Label className="text-xs text-slate-500">รายการ</Label>
+                        <Label className="text-[10px] md:text-xs text-slate-500">รายการ</Label>
                         <Input
                           value={fee.name}
                           onChange={(e) => {
@@ -2897,11 +2908,12 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             newFees[index].name = e.target.value;
                             setFormData({ ...formData, other_monthly_fees: newFees });
                           }}
-                          placeholder="เช่น ค่าที่จอดรถพิเศษ, ค่าเช่าตู้เย็น"
+                          placeholder="จอดรถ, ตู้เย็น"
+                          className="h-7 md:h-9 text-xs md:text-sm"
                         />
                       </div>
-                      <div className="w-32">
-                        <Label className="text-xs text-slate-500">จำนวนเงิน</Label>
+                      <div className="w-20 md:w-32">
+                        <Label className="text-[10px] md:text-xs text-slate-500">฿</Label>
                         <Input
                           type="number"
                           value={fee.amount}
@@ -2912,19 +2924,20 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                           }}
                           onWheel={(e) => e.target.blur()}
                           placeholder="0"
+                          className="h-7 md:h-9 text-xs md:text-sm"
                         />
                       </div>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="text-red-500 hover:bg-red-50 mb-0.5"
+                        className="text-red-500 hover:bg-red-50 mb-0.5 h-7 w-7 md:h-9 md:w-9"
                         onClick={() => {
                           const newFees = (formData.other_monthly_fees || []).filter((_, i) => i !== index);
                           setFormData({ ...formData, other_monthly_fees: newFees });
                         }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                       </Button>
                     </div>
                   ))}
@@ -2932,7 +2945,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="mt-2 border-dashed"
+                    className="mt-2 border-dashed h-7 md:h-9 text-xs md:text-sm"
                     onClick={() => {
                       setFormData({
                         ...formData,
@@ -2940,24 +2953,25 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       });
                     }}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />
                     เพิ่มรายการ
                   </Button>
                 </div>
 
                 <div>
-                  <Label>วันที่ล้างแอร์ครั้งล่าสุด</Label>
+                  <Label className="text-xs md:text-sm">วันที่ล้างแอร์ครั้งล่าสุด</Label>
                   <Input
                     type="date"
                     value={formData.last_ac_cleaning_date}
                     onChange={(e) => setFormData({ ...formData, last_ac_cleaning_date: e.target.value })}
                     placeholder="เลือกวันที่ล้างแอร์"
+                    className="h-8 md:h-9 text-sm"
                   />
                 </div>
 
                 <div>
-                  <Label>สิ่งอำนวยความสะดวก/เฟอร์นิเจอร์</Label>
-                  <p className="text-xs text-slate-500 mb-2">พิมพ์รายการแล้วกด Enter (เช่น เตียง, ตู้เสื้อผ้า, แอร์)</p>
+                  <Label className="text-xs md:text-sm">สิ่งอำนวยความสะดวก/เฟอร์นิเจอร์</Label>
+                  <p className="text-[10px] md:text-xs text-slate-500 mb-2">พิมพ์รายการแล้วกด Enter</p>
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <Input
@@ -2975,11 +2989,12 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             }
                           }
                         }}
+                        className="h-8 md:h-9 text-xs md:text-sm"
                       />
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      {['เตียง', 'ที่นอน', 'ตู้เสื้อผ้า', 'โต๊ะทำงาน', 'โต๊ะเครื่องแป้ง', 'เก้าอี้', 'ชั้นวางของ', 'แอร์', 'เครื่องทำน้ำอุ่น', 'ทีวี', 'ตู้เย็น', 'ไมโครเวฟ', 'ระเบียง', 'เครื่องซักผ้า', 'ผ้าม่าน', 'Wi-Fi'].map((item) => (
+                    <div className="flex flex-wrap gap-1.5 md:gap-2">
+                      {['เตียง', 'ที่นอน', 'ตู้เสื้อผ้า', 'โต๊ะ', 'เก้าอี้', 'แอร์', 'น้ำอุ่น', 'ทีวี', 'ตู้เย็น', 'ระเบียง', 'Wi-Fi'].map((item) => (
                         <Button
                           key={item}
                           type="button"
@@ -2993,7 +3008,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                               });
                             }
                           }}
-                          className="text-xs"
+                          className="text-[10px] md:text-xs h-6 md:h-8 px-2 md:px-3"
                           disabled={formData.amenities.includes(item)}
                         >
                           + {item}
@@ -3002,11 +3017,11 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                     </div>
 
                     {formData.amenities.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-2 p-3 bg-slate-50 rounded-lg">
+                      <div className="flex flex-wrap gap-1.5 md:gap-2 mt-2 p-2 md:p-3 bg-slate-50 rounded-lg">
                         {formData.amenities.map((amenity, index) => (
                           <div
                             key={index}
-                            className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-sm"
+                            className="flex items-center gap-1 bg-blue-100 text-blue-700 px-1.5 md:px-2 py-0.5 md:py-1 rounded-md text-[10px] md:text-sm"
                           >
                             <span>{amenity}</span>
                             <button
@@ -3017,7 +3032,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                   amenities: formData.amenities.filter((_, i) => i !== index)
                                 });
                               }}
-                              className="text-blue-700 hover:text-blue-900 ml-1 leading-none"
+                              className="text-blue-700 hover:text-blue-900 ml-0.5 leading-none"
                             >
                               ×
                             </button>
@@ -3029,50 +3044,53 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 </div>
 
                 <div>
-                  <Label>รายละเอียด</Label>
+                  <Label className="text-xs md:text-sm">รายละเอียด</Label>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={3}
+                    rows={2}
+                    className="text-xs md:text-sm resize-none"
                   />
                 </div>
 
                 <div>
-                  <Label>รูปภาพห้อง</Label>
+                  <Label className="text-xs md:text-sm">รูปภาพห้อง</Label>
                   <div className="mt-2">
                     <Input
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
                       disabled={uploadingImage}
+                      className="h-8 md:h-9 text-xs md:text-sm"
                     />
                     {formData.image_urls.length > 0 && (
-                      <div className="grid grid-cols-3 gap-2 mt-3">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
                         {formData.image_urls.map((url, index) => (
-                          <img key={index} src={url} alt={`รูป ${index + 1}`} className="w-full h-48 object-cover rounded-lg" />
+                          <img key={index} src={url} alt={`รูป ${index + 1}`} className="w-full h-24 md:h-32 object-cover rounded-lg" />
                         ))}
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-4">
+                <div className="flex justify-end gap-2 pt-3 md:pt-4 border-t">
                   <Button 
                     type="button" 
                     variant="outline" 
                     onClick={() => setShowDialog(false)}
                     disabled={createMutation.isPending || updateMutation.isPending}
+                    className="h-8 md:h-9 text-xs md:text-sm"
                   >
                     ยกเลิก
                   </Button>
                   <Button 
                     type="submit" 
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600"
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 h-8 md:h-9 text-xs md:text-sm"
                     disabled={createMutation.isPending || updateMutation.isPending}
                   >
                     {createMutation.isPending || updateMutation.isPending ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        <Loader2 className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2 animate-spin" />
                         กำลังบันทึก...
                       </>
                     ) : (
