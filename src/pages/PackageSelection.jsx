@@ -184,25 +184,15 @@ export default function PackageSelectionPage() {
         savings = (baseMonthlyPrice * 12) - totalPrice;
       }
     } else if (months === 24) {
-      if (hasNewStructure) {
-        totalPrice = pricing.two_years || (baseMonthlyPrice * 24);
-        monthlyPrice = pricing.two_years_per_month || (totalPrice / 24);
-        savings = pricing.two_years_savings || 0;
-      } else {
-        totalPrice = selectedPackage.price_2_years || (baseMonthlyPrice * 24);
-        monthlyPrice = totalPrice / 24;
-        savings = (baseMonthlyPrice * 24) - totalPrice;
-      }
+      const price2y = selectedPackage.price_2_years || (hasNewStructure ? pricing.two_years : null) || (baseMonthlyPrice * 24);
+      totalPrice = price2y;
+      monthlyPrice = totalPrice / 24;
+      savings = (baseMonthlyPrice * 24) - totalPrice;
     } else if (months === 36) {
-      if (hasNewStructure) {
-        totalPrice = pricing.three_years || (baseMonthlyPrice * 36);
-        monthlyPrice = pricing.three_years_per_month || (totalPrice / 36);
-        savings = pricing.three_years_savings || 0;
-      } else {
-        totalPrice = selectedPackage.price_3_years || (baseMonthlyPrice * 36);
-        monthlyPrice = totalPrice / 36;
-        savings = (baseMonthlyPrice * 36) - totalPrice;
-      }
+      const price3y = selectedPackage.price_3_years || (hasNewStructure ? pricing.three_years : null) || (baseMonthlyPrice * 36);
+      totalPrice = price3y;
+      monthlyPrice = totalPrice / 36;
+      savings = (baseMonthlyPrice * 36) - totalPrice;
     }
     
     const subtotal = totalPrice;
