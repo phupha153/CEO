@@ -529,6 +529,7 @@ export default function Layout({ children, currentPageName }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
+    refetchIntervalInBackground: false,
     enabled: isOnline && !isPublicPage, // ⚡ ไม่โหลดถ้าเป็น public page
     networkMode: 'online',
     onError: () => setRetryCount(prev => prev + 1),
@@ -649,7 +650,7 @@ export default function Layout({ children, currentPageName }) {
     queryFn: async () => {
       if (!currentUser?.email) return [];
       // 🔒 Multi-Tenancy: Filter branches by owner_id (เจ้าของสาขา)
-      const response = await base44.entities.Branch.filter({ owner_id: currentUser.email }, '', 1000);
+      const response = await base44.entities.Branch.filter({ owner_id: currentUser.email }, '', 50);
       return response || [];
     },
     enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
@@ -661,6 +662,7 @@ export default function Layout({ children, currentPageName }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
+    refetchIntervalInBackground: false,
     placeholderData: (previousData) => previousData,
     throwOnError: false,
   });
@@ -674,7 +676,7 @@ export default function Layout({ children, currentPageName }) {
       
       // 🔒 Multi-Tenancy: Developer can see all configs
       if (role === 'developer') {
-        const allConfigs = await base44.entities.Config.list('', 1000);
+        const allConfigs = await base44.entities.Config.list('', 50);
         return allConfigs || [];
       }
 
