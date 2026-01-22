@@ -115,40 +115,40 @@ export default function BranchSelection() {
     queryFn: async () => {
       if (!currentUser?.email) return [];
       
-      const userAccessible = currentUser.accessible_branches || [];
       const isAdmin = currentUser.role === 'admin';
+      const userAccessible = currentUser.accessible_branches;
+      const hasAccessibleSet = Array.isArray(userAccessible);
       
       // Developer = ดูทุกสาขา
       if (isAdmin) {
         return await base44.entities.Branch.list('', 1000);
       }
       
-      // โหลดสาขาที่เป็นเจ้าของ (owner_id)
+      // ⭐ Owner & Manager: โหลดสาขาที่เป็นเจ้าของเสมอ (ลอจิกหลัก)
       const ownedBranches = await base44.entities.Branch.filter({ owner_id: currentUser.email }, '', 100);
-      const ownedIds = ownedBranches.map(b => b.id);
+      const ownedIds = new Set(ownedBranches.map(b => b.id));
       
-      // ⭐ ถ้ามี accessible_branches ให้โหลดสาขาที่ถูก invite เพิ่ม
-      if (userAccessible.length > 0) {
-        const invitedBranchIds = userAccessible.filter(id => !ownedIds.includes(id));
+      // ⭐ ถ้ามี accessible_branches set → โหลดสาขาที่ถูก invite เพิ่ม
+      if (hasAccessibleSet && userAccessible.length > 0) {
+        const invitedBranchIds = userAccessible.filter(id => !ownedIds.has(id));
         
         if (invitedBranchIds.length > 0) {
-          // โหลดสาขาที่ถูก invite ทีละสาขา
           const invitedBranches = [];
           for (const branchId of invitedBranchIds) {
             try {
               const branchData = await base44.entities.Branch.filter({ id: branchId }, '', 1);
-              if (branchData && branchData.length > 0) {
+              if (branchData?.length > 0) {
                 invitedBranches.push(branchData[0]);
               }
             } catch (error) {
               console.warn(`ไม่สามารถโหลดสาขา ${branchId}:`, error.message);
             }
           }
-          
           return [...ownedBranches, ...invitedBranches];
         }
       }
       
+      // ⭐ ถ้าไม่มี accessible_branches set → แสดงเฉพาะสาขาที่เป็นเจ้าของ
       return ownedBranches;
     },
     enabled: !!currentUser && !userLoading,
