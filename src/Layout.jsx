@@ -866,6 +866,12 @@ export default function Layout({ children, currentPageName }) {
         return;
       }
 
+      // ⭐⭐⭐ CRITICAL: ถ้าไม่มี selectedBranch แต่มี branches → ข้ามการเช็ค subscription ให้ branch selection effect จัดการ
+      if (!selectedBranch && branches.length > 0) {
+        console.log('⏩ Skip subscription check - no branch selected, will redirect to BranchSelection');
+        return;
+      }
+
       // ⭐ FIX: ถ้ามีสาขาเลือก รอให้ branchOwnerStatus โหลดเสร็จก่อน
       if (selectedBranch && branchOwnerLoading) {
         console.log('⏳ รอ branchOwnerStatus:', selectedBranch.id);
