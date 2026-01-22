@@ -111,8 +111,12 @@ export default function BranchSelection() {
 
   // ⚡ Parallel Queries - ไม่รอ CRM check (แต่จะเช็ค CRM ก่อนแสดงข้อมูล)
   const { data: branches = [], isLoading } = useQuery({
-    queryKey: ['branches'],
-    queryFn: () => base44.entities.Branch.list(),
+    queryKey: ['branches', currentUser?.email],
+    queryFn: async () => {
+      // ⭐ ดึงสาขาทั้งหมดเพื่อ filter ภายหลัง (เพราะมีทั้ง owner_id และ accessible_branches)
+      const allBranches = await base44.entities.Branch.list();
+      return allBranches;
+    },
     enabled: !!currentUser && !userLoading,
     retry: 1,
     staleTime: 5 * 60 * 1000,
