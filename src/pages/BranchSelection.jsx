@@ -247,9 +247,9 @@ export default function BranchSelection() {
                               (userRole === 'developer' || userOwnedBranches.length < maxAllowedBranches);
 
   // ✅ เช็คว่าไม่มีสาขาเลย หรือไม่มีสิทธิ์ในสาขาใดเลย
-  // ⭐ ถ้าเป็น owner ให้เช็คจากสาขาที่ตัวเองเป็นเจ้าของ (ไม่ใช่ branches ทั้งหมด)
+  // ⭐ Owner/Developer ต้องรวมทั้ง owned branches + accessible branches
   const hasNoBranches = (userRole === 'owner' || userRole === 'developer') 
-    ? userOwnedBranches.length === 0 
+    ? filteredBranches.length === 0 
     : branches.length === 0;
   const hasNoAccess = !hasNoBranches && filteredBranches.length === 0;
 
