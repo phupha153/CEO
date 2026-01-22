@@ -111,63 +111,8 @@ export default function BranchSelection() {
 
   // ⚡ Parallel Queries - ไม่รอ CRM check (แต่จะเช็ค CRM ก่อนแสดงข้อมูล)
   const { data: branches = [], isLoading } = useQuery({
-    queryKey: ['branches', currentUser?.email],
-    queryFn: async () => {
-      try {
-        // ⭐ FIX: Branch.list() อาจมี filter multi-tenancy เพื่อดึง branches ของเจ้าของเท่านั้น
-        // ต้องใช้ Branch.filter() แล้ว merge กับ accessible_branches
-        
-        // 1️⃣ ดึง branches ของตัวเอง (owner_id = email)
-        const ownedBranches = await base44.entities.Branch.filter(
-          { owner_id: currentUser?.email },
-          '-created_date',
-          100
-        );
-        
-        // 2️⃣ ถ้ามี accessible_branches ให้ดึงข้อมูลจาก ID เหล่านั้นด้วย
-        let sharedBranches = [];
-        const accessibleIds = hasAccessibleBranchesSet ? userAccessibleBranches : crmAccessibleBranches;
-        
-        if (accessibleIds && accessibleIds.length > 0) {
-          // ⭐ ดึง branches ตาม ID โดยตรง
-          try {
-            // ลองดึง batch ละ 50 ID (เพื่อไม่ให้ URL ยาวเกินไป)
-            for (let i = 0; i < accessibleIds.length; i += 50) {
-              const batch = accessibleIds.slice(i, i + 50);
-              const response = await base44.functions.invoke('getSecureData', {
-                entity: 'Branch',
-                filters: { id: { $in: batch } },
-                limit: 100
-              });
-              if (response.data?.data) {
-                sharedBranches = [...sharedBranches, ...response.data.data];
-              }
-            }
-          } catch (err) {
-            console.warn('⚠️ Could not fetch shared branches:', err);
-            // Fallback: ละเว้น shared branches ถ้าไม่สำเร็จ
-          }
-        }
-        
-        // 3️⃣ Merge + Deduplicate
-        const allBranches = Array.from(
-          new Map([...ownedBranches, ...sharedBranches].map(b => [b.id, b])).values()
-        );
-        
-        console.log('✅ [BranchSelection Query]', {
-          email: currentUser?.email,
-          ownedBranchesCount: ownedBranches.length,
-          sharedBranchesCount: sharedBranches.length,
-          totalCount: allBranches.length,
-          accessibleIds
-        });
-        
-        return allBranches;
-      } catch (error) {
-        console.error('❌ Error fetching branches:', error);
-        return [];
-      }
-    },
+    queryKey: ['branches'],
+    queryFn: () => base44.entities.Branch.list(),
     enabled: !!currentUser && !userLoading,
     retry: 1,
     staleTime: 5 * 60 * 1000,
@@ -258,25 +203,7 @@ export default function BranchSelection() {
       const accessibleIds = hasAccessibleBranchesSet ? userAccessibleBranches : crmAccessibleBranches;
       const allAllowedIds = new Set([...ownedBranchIds, ...accessibleIds]);
       
-      const result = branches.filter(branch => allAllowedIds.has(branch.id));
-      
-      // 🔍 Debug Log
-      if (accessibleIds.length > 0 || ownedBranchIds.length > 0) {
-        console.log('🔍 [BranchSelection Debug - Owner]', {
-          email: currentUser?.email,
-          allBranchesCount: branches.length,
-          branchIds: branches.map(b => b.id),
-          ownedBranchIds,
-          userAccessibleBranches,
-          crmAccessibleBranches,
-          hasAccessibleBranchesSet,
-          allAllowedIds: Array.from(allAllowedIds),
-          filteredBranchesCount: result.length,
-          filteredBranchNames: result.map(b => ({ id: b.id, name: b.branch_name }))
-        });
-      }
-      
-      return result;
+      return branches.filter(branch => allAllowedIds.has(branch.id));
     }
 
     // Employee/Manager
@@ -316,9 +243,9 @@ export default function BranchSelection() {
                               (userRole === 'developer' || userOwnedBranches.length < maxAllowedBranches);
 
   // ✅ เช็คว่าไม่มีสาขาเลย หรือไม่มีสิทธิ์ในสาขาใดเลย
-  // ⭐ Owner/Developer ต้องรวมทั้ง owned branches + accessible branches
+  // ⭐ ถ้าเป็น owner ให้เช็คจากสาขาที่ตัวเองเป็นเจ้าของ (ไม่ใช่ branches ทั้งหมด)
   const hasNoBranches = (userRole === 'owner' || userRole === 'developer') 
-    ? filteredBranches.length === 0 
+    ? userOwnedBranches.length === 0 
     : branches.length === 0;
   const hasNoAccess = !hasNoBranches && filteredBranches.length === 0;
 
