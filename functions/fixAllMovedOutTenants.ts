@@ -35,22 +35,43 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 2. Fix all: moved_out → active
+    // 2. Fix all: moved_out → active + Fix Bookings
     let fixedCount = 0;
     const fixedList = [];
 
     for (const tenant of movedOutTenants) {
       try {
+        // Fix Tenant
         await base44.asServiceRole.entities.Tenant.update(tenant.id, {
           status: 'active',
           moved_out_date: null
         });
+
+        // Fix Bookings for this tenant
+        const bookings = await base44.asServiceRole.entities.Booking.filter(
+          { tenant_id: tenant.id, branch_id },
+          '-created_date',
+          100
+        );
+
+        if (bookings && bookings.length > 0) {
+          for (const booking of bookings) {
+            if (booking.status !== 'active') {
+              await base44.asServiceRole.entities.Booking.update(booking.id, {
+                status: 'active'
+              });
+              console.log(`  ✅ Booking ${booking.id}: ${booking.status} → active`);
+            }
+          }
+        }
+
         fixedCount++;
         fixedList.push({
           id: tenant.id,
           name: tenant.full_name,
           previous_status: 'moved_out',
-          new_status: 'active'
+          new_status: 'active',
+          bookings_fixed: bookings?.length || 0
         });
         console.log(`✅ ${tenant.full_name}: moved_out → active`);
       } catch (err) {
