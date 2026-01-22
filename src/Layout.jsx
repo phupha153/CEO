@@ -720,7 +720,8 @@ export default function Layout({ children, currentPageName }) {
       return response.data;
     },
     // FIX 1️⃣: รอให้ currentUser โหลดเสร็จก่อน + check isOnline
-    enabled: !isLoading && !!selectedBranch?.id && !!currentUser && isOnline,
+    // ⭐ Developer ไม่ต้องเช็คแพ็กเกจเลย
+    enabled: !isLoading && !!selectedBranch?.id && !!currentUser && isOnline && userRole !== 'developer',
     staleTime: 5 * 60 * 1000,
     retry: 1,
     throwOnError: false,
@@ -835,7 +836,10 @@ export default function Layout({ children, currentPageName }) {
     const initTrialIfNeeded = async () => {
       if (isLoading || !currentUser) return;
 
-      // เฉพาะ Owner ที่ยังไม่มี plan_status เลย (developer ไม่ต้อง init trial)
+      // ⭐ Developer ไม่ต้อง init trial เลย
+      if (userRole === 'developer') return;
+
+      // เฉพาะ Owner ที่ยังไม่มี plan_status เลย
       if (userRole === 'owner' && !currentUser.plan_status && !isCreatingTrial) {
         setIsCreatingTrial(true);
 
@@ -868,7 +872,12 @@ export default function Layout({ children, currentPageName }) {
       return;
     }
 
-    // ⭐ Check subscription status and redirect
+    // ⭐ Developer ข้ามการเช็คแพ็กเกจทั้งหมด - ไม่ต้องเช็คอะไรเลย
+    if (!isLoading && currentUser && userRole === 'developer') {
+      return;
+    }
+
+    // ⭐ Check subscription status and redirect (เฉพาะ non-developer)
     if (!isLoading && currentUser) {
       // FIX 0️⃣: Debug - Log currentUser state
       console.log('👤 [Subscription Check] CurrentUser loaded:', {
@@ -880,9 +889,6 @@ export default function Layout({ children, currentPageName }) {
 
       // ⚡ รอให้สร้างแพ็กเกจทดลองเสร็จก่อน
       if (isCreatingTrial) return;
-
-      // Skip check for developer and special pages
-      if (userRole === 'developer') return;
       if (currentPageName === 'BranchSelection' ||
           currentPageName === 'BranchManagement' ||
           currentPageName === 'UserBranchAccess' ||
@@ -1410,10 +1416,13 @@ export default function Layout({ children, currentPageName }) {
 
   // ⭐ User trial banner - แสดงของเจ้าของสาขา
   const renderSubscriptionBanner = () => {
+    // ⭐ Developer ไม่แสดง subscription banner
+    if (userRole === 'developer') return null;
+
     // ⚡ FIX: รอให้ branchOwnerStatus โหลดเสร็จก่อน (ถ้ามีการเปิด query)
     const isQueryEnabled = !!selectedBranch && !!currentUser && isOnline;
     const shouldWaitForBranchOwner = isQueryEnabled && branchOwnerLoading;
-    
+
     // รอให้โหลดข้อมูลเสร็จก่อน
     if (isLoading || configsLoading || branchesLoading || !currentUser || shouldWaitForBranchOwner) {
       return null; // ⭐ ไม่แสดงอะไรเลยขณะโหลด (ป้องกัน flash)
