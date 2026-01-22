@@ -190,26 +190,6 @@ export default function UserBranchAccess() {
     },
   });
 
-  const deleteBranchAccessMutation = useMutation({
-    mutationFn: async ({ userId, branchId }) => {
-      const user = allUsers.find(u => u.id === userId);
-      if (!user) throw new Error('User not found');
-      
-      const updatedBranches = (user.accessible_branches || []).filter(b => b !== branchId);
-      const result = await base44.entities.User.update(userId, { 
-        accessible_branches: updatedBranches
-      });
-      return result;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['users']);
-      toast.success('ลบสิทธิ์เข้าถึงสาขาสำเร็จ');
-    },
-    onError: (error) => {
-      toast.error('เกิดข้อผิดพลาด: ' + error.message);
-    },
-  });
-
   // ฟังก์ชันลบสาขาที่ไม่มีอยู่แล้วออกจาก accessible_branches
   const cleanupDeletedBranches = async (user) => {
     const userBranches = user.accessible_branches || [];
@@ -616,23 +596,9 @@ export default function UserBranchAccess() {
                                     <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
                                       <span className="text-blue-700 font-bold text-xs">{idx + 1}</span>
                                     </div>
-                                    <span className="text-sm text-slate-800 font-medium truncate flex-1">
+                                    <span className="text-sm text-slate-800 font-medium truncate">
                                       {getBranchName(branchId)}
                                     </span>
-                                    {currentUser?.id !== user.id && (isDeveloper || userRole === 'owner') && (
-                                      <button
-                                        onClick={() => {
-                                          if (confirm(`ลบสิทธิ์เข้าถึง "${getBranchName(branchId)}" ของ ${user.full_name}?`)) {
-                                            deleteBranchAccessMutation.mutate({ userId: user.id, branchId });
-                                          }
-                                        }}
-                                        disabled={deleteBranchAccessMutation.isPending}
-                                        className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors flex-shrink-0"
-                                        title="ลบสิทธิ์เข้าถึง"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    )}
                                   </div>
                                 </div>
                               ))}
