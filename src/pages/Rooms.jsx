@@ -2409,11 +2409,10 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             const paymentStatus = getPaymentStatus(room.id);
                             const acNeedsCleaning = needsACCleaning(room);
                             
-                            // ⭐ แก้ไข: เช็คว่ามี active booking ที่มีผู้เช่าจริง ๆ
+                            // ⭐ แก้ไข: เช็คว่ามี active booking หรือไม่ (ไม่ว่าจะอดีตหรืออนาคต)
                             const hasActiveBooking = bookings.some(b => 
                               b.room_id === room.id && 
-                              b.status === 'active' &&
-                              (b.tenant_id || b.guest_name)
+                              b.status === 'active'
                             );
                             
                             // Check for future reservations (ติดจองล่วงหน้า)
