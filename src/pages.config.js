@@ -119,7 +119,7 @@ export const PAGES = {
 }
 
 export const pagesConfig = {
-    mainPage: "BranchSelection",
+    mainPage: "Dashboard",
     Pages: PAGES,
     Layout: __Layout,
 };
