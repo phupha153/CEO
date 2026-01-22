@@ -292,24 +292,6 @@ export default function UserBranchAccess() {
     }
   });
 
-  const deleteUserMutation = useMutation({
-    mutationFn: async ({ userId }) => {
-      await base44.entities.User.update(userId, {
-        accessible_branches: [],
-        permissions: [],
-        custom_role: null,
-        plan_status: null,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['users']);
-      toast.success('ลบผู้ใช้และถอนสิทธิ์เข้าถึงสำเร็จ');
-    },
-    onError: (error) => {
-      toast.error('เกิดข้อผิดพลาด: ' + error.message);
-    }
-  });
-
 
 
   const handleOpenBranchDialog = (user) => {
@@ -779,26 +761,6 @@ export default function UserBranchAccess() {
                             }
                             return null;
                           })()}
-                          {user.email !== currentUser?.email && isDeveloper && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                if (confirm(`⚠️ ยืนยันการลบ "${user.full_name}"?\n\nจะถอนสิทธิ์การเข้าถึงสาขาและข้อมูลทั้งหมด`)) {
-                                  deleteUserMutation.mutate({ userId: user.id });
-                                }
-                              }}
-                              disabled={deleteUserMutation.isPending}
-                              className="text-red-600 hover:bg-red-50 border-red-300"
-                            >
-                              {deleteUserMutation.isPending ? (
-                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                              ) : (
-                                <Trash2 className="w-4 h-4 mr-1" />
-                              )}
-                              ลบผู้ใช้
-                            </Button>
-                          )}
                         </div>
                       )}
                     </CardContent>
