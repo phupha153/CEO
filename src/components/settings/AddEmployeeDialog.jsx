@@ -156,30 +156,39 @@ export default function AddEmployeeDialog({ isOpen, onClose, onSuccess }) {
 
       if (transferResponse.data?.error) {
         // ถ้า user ยังไม่มีในระบบ → เชิญก่อน
-        if (transferResponse.data?.should_invite) {
+        if (transferResponse.data?.should_invite || transferResponse.data?.user_not_found) {
           const inviteResponse = await base44.functions.invoke('sendEmployeeToCRM', {
-            ...formData,
+            full_name: formData.full_name,
+            email: formData.email,
+            phone: formData.phone,
+            custom_role: 'owner',
             accessible_branches: [selectedBranchId]
           });
 
           if (inviteResponse.data?.error) {
-            toast.error(inviteResponse.data.error);
+            toast.error('❌ ส่งอีเมลเชิญไม่สำเร็จ: ' + inviteResponse.data.error);
             setIsSending(false);
             return;
           }
 
-          // เชิญสำเร็จ → ลองโอนอีกรอบ
-          const retryTransfer = await base44.functions.invoke('transferBranchOwnership', {
-            branch_id: selectedBranchId,
-            new_owner_email: formData.email,
-            transfer_package: transferPackage
+          // เชิญสำเร็จ แต่ต้องรอ user accept
+          toast.success(
+            `📧 ส่งอีเมลเชิญสำเร็จ!\n\n⏳ ${formData.full_name} จะได้รับอีเมลเชิญให้สร้าง account\n✅ เมื่อ user ยืนยันอีเมล กรรมสิทธิ์สาขาจะถูกโอนให้${transferPackage ? '\n📦 และแพ็กเกจจะย้ายไปด้วย' : ''}`,
+            { duration: 10000 }
+          );
+
+          setFormData({
+            full_name: '',
+            email: '',
+            phone: '',
+            custom_role: 'employee',
+            accessible_branches: []
           });
-
-          if (retryTransfer.data?.error) {
-            toast.error(retryTransfer.data.error);
-            setIsSending(false);
-            return;
-          }
+          setTransferPackage(true);
+          onSuccess?.();
+          onClose();
+          setIsSending(false);
+          return;
         } else {
           toast.error(transferResponse.data.error);
           setIsSending(false);
