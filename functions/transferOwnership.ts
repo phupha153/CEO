@@ -83,6 +83,28 @@ Deno.serve(async (req) => {
       package_name: null
     });
 
+    // 🔗 STEP 5: Sync roles to CRM
+    try {
+      // ✅ Sync old owner → manager
+      await base44.asServiceRole.functions.invoke('sendEmployeeToCRM', {
+        employee_email: old_owner_email,
+        employee_name: oldOwner.full_name,
+        role: 'manager'
+      });
+
+      // ✅ Sync new owner → owner
+      await base44.asServiceRole.functions.invoke('sendEmployeeToCRM', {
+        employee_email: new_owner_email,
+        employee_name: newOwner.full_name,
+        role: 'owner'
+      });
+
+      console.log('✅ Synced roles to CRM successfully');
+    } catch (crmError) {
+      console.warn('⚠️ CRM sync warning (non-blocking):', crmError.message);
+      // Non-blocking - transfer already successful, CRM sync failed
+    }
+
     return Response.json({
       success: true,
       message: 'โอนกรรมสิทธิ์สำเร็จ',
