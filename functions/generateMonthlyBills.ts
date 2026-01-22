@@ -679,7 +679,7 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                const tenant = tenantsMap.get(activeBooking.tenant_id); // ⭐ OPTIMIZED: O(1) lookup instead of .find()
+                const tenant = tenantsMap.get(tenantId); // ⭐ OPTIMIZED: O(1) lookup instead of .find()
 
                 if (!tenant || tenant.status === 'moved_out') {
                     console.log(`⏭️ Room ${room.room_number}: Tenant moved out - skip`);
