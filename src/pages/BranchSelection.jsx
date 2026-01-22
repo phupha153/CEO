@@ -109,48 +109,10 @@ export default function BranchSelection() {
     meta: { timeout: 5000 }, // ⚡ 5 วินาที timeout
   });
 
-  // ⚡ โหลดสาขาแบบ secure - รองรับทั้ง owner และ invited users
+  // ⚡ Parallel Queries - ไม่รอ CRM check (แต่จะเช็ค CRM ก่อนแสดงข้อมูล)
   const { data: branches = [], isLoading } = useQuery({
-    queryKey: ['branches', 'secure', currentUser?.email],
-    queryFn: async () => {
-      if (!currentUser?.email) return [];
-      
-      const isAdmin = currentUser.role === 'admin';
-      const userAccessible = currentUser.accessible_branches;
-      const hasAccessibleSet = Array.isArray(userAccessible);
-      
-      // Developer = ดูทุกสาขา
-      if (isAdmin) {
-        return await base44.entities.Branch.list('', 1000);
-      }
-      
-      // ⭐ Owner & Manager: โหลดสาขาที่เป็นเจ้าของเสมอ (ลอจิกหลัก)
-      const ownedBranches = await base44.entities.Branch.filter({ owner_id: currentUser.email }, '', 100);
-      const ownedIds = new Set(ownedBranches.map(b => b.id));
-      
-      // ⭐ ถ้ามี accessible_branches set → โหลดสาขาที่ถูก invite เพิ่ม
-      if (hasAccessibleSet && userAccessible.length > 0) {
-        const invitedBranchIds = userAccessible.filter(id => !ownedIds.has(id));
-        
-        if (invitedBranchIds.length > 0) {
-          const invitedBranches = [];
-          for (const branchId of invitedBranchIds) {
-            try {
-              const branchData = await base44.entities.Branch.filter({ id: branchId }, '', 1);
-              if (branchData?.length > 0) {
-                invitedBranches.push(branchData[0]);
-              }
-            } catch (error) {
-              console.warn(`ไม่สามารถโหลดสาขา ${branchId}:`, error.message);
-            }
-          }
-          return [...ownedBranches, ...invitedBranches];
-        }
-      }
-      
-      // ⭐ ถ้าไม่มี accessible_branches set → แสดงเฉพาะสาขาที่เป็นเจ้าของ
-      return ownedBranches;
-    },
+    queryKey: ['branches'],
+    queryFn: () => base44.entities.Branch.list(),
     enabled: !!currentUser && !userLoading,
     retry: 1,
     staleTime: 5 * 60 * 1000,
