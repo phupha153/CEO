@@ -3361,12 +3361,12 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                           variant="outline" 
                                           size="sm"
                                           onClick={async () => {
-                                            const bookingToUpdate = displayBooking;
                                             const today = new Date().toISOString().split('T')[0];
+                                            const isTemp = temporaryBookings.some(b => b.id === displayBooking.id);
                                             
-                                            const updatePromise = bookingToUpdate.tenant_id !== undefined 
-                                              ? base44.entities.Booking.update(bookingToUpdate.id, { actual_check_in_date: today })
-                                              : base44.entities.TemporaryBooking.update(bookingToUpdate.id, { actual_check_in_date: today });
+                                            const updatePromise = isTemp
+                                              ? base44.entities.TemporaryBooking.update(displayBooking.id, { actual_check_in_date: today })
+                                              : base44.entities.Booking.update(displayBooking.id, { actual_check_in_date: today });
                                             
                                             updatePromise.then(() => {
                                               queryClient.invalidateQueries(['bookings']);
@@ -3388,11 +3388,11 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                           size="sm"
                                           onClick={async () => {
                                             if (confirm(`ยืนยันการเช็คเอาท์?\nห้อง ${selectedRoom.room_number} จะถูกเปลี่ยนเป็นสถานะ "ว่าง"`)) {
-                                              const bookingToUpdate = displayBooking;
+                                              const isTemp = temporaryBookings.some(b => b.id === displayBooking.id);
                                               
-                                              const updatePromise = bookingToUpdate.tenant_id !== undefined 
-                                                ? base44.entities.Booking.update(bookingToUpdate.id, { status: 'completed' })
-                                                : base44.entities.TemporaryBooking.update(bookingToUpdate.id, { status: 'completed' });
+                                              const updatePromise = isTemp
+                                                ? base44.entities.TemporaryBooking.update(displayBooking.id, { status: 'completed' })
+                                                : base44.entities.Booking.update(displayBooking.id, { status: 'completed' });
                                               
                                               updatePromise.then(async () => {
                                                 await base44.entities.Room.update(selectedRoom.id, { status: 'available' });
@@ -3418,10 +3418,10 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                           size="sm"
                                           onClick={() => {
                                             if (confirm(`ยืนยันการยกเลิกการจอง?\nห้อง ${selectedRoom.room_number} จะถูกเปลี่ยนเป็นสถานะ "ว่าง"`)) {
-                                              const bookingToDelete = displayBooking;
-                                              const deletePromise = bookingToDelete.tenant_id !== undefined 
-                                                ? base44.entities.Booking.update(bookingToDelete.id, { status: 'cancelled' })
-                                                : base44.entities.TemporaryBooking.delete(bookingToDelete.id);
+                                              const isTemp = temporaryBookings.some(b => b.id === displayBooking.id);
+                                              const deletePromise = isTemp
+                                                ? base44.entities.TemporaryBooking.delete(displayBooking.id)
+                                                : base44.entities.Booking.update(displayBooking.id, { status: 'cancelled' });
                                               
                                               deletePromise.then(() => {
                                                 base44.entities.Room.update(selectedRoom.id, { status: 'available' });
