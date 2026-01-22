@@ -698,6 +698,9 @@ export default function Layout({ children, currentPageName }) {
       const response = await base44.functions.invoke('getBranchOwnerStatus', {
         branch_id: selectedBranch.id
       });
+      console.log('🔍 DEBUG branchOwnerStatus:', response.data);
+      console.log('🔍 DEBUG currentUser:', currentUser);
+      console.log('🔍 DEBUG accessible_branches:', currentUser?.accessible_branches);
       return response.data;
     },
     enabled: !!selectedBranch && !!currentUser && isOnline,
@@ -865,19 +868,31 @@ export default function Layout({ children, currentPageName }) {
         return;
       }
 
-      const planStatus = currentUser.plan_status;
-      const trialEndsAt = currentUser.trial_ends_at;
+      // ⭐ FIX: ถ้ามีสาขาเลือก และไม่ใช่ owner = รอให้ branchOwnerStatus โหลดเสร็จก่อน
+      const isOwner = branchOwnerStatus?.is_owner !== false;
+      if (selectedBranch && !isOwner && branchOwnerLoading) {
+        return; // รอ owner status โหลดเสร็จ
+      }
+
+      // ⭐ ใช้ owner's status สำหรับ Manager/Employee
+      const effectivePlanStatus = (selectedBranch && !isOwner) 
+        ? branchOwnerStatus?.plan_status || currentUser.plan_status
+        : currentUser.plan_status;
+
+      const effectiveTrialEndsAt = (selectedBranch && !isOwner)
+        ? branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at
+        : currentUser.trial_ends_at;
 
       // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป NoPackagePage
-      if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
+      if (!effectivePlanStatus || effectivePlanStatus === 'expired' || effectivePlanStatus === 'cancelled') {
         navigate(createPageUrl('NoPackagePage'), { replace: true });
         return;
       }
 
       // ⭐ ถ้า trial หมดอายุ → ไป TrialExpiredPage
-      if (trialEndsAt && planStatus === 'trial') {
+      if (effectiveTrialEndsAt && effectivePlanStatus === 'trial') {
         try {
-          const trialEndDate = parseISO(trialEndsAt);
+          const trialEndDate = parseISO(effectiveTrialEndsAt);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const daysRemaining = differenceInDays(trialEndDate, today);
@@ -888,7 +903,7 @@ export default function Layout({ children, currentPageName }) {
         } catch {}
       }
     }
-  }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading]);
+  }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading, branchOwnerLoading, branchOwnerStatus, selectedBranch]);
 
   useEffect(() => {
     if (!currentUser || isLoading || branchesLoading) return;
@@ -1719,7 +1734,7 @@ export default function Layout({ children, currentPageName }) {
             )}
           </SidebarContent>
 
-          <SidebarFooter className="relative z-10 border-t border-white/40 p-4 group-data-[collapsible=icon]:p-2 bg-gradient-to-br from-white/30 to-white/20 flex-shrink-0">
+          <SidebarFooter className="relative z-10 border-t border-white/40 p-4 group-data-[collapsible=icon]:p-2 bg-gradient-to-br from-white/30 to-white/20 flex-shrink-0 space-y-3">
             <div className="flex items-center gap-3 px-2 group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:pl-1">
               <div className="relative flex-shrink-0">
                 <div className={`absolute inset-0 bg-gradient-to-br ${getRoleBadge(userRole).color} rounded-full blur-md opacity-50`} />
@@ -1738,6 +1753,17 @@ export default function Layout({ children, currentPageName }) {
                 </p>
               </div>
             </div>
+
+            <Button
+              onClick={() => base44.auth.logout()}
+              variant="outline"
+              className="w-full justify-start gap-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span className="group-data-[collapsible=icon]:hidden">ออกจากระบบ</span>
+            </Button>
           </SidebarFooter>
         </Sidebar>
 
