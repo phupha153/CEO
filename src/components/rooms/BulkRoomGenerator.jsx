@@ -189,16 +189,13 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>เลขห้องเริ่มต้น (ห้องแรกต่อชั้น)</Label>
+                  <Label>เลขห้องเริ่มต้น (ต่อชั้น)</Label>
                   <Input 
                     type="number" 
-                    placeholder="ใส่ 1 → จะได้ 101, 102, 103..." 
+                    placeholder="ปกติเริ่มที่ 1" 
                     value={config.roomStart}
                     onChange={(e) => setConfig({...config, roomStart: e.target.value})}
                   />
-                  <p className="text-xs text-slate-500">
-                    💡 ใส่ 1 = ห้อง 101, 102... / ใส่ 2 = ห้อง 102, 103...
-                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label>ประเภทห้อง (ค่าเริ่มต้น)</Label>
@@ -227,14 +224,10 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
               </div>
 
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800">
-                <p className="font-semibold mb-2">💡 ตัวอย่างการสร้าง</p>
-                <div className="space-y-1">
-                  <p><strong>เริ่มห้อง 1:</strong> ชั้น 1 → 101, 102, 103... / ชั้น 2 → 201, 202, 203...</p>
-                  <p><strong>เริ่มห้อง 2:</strong> ชั้น 1 → 102, 103, 104... / ชั้น 2 → 202, 203, 204...</p>
-                </div>
-                <p className="mt-2 text-xs bg-blue-100 p-2 rounded border border-blue-200">
-                  ⚠️ <strong>ตรวจสอบ:</strong> ก่อนกดถัดไป ตรวจสอบว่าตั้งค่า "เริ่มห้อง" เป็น <strong className="text-blue-900">1</strong> (ไม่ใช่ 2) เพื่อให้ได้ห้อง 101 เป็นห้องแรก
-                </p>
+                <p className="font-semibold mb-1">💡 ตัวอย่างการสร้าง</p>
+                <p>ถ้าเลือก 5 ชั้น, 10 ห้องต่อชั้น, เริ่มชั้น 1, เริ่มห้อง 1:</p>
+                <p>ระบบจะสร้างห้องเลขที่ 101-110, 201-210, ..., 501-510</p>
+                <p className="mt-1">ถ้าเริ่มห้อง 2: จะได้ 102-111, 202-211, ..., 502-511</p>
               </div>
             </div>
           ) : (
@@ -243,16 +236,9 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                 <h3 className="font-semibold text-slate-700">
                   รายการห้องที่จะสร้าง ({generatedRooms.length} ห้อง)
                 </h3>
-                <div className="text-right">
-                  <p className="text-xs text-slate-500">
-                    * สามารถแก้ไขข้อมูลในตารางได้ก่อนบันทึก
-                  </p>
-                  {generatedRooms.length > 0 && (
-                    <p className="text-xs font-semibold text-blue-600 mt-1">
-                      ✓ ห้องแรก: {generatedRooms[0].room_number} • ห้องสุดท้าย: {generatedRooms[generatedRooms.length - 1].room_number}
-                    </p>
-                  )}
-                </div>
+                <p className="text-xs text-slate-500">
+                  * สามารถแก้ไขข้อมูลในตารางได้ก่อนบันทึก
+                </p>
               </div>
               
               <div className="border rounded-lg overflow-hidden bg-white h-[450px] flex flex-col">
