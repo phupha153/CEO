@@ -529,9 +529,16 @@ export default function Layout({ children, currentPageName }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    enabled: isOnline && !isPublicPage, // ⚡ ไม่โหลดถ้าเป็น public page
+    enabled: isOnline && !isPublicPage,
     networkMode: 'online',
-    onError: () => setRetryCount(prev => prev + 1),
+    onError: (err) => {
+      // ⚡ Suppress 401/403 errors silently (non-admin users trying to access User entity)
+      if (err?.message?.includes('401') || err?.message?.includes('403') || 
+          err?.message?.includes('Unauthorized') || err?.message?.includes('Authentication')) {
+        return; // Silent fail
+      }
+      setRetryCount(prev => prev + 1);
+    },
     placeholderData: (previousData) => previousData,
     throwOnError: false,
   });
