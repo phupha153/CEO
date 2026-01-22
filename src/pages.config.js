@@ -8,7 +8,6 @@ import BannerManagement from './pages/BannerManagement';
 import BookingReceipt from './pages/BookingReceipt';
 import Bookings from './pages/Bookings';
 import BranchManagement from './pages/BranchManagement';
-import BranchSelection from './pages/BranchSelection';
 import ContractEditor from './pages/ContractEditor';
 import ContractTemplate from './pages/ContractTemplate';
 import Contracts from './pages/Contracts';
@@ -55,6 +54,7 @@ import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
 import Rooms from './pages/Rooms';
+import BranchSelection from './pages/BranchSelection';
 import __Layout from './Layout.jsx';
 
 
@@ -69,7 +69,6 @@ export const PAGES = {
     "BookingReceipt": BookingReceipt,
     "Bookings": Bookings,
     "BranchManagement": BranchManagement,
-    "BranchSelection": BranchSelection,
     "ContractEditor": ContractEditor,
     "ContractTemplate": ContractTemplate,
     "Contracts": Contracts,
@@ -116,6 +115,7 @@ export const PAGES = {
     "f12": f12,
     "reports": reports,
     "Rooms": Rooms,
+    "BranchSelection": BranchSelection,
 }
 
 export const pagesConfig = {

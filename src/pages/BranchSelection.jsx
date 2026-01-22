@@ -109,10 +109,48 @@ export default function BranchSelection() {
     meta: { timeout: 5000 }, // ⚡ 5 วินาที timeout
   });
 
-  // ⚡ Parallel Queries - ไม่รอ CRM check (แต่จะเช็ค CRM ก่อนแสดงข้อมูล)
+  // ⚡ โหลดสาขาแบบ secure - รองรับทั้ง owner และ invited users
   const { data: branches = [], isLoading } = useQuery({
-    queryKey: ['branches'],
-    queryFn: () => base44.entities.Branch.list(),
+    queryKey: ['branches', 'secure', currentUser?.email],
+    queryFn: async () => {
+      if (!currentUser?.email) return [];
+      
+      const userAccessible = currentUser.accessible_branches || [];
+      const isAdmin = currentUser.role === 'admin';
+      
+      // Developer = ดูทุกสาขา
+      if (isAdmin) {
+        return await base44.entities.Branch.list('', 1000);
+      }
+      
+      // โหลดสาขาที่เป็นเจ้าของ (owner_id)
+      const ownedBranches = await base44.entities.Branch.filter({ owner_id: currentUser.email }, '', 100);
+      const ownedIds = ownedBranches.map(b => b.id);
+      
+      // ⭐ ถ้ามี accessible_branches ให้โหลดสาขาที่ถูก invite เพิ่ม
+      if (userAccessible.length > 0) {
+        const invitedBranchIds = userAccessible.filter(id => !ownedIds.includes(id));
+        
+        if (invitedBranchIds.length > 0) {
+          // โหลดสาขาที่ถูก invite ทีละสาขา
+          const invitedBranches = [];
+          for (const branchId of invitedBranchIds) {
+            try {
+              const branchData = await base44.entities.Branch.filter({ id: branchId }, '', 1);
+              if (branchData && branchData.length > 0) {
+                invitedBranches.push(branchData[0]);
+              }
+            } catch (error) {
+              console.warn(`ไม่สามารถโหลดสาขา ${branchId}:`, error.message);
+            }
+          }
+          
+          return [...ownedBranches, ...invitedBranches];
+        }
+      }
+      
+      return ownedBranches;
+    },
     enabled: !!currentUser && !userLoading,
     retry: 1,
     staleTime: 5 * 60 * 1000,
