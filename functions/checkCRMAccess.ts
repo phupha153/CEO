@@ -182,6 +182,7 @@ Deno.serve(async (req) => {
       hasAccess: !!foundUser,
       email: userEmail,
       role: crmRole, // ⭐ ส่ง role จาก CRM (รองรับทั้ง custom_role และ role)
+      accessible_branches: foundUser?.accessible_branches || [], // ⭐ ส่ง accessible_branches
       message: foundUser 
         ? '✅ พบข้อมูลใน CRM API' 
         : '⚠️ ไม่พบอีเมลในระบบ CRM - กรุณาติดต่อผู้ดูแลระบบเพื่อเพิ่มสิทธิ์',
