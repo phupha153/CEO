@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
         return Response.json({
             owner_email: owner.email,
             owner_name: owner.full_name,
-            plan_status: owner.plan_status || 'trial',
+            plan_status: owner.plan_status || null,  // ⭐ ไม่มีแพ็กเกจ = null (ไม่ใช่ 'trial')
             trial_ends_at: owner.trial_ends_at,
             subscription_end_date: owner.subscription_end_date,
             package_id: owner.package_id,
