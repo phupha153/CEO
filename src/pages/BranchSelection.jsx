@@ -244,9 +244,8 @@ export default function BranchSelection() {
 
   // ✅ เช็คว่าไม่มีสาขาเลย หรือไม่มีสิทธิ์ในสาขาใดเลย
   // ⭐ ถ้าเป็น owner ให้เช็คจากสาขาที่ตัวเองเป็นเจ้าของ (ไม่ใช่ branches ทั้งหมด)
-  const hasNoBranches = (userRole === 'owner' || userRole === 'developer') 
-    ? userOwnedBranches.length === 0 
-    : branches.length === 0;
+  const hasNoBranches = filteredBranches.length === 0;
+  
   const hasNoAccess = !hasNoBranches && filteredBranches.length === 0;
 
   const getConfigValue = (key) => {
