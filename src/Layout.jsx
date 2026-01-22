@@ -853,6 +853,14 @@ export default function Layout({ children, currentPageName }) {
 
     // ⭐ Check subscription status and redirect
     if (!isLoading && currentUser) {
+      // FIX 0️⃣: Debug - Log currentUser state
+      console.log('👤 [Subscription Check] CurrentUser loaded:', {
+        email: currentUser?.email,
+        role: userRole,
+        plan_status: currentUser?.plan_status,
+        custom_role: currentUser?.custom_role
+      });
+
       // ⚡ รอให้สร้างแพ็กเกจทดลองเสร็จก่อน
       if (isCreatingTrial) return;
 
@@ -877,22 +885,27 @@ export default function Layout({ children, currentPageName }) {
 
       if (userRole === 'owner') {
         // Owner เช็คแพ็กเกจของตัวเอง
+        console.log('👑 [Subscription Check] Owner - checking own plan_status:', currentUser.plan_status);
         effectivePlanStatus = currentUser.plan_status;
         effectiveTrialEndsAt = currentUser.trial_ends_at;
       } else {
         // Manager/Employee เช็คแพ็กเกจของเจ้าของสาขา
-        // ⚡ รอให้ branchOwnerStatus โหลดเสร็จก่อน (ถ้ามีสาขาเลือก)
-        if (selectedBranch && branchOwnerLoading) {
+        console.log('👔 [Subscription Check] Manager/Employee - selectedBranch:', selectedBranch?.id);
+        
+        // FIX 3️⃣: ตรวจสอบว่า selectedBranch ตั้งค่าแล้วหรือยัง
+        if (!selectedBranch?.id) {
+          console.warn('⚠️ [Subscription Check] selectedBranch.id is null! Return early.');
+          return;
+        }
+
+        // ⚡ รอให้ branchOwnerStatus โหลดเสร็จก่อน
+        if (branchOwnerLoading) {
           console.log('⏳ [Subscription Check] Waiting for branchOwnerStatus to load...');
-          return; // ⭐ รอให้โหลดเสร็จก่อน (ป้องกัน flash redirect)
+          return;
         }
 
         // FIX 4️⃣: Log ข้อมูลที่ได้มา
-        console.log('📊 [Subscription Check] Manager/Employee:', {
-          selectedBranch: selectedBranch?.id,
-          branchOwnerStatus: branchOwnerStatus,
-          currentUserPlanStatus: currentUser.plan_status
-        });
+        console.log('📊 [Subscription Check] branchOwnerStatus:', branchOwnerStatus);
 
         effectivePlanStatus = branchOwnerStatus?.plan_status;
         effectiveTrialEndsAt = branchOwnerStatus?.trial_ends_at;
@@ -909,6 +922,7 @@ export default function Layout({ children, currentPageName }) {
 
       // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป NoPackagePage
       if (!effectivePlanStatus || effectivePlanStatus === 'expired' || effectivePlanStatus === 'cancelled') {
+        console.error('❌ [Subscription Check] No valid plan_status, redirecting to NoPackagePage');
         navigate(createPageUrl('NoPackagePage'), { replace: true });
         return;
       }
@@ -922,6 +936,7 @@ export default function Layout({ children, currentPageName }) {
           const daysRemaining = differenceInDays(trialEndDate, today);
 
           if (daysRemaining < 0) {
+            console.warn('❌ [Subscription Check] Trial expired, redirecting to TrialExpiredPage');
             navigate(createPageUrl('TrialExpiredPage'), { replace: true });
           }
         } catch {}
