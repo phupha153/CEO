@@ -89,7 +89,6 @@ Deno.serve(async (req) => {
       console.log('\n📋 Details:');
       tenantsFix.forEach(item => {
         console.log(`   - Room: ${item.room}, Tenant: ${item.tenantName}`);
-        console.log(`     Booking: ${item.hasBooking ? '✅' : '❌'}, Contract: ${item.hasContract ? '✅' : '❌'}`);
       });
 
       // 5. อัพเดต Tenant.status = "active"
