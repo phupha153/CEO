@@ -644,7 +644,23 @@ export default function Layout({ children, currentPageName }) {
     throwOnError: false,
   });
 
+  // ⭐ กำหนด userRole ก่อน queries ที่ใช้ userRole
+  const userRole = (() => {
+    // ⭐ Admin users = developer เสมอ (ไม่สนใจ custom_role)
+    if (currentUser?.role === 'admin') {
+      return 'developer';
+    }
 
+    let effectiveRole = currentUser?.custom_role;
+
+    // ⭐ FIX: ใช้ crmAccess.role เป็น fallback ถ้า custom_role ยัง undefined
+    if (!effectiveRole && crmAccess && !crmAccessLoading && crmAccess.role) {
+      effectiveRole = crmAccess.role;
+    }
+
+    const role = effectiveRole || 'employee';
+    return role;
+  })();
 
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
     queryKey: ['branches', currentUser?.email],
