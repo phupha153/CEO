@@ -691,20 +691,34 @@ export default function Layout({ children, currentPageName }) {
   });
 
   // ⭐ ดึงข้อมูลแพ็กเกจของเจ้าของสาขา
-  const { data: branchOwnerStatus, isLoading: branchOwnerLoading } = useQuery({
+  const { data: branchOwnerStatus, isLoading: branchOwnerLoading, error: branchOwnerError } = useQuery({
     queryKey: ['branchOwnerStatus', selectedBranch?.id],
     queryFn: async () => {
-      if (!selectedBranch?.id) return null;
-      const response = await base44.functions.invoke('getBranchOwnerStatus', {
-        branch_id: selectedBranch.id
-      });
-      return response.data;
+      if (!selectedBranch?.id) {
+        console.log('❌ No selectedBranch.id');
+        return null;
+      }
+
+      console.log('🔍 Calling getBranchOwnerStatus:', selectedBranch.id);
+
+      try {
+        const response = await base44.functions.invoke('getBranchOwnerStatus', {
+          branch_id: selectedBranch.id
+        });
+
+        console.log('✅ getBranchOwnerStatus response:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ getBranchOwnerStatus error:', error);
+        // Return null instead of throwing - fallback to user's own plan
+        return null;
+      }
     },
-    enabled: !!selectedBranch && !!currentUser && isOnline,
+    enabled: !!selectedBranch?.id && !!currentUser && isOnline,
     staleTime: 5 * 60 * 1000,
     retry: 1,
     throwOnError: false,
-    placeholderData: (previousData) => previousData, // ⭐ ใช้ cache เก่าขณะ refetch
+    placeholderData: (previousData) => previousData,
   });
 
   const getConfigValue = (key, defaultValue = '') => {
