@@ -32,6 +32,8 @@ export default function AIFinancialAnalysis() {
       return allRooms.filter(room => room.branch_id === selectedBranchId);
     },
     enabled: !!selectedBranchId,
+    staleTime: 5 * 60 * 1000, // 5 min cache
+    refetchOnWindowFocus: false,
   });
 
   const { data: payments = [] } = useQuery({
@@ -41,6 +43,8 @@ export default function AIFinancialAnalysis() {
       return await base44.entities.Payment.filter({ branch_id: selectedBranchId }, '-created_date', 10000);
     },
     enabled: !!selectedBranchId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: expenses = [] } = useQuery({
@@ -50,6 +54,8 @@ export default function AIFinancialAnalysis() {
       return await base44.entities.Expense.filter({ branch_id: selectedBranchId }, '-date', 500);
     },
     enabled: !!selectedBranchId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: bookings = [] } = useQuery({
@@ -60,6 +66,8 @@ export default function AIFinancialAnalysis() {
       return allBookings.filter(b => b.branch_id === selectedBranchId);
     },
     enabled: !!selectedBranchId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: tenants = [] } = useQuery({
@@ -70,11 +78,15 @@ export default function AIFinancialAnalysis() {
       return allTenants.filter(t => t.branch_id === selectedBranchId);
     },
     enabled: !!selectedBranchId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: configs = [] } = useQuery({
     queryKey: ['configs'],
     queryFn: () => base44.entities.Config.list(),
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: currentUser } = useQuery({
@@ -86,6 +98,8 @@ export default function AIFinancialAnalysis() {
   const { data: allBranches = [] } = useQuery({
     queryKey: ['branches'],
     queryFn: () => base44.entities.Branch.list(),
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
