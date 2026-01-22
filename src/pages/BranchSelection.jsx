@@ -113,9 +113,60 @@ export default function BranchSelection() {
   const { data: branches = [], isLoading } = useQuery({
     queryKey: ['branches', currentUser?.email],
     queryFn: async () => {
-      // ⭐ ดึงสาขาทั้งหมดเพื่อ filter ภายหลัง (เพราะมีทั้ง owner_id และ accessible_branches)
-      const allBranches = await base44.entities.Branch.list();
-      return allBranches;
+      try {
+        // ⭐ FIX: Branch.list() อาจมี filter multi-tenancy เพื่อดึง branches ของเจ้าของเท่านั้น
+        // ต้องใช้ Branch.filter() แล้ว merge กับ accessible_branches
+        
+        // 1️⃣ ดึง branches ของตัวเอง (owner_id = email)
+        const ownedBranches = await base44.entities.Branch.filter(
+          { owner_id: currentUser?.email },
+          '-created_date',
+          100
+        );
+        
+        // 2️⃣ ถ้ามี accessible_branches ให้ดึงข้อมูลจาก ID เหล่านั้นด้วย
+        let sharedBranches = [];
+        const accessibleIds = hasAccessibleBranchesSet ? userAccessibleBranches : crmAccessibleBranches;
+        
+        if (accessibleIds && accessibleIds.length > 0) {
+          // ⭐ ดึง branches ตาม ID โดยตรง
+          try {
+            // ลองดึง batch ละ 50 ID (เพื่อไม่ให้ URL ยาวเกินไป)
+            for (let i = 0; i < accessibleIds.length; i += 50) {
+              const batch = accessibleIds.slice(i, i + 50);
+              const response = await base44.functions.invoke('getSecureData', {
+                entity: 'Branch',
+                filters: { id: { $in: batch } },
+                limit: 100
+              });
+              if (response.data?.data) {
+                sharedBranches = [...sharedBranches, ...response.data.data];
+              }
+            }
+          } catch (err) {
+            console.warn('⚠️ Could not fetch shared branches:', err);
+            // Fallback: ละเว้น shared branches ถ้าไม่สำเร็จ
+          }
+        }
+        
+        // 3️⃣ Merge + Deduplicate
+        const allBranches = Array.from(
+          new Map([...ownedBranches, ...sharedBranches].map(b => [b.id, b])).values()
+        );
+        
+        console.log('✅ [BranchSelection Query]', {
+          email: currentUser?.email,
+          ownedBranchesCount: ownedBranches.length,
+          sharedBranchesCount: sharedBranches.length,
+          totalCount: allBranches.length,
+          accessibleIds
+        });
+        
+        return allBranches;
+      } catch (error) {
+        console.error('❌ Error fetching branches:', error);
+        return [];
+      }
     },
     enabled: !!currentUser && !userLoading,
     retry: 1,
