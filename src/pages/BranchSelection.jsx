@@ -185,6 +185,7 @@ export default function BranchSelection() {
   
   // ⭐ Security Fix: กรองสาขาตามสิทธิ์
   const userAccessibleBranches = currentUser?.accessible_branches;
+  const crmAccessibleBranches = crmAccess?.accessible_branches || [];
   const hasAccessibleBranchesSet = userAccessibleBranches !== null && userAccessibleBranches !== undefined;
 
   // ⭐ กรองสาขาตาม role และ accessible_branches
@@ -197,7 +198,13 @@ export default function BranchSelection() {
       return branches.filter(branch => userAccessibleBranches.includes(branch.id));
     }
 
-    // ถ้าไม่มี accessible_branches set (null/undefined)
+    // ⭐ FIX: ถ้า currentUser.accessible_branches ยังไม่ sync แต่ CRM มีข้อมูล → ใช้จาก CRM
+    // (ใช้ fallback จาก crmAccess จนกว่า Layout จะ sync currentUser)
+    if (crmAccessibleBranches.length > 0) {
+      return branches.filter(branch => crmAccessibleBranches.includes(branch.id));
+    }
+
+    // ถ้าไม่มี accessible_branches set (null/undefined) และ CRM ยังไม่ return ข้อมูล
     // Owner = เห็นสาขาที่ตัวเองเป็นเจ้าของ (owner_id หรือ created_by)
     if (userRole === 'owner') {
       return branches.filter(branch => 
@@ -208,7 +215,7 @@ export default function BranchSelection() {
 
     // Employee/Manager ที่ไม่มี accessible_branches = ไม่เห็นสาขาใดเลย
     return [];
-  }, [branches, userRole, hasAccessibleBranchesSet, userAccessibleBranches, currentUser?.email]);
+  }, [branches, userRole, hasAccessibleBranchesSet, userAccessibleBranches, currentUser?.email, crmAccessibleBranches]);
 
   const { data: crmPackages } = useQuery({
     queryKey: ['crmPackages'],
