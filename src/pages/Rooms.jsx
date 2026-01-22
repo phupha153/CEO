@@ -263,6 +263,24 @@ export default function RoomsPage() {
     refetchOnMount: "stale", // ⚡ โหลดครั้งแรก เก็บ cache หลังจากนั้น
   });
 
+  const { data: temporaryBookings = [] } = useQuery({
+    queryKey: ['temporaryBookings', selectedBranchId, 'secure'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'TemporaryBooking',
+        filters: { branch_id: selectedBranchId },
+        limit: 5000
+      });
+      return response.data.data;
+    },
+    enabled: canView && !!selectedBranchId,
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: "stale",
+  });
+
   const { data: tenants = [] } = useQuery({
     queryKey: ['tenants', selectedBranchId, 'secure'],
     queryFn: async () => {
@@ -688,15 +706,14 @@ ${JSON.stringify(roomsWithAC, null, 2)}
   };
 
   const getActiveBooking = (roomId) => {
-    // หา booking ทั้งหมดของห้อง (รวมทั้งที่มี tenant_id และไม่มี)
-    const roomBookings = bookings.filter(b => b.room_id === roomId);
+    // ⭐ ใช้ TemporaryBooking แทน Booking
+    const roomBookings = temporaryBookings.filter(b => b.room_id === roomId);
     if (roomBookings.length === 0) return null;
     
-    // 1. หา active booking ที่มี tenant_id
+    // ✅ หา active booking ที่มี tenant_id (ไม่ใช่ null)
     const activeWithTenant = roomBookings.filter(b => {
       if (b.status !== 'active' || !b.tenant_id) return false;
       
-      // ⭐ แก้ไข: ถ้าหา tenant ไม่เจอ ให้ถือว่า booking active (ป้องกันกรณี tenant ยังไม่โหลด)
       const tenant = getTenantInfo(b.tenant_id);
       
       // ถ้าหา tenant ไม่เจอ = ยังไม่โหลด = ให้ถือว่า active
@@ -710,7 +727,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       return activeWithTenant.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0];
     }
     
-    // 2. ไม่มี active booking ที่ valid - คืนค่า null
     return null;
   };
 
@@ -1270,7 +1286,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
         total_amount: 0
       };
 
-      const newBooking = await base44.entities.Booking.create(bookingData);
+      // ⭐ สร้าง TemporaryBooking แทน Booking
+      const newBooking = await base44.entities.TemporaryBooking.create(bookingData);
       
       // อัปเดตสถานะห้อง
       if (dialogBookingType === 'monthly') {
@@ -1282,12 +1299,13 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     onSuccess: async ({ booking, room }) => {
       await queryClient.invalidateQueries(['rooms', selectedBranchId]);
       await queryClient.invalidateQueries(['bookings', selectedBranchId]);
+      await queryClient.invalidateQueries(['temporaryBookings', selectedBranchId]);
       
       // บันทึก log
       await base44.entities.ActivityLog.create({
         branch_id: selectedBranchId,
         action_type: 'create',
-        entity_type: 'Booking',
+        entity_type: 'TemporaryBooking',
         entity_id: booking.id,
         entity_name: `ห้อง ${room.room_number} - ${booking.guest_name || 'รายวัน'}`,
         user_email: currentUser?.email,
@@ -2409,18 +2427,20 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             const paymentStatus = getPaymentStatus(room.id);
                             const acNeedsCleaning = needsACCleaning(room);
                             
-                            // ⭐ แก้ไข: เช็คว่ามี active booking หรือไม่ (ไม่ว่าจะอดีตหรืออนาคต)
-                            const hasActiveBooking = bookings.some(b => 
+                            // ⭐ เช็คจาก TemporaryBooking + ต้องมี tenant_id
+                            const hasActiveBooking = temporaryBookings.some(b => 
                               b.room_id === room.id && 
-                              b.status === 'active'
+                              b.status === 'active' &&
+                              b.tenant_id !== null && b.tenant_id !== undefined
                             );
                             
                             // Check for future reservations (ติดจองล่วงหน้า)
-                            const futureBookings = bookings.filter(b => 
+                            const futureBookings = temporaryBookings.filter(b => 
                               b.room_id === room.id && 
                               b.status === 'active' && 
                               b.check_in_date &&
-                              new Date(b.check_in_date) > new Date()
+                              new Date(b.check_in_date) > new Date() &&
+                              b.tenant_id !== null && b.tenant_id !== undefined
                             );
                             
                             // แสดง "ติดจอง" ถ้า: room status = reserved หรือมี future booking หรือมี active booking แต่ room status ไม่ใช่ occupied
