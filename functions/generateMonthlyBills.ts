@@ -529,15 +529,6 @@ Deno.serve(async (req) => {
         let skippedDueToLimit = 0;
         const paymentReferenceMap = new Map();
 
-        // ⭐ NEW: สร้าง mapping จาก Payment records เพื่อหา room → tenant
-        const paymentsByRoomMap = new Map();
-        for (const payment of normalizedPayments) {
-            if (!paymentsByRoomMap.has(payment.room_id)) {
-                paymentsByRoomMap.set(payment.room_id, []);
-            }
-            paymentsByRoomMap.get(payment.room_id).push(payment);
-        }
-
         for (const room of roomsToProcess) {
             // ⭐ ถ้าเกิน limit แล้ว ให้หยุดเตรียมบิล
             if (paymentsToCreate.length >= MAX_BILLS_PER_RUN) {
@@ -546,25 +537,7 @@ Deno.serve(async (req) => {
             }
             try {
                 const activeBooking = bookingsMap.get(room.id); // ⭐ OPTIMIZED: O(1) lookup instead of .find()
-                
-                // ⭐ FIX: ถ้าไม่มี active booking ให้ดูจาก Payment record (fallback)
-                let tenantId = null;
-                let finalBooking = activeBooking;
-                
-                if (activeBooking) {
-                    tenantId = activeBooking.tenant_id;
-                } else {
-                    const paymentsForRoom = paymentsByRoomMap.get(room.id) || [];
-                    if (paymentsForRoom.length > 0) {
-                        tenantId = paymentsForRoom[0].booking_id; // ⭐ ใช้ booking_id จาก Payment
-                        console.log(`   ℹ️ Room ${room.room_number}: ใช้ tenant จาก Payment record`);
-                    }
-                }
-                
-                if (!tenantId) {
-                    console.log(`   ⏭️ Room ${room.room_number}: ไม่มี booking หรือ payment record`);
-                    continue;
-                }
+                if (!activeBooking) continue;
 
                 const roomBranchId = room.branch_id;
 
@@ -679,7 +652,7 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                const tenant = tenantsMap.get(tenantId); // ⭐ OPTIMIZED: O(1) lookup instead of .find()
+                const tenant = tenantsMap.get(activeBooking.tenant_id); // ⭐ OPTIMIZED: O(1) lookup instead of .find()
 
                 if (!tenant || tenant.status === 'moved_out') {
                     console.log(`⏭️ Room ${room.room_number}: Tenant moved out - skip`);
@@ -740,8 +713,8 @@ Deno.serve(async (req) => {
                 // ⭐ ใช้ dueDate ที่ประกาศไว้แล้วด้านบน (ไม่ต้องประกาศใหม่)
                 const paymentData = {
                     branch_id: roomBranchId,
-                    booking_id: finalBooking?.id || null,
-                    tenant_id: tenantId,
+                    booking_id: activeBooking.id,
+                    tenant_id: activeBooking.tenant_id,
                     room_id: room.id,
                     meter_reading_id: latestMeter?.id || null,
                     due_date: format(dueDate, 'yyyy-MM-dd'),
@@ -764,7 +737,7 @@ Deno.serve(async (req) => {
                 };
 
                 paymentsToCreate.push(paymentData);
-                paymentReferenceMap.set(room.id, { tenant, room, booking: finalBooking });
+                paymentReferenceMap.set(room.id, { tenant, room });
 
             } catch (err) {
                 console.error(`Skipping room ${room.room_number}:`, err);

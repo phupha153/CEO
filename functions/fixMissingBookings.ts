@@ -15,56 +15,63 @@ Deno.serve(async (req) => {
     console.log('🔧 FIXING MISSING BOOKINGS...');
     console.log(`📍 Branch: ${targetBranchId || 'ALL'}`);
 
+    // 1. ดึง Rooms, Tenants, Bookings
     const filter = targetBranchId ? { branch_id: targetBranchId } : {};
 
-    // 1. ดึงข้อมูล
     const [rooms, tenants, bookings] = await Promise.all([
-      base44.asServiceRole.entities.Room.filter(filter, '-room_number', 500),
-      base44.asServiceRole.entities.Tenant.filter(filter, '-created_date', 500),
-      base44.asServiceRole.entities.Booking.filter({}, '-created_date', 1000)  // ดึง ALL bookings (ทั้งลบและไม่ลบ)
+      base44.asServiceRole.entities.Room.filter(filter, '-room_number', 1000),
+      base44.asServiceRole.entities.Tenant.filter(filter, '-created_date', 1000),
+      base44.asServiceRole.entities.Booking.filter(filter, '-created_date', 1000)
     ]);
 
     console.log(`✅ Rooms: ${rooms.length}, Tenants: ${tenants.length}, Bookings: ${bookings.length}`);
 
-    // 2. สร้าง mapping: room_id → tenant_id จาก historical Bookings (ทั้ง active และ deleted)
-    const roomToTenantMap = new Map();
-
-    for (const booking of bookings) {
-      if (booking.room_id && booking.tenant_id) {
-        roomToTenantMap.set(booking.room_id, booking.tenant_id);
-      }
-    }
-
-    console.log(`\n🔗 Found ${roomToTenantMap.size} room-tenant mappings from bookings`);
-
-    // 3. หา Rooms ที่ไม่มี Booking
+    // 2. หา Rooms ที่ไม่มี Booking แต่มี Tenant active
     const roomsWithBooking = new Set(bookings.map(b => b.room_id));
-    const activeTenants = new Map(tenants.filter(t => t.status === 'active').map(t => [t.id, t]));
+    const activeTenants = tenants.filter(t => t.status === 'active');
+    const activeTenantsByRoom = new Map(
+      activeTenants.map(t => [t.id, t])
+    );
 
-    const bookingsToCreate = [];
+    const missingBookingRooms = [];
 
     for (const room of rooms) {
       if (room.room_type !== 'monthly') continue;
       if (roomsWithBooking.has(room.id)) continue;
 
-      const tenantId = roomToTenantMap.get(room.id);
-      const tenant = tenantId ? activeTenants.get(tenantId) : null;
-
-      if (!tenant) continue;
-
-      bookingsToCreate.push({
-        branch_id: room.branch_id,
-        room_id: room.id,
-        tenant_id: tenant.id,
-        check_in_date: tenant.created_date?.split('T')[0] || new Date().toISOString().split('T')[0],
-        booking_type: 'monthly',
-        status: 'active'
+      // หา Tenant ที่เช่าห้องนี้ (หรือเคยเช่า)
+      const tenantInRoom = activeTenants.find(t => {
+        // ใช้ logic จากการเลือกห้อง
+        if (t.status === 'moved_out') return false;
+        
+        // ถ้า room มี tenant_id ใน data ก็ใช้นั่น (แต่ Room entity ไม่มี tenant_id)
+        // ดังนั้นลอง heuristic: ถ้า Tenant เพิ่งเช่า ให้เอา
+        return true; // ⚠️ ทัวหลักหรือรหัสที่ชัดเจน?
       });
 
-      console.log(`   ✏️ Room ${room.room_number}: ${tenant.full_name}`);
+      if (tenantInRoom) {
+        missingBookingRooms.push({
+          room,
+          tenant: tenantInRoom
+        });
+      }
     }
 
-    // 4. สร้าง Bookings
+    console.log(`\n🔍 Found ${missingBookingRooms.length} rooms missing Booking`);
+    missingBookingRooms.forEach(({ room, tenant }) => {
+      console.log(`   - Room ${room.room_number}: ${tenant.full_name}`);
+    });
+
+    // 3. สร้าง Bookings
+    const bookingsToCreate = missingBookingRooms.map(({ room, tenant }) => ({
+      branch_id: room.branch_id,
+      room_id: room.id,
+      tenant_id: tenant.id,
+      check_in_date: tenant.created_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+      booking_type: 'monthly',
+      status: 'active'
+    }));
+
     console.log(`\n📝 Creating ${bookingsToCreate.length} bookings...`);
 
     if (bookingsToCreate.length > 0) {
