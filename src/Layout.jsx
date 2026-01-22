@@ -862,11 +862,13 @@ export default function Layout({ children, currentPageName }) {
 
       // ⭐ FIX: รอ CRM check เสร็จก่อนถ้า custom_role ยัง undefined (ป้องกัน race condition)
       if (!currentUser.custom_role && crmAccessLoading) {
+        console.log('⏳ รอ CRM check:', currentUser.email);
         return;
       }
 
       // ⭐ FIX: ถ้ามีสาขาเลือก รอให้ branchOwnerStatus โหลดเสร็จก่อน
       if (selectedBranch && branchOwnerLoading) {
+        console.log('⏳ รอ branchOwnerStatus:', selectedBranch.id);
         return;
       }
 
@@ -874,8 +876,18 @@ export default function Layout({ children, currentPageName }) {
       const planStatus = branchOwnerStatus?.plan_status || currentUser.plan_status;
       const trialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
 
+      console.log('🔍 Package Check:', {
+        user: currentUser.email,
+        role: userRole,
+        selectedBranch: selectedBranch?.branch_name,
+        branchOwnerStatus: branchOwnerStatus,
+        currentUserPlan: currentUser.plan_status,
+        effectivePlan: planStatus
+      });
+
       // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป NoPackagePage
       if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
+        console.error('❌ No package:', planStatus);
         navigate(createPageUrl('NoPackagePage'), { replace: true });
         return;
       }
