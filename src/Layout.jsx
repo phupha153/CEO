@@ -566,25 +566,33 @@ export default function Layout({ children, currentPageName }) {
           return data;
         }
 
-        // ⭐ Sync role จาก CRM (ถ้ามี role ส่งกลับมา)
-        if (data.hasAccess && data.role && currentUser) {
+        // ⭐ Sync role + accessible_branches จาก CRM
+        if (data.hasAccess && currentUser) {
           // ⭐ Admin users ใน Base44 = developer เสมอ ไม่ sync จาก CRM
           if (currentUser.role === 'admin') {
             return data;
           }
 
           const currentRole = currentUser.custom_role || null;
+          const currentBranches = currentUser.accessible_branches;
           const crmRole = data.role?.trim();
+          const crmBranches = data.accessible_branches || [];
 
-          // ⭐ อัพเดทเฉพาะเมื่อ role ไม่ตรงกัน
-          if (currentRole !== crmRole) {
+          // ⭐ อัพเดทเฉพาะเมื่อ role หรือ branches ไม่ตรงกัน
+          const needsUpdate = (currentRole !== crmRole) || 
+                             (JSON.stringify(currentBranches) !== JSON.stringify(crmBranches));
+
+          if (needsUpdate) {
             try {
-              await base44.auth.updateMe({ custom_role: crmRole });
+              await base44.auth.updateMe({ 
+                custom_role: crmRole,
+                accessible_branches: crmBranches
+              });
               await queryClient.invalidateQueries(['currentUser']);
               await new Promise(resolve => setTimeout(resolve, 500));
               window.location.reload();
             } catch (error) {
-              console.error('❌ Role update failed:', error.message);
+              console.error('❌ Role/Branches update failed:', error.message);
               console.error('Full error:', error);
             }
           }
@@ -593,22 +601,22 @@ export default function Layout({ children, currentPageName }) {
         return data;
       } catch (error) {
         clearTimeout(timeoutId);
-        
+
         if (error.name === 'AbortError') {
           return { hasAccess: true, timeout: true, cached: true };
         }
-        
+
         console.error('❌ CRM check error:', error);
         return { hasAccess: true, error: error.message, cached: true };
       }
     },
     enabled: !isLoading && !!currentUser?.email && isOnline && !isPublicPage,
-    staleTime: 1 * 60 * 1000, // ⭐ Cache 1 นาที (ลดลงเพื่อให้ refetch บ่อยขึ้น)
+    staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchInterval: false,
     refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true, // ⭐ เปิด refetch เมื่อกลับมาที่หน้าต่าง
-    refetchOnMount: true, // ⭐ เปิด refetch เมื่อ mount ใหม่
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     refetchOnReconnect: true,
     retry: 1,
     throwOnError: false,
