@@ -44,11 +44,13 @@ Deno.serve(async (req) => {
 
     let newOwner = newOwnerUsers?.[0];
 
-    // ถ้าไม่มี user ใหม่ในระบบ → สร้างเชิญ (invite)
+    // ถ้าไม่มี user ใหม่ในระบบ → ส่งสัญญาณให้ frontend เชิญก่อน
     if (!newOwner) {
       return Response.json({ 
-        error: 'New owner not found in system. Please invite them first.',
-        should_invite: true
+        error: 'User not found in system. Frontend should invite first.',
+        user_not_found: true,
+        should_invite: true,
+        new_owner_email: new_owner_email
       }, { status: 404 });
     }
 
@@ -112,7 +114,8 @@ Deno.serve(async (req) => {
       old_owner: user.email,
       new_owner: new_owner_email,
       branch_id,
-      package_transferred: transfer_package || false
+      package_transferred: transfer_package || false,
+      was_new_invite: false
     });
 
   } catch (error) {
