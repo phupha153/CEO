@@ -740,8 +740,8 @@ Deno.serve(async (req) => {
                 // ⭐ ใช้ dueDate ที่ประกาศไว้แล้วด้านบน (ไม่ต้องประกาศใหม่)
                 const paymentData = {
                     branch_id: roomBranchId,
-                    booking_id: activeBooking.id,
-                    tenant_id: activeBooking.tenant_id,
+                    booking_id: finalBooking?.id || null,
+                    tenant_id: tenantId,
                     room_id: room.id,
                     meter_reading_id: latestMeter?.id || null,
                     due_date: format(dueDate, 'yyyy-MM-dd'),
