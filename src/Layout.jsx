@@ -865,8 +865,14 @@ export default function Layout({ children, currentPageName }) {
         return;
       }
 
-      const planStatus = currentUser.plan_status;
-      const trialEndsAt = currentUser.trial_ends_at;
+      // ⭐ FIX: ถ้ามีสาขาเลือก รอให้ branchOwnerStatus โหลดเสร็จก่อน
+      if (selectedBranch && branchOwnerLoading) {
+        return;
+      }
+
+      // ⭐ ใช้แพ็กเกจของเจ้าของสาขา สำหรับ manager/employee
+      const planStatus = branchOwnerStatus?.plan_status || currentUser.plan_status;
+      const trialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
 
       // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป NoPackagePage
       if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
@@ -888,7 +894,7 @@ export default function Layout({ children, currentPageName }) {
         } catch {}
       }
     }
-  }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading]);
+  }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading, selectedBranch, branchOwnerLoading, branchOwnerStatus]);
 
   useEffect(() => {
     if (!currentUser || isLoading || branchesLoading) return;
