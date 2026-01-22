@@ -698,6 +698,9 @@ export default function Layout({ children, currentPageName }) {
       const response = await base44.functions.invoke('getBranchOwnerStatus', {
         branch_id: selectedBranch.id
       });
+      console.log('🔍 DEBUG branchOwnerStatus:', response.data);
+      console.log('🔍 DEBUG currentUser:', currentUser);
+      console.log('🔍 DEBUG accessible_branches:', currentUser?.accessible_branches);
       return response.data;
     },
     enabled: !!selectedBranch && !!currentUser && isOnline,
