@@ -76,8 +76,8 @@ Deno.serve(async (req) => {
           }, { status: 400 });
         }
         
-        const existingUsers = await base44.asServiceRole.entities.User.filter({});
-        const usersInBranch = existingUsers.filter(u => {
+        const allUsersForLimit = await base44.asServiceRole.entities.User.filter({});
+        const usersInBranch = allUsersForLimit.filter(u => {
           const role = u.custom_role || (u.role === 'admin' ? 'owner' : 'employee');
           if (role === 'developer') return false; // ไม่นับ developer
           return u.accessible_branches?.includes(firstBranchId);
@@ -119,13 +119,13 @@ Deno.serve(async (req) => {
         // 1. ตรวจสอบว่ามี User อยู่แล้วหรือไม่
         console.log('Checking if user exists...');
         
-        const existingUsers = await base44.asServiceRole.entities.User.filter({ email: email });
+        const existingUsersByEmail = await base44.asServiceRole.entities.User.filter({ email: email });
         let targetUser;
 
-        if (existingUsers && existingUsers.length > 0) {
+        if (existingUsersByEmail && existingUsersByEmail.length > 0) {
             // ถ้ามี User อยู่แล้ว ให้ update ข้อมูล
             console.log('User exists, updating...');
-            targetUser = existingUsers[0];
+            targetUser = existingUsersByEmail[0];
             
             // อัปเดตข้อมูล แต่ไม่ทำถ้าเป็น owner/developer อยู่แล้ว
             const existingRole = targetUser.custom_role || (targetUser.role === 'admin' ? 'owner' : 'employee');
