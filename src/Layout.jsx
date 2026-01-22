@@ -860,12 +860,6 @@ export default function Layout({ children, currentPageName }) {
           currentPageName === 'NoPackagePage' ||
           currentPageName === 'PackageSelection') return;
 
-      // ⭐ FIX: ถ้ายังไม่มีสาขาเลือก ให้ไปเลือกสาขาก่อน (skip package check)
-      if (!selectedBranch) {
-        console.log('⏩ Skip package check - no branch selected');
-        return;
-      }
-
       // ⭐ FIX: รอ CRM check เสร็จก่อนถ้า custom_role ยัง undefined (ป้องกัน race condition)
       if (!currentUser.custom_role && crmAccessLoading) {
         console.log('⏳ รอ CRM check:', currentUser.email);
