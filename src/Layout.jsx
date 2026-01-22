@@ -758,6 +758,11 @@ export default function Layout({ children, currentPageName }) {
   // ⭐ Fallback: ถ้าไม่มี accessible_branches set เลย (null/undefined) 
   // ให้เข้าได้ทุกสาขาที่ตัวเองเป็น owner (ดูจาก owner_id หรือ created_by)
   const canAccessBranch = (() => {
+    // ⭐ FIX: Owner เข้าได้ทุกสาขาที่ตัวเองเป็นเจ้าของ (branches ถูก filter ด้วย owner_id แล้ว)
+    if (userRole === 'owner' && selectedBranch && branches.some(b => b.id === selectedBranch.id)) {
+      return true;
+    }
+
     // Developer ที่ไม่มี accessible_branches set = เข้าได้ทุกสาขา
     if (userRole === 'developer' && !hasAccessibleBranchesSet) return true;
 
