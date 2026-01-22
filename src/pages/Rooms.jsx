@@ -688,11 +688,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
   };
 
   const getActiveBooking = (roomId) => {
-    // หา booking ทั้งหมดของห้อง (กรอง temporary booking ออก)
-    const roomBookings = bookings.filter(b => 
-      b.room_id === roomId && 
-      b.is_temporary_booking !== true // ⭐ กรอง temporary booking ออก
-    );
+    // หา booking ทั้งหมดของห้อง (รวมทั้งที่มี tenant_id และไม่มี)
+    const roomBookings = bookings.filter(b => b.room_id === roomId);
     if (roomBookings.length === 0) return null;
     
     // 1. หา active booking ที่มี tenant_id
