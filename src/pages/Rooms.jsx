@@ -3319,7 +3319,12 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
                       <TabsContent value="tenant-info" className="pt-4 space-y-4">
                         {(() => {
-                          if (selectedRoom.status === 'occupied' && !booking) {
+                          // ⭐ ตรวจสอบการจองที่ไม่มี tenant_id ก่อน (guest_name อย่างเดียว)
+                          const anyBooking = [...temporaryBookings, ...bookings].find(b => 
+                            b.room_id === selectedRoom.id && b.status === 'active'
+                          );
+
+                          if (selectedRoom.status === 'occupied' && !booking && !anyBooking) {
                             return (
                               <Card className="bg-yellow-50 border-yellow-200">
                                 <CardContent className="p-6 text-center">
@@ -3331,8 +3336,9 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             );
                           }
 
-                          // ⭐ กรณีมี booking แต่ไม่มี tenant (broken booking)
-                          if (booking && !tenant) {
+                          // ⭐ กรณีมี booking แต่ไม่มี tenant (broken booking หรือ guest only)
+                          if ((booking && !tenant) || (anyBooking && !anyBooking.tenant_id)) {
+                            const displayBooking = booking || anyBooking;
                             return (
                               <Card className="bg-orange-50 border-orange-200">
                                 <CardContent className="p-4 space-y-3">
