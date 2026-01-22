@@ -59,7 +59,7 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
     for (let f = 0; f < floors; f++) {
       const floorNum = startFloor + f;
       for (let r = 0; r < roomsPerFloor; r++) {
-        const roomInFloor = startRoom + r;
+        const roomInFloor = (startRoom - 1) + r + 1;
         // Room Number Format: Floor + 2 digit room (e.g., 101, 102... 201)
         const roomNum = `${floorNum}${roomInFloor.toString().padStart(2, '0')}`;
         
