@@ -3345,10 +3345,10 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                   <div className="flex justify-between items-start">
                                     <div>
                                       <h3 className="font-bold text-orange-800 flex items-center gap-2">
-                                        <AlertTriangle className="w-5 h-5" />
-                                        การจองไม่สมบูรณ์
+                                        <User className="w-5 h-5" />
+                                        ข้อมูลการจอง
                                       </h3>
-                                      <p className="text-xs text-orange-600 mt-1">มีการจองแต่ไม่เชื่อมกับผู้เช่า</p>
+                                      <p className="text-xs text-orange-600 mt-1">มีการจองแต่ยังไม่ได้ยืนยันเป็นผู้เช่า</p>
                                     </div>
                                     {(canEdit || canDelete) && (
                                       <Button 
@@ -3356,9 +3356,15 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                         size="sm"
                                         onClick={() => {
                                           if (confirm(`ยืนยันการยกเลิกการจอง?\nห้อง ${selectedRoom.room_number} จะถูกเปลี่ยนเป็นสถานะ "ว่าง"`)) {
-                                            base44.entities.Booking.update(booking.id, { status: 'cancelled' }).then(() => {
+                                            const bookingToDelete = displayBooking;
+                                            const deletePromise = bookingToDelete.tenant_id !== undefined 
+                                              ? base44.entities.Booking.update(bookingToDelete.id, { status: 'cancelled' })
+                                              : base44.entities.TemporaryBooking.delete(bookingToDelete.id);
+                                            
+                                            deletePromise.then(() => {
                                               base44.entities.Room.update(selectedRoom.id, { status: 'available' });
                                               queryClient.invalidateQueries(['bookings']);
+                                              queryClient.invalidateQueries(['temporaryBookings']);
                                               queryClient.invalidateQueries(['rooms']);
                                               setShowDetailDialog(false);
                                               toast.success('ยกเลิกการจองสำเร็จ');
@@ -3378,41 +3384,47 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                   <div className="grid grid-cols-2 gap-3 text-sm">
                                     <div>
                                       <Label className="text-slate-600">ประเภท</Label>
-                                      <Badge className={booking.booking_type === 'monthly' ? 'bg-blue-600' : 'bg-orange-600'}>
-                                        {booking.booking_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
+                                      <Badge className={displayBooking.booking_type === 'monthly' ? 'bg-blue-600' : 'bg-orange-600'}>
+                                        {displayBooking.booking_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
                                       </Badge>
                                     </div>
                                     <div>
                                       <Label className="text-slate-600">สถานะ</Label>
                                       <Badge className="bg-orange-600">
-                                        {booking.status}
+                                        {displayBooking.status}
                                       </Badge>
                                     </div>
-                                    {booking.guest_name && (
+                                    {displayBooking.guest_name && (
                                       <div className="col-span-2">
-                                        <Label className="text-slate-600">ชื่อผู้เข้าพัก</Label>
-                                        <p className="font-semibold text-slate-800">{booking.guest_name}</p>
+                                        <Label className="text-slate-600">ชื่อผู้เข้าพัก (ยังไม่ได้ยืนยัน)</Label>
+                                        <p className="font-semibold text-slate-800">{displayBooking.guest_name}</p>
                                       </div>
                                     )}
-                                    {booking.guest_phone && (
+                                    {displayBooking.guest_phone && (
                                       <div>
                                         <Label className="text-slate-600">เบอร์ติดต่อ</Label>
-                                        <p className="font-semibold text-slate-800">{booking.guest_phone}</p>
+                                        <p className="font-semibold text-slate-800">{displayBooking.guest_phone}</p>
                                       </div>
                                     )}
-                                    {booking.check_in_date && (
+                                    {displayBooking.guest_email && (
+                                      <div>
+                                        <Label className="text-slate-600">อีเมล</Label>
+                                        <p className="font-semibold text-slate-800">{displayBooking.guest_email}</p>
+                                      </div>
+                                    )}
+                                    {displayBooking.check_in_date && (
                                       <div>
                                         <Label className="text-slate-600">เช็คอิน</Label>
                                         <p className="font-semibold text-slate-800">
-                                          {format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th })}
+                                          {format(parseISO(displayBooking.check_in_date), 'd MMM yyyy', { locale: th })}
                                         </p>
                                       </div>
                                     )}
-                                    {booking.check_out_date && (
+                                    {displayBooking.check_out_date && (
                                       <div>
                                         <Label className="text-slate-600">เช็คเอาท์</Label>
                                         <p className="font-semibold text-slate-800">
-                                          {format(parseISO(booking.check_out_date), 'd MMM yyyy', { locale: th })}
+                                          {format(parseISO(displayBooking.check_out_date), 'd MMM yyyy', { locale: th })}
                                         </p>
                                       </div>
                                     )}
