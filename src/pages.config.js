@@ -1,3 +1,4 @@
+import AIFinancialAnalysis from './pages/AIFinancialAnalysis';
 import AIGuidelines from './pages/AIGuidelines';
 import AccountingData from './pages/AccountingData';
 import ActivityLog from './pages/ActivityLog';
@@ -5,7 +6,6 @@ import AllBranchesDashboard from './pages/AllBranchesDashboard';
 import Announcements from './pages/Announcements';
 import BannerManagement from './pages/BannerManagement';
 import BookingReceipt from './pages/BookingReceipt';
-import Bookings from './pages/Bookings';
 import BranchManagement from './pages/BranchManagement';
 import BranchSelection from './pages/BranchSelection';
 import ContractEditor from './pages/ContractEditor';
@@ -49,16 +49,17 @@ import TestingAdmin from './pages/TestingAdmin';
 import TestingSMS from './pages/TestingSMS';
 import TrialExpiredPage from './pages/TrialExpiredPage';
 import UpdateMyBranches from './pages/UpdateMyBranches';
+import UserBranchAccess from './pages/UserBranchAccess';
 import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import AIFinancialAnalysis from './pages/AIFinancialAnalysis';
-import UserBranchAccess from './pages/UserBranchAccess';
+import Bookings from './pages/Bookings';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "AIFinancialAnalysis": AIFinancialAnalysis,
     "AIGuidelines": AIGuidelines,
     "AccountingData": AccountingData,
     "ActivityLog": ActivityLog,
@@ -66,7 +67,6 @@ export const PAGES = {
     "Announcements": Announcements,
     "BannerManagement": BannerManagement,
     "BookingReceipt": BookingReceipt,
-    "Bookings": Bookings,
     "BranchManagement": BranchManagement,
     "BranchSelection": BranchSelection,
     "ContractEditor": ContractEditor,
@@ -110,12 +110,12 @@ export const PAGES = {
     "TestingSMS": TestingSMS,
     "TrialExpiredPage": TrialExpiredPage,
     "UpdateMyBranches": UpdateMyBranches,
+    "UserBranchAccess": UserBranchAccess,
     "WebhookLogs": WebhookLogs,
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "AIFinancialAnalysis": AIFinancialAnalysis,
-    "UserBranchAccess": UserBranchAccess,
+    "Bookings": Bookings,
 }
 
 export const pagesConfig = {

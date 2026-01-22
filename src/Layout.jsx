@@ -691,34 +691,20 @@ export default function Layout({ children, currentPageName }) {
   });
 
   // ⭐ ดึงข้อมูลแพ็กเกจของเจ้าของสาขา
-  const { data: branchOwnerStatus, isLoading: branchOwnerLoading, error: branchOwnerError } = useQuery({
+  const { data: branchOwnerStatus, isLoading: branchOwnerLoading } = useQuery({
     queryKey: ['branchOwnerStatus', selectedBranch?.id],
     queryFn: async () => {
-      if (!selectedBranch?.id) {
-        console.log('❌ No selectedBranch.id');
-        return null;
-      }
-
-      console.log('🔍 Calling getBranchOwnerStatus:', selectedBranch.id);
-
-      try {
-        const response = await base44.functions.invoke('getBranchOwnerStatus', {
-          branch_id: selectedBranch.id
-        });
-
-        console.log('✅ getBranchOwnerStatus response:', response.data);
-        return response.data;
-      } catch (error) {
-        console.error('❌ getBranchOwnerStatus error:', error);
-        // Return null instead of throwing - fallback to user's own plan
-        return null;
-      }
+      if (!selectedBranch?.id) return null;
+      const response = await base44.functions.invoke('getBranchOwnerStatus', {
+        branch_id: selectedBranch.id
+      });
+      return response.data;
     },
-    enabled: !!selectedBranch?.id && !!currentUser && isOnline,
+    enabled: !!selectedBranch && !!currentUser && isOnline,
     staleTime: 5 * 60 * 1000,
     retry: 1,
     throwOnError: false,
-    placeholderData: (previousData) => previousData,
+    placeholderData: (previousData) => previousData, // ⭐ ใช้ cache เก่าขณะ refetch
   });
 
   const getConfigValue = (key, defaultValue = '') => {
@@ -874,39 +860,16 @@ export default function Layout({ children, currentPageName }) {
           currentPageName === 'NoPackagePage' ||
           currentPageName === 'PackageSelection') return;
 
-      // ⭐ FIX: ถ้ายังไม่มีสาขาเลือก ต้อง skip package check (จะ redirect ไป BranchSelection อยู่แล้ว)
-      if (!selectedBranch) {
-        return;
-      }
-
       // ⭐ FIX: รอ CRM check เสร็จก่อนถ้า custom_role ยัง undefined (ป้องกัน race condition)
       if (!currentUser.custom_role && crmAccessLoading) {
-        console.log('⏳ รอ CRM check:', currentUser.email);
         return;
       }
 
-      // ⭐ FIX: ถ้ามีสาขาเลือก รอให้ branchOwnerStatus โหลดเสร็จก่อน
-      if (selectedBranch && branchOwnerLoading) {
-        console.log('⏳ รอ branchOwnerStatus:', selectedBranch.id);
-        return;
-      }
-
-      // ⭐ ใช้แพ็กเกจของเจ้าของสาขา สำหรับ manager/employee
-      const planStatus = branchOwnerStatus?.plan_status || currentUser.plan_status;
-      const trialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
-
-      console.log('🔍 Package Check:', {
-        user: currentUser.email,
-        role: userRole,
-        selectedBranch: selectedBranch?.branch_name,
-        branchOwnerStatus: branchOwnerStatus,
-        currentUserPlan: currentUser.plan_status,
-        effectivePlan: planStatus
-      });
+      const planStatus = currentUser.plan_status;
+      const trialEndsAt = currentUser.trial_ends_at;
 
       // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป NoPackagePage
       if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
-        console.error('❌ No package:', planStatus);
         navigate(createPageUrl('NoPackagePage'), { replace: true });
         return;
       }
@@ -925,7 +888,7 @@ export default function Layout({ children, currentPageName }) {
         } catch {}
       }
     }
-  }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading, selectedBranch, branchOwnerLoading, branchOwnerStatus]);
+  }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading]);
 
   useEffect(() => {
     if (!currentUser || isLoading || branchesLoading) return;
@@ -953,15 +916,6 @@ export default function Layout({ children, currentPageName }) {
       localStorage.removeItem('selected_branch_name');
       setSelectedBranch(null);
       navigate(createPageUrl('BranchSelection'), { replace: true });
-      return;
-    }
-
-    // ⭐ Auto-select branch if only one branch available
-    if (!selectedBranch && branches.length === 1) {
-      const branch = branches[0];
-      localStorage.setItem('selected_branch_id', branch.id);
-      localStorage.setItem('selected_branch_name', branch.branch_name);
-      setSelectedBranch({ id: branch.id, branch_name: branch.branch_name });
       return;
     }
 
