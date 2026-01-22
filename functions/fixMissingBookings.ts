@@ -19,11 +19,11 @@ Deno.serve(async (req) => {
 
     // 1. ดึงข้อมูล
     const [rooms, tenants, bookings, contracts, payments] = await Promise.all([
-      base44.asServiceRole.entities.Room.filter(filter, '-room_number', 1000),
-      base44.asServiceRole.entities.Tenant.filter(filter, '-created_date', 1000),
-      base44.asServiceRole.entities.Booking.filter(filter, '-created_date', 1000),
-      base44.asServiceRole.entities.Contract.filter(filter, '-contract_date', 1000),
-      base44.asServiceRole.entities.Payment.filter(filter, '-created_date', 1000)
+      base44.asServiceRole.entities.Room.filter(filter, '-room_number', 100),
+      base44.asServiceRole.entities.Tenant.filter(filter, '-created_date', 100),
+      base44.asServiceRole.entities.Booking.filter(filter, '-created_date', 100),
+      base44.asServiceRole.entities.Contract.filter(filter, '-contract_date', 100),
+      base44.asServiceRole.entities.Payment.filter(filter, '-created_date', 100)
     ]);
 
     console.log(`✅ Rooms: ${rooms.length}, Tenants: ${tenants.length}, Bookings: ${bookings.length}`);
