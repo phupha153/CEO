@@ -861,18 +861,37 @@ export default function Layout({ children, currentPageName }) {
 
     // ⭐ Check subscription status and redirect
     if (!isLoading && currentUser) {
+      console.log('🎯 START Package Check:', {
+        user: currentUser.email,
+        role: userRole,
+        selectedBranch: selectedBranch?.id,
+        branchOwnerLoading,
+        branchOwnerStatus,
+        branchOwnerError,
+        currentUserPlan: currentUser.plan_status
+      });
+
       // ⚡ รอให้สร้างแพ็กเกจทดลองเสร็จก่อน
-      if (isCreatingTrial) return;
+      if (isCreatingTrial) {
+        console.log('⏳ isCreatingTrial = true');
+        return;
+      }
 
       // Skip check for developer and special pages
-      if (userRole === 'developer') return;
+      if (userRole === 'developer') {
+        console.log('✅ Developer - skip package check');
+        return;
+      }
       if (currentPageName === 'BranchSelection' ||
           currentPageName === 'BranchManagement' ||
           currentPageName === 'UserBranchAccess' ||
           currentPageName === 'AllBranchesDashboard' ||
           currentPageName === 'TrialExpiredPage' ||
           currentPageName === 'NoPackagePage' ||
-          currentPageName === 'PackageSelection') return;
+          currentPageName === 'PackageSelection') {
+        console.log('✅ Special page - skip package check:', currentPageName);
+        return;
+      }
 
       // ⭐ FIX: รอ CRM check เสร็จก่อนถ้า custom_role ยัง undefined (ป้องกัน race condition)
       if (!currentUser.custom_role && crmAccessLoading) {
