@@ -921,6 +921,13 @@ export default function Layout({ children, currentPageName }) {
           return;
         }
 
+      // ถ้าโหลดเสร็จแล้ว (loading=false) แต่ข้อมูลยังไม่มา (เป็น null/undefined)
+        // ให้หยุดรอรอบหน้า ห้ามปล่อยผ่านไปข้างล่าง ไม่งั้นจะโดนเด้งไปหน้า NoPackage
+        if (!branchOwnerStatus) {
+           return; 
+        }
+        // ------------------------------------------------------------
+
         // FIX 4️⃣: Log ข้อมูลที่ได้มา
         console.log('📊 [Subscription Check] branchOwnerStatus:', branchOwnerStatus);
 
