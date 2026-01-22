@@ -3260,6 +3260,91 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             );
                           }
 
+                          // ⭐ กรณีมี booking แต่ไม่มี tenant (broken booking)
+                          if (booking && !tenant) {
+                            return (
+                              <Card className="bg-orange-50 border-orange-200">
+                                <CardContent className="p-4 space-y-3">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <h3 className="font-bold text-orange-800 flex items-center gap-2">
+                                        <AlertTriangle className="w-5 h-5" />
+                                        การจองไม่สมบูรณ์
+                                      </h3>
+                                      <p className="text-xs text-orange-600 mt-1">มีการจองแต่ไม่เชื่อมกับผู้เช่า</p>
+                                    </div>
+                                    {(canEdit || canDelete) && (
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => {
+                                          if (confirm(`ยืนยันการยกเลิกการจอง?\nห้อง ${selectedRoom.room_number} จะถูกเปลี่ยนเป็นสถานะ "ว่าง"`)) {
+                                            base44.entities.Booking.update(booking.id, { status: 'cancelled' }).then(() => {
+                                              base44.entities.Room.update(selectedRoom.id, { status: 'available' });
+                                              queryClient.invalidateQueries(['bookings']);
+                                              queryClient.invalidateQueries(['rooms']);
+                                              setShowDetailDialog(false);
+                                              toast.success('ยกเลิกการจองสำเร็จ');
+                                            }).catch(err => {
+                                              toast.error('เกิดข้อผิดพลาด: ' + err.message);
+                                            });
+                                          }
+                                        }}
+                                        className="bg-red-600 text-white border-red-600 hover:bg-red-700"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-1" />
+                                        ลบการจอง
+                                      </Button>
+                                    )}
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                      <Label className="text-slate-600">ประเภท</Label>
+                                      <Badge className={booking.booking_type === 'monthly' ? 'bg-blue-600' : 'bg-orange-600'}>
+                                        {booking.booking_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
+                                      </Badge>
+                                    </div>
+                                    <div>
+                                      <Label className="text-slate-600">สถานะ</Label>
+                                      <Badge className="bg-orange-600">
+                                        {booking.status}
+                                      </Badge>
+                                    </div>
+                                    {booking.guest_name && (
+                                      <div className="col-span-2">
+                                        <Label className="text-slate-600">ชื่อผู้เข้าพัก</Label>
+                                        <p className="font-semibold text-slate-800">{booking.guest_name}</p>
+                                      </div>
+                                    )}
+                                    {booking.guest_phone && (
+                                      <div>
+                                        <Label className="text-slate-600">เบอร์ติดต่อ</Label>
+                                        <p className="font-semibold text-slate-800">{booking.guest_phone}</p>
+                                      </div>
+                                    )}
+                                    {booking.check_in_date && (
+                                      <div>
+                                        <Label className="text-slate-600">เช็คอิน</Label>
+                                        <p className="font-semibold text-slate-800">
+                                          {format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th })}
+                                        </p>
+                                      </div>
+                                    )}
+                                    {booking.check_out_date && (
+                                      <div>
+                                        <Label className="text-slate-600">เช็คเอาท์</Label>
+                                        <p className="font-semibold text-slate-800">
+                                          {format(parseISO(booking.check_out_date), 'd MMM yyyy', { locale: th })}
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            );
+                          }
+
                           if (tenant && booking) {
                             return (
                               <div className="space-y-4">
