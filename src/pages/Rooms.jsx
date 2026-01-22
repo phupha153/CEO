@@ -1295,8 +1295,10 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       // ⭐ สร้าง TemporaryBooking แทน Booking
       const newBooking = await base44.entities.TemporaryBooking.create(bookingData);
       
-      // อัปเดตสถานะห้องเป็น occupied ทั้งรายวันและรายเดือน
-      await base44.entities.Room.update(room.id, { status: 'occupied' });
+      // อัปเดตสถานะห้อง
+      if (dialogBookingType === 'monthly') {
+        await base44.entities.Room.update(room.id, { status: 'occupied' });
+      }
       
       return { booking: newBooking, room };
     },
