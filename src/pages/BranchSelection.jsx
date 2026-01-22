@@ -109,47 +109,16 @@ export default function BranchSelection() {
     meta: { timeout: 5000 }, // ⚡ 5 วินาที timeout
   });
 
-  // ⚡ โหลดสาขาแบบ secure - รองรับทั้ง owner และ invited users
+  // ⚡ โหลดทุกสาขา แล้ว filter ใน client (ลดปัญหา N+1)
   const { data: branches = [], isLoading } = useQuery({
-    queryKey: ['branches', 'secure', currentUser?.email],
+    queryKey: ['branches'],
     queryFn: async () => {
-      if (!currentUser?.email) return [];
-      
-      const userAccessible = currentUser.accessible_branches || [];
-      const isAdmin = currentUser.role === 'admin';
-      
-      // Developer = ดูทุกสาขา
-      if (isAdmin) {
+      try {
         return await base44.entities.Branch.list('', 1000);
+      } catch (error) {
+        console.error('❌ Branch.list() failed:', error.message);
+        return [];
       }
-      
-      // โหลดสาขาที่เป็นเจ้าของ (owner_id)
-      const ownedBranches = await base44.entities.Branch.filter({ owner_id: currentUser.email }, '', 100);
-      const ownedIds = ownedBranches.map(b => b.id);
-      
-      // ⭐ ถ้ามี accessible_branches ให้โหลดสาขาที่ถูก invite เพิ่ม
-      if (userAccessible.length > 0) {
-        const invitedBranchIds = userAccessible.filter(id => !ownedIds.includes(id));
-        
-        if (invitedBranchIds.length > 0) {
-          // โหลดสาขาที่ถูก invite ทีละสาขา
-          const invitedBranches = [];
-          for (const branchId of invitedBranchIds) {
-            try {
-              const branchData = await base44.entities.Branch.filter({ id: branchId }, '', 1);
-              if (branchData && branchData.length > 0) {
-                invitedBranches.push(branchData[0]);
-              }
-            } catch (error) {
-              console.warn(`ไม่สามารถโหลดสาขา ${branchId}:`, error.message);
-            }
-          }
-          
-          return [...ownedBranches, ...invitedBranches];
-        }
-      }
-      
-      return ownedBranches;
     },
     enabled: !!currentUser && !userLoading,
     retry: 1,
