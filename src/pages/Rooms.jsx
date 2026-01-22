@@ -3339,6 +3339,9 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                           // ⭐ กรณีมี booking แต่ไม่มี tenant (broken booking หรือ guest only)
                           if ((booking && !tenant) || (anyBooking && !anyBooking.tenant_id)) {
                             const displayBooking = booking || anyBooking;
+                            const isDaily = displayBooking.booking_type === 'daily';
+                            const hasCheckedIn = displayBooking.actual_check_in_date;
+                            
                             return (
                               <Card className="bg-orange-50 border-orange-200">
                                 <CardContent className="p-4 space-y-3">
@@ -3346,39 +3349,99 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                     <div>
                                       <h3 className="font-bold text-orange-800 flex items-center gap-2">
                                         <User className="w-5 h-5" />
-                                        ข้อมูลการจอง
+                                        {isDaily ? 'ข้อมูลการเข้าพัก' : 'ข้อมูลการจอง'}
                                       </h3>
-                                      <p className="text-xs text-orange-600 mt-1">มีการจองแต่ยังไม่ได้ยืนยันเป็นผู้เช่า</p>
+                                      {!isDaily && (
+                                        <p className="text-xs text-orange-600 mt-1">มีการจองแต่ยังไม่ได้ยืนยันเป็นผู้เช่า</p>
+                                      )}
                                     </div>
-                                    {(canEdit || canDelete) && (
-                                      <Button 
-                                        variant="outline" 
-                                        size="sm"
-                                        onClick={() => {
-                                          if (confirm(`ยืนยันการยกเลิกการจอง?\nห้อง ${selectedRoom.room_number} จะถูกเปลี่ยนเป็นสถานะ "ว่าง"`)) {
-                                            const bookingToDelete = displayBooking;
-                                            const deletePromise = bookingToDelete.tenant_id !== undefined 
-                                              ? base44.entities.Booking.update(bookingToDelete.id, { status: 'cancelled' })
-                                              : base44.entities.TemporaryBooking.delete(bookingToDelete.id);
+                                    <div className="flex gap-2">
+                                      {!hasCheckedIn && (canEdit || canDelete) && (
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm"
+                                          onClick={async () => {
+                                            const bookingToUpdate = displayBooking;
+                                            const today = new Date().toISOString().split('T')[0];
                                             
-                                            deletePromise.then(() => {
-                                              base44.entities.Room.update(selectedRoom.id, { status: 'available' });
+                                            const updatePromise = bookingToUpdate.tenant_id !== undefined 
+                                              ? base44.entities.Booking.update(bookingToUpdate.id, { actual_check_in_date: today })
+                                              : base44.entities.TemporaryBooking.update(bookingToUpdate.id, { actual_check_in_date: today });
+                                            
+                                            updatePromise.then(() => {
                                               queryClient.invalidateQueries(['bookings']);
                                               queryClient.invalidateQueries(['temporaryBookings']);
-                                              queryClient.invalidateQueries(['rooms']);
-                                              setShowDetailDialog(false);
-                                              toast.success('ยกเลิกการจองสำเร็จ');
+                                              toast.success('ยืนยันเข้าพักสำเร็จ');
                                             }).catch(err => {
                                               toast.error('เกิดข้อผิดพลาด: ' + err.message);
                                             });
-                                          }
-                                        }}
-                                        className="bg-red-600 text-white border-red-600 hover:bg-red-700"
-                                      >
-                                        <Trash2 className="w-4 h-4 mr-1" />
-                                        ลบการจอง
-                                      </Button>
-                                    )}
+                                          }}
+                                          className="bg-green-600 text-white border-green-600 hover:bg-green-700"
+                                        >
+                                          <Check className="w-4 h-4 mr-1" />
+                                          ยืนยันเข้าพัก
+                                        </Button>
+                                      )}
+                                      {hasCheckedIn && isDaily && (canEdit || canDelete) && (
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm"
+                                          onClick={async () => {
+                                            if (confirm(`ยืนยันการเช็คเอาท์?\nห้อง ${selectedRoom.room_number} จะถูกเปลี่ยนเป็นสถานะ "ว่าง"`)) {
+                                              const bookingToUpdate = displayBooking;
+                                              
+                                              const updatePromise = bookingToUpdate.tenant_id !== undefined 
+                                                ? base44.entities.Booking.update(bookingToUpdate.id, { status: 'completed' })
+                                                : base44.entities.TemporaryBooking.update(bookingToUpdate.id, { status: 'completed' });
+                                              
+                                              updatePromise.then(async () => {
+                                                await base44.entities.Room.update(selectedRoom.id, { status: 'available' });
+                                                queryClient.invalidateQueries(['bookings']);
+                                                queryClient.invalidateQueries(['temporaryBookings']);
+                                                queryClient.invalidateQueries(['rooms']);
+                                                setShowDetailDialog(false);
+                                                toast.success('เช็คเอาท์สำเร็จ');
+                                              }).catch(err => {
+                                                toast.error('เกิดข้อผิดพลาด: ' + err.message);
+                                              });
+                                            }
+                                          }}
+                                          className="bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                                        >
+                                          <LogOut className="w-4 h-4 mr-1" />
+                                          เช็คเอาท์
+                                        </Button>
+                                      )}
+                                      {(canEdit || canDelete) && (
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm"
+                                          onClick={() => {
+                                            if (confirm(`ยืนยันการยกเลิกการจอง?\nห้อง ${selectedRoom.room_number} จะถูกเปลี่ยนเป็นสถานะ "ว่าง"`)) {
+                                              const bookingToDelete = displayBooking;
+                                              const deletePromise = bookingToDelete.tenant_id !== undefined 
+                                                ? base44.entities.Booking.update(bookingToDelete.id, { status: 'cancelled' })
+                                                : base44.entities.TemporaryBooking.delete(bookingToDelete.id);
+                                              
+                                              deletePromise.then(() => {
+                                                base44.entities.Room.update(selectedRoom.id, { status: 'available' });
+                                                queryClient.invalidateQueries(['bookings']);
+                                                queryClient.invalidateQueries(['temporaryBookings']);
+                                                queryClient.invalidateQueries(['rooms']);
+                                                setShowDetailDialog(false);
+                                                toast.success('ยกเลิกการจองสำเร็จ');
+                                              }).catch(err => {
+                                                toast.error('เกิดข้อผิดพลาด: ' + err.message);
+                                              });
+                                            }
+                                          }}
+                                          className="bg-red-600 text-white border-red-600 hover:bg-red-700"
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-1" />
+                                          ยกเลิก
+                                        </Button>
+                                      )}
+                                    </div>
                                   </div>
 
                                   <div className="grid grid-cols-2 gap-3 text-sm">
@@ -3390,13 +3453,15 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                     </div>
                                     <div>
                                       <Label className="text-slate-600">สถานะ</Label>
-                                      <Badge className="bg-orange-600">
-                                        {displayBooking.status}
+                                      <Badge className={hasCheckedIn ? 'bg-green-600' : 'bg-orange-600'}>
+                                        {hasCheckedIn ? 'เข้าพักแล้ว' : displayBooking.status}
                                       </Badge>
                                     </div>
                                     {displayBooking.guest_name && (
                                       <div className="col-span-2">
-                                        <Label className="text-slate-600">ชื่อผู้เข้าพัก (ยังไม่ได้ยืนยัน)</Label>
+                                        <Label className="text-slate-600">
+                                          {isDaily ? 'ชื่อผู้เข้าพัก' : 'ชื่อผู้เข้าพัก (ยังไม่ได้ยืนยัน)'}
+                                        </Label>
                                         <p className="font-semibold text-slate-800">{displayBooking.guest_name}</p>
                                       </div>
                                     )}
@@ -3414,15 +3479,23 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                     )}
                                     {displayBooking.check_in_date && (
                                       <div>
-                                        <Label className="text-slate-600">เช็คอิน</Label>
+                                        <Label className="text-slate-600">วันเช็คอิน</Label>
                                         <p className="font-semibold text-slate-800">
                                           {format(parseISO(displayBooking.check_in_date), 'd MMM yyyy', { locale: th })}
                                         </p>
                                       </div>
                                     )}
+                                    {displayBooking.actual_check_in_date && (
+                                      <div>
+                                        <Label className="text-slate-600">เข้าพักจริง</Label>
+                                        <p className="font-semibold text-green-700">
+                                          {format(parseISO(displayBooking.actual_check_in_date), 'd MMM yyyy', { locale: th })}
+                                        </p>
+                                      </div>
+                                    )}
                                     {displayBooking.check_out_date && (
                                       <div>
-                                        <Label className="text-slate-600">เช็คเอาท์</Label>
+                                        <Label className="text-slate-600">วันเช็คเอาท์</Label>
                                         <p className="font-semibold text-slate-800">
                                           {format(parseISO(displayBooking.check_out_date), 'd MMM yyyy', { locale: th })}
                                         </p>
