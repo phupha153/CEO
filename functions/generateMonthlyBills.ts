@@ -652,10 +652,27 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                const tenant = tenantsMap.get(activeBooking.tenant_id); // ⭐ OPTIMIZED: O(1) lookup instead of .find()
+                // ⭐ FIX: Force refresh tenant status from DB (ไม่ใช้ cache เก่า)
+                let tenant = tenantsMap.get(activeBooking.tenant_id);
+                
+                if (tenant) {
+                    try {
+                        const freshTenants = await base44.asServiceRole.entities.Tenant.filter(
+                            { id: activeBooking.tenant_id },
+                            '',
+                            1
+                        );
+                        if (freshTenants && freshTenants.length > 0) {
+                            tenant = freshTenants[0];
+                            tenantsMap.set(activeBooking.tenant_id, tenant);
+                        }
+                    } catch (refreshErr) {
+                        console.warn(`   ⚠️ Could not refresh tenant ${activeBooking.tenant_id}: ${refreshErr.message}`);
+                    }
+                }
 
                 if (!tenant || tenant.status === 'moved_out') {
-                    console.log(`⏭️ Room ${room.room_number}: Tenant moved out - skip`);
+                    console.log(`⏭️ Room ${room.room_number}: Tenant ${tenant?.full_name || 'unknown'} (status: ${tenant?.status || 'N/A'}) - skip`);
                     continue;
                 }
 
