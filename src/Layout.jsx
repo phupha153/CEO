@@ -574,19 +574,22 @@ export default function Layout({ children, currentPageName }) {
           }
 
           const currentRole = currentUser.custom_role || null;
-          const currentBranches = currentUser.accessible_branches;
+          const currentBranches = currentUser.accessible_branches || [];
           const crmRole = data.role?.trim();
           const crmBranches = data.accessible_branches || [];
 
+          // ⭐ MERGE branches: สาขาเก่า (สร้างเอง) + สาขาใหม่ (ชวนเข้า)
+          const mergedBranches = Array.from(new Set([...currentBranches, ...crmBranches]));
+
           // ⭐ อัพเดทเฉพาะเมื่อ role หรือ branches ไม่ตรงกัน
           const needsUpdate = (currentRole !== crmRole) || 
-                             (JSON.stringify(currentBranches) !== JSON.stringify(crmBranches));
+                             (JSON.stringify(currentBranches.sort()) !== JSON.stringify(mergedBranches.sort()));
 
           if (needsUpdate) {
             try {
               await base44.auth.updateMe({ 
                 custom_role: crmRole,
-                accessible_branches: crmBranches
+                accessible_branches: mergedBranches  // ⭐ MERGE แทน OVERWRITE
               });
               await queryClient.invalidateQueries(['currentUser']);
               await new Promise(resolve => setTimeout(resolve, 500));
