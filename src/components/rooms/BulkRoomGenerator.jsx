@@ -243,9 +243,16 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                 <h3 className="font-semibold text-slate-700">
                   รายการห้องที่จะสร้าง ({generatedRooms.length} ห้อง)
                 </h3>
-                <p className="text-xs text-slate-500">
-                  * สามารถแก้ไขข้อมูลในตารางได้ก่อนบันทึก
-                </p>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500">
+                    * สามารถแก้ไขข้อมูลในตารางได้ก่อนบันทึก
+                  </p>
+                  {generatedRooms.length > 0 && (
+                    <p className="text-xs font-semibold text-blue-600 mt-1">
+                      ✓ ห้องแรก: {generatedRooms[0].room_number} • ห้องสุดท้าย: {generatedRooms[generatedRooms.length - 1].room_number}
+                    </p>
+                  )}
+                </div>
               </div>
               
               <div className="border rounded-lg overflow-hidden bg-white h-[450px] flex flex-col">
