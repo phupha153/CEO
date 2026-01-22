@@ -3220,9 +3220,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                               <div>
                                 <Label className="text-slate-600">หมายเลขห้อง</Label>
                                 <p className="text-xl font-bold text-slate-800">{selectedRoom.room_number}</p>
-                                {userRole === 'developer' && (
-                                  <p className="text-xs text-slate-400 font-mono mt-1">ID: {selectedRoom.id}</p>
-                                )}
                               </div>
                               <div>
                                 <Label className="text-slate-600">ชั้น</Label>
