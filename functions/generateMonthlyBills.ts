@@ -764,7 +764,7 @@ Deno.serve(async (req) => {
                 };
 
                 paymentsToCreate.push(paymentData);
-                paymentReferenceMap.set(room.id, { tenant, room });
+                paymentReferenceMap.set(room.id, { tenant, room, booking: finalBooking });
 
             } catch (err) {
                 console.error(`Skipping room ${room.room_number}:`, err);
