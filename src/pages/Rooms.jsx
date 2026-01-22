@@ -706,25 +706,31 @@ ${JSON.stringify(roomsWithAC, null, 2)}
   };
 
   const getActiveBooking = (roomId) => {
-    // ⭐ ใช้ TemporaryBooking แทน Booking
-    const roomBookings = temporaryBookings.filter(b => b.room_id === roomId);
-    if (roomBookings.length === 0) return null;
-    
-    // ✅ หา active booking ที่มี tenant_id (ไม่ใช่ null)
-    const activeWithTenant = roomBookings.filter(b => {
+    // ⭐ หาจากทั้ง TemporaryBooking และ Booking
+    // 1. ลองหาจาก TemporaryBooking ก่อน
+    const tempRoomBookings = temporaryBookings.filter(b => b.room_id === roomId);
+    const tempActiveWithTenant = tempRoomBookings.filter(b => {
       if (b.status !== 'active' || !b.tenant_id) return false;
-      
       const tenant = getTenantInfo(b.tenant_id);
-      
-      // ถ้าหา tenant ไม่เจอ = ยังไม่โหลด = ให้ถือว่า active
-      if (!tenant) return true;
-      
-      // ถ้าหา tenant เจอแล้ว = เช็คว่ายังไม่ย้ายออก
+      if (!tenant) return true; // ยังไม่โหลด
       return tenant.status === 'active';
     });
     
-    if (activeWithTenant.length > 0) {
-      return activeWithTenant.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0];
+    if (tempActiveWithTenant.length > 0) {
+      return tempActiveWithTenant.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0];
+    }
+    
+    // 2. ถ้าไม่มี TemporaryBooking ลองหาจาก Booking (เก่า)
+    const oldRoomBookings = bookings.filter(b => b.room_id === roomId);
+    const oldActiveWithTenant = oldRoomBookings.filter(b => {
+      if (b.status !== 'active' || !b.tenant_id) return false;
+      const tenant = getTenantInfo(b.tenant_id);
+      if (!tenant) return true;
+      return tenant.status === 'active';
+    });
+    
+    if (oldActiveWithTenant.length > 0) {
+      return oldActiveWithTenant.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0];
     }
     
     return null;
