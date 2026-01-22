@@ -736,6 +736,10 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       delete bookingData.created_by;
 
       await base44.entities.Booking.create(bookingData);
+      
+      // ⭐ อัปเดตสถานะห้องเป็น "occupied" และลบแถบ "ติดจอง"
+      await base44.entities.Room.update(tempBooking.room_id, { status: 'occupied' });
+      
       // ลบ TemporaryBooking
       await base44.entities.TemporaryBooking.delete(tempBooking.id);
     },
@@ -743,6 +747,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       queryClient.invalidateQueries(['bookings', selectedBranchId]);
       queryClient.invalidateQueries(['temporaryBookings', selectedBranchId]);
       queryClient.invalidateQueries(['tenants', selectedBranchId]);
+      queryClient.invalidateQueries(['rooms', selectedBranchId]);
       toast.success('ยืนยันการจองสำเร็จ');
       setConfirmTenantDialog(false);
       setPendingTempBooking(null);
