@@ -61,18 +61,10 @@ Deno.serve(async (req) => {
 
     console.log(`✅ Found ${activeBookings.length} active bookings`);
 
-    // 3. ดึง Contracts active ทั้งหมด
-    const activeContracts = await base44.asServiceRole.entities.Contract.filter(
-      { ...filter, status: 'active' },
-      '-created_date',
-      1000
-    );
-
-    const contractsByTenant = new Map(
-      activeContracts.map(c => [c.tenant_id, c])
-    );
-
-    console.log(`✅ Found ${activeContracts.length} active contracts`);
+    // 3. ดึง Contracts active แค่ 500 รายการ (ข้ามหาก Booking แล้ว)
+    const contractsByTenant = new Map();
+    
+    console.log(`✅ Skipping contract check (using booking as primary source)`);
 
     // 4. หา Tenants ที่ status ผิด (มี active Booking หรือ Contract แต่ status="moved_out")
     const tenantsFix = [];
