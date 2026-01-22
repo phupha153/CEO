@@ -2447,26 +2447,38 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                               )
                             );
                             
+                            // ⭐ เช็คการจองที่ยังไม่มี tenant_id (จองชั่วคราว)
+                            const hasReservationWithoutTenant = (
+                              temporaryBookings.some(b => 
+                                b.room_id === room.id && 
+                                b.status === 'active' &&
+                                (b.tenant_id === null || b.tenant_id === undefined)
+                              ) ||
+                              bookings.some(b => 
+                                b.room_id === room.id && 
+                                b.status === 'active' &&
+                                (b.tenant_id === null || b.tenant_id === undefined)
+                              )
+                            );
+                            
                             // Check for future reservations (ติดจองล่วงหน้า) - เช็คจากทั้ง 2 entity
                             const futureBookings = [
                               ...temporaryBookings.filter(b => 
                                 b.room_id === room.id && 
                                 b.status === 'active' && 
                                 b.check_in_date &&
-                                new Date(b.check_in_date) > new Date() &&
-                                b.tenant_id !== null && b.tenant_id !== undefined
+                                new Date(b.check_in_date) > new Date()
                               ),
                               ...bookings.filter(b => 
                                 b.room_id === room.id && 
                                 b.status === 'active' && 
                                 b.check_in_date &&
-                                new Date(b.check_in_date) > new Date() &&
-                                b.tenant_id !== null && b.tenant_id !== undefined
+                                new Date(b.check_in_date) > new Date()
                               )
                             ];
                             
-                            // แสดง "ติดจอง" ถ้า: room status = reserved หรือมี future booking หรือมี active booking แต่ room status ไม่ใช่ occupied
-                            const isReserved = room.status === 'reserved' || futureBookings.length > 0 || (hasActiveBooking && room.status !== 'occupied');
+                            // แสดง "ติดจอง" ถ้า: room status = reserved หรือมี future booking หรือมี active booking แต่ room status ไม่ใช่ occupied หรือจองแบบยังไม่มีผู้เช่า
+                            const isReserved = room.status === 'reserved' || futureBookings.length > 0 || (hasActiveBooking && room.status !== 'occupied') || hasReservationWithoutTenant;
 
                             return (
                               <motion.div
