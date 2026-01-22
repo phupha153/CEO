@@ -106,7 +106,12 @@ export default function UserBranchAccess() {
     refetchOnWindowFocus: true,
   });
 
-
+  const { data: branchPackages = [] } = useQuery({
+    queryKey: ['branchPackages'],
+    queryFn: () => base44.entities.BranchPackage.list('-created_date', 500),
+    retry: 2,
+    staleTime: 2 * 60 * 1000,
+  });
 
   // Developer เห็นทุกสาขา, คนอื่นเห็นเฉพาะสาขาที่ตัวเองมีสิทธิ์
   const branches = React.useMemo(() => {

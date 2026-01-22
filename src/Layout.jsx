@@ -698,9 +698,6 @@ export default function Layout({ children, currentPageName }) {
       const response = await base44.functions.invoke('getBranchOwnerStatus', {
         branch_id: selectedBranch.id
       });
-      console.log('🔍 DEBUG branchOwnerStatus:', response.data);
-      console.log('🔍 DEBUG currentUser:', currentUser);
-      console.log('🔍 DEBUG accessible_branches:', currentUser?.accessible_branches);
       return response.data;
     },
     enabled: !!selectedBranch && !!currentUser && isOnline,
@@ -868,31 +865,19 @@ export default function Layout({ children, currentPageName }) {
         return;
       }
 
-      // ⭐ FIX: ถ้ามีสาขาเลือก และไม่ใช่ owner = รอให้ branchOwnerStatus โหลดเสร็จก่อน
-      const isOwner = branchOwnerStatus?.is_owner !== false;
-      if (selectedBranch && !isOwner && branchOwnerLoading) {
-        return; // รอ owner status โหลดเสร็จ
-      }
-
-      // ⭐ ใช้ owner's status สำหรับ Manager/Employee
-      const effectivePlanStatus = (selectedBranch && !isOwner) 
-        ? branchOwnerStatus?.plan_status || currentUser.plan_status
-        : currentUser.plan_status;
-
-      const effectiveTrialEndsAt = (selectedBranch && !isOwner)
-        ? branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at
-        : currentUser.trial_ends_at;
+      const planStatus = currentUser.plan_status;
+      const trialEndsAt = currentUser.trial_ends_at;
 
       // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป NoPackagePage
-      if (!effectivePlanStatus || effectivePlanStatus === 'expired' || effectivePlanStatus === 'cancelled') {
+      if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
         navigate(createPageUrl('NoPackagePage'), { replace: true });
         return;
       }
 
       // ⭐ ถ้า trial หมดอายุ → ไป TrialExpiredPage
-      if (effectiveTrialEndsAt && effectivePlanStatus === 'trial') {
+      if (trialEndsAt && planStatus === 'trial') {
         try {
-          const trialEndDate = parseISO(effectiveTrialEndsAt);
+          const trialEndDate = parseISO(trialEndsAt);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const daysRemaining = differenceInDays(trialEndDate, today);
@@ -903,7 +888,7 @@ export default function Layout({ children, currentPageName }) {
         } catch {}
       }
     }
-  }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading, branchOwnerLoading, branchOwnerStatus, selectedBranch]);
+  }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading]);
 
   useEffect(() => {
     if (!currentUser || isLoading || branchesLoading) return;
