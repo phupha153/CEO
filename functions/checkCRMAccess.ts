@@ -67,12 +67,14 @@ Deno.serve(async (req) => {
           hasAccess: true,
           email: userEmail,
           role: crmRole, // ⭐ ส่ง role กลับมาด้วย
+          accessible_branches: employees[0].accessible_branches || [], // ⭐ ส่ง accessible_branches
           message: '✅ พบข้อมูลใน Employee Table ของ CRM',
           source: 'employee_table',
           employee: {
             full_name: employees[0].full_name,
             custom_role: employees[0].custom_role,
-            role: employees[0].role
+            role: employees[0].role,
+            accessible_branches: employees[0].accessible_branches
           },
           debug: {
             ...debugInfo,
