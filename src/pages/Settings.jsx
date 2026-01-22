@@ -4626,13 +4626,13 @@ export default function Settings() {
                   </Card>
 
                   <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
-                  <p className="text-sm font-semibold text-amber-900 mb-2">📋 สิ่งที่จะเกิดขึ้น:</p>
-                  <ul className="text-sm text-amber-800 space-y-1.5">
-                    <li>✅ {transferTarget.full_name} จะกลายเป็นเจ้าของสาขานี้</li>
-                    <li>✅ ข้อมูลแพ็กเกจจะถูกโอนให้ {transferTarget.full_name}</li>
-                    <li>✅ ระบบ CRM จะทำการ sync สิทธิ์อัตโนมัติ</li>
-                    <li>❌ ไม่สามารถย้อนกลับได้</li>
-                  </ul>
+                    <p className="text-sm font-semibold text-amber-900 mb-2">📋 สิ่งที่จะเกิดขึ้น:</p>
+                    <ul className="text-sm text-amber-800 space-y-1.5">
+                      <li>✅ {transferTarget.full_name} จะกลายเป็นเจ้าของสาขานี้</li>
+                      <li>✅ ข้อมูลแพ็กเกจจะถูกโอนให้ {transferTarget.full_name}</li>
+                      <li>✅ คุณจะถูกเปลี่ยนเป็น <strong>"ผู้จัดการ"</strong></li>
+                      <li>❌ คุณจะไม่สามารถโอนกรรมสิทธิ์กลับได้</li>
+                    </ul>
                   </div>
 
                   <div className="flex gap-2 pt-4">
