@@ -246,26 +246,27 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
               </div>
               
               <div className="border rounded-lg overflow-hidden bg-white h-[450px] flex flex-col">
+                <Table>
+                  <TableHeader className="bg-slate-50 sticky top-0 z-20">
+                    <TableRow>
+                      <TableHead className="w-[100px]">เลขห้อง</TableHead>
+                      <TableHead className="w-[80px]">ชั้น</TableHead>
+                      <TableHead className="w-[120px]">ประเภท</TableHead>
+                      <TableHead className="w-[120px]">ราคา</TableHead>
+                      <TableHead className="w-[100px]">ขนาด (ตร.ม.)</TableHead>
+                      <TableHead className="w-[120px]">ค่าน้ำ/หน่วย</TableHead>
+                      <TableHead className="w-[120px]">ค่าไฟ/หน่วย</TableHead>
+                      <TableHead className="w-[80px]">ลบ</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                </Table>
                 <div className="overflow-auto flex-1">
-                  {/* Group by floor for better visualization */}
                   {Array.from(new Set(generatedRooms.map(r => r.floor))).sort((a,b) => a - b).map(floor => (
                     <div key={floor} className="mb-0">
-                      <div className="bg-slate-100 px-4 py-2 font-bold text-slate-700 border-b sticky top-0 z-20">
+                      <div className="bg-slate-100 px-4 py-2 font-semibold text-slate-700 border-b border-t">
                         ชั้น {floor}
                       </div>
                       <Table>
-                        <TableHeader className="bg-slate-50 sticky top-[42px] z-10">
-                          <TableRow>
-                            <TableHead className="w-[100px]">เลขห้อง</TableHead>
-                            <TableHead className="w-[80px]">ชั้น</TableHead>
-                            <TableHead className="w-[120px]">ประเภท</TableHead>
-                            <TableHead className="w-[120px]">ราคา</TableHead>
-                            <TableHead className="w-[100px]">ขนาด (ตร.ม.)</TableHead>
-                            <TableHead className="w-[120px]">ค่าน้ำ/หน่วย</TableHead>
-                            <TableHead className="w-[120px]">ค่าไฟ/หน่วย</TableHead>
-                            <TableHead className="w-[80px]">ลบ</TableHead>
-                          </TableRow>
-                        </TableHeader>
                         <TableBody>
                           {generatedRooms.map((room, globalIndex) => {
                             if (room.floor !== floor) return null;
