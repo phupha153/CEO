@@ -652,27 +652,37 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                // ⭐ FIX: Force refresh tenant status from DB (ไม่ใช้ cache เก่า)
-                let tenant = tenantsMap.get(activeBooking.tenant_id);
-                
-                if (tenant) {
-                    try {
-                        const freshTenants = await base44.asServiceRole.entities.Tenant.filter(
-                            { id: activeBooking.tenant_id },
-                            '',
-                            1
-                        );
-                        if (freshTenants && freshTenants.length > 0) {
-                            tenant = freshTenants[0];
-                            tenantsMap.set(activeBooking.tenant_id, tenant);
-                        }
-                    } catch (refreshErr) {
-                        console.warn(`   ⚠️ Could not refresh tenant ${activeBooking.tenant_id}: ${refreshErr.message}`);
-                    }
+                // ⭐ CRITICAL FIX: Check if booking.tenant_id is valid + refresh from DB
+                if (!activeBooking.tenant_id) {
+                    console.log(`⏭️ Room ${room.room_number}: No tenant_id in booking - skip`);
+                    continue;
                 }
 
-                if (!tenant || tenant.status === 'moved_out') {
-                    console.log(`⏭️ Room ${room.room_number}: Tenant ${tenant?.full_name || 'unknown'} (status: ${tenant?.status || 'N/A'}) - skip`);
+                let tenant = tenantsMap.get(activeBooking.tenant_id);
+                
+                // Force refresh from DB (bypass cache)
+                try {
+                    const freshTenants = await base44.asServiceRole.entities.Tenant.filter(
+                        { id: activeBooking.tenant_id },
+                        '',
+                        1
+                    );
+                    if (freshTenants && freshTenants.length > 0) {
+                        tenant = freshTenants[0];
+                        tenantsMap.set(activeBooking.tenant_id, tenant);
+                    } else {
+                        // Tenant doesn't exist or was deleted
+                        console.log(`⏭️ Room ${room.room_number}: Tenant ${activeBooking.tenant_id} NOT FOUND in DB - skip`);
+                        continue;
+                    }
+                } catch (refreshErr) {
+                    console.warn(`   ⚠️ Could not fetch tenant ${activeBooking.tenant_id}: ${refreshErr.message}`);
+                    continue;
+                }
+
+                // Check status
+                if (tenant.status === 'moved_out') {
+                    console.log(`⏭️ Room ${room.room_number}: Tenant ${tenant.full_name} moved out - skip`);
                     continue;
                 }
 
