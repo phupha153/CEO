@@ -861,35 +861,21 @@ export default function Layout({ children, currentPageName }) {
 
     // ⭐ Check subscription status and redirect
     if (!isLoading && currentUser) {
-      console.log('🎯 START Package Check:', {
-        user: currentUser.email,
-        role: userRole,
-        selectedBranch: selectedBranch?.id,
-        branchOwnerLoading,
-        branchOwnerStatus,
-        branchOwnerError,
-        currentUserPlan: currentUser.plan_status
-      });
-
       // ⚡ รอให้สร้างแพ็กเกจทดลองเสร็จก่อน
-      if (isCreatingTrial) {
-        console.log('⏳ isCreatingTrial = true');
-        return;
-      }
+      if (isCreatingTrial) return;
 
       // Skip check for developer and special pages
-      if (userRole === 'developer') {
-        console.log('✅ Developer - skip package check');
-        return;
-      }
+      if (userRole === 'developer') return;
       if (currentPageName === 'BranchSelection' ||
           currentPageName === 'BranchManagement' ||
           currentPageName === 'UserBranchAccess' ||
           currentPageName === 'AllBranchesDashboard' ||
           currentPageName === 'TrialExpiredPage' ||
           currentPageName === 'NoPackagePage' ||
-          currentPageName === 'PackageSelection') {
-        console.log('✅ Special page - skip package check:', currentPageName);
+          currentPageName === 'PackageSelection') return;
+
+      // ⭐ FIX: ถ้ายังไม่มีสาขาเลือก ต้อง skip package check (จะ redirect ไป BranchSelection อยู่แล้ว)
+      if (!selectedBranch) {
         return;
       }
 
