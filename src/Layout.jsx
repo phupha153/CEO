@@ -36,7 +36,8 @@ import {
         Terminal,
         Sparkles,
         Clock,
-        Trash2
+        Trash2,
+        LogOut
       } from "lucide-react";
 import {
         Sidebar,
@@ -1791,23 +1792,34 @@ export default function Layout({ children, currentPageName }) {
           </SidebarContent>
 
           <SidebarFooter className="relative z-10 border-t border-white/40 p-4 group-data-[collapsible=icon]:p-2 bg-gradient-to-br from-white/30 to-white/20 flex-shrink-0">
-            <div className="flex items-center gap-3 px-2 group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:pl-1">
-              <div className="relative flex-shrink-0">
-                <div className={`absolute inset-0 bg-gradient-to-br ${getRoleBadge(userRole).color} rounded-full blur-md opacity-50`} />
-                <div className={`relative w-10 h-10 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 bg-gradient-to-br ${getRoleBadge(userRole).color} rounded-full flex items-center justify-center shadow-lg`}>
-                  <span className="text-white font-semibold text-sm group-data-[collapsible=icon]:text-xs">
-                    {currentUser?.full_name?.charAt(0) || 'A'}
-                  </span>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 px-2 group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:pl-1">
+                <div className="relative flex-shrink-0">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${getRoleBadge(userRole).color} rounded-full blur-md opacity-50`} />
+                  <div className={`relative w-10 h-10 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 bg-gradient-to-br ${getRoleBadge(userRole).color} rounded-full flex items-center justify-center shadow-lg`}>
+                    <span className="text-white font-semibold text-sm group-data-[collapsible=icon]:text-xs">
+                      {currentUser?.full_name?.charAt(0) || 'A'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+                  <p className="font-medium text-slate-800 text-sm truncate">
+                    {currentUser?.full_name || 'ผู้ดูแลระบบ'}
+                  </p>
+                  <p className="text-xs text-slate-500 truncate">
+                    {getRoleBadge(userRole).label}
+                  </p>
                 </div>
               </div>
-              <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-                <p className="font-medium text-slate-800 text-sm truncate">
-                  {currentUser?.full_name || 'ผู้ดูแลระบบ'}
-                </p>
-                <p className="text-xs text-slate-500 truncate">
-                  {getRoleBadge(userRole).label}
-                </p>
-              </div>
+              <Button
+                onClick={() => base44.auth.logout()}
+                variant="outline"
+                size="sm"
+                className="w-full bg-white/50 hover:bg-red-50 border-slate-200 hover:border-red-300 text-slate-700 hover:text-red-600 group-data-[collapsible=icon]:px-2"
+              >
+                <LogOut className="w-4 h-4 group-data-[collapsible=icon]:mr-0 mr-2" />
+                <span className="group-data-[collapsible=icon]:hidden">ออกจากระบบ</span>
+              </Button>
             </div>
           </SidebarFooter>
         </Sidebar>
