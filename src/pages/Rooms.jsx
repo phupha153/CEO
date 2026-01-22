@@ -2477,6 +2477,19 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                               )
                             ];
                             
+                            // DEBUG LOG
+                            if (room.room_number === '101') {
+                              console.log('🔍 DEBUG Room 101:', {
+                                room_id: room.id,
+                                temporaryBookingCount: temporaryBookings.length,
+                                tempBookingsForThisRoom: temporaryBookings.filter(b => b.room_id === room.id),
+                                hasReservationWithoutTenant,
+                                futureBookings,
+                                hasActiveBooking,
+                                room_status: room.status
+                              });
+                            }
+                            
                             // แสดง "ติดจอง" ถ้า: room status = reserved หรือมี future booking หรือมี active booking แต่ room status ไม่ใช่ occupied หรือจองแบบยังไม่มีผู้เช่า
                             const isReserved = room.status === 'reserved' || futureBookings.length > 0 || (hasActiveBooking && room.status !== 'occupied') || hasReservationWithoutTenant;
 
