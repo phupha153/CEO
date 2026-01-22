@@ -294,6 +294,10 @@ export default function Settings() {
   // NEW: State for AddEmployeeDialog
   const [showAddEmployeeDialog, setShowAddEmployeeDialog] = useState(false);
 
+  // State for Transfer Ownership Confirmation
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [transferTarget, setTransferTarget] = useState(null);
+
   // State for LINE Connect Dialog
   const [showLineConnectDialog, setShowLineConnectDialog] = useState(false);
   const [selectedUserForLineConnect, setSelectedUserForLineConnect] = useState(null);
@@ -1109,6 +1113,30 @@ export default function Settings() {
     }
   });
 
+  const transferOwnershipMutation = useMutation({
+    mutationFn: async ({ newOwnerUserId, newOwnerEmail }) => {
+      const response = await base44.functions.invoke('transferOwnership', {
+        branch_id: selectedBranch?.id,
+        new_owner_email: newOwnerEmail,
+        old_owner_email: currentUser?.email
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['users']);
+      queryClient.invalidateQueries(['usersInMyBranches']);
+      queryClient.invalidateQueries(['currentUser']);
+      queryClient.invalidateQueries(['branches']);
+      toast.success(`โอนกรรมสิทธิ์ให้ ${data.new_owner} สำเร็จ - คุณถูกเปลี่ยนเป็นผู้จัดการ`);
+      
+      // Reload หน้าเพื่อ sync ข้อมูลใหม่
+      setTimeout(() => window.location.reload(), 2000);
+    },
+    onError: (error) => {
+      toast.error('โอนกรรมสิทธิ์ไม่สำเร็จ: ' + error.message);
+    }
+  });
+
   // NEW: Mutation for NotificationConfig
   const saveNotificationSettingsMutation = useMutation({
     mutationFn: async (data) => {
@@ -1756,23 +1784,34 @@ export default function Settings() {
   };
 
   const handleRoleChange = (userId, newRole) => {
+    // ⚠️ ถ้าเปลี่ยนเป็น "owner" → เปิด Transfer Ownership Dialog
+    if (newRole === 'owner') {
+      const targetUser = users.find(u => u.id === userId);
+      if (!targetUser) {
+        toast.error('ไม่พบข้อมูลผู้ใช้');
+        return;
+      }
+
+      setTransferTarget(targetUser);
+      setShowTransferDialog(true);
+      return;
+    }
+
+    // ✅ สำหรับ role อื่นๆ (manager, employee) - update ตามปกติ
     const defaultPerms = DEFAULT_PERMISSIONS_MAP[newRole] || [];
 
-    // Update both role and permissions
     updateUserRoleMutation.mutate({
       userId,
       custom_role: newRole,
       permissions: defaultPerms
     });
 
-    // Update local state
     setUserPermissions(prev => ({
       ...prev,
       [userId]: defaultPerms
     }));
 
     const roleLabels = {
-      owner: 'เจ้าของหอพัก',
       manager: 'ผู้จัดการ',
       employee: 'พนักงาน'
     };
@@ -4548,6 +4587,94 @@ export default function Settings() {
                   </button>
                 ))}
               </div>
+            </DialogContent>
+          </Dialog>
+
+          {/* Transfer Ownership Confirmation Dialog */}
+          <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-red-600">
+                  <AlertTriangle className="w-6 h-6" />
+                  ยืนยันการโอนกรรมสิทธิ์
+                </DialogTitle>
+              </DialogHeader>
+
+              {transferTarget && (
+                <div className="space-y-4">
+                  <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
+                    <p className="text-sm font-bold text-red-800 mb-2">⚠️ การดำเนินการนี้ไม่สามารถย้อนกลับได้!</p>
+                    <p className="text-sm text-red-700">
+                      คุณกำลังจะโอนกรรมสิทธิ์สาขา <strong>"{selectedBranch?.name}"</strong> ให้กับ:
+                    </p>
+                  </div>
+
+                  <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-bold text-lg">
+                            {transferTarget.full_name?.charAt(0) || 'U'}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-bold text-blue-900">{transferTarget.full_name}</p>
+                          <p className="text-sm text-blue-700">{transferTarget.email}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <div className="bg-amber-50 border border-amber-300 rounded-lg p-4">
+                    <p className="text-sm font-semibold text-amber-900 mb-2">📋 สิ่งที่จะเกิดขึ้น:</p>
+                    <ul className="text-sm text-amber-800 space-y-1.5">
+                      <li>✅ {transferTarget.full_name} จะกลายเป็นเจ้าของสาขานี้</li>
+                      <li>✅ ข้อมูลแพ็กเกจจะถูกโอนให้ {transferTarget.full_name}</li>
+                      <li>✅ คุณจะถูกเปลี่ยนเป็น <strong>"ผู้จัดการ"</strong></li>
+                      <li>❌ คุณจะไม่สามารถโอนกรรมสิทธิ์กลับได้</li>
+                    </ul>
+                  </div>
+
+                  <div className="flex gap-2 pt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowTransferDialog(false);
+                        setTransferTarget(null);
+                      }}
+                      className="flex-1"
+                    >
+                      ยกเลิก
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        transferOwnershipMutation.mutate({
+                          newOwnerUserId: transferTarget.id,
+                          newOwnerEmail: transferTarget.email
+                        });
+                        setShowTransferDialog(false);
+                        setTransferTarget(null);
+                      }}
+                      disabled={transferOwnershipMutation.isPending}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      {transferOwnershipMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          กำลังโอน...
+                        </>
+                      ) : (
+                        <>
+                          <Crown className="w-4 h-4 mr-2" />
+                          ยืนยันโอนกรรมสิทธิ์
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </DialogContent>
           </Dialog>
         </div>
