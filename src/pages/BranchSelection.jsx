@@ -193,27 +193,31 @@ export default function BranchSelection() {
     // Developer = เห็นทุกสาขา
     if (userRole === 'developer') return branches;
 
-    // ถ้ามี accessible_branches set แล้ว (ไม่ว่าจะ [] หรือมีค่า) = ใช้ลิสต์นั้น
+    // ⭐ Owner = เห็นทั้ง 2 แบบ: (1) สาขาที่สร้างเอง + (2) สาขาที่ถูกชวนเข้า
+    if (userRole === 'owner') {
+      const ownedBranchIds = branches
+        .filter(b => b.owner_id === currentUser?.email || b.created_by === currentUser?.email)
+        .map(b => b.id);
+      
+      // รวม: owner_id match + accessible_branches (จาก currentUser หรือ CRM fallback)
+      const accessibleIds = hasAccessibleBranchesSet ? userAccessibleBranches : crmAccessibleBranches;
+      const allAllowedIds = new Set([...ownedBranchIds, ...accessibleIds]);
+      
+      return branches.filter(branch => allAllowedIds.has(branch.id));
+    }
+
+    // Employee/Manager
+    // ถ้ามี accessible_branches set → ใช้ลิสต์นั้น
     if (hasAccessibleBranchesSet) {
       return branches.filter(branch => userAccessibleBranches.includes(branch.id));
     }
 
-    // ⭐ FIX: ถ้า currentUser.accessible_branches ยังไม่ sync แต่ CRM มีข้อมูล → ใช้จาก CRM
-    // (ใช้ fallback จาก crmAccess จนกว่า Layout จะ sync currentUser)
+    // ⭐ fallback จาก CRM ถ้า currentUser ยังไม่ sync
     if (crmAccessibleBranches.length > 0) {
       return branches.filter(branch => crmAccessibleBranches.includes(branch.id));
     }
 
-    // ถ้าไม่มี accessible_branches set (null/undefined) และ CRM ยังไม่ return ข้อมูล
-    // Owner = เห็นสาขาที่ตัวเองเป็นเจ้าของ (owner_id หรือ created_by)
-    if (userRole === 'owner') {
-      return branches.filter(branch => 
-        branch.owner_id === currentUser?.email || 
-        branch.created_by === currentUser?.email
-      );
-    }
-
-    // Employee/Manager ที่ไม่มี accessible_branches = ไม่เห็นสาขาใดเลย
+    // ไม่มี accessible_branches เลย
     return [];
   }, [branches, userRole, hasAccessibleBranchesSet, userAccessibleBranches, currentUser?.email, crmAccessibleBranches]);
 
