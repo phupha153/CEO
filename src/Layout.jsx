@@ -880,8 +880,15 @@ export default function Layout({ children, currentPageName }) {
           return; // ⭐ รอให้โหลดเสร็จก่อน (ป้องกัน flash redirect)
         }
 
-        effectivePlanStatus = branchOwnerStatus?.plan_status || currentUser.plan_status;
-        effectiveTrialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
+        // ⭐ CRITICAL FIX: ถ้า branchOwnerStatus โหลดมาแล้ว ให้ใช้ค่าของเจ้าของเท่านั้น (ไม่ fallback)
+        if (selectedBranch && branchOwnerStatus) {
+          effectivePlanStatus = branchOwnerStatus.plan_status;
+          effectiveTrialEndsAt = branchOwnerStatus.trial_ends_at;
+        } else {
+          // ถ้าไม่มีสาขาเลือก หรือ branchOwnerStatus ไม่มีข้อมูล = ถือว่าไม่มีแพ็กเกจ
+          effectivePlanStatus = null;
+          effectiveTrialEndsAt = null;
+        }
       }
 
       // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป NoPackagePage
