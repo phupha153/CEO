@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
           </div>
           <div class="field">
             <span class="label">Status:</span>
-            <span class="value">${room.status}</span>
+            <span class="value" style="background: ${room.status === 'occupied' ? '#ffcccc' : '#ccffcc'}; padding: 6px; border-radius: 4px;">${room.status}</span>
           </div>
           <div class="field">
             <span class="label">Price:</span>
