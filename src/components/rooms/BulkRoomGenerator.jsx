@@ -56,13 +56,14 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
     }
 
     const rooms = [];
+    // Generate rooms for each floor
     for (let f = 0; f < floors; f++) {
       const floorNum = startFloor + f;
       for (let r = 0; r < roomsPerFloor; r++) {
-        // ห้องแรกเริ่มจาก startRoom (เช่น startRoom=1 → 01, 02, 03...)
+        // Room number in floor: if startRoom=1 and r=0 → roomInFloor=1 (room 01)
         const roomInFloor = startRoom + r;
-        // Room Number Format: Floor + 2 digit room (e.g., 101, 102... 201)
-        const roomNum = `${floorNum}${roomInFloor.toString().padStart(2, '0')}`;
+        // Format: Floor + 2-digit room number (e.g., 101, 102, 103...)
+        const roomNum = `${floorNum}${String(roomInFloor).padStart(2, '0')}`;
         
         rooms.push({
           room_number: roomNum,
@@ -77,6 +78,8 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
         });
       }
     }
+    
+    console.log('🏠 Generated rooms:', rooms.length, 'First room:', rooms[0]?.room_number);
 
     setGeneratedRooms(rooms);
     setStep(2);
