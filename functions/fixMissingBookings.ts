@@ -15,63 +15,66 @@ Deno.serve(async (req) => {
     console.log('🔧 FIXING MISSING BOOKINGS...');
     console.log(`📍 Branch: ${targetBranchId || 'ALL'}`);
 
-    // 1. ดึง Rooms, Tenants, Bookings
     const filter = targetBranchId ? { branch_id: targetBranchId } : {};
 
-    const [rooms, tenants, bookings] = await Promise.all([
+    // 1. ดึงข้อมูล
+    const [rooms, tenants, bookings, contracts, payments] = await Promise.all([
       base44.asServiceRole.entities.Room.filter(filter, '-room_number', 1000),
       base44.asServiceRole.entities.Tenant.filter(filter, '-created_date', 1000),
-      base44.asServiceRole.entities.Booking.filter(filter, '-created_date', 1000)
+      base44.asServiceRole.entities.Booking.filter(filter, '-created_date', 1000),
+      base44.asServiceRole.entities.Contract.filter(filter, '-contract_date', 1000),
+      base44.asServiceRole.entities.Payment.filter(filter, '-created_date', 1000)
     ]);
 
     console.log(`✅ Rooms: ${rooms.length}, Tenants: ${tenants.length}, Bookings: ${bookings.length}`);
 
-    // 2. หา Rooms ที่ไม่มี Booking แต่มี Tenant active
-    const roomsWithBooking = new Set(bookings.map(b => b.room_id));
-    const activeTenants = tenants.filter(t => t.status === 'active');
-    const activeTenantsByRoom = new Map(
-      activeTenants.map(t => [t.id, t])
-    );
+    // 2. สร้าง mapping: room_id → tenant_id จาก Contracts & Payments
+    const roomToTenantMap = new Map();
 
-    const missingBookingRooms = [];
+    // จาก Contracts
+    for (const contract of contracts) {
+      if (contract.room_id && contract.tenant_id) {
+        roomToTenantMap.set(contract.room_id, contract.tenant_id);
+      }
+    }
+
+    // จาก Payments (ถ้า Contract ไม่มี)
+    for (const payment of payments) {
+      if (payment.room_id && payment.tenant_id && !roomToTenantMap.has(payment.room_id)) {
+        roomToTenantMap.set(payment.room_id, payment.tenant_id);
+      }
+    }
+
+    console.log(`\n🔗 Found ${roomToTenantMap.size} room-tenant mappings`);
+
+    // 3. หา Rooms ที่ไม่มี Booking
+    const roomsWithBooking = new Set(bookings.map(b => b.room_id));
+    const activeTenants = new Map(tenants.filter(t => t.status === 'active').map(t => [t.id, t]));
+
+    const bookingsToCreate = [];
 
     for (const room of rooms) {
       if (room.room_type !== 'monthly') continue;
       if (roomsWithBooking.has(room.id)) continue;
 
-      // หา Tenant ที่เช่าห้องนี้ (หรือเคยเช่า)
-      const tenantInRoom = activeTenants.find(t => {
-        // ใช้ logic จากการเลือกห้อง
-        if (t.status === 'moved_out') return false;
-        
-        // ถ้า room มี tenant_id ใน data ก็ใช้นั่น (แต่ Room entity ไม่มี tenant_id)
-        // ดังนั้นลอง heuristic: ถ้า Tenant เพิ่งเช่า ให้เอา
-        return true; // ⚠️ ทัวหลักหรือรหัสที่ชัดเจน?
+      const tenantId = roomToTenantMap.get(room.id);
+      const tenant = tenantId ? activeTenants.get(tenantId) : null;
+
+      if (!tenant) continue;
+
+      bookingsToCreate.push({
+        branch_id: room.branch_id,
+        room_id: room.id,
+        tenant_id: tenant.id,
+        check_in_date: tenant.created_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+        booking_type: 'monthly',
+        status: 'active'
       });
 
-      if (tenantInRoom) {
-        missingBookingRooms.push({
-          room,
-          tenant: tenantInRoom
-        });
-      }
+      console.log(`   ✏️ Room ${room.room_number}: ${tenant.full_name}`);
     }
 
-    console.log(`\n🔍 Found ${missingBookingRooms.length} rooms missing Booking`);
-    missingBookingRooms.forEach(({ room, tenant }) => {
-      console.log(`   - Room ${room.room_number}: ${tenant.full_name}`);
-    });
-
-    // 3. สร้าง Bookings
-    const bookingsToCreate = missingBookingRooms.map(({ room, tenant }) => ({
-      branch_id: room.branch_id,
-      room_id: room.id,
-      tenant_id: tenant.id,
-      check_in_date: tenant.created_date?.split('T')[0] || new Date().toISOString().split('T')[0],
-      booking_type: 'monthly',
-      status: 'active'
-    }));
-
+    // 4. สร้าง Bookings
     console.log(`\n📝 Creating ${bookingsToCreate.length} bookings...`);
 
     if (bookingsToCreate.length > 0) {
