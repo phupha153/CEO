@@ -207,7 +207,25 @@ export default function BranchSelection() {
       const accessibleIds = hasAccessibleBranchesSet ? userAccessibleBranches : crmAccessibleBranches;
       const allAllowedIds = new Set([...ownedBranchIds, ...accessibleIds]);
       
-      return branches.filter(branch => allAllowedIds.has(branch.id));
+      const result = branches.filter(branch => allAllowedIds.has(branch.id));
+      
+      // 🔍 Debug Log
+      if (accessibleIds.length > 0 || ownedBranchIds.length > 0) {
+        console.log('🔍 [BranchSelection Debug - Owner]', {
+          email: currentUser?.email,
+          allBranchesCount: branches.length,
+          branchIds: branches.map(b => b.id),
+          ownedBranchIds,
+          userAccessibleBranches,
+          crmAccessibleBranches,
+          hasAccessibleBranchesSet,
+          allAllowedIds: Array.from(allAllowedIds),
+          filteredBranchesCount: result.length,
+          filteredBranchNames: result.map(b => ({ id: b.id, name: b.branch_name }))
+        });
+      }
+      
+      return result;
     }
 
     // Employee/Manager
