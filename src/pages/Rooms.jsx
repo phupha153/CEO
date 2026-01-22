@@ -2413,7 +2413,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             const hasActiveBooking = bookings.some(b => 
                               b.room_id === room.id && 
                               b.status === 'active' &&
-                              (b.tenant_id !== null && b.tenant_id !== undefined) || (b.guest_name && b.guest_name.trim())
+                              (b.tenant_id || b.guest_name)
                             );
                             
                             // Check for future reservations (ติดจองล่วงหน้า)
