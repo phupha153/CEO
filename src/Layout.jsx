@@ -865,19 +865,35 @@ export default function Layout({ children, currentPageName }) {
         return;
       }
 
-      const planStatus = currentUser.plan_status;
-      const trialEndsAt = currentUser.trial_ends_at;
+      // 🔑 CRITICAL FIX: Manager/Employee ต้องเช็คแพ็กเกจของเจ้าของสาขา ไม่ใช่ของตัวเอง!
+      let effectivePlanStatus;
+      let effectiveTrialEndsAt;
+
+      if (userRole === 'owner') {
+        // Owner เช็คแพ็กเกจของตัวเอง
+        effectivePlanStatus = currentUser.plan_status;
+        effectiveTrialEndsAt = currentUser.trial_ends_at;
+      } else {
+        // Manager/Employee เช็คแพ็กเกจของเจ้าของสาขา
+        // ⚡ รอให้ branchOwnerStatus โหลดเสร็จก่อน (ถ้ามีสาขาเลือก)
+        if (selectedBranch && branchOwnerLoading) {
+          return; // ⭐ รอให้โหลดเสร็จก่อน (ป้องกัน flash redirect)
+        }
+
+        effectivePlanStatus = branchOwnerStatus?.plan_status || currentUser.plan_status;
+        effectiveTrialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
+      }
 
       // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป NoPackagePage
-      if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
+      if (!effectivePlanStatus || effectivePlanStatus === 'expired' || effectivePlanStatus === 'cancelled') {
         navigate(createPageUrl('NoPackagePage'), { replace: true });
         return;
       }
 
       // ⭐ ถ้า trial หมดอายุ → ไป TrialExpiredPage
-      if (trialEndsAt && planStatus === 'trial') {
+      if (effectiveTrialEndsAt && effectivePlanStatus === 'trial') {
         try {
-          const trialEndDate = parseISO(trialEndsAt);
+          const trialEndDate = parseISO(effectiveTrialEndsAt);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const daysRemaining = differenceInDays(trialEndDate, today);
@@ -888,7 +904,7 @@ export default function Layout({ children, currentPageName }) {
         } catch {}
       }
     }
-  }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading]);
+  }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading, userRole, selectedBranch, branchOwnerStatus, branchOwnerLoading]);
 
   useEffect(() => {
     if (!currentUser || isLoading || branchesLoading) return;
