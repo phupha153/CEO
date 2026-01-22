@@ -189,13 +189,16 @@ export default function BulkRoomGenerator({ open, onOpenChange, branchId, onSucc
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>เลขห้องเริ่มต้น (ต่อชั้น)</Label>
+                  <Label>เลขห้องเริ่มต้น (ห้องแรกต่อชั้น)</Label>
                   <Input 
                     type="number" 
-                    placeholder="ปกติเริ่มที่ 1" 
+                    placeholder="ใส่ 1 → จะได้ 101, 102, 103..." 
                     value={config.roomStart}
                     onChange={(e) => setConfig({...config, roomStart: e.target.value})}
                   />
+                  <p className="text-xs text-slate-500">
+                    💡 ใส่ 1 = ห้อง 101, 102... / ใส่ 2 = ห้อง 102, 103...
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label>ประเภทห้อง (ค่าเริ่มต้น)</Label>
