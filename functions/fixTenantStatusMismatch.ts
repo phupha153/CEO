@@ -71,15 +71,14 @@ Deno.serve(async (req) => {
 
     for (const tenant of allMovedOutTenants) {
       const hasActiveBooking = bookingsByTenant.has(tenant.id);
-      const hasActiveContract = contractsByTenant.has(tenant.id);
 
-      if (hasActiveBooking || hasActiveContract) {
+      // ⭐ ต้อง active booking เท่านั้น (contract อาจขึ้นอยู่กับ booking)
+      if (hasActiveBooking) {
+        const booking = bookingsByTenant.get(tenant.id);
         tenantsFix.push({
           tenantId: tenant.id,
           tenantName: tenant.full_name,
-          room: activeBookings.find(b => b.tenant_id === tenant.id)?.room_id || 'N/A',
-          hasBooking: hasActiveBooking,
-          hasContract: hasActiveContract
+          room: booking?.room_id || 'N/A'
         });
       }
     }
