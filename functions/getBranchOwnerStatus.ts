@@ -12,18 +12,24 @@ Deno.serve(async (req) => {
 
         const { branch_id } = await req.json();
         
+        console.log('📥 Request:', { user: user.email, branch_id });
+        
         if (!branch_id) {
             return Response.json({ error: 'branch_id required' }, { status: 400 });
         }
 
         // Get branch info
         const branches = await base44.asServiceRole.entities.Branch.filter({ id: branch_id }, null, 1);
+        console.log('🏢 Branch query:', { found: branches?.length });
+        
         if (!branches || branches.length === 0) {
             return Response.json({ error: 'Branch not found' }, { status: 404 });
         }
 
         const branch = branches[0];
         const ownerEmail = branch.owner_id;
+        
+        console.log('👤 Branch owner:', ownerEmail);
 
         if (!ownerEmail) {
             return Response.json({ error: 'Branch has no owner' }, { status: 404 });
@@ -31,11 +37,19 @@ Deno.serve(async (req) => {
 
         // Get owner's subscription status
         const users = await base44.asServiceRole.entities.User.filter({ email: ownerEmail }, null, 1);
+        console.log('👥 User query:', { found: users?.length });
+        
         if (!users || users.length === 0) {
             return Response.json({ error: 'Owner not found' }, { status: 404 });
         }
 
         const owner = users[0];
+        
+        console.log('✅ Owner status:', {
+            email: owner.email,
+            plan_status: owner.plan_status,
+            trial_ends_at: owner.trial_ends_at
+        });
 
         return Response.json({
             owner_email: owner.email,
