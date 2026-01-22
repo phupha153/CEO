@@ -37,11 +37,10 @@ Deno.serve(async (req) => {
 
         const owner = users[0];
 
-        // ⚠️ CRITICAL: ต้องส่ง plan_status ที่แท้จริง ถ้าไม่มี = ไม่มีแพ็กเกจ (ไม่ให้ default 'trial')
         return Response.json({
             owner_email: owner.email,
             owner_name: owner.full_name,
-            plan_status: owner.plan_status || null, // ⭐ FIX: ส่ง null ถ้าไม่มี (ไม่ใช่ 'trial')
+            plan_status: owner.plan_status || 'trial',
             trial_ends_at: owner.trial_ends_at,
             subscription_end_date: owner.subscription_end_date,
             package_id: owner.package_id,
