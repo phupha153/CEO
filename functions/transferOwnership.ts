@@ -73,11 +73,35 @@ Deno.serve(async (req) => {
       owner_id: new_owner_email
     });
 
-    // 📌 STEP 4: ไม่ต้องปรับคนเก่า - CRM จะ sync role อัตโนมัติ
+    // 📌 STEP 4: ส่ง package data ไปให้ CRM รู้
+    try {
+      // ส่ง new owner + package data ไปให้ CRM
+      await base44.asServiceRole.functions.invoke('sendSubscriptionToCRM', {
+        email: new_owner_email,
+        plan_status: packageData.plan_status,
+        trial_ends_at: packageData.trial_ends_at,
+        subscription_end_date: packageData.subscription_end_date,
+        package_id: packageData.package_id,
+        package_name: packageData.package_name
+      });
+
+      // ส่ง old owner ให้ CRM รู้ว่าไม่มี package แล้ว
+      await base44.asServiceRole.functions.invoke('sendSubscriptionToCRM', {
+        email: old_owner_email,
+        plan_status: null,
+        trial_ends_at: null,
+        subscription_end_date: null,
+        package_id: null,
+        package_name: null
+      });
+    } catch (crmError) {
+      console.warn('⚠️ CRM sync warning (transfer still successful):', crmError.message);
+      // ไม่ throw error - ถ้า CRM fail ก็ยังโอนกรรมสิทธิ์สำเร็จ
+    }
 
     return Response.json({
       success: true,
-      message: 'โอนกรรมสิทธิ์สำเร็จ',
+      message: 'โอนกรรมสิทธิ์สำเร็จและซ้ำข้อมูลไปให้ CRM',
       new_owner: new_owner_email,
       old_owner: old_owner_email,
       branch_name: branchData.branch_name
