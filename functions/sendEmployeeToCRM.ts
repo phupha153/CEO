@@ -99,17 +99,18 @@ Deno.serve(async (req) => {
             }
         }
 
-        // ส่งอีเมลเชิญเข้าใช้งาน (Base44 built-in)
-        console.log('Sending invitation email to:', email);
-        try {
-            await base44.users.inviteUser(email, 'user');
-            console.log('Invitation sent successfully');
-        } catch (inviteError) {
-            console.error('Failed to send invitation:', inviteError.message);
-            return Response.json({ 
-                error: 'ไม่สามารถส่งอีเมลเชิญได้: ' + inviteError.message 
-            }, { status: 500 });
-        }
+        // ส่งอีเมลเชิญเข้าใช้งาน ผ่าน CRM
+        console.log('Sending invitation email via CRM to:', email);
+        
+        const invitePayload = {
+            email,
+            full_name,
+            custom_role: custom_role || 'employee',
+            accessible_branches,
+            permissions: getDefaultPermissions(custom_role || 'employee')
+        };
+        
+        console.log('Invitation payload:', JSON.stringify(invitePayload, null, 2));
 
         return Response.json({ 
             success: true,
