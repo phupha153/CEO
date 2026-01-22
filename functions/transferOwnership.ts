@@ -73,15 +73,7 @@ Deno.serve(async (req) => {
       owner_id: new_owner_email
     });
 
-    // 👔 STEP 4: Downgrade old owner to manager
-    await base44.asServiceRole.entities.User.update(oldOwner.id, {
-      custom_role: 'manager',
-      plan_status: null,
-      trial_ends_at: null,
-      subscription_end_date: null,
-      package_id: null,
-      package_name: null
-    });
+    // 📌 STEP 4: ไม่ต้องปรับคนเก่า - CRM จะ sync role อัตโนมัติ
 
     return Response.json({
       success: true,
