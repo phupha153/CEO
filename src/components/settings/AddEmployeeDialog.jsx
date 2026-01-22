@@ -187,9 +187,12 @@ export default function AddEmployeeDialog({ isOpen, onClose, onSuccess }) {
         }
       }
 
+      // เช็คว่าเป็น invite ใหม่ หรือ user เก่า
+      const wasNewInvite = transferResponse.data?.was_new_invite || inviteResponse?.data?.was_new_invite;
+
       toast.success(
-        `✅ โอนกรรมสิทธิ์สาขาสำเร็จ!\n\n👑 เจ้าของใหม่: ${formData.full_name} (${formData.email})\n${transferPackage ? '📦 แพ็กเกจถูกโอนไปด้วย' : ''}`,
-        { duration: 8000 }
+        `${wasNewInvite ? '📧 ส่งอีเมลเชิญสำเร็จ!\n' : ''}✅ โอนกรรมสิทธิ์สาขาสำเร็จ!\n\n👑 เจ้าของใหม่: ${formData.full_name} (${formData.email})\n${transferPackage ? '📦 แพ็กเกจถูกโอนไปด้วย' : ''}${wasNewInvite ? '\n\n⏳ รอให้ user สร้าง account จากอีเมลเชิญ' : ''}`,
+        { duration: 10000 }
       );
 
       setFormData({
