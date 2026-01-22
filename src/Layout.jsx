@@ -956,6 +956,15 @@ export default function Layout({ children, currentPageName }) {
       return;
     }
 
+    // ⭐ Auto-select branch if only one branch available
+    if (!selectedBranch && branches.length === 1) {
+      const branch = branches[0];
+      localStorage.setItem('selected_branch_id', branch.id);
+      localStorage.setItem('selected_branch_name', branch.branch_name);
+      setSelectedBranch({ id: branch.id, branch_name: branch.branch_name });
+      return;
+    }
+
     // If no branch is selected and there are branches available, redirect to branch selection
     if (!selectedBranch && branches.length > 0) {
       navigate(createPageUrl('BranchSelection'), { replace: true });
