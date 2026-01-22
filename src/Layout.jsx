@@ -694,13 +694,19 @@ export default function Layout({ children, currentPageName }) {
   const { data: branchOwnerStatus, isLoading: branchOwnerLoading } = useQuery({
     queryKey: ['branchOwnerStatus', selectedBranch?.id],
     queryFn: async () => {
-      if (!selectedBranch?.id) return null;
+      if (!selectedBranch?.id) {
+        console.warn('⚠️ [getBranchOwnerStatus] selectedBranch.id is null/undefined');
+        return null;
+      }
+      console.log('📡 [getBranchOwnerStatus] Fetching for branch:', selectedBranch.id);
       const response = await base44.functions.invoke('getBranchOwnerStatus', {
         branch_id: selectedBranch.id
       });
+      console.log('✅ [getBranchOwnerStatus] Response:', response.data);
       return response.data;
     },
-    enabled: !!selectedBranch && !!currentUser && isOnline,
+    // FIX 1️⃣: รอให้ currentUser โหลดเสร็จก่อน + check isOnline
+    enabled: !isLoading && !!selectedBranch?.id && !!currentUser && isOnline,
     staleTime: 5 * 60 * 1000,
     retry: 1,
     throwOnError: false,
@@ -877,11 +883,28 @@ export default function Layout({ children, currentPageName }) {
         // Manager/Employee เช็คแพ็กเกจของเจ้าของสาขา
         // ⚡ รอให้ branchOwnerStatus โหลดเสร็จก่อน (ถ้ามีสาขาเลือก)
         if (selectedBranch && branchOwnerLoading) {
+          console.log('⏳ [Subscription Check] Waiting for branchOwnerStatus to load...');
           return; // ⭐ รอให้โหลดเสร็จก่อน (ป้องกัน flash redirect)
         }
 
-        effectivePlanStatus = branchOwnerStatus?.plan_status || currentUser.plan_status;
-        effectiveTrialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
+        // FIX 4️⃣: Log ข้อมูลที่ได้มา
+        console.log('📊 [Subscription Check] Manager/Employee:', {
+          selectedBranch: selectedBranch?.id,
+          branchOwnerStatus: branchOwnerStatus,
+          currentUserPlanStatus: currentUser.plan_status
+        });
+
+        effectivePlanStatus = branchOwnerStatus?.plan_status;
+        effectiveTrialEndsAt = branchOwnerStatus?.trial_ends_at;
+        
+        // ⚠️ ถ้า branchOwnerStatus ไม่มี plan_status → ใช้ currentUser's (ถ้ามี)
+        if (!effectivePlanStatus) {
+          console.warn('⚠️ [Subscription Check] No plan_status from branch owner, using manager own plan_status:', currentUser.plan_status);
+          effectivePlanStatus = currentUser.plan_status;
+        }
+        if (!effectiveTrialEndsAt) {
+          effectiveTrialEndsAt = currentUser.trial_ends_at;
+        }
       }
 
       // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป NoPackagePage
@@ -904,6 +927,7 @@ export default function Layout({ children, currentPageName }) {
         } catch {}
       }
     }
+  // FIX 2️⃣: เพิ่ม branchOwnerLoading ใน dependencies เพื่อให้ effect รอให้ query เสร็จ
   }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading, userRole, selectedBranch, branchOwnerStatus, branchOwnerLoading]);
 
   useEffect(() => {
