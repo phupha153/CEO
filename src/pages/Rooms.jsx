@@ -3262,36 +3262,150 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
                           if (tenant && booking) {
                             return (
-                              <Card className="bg-blue-50 border-blue-200">
-                                <CardContent className="p-4 space-y-3">
-                                  <div className="flex justify-between items-start">
-                                    <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                      <User className="w-5 h-5" />
-                                      ข้อมูลผู้เช่า
-                                    </h3>
-                                    <div className="flex flex-col gap-2 items-end">
-                                      {isContractExpiringSoon(booking) && (
-                                        <Button onClick={() => { setRenewBooking(booking); setShowRenewDialog(true); }} className="bg-green-600 hover:bg-green-700 text-white" size="sm">
-                                          <FileText className="w-4 h-4 mr-2" /> ต่อสัญญา
+                              <div className="space-y-4">
+                                {/* ข้อมูลผู้เช่า */}
+                                <Card className="bg-blue-50 border-blue-200">
+                                  <CardContent className="p-4 space-y-3">
+                                    <div className="flex justify-between items-start">
+                                      <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                        <User className="w-5 h-5" />
+                                        ข้อมูลผู้เช่า
+                                      </h3>
+                                      <div className="flex flex-col gap-2 items-end">
+                                        {isContractExpiringSoon(booking) && (
+                                          <Button onClick={() => { setRenewBooking(booking); setShowRenewDialog(true); }} className="bg-green-600 hover:bg-green-700 text-white" size="sm">
+                                            <FileText className="w-4 h-4 mr-2" /> ต่อสัญญา
+                                          </Button>
+                                        )}
+                                        <Button variant="outline" size="sm" onClick={() => { if (confirm(`ยืนยันการย้ายออก ${tenant.full_name} จากห้อง ${selectedRoom.room_number}?`)) { moveOutMutation.mutate(selectedRoom); } }} disabled={moveOutMutation.isPending} className="text-orange-600 border-orange-300 hover:bg-orange-50">
+                                          {moveOutMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+                                          <span className="ml-2">ย้ายออก</span>
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                      <div><Label className="text-slate-600">ชื่อ-นามสกุล</Label><Link to={`${createPageUrl('Tenants')}?search=${encodeURIComponent(tenant.full_name)}`} onClick={() => setShowDetailDialog(false)} className="font-semibold text-blue-600 hover:underline">{tenant.full_name}</Link></div>
+                                      <div><Label className="text-slate-600">เบอร์โทร</Label><p className="font-semibold flex items-center gap-1"><Phone className="w-3 h-3" />{tenant.phone || '-'}</p></div>
+                                      {tenant.line_id && <div><Label className="text-slate-600">LINE ID</Label><p className="font-semibold">{tenant.line_id}</p></div>}
+                                      {tenant.email && <div><Label className="text-slate-600">อีเมล</Label><p className="font-semibold">{tenant.email}</p></div>}
+                                      {tenant.national_id && <div><Label className="text-slate-600">เลขบัตรประชาชน</Label><p className="font-semibold">{tenant.national_id}</p></div>}
+                                      {booking.check_in_date && <div><Label className="text-slate-600">วันเข้าพัก</Label><p className="font-semibold flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th })}</p></div>}
+                                      {booking.check_out_date && <div className="col-span-2"><Label className="text-slate-600">วันสิ้นสุดสัญญา</Label><div className="flex items-center gap-2"><p className="font-semibold flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{format(parseISO(booking.check_out_date), 'd MMM yyyy', { locale: th })}</p>{daysLeft !== null && daysLeft >= 0 && daysLeft <= 30 && (<Badge className="bg-red-500 text-white"><AlertTriangle className="w-3 h-3 mr-1" />เหลือ {daysLeft} วัน</Badge>)}</div></div>}
+                                    </div>
+                                  </CardContent>
+                                </Card>
+
+                                {/* รายละเอียดการจอง */}
+                                <Card className="bg-purple-50 border-purple-200">
+                                  <CardContent className="p-4 space-y-3">
+                                    <div className="flex justify-between items-start">
+                                      <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                                        <CalendarIcon className="w-5 h-5 text-purple-600" />
+                                        รายละเอียดการจอง
+                                      </h3>
+                                      {(canEdit || canDelete) && (
+                                        <Button 
+                                          variant="outline" 
+                                          size="sm"
+                                          onClick={() => {
+                                            if (confirm(`ยืนยันการยกเลิกการจอง?\nห้อง ${selectedRoom.room_number} จะถูกเปลี่ยนเป็นสถานะ "ว่าง"`)) {
+                                              base44.entities.Booking.update(booking.id, { status: 'cancelled' }).then(() => {
+                                                base44.entities.Room.update(selectedRoom.id, { status: 'available' });
+                                                queryClient.invalidateQueries(['bookings']);
+                                                queryClient.invalidateQueries(['rooms']);
+                                                setShowDetailDialog(false);
+                                                toast.success('ยกเลิกการจองสำเร็จ');
+                                              }).catch(err => {
+                                                toast.error('เกิดข้อผิดพลาด: ' + err.message);
+                                              });
+                                            }
+                                          }}
+                                          className="text-red-600 border-red-300 hover:bg-red-50"
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-1" />
+                                          ลบการจอง
                                         </Button>
                                       )}
-                                      <Button variant="outline" size="sm" onClick={() => { if (confirm(`ยืนยันการย้ายออก ${tenant.full_name} จากห้อง ${selectedRoom.room_number}?`)) { moveOutMutation.mutate(selectedRoom); } }} disabled={moveOutMutation.isPending} className="text-orange-600 border-orange-300 hover:bg-orange-50">
-                                        {moveOutMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
-                                        <span className="ml-2">ย้ายออก</span>
-                                      </Button>
                                     </div>
-                                  </div>
-                                  <div className="grid grid-cols-2 gap-3 text-sm">
-                                    <div><Label className="text-slate-600">ชื่อ-นามสกุล</Label><Link to={`${createPageUrl('Tenants')}?search=${encodeURIComponent(tenant.full_name)}`} onClick={() => setShowDetailDialog(false)} className="font-semibold text-blue-600 hover:underline">{tenant.full_name}</Link></div>
-                                    <div><Label className="text-slate-600">เบอร์โทร</Label><p className="font-semibold flex items-center gap-1"><Phone className="w-3 h-3" />{tenant.phone || '-'}</p></div>
-                                    {tenant.line_id && <div><Label className="text-slate-600">LINE ID</Label><p className="font-semibold">{tenant.line_id}</p></div>}
-                                    {tenant.email && <div><Label className="text-slate-600">อีเมล</Label><p className="font-semibold">{tenant.email}</p></div>}
-                                    {tenant.national_id && <div><Label className="text-slate-600">เลขบัตรประชาชน</Label><p className="font-semibold">{tenant.national_id}</p></div>}
-                                    {booking.check_in_date && <div><Label className="text-slate-600">วันเข้าพัก</Label><p className="font-semibold flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th })}</p></div>}
-                                    {booking.check_out_date && <div className="col-span-2"><Label className="text-slate-600">วันสิ้นสุดสัญญา</Label><div className="flex items-center gap-2"><p className="font-semibold flex items-center gap-1"><CalendarIcon className="w-3 h-3" />{format(parseISO(booking.check_out_date), 'd MMM yyyy', { locale: th })}</p>{daysLeft !== null && daysLeft >= 0 && daysLeft <= 30 && (<Badge className="bg-red-500 text-white"><AlertTriangle className="w-3 h-3 mr-1" />เหลือ {daysLeft} วัน</Badge>)}</div></div>}
-                                  </div>
-                                </CardContent>
-                              </Card>
+
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                      <div>
+                                        <Label className="text-slate-600">ประเภท</Label>
+                                        <Badge className={booking.booking_type === 'monthly' ? 'bg-blue-600' : 'bg-orange-600'}>
+                                          {booking.booking_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
+                                        </Badge>
+                                      </div>
+                                      <div>
+                                        <Label className="text-slate-600">สถานะ</Label>
+                                        <Badge className={
+                                          booking.status === 'active' ? 'bg-green-600' :
+                                          booking.status === 'completed' ? 'bg-slate-600' :
+                                          'bg-red-600'
+                                        }>
+                                          {booking.status === 'active' ? 'ใช้งาน' : 
+                                           booking.status === 'completed' ? 'เสร็จสิ้น' : 'ยกเลิก'}
+                                        </Badge>
+                                      </div>
+                                      {booking.check_in_date && (
+                                        <div>
+                                          <Label className="text-slate-600">เช็คอิน</Label>
+                                          <p className="font-semibold text-slate-800">
+                                            {format(parseISO(booking.check_in_date), 'd MMM yyyy', { locale: th })}
+                                          </p>
+                                        </div>
+                                      )}
+                                      {booking.check_out_date && (
+                                        <div>
+                                          <Label className="text-slate-600">เช็คเอาท์</Label>
+                                          <p className="font-semibold text-slate-800">
+                                            {format(parseISO(booking.check_out_date), 'd MMM yyyy', { locale: th })}
+                                          </p>
+                                        </div>
+                                      )}
+                                      {booking.guest_name && (
+                                        <div className="col-span-2">
+                                          <Label className="text-slate-600">ชื่อผู้เข้าพัก</Label>
+                                          <p className="font-semibold text-slate-800">{booking.guest_name}</p>
+                                        </div>
+                                      )}
+                                      {booking.guest_phone && (
+                                        <div>
+                                          <Label className="text-slate-600">เบอร์ผู้เข้าพัก</Label>
+                                          <p className="font-semibold text-slate-800">{booking.guest_phone}</p>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* สถานะการชำระ */}
+                                    {paymentStatus && (
+                                      <div className="border-t border-purple-300 pt-3">
+                                        <Label className="text-slate-600 block mb-2">สถานะการชำระ</Label>
+                                        <div className={`p-3 rounded-lg ${
+                                          paymentStatus.isOverdue ? 'bg-red-100 border-2 border-red-300' :
+                                          paymentStatus.isNearDue ? 'bg-yellow-100 border-2 border-yellow-300' :
+                                          'bg-green-100 border-2 border-green-300'
+                                        }`}>
+                                          <div className="flex items-center justify-between mb-1">
+                                            <span className="font-semibold text-slate-800">
+                                              {paymentStatus.isOverdue ? '🔴 เกินกำหนด' :
+                                               paymentStatus.isNearDue ? '🟡 ใกล้ครบกำหนด' :
+                                               '🟢 ปกติ'}
+                                            </span>
+                                            <span className="font-bold text-lg">
+                                              {paymentStatus.payment.total_amount?.toLocaleString()} ฿
+                                            </span>
+                                          </div>
+                                          <p className="text-xs text-slate-600">
+                                            ครบกำหนด: {format(parseISO(paymentStatus.payment.due_date), 'd MMM yyyy', { locale: th })}
+                                            {paymentStatus.isOverdue && ` (เกิน ${Math.abs(paymentStatus.daysUntilDue)} วัน)`}
+                                            {paymentStatus.isNearDue && ` (อีก ${paymentStatus.daysUntilDue} วัน)`}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              </div>
                             );
                           }
 

@@ -50,11 +50,11 @@ import TestingAdmin from './pages/TestingAdmin';
 import TestingSMS from './pages/TestingSMS';
 import TrialExpiredPage from './pages/TrialExpiredPage';
 import UpdateMyBranches from './pages/UpdateMyBranches';
+import UserBranchAccess from './pages/UserBranchAccess';
 import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import UserBranchAccess from './pages/UserBranchAccess';
 import __Layout from './Layout.jsx';
 
 
@@ -111,11 +111,11 @@ export const PAGES = {
     "TestingSMS": TestingSMS,
     "TrialExpiredPage": TrialExpiredPage,
     "UpdateMyBranches": UpdateMyBranches,
+    "UserBranchAccess": UserBranchAccess,
     "WebhookLogs": WebhookLogs,
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "UserBranchAccess": UserBranchAccess,
 }
 
 export const pagesConfig = {
