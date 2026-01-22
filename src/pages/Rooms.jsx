@@ -2477,17 +2477,21 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                               )
                             ];
                             
-                            // DEBUG LOG
+                            // DEBUG LOG - เปรียบเทียบ IDs และข้อมูล
                             if (room.room_number === '101') {
-                              console.log('🔍 DEBUG Room 101:', {
-                                room_id: room.id,
-                                temporaryBookingCount: temporaryBookings.length,
-                                tempBookingsForThisRoom: temporaryBookings.filter(b => b.room_id === room.id),
-                                hasReservationWithoutTenant,
-                                futureBookings,
-                                hasActiveBooking,
-                                room_status: room.status
+                              console.log('🔍 DEBUG Room 101 - ข้อมูลห้อง:', { id: room.id, number: room.room_number, status: room.status });
+                              console.log('📦 TemporaryBookings ทั้งหมด:', temporaryBookings.length, 'รายการ');
+                              temporaryBookings.forEach((b, idx) => {
+                                console.log(`  [${idx}] room_id: ${b.room_id}, tenant_id: ${b.tenant_id}, status: ${b.status}, check_in: ${b.check_in_date}`);
                               });
+                              console.log('🎯 TemporaryBookings สำหรับ 101:', temporaryBookings.filter(b => b.room_id === room.id));
+                              console.log('📋 Bookings ทั้งหมด:', bookings.length, 'รายการ');
+                              bookings.forEach((b, idx) => {
+                                console.log(`  [${idx}] room_id: ${b.room_id}, tenant_id: ${b.tenant_id}, status: ${b.status}`);
+                              });
+                              console.log('✅ hasReservationWithoutTenant:', hasReservationWithoutTenant);
+                              console.log('🚀 futureBookings:', futureBookings.length, 'รายการ');
+                              console.log('📌 isReserved:', room.status === 'reserved' || futureBookings.length > 0 || (hasActiveBooking && room.status !== 'occupied') || hasReservationWithoutTenant);
                             }
                             
                             // แสดง "ติดจอง" ถ้า: room status = reserved หรือมี future booking หรือมี active booking แต่ room status ไม่ใช่ occupied หรือจองแบบยังไม่มีผู้เช่า
