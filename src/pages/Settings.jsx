@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Building2, DollarSign, CreditCard, Shield, Users, ChevronDown, ChevronUp, Check, Settings as SettingsIcon, AlertTriangle, Calendar, Globe, MessageSquare, Save, Send, ArrowLeft, Bell, DoorOpen, Wrench, Package, TrendingDown, UserPlus, AlertCircle, RefreshCw, Sparkles, Zap, Crown, Loader2, Pencil } from "lucide-react";
+import { Building2, DollarSign, CreditCard, Shield, Users, ChevronDown, ChevronUp, Check, Settings as SettingsIcon, AlertTriangle, Calendar, Globe, MessageSquare, Save, Send, ArrowLeft, Bell, DoorOpen, Wrench, Package, TrendingDown, UserPlus, AlertCircle, RefreshCw, Sparkles, Zap, Crown, Loader2, Pencil, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import SignaturePad from "../components/shared/SignaturePad";
 import { Upload, X, Image as ImageIcon, PenTool } from "lucide-react";
@@ -1082,6 +1082,30 @@ export default function Settings() {
     },
     onError: () => {
       toast.error('อัปเดตสาขาที่เข้าถึงได้ไม่สำเร็จ');
+    }
+  });
+
+  const removeEmployeeFromBranchMutation = useMutation({
+    mutationFn: async ({ userId, userEmail }) => {
+      const user = users.find(u => u.id === userId);
+      if (!user) throw new Error('ไม่พบข้อมูลผู้ใช้');
+
+      const currentBranches = user.accessible_branches || [];
+      const updatedBranches = currentBranches.filter(b => b !== selectedBranch?.id);
+
+      await base44.entities.User.update(userId, { 
+        accessible_branches: updatedBranches 
+      });
+
+      return { userEmail };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['users']);
+      queryClient.invalidateQueries(['usersInMyBranches']);
+      toast.success(`ยกเลิกสิทธิ์การเข้าถึงสาขาสำเร็จ`);
+    },
+    onError: (error) => {
+      toast.error('ยกเลิกสิทธิ์ไม่สำเร็จ: ' + error.message);
     }
   });
 
@@ -3989,28 +4013,47 @@ export default function Settings() {
                                   {/* ปุ่มจัดการ */}
                                   <div className="flex flex-wrap gap-2">
                                   {user.email !== currentUser?.email && (
-                                    <>
-                                      <Button
-                                        type="button"
-                                        onClick={() => handleOpenPermissionsDialog(user)}
-                                        className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
-                                      >
-                                        <SettingsIcon className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
-                                        <span className="hidden md:inline">จัดการสิทธิ์ย่อย</span>
-                                        <span className="md:hidden">สิทธิ์</span>
-                                      </Button>
+                                   <>
+                                     <Button
+                                       type="button"
+                                       onClick={() => handleOpenPermissionsDialog(user)}
+                                       className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
+                                     >
+                                       <SettingsIcon className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                                       <span className="hidden md:inline">จัดการสิทธิ์ย่อย</span>
+                                       <span className="md:hidden">สิทธิ์</span>
+                                     </Button>
 
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={() => handleOpenBranchAccessDialog(user)}
-                                        className="border-blue-600 text-blue-700 hover:bg-blue-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
-                                      >
-                                        <Globe className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
-                                        <span className="hidden md:inline">จัดการสาขา</span>
-                                        <span className="md:hidden">สาขา</span>
-                                      </Button>
-                                    </>
+                                     <Button
+                                       type="button"
+                                       variant="outline"
+                                       onClick={() => handleOpenBranchAccessDialog(user)}
+                                       className="border-blue-600 text-blue-700 hover:bg-blue-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
+                                     >
+                                       <Globe className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                                       <span className="hidden md:inline">จัดการสาขา</span>
+                                       <span className="md:hidden">สาขา</span>
+                                     </Button>
+
+                                     <Button
+                                       type="button"
+                                       variant="outline"
+                                       onClick={() => {
+                                         if (confirm(`ยกเลิกสิทธิ์การเข้าถึงสาขา "${selectedBranch?.name}" ของ ${user.full_name}?`)) {
+                                           removeEmployeeFromBranchMutation.mutate({
+                                             userId: user.id,
+                                             userEmail: user.email
+                                           });
+                                         }
+                                       }}
+                                       disabled={removeEmployeeFromBranchMutation.isPending}
+                                       className="border-red-600 text-red-700 hover:bg-red-50 flex-1 md:flex-none text-xs md:text-sm px-2 md:px-4"
+                                     >
+                                       <Trash2 className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+                                       <span className="hidden md:inline">ลบ</span>
+                                       <span className="md:hidden">ลบ</span>
+                                     </Button>
+                                   </>
                                   )}
 
                                   <Button
