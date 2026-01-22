@@ -759,10 +759,8 @@ export default function Layout({ children, currentPageName }) {
   const buildingName = getConfigValue('building_name', 'หลังหอพัก');
   const appMode = getConfigValue('app_mode', 'single_tenant'); // ดึงค่า app_mode
 
-  // ⭐ userPermissions (userRole ถูกกำหนดไว้ก่อนหน้านี้แล้ว)
+  // ⭐ userPermissions และ userAccessibleBranches (userRole ถูกกำหนดไว้ก่อนหน้านี้แล้ว)
   const userPermissions = currentUser?.permissions || [];
-  
-  // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้
   const userAccessibleBranches = currentUser?.accessible_branches;
 
   // ถ้ามี accessible_branches set (ไม่ว่าจะ [] หรือมีค่า) ต้องเช็คว่าสาขาอยู่ในลิสต์หรือไม่
