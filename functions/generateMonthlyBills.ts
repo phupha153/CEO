@@ -529,6 +529,15 @@ Deno.serve(async (req) => {
         let skippedDueToLimit = 0;
         const paymentReferenceMap = new Map();
 
+        // ⭐ NEW: สร้าง mapping จาก Payment records เพื่อหา room → tenant
+        const paymentsByRoomMap = new Map();
+        for (const payment of normalizedPayments) {
+            if (!paymentsByRoomMap.has(payment.room_id)) {
+                paymentsByRoomMap.set(payment.room_id, []);
+            }
+            paymentsByRoomMap.get(payment.room_id).push(payment);
+        }
+
         for (const room of roomsToProcess) {
             // ⭐ ถ้าเกิน limit แล้ว ให้หยุดเตรียมบิล
             if (paymentsToCreate.length >= MAX_BILLS_PER_RUN) {
@@ -537,7 +546,25 @@ Deno.serve(async (req) => {
             }
             try {
                 const activeBooking = bookingsMap.get(room.id); // ⭐ OPTIMIZED: O(1) lookup instead of .find()
-                if (!activeBooking) continue;
+                
+                // ⭐ FIX: ถ้าไม่มี active booking ให้ดูจาก Payment record (fallback)
+                let tenantId = null;
+                let finalBooking = activeBooking;
+                
+                if (activeBooking) {
+                    tenantId = activeBooking.tenant_id;
+                } else {
+                    const paymentsForRoom = paymentsByRoomMap.get(room.id) || [];
+                    if (paymentsForRoom.length > 0) {
+                        tenantId = paymentsForRoom[0].booking_id; // ⭐ ใช้ booking_id จาก Payment
+                        console.log(`   ℹ️ Room ${room.room_number}: ใช้ tenant จาก Payment record`);
+                    }
+                }
+                
+                if (!tenantId) {
+                    console.log(`   ⏭️ Room ${room.room_number}: ไม่มี booking หรือ payment record`);
+                    continue;
+                }
 
                 const roomBranchId = room.branch_id;
 
