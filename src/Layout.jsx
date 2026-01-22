@@ -868,19 +868,31 @@ export default function Layout({ children, currentPageName }) {
         return;
       }
 
-      const planStatus = currentUser.plan_status;
-      const trialEndsAt = currentUser.trial_ends_at;
+      // ⭐ FIX: ถ้ามีสาขาเลือก และไม่ใช่ owner = รอให้ branchOwnerStatus โหลดเสร็จก่อน
+      const isOwner = branchOwnerStatus?.is_owner !== false;
+      if (selectedBranch && !isOwner && branchOwnerLoading) {
+        return; // รอ owner status โหลดเสร็จ
+      }
+
+      // ⭐ ใช้ owner's status สำหรับ Manager/Employee
+      const effectivePlanStatus = (selectedBranch && !isOwner) 
+        ? branchOwnerStatus?.plan_status || currentUser.plan_status
+        : currentUser.plan_status;
+
+      const effectiveTrialEndsAt = (selectedBranch && !isOwner)
+        ? branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at
+        : currentUser.trial_ends_at;
 
       // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป NoPackagePage
-      if (!planStatus || planStatus === 'expired' || planStatus === 'cancelled') {
+      if (!effectivePlanStatus || effectivePlanStatus === 'expired' || effectivePlanStatus === 'cancelled') {
         navigate(createPageUrl('NoPackagePage'), { replace: true });
         return;
       }
 
       // ⭐ ถ้า trial หมดอายุ → ไป TrialExpiredPage
-      if (trialEndsAt && planStatus === 'trial') {
+      if (effectiveTrialEndsAt && effectivePlanStatus === 'trial') {
         try {
-          const trialEndDate = parseISO(trialEndsAt);
+          const trialEndDate = parseISO(effectiveTrialEndsAt);
           const today = new Date();
           today.setHours(0, 0, 0, 0);
           const daysRemaining = differenceInDays(trialEndDate, today);
@@ -891,7 +903,7 @@ export default function Layout({ children, currentPageName }) {
         } catch {}
       }
     }
-  }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading]);
+  }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading, branchOwnerLoading, branchOwnerStatus, selectedBranch]);
 
   useEffect(() => {
     if (!currentUser || isLoading || branchesLoading) return;
