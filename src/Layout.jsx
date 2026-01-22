@@ -781,16 +781,19 @@ export default function Layout({ children, currentPageName }) {
   // ⭐ Feature access - Trial = full access, Active = full access, Owner = full access
   const hasFeature = (featureName) => {
     if (!currentUser) return false;
-    
+
     // Developer = full access
     if (userRole === 'developer') return true;
-    
+
     // Owner = full access (เจ้าของหอพัก)
     if (userRole === 'owner') return true;
-    
+
+    // ⭐ FIX: Manager/Employee ต้องเช็คแพ็กเกจของเจ้าของสาขา
+    const effectivePlanStatus = branchOwnerStatus?.plan_status || currentUser.plan_status;
+
     // Trial or Active = full access
-    if (currentUser.plan_status === 'trial' || currentUser.plan_status === 'active') return true;
-    
+    if (effectivePlanStatus === 'trial' || effectivePlanStatus === 'active') return true;
+
     return false;
   };
 
