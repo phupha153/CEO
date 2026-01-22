@@ -644,23 +644,7 @@ export default function Layout({ children, currentPageName }) {
     throwOnError: false,
   });
 
-  // ⭐ กำหนด userRole ก่อน queries ที่ใช้ userRole
-  const userRole = (() => {
-    // ⭐ Admin users = developer เสมอ (ไม่สนใจ custom_role)
-    if (currentUser?.role === 'admin') {
-      return 'developer';
-    }
 
-    let effectiveRole = currentUser?.custom_role;
-
-    // ⭐ FIX: ใช้ crmAccess.role เป็น fallback ถ้า custom_role ยัง undefined
-    if (!effectiveRole && crmAccess && !crmAccessLoading && crmAccess.role) {
-      effectiveRole = crmAccess.role;
-    }
-
-    const role = effectiveRole || 'employee';
-    return role;
-  })();
 
   const { data: branches = [], isLoading: branchesLoading } = useQuery({
     queryKey: ['branches', currentUser?.email],
@@ -736,8 +720,7 @@ export default function Layout({ children, currentPageName }) {
       return response.data;
     },
     // FIX 1️⃣: รอให้ currentUser โหลดเสร็จก่อน + check isOnline
-    // ⭐ Developer ไม่ต้องเช็คแพ็กเกจเลย
-    enabled: !isLoading && !!selectedBranch?.id && !!currentUser && isOnline && userRole !== 'developer',
+    enabled: !isLoading && !!selectedBranch?.id && !!currentUser && isOnline,
     staleTime: 5 * 60 * 1000,
     retry: 1,
     throwOnError: false,
@@ -759,8 +742,26 @@ export default function Layout({ children, currentPageName }) {
   const buildingName = getConfigValue('building_name', 'หลังหอพัก');
   const appMode = getConfigValue('app_mode', 'single_tenant'); // ดึงค่า app_mode
 
-  // ⭐ userPermissions และ userAccessibleBranches (userRole ถูกกำหนดไว้ก่อนหน้านี้แล้ว)
+  // ⭐ กำหนด userRole, userPermissions, userAccessibleBranches, canAccessBranch
+  const userRole = (() => {
+    // ⭐ Admin users = developer เสมอ (ไม่สนใจ custom_role)
+    if (currentUser?.role === 'admin') {
+      return 'developer';
+    }
+    
+    let effectiveRole = currentUser?.custom_role;
+    
+    // ⭐ FIX: ใช้ crmAccess.role เป็น fallback ถ้า custom_role ยัง undefined
+    if (!effectiveRole && crmAccess && !crmAccessLoading && crmAccess.role) {
+      effectiveRole = crmAccess.role;
+    }
+    
+    const role = effectiveRole || 'employee';
+    return role;
+  })();
   const userPermissions = currentUser?.permissions || [];
+  
+  // ⭐ แก้ไข: ไม่ใช้ || [] เพื่อให้แยก null/undefined จาก [] ได้
   const userAccessibleBranches = currentUser?.accessible_branches;
 
   // ถ้ามี accessible_branches set (ไม่ว่าจะ [] หรือมีค่า) ต้องเช็คว่าสาขาอยู่ในลิสต์หรือไม่
@@ -770,8 +771,8 @@ export default function Layout({ children, currentPageName }) {
   // ⭐ Fallback: ถ้าไม่มี accessible_branches set เลย (null/undefined) 
   // ให้เข้าได้ทุกสาขาที่ตัวเองเป็น owner (ดูจาก owner_id หรือ created_by)
   const canAccessBranch = (() => {
-    // ⭐ Developer เข้าได้ทุกสาขาเสมอ (ไม่ต้องเช็คอะไร)
-    if (userRole === 'developer') return true;
+    // Developer ที่ไม่มี accessible_branches set = เข้าได้ทุกสาขา
+    if (userRole === 'developer' && !hasAccessibleBranchesSet) return true;
 
     // ถ้ามี accessible_branches set แล้ว ต้องเช็คว่าสาขาอยู่ในลิสต์หรือไม่
     if (hasAccessibleBranchesSet) {
@@ -834,10 +835,7 @@ export default function Layout({ children, currentPageName }) {
     const initTrialIfNeeded = async () => {
       if (isLoading || !currentUser) return;
 
-      // ⭐ Developer ไม่ต้อง init trial เลย
-      if (userRole === 'developer') return;
-
-      // เฉพาะ Owner ที่ยังไม่มี plan_status เลย
+      // เฉพาะ Owner ที่ยังไม่มี plan_status เลย (developer ไม่ต้อง init trial)
       if (userRole === 'owner' && !currentUser.plan_status && !isCreatingTrial) {
         setIsCreatingTrial(true);
 
@@ -870,12 +868,7 @@ export default function Layout({ children, currentPageName }) {
       return;
     }
 
-    // ⭐ Developer ข้ามการเช็คแพ็กเกจทั้งหมด - ไม่ต้องเช็คอะไรเลย
-    if (!isLoading && currentUser && userRole === 'developer') {
-      return;
-    }
-
-    // ⭐ Check subscription status and redirect (เฉพาะ non-developer)
+    // ⭐ Check subscription status and redirect
     if (!isLoading && currentUser) {
       // FIX 0️⃣: Debug - Log currentUser state
       console.log('👤 [Subscription Check] CurrentUser loaded:', {
@@ -887,6 +880,9 @@ export default function Layout({ children, currentPageName }) {
 
       // ⚡ รอให้สร้างแพ็กเกจทดลองเสร็จก่อน
       if (isCreatingTrial) return;
+
+      // Skip check for developer and special pages
+      if (userRole === 'developer') return;
       if (currentPageName === 'BranchSelection' ||
           currentPageName === 'BranchManagement' ||
           currentPageName === 'UserBranchAccess' ||
@@ -1414,13 +1410,10 @@ export default function Layout({ children, currentPageName }) {
 
   // ⭐ User trial banner - แสดงของเจ้าของสาขา
   const renderSubscriptionBanner = () => {
-    // ⭐ Developer ไม่แสดง subscription banner
-    if (userRole === 'developer') return null;
-
     // ⚡ FIX: รอให้ branchOwnerStatus โหลดเสร็จก่อน (ถ้ามีการเปิด query)
     const isQueryEnabled = !!selectedBranch && !!currentUser && isOnline;
     const shouldWaitForBranchOwner = isQueryEnabled && branchOwnerLoading;
-
+    
     // รอให้โหลดข้อมูลเสร็จก่อน
     if (isLoading || configsLoading || branchesLoading || !currentUser || shouldWaitForBranchOwner) {
       return null; // ⭐ ไม่แสดงอะไรเลยขณะโหลด (ป้องกัน flash)
