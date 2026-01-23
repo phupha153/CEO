@@ -712,13 +712,13 @@ export default function BranchManagement() {
             </CardContent>
           </Card>
 
-          {/* Delete Confirmation Dialog */}
+          {/* Delete Confirmation Dialog - เพิ่มการยืนยันป้อนชื่อสาขา */}
           <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 text-red-600">
                   <AlertTriangle className="w-5 h-5" />
-                  ยืนยันการลบสาขา
+                  ⚠️ ยืนยันการลบสาขา
                 </DialogTitle>
               </DialogHeader>
               {deletingBranch && (
@@ -742,6 +742,22 @@ export default function BranchManagement() {
                       ⚠️ การกระทำนี้ไม่สามารถย้อนกลับได้!
                     </p>
                   </div>
+
+                  {/* เพิ่มช่องป้อนชื่อสาขาเพื่อยืนยัน */}
+                  <div className="space-y-2">
+                    <Label className="text-red-700 font-semibold">
+                      กรุณาพิมพ์ชื่อสาขา "{deletingBranch.branch_name}" เพื่อยืนยัน
+                    </Label>
+                    <Input
+                      type="text"
+                      placeholder={`พิมพ์ "${deletingBranch.branch_name}" ที่นี่`}
+                      onChange={(e) => {
+                        setDeletingBranch({ ...deletingBranch, confirmName: e.target.value });
+                      }}
+                      className="border-red-300 focus:border-red-500 focus:ring-red-500"
+                    />
+                  </div>
+
                   <div className="flex justify-end gap-2">
                     <Button
                       type="button"
@@ -755,8 +771,11 @@ export default function BranchManagement() {
                     </Button>
                     <Button
                       onClick={confirmDelete}
-                      disabled={deleteMutation.isPending}
-                      className="bg-red-600 hover:bg-red-700"
+                      disabled={
+                        deleteMutation.isPending ||
+                        deletingBranch.confirmName !== deletingBranch.branch_name
+                      }
+                      className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {deleteMutation.isPending ? 'กำลังลบ...' : 'ยืนยันลบสาขา'}
                     </Button>
