@@ -2976,8 +2976,10 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                   await bulkUpdateFromTableMutation.mutateAsync(updates);
                 }}
                 onDelete={(id) => deleteMutation.mutate(id)}
+                onAddBooking={handleAddBooking}
                 canEdit={canEdit}
                 canDelete={canDelete}
+                canAddContract={canAddContract}
                 isSelectionMode={isSelectionMode}
                 selectedTenants={selectedTenants}
                 onToggleSelection={toggleTenantSelection}

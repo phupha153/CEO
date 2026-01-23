@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, Check, Trash2, Loader2, Copy, ClipboardPaste } from "lucide-react";
+import { Star, Check, Trash2, Loader2, Copy, ClipboardPaste, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 const COLUMNS = [
@@ -20,6 +20,8 @@ const COLUMNS = [
   { key: 'address', label: 'ที่อยู่', width: 200, editable: true, type: 'text' },
   { key: 'emergency_contact', label: 'เบอร์ฉุกเฉิน', width: 120, editable: true, type: 'tel' },
   { key: 'rooms', label: 'ห้องที่เช่า', width: 120, editable: false },
+  { key: 'check_in_date', label: 'วันเริ่มสัญญา', width: 120, editable: false },
+  { key: 'check_out_date', label: 'วันสิ้นสุดสัญญา', width: 120, editable: false },
   { key: 'prepaid_balance', label: 'เงินล่วงหน้า', width: 100, editable: false },
   { key: 'rating', label: 'คะแนน', width: 80, editable: false },
   { key: 'status', label: 'สถานะ', width: 80, editable: true, type: 'select', options: [
@@ -38,8 +40,10 @@ export default function ExcelTable({
   onCellUpdate,
   onBulkUpdate,
   onDelete,
+  onAddBooking,
   canEdit,
   canDelete,
+  canAddContract,
   isSelectionMode,
   selectedTenants,
   onToggleSelection,
@@ -502,6 +506,44 @@ export default function ExcelTable({
               );
             })}
           </div>
+        );
+      }
+      return <span className="text-slate-400">-</span>;
+    }
+    
+    if (col.key === 'check_in_date' || col.key === 'check_out_date') {
+      const activeBookings = getActiveBookings(tenant.id);
+      if (activeBookings.length > 0) {
+        const booking = activeBookings[0];
+        const dateValue = booking[col.key];
+        if (dateValue) {
+          try {
+            const date = new Date(dateValue);
+            return (
+              <span className="text-sm text-slate-700">
+                {date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
+              </span>
+            );
+          } catch {
+            return <span className="text-slate-400">-</span>;
+          }
+        }
+      }
+      // ถ้าไม่มีสัญญา แสดงปุ่มเพิ่ม
+      if (canAddContract && activeBookings.length === 0) {
+        return (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-blue-600 hover:bg-blue-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddBooking(tenant);
+            }}
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            เพิ่ม
+          </Button>
         );
       }
       return <span className="text-slate-400">-</span>;
