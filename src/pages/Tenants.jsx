@@ -4557,20 +4557,20 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
                 <DialogTitle>นำเข้าข้อมูลผู้เช่า</DialogTitle>
               </DialogHeader>
 
-              <ExcelUploader
-                entityName="Tenant"
-                schema={tenantSchema}
-                templateData={templateData}
-                templateFilename={`tenant_template_${selectedBranchName}.csv`}
-                onSuccess={() => {
-                  queryClient.invalidateQueries(['tenants', selectedBranchId]);
-                  setShowUploadDialog(false);
-                  toast.success('อัปโหลดข้อมูลผู้เช่าสำเร็จ');
-                }}
-                onError={(error) => toast.error(error.message || 'เกิดข้อผิดพลาดในการอัปโหลด')}
-                additionalData={{ branch_id: selectedBranchId }}
-                customImportHandler={handleTenantImport}
-              />
+           <ExcelUploader
+  entityName="Tenant"
+  // schema={tenantSchema}  👈 คอมเมนต์บรรทัดนี้ไว้ เพื่อปิดการตรวจสอบหัวข้อแบบเข้มงวด
+  templateData={templateData}
+  templateFilename={`tenant_template_${selectedBranchName}.csv`}
+  onSuccess={() => {
+    queryClient.invalidateQueries(['tenants', selectedBranchId]);
+    setShowUploadDialog(false);
+    toast.success('อัปโหลดข้อมูลผู้เช่าสำเร็จ');
+  }}
+  onError={(error) => toast.error(error.message || 'เกิดข้อผิดพลาดในการอัปโหลด')}
+  additionalData={{ branch_id: selectedBranchId }}
+  customImportHandler={handleTenantImport} // ✅ ข้อมูลจะถูกส่งมาที่นี่ และถูกล้าง \r ออกโดยอัตโนมัติ
+/>
               <div className="mt-4 flex justify-end">
                 <Button variant="outline" onClick={() => setShowUploadDialog(false)}>
                   ปิด
