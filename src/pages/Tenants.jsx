@@ -2064,31 +2064,30 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     });
   }, [paginatedTenants, getActiveBookings, isContractExpiringSoon, getTenantAverageRating, getVehicleCount, bookings, getRoomInfo]);
 
- const tenantSchema = {
+ // ✅ ใช้ตัวนี้แทนตัวเดิมครับ
+  const tenantSchema = {
     type: "object",
     properties: {
-      "ชื่อ-นามสกุล": { type: "string" },
-      "full_name": { type: "string" },
-      
-      // เปลี่ยนให้รับได้ทั้งข้อความและตัวเลข
-      "เบอร์โทร": { type: ["string", "number"] },
-      "phone": { type: ["string", "number"] },
-      
-      "เพศ": { type: "string" },
-      "อายุ": { type: ["string", "number"] },
-      "LINE ID": { type: ["string", "number"] },
-      "เลขบัตรประชาชน": { type: ["string", "number"] },
-      "อีเมล": { type: "string" },
-      "ที่อยู่": { type: "string" },
-      "เบอร์ติดต่อฉุกเฉิน": { type: ["string", "number"] },
-      "หมายเหตุ": { type: "string" },
-      "เลขห้อง": { type: ["string", "number"] },
-      "วันเริ่มสัญญา": { type: "string" },
-      "วันสิ้นสุดสัญญา": { type: "string" },
-      "เงินมัดจำ": { type: ["string", "number"] },
-      "สถานะการจอง": { type: "string" }
+      "ชื่อ-นามสกุล": {}, // ไม่กำหนด type เพื่อให้รับได้ทั้ง Text และ BOM
+      "full_name": {},
+      "เบอร์โทร": {},      // ไม่กำหนด type เพื่อให้รับได้ทั้งตัวเลขและ Text
+      "phone": {},
+      "เพศ": {},
+      "อายุ": {},
+      "age": {},
+      "LINE ID": {},
+      "เลขบัตรประชาชน": {},
+      "อีเมล": {},
+      "ที่อยู่": {},
+      "เบอร์ติดต่อฉุกเฉิน": {},
+      "หมายเหตุ": {},
+      "เลขห้อง": {},
+      "วันเริ่มสัญญา": {},
+      "วันสิ้นสุดสัญญา": {},
+      "เงินมัดจำ": {},
+      "สถานะการจอง": {}
     },
-    // ⚠️ ลบบรรทัด required: ["ชื่อ-นามสกุล"] ออกไปเลยครับ ตัวนี้แหละตัวปัญหา
+    // ❌ สำคัญมาก: ห้ามใส่บรรทัด required: [...] เด็ดขาด เพราะมันจะชนกับอักขระล่องหนใน CSV
   };
 
   const templateData = [{
