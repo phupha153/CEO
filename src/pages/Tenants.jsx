@@ -2064,26 +2064,31 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     });
   }, [paginatedTenants, getActiveBookings, isContractExpiringSoon, getTenantAverageRating, getVehicleCount, bookings, getRoomInfo]);
 
-  const tenantSchema = {
+ const tenantSchema = {
     type: "object",
     properties: {
       "ชื่อ-นามสกุล": { type: "string" },
-      "เบอร์โทร": { type: "string" },
+      "full_name": { type: "string" },
+      
+      // เปลี่ยนให้รับได้ทั้งข้อความและตัวเลข
+      "เบอร์โทร": { type: ["string", "number"] },
+      "phone": { type: ["string", "number"] },
+      
       "เพศ": { type: "string" },
-      "อายุ": { type: "number" },
-      "LINE ID": { type: "string" },
-      "เลขบัตรประชาชน": { type: "string" },
+      "อายุ": { type: ["string", "number"] },
+      "LINE ID": { type: ["string", "number"] },
+      "เลขบัตรประชาชน": { type: ["string", "number"] },
       "อีเมล": { type: "string" },
       "ที่อยู่": { type: "string" },
-      "เบอร์ติดต่อฉุกเฉิน": { type: "string" },
+      "เบอร์ติดต่อฉุกเฉิน": { type: ["string", "number"] },
       "หมายเหตุ": { type: "string" },
-      "เลขห้อง": { type: "string" },
+      "เลขห้อง": { type: ["string", "number"] },
       "วันเริ่มสัญญา": { type: "string" },
       "วันสิ้นสุดสัญญา": { type: "string" },
-      "เงินมัดจำ": { type: "number" },
+      "เงินมัดจำ": { type: ["string", "number"] },
       "สถานะการจอง": { type: "string" }
     },
-    required: ["ชื่อ-นามสกุล"]
+    // ⚠️ ลบบรรทัด required: ["ชื่อ-นามสกุล"] ออกไปเลยครับ ตัวนี้แหละตัวปัญหา
   };
 
   const templateData = [{
