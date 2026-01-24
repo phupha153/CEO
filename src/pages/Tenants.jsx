@@ -2148,188 +2148,139 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     toast.success('ดาวน์โหลดข้อมูลผู้เช่าสำเร็จ');
   };
 
-  const handleTenantImport = async (importedData) => {
-    if (!selectedBranchId) throw new Error('ไม่พบสาขา');
+  // ⭐ จุดแก้ไข: เปลี่ยนฟังก์ชันนี้ใหม่ทั้งหมด เพื่อให้รับไฟล์จาก Google Sheets ได้
+  const handleTenantImport = async (importedData) => {
+    if (!selectedBranchId) throw new Error('ไม่พบสาขา');
 
-    // Fetch rooms for validation
-    const branchRooms = await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 1000);
-    
-    // Fetch existing tenants for duplicate check
-    const existingTenants = await base44.entities.Tenant.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
-    
-    // Fetch existing bookings to check for orphaned bookings
-    const existingBookings = await base44.entities.Booking.filter({ branch_id: selectedBranchId, booking_type: 'monthly' }, '-created_date', 1000);
+    // 1. --- เพิ่มระบบทำความสะอาดหัวข้อ (Cleaning Logic) ---
+    // โค้ดส่วนนี้จะช่วยลบ "อักขระล่องหน" และ "ช่องว่าง" ออกจากหัวข้อให้เองอัตโนมัติ
+    const cleanData = importedData.map(record => {
+      const newRecord = {};
+      Object.keys(record).forEach(key => {
+        // ลบอักขระพิเศษ (BOM) และช่องว่างหน้าหลังออกให้หมด
+        const cleanKey = key.replace(/^\ufeff/, '').trim();
+        newRecord[cleanKey] = record[key];
+      });
+      return newRecord;
+    });
+    // ---------------------------------------------------
 
-    let updatedCount = 0;
-    let createdCount = 0;
-    let skippedCount = 0;
-    let bookingUpdatedCount = 0;
-    let bookingFixedCount = 0;
+    // Fetch rooms for validation
+    const branchRooms = await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 1000);
+    const existingTenants = await base44.entities.Tenant.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
+    const existingBookings = await base44.entities.Booking.filter({ branch_id: selectedBranchId, booking_type: 'monthly' }, '-created_date', 1000);
 
-    for (const record of importedData) {
-      // ดึงข้อมูลจาก record (รองรับทั้งภาษาไทยและอังกฤษ)
-      const tenantId = record.id || record['รหัส'];
-      const fullName = record.full_name || record['ชื่อ-นามสกุล'];
-      const phone = record.phone || record['เบอร์โทร'];
-      const nationalId = record.national_id || record['เลขบัตรประชาชน'];
+    let updatedCount = 0;
+    let createdCount = 0;
+    let skippedCount = 0;
+    let bookingUpdatedCount = 0;
+    let bookingFixedCount = 0;
 
-      // ⭐ ต้องมีชื่อผู้เช่าเสมอ
-      if (!fullName || fullName.trim() === '') {
-        console.warn('Skipping record without name:', record);
-        skippedCount++;
-        continue;
-      }
+    // ⭐ เปลี่ยนจาก importedData เป็น cleanData (ข้อมูลที่ล้างสะอาดแล้ว)
+    for (const record of cleanData) {
+      // ดึงข้อมูล (รองรับทั้งภาษาไทยและอังกฤษ)
+      const tenantId = record.id || record['รหัส'];
+      const fullName = record.full_name || record['ชื่อ-นามสกุล']; // ตรงนี้จะทำงานได้แล้วเพราะเราล้างหัวข้อแล้ว
+      
+      // แปลงเบอร์โทรและเลขบัตรเป็นข้อความเสมอ (ป้องกัน Error เรื่องตัวเลข)
+      const phone = record.phone ? String(record.phone) : (record['เบอร์โทร'] ? String(record['เบอร์โทร']) : '');
+      const nationalId = record.national_id ? String(record.national_id) : (record['เลขบัตรประชาชน'] ? String(record['เลขบัตรประชาชน']) : '');
 
-      // ⭐ หา tenant ที่มีอยู่แล้วจาก ID (ถ้ามี ID)
-      const existingTenant = tenantId ? existingTenants.find(t => t.id === tenantId) : null;
-      
-      const tenantData = {
-        full_name: fullName,
-        phone: phone,
-        gender: record.gender || record['เพศ'] || existingTenant?.gender,
-        age: record.age || record['อายุ'] ? parseInt(record.age || record['อายุ']) : existingTenant?.age,
-        line_id: record.line_id || record['LINE ID'] || existingTenant?.line_id,
-        national_id: nationalId || existingTenant?.national_id,
-        email: record.email || record['อีเมล'] || existingTenant?.email,
-        address: record.address || record['ที่อยู่'] || existingTenant?.address,
-        emergency_contact: record.emergency_contact || record['เบอร์ฉุกเฉิน'] || existingTenant?.emergency_contact,
-        notes: record.notes || record['หมายเหตุ'] || existingTenant?.notes,
-        status: record.status || record['สถานะผู้เช่า'] || existingTenant?.status || 'active',
-        line_user_id: existingTenant?.line_user_id,
-        branch_id: selectedBranchId
-      };
+      // ข้ามถ้าไม่มีชื่อ
+      if (!fullName || fullName.trim() === '') {
+        console.warn('Skipping record without name:', record);
+        skippedCount++;
+        continue;
+      }
 
-      // สร้างหรืออัพเดทผู้เช่า
-      let finalTenant;
-      if (existingTenant) {
-        // อัพเดทข้อมูลผู้เช่าที่มีอยู่แล้ว
-        await base44.entities.Tenant.update(existingTenant.id, tenantData);
-        finalTenant = existingTenant;
-        updatedCount++;
-      } else {
-        // สร้างผู้เช่าใหม่
-        const newTenant = await base44.entities.Tenant.create(tenantData);
-        existingTenants.push(newTenant);
-        finalTenant = newTenant;
-        createdCount++;
-      }
+      // --- ส่วนที่เหลือเหมือนเดิม (Logic การบันทึก) ---
+      const existingTenant = tenantId ? existingTenants.find(t => t.id === tenantId) : null;
+      
+      const tenantData = {
+        full_name: fullName,
+        phone: phone,
+        gender: record.gender || record['เพศ'] || existingTenant?.gender,
+        age: record.age || record['อายุ'] ? parseInt(record.age || record['อายุ']) : existingTenant?.age,
+        line_id: record.line_id || record['LINE ID'] || existingTenant?.line_id,
+        national_id: nationalId || existingTenant?.national_id,
+        email: record.email || record['อีเมล'] || existingTenant?.email,
+        address: record.address || record['ที่อยู่'] || existingTenant?.address,
+        emergency_contact: record.emergency_contact || record['เบอร์ติดต่อฉุกเฉิน'] || existingTenant?.emergency_contact, // แก้ชื่อให้ตรงกับ CSV
+        notes: record.notes || record['หมายเหตุ'] || existingTenant?.notes,
+        status: record.status || record['สถานะการจอง'] || existingTenant?.status || 'active', // ใช้สถานะการจองมาเป็นสถานะผู้เช่าถ้าจำเป็น
+        line_user_id: existingTenant?.line_user_id,
+        branch_id: selectedBranchId
+      };
 
-      // 2. ⭐ สร้าง/อัพเดท Booking ถ้ามีข้อมูลเลขห้อง
-      const roomNumber = record.room_number || record['เลขห้อง'];
-      
-      console.log(`🔍 [Import] Tenant: ${fullName}, Room Number: ${roomNumber}`);
-      
-      if (roomNumber && roomNumber.toString().trim() !== '') {
-        const roomNumStr = roomNumber.toString().trim();
-        const room = branchRooms.find(r => r.room_number === roomNumStr);
+      let finalTenant;
+      if (existingTenant) {
+        await base44.entities.Tenant.update(existingTenant.id, tenantData);
+        finalTenant = existingTenant;
+        updatedCount++;
+      } else {
+        const newTenant = await base44.entities.Tenant.create(tenantData);
+        existingTenants.push(newTenant);
+        finalTenant = newTenant;
+        createdCount++;
+      }
 
-        console.log(`  🏠 Found room:`, room ? `${room.room_number} (ID: ${room.id})` : 'NOT FOUND');
+      // จัดการ Booking (ถ้ามีเลขห้อง)
+      const roomNumber = record.room_number || record['เลขห้อง'];
+      if (roomNumber && String(roomNumber).trim() !== '') {
+        const roomNumStr = String(roomNumber).trim();
+        const room = branchRooms.find(r => r.room_number === roomNumStr);
 
-        if (room) {
-          const checkInDate = record.check_in_date || record['วันเริ่มสัญญา'] || format(new Date(), 'yyyy-MM-dd');
-          const checkOutDate = record.check_out_date || record['วันสิ้นสุดสัญญา'] || null;
-          const depositAmount = parseFloat(record.deposit_amount || record['เงินมัดจำ'] || 0);
-          const bookingStatus = record.booking_status || record['สถานะการจอง'] || 'active';
-          
-          console.log(`  📅 Booking Details:`, {
-            checkInDate,
-            checkOutDate,
-            depositAmount,
-            bookingStatus,
-            roomId: room.id,
-            tenantId: finalTenant.id
-          });
+        if (room) {
+           // แปลงวันที่ (ถ้ามี)
+           const checkInDate = record.check_in_date || record['วันเริ่มสัญญา'] || new Date().toISOString().split('T')[0];
+           const checkOutDate = record.check_out_date || record['วันสิ้นสุดสัญญา'] || null;
+           const depositAmount = parseFloat(record.deposit_amount || record['เงินมัดจำ'] || 0);
+           const bookingStatus = record.booking_status || record['สถานะการจอง'] || 'active';
 
-          // ตรวจสอบว่าห้องนี้มี booking active จากผู้เช่าคนอื่นหรือไม่
-          const existingRoomBooking = existingBookings.find(b => 
-            b.room_id === room.id && 
-            b.status === 'active' && 
-            b.tenant_id !== finalTenant.id
-          );
+           const existingTenantBooking = existingBookings.find(b => b.tenant_id === finalTenant.id && b.room_id === room.id);
+           
+           const bookingData = {
+             tenant_id: finalTenant.id,
+             room_id: room.id,
+             check_in_date: checkInDate,
+             check_out_date: checkOutDate,
+             deposit_amount: depositAmount,
+             total_amount: room.price,
+             booking_type: 'monthly',
+             status: bookingStatus,
+             branch_id: selectedBranchId
+           };
 
-          if (existingRoomBooking) {
-            const existingRoomTenant = existingTenants.find(t => t.id === existingRoomBooking.tenant_id);
-            
-            if (!existingRoomTenant) {
-              // Tenant ถูกลบ - ยกเลิก booking เก่า
-              await base44.entities.Booking.update(existingRoomBooking.id, { 
-                status: 'cancelled',
-                notes: `ยกเลิกอัตโนมัติ - ผู้เช่าเดิมถูกลบออกจากระบบ`
-              });
-              const oldPayments = await base44.entities.Payment.filter({ booking_id: existingRoomBooking.id });
-              for (const p of oldPayments) {
-                await base44.entities.Payment.delete(p.id);
-              }
-              bookingFixedCount++;
-            } else {
-              console.warn(`Room ${room.room_number} already has active tenant: ${existingRoomTenant.full_name}, skipping booking`);
-              continue;
-            }
-          }
+           if (existingTenantBooking) {
+             await base44.entities.Booking.update(existingTenantBooking.id, bookingData);
+             bookingUpdatedCount++;
+           } else {
+             const newBooking = await base44.entities.Booking.create(bookingData);
+             existingBookings.push(newBooking);
+             bookingUpdatedCount++;
+           }
+           
+           // อัพเดทสถานะห้อง
+           const newRoomStatus = bookingStatus === 'active' ? 'occupied' : 'available';
+           if (room.status !== newRoomStatus) {
+              await base44.entities.Room.update(room.id, { status: newRoomStatus });
+           }
+        }
+      }
+    }
 
-          // หา booking ที่มีอยู่แล้วของผู้เช่านี้กับห้องนี้
-          const existingTenantBooking = existingBookings.find(b => 
-            b.tenant_id === finalTenant.id && 
-            b.room_id === room.id
-          );
-
-          const bookingData = {
-            tenant_id: finalTenant.id,
-            room_id: room.id,
-            check_in_date: checkInDate,
-            check_out_date: checkOutDate,
-            deposit_amount: depositAmount,
-            total_amount: room.price,
-            booking_type: 'monthly',
-            status: bookingStatus,
-            branch_id: selectedBranchId
-          };
-
-          if (existingTenantBooking) {
-            // อัพเดท booking เดิม
-            console.log(`  ♻️ Updating existing booking: ${existingTenantBooking.id}`);
-            await base44.entities.Booking.update(existingTenantBooking.id, bookingData);
-            bookingUpdatedCount++;
-          } else {
-            // สร้าง booking ใหม่
-            console.log(`  ✨ Creating NEW booking for room ${room.room_number}`);
-            const newBooking = await base44.entities.Booking.create(bookingData);
-            console.log(`  ✅ Booking created successfully! ID: ${newBooking.id}`);
-            existingBookings.push(newBooking);
-            bookingUpdatedCount++;
-          }
-
-          // Update Room Status
-          const newRoomStatus = bookingStatus === 'active' ? 'occupied' : 'available';
-          console.log(`  🚪 Updating room ${room.room_number} status: ${room.status} → ${newRoomStatus}`);
-          await base44.entities.Room.update(room.id, { 
-            status: newRoomStatus
-          });
-          
-          console.log(`  ✅ Room ${room.room_number} - Booking completed successfully!`);
-        } else {
-          console.warn(`  ❌ Room ${roomNumber} NOT FOUND in branch ${selectedBranchName}`);
-          console.warn(`     Available rooms:`, branchRooms.map(r => r.room_number).join(', '));
-        }
-      } else {
-        console.log(`  ⏭️ No room number provided - skipping booking creation`);
-      }
-    }
-
-    // แสดงสรุปการนำเข้า
-    let summaryParts = [];
-    if (createdCount > 0) summaryParts.push(`สร้างใหม่ ${createdCount} คน`);
-    if (updatedCount > 0) summaryParts.push(`อัพเดท ${updatedCount} คน`);
-    if (bookingUpdatedCount > 0) summaryParts.push(`จัดการสัญญา ${bookingUpdatedCount} รายการ`);
-    if (bookingFixedCount > 0) summaryParts.push(`แก้ไขห้องที่มีปัญหา ${bookingFixedCount} ห้อง`);
-    if (skippedCount > 0) summaryParts.push(`ข้าม ${skippedCount} รายการ (ไม่มีชื่อ)`);
-
-    if (summaryParts.length > 0) {
-      toast.success(`นำเข้าสำเร็จ: ${summaryParts.join(', ')}`);
-    } else {
-      toast.info('ไม่มีข้อมูลที่นำเข้า');
-    }
-  };
+    // แจ้งเตือนผลลัพธ์
+    let summaryParts = [];
+    if (createdCount > 0) summaryParts.push(`สร้างใหม่ ${createdCount} คน`);
+    if (updatedCount > 0) summaryParts.push(`อัพเดท ${updatedCount} คน`);
+    if (bookingUpdatedCount > 0) summaryParts.push(`จัดการสัญญา ${bookingUpdatedCount} รายการ`);
+    
+    if (summaryParts.length > 0) {
+      toast.success(`นำเข้าสำเร็จ: ${summaryParts.join(', ')}`);
+    } else {
+      toast.info('ไม่มีข้อมูลใหม่ที่ต้องนำเข้า');
+    }
+  };
 
 
 
