@@ -2083,7 +2083,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
       "เงินมัดจำ": { type: "number" },
       "สถานะการจอง": { type: "string" }
     },
-    required: ["ชื่อ-นามสกุล"]
+   // required: ["ชื่อ-นามสกุล"]
   };
 
   const templateData = [{
