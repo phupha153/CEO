@@ -2067,24 +2067,22 @@ const tenantSchema = {
     type: "object",
     additionalProperties: true,
     properties: {
-      // ✅ รองรับทั้งข้อความ, ตัวเลข และค่าว่าง (null)
       "ชื่อ-นามสกุล": { type: ["string", "null"] },
-      "เบอร์โทร": { type: ["string", "number", "null"] }, // เบอร์โทรใน CSV มักเป็น number
+      "เบอร์โทร": { type: ["string", "number", "null"] },
       "เพศ": { type: ["string", "null"] },
-      "อายุ": { type: ["string", "number", "null"] },     // อายุเป็น number
+      "อายุ": { type: ["string", "number", "null"] },
       "LINE ID": { type: ["string", "number", "null"] },
-      "เลขบัตรประชาชน": { type: ["string", "number", "null"] }, // เลขบัตรอาจถูกมองเป็น number
+      "เลขบัตรประชาชน": { type: ["string", "number", "null"] },
       "อีเมล": { type: ["string", "null"] },
       "ที่อยู่": { type: ["string", "null"] },
       "เบอร์ติดต่อฉุกเฉิน": { type: ["string", "number", "null"] },
       "หมายเหตุ": { type: ["string", "number", "null"] },
-      "เลขห้อง": { type: ["string", "number", "null"] },   // เลขห้องอาจเป็น number (เช่น 101)
+      "เลขห้อง": { type: ["string", "number", "null"] },
       "วันเริ่มสัญญา": { type: ["string", "null"] },
       "วันสิ้นสุดสัญญา": { type: ["string", "null"] },
-      "เงินมัดจำ": { type: ["string", "number", "null"] }, // เงินเป็น number
-      
-      "สถานะการจอง": { type: ["string", "null"] },
-      ["สถานะการจอง\r"]: { type: ["string", "null"] }
+      "เงินมัดจำ": { type: ["string", "number", "null"] },
+      "สถานะการจอง": { type: ["string", "null"] }
+      // ❌ ลบบรรทัด ["สถานะการจอง\r"] ออก เพราะทำให้ API Error
     },
 };
   const templateData = [{
