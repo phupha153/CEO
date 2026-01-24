@@ -523,6 +523,14 @@ export default function Layout({ children, currentPageName }) {
       setRetryCount(0);
       return user;
     },
+    // 👇👇👇 [เพิ่มท่อนนี้เข้าไปครับ สำคัญที่สุด!] 👇👇👇
+    // ถ้าข้อมูลมาแล้ว แต่ plan_status เป็นค่าว่าง (null/undefined) ให้เช็คใหม่ทุก 1 วินาที
+    refetchInterval: (data) => {
+      if (data && (data.plan_status === null || data.plan_status === undefined)) {
+        return 1000; 
+      }
+      return false; // ถ้ามีครบแล้ว หยุดเช็ค
+    },
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: Infinity,
