@@ -2065,31 +2065,28 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
   }, [paginatedTenants, getActiveBookings, isContractExpiringSoon, getTenantAverageRating, getVehicleCount, bookings, getRoomInfo]);
 const tenantSchema = {
     type: "object",
-    additionalProperties: true, // ✅ อนุญาตให้มีคอลัมน์อื่นๆ ได้ (สำคัญมาก)
+    additionalProperties: true, 
     properties: {
       "ชื่อ-นามสกุล": { type: "string" },
-      "เบอร์โทร": { type: "string" },
+      // แก้ให้รองรับตัวเลข
+      "เบอร์โทร": { type: ["string", "number"] },
       "เพศ": { type: "string" },
-      "อายุ": { type: "string" },
+      "อายุ": { type: ["string", "number"] }, // แก้ตรงนี้
       "LINE ID": { type: "string" },
-      "เลขบัตรประชาชน": { type: "string" },
+      "เลขบัตรประชาชน": { type: ["string", "number"] }, // แก้ตรงนี้
       "อีเมล": { type: "string" },
       "ที่อยู่": { type: "string" },
-      "เบอร์ติดต่อฉุกเฉิน": { type: "string" },
+      "เบอร์ติดต่อฉุกเฉิน": { type: ["string", "number"] }, // แก้ตรงนี้
       "หมายเหตุ": { type: "string" },
-      "เลขห้อง": { type: "string" },
+      "เลขห้อง": { type: ["string", "number"] }, // แก้ตรงนี้
       "วันเริ่มสัญญา": { type: "string" },
       "วันสิ้นสุดสัญญา": { type: "string" },
-      "เงินมัดจำ": { type: "string" },
+      "เงินมัดจำ": { type: ["string", "number"] }, // แก้ตรงนี้
       
-      // ✅ รองรับไฟล์ปกติ
       "สถานะการจอง": { type: "string" },
-
-      // ✅ รองรับไฟล์ Windows ที่มี \r ติดมา (ต้องเขียนแบบนี้เป๊ะๆ)
       ["สถานะการจอง\r"]: { type: "string" }
     },
-    // required: ["ชื่อ-นามสกุล"] // ปิด required ไว้ก่อนเพื่อความชัวร์
-  };
+};
   const templateData = [{
     "ชื่อ-นามสกุล": "สมชาย ใจดี",
     "เบอร์โทร": "0812345678",
