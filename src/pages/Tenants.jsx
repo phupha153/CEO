@@ -2080,7 +2080,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
       "เลขห้อง": { type: "string" },
       "วันเริ่มสัญญา": { type: "string" },
       "วันสิ้นสุดสัญญา": { type: "string" },
-      "เงินมัดจำ": { type: "number" },
+      "เงินมัดจำ": { type: "string" },
       "สถานะการจอง": { type: "string" }
     },
    // required: ["ชื่อ-นามสกุล"]
