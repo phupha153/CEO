@@ -2068,7 +2068,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     type: "object",
 additionalProperties: true,
     properties: {
-      "ชื่อ-นามสกุล": { type: "string" },
+   //   "ชื่อ-นามสกุล": { type: "string" },
       "เบอร์โทร": { type: "string" },
       "เพศ": { type: "string" },
       "อายุ": { type: "string" },
@@ -2082,7 +2082,7 @@ additionalProperties: true,
       "วันเริ่มสัญญา": { type: "string" },
       "วันสิ้นสุดสัญญา": { type: "string" },
       "เงินมัดจำ": { type: "string" },
-      "สถานะการจอง": { type: "string" }
+  //    "สถานะการจอง": { type: "string" }
     },
    // required: ["ชื่อ-นามสกุล"]
   };
