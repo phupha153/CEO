@@ -2070,7 +2070,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
       "ชื่อ-นามสกุล": { type: "string" },
       "เบอร์โทร": { type: "string" },
       "เพศ": { type: "string" },
-      "อายุ": { type: "number" },
+      "อายุ": { type: "string" },
       "LINE ID": { type: "string" },
       "เลขบัตรประชาชน": { type: "string" },
       "อีเมล": { type: "string" },
