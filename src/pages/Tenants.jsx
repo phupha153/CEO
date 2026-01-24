@@ -2067,22 +2067,7 @@ const tenantSchema = {
     type: "object",
     additionalProperties: true,
     properties: {
-      "ชื่อ-นามสกุล": { type: ["string", "null"] },
-      "เบอร์โทร": { type: ["string", "number", "null"] },
-      "เพศ": { type: ["string", "null"] },
-      "อายุ": { type: ["string", "number", "null"] },
-      "LINE ID": { type: ["string", "number", "null"] },
-      "เลขบัตรประชาชน": { type: ["string", "number", "null"] },
-      "อีเมล": { type: ["string", "null"] },
-      "ที่อยู่": { type: ["string", "null"] },
-      "เบอร์ติดต่อฉุกเฉิน": { type: ["string", "number", "null"] },
-      "หมายเหตุ": { type: ["string", "number", "null"] },
-      "เลขห้อง": { type: ["string", "number", "null"] },
-      "วันเริ่มสัญญา": { type: ["string", "null"] },
-      "วันสิ้นสุดสัญญา": { type: ["string", "null"] },
-      "เงินมัดจำ": { type: ["string", "number", "null"] },
-      "สถานะการจอง": { type: ["string", "null"] }
-      // ❌ ลบบรรทัด ["สถานะการจอง\r"] ออก เพราะทำให้ API Error
+      "ชื่อ-นามสกุล": { type: ["string", "null"] }
     },
 };
   const templateData = [{
