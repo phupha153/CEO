@@ -2065,26 +2065,26 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
   }, [paginatedTenants, getActiveBookings, isContractExpiringSoon, getTenantAverageRating, getVehicleCount, bookings, getRoomInfo]);
 const tenantSchema = {
     type: "object",
-    additionalProperties: true, 
+    additionalProperties: true,
     properties: {
-      "ชื่อ-นามสกุล": { type: "string" },
-      // แก้ให้รองรับตัวเลข
-      "เบอร์โทร": { type: ["string", "number"] },
-      "เพศ": { type: "string" },
-      "อายุ": { type: ["string", "number"] }, // แก้ตรงนี้
-      "LINE ID": { type: "string" },
-      "เลขบัตรประชาชน": { type: ["string", "number"] }, // แก้ตรงนี้
-      "อีเมล": { type: "string" },
-      "ที่อยู่": { type: "string" },
-      "เบอร์ติดต่อฉุกเฉิน": { type: ["string", "number"] }, // แก้ตรงนี้
-      "หมายเหตุ": { type: "string" },
-      "เลขห้อง": { type: ["string", "number"] }, // แก้ตรงนี้
-      "วันเริ่มสัญญา": { type: "string" },
-      "วันสิ้นสุดสัญญา": { type: "string" },
-      "เงินมัดจำ": { type: ["string", "number"] }, // แก้ตรงนี้
+      // ✅ รองรับทั้งข้อความ, ตัวเลข และค่าว่าง (null)
+      "ชื่อ-นามสกุล": { type: ["string", "null"] },
+      "เบอร์โทร": { type: ["string", "number", "null"] }, // เบอร์โทรใน CSV มักเป็น number
+      "เพศ": { type: ["string", "null"] },
+      "อายุ": { type: ["string", "number", "null"] },     // อายุเป็น number
+      "LINE ID": { type: ["string", "number", "null"] },
+      "เลขบัตรประชาชน": { type: ["string", "number", "null"] }, // เลขบัตรอาจถูกมองเป็น number
+      "อีเมล": { type: ["string", "null"] },
+      "ที่อยู่": { type: ["string", "null"] },
+      "เบอร์ติดต่อฉุกเฉิน": { type: ["string", "number", "null"] },
+      "หมายเหตุ": { type: ["string", "number", "null"] },
+      "เลขห้อง": { type: ["string", "number", "null"] },   // เลขห้องอาจเป็น number (เช่น 101)
+      "วันเริ่มสัญญา": { type: ["string", "null"] },
+      "วันสิ้นสุดสัญญา": { type: ["string", "null"] },
+      "เงินมัดจำ": { type: ["string", "number", "null"] }, // เงินเป็น number
       
-      "สถานะการจอง": { type: "string" },
-      ["สถานะการจอง\r"]: { type: "string" }
+      "สถานะการจอง": { type: ["string", "null"] },
+      ["สถานะการจอง\r"]: { type: ["string", "null"] }
     },
 };
   const templateData = [{
