@@ -2066,9 +2066,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
 const tenantSchema = {
     type: "object",
     additionalProperties: true,
-    properties: {
-      "ชื่อ-นามสกุล": { type: ["string", "null"] }
-    },
+    properties: {} // ปล่อยว่างไว้เลย
 };
   const templateData = [{
     "ชื่อ-นามสกุล": "สมชาย ใจดี",
