@@ -943,6 +943,12 @@ export default function Layout({ children, currentPageName }) {
           effectiveTrialEndsAt = currentUser.trial_ends_at;
         }
       }
+      // 👇👇👇 1. แทรกโค้ดนี้เข้าไป (ด่านที่ 1: ดักรอ) 👇👇👇
+      if (effectivePlanStatus === undefined || effectivePlanStatus === null) {
+         console.log('⏳ รอข้อมูลแพ็กเกจ หรือกำลังสร้าง Trial...');
+         return;  // สั่งให้ยืนรอตรงนี้ ห้ามลงไปข้างล่าง
+      }
+      
 
       // ⭐ ถ้าไม่มี plan_status หรือ expired/cancelled → ไป NoPackagePage
       if (!effectivePlanStatus || effectivePlanStatus === 'expired' || effectivePlanStatus === 'cancelled') {
@@ -950,6 +956,7 @@ export default function Layout({ children, currentPageName }) {
         navigate(createPageUrl('NoPackagePage'), { replace: true });
         return;
       }
+      
 
       // ⭐ ถ้า trial หมดอายุ → ไป TrialExpiredPage
       if (effectiveTrialEndsAt && effectivePlanStatus === 'trial') {
