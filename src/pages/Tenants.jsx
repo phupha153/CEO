@@ -2064,28 +2064,33 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     });
   }, [paginatedTenants, getActiveBookings, isContractExpiringSoon, getTenantAverageRating, getVehicleCount, bookings, getRoomInfo]);
 
-  const tenantSchema = {
-    type: "object",
-additionalProperties: true,
-    properties: {
-      "ชื่อ-นามสกุล": { type: "string" },
-      "เบอร์โทร": { type: "string" },
-      "เพศ": { type: "string" },
-      "อายุ": { type: "string" },
-      "LINE ID": { type: "string" },
-      "เลขบัตรประชาชน": { type: "string" },
-      "อีเมล": { type: "string" },
-      "ที่อยู่": { type: "string" },
-      "เบอร์ติดต่อฉุกเฉิน": { type: "string" },
-      "หมายเหตุ": { type: "string" },
-      "เลขห้อง": { type: "string" },
-      "วันเริ่มสัญญา": { type: "string" },
-      "วันสิ้นสุดสัญญา": { type: "string" },
-      "เงินมัดจำ": { type: "string" },
-  //    "สถานะการจอง": { type: "string" }
-    },
-   // required: ["ชื่อ-นามสกุล"]
-  };
+const tenantSchema = {
+    type: "object",
+    additionalProperties: true,
+    properties: {
+      "ชื่อ-นามสกุล": { type: "string" },
+      "เบอร์โทร": { type: "string" },
+      "เพศ": { type: "string" },
+      "อายุ": { type: "string" },
+      "LINE ID": { type: "string" },
+      "เลขบัตรประชาชน": { type: "string" },
+      "อีเมล": { type: "string" },
+      "ที่อยู่": { type: "string" },
+      "เบอร์ติดต่อฉุกเฉิน": { type: "string" },
+      "หมายเหตุ": { type: "string" },
+      "เลขห้อง": { type: "string" },
+      "วันเริ่มสัญญา": { type: "string" },
+      "วันสิ้นสุดสัญญา": { type: "string" },
+      "เงินมัดจำ": { type: "string" },
+      
+      // ✅ บรรทัดนี้สำหรับไฟล์ปกติ (ต้องมี , ต่อท้าย)
+      "สถานะการจอง": { type: "string" }, 
+
+      // ✅ บรรทัดนี้สำหรับไฟล์ Windows ที่มีปัญหา \r (Key พิเศษต้องอยู่ใน [])
+      ["สถานะการจอง\r"]: { type: "string" }
+    },
+    // required: ["ชื่อ-นามสกุล"]
+  };
 
   const templateData = [{
     "ชื่อ-นามสกุล": "สมชาย ใจดี",
