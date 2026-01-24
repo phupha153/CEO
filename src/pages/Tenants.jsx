@@ -4568,7 +4568,14 @@ const tenantSchema = {
     setShowUploadDialog(false);
     toast.success('อัปโหลดข้อมูลผู้เช่าสำเร็จ');
   }}
-  onError={(error) => toast.error(error.message || 'เกิดข้อผิดพลาดในการอัปโหลด')}
+  onError={(error) => {
+    // 👇 เพิ่ม 3 บรรทัดนี้เพื่อดูสาเหตุที่แท้จริง
+    console.log("❌ IMPORT ERROR:", error); 
+    console.log("📋 Validation Details:", error.errors || error.validation); 
+    
+    // แจ้งเตือนตามปกติ
+    toast.error("รูปแบบไฟล์ไม่ถูกต้อง: กรุณาเปิด Console (F12) เพื่อดูรายละเอียด");
+  }}
   additionalData={{ branch_id: selectedBranchId }}
   customImportHandler={handleTenantImport}
 />
