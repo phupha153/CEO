@@ -2063,10 +2063,9 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
       };
     });
   }, [paginatedTenants, getActiveBookings, isContractExpiringSoon, getTenantAverageRating, getVehicleCount, bookings, getRoomInfo]);
-
 const tenantSchema = {
     type: "object",
-    additionalProperties: true,
+    additionalProperties: true, // ✅ อนุญาตให้มีคอลัมน์อื่นๆ ได้ (สำคัญมาก)
     properties: {
       "ชื่อ-นามสกุล": { type: "string" },
       "เบอร์โทร": { type: "string" },
@@ -2083,15 +2082,14 @@ const tenantSchema = {
       "วันสิ้นสุดสัญญา": { type: "string" },
       "เงินมัดจำ": { type: "string" },
       
-      // ✅ บรรทัดนี้สำหรับไฟล์ปกติ (ต้องมี , ต่อท้าย)
-      "สถานะการจอง": { type: "string" }, 
+      // ✅ รองรับไฟล์ปกติ
+      "สถานะการจอง": { type: "string" },
 
-      // ✅ บรรทัดนี้สำหรับไฟล์ Windows ที่มีปัญหา \r (Key พิเศษต้องอยู่ใน [])
+      // ✅ รองรับไฟล์ Windows ที่มี \r ติดมา (ต้องเขียนแบบนี้เป๊ะๆ)
       ["สถานะการจอง\r"]: { type: "string" }
     },
-    // required: ["ชื่อ-นามสกุล"]
+    // required: ["ชื่อ-นามสกุล"] // ปิด required ไว้ก่อนเพื่อความชัวร์
   };
-
   const templateData = [{
     "ชื่อ-นามสกุล": "สมชาย ใจดี",
     "เบอร์โทร": "0812345678",
