@@ -2495,8 +2495,10 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             }
                             
                             // แสดง "ติดจอง" ถ้า: room status = reserved หรือมี future booking หรือมี active booking แต่ room status ไม่ใช่ occupied หรือจองแบบยังไม่มีผู้เช่า
-                            const isReserved = room.status === 'reserved' || futureBookings.length > 0 || (hasActiveBooking && room.status !== 'occupied') || hasReservationWithoutTenant;
-
+                            const isReserved = (
+  room.status === 'reserved' || 
+  temporaryBookings.some(b => b.room_id === room.id && b.status === 'active')
+) && room.status !== 'occupied';
                             return (
                               <motion.div
                                 key={room.id}
