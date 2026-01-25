@@ -955,7 +955,14 @@ export default function PaymentsPage() {
   });
 
   const roomsNeedingBills = useMemo(() => {
-    if (!rooms.length || !bookings.length || !configs.length) return 0;
+    if (!rooms.length || !bookings.length || !configs.length) {
+      console.log('⚠️ [roomsNeedingBills] Missing data:', {
+        rooms_length: rooms.length,
+        bookings_length: bookings.length,
+        configs_length: configs.length
+      });
+      return 0;
+    }
 
     const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
     const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
@@ -992,6 +999,16 @@ export default function PaymentsPage() {
       );
       if (!existingBill) count++;
     }
+
+    console.log('🔢 [roomsNeedingBills] Calculation:', {
+      billGenerationDay,
+      payDay,
+      targetDueYearMonth,
+      monthlyRooms_count: monthlyRooms.length,
+      roomsWithBooking_count: roomsWithBooking.length,
+      allPaymentsForCounting_length: allPaymentsForCounting.length,
+      count
+    });
 
     return count;
   }, [rooms, bookings, allPaymentsForCounting, configs, selectedBranchId]);
