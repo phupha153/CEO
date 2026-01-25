@@ -1015,59 +1015,119 @@ export default function PaymentsPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      if (!canAdd) throw new Error('คุณไม่มีสิทธิ์เพิ่มการชำระเงิน');
-      if (isCreatingPayment) {
-        throw new Error('กำลังสร้างบิลอยู่ กรุณารอสักครู่');
+      if (!canAdd) {
+        throw new Error('❌ คุณไม่มีสิทธิ์เพิ่มการชำระเงิน');
       }
-      setIsCreatingPayment(true);
-      return base44.entities.Payment.create({...data, branch_id: selectedBranchId});
-    },
-    onSuccess: async (newPayment) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
-        queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
-        queryClient.invalidateQueries({ queryKey: ['payments-room-view'] }),
-        queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
-      ]);
+      if (isCreatingPayment) {
+        console.warn('⚠️ Double submit prevented - already creating payment');
+        throw new Error('⏳ กำลังสร้างบิลอยู่ กรุณารอสักครู่...');
+      }
       
-      const room = rooms.find(r => r.id === newPayment.room_id);
-      const tenant = tenants.find(t => t.id === newPayment.tenant_id);
-      await base44.entities.ActivityLog.create({
+      console.log('🚀 [CREATE PAYMENT] Starting...', { 
         branch_id: selectedBranchId,
-        action_type: 'create',
-        entity_type: 'Payment',
-        entity_id: newPayment.id,
-        entity_name: `ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`,
-        user_email: currentUser?.email,
-        user_name: currentUser?.full_name,
-        description: `สร้างบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} จำนวน ${newPayment.total_amount?.toLocaleString()} บาท`
+        room_id: data.room_id,
+        tenant_id: data.tenant_id,
+        total_amount: data.total_amount 
       });
       
-      await new Promise(r => setTimeout(r, 500));
+      setIsCreatingPayment(true);
       
-      setShowDialog(false);
-      resetForm();
-      setIsCreatingPayment(false);
-      toast.success('บันทึกการชำระเงินสำเร็จ');
+      try {
+        const result = await base44.entities.Payment.create({...data, branch_id: selectedBranchId});
+        console.log('✅ [CREATE PAYMENT] Success:', result.id);
+        return result;
+      } catch (err) {
+        console.error('❌ [CREATE PAYMENT] Failed:', err);
+        setIsCreatingPayment(false); // ⭐ Reset ทันทีเมื่อ API fail
+        throw err;
+      }
+    },
+    onSuccess: async (newPayment) => {
+      console.log('🎉 [CREATE PAYMENT] onSuccess triggered');
+      
+      try {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
+          queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
+          queryClient.invalidateQueries({ queryKey: ['payments-room-view'] }),
+          queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
+        ]);
+        
+        const room = rooms.find(r => r.id === newPayment.room_id);
+        const tenant = tenants.find(t => t.id === newPayment.tenant_id);
+        
+        await base44.entities.ActivityLog.create({
+          branch_id: selectedBranchId,
+          action_type: 'create',
+          entity_type: 'Payment',
+          entity_id: newPayment.id,
+          entity_name: `ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`,
+          user_email: currentUser?.email,
+          user_name: currentUser?.full_name,
+          description: `สร้างบิลค่าเช่าห้อง ${room?.room_number || 'N/A'} จำนวน ${newPayment.total_amount?.toLocaleString()} บาท`
+        });
+        
+        await new Promise(r => setTimeout(r, 500));
+        
+        setShowDialog(false);
+        resetForm();
+        toast.success(`✅ บันทึกบิลห้อง ${room?.room_number || 'N/A'} สำเร็จ`, { duration: 5000 });
+      } catch (err) {
+        console.error('⚠️ [CREATE PAYMENT] Post-success error:', err);
+        toast.warning('บันทึกสำเร็จ แต่เกิดข้อผิดพลาดในการอัพเดทข้อมูล กรุณา refresh หน้าเว็บ', { duration: 7000 });
+      } finally {
+        setIsCreatingPayment(false);
+      }
     },
     onError: (error) => {
-      console.error('Create payment error:', error);
+      console.error('❌ [CREATE PAYMENT] onError:', error);
       setIsCreatingPayment(false);
-      toast.error(error.message || 'เกิดข้อผิดพลาดในการบันทึก');
+      
+      // ⭐ แสดง error นานขึ้นและละเอียดมากขึ้น
+      const errorMessage = error.message || 'เกิดข้อผิดพลาดในการบันทึก';
+      console.error('📋 Error Details:', {
+        message: errorMessage,
+        stack: error.stack,
+        branch_id: selectedBranchId,
+        formData: { ...formData, payment_slip_url: formData.payment_slip_url ? '[มีรูป]' : '' }
+      });
+      
+      toast.error(`❌ ${errorMessage}`, { 
+        duration: 10000, // ⭐ เพิ่มเวลาแสดง error เป็น 10 วินาที
+        description: 'กรุณาลองอีกครั้ง หรือติดต่อผู้ดูแลระบบ'
+      });
+    },
+    onSettled: () => {
+      // ⭐ Failsafe - reset ทุกกรณี
+      setIsCreatingPayment(false);
+      console.log('🏁 [CREATE PAYMENT] Mutation settled, isCreatingPayment reset');
     }
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => {
-      if (!canEdit) throw new Error('คุณไม่มีสิทธิ์แก้ไขการชำระเงิน');
-      return base44.entities.Payment.update(id, {
-        ...data,
-        invoice_image_url: null,
-        invoice_image_status: 'pending',
-        bill_sent_date: null
-      });
+    mutationFn: async ({ id, data }) => {
+      if (!canEdit) {
+        throw new Error('❌ คุณไม่มีสิทธิ์แก้ไขการชำระเงิน');
+      }
+      
+      console.log('📝 [UPDATE PAYMENT] Starting...', { id, data });
+      
+      try {
+        const result = await base44.entities.Payment.update(id, {
+          ...data,
+          invoice_image_url: null,
+          invoice_image_status: 'pending',
+          bill_sent_date: null
+        });
+        console.log('✅ [UPDATE PAYMENT] Success');
+        return result;
+      } catch (err) {
+        console.error('❌ [UPDATE PAYMENT] Failed:', err);
+        throw err;
+      }
     },
     onSuccess: async (updatedPayment) => {
+      console.log('🎉 [UPDATE PAYMENT] onSuccess triggered');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
         queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
@@ -1092,9 +1152,15 @@ export default function PaymentsPage() {
       
       setShowDialog(false);
       resetForm();
-      toast.success('อัปเดตการชำระเงินสำเร็จ - รูปใบแจ้งหนี้จะถูกสร้างใหม่', { duration: 4000 });
+      toast.success('✅ อัปเดตการชำระเงินสำเร็จ - รูปใบแจ้งหนี้จะถูกสร้างใหม่', { duration: 5000 });
     },
-    onError: (error) => toast.error(error.message || 'เกิดข้อผิดพลาด')
+    onError: (error) => {
+      console.error('❌ [UPDATE PAYMENT] onError:', error);
+      toast.error(`❌ ${error.message || 'เกิดข้อผิดพลาดในการแก้ไข'}`, { 
+        duration: 10000,
+        description: 'กรุณาลองอีกครั้ง หรือติดต่อผู้ดูแลระบบ'
+      });
+    }
   });
 
   const deleteMutation = useMutation({
@@ -1424,14 +1490,24 @@ export default function PaymentsPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // ⭐ CRITICAL: ป้องกัน double-submit ตรงปุ่ม submit เลย
+    if (isCreatingPayment || createMutation.isPending || updateMutation.isPending) {
+      console.warn('⚠️ [SUBMIT] Prevented - mutation in progress');
+      toast.warning('⏳ กำลังบันทึกอยู่ กรุณารอสักครู่...', { duration: 3000 });
+      return;
+    }
 
+    console.log('🚀 [SUBMIT] Form submitted');
+
+    // Validation
     if (!formData.room_id) {
-      toast.error('กรุณาเลือกห้อง');
+      toast.error('❌ กรุณาเลือกห้อง', { duration: 5000 });
       return;
     }
 
     if (!formData.due_date) {
-      toast.error('กรุณาระบุวันครบกำหนดชำระ');
+      toast.error('❌ กรุณาระบุวันครบกำหนดชำระ', { duration: 5000 });
       return;
     }
 
@@ -1446,7 +1522,7 @@ export default function PaymentsPage() {
       (parseFloat(formData.late_fee_amount) || 0);
 
     if (total <= 0) {
-      toast.error('ยอดรวมต้องมากกว่า 0 บาท');
+      toast.error('❌ ยอดรวมต้องมากกว่า 0 บาท', { duration: 5000 });
       return;
     }
 
@@ -1476,14 +1552,19 @@ export default function PaymentsPage() {
       status: formData.payment_date ? 'paid' : 'pending'
     };
 
-    console.log('Submitting payment data:', data);
+    console.log('📋 [SUBMIT] Payment data validated:', { 
+      room_id: data.room_id, 
+      total_amount: data.total_amount,
+      status: data.status 
+    });
 
     // ✅ ตรวจสอบบิลซ้ำก่อนบันทึก (เฉพาะตอนสร้างใหม่)
     if (!editingPayment) {
       try {
+        console.log('🔍 [DUPLICATE CHECK] Checking for existing bills...');
         const dueDateMonth = formData.due_date.substring(0, 7); // 'YYYY-MM'
         
-        // หาบิลที่มีอยู่แล้วในห้องเดียวกัน + เดือนเดียวกัน
+        // 🔒 SECURITY: Filter by branch_id ด้วย
         const existingPayments = await base44.entities.Payment.filter({
           room_id: formData.room_id,
           branch_id: selectedBranchId
@@ -1503,23 +1584,29 @@ export default function PaymentsPage() {
           );
 
           if (confirmed) {
-            // ลบบิลเก่า
+            console.log('🗑️ [DUPLICATE CHECK] Deleting old bill:', duplicatePayment.id);
             await base44.entities.Payment.delete(duplicatePayment.id);
             toast.info('ลบบิลเก่าแล้ว กำลังสร้างใหม่...', { duration: 2000 });
           } else {
+            console.log('❌ [DUPLICATE CHECK] User cancelled');
             toast.info('ยกเลิกการบันทึก');
             return;
           }
+        } else {
+          console.log('✅ [DUPLICATE CHECK] No duplicate found');
         }
       } catch (error) {
-        console.error('Error checking duplicate payment:', error);
-        // ถ้าเช็คไม่ได้ ให้ดำเนินการต่อได้
+        console.error('⚠️ [DUPLICATE CHECK] Error:', error);
+        toast.warning('ไม่สามารถตรวจสอบบิลซ้ำได้ จะดำเนินการต่อ...', { duration: 3000 });
       }
     }
 
+    // Submit
     if (editingPayment) {
+      console.log('📝 [SUBMIT] Updating payment:', editingPayment.id);
       updateMutation.mutate({ id: editingPayment.id, data });
     } else {
+      console.log('➕ [SUBMIT] Creating new payment');
       createMutation.mutate(data);
     }
   };
