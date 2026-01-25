@@ -3338,15 +3338,33 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-100 p-3 rounded-lg">
                               <div>
-                                <Label className="text-slate-600 text-xs">ค่าน้ำ/หน่วย</Label>
+                                <Label className="text-slate-600 text-xs flex items-center gap-1">
+                                  💧 ค่าน้ำ
+                                  {selectedRoom.is_flat_rate_water && (
+                                    <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0">เหมา</Badge>
+                                  )}
+                                </Label>
                                 <p className="font-semibold text-blue-600">
-                                  {selectedRoom.water_rate !== null && selectedRoom.water_rate !== undefined ? `${selectedRoom.water_rate} บาท` : <span className="text-slate-400 text-sm">(ใช้ค่ากลาง)</span>}
+                                  {selectedRoom.is_flat_rate_water ? (
+                                    `${selectedRoom.flat_rate_water_amount?.toLocaleString() || 0} บาท/เดือน`
+                                  ) : (
+                                    selectedRoom.water_rate !== null && selectedRoom.water_rate !== undefined ? `${selectedRoom.water_rate} บาท/หน่วย` : <span className="text-slate-400 text-sm">(ใช้ค่ากลาง)</span>
+                                  )}
                                 </p>
                               </div>
                               <div>
-                                <Label className="text-slate-600 text-xs">ค่าไฟ/หน่วย</Label>
+                                <Label className="text-slate-600 text-xs flex items-center gap-1">
+                                  ⚡ ค่าไฟ
+                                  {selectedRoom.is_flat_rate_electricity && (
+                                    <Badge className="bg-orange-500 text-white text-[10px] px-1.5 py-0">เหมา</Badge>
+                                  )}
+                                </Label>
                                 <p className="font-semibold text-orange-600">
-                                  {selectedRoom.electricity_rate !== null && selectedRoom.electricity_rate !== undefined ? `${selectedRoom.electricity_rate} บาท` : <span className="text-slate-400 text-sm">(ใช้ค่ากลาง)</span>}
+                                  {selectedRoom.is_flat_rate_electricity ? (
+                                    `${selectedRoom.flat_rate_electricity_amount?.toLocaleString() || 0} บาท/เดือน`
+                                  ) : (
+                                    selectedRoom.electricity_rate !== null && selectedRoom.electricity_rate !== undefined ? `${selectedRoom.electricity_rate} บาท/หน่วย` : <span className="text-slate-400 text-sm">(ใช้ค่ากลาง)</span>
+                                  )}
                                 </p>
                               </div>
                               <div>
