@@ -62,19 +62,45 @@ export default function ExcelUploader({
     if (!file) return;
 
     console.log('File selected:', file.name, 'Type:', file.type, 'Size:', file.size);
-    
+
     setUploading(true);
     setExtractedData(null);
     setErrorMessage(null);
 
     try {
-      // Step 1: Upload file
+      // ⭐ FIX: For Tenant CSV imports, use custom flexible parser instead of strict API
+      if (entityName === 'Tenant') {
+        console.log('🔧 Using flexible CSV parser for Tenants...');
+
+        // Read file as text
+        const csv_text = await file.text();
+        console.log('CSV text length:', csv_text.length);
+
+        // Use custom import function
+        const result = await base44.functions.invoke('flexibleTenantImport', {
+          csv_text,
+          branch_id: additionalData?.branch_id
+        });
+
+        if (result.data.success) {
+          toast.success(result.data.message);
+          setShowDialog(false);
+          setExtractedData(null);
+          setErrorMessage(null);
+          if (onSuccess) onSuccess();
+          return;
+        } else {
+          throw new Error(result.data.error);
+        }
+      }
+
+      // Step 1: Upload file (for non-Tenant entities)
       console.log('Uploading file...');
       toast.info('กำลังอัปโหลดไฟล์...');
-      
+
       const uploadResult = await base44.integrations.Core.UploadFile({ file });
       console.log('Upload result:', uploadResult);
-      
+
       if (!uploadResult?.file_url) {
         throw new Error('ไม่สามารถอัปโหลดไฟล์ได้');
       }
@@ -85,11 +111,8 @@ export default function ExcelUploader({
       // Step 2: Extract data
       console.log('Extracting data from file...');
       toast.info('กำลังอ่านข้อมูลจากไฟล์...');
-      
-      // ⭐ FIX: ExtractDataFromUploadedFile ต้องการ object schema, ไม่ใช่ array
-      // API จะจัดการ array ให้เอง
+
       const extractSchema = schema;
-      
       console.log('Extract schema (ใหม่):', JSON.stringify(extractSchema, null, 2));
 
       const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
