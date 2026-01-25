@@ -86,11 +86,9 @@ export default function ExcelUploader({
       console.log('Extracting data from file...');
       toast.info('กำลังอ่านข้อมูลจากไฟล์...');
       
-      // เปลี่ยน extractSchema ให้เป็น array โดยตรง ไม่ต้อง wrap ด้วย object ที่มี key "data"
-      const extractSchema = {
-        type: "array",
-        items: schema
-      };
+      // ⭐ FIX: ExtractDataFromUploadedFile ต้องการ object schema, ไม่ใช่ array
+      // API จะจัดการ array ให้เอง
+      const extractSchema = schema;
       
       console.log('Extract schema (ใหม่):', JSON.stringify(extractSchema, null, 2));
 

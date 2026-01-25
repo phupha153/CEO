@@ -2067,21 +2067,21 @@ const tenantSchema = {
     type: "object",
     additionalProperties: true,
     properties: {
-      "ชื่อ-นามสกุล": { type: ["string", "null"] },
-      "เบอร์โทร": { type: ["string", "number", "null"] }, // ⭐ รองรับเบอร์ที่เป็นตัวเลข (Excel ตัด 0)
-      "เพศ": { type: ["string", "null"] },
-      "อายุ": { type: ["number", "string", "null"] },
-      "LINE ID": { type: ["string", "null"] },
-      "เลขบัตรประชาชน": { type: ["string", "number", "null"] }, // ⭐ รองรับ number (Excel ตัด 0)
-      "อีเมล": { type: ["string", "null"] },
-      "ที่อยู่": { type: ["string", "null"] },
-      "เบอร์ติดต่อฉุกเฉิน": { type: ["string", "number", "null"] }, // ⭐ รองรับ number
-      "หมายเหตุ": { type: ["string", "null"] },
-      "เลขห้อง": { type: ["string", "number", "null"] },
-      "วันเริ่มสัญญา": { type: ["string", "null"] },
-      "วันสิ้นสุดสัญญา": { type: ["string", "null"] },
-      "เงินมัดจำ": { type: ["number", "string", "null"] },
-      "สถานะการจอง": { type: ["string", "null"] }
+      "ชื่อ-นามสกุล": { type: "string" },
+      "เบอร์โทร": { type: "string" }, // ⭐ String type - API จัดการ parsing เอง
+      "เพศ": { type: "string" },
+      "อายุ": { type: "string" },
+      "LINE ID": { type: "string" },
+      "เลขบัตรประชาชน": { type: "string" },
+      "อีเมล": { type: "string" },
+      "ที่อยู่": { type: "string" },
+      "เบอร์ติดต่อฉุกเฉิน": { type: "string" },
+      "หมายเหตุ": { type: "string" },
+      "เลขห้อง": { type: "string" },
+      "วันเริ่มสัญญา": { type: "string" },
+      "วันสิ้นสุดสัญญา": { type: "string" },
+      "เงินมัดจำ": { type: "string" },
+      "สถานะการจอง": { type: "string" }
     }
 };
   const templateData = [{
