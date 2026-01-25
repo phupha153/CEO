@@ -9,6 +9,7 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
   const queryClient = useQueryClient();
   const [generating, setGenerating] = useState(false);
   const [processingQueue, setProcessingQueue] = useState(false);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(false);
 
   const handleGenerateBills = async () => {
     if (!confirm('คุณต้องการสร้างบิลประจำเดือนนี้ใช่หรือไม่?')) {
@@ -21,7 +22,33 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
     }
 
     setGenerating(true);
+    setIsCheckingAccess(true);
+    
     try {
+      // ✅ FIX: เช็คสิทธิ์เข้าถึง feature ก่อน (ผ่าน branch owner's plan)
+      console.log('🔍 Checking branch owner access...');
+      const accessCheck = await base44.functions.invoke('getBranchOwnerStatus', {
+        branch_id: branchId
+      });
+      
+      setIsCheckingAccess(false);
+      
+      if (!accessCheck.data || accessCheck.data.error) {
+        toast.error('ไม่สามารถตรวจสอบสิทธิ์ได้: ' + (accessCheck.data?.error || 'Unknown'));
+        return;
+      }
+      
+      const ownerPlanStatus = accessCheck.data.plan_status;
+      console.log('📊 Branch Owner Plan Status:', ownerPlanStatus);
+      
+      // ⚠️ ถ้าเจ้าของสาขาไม่มี plan หรือหมดอายุ = DENY
+      if (!ownerPlanStatus || ownerPlanStatus === 'expired' || ownerPlanStatus === 'cancelled') {
+        toast.error('❌ ไม่สามารถสร้างบิลได้\n\nเจ้าของสาขาไม่มีแพ็กเกจที่ใช้งานอยู่', { 
+          duration: 7000 
+        });
+        return;
+      }
+      
       toast.info('กำลังสร้างบิลประจำเดือน...', { duration: 3000 });
       
       // ⭐ ไม่ใช้ force_skip_duplicate_check เพื่อให้เช็คบิลซ้ำ
@@ -95,13 +122,22 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
       console.error('❌ [GenerateMonthlyBillsButton] Error message:', error.message);
       console.error('❌ [GenerateMonthlyBillsButton] Error stack:', error.stack);
       console.error('❌ [GenerateMonthlyBillsButton] Response data:', error.response?.data);
-      toast.error('เกิดข้อผิดพลาดในการสร้างบิล: ' + (error.message || 'Unknown'));
+      
+      // ✅ FIX: แสดง error message ที่เข้าใจง่าย
+      if (error.message?.includes('402')) {
+        toast.error('❌ ไม่สามารถสร้างบิลได้\n\nเจ้าของสาขาไม่มีแพ็กเกจที่ใช้งานอยู่', { 
+          duration: 7000 
+        });
+      } else {
+        toast.error('เกิดข้อผิดพลาดในการสร้างบิล: ' + (error.message || 'Unknown'));
+      }
     } finally {
       setGenerating(false);
+      setIsCheckingAccess(false);
     }
   };
 
-  const isLoading = generating || processingQueue;
+  const isLoading = generating || processingQueue || isCheckingAccess;
 
   if (compact) {
     return (
@@ -116,7 +152,7 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
         ) : (
           <Calendar className="w-4 h-4 mr-1" />
         )}
-        สร้างบิลเดือนนี้{roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}
+        {isCheckingAccess ? 'ตรวจสอบสิทธิ์...' : `สร้างบิลเดือนนี้${roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}`}
       </Button>
     );
   }
@@ -130,7 +166,7 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
       {isLoading ? (
         <>
           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          {processingQueue ? 'กำลังส่งบิล...' : 'กำลังสร้างบิล...'}
+          {isCheckingAccess ? 'ตรวจสอบสิทธิ์...' : (processingQueue ? 'กำลังส่งบิล...' : 'กำลังสร้างบิล...')}
         </>
       ) : (
         <>
