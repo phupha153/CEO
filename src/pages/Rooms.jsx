@@ -56,6 +56,8 @@ export default function RoomsPage() {
   const [showMinCharges, setShowMinCharges] = useState(false);
   const [enableMinWater, setEnableMinWater] = useState(false);
   const [enableMinElectricity, setEnableMinElectricity] = useState(false);
+  const [isFlatRateWater, setIsFlatRateWater] = useState(false);
+  const [isFlatRateElectricity, setIsFlatRateElectricity] = useState(false);
   
   // Bulk Selection State
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -129,6 +131,10 @@ export default function RoomsPage() {
     water_rate: '',
     electricity_rate: '',
     common_fee: '',
+    is_flat_rate_water: false,
+    flat_rate_water_amount: '',
+    is_flat_rate_electricity: false,
+    flat_rate_electricity_amount: '',
     min_water_units: '',
     min_water_charge: '',
     min_electricity_units: '',
@@ -1502,6 +1508,10 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       water_rate: formData.water_rate !== '' ? parseFloat(formData.water_rate) : null,
       electricity_rate: formData.electricity_rate !== '' ? parseFloat(formData.electricity_rate) : null,
       common_fee: formData.common_fee !== '' ? parseFloat(formData.common_fee) : null,
+      is_flat_rate_water: formData.is_flat_rate_water || false,
+      flat_rate_water_amount: formData.flat_rate_water_amount !== '' ? parseFloat(formData.flat_rate_water_amount) : null,
+      is_flat_rate_electricity: formData.is_flat_rate_electricity || false,
+      flat_rate_electricity_amount: formData.flat_rate_electricity_amount !== '' ? parseFloat(formData.flat_rate_electricity_amount) : null,
       min_water_units: formData.min_water_units !== '' ? parseFloat(formData.min_water_units) : null,
       min_water_charge: formData.min_water_charge !== '' ? parseFloat(formData.min_water_charge) : null,
       min_electricity_units: formData.min_electricity_units !== '' ? parseFloat(formData.min_electricity_units) : null,
@@ -1535,6 +1545,10 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       water_rate: room.water_rate?.toString() || '',
       electricity_rate: room.electricity_rate?.toString() || '',
       common_fee: room.common_fee?.toString() || '',
+      is_flat_rate_water: room.is_flat_rate_water || false,
+      flat_rate_water_amount: room.flat_rate_water_amount?.toString() || '',
+      is_flat_rate_electricity: room.is_flat_rate_electricity || false,
+      flat_rate_electricity_amount: room.flat_rate_electricity_amount?.toString() || '',
       min_water_units: room.min_water_units?.toString() || '',
       min_water_charge: room.min_water_charge?.toString() || '',
       min_electricity_units: room.min_electricity_units?.toString() || '',
@@ -1546,6 +1560,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     setShowMinCharges(hasMinWater || hasMinElec);
     setEnableMinWater(hasMinWater);
     setEnableMinElectricity(hasMinElec);
+    setIsFlatRateWater(room.is_flat_rate_water || false);
+    setIsFlatRateElectricity(room.is_flat_rate_electricity || false);
     setShowDialog(true);
   };
 
@@ -1565,12 +1581,18 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       water_rate: '',
       electricity_rate: '',
       common_fee: '',
+      is_flat_rate_water: false,
+      flat_rate_water_amount: '',
+      is_flat_rate_electricity: false,
+      flat_rate_electricity_amount: '',
       min_water_units: '',
       min_water_charge: '',
       min_electricity_units: '',
       min_electricity_charge: '',
       other_monthly_fees: []
     });
+    setIsFlatRateWater(false);
+    setIsFlatRateElectricity(false);
   };
 
   const handleRoomClick = (room) => {
@@ -1683,6 +1705,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
   const transformRoomData = (data) => {
     const mapRoomType = { 'รายเดือน': 'monthly', 'รายวัน': 'daily' };
     const mapStatus = { 'ว่าง': 'available', 'มีผู้เช่า': 'occupied', 'จอง': 'reserved' };
+    const mapYesNo = { 'ใช่': true, 'ไม่ใช่': false, 'true': true, 'false': false };
     
     return {
       room_number: data["หมายเลขห้อง"] || data.room_number,
@@ -1691,6 +1714,10 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       price: data["ราคา"] || data.price,
       status: mapStatus[data["สถานะ"]] || mapStatus[data.status] || data.status,
       size: data["ขนาด"] || data.size,
+      is_flat_rate_water: mapYesNo[data["ค่าน้ำเหมา"]] || false,
+      flat_rate_water_amount: data["จำนวนค่าน้ำเหมา"] || null,
+      is_flat_rate_electricity: mapYesNo[data["ค่าไฟเหมา"]] || false,
+      flat_rate_electricity_amount: data["จำนวนค่าไฟเหมา"] || null,
       description: data["รายละเอียด"] || data.description,
       last_ac_cleaning_date: data["วันที่ล้างแอร์ล่าสุด"] || data.last_ac_cleaning_date
     };
@@ -1703,7 +1730,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
 
     const handleDownloadExistingRooms = () => {
-    const headers = ["หมายเลขห้อง", "ชั้น", "ประเภทห้อง", "ราคา", "สถานะ", "ขนาด", "รายละเอียด", "วันที่ล้างแอร์ล่าสุด", "ค่าน้ำต่อหน่วย", "ค่าไฟต่อหน่วย", "ค่าส่วนกลาง"];
+    const headers = ["หมายเลขห้อง", "ชั้น", "ประเภทห้อง", "ราคา", "สถานะ", "ขนาด", "ค่าน้ำเหมา", "จำนวนค่าน้ำเหมา", "ค่าไฟเหมา", "จำนวนค่าไฟเหมา", "รายละเอียด", "วันที่ล้างแอร์ล่าสุด", "ค่าน้ำต่อหน่วย", "ค่าไฟต่อหน่วย", "ค่าส่วนกลาง"];
     const statusMap = {
       'available': 'ว่าง',
       'occupied': 'มีผู้เช่า',
@@ -1713,6 +1740,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       'monthly': 'รายเดือน',
       'daily': 'รายวัน'
     };
+    const yesNoMap = { true: 'ใช่', false: 'ไม่ใช่' };
     const csvContent = [
         headers.join(','),
         ...rooms.map(r => [
@@ -1722,6 +1750,10 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             r.price,
             statusMap[r.status] || r.status,
             r.size || '',
+            yesNoMap[r.is_flat_rate_water] || 'ไม่ใช่',
+            r.flat_rate_water_amount || '',
+            yesNoMap[r.is_flat_rate_electricity] || 'ไม่ใช่',
+            r.flat_rate_electricity_amount || '',
             `"${r.description || ''}"`,
             r.last_ac_cleaning_date || '',
             r.water_rate || '',
@@ -1962,12 +1994,18 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                     water_rate: '',
                     electricity_rate: '',
                     common_fee: '',
+                    is_flat_rate_water: false,
+                    flat_rate_water_amount: '',
+                    is_flat_rate_electricity: false,
+                    flat_rate_electricity_amount: '',
                     min_water_units: '',
                     min_water_charge: '',
                     min_electricity_units: '',
                     min_electricity_charge: '',
                     other_monthly_fees: []
                   });
+                  setIsFlatRateWater(false);
+                  setIsFlatRateElectricity(false);
                   setShowDialog(true);
                 }}
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
@@ -2789,27 +2827,84 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label>ค่าน้ำ (บาท/หน่วย)</Label>
-                    <Input
-                      type="number"
-                      placeholder={branchWaterRate ? `${branchWaterRate} (ค่ากลาง)` : "0"}
-                      value={formData.water_rate}
-                      onChange={(e) => setFormData({ ...formData, water_rate: e.target.value })}
-                      onWheel={(e) => e.target.blur()}
-                    />
+                <div className="space-y-4 p-4 border rounded-lg bg-slate-50/50">
+                  <h4 className="font-semibold text-slate-800 text-sm">💰 การคิดค่าน้ำ-ไฟ</h4>
+                  
+                  {/* ค่าน้ำ */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="flat-water"
+                        checked={isFlatRateWater}
+                        onCheckedChange={(checked) => {
+                          setIsFlatRateWater(checked);
+                          setFormData({ ...formData, is_flat_rate_water: checked });
+                          if (checked) setEnableMinWater(false);
+                        }}
+                      />
+                      <Label htmlFor="flat-water" className="cursor-pointer font-medium text-blue-700">
+                        💧 ค่าน้ำเหมาจ่าย
+                      </Label>
+                    </div>
+                    
+                    {isFlatRateWater ? (
+                      <Input
+                        type="number"
+                        placeholder="จำนวนเงิน (บาท/เดือน)"
+                        value={formData.flat_rate_water_amount}
+                        onChange={(e) => setFormData({ ...formData, flat_rate_water_amount: e.target.value })}
+                        onWheel={(e) => e.target.blur()}
+                        className="bg-blue-50 border-blue-300"
+                      />
+                    ) : (
+                      <Input
+                        type="number"
+                        placeholder={branchWaterRate ? `${branchWaterRate} (ค่ากลาง)` : "ค่าน้ำต่อหน่วย"}
+                        value={formData.water_rate}
+                        onChange={(e) => setFormData({ ...formData, water_rate: e.target.value })}
+                        onWheel={(e) => e.target.blur()}
+                      />
+                    )}
                   </div>
-                  <div>
-                    <Label>ค่าไฟ (บาท/หน่วย)</Label>
-                    <Input
-                      type="number"
-                      placeholder={branchElecRate ? `${branchElecRate} (ค่ากลาง)` : "0"}
-                      value={formData.electricity_rate}
-                      onChange={(e) => setFormData({ ...formData, electricity_rate: e.target.value })}
-                      onWheel={(e) => e.target.blur()}
-                    />
+
+                  {/* ค่าไฟ */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="flat-electricity"
+                        checked={isFlatRateElectricity}
+                        onCheckedChange={(checked) => {
+                          setIsFlatRateElectricity(checked);
+                          setFormData({ ...formData, is_flat_rate_electricity: checked });
+                          if (checked) setEnableMinElectricity(false);
+                        }}
+                      />
+                      <Label htmlFor="flat-electricity" className="cursor-pointer font-medium text-orange-700">
+                        ⚡ ค่าไฟเหมาจ่าย
+                      </Label>
+                    </div>
+                    
+                    {isFlatRateElectricity ? (
+                      <Input
+                        type="number"
+                        placeholder="จำนวนเงิน (บาท/เดือน)"
+                        value={formData.flat_rate_electricity_amount}
+                        onChange={(e) => setFormData({ ...formData, flat_rate_electricity_amount: e.target.value })}
+                        onWheel={(e) => e.target.blur()}
+                        className="bg-orange-50 border-orange-300"
+                      />
+                    ) : (
+                      <Input
+                        type="number"
+                        placeholder={branchElecRate ? `${branchElecRate} (ค่ากลาง)` : "ค่าไฟต่อหน่วย"}
+                        value={formData.electricity_rate}
+                        onChange={(e) => setFormData({ ...formData, electricity_rate: e.target.value })}
+                        onWheel={(e) => e.target.blur()}
+                      />
+                    )}
                   </div>
+
+                  {/* ค่าส่วนกลาง */}
                   <div>
                     <Label>ค่าส่วนกลาง (บาท/เดือน)</Label>
                     <Input
@@ -2823,32 +2918,33 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 </div>
 
                 {/* ค่าขั้นต่ำน้ำ-ไฟ */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="show-min-charges"
-                      checked={showMinCharges}
-                      onCheckedChange={(checked) => {
-                        setShowMinCharges(checked);
-                        if (!checked) {
-                          setEnableMinWater(false);
-                          setEnableMinElectricity(false);
-                          setFormData({ 
-                            ...formData, 
-                            min_water_units: '', 
-                            min_water_charge: '',
-                            min_electricity_units: '', 
-                            min_electricity_charge: ''
-                          });
-                        }
-                      }}
-                    />
-                    <Label htmlFor="show-min-charges" className="cursor-pointer font-medium">
-                      คิดค่าน้ำค่าไฟขั้นต่ำเฉพาะห้องนี้
-                    </Label>
-                  </div>
+                {!isFlatRateWater && !isFlatRateElectricity && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="show-min-charges"
+                        checked={showMinCharges}
+                        onCheckedChange={(checked) => {
+                          setShowMinCharges(checked);
+                          if (!checked) {
+                            setEnableMinWater(false);
+                            setEnableMinElectricity(false);
+                            setFormData({ 
+                              ...formData, 
+                              min_water_units: '', 
+                              min_water_charge: '',
+                              min_electricity_units: '', 
+                              min_electricity_charge: ''
+                            });
+                          }
+                        }}
+                      />
+                      <Label htmlFor="show-min-charges" className="cursor-pointer font-medium">
+                        คิดค่าน้ำค่าไฟขั้นต่ำเฉพาะห้องนี้
+                      </Label>
+                    </div>
 
-                  {showMinCharges && (
+                    {showMinCharges && (
                     <div className="p-4 border rounded-lg bg-slate-50/50 space-y-3">
                       <p className="text-xs text-slate-500">ถ้าไม่ตั้ง = ใช้ค่าสาขา</p>
                       
@@ -2946,10 +3042,11 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       </div>
                       <p className="text-[10px] text-slate-500">ถ้าใช้น้อยกว่า X หน่วย คิด Y บาท</p>
                     </div>
-                  </div>
                     </div>
-                  )}
-                </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Other Monthly Fees */}
                 <div className="space-y-2 p-4 border rounded-lg bg-slate-50/50">

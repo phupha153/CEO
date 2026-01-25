@@ -611,6 +611,10 @@ Deno.serve(async (req) => {
                 const originalWaterUnits = waterUnits;
                 const originalElecUnits = elecUnits;
 
+                // 🔄 NEW: เช็คค่าเหมาก่อน (ถ้าเป็นเหมาจะไม่คำนวณตามหน่วย)
+                let waterFlatRateApplied = false;
+                let electricityFlatRateApplied = false;
+
                 // ⭐ ค่าขั้นต่ำน้ำ - ดูที่ห้องก่อน ถ้าไม่มีค่อยดูสาขา
                 if (room.min_water_units !== null && room.min_water_units !== undefined && 
                     room.min_water_charge !== null && room.min_water_charge !== undefined) {
@@ -712,8 +716,27 @@ Deno.serve(async (req) => {
                     });
                 }
 
-                const waterAmount = waterMinimumApplied ? waterMinimumCharge : (waterUnits * waterRate);
-                const electricityAmount = electricityMinimumApplied ? electricityMinimumCharge : (elecUnits * elecRate);
+                // 🔄 คำนวณค่าน้ำ: เหมา > ขั้นต่ำ > ตามหน่วย
+                let waterAmount;
+                if (room.is_flat_rate_water === true && room.flat_rate_water_amount) {
+                    waterAmount = parseFloat(room.flat_rate_water_amount);
+                    waterFlatRateApplied = true;
+                } else if (waterMinimumApplied) {
+                    waterAmount = waterMinimumCharge;
+                } else {
+                    waterAmount = waterUnits * waterRate;
+                }
+
+                // 🔄 คำนวณค่าไฟ: เหมา > ขั้นต่ำ > ตามหน่วย
+                let electricityAmount;
+                if (room.is_flat_rate_electricity === true && room.flat_rate_electricity_amount) {
+                    electricityAmount = parseFloat(room.flat_rate_electricity_amount);
+                    electricityFlatRateApplied = true;
+                } else if (electricityMinimumApplied) {
+                    electricityAmount = electricityMinimumCharge;
+                } else {
+                    electricityAmount = elecUnits * elecRate;
+                }
 
                 // ⭐ SAFE PARSING: Default to 0 if missing/invalid (ไม่ throw error)
                 const safeRoomPrice = parseFloat(room.price) || 0;
@@ -744,10 +767,14 @@ Deno.serve(async (req) => {
                 let notes = `บิลประจำเดือน ${thailandTime.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' })} - สร้างอัตโนมัติ`;
                 if (parkingDetails) notes += `\nค่าจอดรถ: ${parkingDetails}`;
                 if (status === 'paid') notes += `\n✅ ชำระจากเงินล่วงหน้า`;
-                if (waterMinimumApplied) {
+                if (waterFlatRateApplied) {
+                    notes += `\n💧 ค่าน้ำเหมาจ่าย: ${room.flat_rate_water_amount.toLocaleString()} บาท`;
+                } else if (waterMinimumApplied) {
                     notes += `\n💧 ใช้น้ำ ${originalWaterUnits.toFixed(1)} หน่วย → คิดขั้นต่ำ ${waterMinimumCharge.toLocaleString()} บาท`;
                 }
-                if (electricityMinimumApplied) {
+                if (electricityFlatRateApplied) {
+                    notes += `\n⚡ ค่าไฟเหมาจ่าย: ${room.flat_rate_electricity_amount.toLocaleString()} บาท`;
+                } else if (electricityMinimumApplied) {
                     notes += `\n⚡ ใช้ไฟ ${originalElecUnits.toFixed(1)} หน่วย → คิดขั้นต่ำ ${electricityMinimumCharge.toLocaleString()} บาท`;
                 }
 
