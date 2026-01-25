@@ -951,7 +951,13 @@ export default function Layout({ children, currentPageName }) {
           effectiveTrialEndsAt = currentUser.trial_ends_at;
         }
       }
-      // 👇👇👇 1. แทรกโค้ดนี้เข้าไป (ด่านที่ 1: ดักรอ) 👇👇👇
+      // 👇 Developer ข้ามการเช็ค subscription ทั้งหมด 👇
+      if (userRole === 'developer') {
+        // Developer มี full access - ไม่ต้องเช็คแพ็กเกจ
+        return; // ข้ามการเช็คทั้งหมด
+      }
+      
+      // 👇 เฉพาะ Owner/Manager/Employee ต้องเช็คแพ็กเกจ 👇
       if (effectivePlanStatus === undefined || effectivePlanStatus === null) {
          console.log('⏳ รอข้อมูลแพ็กเกจ หรือกำลังสร้าง Trial...');
          return;  // สั่งให้ยืนรอตรงนี้ ห้ามลงไปข้างล่าง
