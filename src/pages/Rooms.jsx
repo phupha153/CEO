@@ -2844,7 +2844,10 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 </div>
 
                 <div className="space-y-4 p-4 border rounded-lg bg-slate-50/50">
-                  <h4 className="font-semibold text-slate-800 text-sm">💰 การคิดค่าน้ำ-ไฟ</h4>
+                  <h4 className="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-slate-700" />
+                    การคิดค่าน้ำ-ไฟ
+                  </h4>
                   
                   {/* ค่าน้ำ */}
                   <div className="space-y-2">
@@ -2858,8 +2861,9 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                           if (checked) setEnableMinWater(false);
                         }}
                       />
-                      <Label htmlFor="flat-water" className="cursor-pointer font-medium text-blue-700">
-                        💧 ค่าน้ำเหมาจ่าย
+                      <Label htmlFor="flat-water" className="cursor-pointer font-medium text-blue-700 flex items-center gap-2">
+                        <Droplet className="w-4 h-4" />
+                        ค่าน้ำเหมาจ่าย
                       </Label>
                     </div>
                     
@@ -2895,8 +2899,9 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                           if (checked) setEnableMinElectricity(false);
                         }}
                       />
-                      <Label htmlFor="flat-electricity" className="cursor-pointer font-medium text-orange-700">
-                        ⚡ ค่าไฟเหมาจ่าย
+                      <Label htmlFor="flat-electricity" className="cursor-pointer font-medium text-orange-700 flex items-center gap-2">
+                        <Zap className="w-4 h-4" />
+                        ค่าไฟเหมาจ่าย
                       </Label>
                     </div>
                     
@@ -3066,8 +3071,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
                 {/* Other Monthly Fees */}
                 <div className="space-y-2 p-4 border rounded-lg bg-slate-50/50">
-                  <Label className="flex items-center gap-2">
-                    <DollarSign className="w-4 h-4" />
+                  <Label className="flex items-center gap-2 font-semibold">
+                    <DollarSign className="w-4 h-4 text-slate-700" />
                     ค่าใช้จ่ายอื่นๆ รายเดือน (เฉพาะห้องนี้)
                   </Label>
                   {(formData.other_monthly_fees || []).map((fee, index) => (
@@ -3980,7 +3985,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 {/* ข้อมูลผู้จอง */}
                 <div className="border-t pt-4">
                   <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    👤 ข้อมูลผู้จอง
+                    <User className="w-5 h-5 text-blue-600" />
+                    ข้อมูลผู้จอง
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -4042,7 +4048,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 {/* วันที่พัก */}
                 <div className="border-t pt-4">
                   <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    📅 {dialogBookingType === 'daily' ? 'วันที่พัก' : 'วันที่และเงื่อนไขสัญญา'}
+                    <CalendarIcon className="w-5 h-5 text-blue-600" />
+                    {dialogBookingType === 'daily' ? 'วันที่พัก' : 'วันที่และเงื่อนไขสัญญา'}
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -4106,7 +4113,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 {/* รายละเอียดการชำระเงิน */}
                 <div className="border-t pt-4">
                   <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    💰 รายละเอียดการชำระเงิน
+                    <DollarSign className="w-5 h-5 text-green-600" />
+                    รายละเอียดการชำระเงิน
                   </h3>
 
                   <div className="space-y-3">
