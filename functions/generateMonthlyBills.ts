@@ -715,33 +715,8 @@ Deno.serve(async (req) => {
                 const waterAmount = waterMinimumApplied ? waterMinimumCharge : (waterUnits * waterRate);
                 const electricityAmount = electricityMinimumApplied ? electricityMinimumCharge : (elecUnits * elecRate);
 
-                // ⭐ PRE-VALIDATION: Check critical values BEFORE calculation
-                if (!room.price || isNaN(parseFloat(room.price)) || parseFloat(room.price) <= 0) {
-                    const errorMsg = `ห้อง ${room.room_number}: ไม่มีราคาห้อง (price=${room.price})`;
-                    console.error(`❌ ${errorMsg}`);
-                    errors.push(errorMsg);
-                    skippedCount++;
-                    continue;
-                }
-
-                if (isNaN(parseFloat(waterRate))) {
-                    const errorMsg = `ห้อง ${room.room_number}: ค่าน้ำไม่ถูกต้อง (water_rate=${waterRate})`;
-                    console.error(`❌ ${errorMsg}`);
-                    errors.push(errorMsg);
-                    skippedCount++;
-                    continue;
-                }
-
-                if (isNaN(parseFloat(elecRate))) {
-                    const errorMsg = `ห้อง ${room.room_number}: ค่าไฟไม่ถูกต้อง (elec_rate=${elecRate})`;
-                    console.error(`❌ ${errorMsg}`);
-                    errors.push(errorMsg);
-                    skippedCount++;
-                    continue;
-                }
-
-                // ⭐ Safe parsing after validation
-                const safeRoomPrice = parseFloat(room.price);
+                // ⭐ SAFE PARSING: Default to 0 if missing/invalid (ไม่ throw error)
+                const safeRoomPrice = parseFloat(room.price) || 0;
                 const safeWaterAmount = parseFloat(waterAmount) || 0;
                 const safeElecAmount = parseFloat(electricityAmount) || 0;
                 const safeInternetRate = parseFloat(internetRate) || 0;
@@ -750,17 +725,6 @@ Deno.serve(async (req) => {
                 const safeOtherFees = parseFloat(otherMonthlyFeesAmount) || 0;
 
                 const totalAmount = safeRoomPrice + safeWaterAmount + safeElecAmount + safeInternetRate + safeCommonFee + safeParkingAmount + safeOtherFees;
-
-                // ⭐ FINAL validation
-                if (isNaN(totalAmount) || totalAmount === null || totalAmount === undefined) {
-                    const errorMsg = `ห้อง ${room.room_number}: ยอดรวมไม่ถูกต้อง (total=${totalAmount})`;
-                    console.error(`❌ ${errorMsg}`, {
-                        safeRoomPrice, safeWaterAmount, safeElecAmount, safeInternetRate, safeCommonFee, safeParkingAmount, safeOtherFees
-                    });
-                    errors.push(errorMsg);
-                    skippedCount++;
-                    continue;
-                }
 
                 let status = 'pending';
                 let paymentDate = null;
