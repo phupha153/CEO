@@ -426,14 +426,16 @@ export default function BranchManagement() {
     
     setIsSubmitting(true); // ⭐ ล็อคปุ่ม
     
-    const data = {
-      ...formData,
-      owner_id: currentUser.email
-    };
-
     if (editingBranch) {
-      updateMutation.mutate({ id: editingBranch.id, data });
+      // 🔒 SECURITY FIX: ห้ามส่ง owner_id ตอนแก้ไข (ป้องกันการทับเจ้าของเดิม)
+      const { owner_id, ...safeData } = formData;
+      updateMutation.mutate({ id: editingBranch.id, data: safeData });
     } else {
+      // ✅ ตอนสร้างใหม่: ต้องใส่ owner_id
+      const data = {
+        ...formData,
+        owner_id: currentUser.email
+      };
       createMutation.mutate(data);
     }
   };
