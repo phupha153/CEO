@@ -83,9 +83,11 @@ export default function ExcelUploader({
         });
 
         if (result.data.success) {
+          setUploading(false);
           // Show preview table - don't auto-import yet
           setExtractedData(result.data.data);
           toast.success(result.data.message);
+          e.target.value = '';
           return;
         } else {
           throw new Error(result.data.error);
