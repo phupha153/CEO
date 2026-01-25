@@ -827,6 +827,10 @@ Deno.serve(async (req) => {
         if (paymentsToCreate.length > 0) {
             console.log(`🚀 Creating ${paymentsToCreate.length} bills...`);
 
+            let createdCount = 0;
+            let skippedCount = 0;
+            const errors = [];
+
             const batches = [];
             for (let i = 0; i < paymentsToCreate.length; i += 100) {
                 batches.push(paymentsToCreate.slice(i, i + 100));
@@ -924,8 +928,11 @@ Deno.serve(async (req) => {
         const monthName = thailandTime.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
         let summaryMessage = `สร้างบิลสำเร็จ ${createdCount} รายการ`;
 
+        if (skippedCount > 0) {
+            summaryMessage += `, ข้าม ${skippedCount} รายการ (ข้อมูลไม่ครบ)`;
+        }
         if (skippedDueToExistingBill > 0) {
-            summaryMessage += `, ข้าม ${skippedDueToExistingBill} ห้อง`;
+            summaryMessage += `, ข้าม ${skippedDueToExistingBill} ห้อง (มีบิลแล้ว)`;
         }
         if (skippedDueToLimit > 0) {
             summaryMessage += `, ⚠️ เหลืออีก ${skippedDueToLimit} ห้อง (รันอีกครั้ง)`;
@@ -950,6 +957,9 @@ Deno.serve(async (req) => {
         const summaryData = {
             success: true,
             message: summaryMessage,
+            created: createdCount,
+            skipped: skippedCount,
+            errors: errors.slice(0, 10),
             generatedCount: createdCount,
             skippedDueToExistingBill,
             skippedDueToLimit,

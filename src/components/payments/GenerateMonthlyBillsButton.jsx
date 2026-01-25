@@ -32,9 +32,16 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
 
       if (response.data?.success) {
         const created = response.data.generatedCount || response.data.created || 0;
+        const skipped = response.data.skipped || 0;
+        const errors = response.data.errors || [];
         const pending = response.data.pendingImageCount || 0;
         
-        if (created > 0) {
+        if (skipped > 0 && errors.length > 0) {
+          toast.warning(
+            `⚠️ สร้างบิลสำเร็จ ${created} รายการ, ข้าม ${skipped} รายการ\n\nข้อผิดพลาด:\n${errors.join('\n')}`,
+            { duration: 10000 }
+          );
+        } else if (created > 0) {
           toast.success(
             `สร้างบิลสำเร็จ ${created} รายการ${pending > 0 ? ` (รอสร้างรูป ${pending} ใบ)` : ''}`,
             { duration: 5000 }
