@@ -76,18 +76,16 @@ export default function ExcelUploader({
         const csv_text = await file.text();
         console.log('CSV text length:', csv_text.length);
 
-        // Use custom import function
+        // Use custom import function to PARSE (not import yet)
         const result = await base44.functions.invoke('flexibleTenantImport', {
           csv_text,
           branch_id: additionalData?.branch_id
         });
 
         if (result.data.success) {
+          // Show preview table - don't auto-import yet
+          setExtractedData(result.data.data);
           toast.success(result.data.message);
-          setShowDialog(false);
-          setExtractedData(null);
-          setErrorMessage(null);
-          if (onSuccess) onSuccess();
           return;
         } else {
           throw new Error(result.data.error);

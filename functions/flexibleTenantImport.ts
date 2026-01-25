@@ -100,24 +100,13 @@ Deno.serve(async (req) => {
       };
     });
 
-    // ✅ Bulk import via the existing bulk import function
-    const response = await base44.functions.invoke('bulkImportTenants', {
-      branch_id,
-      tenants_data
+    // ✅ Return parsed data for preview (NOT auto-import)
+    return Response.json({
+      success: true,
+      data: tenants_data,
+      count: tenants_data.length,
+      message: `อ่านข้อมูลสำเร็จ: ${tenants_data.length} รายการ`
     });
-
-    if (response.data.success) {
-      return Response.json({
-        success: true,
-        summary: response.data.summary,
-        message: `✅ นำเข้าสำเร็จ! สร้างใหม่: ${response.data.summary.tenants_created} | อัพเดท: ${response.data.summary.tenants_updated}`
-      });
-    } else {
-      return Response.json(
-        { error: response.data.error || 'Import failed' },
-        { status: 400 }
-      );
-    }
   } catch (error) {
     console.error('❌ Import error:', error);
     return Response.json(
