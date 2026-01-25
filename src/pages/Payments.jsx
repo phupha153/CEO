@@ -1015,14 +1015,23 @@ export default function PaymentsPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
-      if (!canAdd) throw new Error('คุณไม่มีสิทธิ์เพิ่มการชำระเงิน');
+      console.log('🚀 [createMutation] Starting...', { canAdd, isCreatingPayment });
+      if (!canAdd) {
+        console.error('❌ [createMutation] No permission');
+        throw new Error('คุณไม่มีสิทธิ์เพิ่มการชำระเงิน');
+      }
       if (isCreatingPayment) {
+        console.error('❌ [createMutation] Already creating');
         throw new Error('กำลังสร้างบิลอยู่ กรุณารอสักครู่');
       }
       setIsCreatingPayment(true);
-      return base44.entities.Payment.create({...data, branch_id: selectedBranchId});
+      console.log('📤 [createMutation] Creating payment...', data);
+      const result = await base44.entities.Payment.create({...data, branch_id: selectedBranchId});
+      console.log('✅ [createMutation] Success:', result);
+      return result;
     },
     onSuccess: async (newPayment) => {
+      console.log('✅ [createMutation.onSuccess] Starting...');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
         queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
@@ -1051,7 +1060,9 @@ export default function PaymentsPage() {
       toast.success('บันทึกการชำระเงินสำเร็จ');
     },
     onError: (error) => {
-      console.error('Create payment error:', error);
+      console.error('❌ [createMutation.onError] FULL ERROR:', error);
+      console.error('❌ [createMutation.onError] Error message:', error.message);
+      console.error('❌ [createMutation.onError] Error stack:', error.stack);
       setIsCreatingPayment(false);
       toast.error(error.message || 'เกิดข้อผิดพลาดในการบันทึก');
     }
@@ -1059,7 +1070,12 @@ export default function PaymentsPage() {
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => {
-      if (!canEdit) throw new Error('คุณไม่มีสิทธิ์แก้ไขการชำระเงิน');
+      console.log('🔄 [updateMutation] Starting...', { id, canEdit });
+      if (!canEdit) {
+        console.error('❌ [updateMutation] No permission');
+        throw new Error('คุณไม่มีสิทธิ์แก้ไขการชำระเงิน');
+      }
+      console.log('📤 [updateMutation] Updating payment...', { id, data });
       return base44.entities.Payment.update(id, {
         ...data,
         invoice_image_url: null,
@@ -1094,7 +1110,12 @@ export default function PaymentsPage() {
       resetForm();
       toast.success('อัปเดตการชำระเงินสำเร็จ - รูปใบแจ้งหนี้จะถูกสร้างใหม่', { duration: 4000 });
     },
-    onError: (error) => toast.error(error.message || 'เกิดข้อผิดพลาด')
+    onError: (error) => {
+      console.error('❌ [updateStatusMutation.onError] FULL ERROR:', error);
+      console.error('❌ [updateStatusMutation.onError] Error message:', error.message);
+      console.error('❌ [updateStatusMutation.onError] Error stack:', error.stack);
+      toast.error(error.message || 'เกิดข้อผิดพลาด');
+    }
   });
 
   const deleteMutation = useMutation({
@@ -1332,7 +1353,12 @@ export default function PaymentsPage() {
         toast.success('อัปเดตสถานะสำเร็จ');
       }
     },
-    onError: (error) => toast.error(error.message || 'เกิดข้อผิดพลาด')
+    onError: (error) => {
+      console.error('❌ [updateStatusMutation.onError] FULL ERROR:', error);
+      console.error('❌ [updateStatusMutation.onError] Error message:', error.message);
+      console.error('❌ [updateStatusMutation.onError] Error stack:', error.stack);
+      toast.error(error.message || 'เกิดข้อผิดพลาด');
+    }
   });
 
   const handleSlipUpload = async (e) => {
