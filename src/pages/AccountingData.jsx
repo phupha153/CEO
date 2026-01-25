@@ -1435,7 +1435,7 @@ export default function AccountingData() {
                     </p>
                   </div>
                 </div>
-              </CardContent>
+              </div>
             </Card>
           )}
 
