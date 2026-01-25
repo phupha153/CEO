@@ -115,12 +115,27 @@ export default function ExcelUploader({
       if (result.status === "success") {
         let finalExtractedData = [];
         
-        // ตอนนี้ result.output ควรเป็น array ของ Room objects โดยตรงแล้ว
+        // ✅ CLEAN BOM & INVISIBLE CHARS from column names BEFORE processing
         if (Array.isArray(result.output) && result.output.length > 0) {
-          console.log('Processing array output directly');
-          finalExtractedData = result.output.filter(item => 
-            item !== null && item !== undefined && typeof item === 'object' && !Array.isArray(item) && Object.keys(item).length > 0
-          );
+          console.log('🧹 Cleaning column names (BOM, ZWNBSP, tabs, spaces)...');
+          finalExtractedData = result.output
+            .filter(item => 
+              item !== null && item !== undefined && typeof item === 'object' && !Array.isArray(item) && Object.keys(item).length > 0
+            )
+            .map(record => {
+              const cleanRecord = {};
+              Object.keys(record).forEach(key => {
+                // ลบอักขระพิเศษทั้งหมด: BOM, Zero-Width Space, tabs, leading/trailing spaces
+                const cleanKey = key
+                  .replace(/^\ufeff/, '')      // BOM
+                  .replace(/\u200b/g, '')      // Zero-Width Space
+                  .replace(/\t/g, ' ')         // Tab → Space
+                  .trim();                     // Leading/trailing spaces
+                cleanRecord[cleanKey] = record[key];
+              });
+              return cleanRecord;
+            });
+          console.log('✅ Cleaned column names. Sample:', Object.keys(finalExtractedData[0] || {}));
         }
 
         console.log('Final extracted data count:', finalExtractedData.length);
