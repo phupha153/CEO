@@ -975,12 +975,13 @@ export default function PaymentsPage() {
       return 0;
     }
 
-    const branchBillConfig = configs.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
-    const globalBillConfig = configs.find(c => c.key === 'bill_generation_day' && !c.branch_id);
+    // ⭐ FIX: ใช้ default values แม้ configs จะเป็น array ว่างก็ได้
+    const branchBillConfig = configs?.find(c => c.key === 'bill_generation_day' && c.branch_id === selectedBranchId);
+    const globalBillConfig = configs?.find(c => c.key === 'bill_generation_day' && !c.branch_id);
     const billGenerationDay = branchBillConfig ? parseInt(branchBillConfig.value) : (globalBillConfig ? parseInt(globalBillConfig.value) : 27);
 
-    const branchPayDayConfig = configs.find(c => c.key === 'pay_day' && c.branch_id === selectedBranchId);
-    const globalPayDayConfig = configs.find(c => c.key === 'pay_day' && !c.branch_id);
+    const branchPayDayConfig = configs?.find(c => c.key === 'pay_day' && c.branch_id === selectedBranchId);
+    const globalPayDayConfig = configs?.find(c => c.key === 'pay_day' && !c.branch_id);
     const payDay = branchPayDayConfig ? parseInt(branchPayDayConfig.value) : (globalPayDayConfig ? parseInt(globalPayDayConfig.value) : 5);
 
     const now = new Date();
