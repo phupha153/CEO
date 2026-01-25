@@ -2172,21 +2172,30 @@ const tenantSchema = {
       // --- ส่วนที่เหลือเหมือนเดิม (Logic การบันทึก) ---
       const existingTenant = tenantId ? existingTenants.find(t => t.id === tenantId) : null;
       
+      // ✅ Safely parse age (handle both number and string)
+      const rawAge = record.age || record['อายุ'];
+      const parsedAge = rawAge ? parseInt(String(rawAge)) : undefined;
+      
+      // ✅ Ensure phone has leading 0 if it's missing (Thai phone format)
+      const formattedPhone = phone && !phone.startsWith('0') ? '0' + phone : phone;
+      
       const tenantData = {
-        full_name: fullName,
-        phone: phone,
+        full_name: String(fullName).trim(),
+        phone: formattedPhone,
         gender: record.gender || record['เพศ'] || existingTenant?.gender,
-        age: record.age || record['อายุ'] ? parseInt(record.age || record['อายุ']) : existingTenant?.age,
+        age: !isNaN(parsedAge) && parsedAge > 0 ? parsedAge : existingTenant?.age,
         line_id: record.line_id || record['LINE ID'] || existingTenant?.line_id,
         national_id: nationalId || existingTenant?.national_id,
         email: record.email || record['อีเมล'] || existingTenant?.email,
         address: record.address || record['ที่อยู่'] || existingTenant?.address,
-        emergency_contact: record.emergency_contact || record['เบอร์ติดต่อฉุกเฉิน'] || existingTenant?.emergency_contact, // แก้ชื่อให้ตรงกับ CSV
+        emergency_contact: String(record.emergency_contact || record['เบอร์ติดต่อฉุกเฉิน'] || existingTenant?.emergency_contact || ''),
         notes: record.notes || record['หมายเหตุ'] || existingTenant?.notes,
-        status: record.status || record['สถานะการจอง'] || existingTenant?.status || 'active', // ใช้สถานะการจองมาเป็นสถานะผู้เช่าถ้าจำเป็น
+        status: 'active', // ⚠️ FIXED: ผู้เช่าควรเป็น 'active' เสมอ (ไม่ใช้ 'สถานะการจอง')
         line_user_id: existingTenant?.line_user_id,
         branch_id: selectedBranchId
       };
+      
+      console.log('📝 [CSV] Tenant data prepared:', tenantData);
 
       let finalTenant;
       if (existingTenant) {
