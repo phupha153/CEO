@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Edit2, Trash2, Upload, Building2, User, Phone, Calendar as CalendarIcon, AlertTriangle, Eye, Clock, DollarSign, X, Check, Search, ChevronLeft, ChevronRight, Wind, DoorOpen, Sparkles, Loader2, FileText, ExternalLink, CheckSquare, Download, LogOut, Gauge, Star, Wrench } from "lucide-react";
+import { Plus, Edit2, Trash2, Upload, Building2, User, Phone, Calendar as CalendarIcon, AlertTriangle, Eye, Clock, DollarSign, X, Check, Search, ChevronLeft, ChevronRight, Wind, DoorOpen, Sparkles, Loader2, FileText, ExternalLink, CheckSquare, Download, LogOut, Gauge, Star, Wrench, Droplet, Zap } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
@@ -3339,7 +3339,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-100 p-3 rounded-lg">
                               <div>
                                 <Label className="text-slate-600 text-xs flex items-center gap-1">
-                                  💧 ค่าน้ำ
+                                  <Droplet className="w-3.5 h-3.5 text-blue-500" />
+                                  ค่าน้ำ
                                   {selectedRoom.is_flat_rate_water && (
                                     <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0">เหมา</Badge>
                                   )}
@@ -3354,7 +3355,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                               </div>
                               <div>
                                 <Label className="text-slate-600 text-xs flex items-center gap-1">
-                                  ⚡ ค่าไฟ
+                                  <Zap className="w-3.5 h-3.5 text-orange-500" />
+                                  ค่าไฟ
                                   {selectedRoom.is_flat_rate_electricity && (
                                     <Badge className="bg-orange-500 text-white text-[10px] px-1.5 py-0">เหมา</Badge>
                                   )}
