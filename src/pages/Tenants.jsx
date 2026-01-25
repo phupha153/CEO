@@ -2215,12 +2215,40 @@ const tenantSchema = {
         const roomNumStr = String(roomNumber).trim();
         const room = branchRooms.find(r => r.room_number === roomNumStr);
 
-        if (room) {
-           // แปลงวันที่ (ถ้ามี)
-           const checkInDate = record.check_in_date || record['วันเริ่มสัญญา'] || new Date().toISOString().split('T')[0];
-           const checkOutDate = record.check_out_date || record['วันสิ้นสุดสัญญา'] || null;
-           const depositAmount = parseFloat(record.deposit_amount || record['เงินมัดจำ'] || 0);
-           const bookingStatus = record.booking_status || record['สถานะการจอง'] || 'active';
+        if (!room) {
+          console.warn(`⚠️ Room not found: ${roomNumStr} - Skipping booking creation`);
+        } else {
+          console.log('✅ [CSV] Found room:', room.room_number, 'Creating booking...');
+          
+          // ✅ SAFE DATE PARSING: รองรับหลายรูปแบบ (YYYY-MM-DD, DD/MM/YYYY, Excel serial)
+          const parseDate = (dateValue) => {
+            if (!dateValue) return null;
+            const str = String(dateValue).trim();
+            
+            // รูปแบบ YYYY-MM-DD (ISO)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+            
+            // รูปแบบ DD/MM/YYYY
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+              const [d, m, y] = str.split('/');
+              return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            }
+            
+            // Excel serial number (days since 1900-01-01)
+            const num = parseFloat(str);
+            if (!isNaN(num) && num > 40000) {
+              const excelEpoch = new Date(1900, 0, 1);
+              const date = new Date(excelEpoch.getTime() + (num - 2) * 24 * 60 * 60 * 1000);
+              return date.toISOString().split('T')[0];
+            }
+            
+            return null;
+          };
+          
+          const checkInDate = parseDate(record.check_in_date || record['วันเริ่มสัญญา']) || new Date().toISOString().split('T')[0];
+          const checkOutDate = parseDate(record.check_out_date || record['วันสิ้นสุดสัญญา']);
+          const depositAmount = parseFloat(record.deposit_amount || record['เงินมัดจำ'] || 0);
+          const bookingStatus = String(record.booking_status || record['สถานะการจอง'] || 'active').toLowerCase();
 
            const existingTenantBooking = existingBookings.find(b => b.tenant_id === finalTenant.id && b.room_id === room.id);
            
