@@ -4752,23 +4752,40 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 </SelectTrigger>
                 <SelectContent>
                   {tenants
-                    .filter(t => {
-                      // แสดงเฉพาะผู้เช่าที่ยังไม่มีห้อง (ไม่มี active booking)
-                      const hasActiveBooking = bookings.some(b => 
-                        b.tenant_id === t.id && 
+                    .filter(t => t.status === 'active')
+                    .map(tenant => {
+                      // เช็คว่าผู้เช่ามีห้องหรือยัง
+                      const activeBooking = bookings.find(b => 
+                        b.tenant_id === tenant.id && 
                         b.status === 'active'
                       );
-                      return t.status === 'active' && !hasActiveBooking;
-                    })
-                    .map(tenant => (
-                      <SelectItem key={tenant.id} value={tenant.id}>
-                        {tenant.full_name} - {tenant.phone}
-                      </SelectItem>
-                    ))}
+                      const room = activeBooking ? rooms.find(r => r.id === activeBooking.room_id) : null;
+                      
+                      return (
+                        <SelectItem 
+                          key={tenant.id} 
+                          value={tenant.id}
+                          disabled={!!activeBooking}
+                        >
+                          <div className="flex items-center justify-between gap-2 w-full">
+                            <span>{tenant.full_name} - {tenant.phone}</span>
+                            {activeBooking ? (
+                              <Badge className="bg-orange-500 text-white text-xs ml-2 flex-shrink-0">
+                                ห้อง {room?.room_number || 'N/A'}
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-green-500 text-white text-xs ml-2 flex-shrink-0">
+                                ว่าง
+                              </Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                 </SelectContent>
               </Select>
               <p className="text-xs text-slate-500 mt-1">
-                แสดงเฉพาะผู้เช่าที่ยังไม่มีห้องพัก
+                ✅ ว่าง = เลือกได้ | 🔒 มีห้องแล้ว = เลือกไม่ได้
               </p>
             </div>
 
