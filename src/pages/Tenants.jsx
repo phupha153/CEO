@@ -2148,22 +2148,26 @@ const tenantSchema = {
     let bookingUpdatedCount = 0;
     let bookingFixedCount = 0;
 
-    // ⭐ เปลี่ยนจาก importedData เป็น cleanData (ข้อมูลที่ล้างสะอาดแล้ว)
+    // ⭐ Loop ผ่านข้อมูลที่ล้างสะอาดแล้ว
     for (const record of cleanData) {
-      // ดึงข้อมูล (รองรับทั้งภาษาไทยและอังกฤษ)
-      const tenantId = record.id || record['รหัส'];
-      const fullName = record.full_name || record['ชื่อ-นามสกุล']; // ตรงนี้จะทำงานได้แล้วเพราะเราล้างหัวข้อแล้ว
+      console.log('🔍 [CSV Import] Processing record:', record);
       
-      // แปลงเบอร์โทรและเลขบัตรเป็นข้อความเสมอ (ป้องกัน Error เรื่องตัวเลข)
-      const phone = record.phone ? String(record.phone) : (record['เบอร์โทร'] ? String(record['เบอร์โทร']) : '');
-      const nationalId = record.national_id ? String(record.national_id) : (record['เลขบัตรประชาชน'] ? String(record['เลขบัตรประชาชน']) : '');
+      // ดึงข้อมูล (รองรับทั้งภาษาไทยและอังกฤษ) + แปลงตัวเลขให้เป็น string
+      const tenantId = record.id || record['รหัส'];
+      const fullName = record.full_name || record['ชื่อ-นามสกุล'];
+      
+      // ⚠️ CRITICAL: แปลงเบอร์โทร/เลขบัตรที่เป็นตัวเลขให้กลายเป็น string ก่อนบันทึก
+      const phone = String(record.phone || record['เบอร์โทร'] || '').replace(/^0+/, '') || ''; // ลบ leading zeros ที่ Excel ใส่มาเอง
+      const nationalId = String(record.national_id || record['เลขบัตรประชาชน'] || '');
 
       // ข้ามถ้าไม่มีชื่อ
-      if (!fullName || fullName.trim() === '') {
-        console.warn('Skipping record without name:', record);
+      if (!fullName || String(fullName).trim() === '') {
+        console.warn('❌ Skipping record without name:', record);
         skippedCount++;
         continue;
       }
+      
+      console.log('✅ Valid record - Name:', fullName, 'Phone:', phone);
 
       // --- ส่วนที่เหลือเหมือนเดิม (Logic การบันทึก) ---
       const existingTenant = tenantId ? existingTenants.find(t => t.id === tenantId) : null;
