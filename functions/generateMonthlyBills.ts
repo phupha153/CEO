@@ -924,50 +924,11 @@ Deno.serve(async (req) => {
         return Response.json(summaryData);
 
     } catch (err) {
-        console.error('========================================');
-        console.error('❌❌❌ FATAL ERROR ❌❌❌');
-        console.error('========================================');
-        console.error('🔴 Error Message:', err.message);
-        console.error('🔴 Error Stack:', err.stack);
-        console.error('🔴 Error Details:', {
-            name: err.name,
-            cause: err.cause,
-            targetBranchId,
-            timestamp: new Date().toISOString()
-        });
-        console.error('========================================');
-        
-        // ⭐ บันทึก error log ลง database
-        try {
-            if (base44) {
-                await base44.asServiceRole.entities.FunctionLog.create({
-                    function_name: 'generateMonthlyBills',
-                    run_timestamp: new Date().toISOString(),
-                    status: 'error',
-                    message: `❌ FATAL: ${err.message}`,
-                    details: {
-                        error: err.message,
-                        stack: err.stack,
-                        targetBranchId,
-                        timestamp: new Date().toISOString()
-                    },
-                    execution_time_ms: Date.now() - startTime,
-                    triggered_by: targetBranchId ? 'manual_branch' : 'cron'
-                });
-            }
-        } catch (logErr) {
-            console.error('⚠️ Failed to log error:', logErr.message);
-        }
-        
+        console.error('❌ FATAL ERROR:', err);
         return Response.json({
             success: false,
-            message: `❌ เกิดข้อผิดพลาด: ${err.message}`,
-            error: err.message,
-            stack: err.stack,
-            details: {
-                targetBranchId,
-                timestamp: new Date().toISOString()
-            }
+            message: `Error: ${err.message}`,
+            error: err.stack
         }, { status: 500 });
     }
 });
