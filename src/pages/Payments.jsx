@@ -1120,8 +1120,14 @@ export default function PaymentsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (payment) => {
-      if (!canDelete) throw new Error('คุณไม่มีสิทธิ์ลบการชำระเงิน');
+      console.log('🗑️ [deleteMutation] Starting...', { paymentId: payment.id, canDelete });
+      if (!canDelete) {
+        console.error('❌ [deleteMutation] No permission');
+        throw new Error('คุณไม่มีสิทธิ์ลบการชำระเงิน');
+      }
+      console.log('📤 [deleteMutation] Deleting payment...', payment.id);
       await base44.entities.Payment.delete(payment.id);
+      console.log('✅ [deleteMutation] Deleted successfully');
       return payment;
     },
     onMutate: async (deletedPayment) => {
@@ -1156,6 +1162,9 @@ export default function PaymentsPage() {
       return { previousPaymentsFiltered, previousPaymentsRoomView, queryKeyFiltered, queryKeyRoomView };
     },
     onError: (err, deletedPayment, context) => {
+      console.error('❌ [deleteMutation.onError] FULL ERROR:', err);
+      console.error('❌ [deleteMutation.onError] Error message:', err.message);
+      console.error('❌ [deleteMutation.onError] Error stack:', err.stack);
       if (context?.previousPaymentsFiltered) {
         queryClient.setQueryData(context.queryKeyFiltered, context.previousPaymentsFiltered);
       }

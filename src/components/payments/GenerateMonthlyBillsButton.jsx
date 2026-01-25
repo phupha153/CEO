@@ -84,8 +84,11 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
         toast.error(response.data?.error || 'เกิดข้อผิดพลาดในการสร้างบิล');
       }
     } catch (error) {
-      console.error('Generate bills error:', error);
-      toast.error('เกิดข้อผิดพลาดในการสร้างบิล');
+      console.error('❌ [GenerateMonthlyBillsButton] FULL ERROR:', error);
+      console.error('❌ [GenerateMonthlyBillsButton] Error message:', error.message);
+      console.error('❌ [GenerateMonthlyBillsButton] Error stack:', error.stack);
+      console.error('❌ [GenerateMonthlyBillsButton] Response data:', error.response?.data);
+      toast.error('เกิดข้อผิดพลาดในการสร้างบิล: ' + (error.message || 'Unknown'));
     } finally {
       setGenerating(false);
     }
