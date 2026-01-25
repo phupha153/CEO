@@ -107,6 +107,8 @@ export default function PrintReceipts() {
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [failedPayments, setFailedPayments] = useState([]);
+  const [retrying, setRetrying] = useState(false);
+  const [showFailedList, setShowFailedList] = useState(false);
 
   useEffect(() => {
     const fetchReceipts = async () => {
@@ -270,6 +272,77 @@ export default function PrintReceipts() {
     window.location.reload();
   };
 
+  const handleRetryFailed = async () => {
+    if (failedPayments.length === 0) return;
+    
+    setRetrying(true);
+    try {
+      const retryIds = failedPayments.map(f => f.paymentId);
+      toast.info(`กำลังโหลดซ้ำ ${retryIds.length} รายการ...`);
+      
+      const newReceipts = [];
+      const stillFailed = [];
+      
+      const results = await fetchInBatches(
+        retryIds,
+        3,
+        async (paymentId) => {
+          return await fetchWithRetry(
+            async () => {
+              const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Request timeout')), 15000)
+              );
+              
+              const fetchPromise = base44.functions.invoke('getPublicInvoice', { 
+                paymentId: paymentId 
+              });
+
+              const response = await Promise.race([fetchPromise, timeoutPromise]);
+
+              if (response.data && response.data.success && response.data.invoice) {
+                return { success: true, data: response.data.invoice, paymentId };
+              } else {
+                return { 
+                  success: false, 
+                  error: response.data?.error || 'ไม่พบใบเสร็จ',
+                  paymentId 
+                };
+              }
+            },
+            3,
+            3000
+          );
+        }
+      );
+
+      for (let index = 0; index < results.length; index++) {
+        const result = results[index];
+        const paymentId = retryIds[index];
+        
+        if (result.status === 'fulfilled' && result.value.success) {
+          newReceipts.push(result.value.data);
+        } else {
+          const failedItem = failedPayments.find(f => f.paymentId === paymentId);
+          stillFailed.push(failedItem);
+        }
+      }
+
+      setReceiptsData(prev => [...prev, ...newReceipts]);
+      setFailedPayments(stillFailed);
+
+      if (newReceipts.length > 0) {
+        toast.success(`โหลดซ้ำสำเร็จ ${newReceipts.length} รายการ`);
+      }
+      if (stillFailed.length > 0) {
+        toast.warning(`ยังโหลดไม่สำเร็จ ${stillFailed.length} รายการ`);
+      }
+    } catch (error) {
+      toast.error('เกิดข้อผิดพลาดในการโหลดซ้ำ');
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
@@ -411,33 +484,58 @@ export default function PrintReceipts() {
       {failedPayments.length > 0 && (
         <div className="print:hidden max-w-7xl mx-auto px-4 pt-4">
           <Card className="bg-orange-50 border-orange-200">
-            <div className="p-4 flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-orange-800 mb-1">
-                  ⚠️ มีบางรายการที่โหลดไม่สำเร็จ
-                </p>
-                <p className="text-xs text-orange-700 mb-2">
-                  พบ {failedPayments.length} รายการที่ไม่สามารถโหลดได้จาก {paymentIds.length} รายการทั้งหมด
-                </p>
-                <details className="text-xs text-orange-700">
-                  <summary className="cursor-pointer font-semibold hover:text-orange-900">
-                    ดูรายการที่ล้มเหลว ({failedPayments.length} รายการ)
-                  </summary>
-                  <ul className="mt-2 space-y-1 pl-4 list-disc">
-                    {failedPayments.slice(0, 5).map((item, idx) => (
-                      <li key={idx}>
-                        <span className="font-semibold">ห้อง {item.roomNumber}</span> - {item.tenantName} (ID: {item.paymentIdShort}) - {item.error}
-                      </li>
-                    ))}
-                    {failedPayments.length > 5 && (
-                      <li className="text-orange-600 font-semibold">
-                        และอีก {failedPayments.length - 5} รายการ...
-                      </li>
-                    )}
-                  </ul>
-                </details>
+            <div className="p-4">
+              <div className="flex items-start gap-3 mb-3">
+                <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-orange-800 mb-1">
+                    ⚠️ มีบางรายการที่โหลดไม่สำเร็จ
+                  </p>
+                  <p className="text-xs text-orange-700 mb-2">
+                    พบ {failedPayments.length} รายการที่ไม่สามารถโหลดได้จาก {paymentIds.length} รายการทั้งหมด
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowFailedList(!showFailedList)}
+                    className="mb-2 border-orange-300 text-orange-700 hover:bg-orange-100"
+                  >
+                    {showFailedList ? '🔽 ซ่อนรายการ' : '🔼 ดูรายการที่ล้มเหลว'} ({failedPayments.length} รายการ)
+                  </Button>
+                  
+                  {showFailedList && (
+                    <div className="bg-white rounded-lg p-3 border border-orange-200 space-y-2 max-h-64 overflow-y-auto">
+                      {failedPayments.map((item, idx) => (
+                        <div key={idx} className="text-xs bg-orange-50 p-2 rounded border border-orange-100">
+                          <p className="font-semibold text-slate-800">
+                            ห้อง {item.roomNumber} - {item.tenantName}
+                          </p>
+                          <p className="font-mono text-xs text-slate-500">ID: {item.paymentIdShort}</p>
+                          <p className="text-red-600 font-medium mt-1">→ {item.error}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
+              
+              <Button
+                onClick={handleRetryFailed}
+                disabled={retrying}
+                className="w-full bg-orange-600 hover:bg-orange-700"
+              >
+                {retrying ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    กำลังลองใหม่...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    ลองโหลดอีกครั้ง ({failedPayments.length} รายการ)
+                  </>
+                )}
+              </Button>
             </div>
           </Card>
         </div>
