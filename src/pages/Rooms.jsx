@@ -925,8 +925,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     }
 
     return result.sort((a, b) => {
-      if (b.floor !== a.floor) {
-        (a.floor || 0) - (b.floor || 0);
+      if (a.floor !== b.floor) {
+        return (a.floor || 0) - (b.floor || 0);
       }
       return a.room_number.localeCompare(b.room_number);
     });
