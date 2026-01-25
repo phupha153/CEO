@@ -21,14 +21,22 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
     }
 
     setGenerating(true);
+    
+    // ⭐ แสดง toast ที่อยู่นานกว่า เพื่อให้เห็น loading state
+    const loadingToast = toast.loading('🔄 กำลังสร้างบิลประจำเดือน...', { duration: Infinity });
+    
     try {
-      toast.info('กำลังสร้างบิลประจำเดือน...', { duration: 3000 });
+      console.log('📤 [GENERATE BILLS] Calling backend...', { branch_id: branchId });
       
-      // ⭐ ไม่ใช้ force_skip_duplicate_check เพื่อให้เช็คบิลซ้ำ
       const response = await base44.functions.invoke('generateMonthlyBills', {
         branch_id: branchId,
         force: true
       });
+      
+      console.log('📥 [GENERATE BILLS] Response:', response.data);
+      
+      // ⭐ ปิด loading toast ก่อน
+      toast.dismiss(loadingToast);
 
       if (response.data?.success) {
         const created = response.data.generatedCount || response.data.created || 0;
@@ -81,13 +89,40 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
 
         if (onSuccess) onSuccess();
       } else {
-        toast.error(response.data?.error || 'เกิดข้อผิดพลาดในการสร้างบิล');
+        // ⭐ แสดง error ละเอียดพร้อมรายละเอียดจาก backend
+        const errorMsg = response.data?.message || response.data?.error || 'เกิดข้อผิดพลาดในการสร้างบิล';
+        console.error('❌ [GENERATE BILLS] Backend error:', {
+          message: errorMsg,
+          data: response.data
+        });
+        
+        toast.error(errorMsg, { 
+          duration: 15000, // ⭐ แสดงนาน 15 วินาที
+          description: response.data?.details ? JSON.stringify(response.data.details).substring(0, 100) : 'กรุณาดูรายละเอียดใน Console (F12)'
+        });
       }
     } catch (error) {
-      console.error('Generate bills error:', error);
-      toast.error('เกิดข้อผิดพลาดในการสร้างบิล');
+      console.error('========================================');
+      console.error('❌ [GENERATE BILLS] Frontend Error:');
+      console.error('========================================');
+      console.error('Message:', error.message);
+      console.error('Stack:', error.stack);
+      console.error('Details:', {
+        branchId,
+        timestamp: new Date().toISOString()
+      });
+      console.error('========================================');
+      
+      // ⭐ ปิด loading toast ถ้ายังเปิดอยู่
+      toast.dismiss(loadingToast);
+      
+      toast.error(`❌ เกิดข้อผิดพลาด: ${error.message}`, { 
+        duration: 15000,
+        description: 'กรุณาดูรายละเอียดใน Console (F12) และส่งให้ผู้ดูแลระบบ'
+      });
     } finally {
       setGenerating(false);
+      console.log('🏁 [GENERATE BILLS] Process completed');
     }
   };
 
