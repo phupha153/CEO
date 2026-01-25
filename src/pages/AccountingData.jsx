@@ -1373,7 +1373,7 @@ export default function AccountingData() {
           {/* ✅ Failed Receipts Banner */}
           {showFailedBanner && failedReceipts.length > 0 && (
             <Card className="bg-red-50 border-2 border-red-200 shadow-lg">
-              <CardContent className="p-4">
+              <div className="p-4">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
