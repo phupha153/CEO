@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,17 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
   const [processingQueue, setProcessingQueue] = useState(false);
 
   // ⭐ Debug: Log ค่า props ที่ได้มา
-  console.log('🔘 [GenerateMonthlyBillsButton] Props:', {
-    branchId,
-    roomsNeedingBills,
-    generating,
-    processingQueue,
-    isLoading: generating || processingQueue,
-    isDisabled: (generating || processingQueue || roomsNeedingBills === 0)
-  });
+  useEffect(() => {
+    console.log('🔘 [GenerateMonthlyBillsButton] Render:', {
+      branchId,
+      roomsNeedingBills,
+      roomsNeedingBills_type: typeof roomsNeedingBills,
+      generating,
+      processingQueue,
+      isLoading: generating || processingQueue,
+      wouldBeDisabled: (generating || processingQueue || roomsNeedingBills === 0 || roomsNeedingBills === -1)
+    });
+  }, [branchId, roomsNeedingBills, generating, processingQueue]);
 
   const handleGenerateBills = async () => {
     if (!confirm('คุณต้องการสร้างบิลประจำเดือนนี้ใช่หรือไม่?')) {
@@ -142,14 +145,26 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
     // ⭐ -1 = loading, 0 = no rooms, >0 = has rooms
     const isLoadingRooms = roomsNeedingBills === -1;
     const hasNoRooms = roomsNeedingBills === 0;
-    const isDisabled = isLoading || hasNoRooms;
+    
+    // ⚡ FIX: ปุ่มกดได้เมื่อไม่ได้กำลัง generate และมีห้องที่ต้องสร้างบิล (>0 หรือกำลังโหลด)
+    const isButtonDisabled = isLoading || hasNoRooms;
+
+    console.log('🔘 [Compact Button] State:', {
+      isLoadingRooms,
+      hasNoRooms,
+      roomsNeedingBills,
+      isButtonDisabled,
+      isLoading,
+      generating,
+      processingQueue
+    });
 
     return (
       <Button
         onClick={handleGenerateBills}
-        disabled={isDisabled}
+        disabled={isButtonDisabled}
         size="sm"
-        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? (
           <Loader2 className="w-4 h-4 mr-1 animate-spin" />
@@ -166,13 +181,25 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
   // ⭐ -1 = loading, 0 = no rooms, >0 = has rooms
   const isLoadingRooms = roomsNeedingBills === -1;
   const hasNoRooms = roomsNeedingBills === 0;
-  const isDisabled = isLoading || hasNoRooms;
+  
+  // ⚡ FIX: ปุ่มกดได้เมื่อไม่ได้กำลัง generate และมีห้องที่ต้องสร้างบิล
+  const isButtonDisabled = isLoading || hasNoRooms;
+
+  console.log('🔘 [Full Button] State:', {
+    isLoadingRooms,
+    hasNoRooms,
+    roomsNeedingBills,
+    isButtonDisabled,
+    isLoading,
+    generating,
+    processingQueue
+  });
 
   return (
     <Button
       onClick={handleGenerateBills}
-      disabled={isDisabled}
-      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+      disabled={isButtonDisabled}
+      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {isLoading ? (
         <>
