@@ -1,13 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 import { format } from 'npm:date-fns@3.0.0';
 
-// ⭐ Helper: แปลงเป็นตัวเลขอย่างปลอดภัย (ป้องกัน NaN)
-function safeNumber(value, defaultValue = 0) {
-    if (value === null || value === undefined || value === '') return defaultValue;
-    const num = typeof value === 'string' ? parseFloat(value) : Number(value);
-    return isNaN(num) ? defaultValue : num;
-}
-
 function numberToThaiText(number) {
     if (number === undefined || number === null || isNaN(number) || number === 0) return 'ศูนย์บาทถ้วน';
 
@@ -589,23 +582,22 @@ Deno.serve(async (req) => {
                 // ⭐ FIX: ใช้มิเตอร์ล่าสุดเสมอ (ไม่ว่าจะ 0 หรือไม่) - ป้องกันเอาค่าเก่ามาใช้
                 let latestMeter = roomMeters[0] || null;
 
-                // ⭐ CRITICAL FIX: ใช้ safeNumber() แทน parseFloat() เพื่อป้องกัน NaN
-                let waterUnits = safeNumber(latestMeter?.water_units, 0);
-                let elecUnits = safeNumber(latestMeter?.electricity_units, 0);
+                let waterUnits = latestMeter?.water_units || 0;
+                let elecUnits = latestMeter?.electricity_units || 0;
 
                 const waterRate = (room.water_rate !== undefined && room.water_rate !== null)
-                    ? safeNumber(room.water_rate, 0)
-                    : safeNumber(getConfigValue('water_rate', '18', roomBranchId), 18);
+                    ? parseFloat(room.water_rate)
+                    : parseFloat(getConfigValue('water_rate', '18', roomBranchId));
                 const elecRate = (room.electricity_rate !== undefined && room.electricity_rate !== null)
-                    ? safeNumber(room.electricity_rate, 0)
-                    : safeNumber(getConfigValue('electricity_rate', '7', roomBranchId), 7);
+                    ? parseFloat(room.electricity_rate)
+                    : parseFloat(getConfigValue('electricity_rate', '7', roomBranchId));
                 const commonFee = (room.common_fee !== undefined && room.common_fee !== null)
-                    ? safeNumber(room.common_fee, 0)
-                    : safeNumber(getConfigValue('common_fee', '0', roomBranchId), 0);
+                    ? parseFloat(room.common_fee)
+                    : parseFloat(getConfigValue('common_fee', '0', roomBranchId));
 
-                const internetRate = safeNumber(getConfigValue('internet_rate', '0', roomBranchId), 0);
-                const carFee = safeNumber(getConfigValue('car_parking_fee', '0', roomBranchId), 0);
-                const motoFee = safeNumber(getConfigValue('motorcycle_parking_fee', '0', roomBranchId), 0);
+                const internetRate = parseFloat(getConfigValue('internet_rate', '0', roomBranchId));
+                const carFee = parseFloat(getConfigValue('car_parking_fee', '0', roomBranchId));
+                const motoFee = parseFloat(getConfigValue('motorcycle_parking_fee', '0', roomBranchId));
 
                 let waterMinimumApplied = false;
                 let electricityMinimumApplied = false;
@@ -614,12 +606,12 @@ Deno.serve(async (req) => {
                 const originalWaterUnits = waterUnits;
                 const originalElecUnits = elecUnits;
 
-                // ⭐ ค่าขั้นต่ำน้ำ - ดูที่ห้องก่อน ถ้าไม่มีค่อยดูสาขา (ใช้ safeNumber)
+                // ⭐ ค่าขั้นต่ำน้ำ - ดูที่ห้องก่อน ถ้าไม่มีค่อยดูสาขา
                 if (room.min_water_units !== null && room.min_water_units !== undefined && 
                     room.min_water_charge !== null && room.min_water_charge !== undefined) {
                     // ใช้ค่าห้อง
-                    const minUnits = safeNumber(room.min_water_units, 0);
-                    const minCharge = safeNumber(room.min_water_charge, 0);
+                    const minUnits = parseFloat(room.min_water_units);
+                    const minCharge = parseFloat(room.min_water_charge);
                     if (waterUnits <= minUnits && minCharge > 0) {
                         waterMinimumCharge = minCharge;
                         waterMinimumApplied = true;
@@ -628,8 +620,8 @@ Deno.serve(async (req) => {
                     // ใช้ค่าสาขา
                     const waterMinEnabled = getConfigValue('water_minimum_enabled', 'false', roomBranchId) === 'true';
                     if (waterMinEnabled) {
-                        const minUnits = safeNumber(getConfigValue('water_minimum_units', '3', roomBranchId), 3);
-                        const minCharge = safeNumber(getConfigValue('water_minimum_charge', '0', roomBranchId), 0);
+                        const minUnits = parseFloat(getConfigValue('water_minimum_units', '3', roomBranchId));
+                        const minCharge = parseFloat(getConfigValue('water_minimum_charge', '0', roomBranchId));
                         if (waterUnits <= minUnits && minCharge > 0) {
                             waterMinimumCharge = minCharge;
                             waterMinimumApplied = true;
@@ -637,12 +629,12 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                // ⭐ ค่าขั้นต่ำไฟ - ดูที่ห้องก่อน ถ้าไม่มีค่อยดูสาขา (ใช้ safeNumber)
+                // ⭐ ค่าขั้นต่ำไฟ - ดูที่ห้องก่อน ถ้าไม่มีค่อยดูสาขา
                 if (room.min_electricity_units !== null && room.min_electricity_units !== undefined && 
                     room.min_electricity_charge !== null && room.min_electricity_charge !== undefined) {
                     // ใช้ค่าห้อง
-                    const minUnits = safeNumber(room.min_electricity_units, 0);
-                    const minCharge = safeNumber(room.min_electricity_charge, 0);
+                    const minUnits = parseFloat(room.min_electricity_units);
+                    const minCharge = parseFloat(room.min_electricity_charge);
                     if (elecUnits <= minUnits && minCharge > 0) {
                         electricityMinimumCharge = minCharge;
                         electricityMinimumApplied = true;
@@ -651,8 +643,8 @@ Deno.serve(async (req) => {
                     // ใช้ค่าสาขา
                     const elecMinEnabled = getConfigValue('electricity_minimum_enabled', 'false', roomBranchId) === 'true';
                     if (elecMinEnabled) {
-                        const minUnits = safeNumber(getConfigValue('electricity_minimum_units', '3', roomBranchId), 3);
-                        const minCharge = safeNumber(getConfigValue('electricity_minimum_charge', '0', roomBranchId), 0);
+                        const minUnits = parseFloat(getConfigValue('electricity_minimum_units', '3', roomBranchId));
+                        const minCharge = parseFloat(getConfigValue('electricity_minimum_charge', '0', roomBranchId));
                         if (elecUnits <= minUnits && minCharge > 0) {
                             electricityMinimumCharge = minCharge;
                             electricityMinimumApplied = true;
@@ -708,10 +700,9 @@ Deno.serve(async (req) => {
 
                 if (room.other_monthly_fees && Array.isArray(room.other_monthly_fees)) {
                     room.other_monthly_fees.forEach(fee => {
-                        const feeAmount = safeNumber(fee.amount, 0);
-                        if (feeAmount > 0) {
-                            otherMonthlyFeesAmount += feeAmount;
-                            otherFeesDetails += `, ${fee.name} ${feeAmount.toLocaleString()} บาท`;
+                        if (fee.amount > 0) {
+                            otherMonthlyFeesAmount += fee.amount;
+                            otherFeesDetails += `, ${fee.name} ${fee.amount.toLocaleString()} บาท`;
                         }
                     });
                 }
@@ -719,25 +710,7 @@ Deno.serve(async (req) => {
                 const waterAmount = waterMinimumApplied ? waterMinimumCharge : (waterUnits * waterRate);
                 const electricityAmount = electricityMinimumApplied ? electricityMinimumCharge : (elecUnits * elecRate);
 
-                // ⭐ CRITICAL FIX: บังคับให้ทุกค่าเป็นตัวเลข + validate ก่อนบวก
-                const roomPrice = safeNumber(room.price, 0);
-                const safeWater = safeNumber(waterAmount, 0);
-                const safeElec = safeNumber(electricityAmount, 0);
-                const safeInternet = safeNumber(internetRate, 0);
-                const safeCommon = safeNumber(commonFee, 0);
-                const safeParking = safeNumber(parkingAmount, 0);
-                const safeOther = safeNumber(otherMonthlyFeesAmount, 0);
-                
-                const totalAmount = roomPrice + safeWater + safeElec + safeInternet + safeCommon + safeParking + safeOther;
-                
-                // ⭐ VALIDATION: ถ้ายัง NaN ให้ skip ห้องนี้
-                if (isNaN(totalAmount)) {
-                    console.error(`❌ Room ${room.room_number}: total_amount = NaN!`, {
-                        roomPrice, safeWater, safeElec, safeInternet, safeCommon, safeParking, safeOther,
-                        rawWaterRate: waterRate, rawElecRate: elecRate
-                    });
-                    continue;
-                }
+                const totalAmount = (room.price || 0) + waterAmount + electricityAmount + internetRate + commonFee + parkingAmount + otherMonthlyFeesAmount;
 
                 let status = 'pending';
                 let paymentDate = null;
@@ -764,7 +737,7 @@ Deno.serve(async (req) => {
                     notes += `\n⚡ ใช้ไฟ ${originalElecUnits.toFixed(1)} หน่วย → คิดขั้นต่ำ ${electricityMinimumCharge.toLocaleString()} บาท`;
                 }
 
-                // ⭐ CRITICAL FIX: Sanitize ทุกค่าก่อนส่งไป DB (ป้องกัน validation error)
+                // ⭐ ใช้ dueDate ที่ประกาศไว้แล้วด้านบน (ไม่ต้องประกาศใหม่)
                 const paymentData = {
                     branch_id: roomBranchId,
                     booking_id: activeBooking.id,
@@ -773,28 +746,22 @@ Deno.serve(async (req) => {
                     meter_reading_id: latestMeter?.id || null,
                     due_date: format(dueDate, 'yyyy-MM-dd'),
                     payment_date: paymentDate,
-                    rent_amount: safeNumber(room.price, 0),
-                    water_units: safeNumber(originalWaterUnits, 0),
-                    water_rate: safeNumber(waterRate, 0),
-                    water_amount: safeNumber(waterAmount, 0),
-                    electricity_units: safeNumber(originalElecUnits, 0),
-                    electricity_rate: safeNumber(elecRate, 0),
-                    electricity_amount: safeNumber(electricityAmount, 0),
-                    internet_amount: safeNumber(internetRate, 0),
-                    common_fee_amount: safeNumber(commonFee, 0),
-                    parking_fee_amount: safeNumber(parkingAmount, 0),
-                    other_amount: safeNumber(otherMonthlyFeesAmount, 0),
-                    total_amount: safeNumber(totalAmount, 0),
+                    rent_amount: room.price || 0,
+                    water_units: originalWaterUnits,
+                    water_rate: waterRate,
+                    water_amount: waterAmount,
+                    electricity_units: originalElecUnits,
+                    electricity_rate: elecRate,
+                    electricity_amount: electricityAmount,
+                    internet_amount: internetRate,
+                    common_fee_amount: commonFee,
+                    parking_fee_amount: parkingAmount,
+                    other_amount: otherMonthlyFeesAmount,
+                    total_amount: totalAmount,
                     status: status,
                     payment_method: status === 'paid' ? 'prepaid' : 'transfer',
                     notes: notes + (otherFeesDetails ? `\nค่าอื่นๆ: ${otherFeesDetails.substring(2)}` : '')
                 };
-                
-                // ⭐ FINAL VALIDATION: Double-check ก่อนเพิ่มเข้า queue
-                if (typeof paymentData.total_amount !== 'number' || isNaN(paymentData.total_amount)) {
-                    console.error(`❌ VALIDATION FAILED - Room ${room.room_number}:`, paymentData);
-                    continue;
-                }
 
                 paymentsToCreate.push(paymentData);
                 paymentReferenceMap.set(room.id, { tenant, room });
