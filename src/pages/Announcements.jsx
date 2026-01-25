@@ -438,47 +438,65 @@ export default function Announcements() {
         }
       });
 
-      const apiResult = response.data; // Rename to avoid shadowing state 'result'
+      const apiResult = response.data;
 
-      if (apiResult) { // Assuming apiResult exists, further check apiResult.success for aggregated counts
-        setResult({
-          success: apiResult.successfulSends,
-          failed: apiResult.failedSends,
-          errors: apiResult.errors || []
+      console.log('📬 Batch Send Result:', apiResult);
+
+      // ✅ FIX: เช็คทั้ง apiResult และ successfulSends/failedSends
+      if (!apiResult || (apiResult.successfulSends === undefined && apiResult.failedSends === undefined)) {
+        toast.error('ไม่ได้รับข้อมูลผลลัพธ์จากเซิร์ฟเวอร์');
+        return;
+      }
+
+      setResult({
+        success: apiResult.successfulSends || 0,
+        failed: apiResult.failedSends || 0,
+        errors: apiResult.errors || []
+      });
+
+      setProgress(100);
+      setCurrentSending('');
+
+      // บันทึกประวัติการส่ง
+      try {
+        const user = await base44.auth.me();
+        await base44.entities.AnnouncementHistory.create({
+          branch_id: selectedBranchId,
+          message: message,
+          target_type: targetType,
+          recipient_count: targets.length,
+          success_count: apiResult.successfulSends || 0,
+          failed_count: apiResult.failedSends || 0,
+          sent_by: user?.email,
+          sent_date: new Date().toISOString(),
+          platform: 'line'
         });
+        queryClient.invalidateQueries(['announcementHistory', selectedBranchId]);
+      } catch (historyError) {
+        console.error('Failed to save announcement history:', historyError);
+      }
 
-        setProgress(100);
-        setCurrentSending(''); // Clear after batch completes
-
-        // บันทึกประวัติการส่ง
-        try {
-          const user = await base44.auth.me();
-          await base44.entities.AnnouncementHistory.create({
-            branch_id: selectedBranchId,
-            message: message,
-            target_type: targetType,
-            recipient_count: targets.length,
-            success_count: apiResult.successfulSends || 0,
-            failed_count: apiResult.failedSends || 0,
-            sent_by: user?.email,
-            sent_date: new Date().toISOString(),
-            platform: 'line'
-          });
-          queryClient.invalidateQueries(['announcementHistory', selectedBranchId]);
-        } catch (historyError) {
-          console.error('Failed to save announcement history:', historyError);
-        }
-
-        if (apiResult.failedSends === 0) {
-          toast.success(`ส่งข้อความสำเร็จทั้งหมด ${apiResult.successfulSends} คน`);
-          setMessage(''); // Clear message after successful send
-        } else if (apiResult.successfulSends === 0) {
-          toast.error('ส่งข้อความไม่สำเร็จทั้งหมด');
-        } else {
-          toast.warning(`ส่งสำเร็จ ${apiResult.successfulSends} คน, ไม่สำเร็จ ${apiResult.failedSends} คน`);
-        }
+      // ✅ FIX: แจ้งเตือนชัดเจนทุกกรณี
+      const successCount = apiResult.successfulSends || 0;
+      const failedCount = apiResult.failedSends || 0;
+      
+      if (successCount > 0 && failedCount === 0) {
+        toast.success(`✅ ส่งสำเร็จทั้งหมด ${successCount} คน`, {
+          duration: 5000,
+          icon: '🎉'
+        });
+        setMessage(''); // Clear message after successful send
+      } else if (successCount === 0 && failedCount > 0) {
+        toast.error(`❌ ส่งไม่สำเร็จทั้งหมด ${failedCount} คน`, {
+          duration: 5000,
+          description: 'กรุณาตรวจสอบการเชื่อมต่อหรือลองใหม่อีกครั้ง'
+        });
+      } else if (successCount > 0 && failedCount > 0) {
+        toast.warning(`⚠️ ส่งสำเร็จบางส่วน: ${successCount} คน | ล้มเหลว: ${failedCount} คน`, {
+          duration: 5000
+        });
       } else {
-        toast.error(apiResult.message || 'เกิดข้อผิดพลาดในการเรียกใช้ฟังก์ชัน batch');
+        toast.error('ไม่สามารถส่งข้อความได้');
       }
 
     } catch (error) {
