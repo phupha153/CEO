@@ -2067,21 +2067,21 @@ const tenantSchema = {
     type: "object",
     additionalProperties: true,
     properties: {
-      "ชื่อ-นามสกุล": { type: "string" },
-      "เบอร์โทร": { type: "string" },
-      "เพศ": { type: "string" },
-      "อายุ": { type: "number" },
-      "LINE ID": { type: "string" },
-      "เลขบัตรประชาชน": { type: "string" },
-      "อีเมล": { type: "string" },
-      "ที่อยู่": { type: "string" },
-      "เบอร์ติดต่อฉุกเฉิน": { type: "string" },
-      "หมายเหตุ": { type: "string" },
-      "เลขห้อง": { type: "string" },
-      "วันเริ่มสัญญา": { type: "string" },
-      "วันสิ้นสุดสัญญา": { type: "string" },
-      "เงินมัดจำ": { type: "number" },
-      "สถานะการจอง": { type: "string" }
+      "ชื่อ-นามสกุล": { type: ["string", "null"] },
+      "เบอร์โทร": { type: ["string", "number", "null"] }, // ⭐ รองรับเบอร์ที่เป็นตัวเลข (Excel ตัด 0)
+      "เพศ": { type: ["string", "null"] },
+      "อายุ": { type: ["number", "string", "null"] },
+      "LINE ID": { type: ["string", "null"] },
+      "เลขบัตรประชาชน": { type: ["string", "number", "null"] }, // ⭐ รองรับ number (Excel ตัด 0)
+      "อีเมล": { type: ["string", "null"] },
+      "ที่อยู่": { type: ["string", "null"] },
+      "เบอร์ติดต่อฉุกเฉิน": { type: ["string", "number", "null"] }, // ⭐ รองรับ number
+      "หมายเหตุ": { type: ["string", "null"] },
+      "เลขห้อง": { type: ["string", "number", "null"] },
+      "วันเริ่มสัญญา": { type: ["string", "null"] },
+      "วันสิ้นสุดสัญญา": { type: ["string", "null"] },
+      "เงินมัดจำ": { type: ["number", "string", "null"] },
+      "สถานะการจอง": { type: ["string", "null"] }
     }
 };
   const templateData = [{
@@ -2173,8 +2173,14 @@ const tenantSchema = {
       const fullName = record.full_name || record['ชื่อ-นามสกุล'];
       
       // ⚠️ CRITICAL: แปลงเบอร์โทร/เลขบัตรที่เป็นตัวเลขให้กลายเป็น string ก่อนบันทึก
-      const phone = String(record.phone || record['เบอร์โทร'] || '').replace(/^0+/, '') || ''; // ลบ leading zeros ที่ Excel ใส่มาเอง
-      const nationalId = String(record.national_id || record['เลขบัตรประชาชน'] || '');
+      // ⭐ FIX: รองรับกรณี Excel ตัด 0 หน้าออก (เบอร์เป็น number)
+      const rawPhone = record.phone || record['เบอร์โทร'];
+      const phone = String(rawPhone || '').replace(/\s+/g, '').replace(/^0+/, ''); // ลบช่องว่าง + leading zeros
+      
+      const rawEmergency = record.emergency_contact || record['เบอร์ติดต่อฉุกเฉิน'];
+      const emergencyPhone = String(rawEmergency || '').replace(/\s+/g, '').replace(/^0+/, '');
+      
+      const nationalId = String(record.national_id || record['เลขบัตรประชาชน'] || '').replace(/\s+/g, '');
 
       // ข้ามถ้าไม่มีชื่อ
       if (!fullName || String(fullName).trim() === '') {
@@ -2193,7 +2199,9 @@ const tenantSchema = {
       const parsedAge = rawAge ? parseInt(String(rawAge)) : undefined;
       
       // ✅ Ensure phone has leading 0 if it's missing (Thai phone format)
-      const formattedPhone = phone && !phone.startsWith('0') ? '0' + phone : phone;
+      // ⭐ FIX: เติม 0 ให้เบอร์ที่มีความยาว 9 หลัก (Excel ตัด 0 ออก)
+      const formattedPhone = phone && phone.length >= 9 ? (phone.startsWith('0') ? phone : '0' + phone) : phone;
+      const formattedEmergency = emergencyPhone && emergencyPhone.length >= 9 ? (emergencyPhone.startsWith('0') ? emergencyPhone : '0' + emergencyPhone) : emergencyPhone;
       
       const tenantData = {
         full_name: String(fullName).trim(),
@@ -2204,7 +2212,7 @@ const tenantSchema = {
         national_id: nationalId || existingTenant?.national_id,
         email: record.email || record['อีเมล'] || existingTenant?.email,
         address: record.address || record['ที่อยู่'] || existingTenant?.address,
-        emergency_contact: String(record.emergency_contact || record['เบอร์ติดต่อฉุกเฉิน'] || existingTenant?.emergency_contact || ''),
+        emergency_contact: formattedEmergency || existingTenant?.emergency_contact, // ⭐ ใช้ formatted แทน
         notes: record.notes || record['หมายเหตุ'] || existingTenant?.notes,
         status: 'active', // ⚠️ FIXED: ผู้เช่าควรเป็น 'active' เสมอ (ไม่ใช้ 'สถานะการจอง')
         line_user_id: existingTenant?.line_user_id,
