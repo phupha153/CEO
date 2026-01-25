@@ -28,8 +28,8 @@ export default function AIFinancialAnalysis() {
     queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allRooms = await base44.entities.Room.list('-room_number', 10000);
-      return allRooms.filter(room => room.branch_id === selectedBranchId);
+      // Multi-tenant safe: filter at DB level
+      return await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 1000);
     },
     enabled: !!selectedBranchId,
   });
@@ -56,8 +56,8 @@ export default function AIFinancialAnalysis() {
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allBookings = await base44.entities.Booking.list('-created_date', 500);
-      return allBookings.filter(b => b.branch_id === selectedBranchId);
+      // Multi-tenant safe: filter at DB level
+      return await base44.entities.Booking.filter({ branch_id: selectedBranchId }, '-created_date', 500);
     },
     enabled: !!selectedBranchId,
   });
@@ -66,8 +66,8 @@ export default function AIFinancialAnalysis() {
     queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      const allTenants = await base44.entities.Tenant.list('-created_date', 500);
-      return allTenants.filter(t => t.branch_id === selectedBranchId);
+      // Multi-tenant safe: filter at DB level
+      return await base44.entities.Tenant.filter({ branch_id: selectedBranchId }, '-created_date', 500);
     },
     enabled: !!selectedBranchId,
   });
@@ -354,10 +354,27 @@ export default function AIFinancialAnalysis() {
 - ประโยคสั้น ชัดเจน ตรงไปตรงมา
 - รวมทั้งหมดไม่เกิน 2 หน้า A4`;
 
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: prompt,
-        add_context_from_internet: false
-      });
+      // Add retry logic for LLM timeout
+      let response;
+      let retries = 3;
+      while (retries > 0) {
+        try {
+          response = await Promise.race([
+            base44.integrations.Core.InvokeLLM({
+              prompt: prompt,
+              add_context_from_internet: false
+            }),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('LLM timeout')), 30000) // 30s timeout
+            )
+          ]);
+          break;
+        } catch (err) {
+          retries--;
+          if (retries === 0) throw err;
+          await new Promise(r => setTimeout(r, 1000 * (4 - retries))); // backoff
+        }
+      }
 
       setAnalysis(response);
     } catch (err) {
