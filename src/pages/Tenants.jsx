@@ -2066,7 +2066,23 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
 const tenantSchema = {
     type: "object",
     additionalProperties: true,
-    properties: {} // ปล่อยว่างไว้เลย
+    properties: {
+      "ชื่อ-นามสกุล": { type: "string" },
+      "เบอร์โทร": { type: "string" },
+      "เพศ": { type: "string" },
+      "อายุ": { type: "number" },
+      "LINE ID": { type: "string" },
+      "เลขบัตรประชาชน": { type: "string" },
+      "อีเมล": { type: "string" },
+      "ที่อยู่": { type: "string" },
+      "เบอร์ติดต่อฉุกเฉิน": { type: "string" },
+      "หมายเหตุ": { type: "string" },
+      "เลขห้อง": { type: "string" },
+      "วันเริ่มสัญญา": { type: "string" },
+      "วันสิ้นสุดสัญญา": { type: "string" },
+      "เงินมัดจำ": { type: "number" },
+      "สถานะการจอง": { type: "string" }
+    }
 };
   const templateData = [{
     "ชื่อ-นามสกุล": "สมชาย ใจดี",
