@@ -715,7 +715,24 @@ Deno.serve(async (req) => {
                 const waterAmount = waterMinimumApplied ? waterMinimumCharge : (waterUnits * waterRate);
                 const electricityAmount = electricityMinimumApplied ? electricityMinimumCharge : (elecUnits * elecRate);
 
-                const totalAmount = (room.price || 0) + waterAmount + electricityAmount + internetRate + commonFee + parkingAmount + otherMonthlyFeesAmount;
+                // ⭐ CRITICAL: Validate all numbers before calculation
+                const safeRoomPrice = parseFloat(room.price) || 0;
+                const safeWaterAmount = parseFloat(waterAmount) || 0;
+                const safeElecAmount = parseFloat(electricityAmount) || 0;
+                const safeInternetRate = parseFloat(internetRate) || 0;
+                const safeCommonFee = parseFloat(commonFee) || 0;
+                const safeParkingAmount = parseFloat(parkingAmount) || 0;
+                const safeOtherFees = parseFloat(otherMonthlyFeesAmount) || 0;
+
+                const totalAmount = safeRoomPrice + safeWaterAmount + safeElecAmount + safeInternetRate + safeCommonFee + safeParkingAmount + safeOtherFees;
+
+                // ⭐ CRITICAL: Final validation - skip if invalid
+                if (isNaN(totalAmount) || totalAmount === null || totalAmount === undefined) {
+                    console.error(`❌ Room ${room.room_number}: Invalid total_amount (NaN/null) - SKIP`, {
+                        safeRoomPrice, safeWaterAmount, safeElecAmount, safeInternetRate, safeCommonFee, safeParkingAmount, safeOtherFees
+                    });
+                    continue;
+                }
 
                 let status = 'pending';
                 let paymentDate = null;
@@ -751,18 +768,18 @@ Deno.serve(async (req) => {
                     meter_reading_id: latestMeter?.id || null,
                     due_date: format(dueDate, 'yyyy-MM-dd'),
                     payment_date: paymentDate,
-                    rent_amount: room.price || 0,
-                    water_units: originalWaterUnits,
-                    water_rate: waterRate,
-                    water_amount: waterAmount,
-                    electricity_units: originalElecUnits,
-                    electricity_rate: elecRate,
-                    electricity_amount: electricityAmount,
-                    internet_amount: internetRate,
-                    common_fee_amount: commonFee,
-                    parking_fee_amount: parkingAmount,
-                    other_amount: otherMonthlyFeesAmount,
-                    total_amount: totalAmount,
+                    rent_amount: safeRoomPrice,
+                    water_units: parseFloat(originalWaterUnits) || 0,
+                    water_rate: parseFloat(waterRate) || 0,
+                    water_amount: safeWaterAmount,
+                    electricity_units: parseFloat(originalElecUnits) || 0,
+                    electricity_rate: parseFloat(elecRate) || 0,
+                    electricity_amount: safeElecAmount,
+                    internet_amount: safeInternetRate,
+                    common_fee_amount: safeCommonFee,
+                    parking_fee_amount: safeParkingAmount,
+                    other_amount: safeOtherFees,
+                    total_amount: parseFloat(totalAmount.toFixed(2)),
                     status: status,
                     payment_method: status === 'paid' ? 'prepaid' : 'transfer',
                     notes: notes + (otherFeesDetails ? `\nค่าอื่นๆ: ${otherFeesDetails.substring(2)}` : '')
