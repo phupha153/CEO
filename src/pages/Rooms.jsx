@@ -2634,6 +2634,22 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                         <p>{room.price.toLocaleString()} ฿</p>
                                         <p>{room.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}</p>
                                       </div>
+                                      {(room.is_flat_rate_water || room.is_flat_rate_electricity) && (
+                                        <div className="flex items-center justify-center gap-1 pt-1">
+                                          {room.is_flat_rate_water && (
+                                            <div className="flex items-center gap-0.5 bg-white/20 px-1.5 py-0.5 rounded-full">
+                                              <Droplet className="w-2.5 h-2.5" />
+                                              <span className="text-[9px] font-semibold">เหมา</span>
+                                            </div>
+                                          )}
+                                          {room.is_flat_rate_electricity && (
+                                            <div className="flex items-center gap-0.5 bg-white/20 px-1.5 py-0.5 rounded-full">
+                                              <Zap className="w-2.5 h-2.5" />
+                                              <span className="text-[9px] font-semibold">เหมา</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
 
                                       {paymentStatus && paymentStatus.isOverdue && (
                                         <div className="pt-2 border-t border-white/30 space-y-1">
