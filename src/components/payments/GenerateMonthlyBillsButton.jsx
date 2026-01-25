@@ -10,6 +10,16 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
   const [generating, setGenerating] = useState(false);
   const [processingQueue, setProcessingQueue] = useState(false);
 
+  // ⭐ Debug: Log ค่า props ที่ได้มา
+  console.log('🔘 [GenerateMonthlyBillsButton] Props:', {
+    branchId,
+    roomsNeedingBills,
+    generating,
+    processingQueue,
+    isLoading: generating || processingQueue,
+    isDisabled: (generating || processingQueue || roomsNeedingBills === 0)
+  });
+
   const handleGenerateBills = async () => {
     if (!confirm('คุณต้องการสร้างบิลประจำเดือนนี้ใช่หรือไม่?')) {
       return;
@@ -129,33 +139,50 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
   const isLoading = generating || processingQueue;
 
   if (compact) {
+    // ⭐ -1 = loading, 0 = no rooms, >0 = has rooms
+    const isLoadingRooms = roomsNeedingBills === -1;
+    const hasNoRooms = roomsNeedingBills === 0;
+    const isDisabled = isLoading || hasNoRooms;
+
     return (
       <Button
         onClick={handleGenerateBills}
-        disabled={isLoading || roomsNeedingBills === 0}
+        disabled={isDisabled}
         size="sm"
         className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
       >
         {isLoading ? (
           <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+        ) : isLoadingRooms ? (
+          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
         ) : (
           <Calendar className="w-4 h-4 mr-1" />
         )}
-        สร้างบิลเดือนนี้{roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}
+        สร้างบิลเดือนนี้{roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : isLoadingRooms ? ' (...)' : ''}
       </Button>
     );
   }
 
+  // ⭐ -1 = loading, 0 = no rooms, >0 = has rooms
+  const isLoadingRooms = roomsNeedingBills === -1;
+  const hasNoRooms = roomsNeedingBills === 0;
+  const isDisabled = isLoading || hasNoRooms;
+
   return (
     <Button
       onClick={handleGenerateBills}
-      disabled={isLoading || roomsNeedingBills === 0}
+      disabled={isDisabled}
       className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
     >
       {isLoading ? (
         <>
           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
           {processingQueue ? 'กำลังส่งบิล...' : 'กำลังสร้างบิล...'}
+        </>
+      ) : isLoadingRooms ? (
+        <>
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          กำลังโหลด...
         </>
       ) : (
         <>

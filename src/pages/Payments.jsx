@@ -937,15 +937,18 @@ export default function PaymentsPage() {
     [payments]
   );
 
-  const { data: allPaymentsForCounting = [] } = useQuery({
+  const { data: allPaymentsForCounting = [], isLoading: paymentsCountLoading, isFetching: paymentsCountFetching } = useQuery({
     queryKey: ['payments-count', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
-      return await base44.entities.Payment.filter(
+      console.log('🔍 [allPaymentsForCounting] Fetching payments for branch:', selectedBranchId);
+      const result = await base44.entities.Payment.filter(
         { branch_id: selectedBranchId },
         '-created_date',
         5000
       );
+      console.log('✅ [allPaymentsForCounting] Fetched:', result?.length || 0, 'payments');
+      return result;
     },
     enabled: canView && !!selectedBranchId,
     staleTime: 10 * 1000,
@@ -955,11 +958,18 @@ export default function PaymentsPage() {
   });
 
   const roomsNeedingBills = useMemo(() => {
+    // ⭐ CRITICAL: รอให้ allPaymentsForCounting โหลดเสร็จก่อน
+    if (paymentsCountLoading || paymentsCountFetching) {
+      console.log('⏳ [roomsNeedingBills] Waiting for payments to load...');
+      return -1; // ⭐ Return -1 = loading state
+    }
+
     if (!rooms.length || !bookings.length || !configs.length) {
       console.log('⚠️ [roomsNeedingBills] Missing data:', {
         rooms_length: rooms.length,
         bookings_length: bookings.length,
-        configs_length: configs.length
+        configs_length: configs.length,
+        allPaymentsForCounting_length: allPaymentsForCounting?.length || 0
       });
       return 0;
     }
@@ -1011,7 +1021,7 @@ export default function PaymentsPage() {
     });
 
     return count;
-  }, [rooms, bookings, allPaymentsForCounting, configs, selectedBranchId]);
+  }, [rooms, bookings, allPaymentsForCounting, configs, selectedBranchId, paymentsCountLoading, paymentsCountFetching]);
 
   const dateRangeLabel = () => {
     switch(dateRangeType) {
