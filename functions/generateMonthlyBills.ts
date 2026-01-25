@@ -815,12 +815,11 @@ Deno.serve(async (req) => {
         // 5. Bulk Create Payments
         const step5StartTime = Date.now();
         let createdCount = 0;
+        let skippedCount = 0;
+        const errors = [];
+        
         if (paymentsToCreate.length > 0) {
             console.log(`🚀 Creating ${paymentsToCreate.length} bills...`);
-
-            let createdCount = 0;
-            let skippedCount = 0;
-            const errors = [];
 
             const batches = [];
             for (let i = 0; i < paymentsToCreate.length; i += 100) {
