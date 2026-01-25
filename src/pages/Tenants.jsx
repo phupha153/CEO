@@ -2134,18 +2134,8 @@ const tenantSchema = {
   const handleTenantImport = async (importedData) => {
     if (!selectedBranchId) throw new Error('ไม่พบสาขา');
 
-    // 1. --- เพิ่มระบบทำความสะอาดหัวข้อ (Cleaning Logic) ---
-    // โค้ดส่วนนี้จะช่วยลบ "อักขระล่องหน" และ "ช่องว่าง" ออกจากหัวข้อให้เองอัตโนมัติ
-    const cleanData = importedData.map(record => {
-      const newRecord = {};
-      Object.keys(record).forEach(key => {
-        // ลบอักขระพิเศษ (BOM) และช่องว่างหน้าหลังออกให้หมด
-        const cleanKey = key.replace(/^\ufeff/, '').trim();
-        newRecord[cleanKey] = record[key];
-      });
-      return newRecord;
-    });
-    // ---------------------------------------------------
+    // ✅ ไม่ต้องทำความสะอาดอีก - ExcelUploader ทำให้แล้ว
+    const cleanData = importedData;
 
     // Fetch rooms for validation
     const branchRooms = await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 1000);
@@ -5154,4 +5144,4 @@ const tenantSchema = {
       </AnimatePresence>
     </div>
   );
-} 
+}
