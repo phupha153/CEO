@@ -964,7 +964,8 @@ export default function PaymentsPage() {
       return -1; // ⭐ Return -1 = loading state
     }
 
-    if (!rooms.length || !bookings.length || !configs.length) {
+    // ⚡ FIX: ไม่ต้องรอ configs - ใช้ default values แทน
+    if (!rooms.length || !bookings.length) {
       console.log('⚠️ [roomsNeedingBills] Missing data:', {
         rooms_length: rooms.length,
         bookings_length: bookings.length,
