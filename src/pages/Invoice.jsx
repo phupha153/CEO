@@ -569,7 +569,13 @@ export default function Invoice() {
 
             {/* Payment Method & Notes - แบบเรียบง่าย */}
             <div className="mb-2 md:mb-3 text-[8px] md:text-xs text-slate-500 leading-tight">
-              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {invoiceData.bank.name}<span className="hidden md:inline"> | {invoiceData.bank.account_number} ({invoiceData.bank.account_name})</span>
+              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {invoiceData.bank?.name || '-'}
+              {invoiceData.bank?.account_number && (
+                <span> | {invoiceData.bank.account_number}</span>
+              )}
+              {invoiceData.bank?.account_name && (
+                <span> ({invoiceData.bank.account_name})</span>
+              )}
             </div>
 
             {/* Signature Section */}

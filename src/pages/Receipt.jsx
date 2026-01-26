@@ -724,7 +724,13 @@ export default function Receipt() {
 
             {/* Payment Method & Notes - Responsive */}
             <div className="mb-2 md:mb-3 text-[8px] md:text-xs text-slate-500 leading-tight">
-              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {receiptData.bank.name}<span className="hidden md:inline"> | {receiptData.bank.account_number} ({receiptData.bank.account_name})</span>
+              <span className="font-medium text-slate-600">ชำระผ่าน:</span> {receiptData.bank?.name || '-'}
+              {receiptData.bank?.account_number && (
+                <span> | {receiptData.bank.account_number}</span>
+              )}
+              {receiptData.bank?.account_name && (
+                <span> ({receiptData.bank.account_name})</span>
+              )}
             </div>
 
             {/* Signature Section - Responsive */}
