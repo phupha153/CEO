@@ -219,11 +219,7 @@ Deno.serve(async (req) => {
 
         console.log(`✅ Loaded: ${allTenants.length} tenants, ${allRooms.length} rooms, ${allPayments.length} payments`);
 
-        // สร้าง Map
-        const tenantMap = new Map(allTenants.map(t => [t.id, t]));
-        const roomMap = new Map(allRooms.map(r => [r.id, r]));
-
-        // Helper function config
+        // Helper function config (ย้ายมาไว้ก่อน เพื่อป้องกัน hoisting error)
         const getConfigValue = (key, branchId, defaultValue = '') => {
             if (branchId) {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
@@ -232,6 +228,10 @@ Deno.serve(async (req) => {
             const globalConfig = configs.find(c => c.key === key && !c.branch_id);
             return globalConfig?.value || defaultValue;
         };
+
+        // สร้าง Map
+        const tenantMap = new Map(allTenants.map(t => [t.id, t]));
+        const roomMap = new Map(allRooms.map(r => [r.id, r]));
 
         let paymentsToSend = allPayments;
 
