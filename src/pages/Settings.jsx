@@ -1057,28 +1057,29 @@ export default function Settings() {
 
   const updateUserPermissionsMutation = useMutation({
     mutationFn: async ({ userId, permissions }) => {
-      const response = await base44.functions.invoke('updateUserPermissions', {
-        userId,
-        permissions
-      });
-      return response.data;
+      // ใช้ User entity update โดยตรง (RLS จะถูกบล็อก แต่เราแสดง error ชัดเจน)
+      await base44.entities.User.update(userId, { permissions });
+      return { success: true, permissions };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries(['users']);
       queryClient.invalidateQueries(['usersInMyBranches']);
-      toast.success(data.message || 'อัปเดตสิทธิ์สำเร็จ', {
-        description: data.changes?.added?.length > 0 
-          ? `เพิ่ม ${data.changes.added.length} สิทธิ์` 
-          : data.changes?.removed?.length > 0 
-          ? `ลบ ${data.changes.removed.length} สิทธิ์` 
-          : undefined
-      });
+      toast.success('อัปเดตสิทธิ์สำเร็จ');
     },
     onError: (error) => {
-      console.error('Permission update error:', error);
-      toast.error('อัปเดตสิทธิ์ไม่สำเร็จ', {
-        description: error.message || 'กรุณาลองใหม่อีกครั้ง'
-      });
+      console.error('❌ Permission update failed:', error);
+      // RLS จะ return 403 error
+      if (error?.response?.status === 403) {
+        toast.error('ไม่มีสิทธิ์แก้ไข', {
+          description: 'เฉพาะ Owner/Developer เท่านั้นที่สามารถแก้ไขสิทธิ์ได้'
+        });
+      } else if (error?.response?.status === 404) {
+        toast.error('ผู้ใช้ไม่พบ');
+      } else {
+        toast.error('อัปเดตสิทธิ์ไม่สำเร็จ', {
+          description: error?.message || 'กรุณาลองใหม่อีกครั้ง'
+        });
+      }
     }
   });
 
