@@ -152,6 +152,16 @@ Deno.serve(async (req) => {
         let allRooms = [];
         let configs = [];
 
+        // 🔧 Helper function: ประกาศก่อนใช้งานเพื่อป้องกัน hoisting error
+        const getConfigValue = (key, branchId, defaultValue = '') => {
+            if (branchId) {
+                const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+                if (branchConfig?.value) return branchConfig.value;
+            }
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+            return globalConfig?.value || defaultValue;
+        };
+
         if (paymentId) {
             // ถ้าระบุ paymentId
             const [paymentResults, configResults] = await Promise.all([
@@ -218,16 +228,6 @@ Deno.serve(async (req) => {
         }
 
         console.log(`✅ Loaded: ${allTenants.length} tenants, ${allRooms.length} rooms, ${allPayments.length} payments`);
-
-        // Helper function config (ย้ายมาไว้ก่อน เพื่อป้องกัน hoisting error)
-        const getConfigValue = (key, branchId, defaultValue = '') => {
-            if (branchId) {
-                const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
-                if (branchConfig?.value) return branchConfig.value;
-            }
-            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
-            return globalConfig?.value || defaultValue;
-        };
 
         // สร้าง Map
         const tenantMap = new Map(allTenants.map(t => [t.id, t]));
