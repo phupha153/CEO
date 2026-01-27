@@ -3583,18 +3583,16 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                   </div>
 
                                   <div className="grid grid-cols-2 gap-3 text-sm">
-                                    <div>
-                                      <Label className="text-slate-600">ประเภท</Label>
-                                      <Badge className={displayBooking.booking_type === 'monthly' ? 'bg-blue-600' : 'bg-orange-600'}>
-                                        {displayBooking.booking_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
-                                      </Badge>
-                                    </div>
-                                    <div>
-                                      <Label className="text-slate-600">สถานะ</Label>
-                                      <Badge className={hasCheckedIn ? 'bg-green-600' : 'bg-orange-600'}>
-                                        {hasCheckedIn ? 'เข้าพักแล้ว' : displayBooking.status}
-                                      </Badge>
-                                    </div>
+                                   <div>
+                                     <Badge className="bg-slate-600 text-white">
+                                       {displayBooking.booking_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
+                                     </Badge>
+                                   </div>
+                                   <div>
+                                     <Badge className={hasCheckedIn ? 'bg-green-600' : 'bg-slate-600'}>
+                                       {hasCheckedIn ? 'เข้าพักแล้ว' : displayBooking.status}
+                                     </Badge>
+                                   </div>
                                     {displayBooking.guest_name && (
                                       <div className="col-span-2">
                                         <Label className="text-slate-600">
