@@ -1253,26 +1253,30 @@ export default function PaymentsPage() {
       await new Promise(r => setTimeout(r, 500));
       
       if (variables.status === 'paid') {
-        const room = rooms.find(r => r.id === updatedPayment.room_id);
-        const tenant = tenants.find(t => t.id === updatedPayment.tenant_id);
-        await base44.entities.ActivityLog.create({
-          branch_id: selectedBranchId,
-          action_type: 'update',
-          entity_type: 'Payment',
-          entity_id: updatedPayment.id,
-          entity_name: `ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`,
-          user_email: currentUser?.email,
-          user_name: currentUser?.full_name,
-          description: `ยืนยันชำระเงินห้อง ${room?.room_number || 'N/A'} จำนวน ${updatedPayment.total_amount?.toLocaleString()} บาท`
-        });
+      const room = rooms.find(r => r.id === updatedPayment.room_id);
 
-        await base44.entities.Notification.create({
-          user_email: currentUser?.email,
-          notification_id: `payment-confirmed-${updatedPayment.id}`,
-          is_read: false
-        });
+      // ⭐ FIX: ดึงข้อมูล Tenant ล่าสุดจากฐานข้อมูลแทนการใช้ cache
+      const latestTenantData = await base44.entities.Tenant.filter({ id: updatedPayment.tenant_id }, '', 1);
+      const tenant = latestTenantData?.[0];
 
-        if (tenant && updatedPayment.due_date && updatedPayment.payment_date) {
+      await base44.entities.ActivityLog.create({
+        branch_id: selectedBranchId,
+        action_type: 'update',
+        entity_type: 'Payment',
+        entity_id: updatedPayment.id,
+        entity_name: `ห้อง ${room?.room_number || 'N/A'} - ${tenant?.full_name || 'N/A'}`,
+        user_email: currentUser?.email,
+        user_name: currentUser?.full_name,
+        description: `ยืนยันชำระเงินห้อง ${room?.room_number || 'N/A'} จำนวน ${updatedPayment.total_amount?.toLocaleString()} บาท`
+      });
+
+      await base44.entities.Notification.create({
+        user_email: currentUser?.email,
+        notification_id: `payment-confirmed-${updatedPayment.id}`,
+        is_read: false
+      });
+
+      if (tenant && updatedPayment.due_date && updatedPayment.payment_date) {
           try {
             const dueDate = parseISO(updatedPayment.due_date);
             const paymentDate = parseISO(updatedPayment.payment_date);
@@ -1336,10 +1340,6 @@ export default function PaymentsPage() {
           }
         }
 
-        // ⭐ FIX: ดึงข้อมูล Tenant ล่าสุดจากฐานข้อมูลแทนการใช้ cache
-        const latestTenant = await base44.entities.Tenant.filter({ id: updatedPayment.tenant_id }, '', 1);
-        const tenant = latestTenant?.[0];
-        
         if ((tenant?.line_user_id || tenant?.facebook_user_id) && canSendReceipt) {
           try {
             const platform = tenant?.facebook_user_id ? 'Facebook' : 'LINE';
