@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,14 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Brain, Loader2, RefreshCw, TrendingUp, DollarSign, AlertTriangle, Target, Lightbulb, BarChart3, CalendarIcon } from "lucide-react";
+import { Brain, Loader2, RefreshCw, TrendingUp, DollarSign, AlertTriangle, Target, Lightbulb, BarChart3, CalendarIcon, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import PageHeader from "../components/shared/PageHeader";
 import { parseISO, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, isWithinInterval, format } from "date-fns";
 import { th } from "date-fns/locale";
+import { createPageUrl } from "@/utils";
 
 export default function AIFinancialAnalysis() {
+  const navigate = useNavigate();
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -88,9 +91,10 @@ export default function AIFinancialAnalysis() {
     queryFn: () => base44.entities.Branch.list(),
   });
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
   const userAccessibleBranches = currentUser?.accessible_branches;
   const canViewAllBranches = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+  const isDeveloper = userRole === 'developer';
 
   // กรองสาขาตามสิทธิ์
   const branches = React.useMemo(() => {
@@ -390,6 +394,48 @@ export default function AIFinancialAnalysis() {
       generateAnalysis();
     }
   }, [rooms.length, payments.length, selectedBranchId, dateRangeType, customRange.from, customRange.to]);
+
+  // 🔒 Access Control - Developer Only
+  if (!isDeveloper) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-50 flex items-center justify-center">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-red-300/20 to-orange-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-to-tr from-orange-300/20 to-pink-300/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative z-10 max-w-md mx-4"
+        >
+          <div className="relative mb-8">
+            <div className="absolute inset-0 bg-gradient-to-br from-red-400/30 via-orange-400/30 to-pink-400/30 rounded-full blur-3xl animate-pulse" />
+            <div className="relative w-64 h-64 mx-auto rounded-full bg-gradient-to-br from-white/40 via-white/30 to-white/20 backdrop-blur-2xl border border-white/50 shadow-2xl flex items-center justify-center">
+              <div className="absolute inset-8 rounded-full bg-gradient-to-br from-white/30 to-white/10 backdrop-blur-xl" />
+              <Lock className="w-20 h-20 text-red-500/80 relative z-10" />
+            </div>
+          </div>
+
+          <div className="text-center space-y-4">
+            <h2 className="text-2xl font-bold text-slate-800">ไม่มีสิทธิ์เข้าถึง</h2>
+            <p className="text-slate-600 leading-relaxed px-4">
+              หน้านี้สำหรับผู้พัฒนาเท่านั้น<br/>
+              โปรดติดต่อผู้ดูแลระบบ
+            </p>
+
+            <Button
+              onClick={() => navigate(createPageUrl('Dashboard'))}
+              className="mt-6 bg-white/90 hover:bg-white text-slate-800 border-0 shadow-xl backdrop-blur-sm px-8 py-6 text-base font-semibold rounded-2xl"
+            >
+              กลับไปแดชบอร์ด
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-pink-50 to-blue-100">
