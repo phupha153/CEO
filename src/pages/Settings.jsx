@@ -17,6 +17,7 @@ import { Upload, X, Image as ImageIcon, PenTool } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
 import AddEmployeeDialog from "../components/settings/AddEmployeeDialog";
+import PermissionsEditor from "../components/settings/PermissionsEditor";
 import PageHeader from "../components/shared/PageHeader";
 
 import { format, parseISO, differenceInDays, startOfDay } from 'date-fns';
@@ -53,8 +54,14 @@ const PERMISSIONS_LIST = [
   { id: 'payments_edit', label: 'แก้ไขรายการชำระเงิน', category: 'การชำระเงิน' },
   { id: 'bookings_edit_deposit', label: 'แก้ไขเงินมัดจำ', category: 'การชำระเงิน' },
   { id: 'payments_delete', label: 'ลบรายการชำระเงิน', category: 'การชำระเงิน' },
-  { id: 'payments_update_status', label: 'อัปเดตสถานะการชำระเงิน', category: 'การชำระเงิน' },
+  { id: 'payments_confirm_paid', label: 'ยืนยันชำระเงิน', category: 'การชำระเงิน' },
+  { id: 'payments_generate_bills', label: '🆕 สร้างบิลรายเดือนอัตโนมัติ', category: 'การชำระเงิน' },
+  { id: 'payments_send_bills_bulk', label: '🆕 ส่งบิลทุกห้องพร้อมกัน', category: 'การชำระเงิน' },
+  { id: 'payments_send_reminder', label: 'ส่งแจ้งเตือนรายบุคคล', category: 'การชำระเงิน' },
   { id: 'payments_send_receipt', label: 'ส่งใบเสร็จ', category: 'การชำระเงิน' },
+  { id: 'payments_view_invoice', label: 'ดูใบแจ้งหนี้', category: 'การชำระเงิน' },
+  { id: 'payments_view_receipt', label: 'ดูใบเสร็จ', category: 'การชำระเงิน' },
+  { id: 'payments_autocalculate', label: 'ใช้ฟีเจอร์คำนวณอัตโนมัติ', category: 'การชำระเงิน' },
 
   { id: 'meter_readings_view', label: 'ดูบันทึกมิเตอร์', category: 'บันทึกมิเตอร์' },
   { id: 'meter_readings_add', label: 'เพิ่มบันทึกมิเตอร์', category: 'บันทึกมิเตอร์' },
@@ -94,7 +101,8 @@ const DEFAULT_PERMISSIONS_MAP = {
     "tenants_view", "tenants_add", "tenants_edit",
     "bookings_view_daily", "bookings_add_daily", "bookings_edit_daily", "bookings_delete_daily",
     "contracts_view_monthly", "contracts_add_monthly", "contracts_edit_monthly",
-    "payments_view", "payments_add", "payments_update_status", "payments_send_receipt",
+    "payments_view", "payments_add", "payments_confirm_paid", "payments_generate_bills", "payments_send_bills_bulk",
+    "payments_send_reminder", "payments_send_receipt", "payments_view_invoice", "payments_view_receipt", "payments_autocalculate",
     "meter_readings_view", "meter_readings_add", "meter_readings_edit", "meter_readings_edit_history",
     "expenses_view", "expenses_add",
     "maintenance_view", "maintenance_add", "maintenance_edit", "maintenance_update_status",
@@ -109,7 +117,8 @@ const DEFAULT_PERMISSIONS_MAP = {
     "tenants_view",
     "bookings_view_daily",
     "contracts_view_monthly",
-    "payments_view", "payments_send_receipt",
+    "payments_view", "payments_confirm_paid", "payments_send_reminder", "payments_send_receipt",
+    "payments_view_invoice", "payments_view_receipt",
     "meter_readings_view", "meter_readings_add", "meter_readings_edit", "meter_readings_edit_history",
     "expenses_view",
     "maintenance_view", "maintenance_add"
@@ -4249,127 +4258,26 @@ export default function Settings() {
 
           {/* Permissions Dialog */}
           <Dialog open={showPermissionsDialog} onOpenChange={setShowPermissionsDialog}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  <Shield className="w-6 h-6 text-orange-600" />
-                  จัดการสิทธิ์: {selectedUserForPermissions?.full_name}
-                </DialogTitle>
-                <p className="text-sm text-slate-600 mt-2">
-                  เลือกสิทธิ์การเข้าถึงแต่ละฟังก์ชันสำหรับผู้ใช้คนนี้
-                </p>
-              </DialogHeader>
-
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               {selectedUserForPermissions && (
-                <div className="space-y-4">
-                  <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                    <p className="text-sm text-blue-800">
-                      <strong>สิทธิ์ที่เลือก:</strong> {(userPermissions[selectedUserForPermissions.id] || []).length} รายการ
-                    </p>
-                  </div>
-
-                  <div className="space-y-3">
-                    {Object.entries(PERMISSION_CATEGORIES_DISPLAY).map(([categoryKey, category]) => {
-                      const userId = selectedUserForPermissions.id;
-                      const isExpanded = expandedCategories[categoryKey];
-                      const currentPermissions = userPermissions[userId] || [];
-                      const categoryPermissionIds = category.permissions.map(p => p.id);
-                      const selectedInCategory = categoryPermissionIds.filter(p => currentPermissions.includes(p)).length;
-                      const allSelected = selectedInCategory === categoryPermissionIds.length;
-
-                      return (
-                        <div key={categoryKey} className="border border-slate-200 rounded-lg">
-                          <div
-                            className="flex items-center justify-between p-3 bg-slate-50 cursor-pointer hover:bg-slate-100 rounded-t-lg"
-                            onClick={() => toggleCategory(categoryKey)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-xl">{category.icon}</span>
-                              <span className="font-semibold text-slate-800">{category.title}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {selectedInCategory}/{categoryPermissionIds.length}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant={allSelected ? "default" : "outline"}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  selectAllInCategory(userId, categoryKey);
-                                }}
-                                className="text-xs"
-                              >
-                                {allSelected ? '✓ ทั้งหมด' : 'เลือกทั้งหมด'}
-                              </Button>
-                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                            </div>
-                          </div>
-
-                          {isExpanded && (
-                            <div className="p-3 space-y-2 bg-white rounded-b-lg">
-                              {category.permissions.map(permission => {
-                                const isChecked = currentPermissions.includes(permission.id);
-
-                                return (
-                                  <label
-                                    key={permission.id}
-                                    className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
-                                      isChecked ? 'bg-green-50 border border-green-200' : 'hover:bg-slate-50'
-                                    }`}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      onChange={() => togglePermission(userId, permission.id)}
-                                      className="w-4 h-4 rounded"
-                                    />
-                                    <span className={`text-sm flex-1 ${isChecked ? 'font-semibold text-green-700' : 'text-slate-700'}`}>
-                                      {permission.label}
-                                    </span>
-                                    {isChecked && <Check className="w-4 h-4 text-green-600" />}
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-4 border-t">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowPermissionsDialog(false)}
-                    >
-                      ยกเลิก
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        handleSaveUserPermissions(selectedUserForPermissions.id);
-                        setShowPermissionsDialog(false);
-                      }}
-                      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
-                      disabled={updateUserPermissionsMutation.isPending}
-                    >
-                      {updateUserPermissionsMutation.isPending ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                          กำลังบันทึก...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          บันทึกสิทธิ์
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
+                <PermissionsEditor
+                  targetUser={{
+                    ...selectedUserForPermissions,
+                    permissions: userPermissions[selectedUserForPermissions.id] || selectedUserForPermissions.permissions || []
+                  }}
+                  onSave={async (newPermissions) => {
+                    await updateUserPermissionsMutation.mutateAsync({
+                      userId: selectedUserForPermissions.id,
+                      permissions: newPermissions
+                    });
+                    setUserPermissions(prev => ({
+                      ...prev,
+                      [selectedUserForPermissions.id]: newPermissions
+                    }));
+                    setShowPermissionsDialog(false);
+                  }}
+                  onCancel={() => setShowPermissionsDialog(false)}
+                />
               )}
             </DialogContent>
           </Dialog>
