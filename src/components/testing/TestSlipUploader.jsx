@@ -133,19 +133,47 @@ export default function TestSlipUploader() {
             });
           }
         } catch (verifyError) {
-          toast.error(`❌ เกิดข้อผิดพลาดในการตรวจสอบ: ${verifyError.message}`, { 
+           toast.error(`❌ เกิดข้อผิดพลาดในการตรวจสอบ: ${verifyError.message}`, { 
             id: toastId, 
             duration: 5000 
           });
         }
-      } else {
+
+        // 🔄 เรียกใช้ recheckPendingSlips เพื่อตรวจสอบสลิป pending ทั้งหมดของสาขา
+        try {
+          toast.loading('🔄 กำลังตรวจสอบสลิปที่รอการยืนยัน...', { id: toastId });
+          const recheckResult = await base44.functions.invoke('recheckPendingSlips', { 
+            branch_id: selectedBranchId 
+          });
+
+          if (recheckResult.data?.success) {
+            const { processed, successCount, failCount, skippedCount } = recheckResult.data;
+            toast.success(`✅ ตรวจสอบเสร็จแล้ว\n✅ สำเร็จ: ${successCount} | ❌ ล้มเหลว: ${failCount} | ⏳ รอตรวจสอบ: ${skippedCount}`, { 
+              id: toastId, 
+              duration: 5000 
+            });
+          }
+        } catch (recheckError) {
+          console.warn('⚠️ recheckPendingSlips error (non-critical):', recheckError.message);
+          // ไม่ขัดจังหวะการใช้งานถ้า recheck ล้มเหลว
+        }
+        } else {
         toast.success(`✅ อัพโหลดสลิปสำเร็จ\nห้อง ${selectedRoom?.room_number} (${selectedBranch?.branch_name})\n(ไม่มีบิลรอชำระ - เพื่อทดสอบเท่านั้น)`, { 
           id: toastId, 
           duration: 5000 
         });
-      }
 
-      e.target.value = '';
+        // 🔄 เรียกใช้ recheckPendingSlips แม้ว่าไม่มีบิล
+        try {
+          const recheckResult = await base44.functions.invoke('recheckPendingSlips', { 
+            branch_id: selectedBranchId 
+          });
+        } catch (recheckError) {
+          console.warn('⚠️ recheckPendingSlips error:', recheckError.message);
+        }
+        }
+
+        e.target.value = '';
     } catch (error) {
       console.error(error);
       toast.error('เกิดข้อผิดพลาด: ' + error.message, { id: toastId });
