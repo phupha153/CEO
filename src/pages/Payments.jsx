@@ -1759,10 +1759,31 @@ export default function PaymentsPage() {
     setSendingReceipt(paymentId);
     try {
       const payment = payments.find(p => p.id === paymentId);
+      if (!payment) {
+        toast.error('ไม่พบข้อมูล Payment');
+        setSendingReceipt(false);
+        return;
+      }
       
-      // ⭐ FIX: ใช้ข้อมูลที่ JOIN มาใน payment แทนการดึงจาก tenants cache
-      const hasFacebook = payment?.tenant_facebook_user_id || payment?.facebook_user_id;
-      const hasLine = payment?.tenant_line_user_id || payment?.line_user_id;
+      // ⭐ FIX: ดึงข้อมูล Tenant ล่าสุดจาก DB แทนการใช้ cache
+      console.log('🔍 Fetching latest tenant data for:', payment.tenant_id);
+      const latestTenantData = await base44.entities.Tenant.filter({ id: payment.tenant_id }, '', 1);
+      const tenant = latestTenantData?.[0];
+      
+      if (!tenant) {
+        toast.error('ไม่พบข้อมูลผู้เช่า');
+        setSendingReceipt(false);
+        return;
+      }
+      
+      console.log('✅ Latest tenant data:', {
+        full_name: tenant.full_name,
+        line_user_id: tenant.line_user_id,
+        facebook_user_id: tenant.facebook_user_id
+      });
+      
+      const hasFacebook = !!tenant.facebook_user_id;
+      const hasLine = !!tenant.line_user_id;
       
       let response;
       if (hasFacebook) {
