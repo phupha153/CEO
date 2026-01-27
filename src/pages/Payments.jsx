@@ -1336,6 +1336,10 @@ export default function PaymentsPage() {
           }
         }
 
+        // ⭐ FIX: ดึงข้อมูล Tenant ล่าสุดจากฐานข้อมูลแทนการใช้ cache
+        const latestTenant = await base44.entities.Tenant.filter({ id: updatedPayment.tenant_id }, '', 1);
+        const tenant = latestTenant?.[0];
+        
         if ((tenant?.line_user_id || tenant?.facebook_user_id) && canSendReceipt) {
           try {
             const platform = tenant?.facebook_user_id ? 'Facebook' : 'LINE';
@@ -1755,20 +1759,24 @@ export default function PaymentsPage() {
     setSendingReceipt(paymentId);
     try {
       const payment = payments.find(p => p.id === paymentId);
-      const tenant = payment ? getTenantInfo(payment.tenant_id) : null;
+      
+      // ⭐ FIX: ใช้ข้อมูลที่ JOIN มาใน payment แทนการดึงจาก tenants cache
+      const hasFacebook = payment?.tenant_facebook_user_id || payment?.facebook_user_id;
+      const hasLine = payment?.tenant_line_user_id || payment?.line_user_id;
       
       let response;
-      if (tenant?.facebook_user_id) {
-        console.log('📤 Sending receipt via Facebook to:', tenant.facebook_user_id);
+      if (hasFacebook) {
+        console.log('📤 Sending receipt via Facebook to:', hasFacebook);
         response = await base44.functions.invoke('sendFacebookReceipt', {
           paymentId: paymentId
         });
-      } else if (tenant?.line_user_id) {
-        console.log('📤 Sending receipt via LINE to:', tenant.line_user_id);
+      } else if (hasLine) {
+        console.log('📤 Sending receipt via LINE to:', hasLine);
         response = await base44.functions.invoke('sendReceipt', {
           paymentId: paymentId
         });
       } else {
+        console.error('❌ ไม่พบ LINE/Facebook User ID:', payment);
         toast.error('ผู้เช่ายังไม่ได้เชื่อมต่อระบบแชท');
         setSendingReceipt(false);
         return;
