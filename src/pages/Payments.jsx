@@ -1247,6 +1247,7 @@ export default function PaymentsPage() {
         queryClient.invalidateQueries({ queryKey: ['payments-room-view'] }),
         queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
         queryClient.invalidateQueries({ queryKey: ['allPayments'] }),
+        queryClient.invalidateQueries({ queryKey: ['tenants', selectedBranchId] }),
       ]);
       
       await new Promise(r => setTimeout(r, 500));
