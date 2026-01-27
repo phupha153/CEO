@@ -65,7 +65,7 @@ export default function ChatWindow({
   onRefresh,
   onLinkTenant,
   onUnlinkTenant,
-  onBack, // ฟังก์ชันย้อนกลับสำหรับ mobile
+  onBack,
   loading
 }) {
   const [newMessage, setNewMessage] = useState('');
@@ -77,7 +77,10 @@ export default function ChatWindow({
   const [analyzingChat, setAnalyzingChat] = useState(false);
   const [aiExtractedData, setAiExtractedData] = useState(null);
   const [submittingTenant, setSubmittingTenant] = useState(false);
+  const [typingUsers, setTypingUsers] = useState(new Set());
+  const [readReceipts, setReadReceipts] = useState({});
   const messagesEndRef = useRef(null);
+  const refreshIntervalRef = useRef(null);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
