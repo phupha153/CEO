@@ -1056,13 +1056,29 @@ export default function Settings() {
   });
 
   const updateUserPermissionsMutation = useMutation({
-    mutationFn: ({ userId, permissions }) => base44.entities.User.update(userId, { permissions }),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['users']);
-      toast.success('อัปเดตสิทธิ์สำเร็จ');
+    mutationFn: async ({ userId, permissions }) => {
+      const response = await base44.functions.invoke('updateUserPermissions', {
+        userId,
+        permissions
+      });
+      return response.data;
     },
-    onError: () => {
-      toast.error('อัปเดตสิทธิ์ไม่สำเร็จ');
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['users']);
+      queryClient.invalidateQueries(['usersInMyBranches']);
+      toast.success(data.message || 'อัปเดตสิทธิ์สำเร็จ', {
+        description: data.changes?.added?.length > 0 
+          ? `เพิ่ม ${data.changes.added.length} สิทธิ์` 
+          : data.changes?.removed?.length > 0 
+          ? `ลบ ${data.changes.removed.length} สิทธิ์` 
+          : undefined
+      });
+    },
+    onError: (error) => {
+      console.error('Permission update error:', error);
+      toast.error('อัปเดตสิทธิ์ไม่สำเร็จ', {
+        description: error.message || 'กรุณาลองใหม่อีกครั้ง'
+      });
     }
   });
 
