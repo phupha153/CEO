@@ -775,14 +775,6 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       // ⭐ อัปเดตสถานะห้องเป็น "occupied" และลบแถบ "ติดจอง"
       await base44.entities.Room.update(tempBooking.room_id, { status: 'occupied' });
       
-      // ⭐ Update Payment ที่เชื่อมกับ Temp Booking ด้วย tenant_id
-      if (tenantId) {
-        const payments = await base44.entities.Payment.filter({ booking_id: tempBooking.id }, '', 100);
-        for (const payment of payments) {
-          await base44.entities.Payment.update(payment.id, { tenant_id: tenantId });
-        }
-      }
-      
       // ลบ TemporaryBooking
       await base44.entities.TemporaryBooking.delete(tempBooking.id);
     },
