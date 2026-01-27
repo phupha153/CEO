@@ -24,25 +24,25 @@ function ImageWithLoader({ url }) {
       target="_blank" 
       rel="noopener noreferrer"
       onClick={(e) => e.stopPropagation()}
-      className="block relative"
+      className="block relative mb-2"
     >
       {loading && (
-        <div className="absolute inset-0 bg-slate-100 rounded-lg mb-2 flex items-center justify-center min-h-[150px]">
-          <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+        <div className="bg-slate-100 rounded-lg w-40 h-32 flex items-center justify-center">
+          <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
         </div>
       )}
       {error && (
-        <div className="bg-slate-100 rounded-lg mb-2 p-4 flex flex-col items-center justify-center min-h-[150px]">
-          <ImageIcon className="w-8 h-8 text-slate-400 mb-2" />
-          <p className="text-xs text-slate-500">โหลดรูปไม่สำเร็จ</p>
+        <div className="bg-slate-100 rounded-lg w-40 h-32 flex flex-col items-center justify-center">
+          <ImageIcon className="w-6 h-6 text-slate-400 mb-1" />
+          <p className="text-xs text-slate-500">โหลดไม่สำเร็จ</p>
         </div>
       )}
       <img 
         src={url} 
-        alt="รูปภาพจากลูกค้า" 
+        alt="รูปภาพ" 
         loading="lazy"
-        className={`max-w-full rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity ${
-          loading ? 'invisible absolute' : 'visible'
+        className={`max-w-xs max-h-64 rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover ${
+          loading ? 'hidden' : 'block'
         }`}
         onLoad={() => setLoading(false)}
         onError={() => {
