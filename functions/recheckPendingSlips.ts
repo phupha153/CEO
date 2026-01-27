@@ -400,7 +400,7 @@ Deno.serve(async (req) => {
         
         // บันทึก error log
         try {
-            await base44.asServiceRole.entities.FunctionLog.create({
+            await entityService.FunctionLog.create({
                 function_name: 'recheckPendingSlips',
                 run_timestamp: new Date().toISOString(),
                 status: 'error',
