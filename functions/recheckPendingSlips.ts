@@ -175,11 +175,14 @@ Deno.serve(async (req) => {
                 const isSlipValid = slip2goResponse.ok && slip2goData.success && slip2goData.data;
                 const isDuplicate = slip2goData.code === '200501' || (slip2goData.message && slip2goData.message.toLowerCase().includes('duplicate'));
 
-                // ⭐ ถ้าเป็น Duplicate - ถือว่าสลิปถูกต้อง (เคยตรวจสอบผ่านแล้ว)
-                if (isDuplicate && slip2goData.data) {
-                    console.log(`   ⚠️ Slip is duplicated but valid - processing as successful`);
-                    // ดำเนินการต่อเหมือนสลิปถูกต้อง
-                } else if (!isSlipValid && !isDuplicate) {
+                // ⭐ ถ้าเป็น Duplicate → ข้ามไป (เคยตรวจสอบผ่านแล้ว)
+                if (isDuplicate) {
+                    console.log(`   ⏭️ Slip is duplicated - already verified before, skipping`);
+                    skippedCount++;
+                    continue;
+                }
+
+                if (!isSlipValid) {
                     const retryCount = (payment.notes.match(/ลองครั้งที่/g) || []).length;
 
                     if (retryCount >= 3) {
