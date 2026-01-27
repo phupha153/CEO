@@ -1,4 +1,178 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { parseISO, differenceInDays } from 'npm:date-fns@3.0.0';
+
+// ⭐ Helper: เช็คเลขบัญชีแบบปลอดภัย (รองรับ masked accounts)
+function isAccountMatch(maskedSlipAccount, myRealAccount) {
+    console.log('\n🔍 === ACCOUNT MATCH CHECK ===');
+    console.log('  Input (from slip):', maskedSlipAccount);
+    console.log('  Expected (my account):', myRealAccount);
+    
+    if (!maskedSlipAccount || !myRealAccount) {
+        console.log('  ❌ Result: FAIL - Missing data');
+        return false;
+    }
+    
+    const slipAcc = String(maskedSlipAccount).replace(/[- ]/g, '').toLowerCase();
+    const myAcc = String(myRealAccount).replace(/[- ]/g, '').toLowerCase();
+    
+    console.log('  Cleaned slip account:', slipAcc);
+    console.log('  Cleaned my account:', myAcc);
+    
+    if (Math.abs(slipAcc.length - myAcc.length) > 2) {
+        console.log(`  ❌ Result: FAIL - Length mismatch (${slipAcc.length} vs ${myAcc.length})`);
+        return false;
+    }
+    
+    let matchedCount = 0;
+    const minRequired = slipAcc.length <= 4 ? 2 : 3;
+    
+    console.log(`  Min required matches: ${minRequired}`);
+    
+    for (let i = 0; i < Math.min(slipAcc.length, myAcc.length); i++) {
+        if (slipAcc[i] === 'x' || slipAcc[i] === '*') {
+            console.log(`  Position ${i}: MASKED (${slipAcc[i]}) - SKIP`);
+            continue;
+        }
+        if (slipAcc[i] === myAcc[i]) {
+            matchedCount++;
+            console.log(`  Position ${i}: MATCH (${slipAcc[i]} === ${myAcc[i]})`);
+        } else {
+            console.log(`  Position ${i}: MISMATCH (${slipAcc[i]} !== ${myAcc[i]}) - FAIL`);
+            return false;
+        }
+    }
+    
+    const isMatch = matchedCount >= minRequired;
+    console.log(`  Matched count: ${matchedCount}/${minRequired}`);
+    console.log(`  ✅ Result: ${isMatch ? 'PASS' : 'FAIL'}`);
+    console.log('=========================\n');
+    
+    return isMatch;
+}
+
+// ⭐ Helper: Extract amount จาก Slip2Go response (ลองหลาย path)
+function extractAmount(slipData) {
+    const possiblePaths = [
+        ['amount'],
+        ['transAmount'],
+        ['transaction', 'amount'],
+        ['payment', 'amount'],
+        ['data', 'amount'],
+        ['receiver', 'amount'],
+        ['sender', 'amount']
+    ];
+    
+    for (const path of possiblePaths) {
+        let current = slipData;
+        let isValid = true;
+        
+        for (const key of path) {
+            if (current && typeof current === 'object' && key in current) {
+                current = current[key];
+            } else {
+                isValid = false;
+                break;
+            }
+        }
+        
+        if (isValid && current !== null && current !== undefined) {
+            const amount = typeof current === 'number' ? current : parseFloat(current);
+            if (!isNaN(amount) && amount > 0) {
+                console.log(`💰 Found amount at path: ${path.join('.')} = ${amount}`);
+                return amount;
+            }
+        }
+    }
+    
+    console.warn('⚠️ Could not find amount in any known path');
+    return 0;
+}
+
+// ⭐ Helper: Calculate late fee (inline version)
+function calculateLateFee(payment, configs, branchId, calculationDate = null) {
+    console.log(`🧮 LateFee: ${payment?.id?.substring(0, 8)}... | Due: ${payment?.due_date} | Status: ${payment?.status}`);
+    
+    if (!payment || !payment.due_date) {
+        console.log('  ⏭️ SKIP: No due_date');
+        return { lateFeeAmount: 0, daysLate: 0 };
+    }
+    
+    if (payment.status === 'paid') {
+        console.log(`  🔒 SKIP: Already paid (locked: ${payment.late_fee_amount || 0}฿)`);
+        return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
+    }
+    
+    if (payment.late_fee_locked === true) {
+        console.log(`  🔒 SKIP: Admin locked (${payment.late_fee_amount || 0}฿)`);
+        return { lateFeeAmount: payment.late_fee_amount || 0, daysLate: 0 };
+    }
+    
+    const calcDate = calculationDate || new Date();
+    
+    try {
+        const dueDate = parseISO(payment.due_date);
+        const dueDateStart = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+        const calcDateStart = new Date(calcDate.getFullYear(), calcDate.getMonth(), calcDate.getDate());
+        const daysOverdue = differenceInDays(calcDateStart, dueDateStart);
+
+        if (daysOverdue <= 0) return { lateFeeAmount: 0, daysLate: 0 };
+
+        const getConfigValue = (key, defaultValue = null) => {
+            const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
+            if (branchConfig?.value !== undefined && branchConfig?.value !== null) return branchConfig.value;
+            
+            const globalConfig = configs.find(c => c.key === key && !c.branch_id);
+            return globalConfig?.value !== undefined && globalConfig?.value !== null ? globalConfig.value : defaultValue;
+        };
+
+        const tiersEnabled = getConfigValue('late_fee_tiers_enabled') === 'true';
+
+        if (tiersEnabled) {
+            const tiersConfigValue = getConfigValue('late_fee_tiers');
+
+            if (tiersConfigValue) {
+                try {
+                    const tiers = JSON.parse(tiersConfigValue);
+                    let totalFee = 0;
+
+                    for (const tier of tiers) {
+                        const daysFrom = tier.days_from || 1;
+                        const daysTo = tier.days_to || 999;
+                        const feePerDay = parseFloat(tier.fee_per_day || 0);
+
+                        if (daysOverdue >= daysFrom) {
+                            const daysInThisTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+                            if (daysInThisTier > 0) {
+                                totalFee += daysInThisTier * feePerDay;
+                            }
+                        }
+
+                        if (daysOverdue <= daysTo) break;
+                    }
+
+                    console.log(`  ✅ Tiered: ${daysOverdue}d → ${totalFee}฿`);
+                    return { lateFeeAmount: totalFee, daysLate: daysOverdue };
+                } catch (e) {
+                    console.error('Error parsing late fee tiers:', e);
+                }
+            }
+        }
+
+        const lateFeePerDay = parseFloat(getConfigValue('late_payment_fee_per_day', '0'));
+        
+        if (lateFeePerDay === 0 || isNaN(lateFeePerDay)) {
+            console.log('  ⏭️ SKIP: No late fee config');
+            return { lateFeeAmount: 0, daysLate: daysOverdue };
+        }
+
+        const simpleFee = daysOverdue * lateFeePerDay;
+        console.log(`  ✅ Simple: ${daysOverdue}d × ${lateFeePerDay}฿ = ${simpleFee}฿`);
+        return { lateFeeAmount: simpleFee, daysLate: daysOverdue };
+    } catch (error) {
+        console.error('Error calculating late fee:', error);
+        return { lateFeeAmount: 0, daysLate: 0 };
+    }
+}
 
 // Cron Job สำหรับตรวจสอบสลิปที่รอการยืนยันซ้ำ (ทุก 15-30 นาที)
 Deno.serve(async (req) => {
@@ -224,86 +398,110 @@ Deno.serve(async (req) => {
 
                         // ✅ ตรวจสอบสำเร็จ!
                         const slipData = slip2goData.data;
-                        const slipAmount = parseFloat(slipData.amount?.amount || slipData.amount || 0);
-                        const expectedAmount = parseFloat(payment.total_amount);
+                        const slipAmount = extractAmount(slipData);
                         const senderName = slipData.sender?.account?.name?.th || slipData.sender?.name || 'N/A';
                         const transDate = slipData.transDate || slipData.dateTime || new Date().toISOString().split('T')[0];
 
                         console.log(`   💰 Slip Amount: ${slipAmount} บาท`);
-                        console.log(`   💰 Expected Amount: ${expectedAmount} บาท`);
                         console.log(`   👤 Sender: ${senderName}`);
 
-                        // เช็คยอดเงิน
-                        if (slipAmount < expectedAmount * 0.95) {
-                            console.log(`   ⚠️ Amount mismatch: ${slipAmount} < ${expectedAmount * 0.95} (95% of expected)`);
-                    await entityService.Payment.update(payment.id, {
-                        notes: `${payment.notes}\n\n⚠️ ยอดเงินไม่ตรง: สลิป ${slipAmount} บาท / ต้องชำระ ${expectedAmount} บาท`
-                    });
-                    
-                    const tenant = tenants.find(t => t.id === payment.tenant_id);
-                    if (tenant?.line_user_id) {
-                        await sendLineMessage(base44, tenant.line_user_id, 
-                            `⚠️ ยอดเงินไม่ตรง\n\n💰 สลิป: ${slipAmount.toLocaleString()} บาท\n💰 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท\n\nกรุณาติดต่อเจ้าของหอพักค่ะ`,
-                            payment.branch_id,
-                            configs
-                        );
-                    }
-                    
-                    failCount++;
-                    continue;
-                }
+                        // ⭐⭐⭐ คำนวณค่าปรับก่อนเช็คยอด
+                        const paymentDateOnly = transDate.split('T')[0];
+                        const { lateFeeAmount, daysLate } = calculateLateFee(payment, configs, payment.branch_id, new Date(paymentDateOnly));
+                        
+                        const baseAmount = parseFloat(payment.total_amount);
+                        const expectedAmount = baseAmount + lateFeeAmount;
+                        const currentPaid = parseFloat(payment.paid_amount || 0);
+                        const totalPaid = currentPaid + slipAmount;
 
-                // ⭐ เช็คบัญชีปลายทาง (เหมือน lineWebhookHandler)
+                        console.log(`   💰 Expected Amount (with late fee): ${expectedAmount} บาท`);
+                        console.log(`   💰 Late Fee: ${lateFeeAmount} บาท (${daysLate} days)`);
+                        console.log(`   💰 Total Paid: ${totalPaid} บาท`);
+
+                        // เช็คยอดเงิน (รองรับ partial payment)
+                        if (totalPaid < expectedAmount * 0.95) {
+                            console.log(`   ⚠️ Partial payment: ${totalPaid} < ${expectedAmount * 0.95} (95% of expected)`);
+                            const shortfall = expectedAmount - totalPaid;
+                            
+                            await entityService.Payment.update(payment.id, {
+                                status: 'partial_paid',
+                                paid_amount: totalPaid,
+                                late_fee_amount: lateFeeAmount,
+                                total_amount: expectedAmount,
+                                notes: `${payment.notes}\n\n💰 ชำระบางส่วน: ${slipAmount.toLocaleString()} บาท (รวมแล้ว ${totalPaid.toLocaleString()}/${expectedAmount.toLocaleString()} บาท)`
+                            });
+                            
+                            const tenant = tenants.find(t => t.id === payment.tenant_id);
+                            if (tenant?.line_user_id) {
+                                await sendLineMessage(base44, tenant.line_user_id, 
+                                    `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n💵 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n   (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท`,
+                                    payment.branch_id,
+                                    configs
+                                );
+                            }
+                            
+                            failCount++;
+                            continue;
+                        }
+
+                // ⭐ เช็คบัญชีปลายทาง (เช็คเฉพาะเลขบัญชี ไม่เช็คชื่อ)
                 const expectedAccountNumber = getConfigValue('bank_account_number', payment.branch_id);
                 const expectedPromptPay = getConfigValue('promptpay', payment.branch_id);
-                const expectedAccountName = getConfigValue('bank_account_name', payment.branch_id);
                 
                 const receiverAccount = slipData.receiver?.account?.bank?.account || '';
                 const receiverPromptPay = slipData.receiver?.account?.proxy?.value || '';
-                const receiverName = slipData.receiver?.account?.name || '';
+
+                console.log('\n========== 🏦 ACCOUNT VERIFICATION START ==========');
+                console.log('📋 Expected Configuration:');
+                console.log('  Bank Account:', expectedAccountNumber || '(not set)');
+                console.log('  PromptPay:', expectedPromptPay || '(not set)');
+                console.log('\n📋 Received from Slip:');
+                console.log('  Receiver Account:', receiverAccount || '(empty)');
+                console.log('  Receiver PromptPay:', receiverPromptPay || '(empty)');
 
                 let accountMatch = false;
-                let nameMatch = false;
+                let matchMethod = '';
                 
-                // เช็คเลขบัญชี (เช็คว่าเลขในสลิปอยู่ในบัญชีเต็มหรือไม่)
+                // ⭐ เช็คเลขบัญชีธนาคาร
                 if (expectedAccountNumber) {
-                    const expectedDigits = expectedAccountNumber.replace(/-/g, '').replace(/\s/g, '');
-                    const receiverDigits = receiverAccount.replace(/-/g, '').replace(/x/g, '').replace(/X/g, '').replace(/\s/g, '');
-                    
-                    if (receiverDigits && expectedDigits.includes(receiverDigits)) {
-                        accountMatch = true;
+                    console.log('\n🔍 Checking Bank Account Number...');
+                    accountMatch = isAccountMatch(receiverAccount, expectedAccountNumber);
+                    if (accountMatch) {
+                        matchMethod = 'Bank Account';
+                        console.log(`✅ MATCHED via Bank Account Number`);
                     }
                 }
                 
+                // ⭐ ถ้าไม่ผ่าน ลองเช็ค PromptPay
                 if (!accountMatch && expectedPromptPay) {
-                    if (receiverPromptPay === expectedPromptPay || receiverAccount.includes(expectedPromptPay)) {
+                    console.log('\n🔍 Checking PromptPay...');
+                    console.log('  Trying receiverPromptPay vs expectedPromptPay...');
+                    const promptPayMatch1 = isAccountMatch(receiverPromptPay, expectedPromptPay);
+                    
+                    if (!promptPayMatch1) {
+                        console.log('  Trying receiverAccount vs expectedPromptPay...');
+                        const promptPayMatch2 = isAccountMatch(receiverAccount, expectedPromptPay);
+                        accountMatch = promptPayMatch2;
+                        if (promptPayMatch2) matchMethod = 'PromptPay (via receiverAccount)';
+                    } else {
                         accountMatch = true;
+                        matchMethod = 'PromptPay';
                     }
-                }
-                
-                // เช็คชื่อบัญชี แบบ Fuzzy
-                if (expectedAccountName && receiverName) {
-                    const cleanExpected = expectedAccountName
-                        .replace(/นาย|นาง|นางสาว|mr\.|mrs\.|miss/gi, '')
-                        .replace(/\s+/g, '')
-                        .replace(/\./g, '')
-                        .toLowerCase();
                     
-                    const cleanReceiver = receiverName
-                        .replace(/นาย|นาง|นางสาว|mr\.|mrs\.|miss/gi, '')
-                        .replace(/\s+/g, '')
-                        .replace(/\./g, '')
-                        .toLowerCase();
-                    
-                    nameMatch = cleanReceiver.includes(cleanExpected) || cleanExpected.includes(cleanReceiver);
-                } else {
-                    nameMatch = true;
+                    if (accountMatch) {
+                        console.log(`✅ MATCHED via ${matchMethod}`);
+                    }
                 }
 
-                if (!accountMatch || !nameMatch) {
-                    console.log(`   ⚠️ Account/Name mismatch`);
+                console.log('\n========== 🏦 ACCOUNT VERIFICATION RESULT ==========');
+                console.log(`  Final Match: ${accountMatch ? '✅ PASS' : '❌ FAIL'}`);
+                console.log(`  Method: ${matchMethod || 'None'}`);
+                console.log('====================================================\n');
+
+                if (!accountMatch) {
+                    console.log(`   ⚠️ Account mismatch`);
                     await entityService.Payment.update(payment.id, {
-                        notes: `${payment.notes}\n\n⚠️ โอนไปผิดบัญชีหรือชื่อไม่ตรง - กรุณาตรวจสอบด้วยตนเอง`
+                        notes: `${payment.notes}\n\n⚠️ โอนไปผิดบัญชี - กรุณาตรวจสอบด้วยตนเอง`
                     });
                     
                     failCount++;
@@ -314,7 +512,10 @@ Deno.serve(async (req) => {
                 await entityService.Payment.update(payment.id, {
                     status: 'paid',
                     payment_date: transDate.split('T')[0],
-                    notes: `${payment.notes}\n\n✅ ตรวจสอบสลิปอัตโนมัติสำเร็จ (Cron): ${senderName} โอน ${slipAmount.toLocaleString()} บาท`
+                    late_fee_amount: lateFeeAmount,
+                    total_amount: expectedAmount,
+                    paid_amount: expectedAmount,
+                    notes: `${payment.notes}\n\n✅ ตรวจสอบสลิปอัตโนมัติสำเร็จ (Cron): ${senderName} โอน ${slipAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? ` (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}${currentPaid > 0 ? ` (ชำระเพิ่ม ${currentPaid.toLocaleString()} บาท)` : ''}`
                 });
 
                 console.log(`   ✅ Payment updated to PAID`);
