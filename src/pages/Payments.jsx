@@ -1783,7 +1783,7 @@ export default function PaymentsPage() {
       }
 
       if (response.data && response.data.success) {
-        const platform = tenant?.facebook_user_id ? 'Facebook' : 'LINE';
+        const platform = hasFacebook ? 'Facebook' : 'LINE';
         toast.success(response.data.message || `ส่งใบเสร็จทาง ${platform} สำเร็จ`);
         queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
       } else {
