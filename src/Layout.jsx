@@ -639,16 +639,20 @@ export default function Layout({ children, currentPageName }) {
     queryKey: ['appSubscriptions', currentUser?.email],
     queryFn: async () => {
       if (!currentUser?.email) return [];
-      const response = await base44.entities.AppSubscription.filter({ created_by: currentUser.email }, '-created_date', 1);
-      return response || [];
+      try {
+        const response = await base44.entities.AppSubscription.filter({ created_by: currentUser.email }, '-created_date', 1);
+        return response || [];
+      } catch (error) {
+        console.warn('⚠️ AppSubscription query failed (entity may not exist):', error.message);
+        return [];
+      }
     },
     enabled: !isLoading && !!currentUser && isOnline && !isPublicPage,
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retry: 1,
     throwOnError: false,
   });
 
