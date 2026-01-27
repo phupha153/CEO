@@ -694,13 +694,13 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
 
       // สร้าง Payment ถ้าติ๊กถูก
       if (shouldCreatePayment) {
-        const securityDeposit = bookingData.security_deposit || 0;
-        const advanceRent = bookingData.advance_rent || 0;
-        const commonFee = bookingData.common_fee_included || 0;
-        const totalRemaining = securityDeposit + advanceRent + commonFee;
-        
-        if (totalRemaining > 0) {
-          const dueDate = bookingData.contract_deadline || bookingData.check_in_date;
+      const securityDeposit = bookingData.security_deposit || 0;
+      const advanceRent = bookingData.advance_rent || 0;
+      const commonFee = bookingData.common_fee_included || 0;
+      const totalRemaining = securityDeposit + advanceRent + commonFee;
+
+      if (totalRemaining > 0) {
+        const dueDate = bookingData.check_out_date || bookingData.contract_deadline || bookingData.check_in_date;
           
           await base44.entities.Payment.create({
             branch_id: selectedBranchId,
