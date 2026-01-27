@@ -91,9 +91,10 @@ export default function AIFinancialAnalysis() {
     queryFn: () => base44.entities.Branch.list(),
   });
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
   const userAccessibleBranches = currentUser?.accessible_branches;
   const canViewAllBranches = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
+  const isDeveloper = userRole === 'developer';
 
   // กรองสาขาตามสิทธิ์
   const branches = React.useMemo(() => {
