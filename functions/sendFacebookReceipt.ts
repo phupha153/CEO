@@ -283,8 +283,10 @@ Deno.serve(async (req) => {
         message += `━━━━━━━━━━━━━━━━━━━━\n\n`;
         message += `👤 ผู้เช่า: ${tenant.full_name}\n`;
         message += `🏠 ห้อง: ${room?.room_number || 'N/A'}\n`;
-        message += `📱 เบอร์: ${tenant.phone}\n\n`;
-        message += `📋 รายการ:\n`;
+        if (tenant.phone) {
+            message += `📱 เบอร์: ${tenant.phone}\n`;
+        }
+        message += `\n📋 รายการ:\n`;
         
         if (payment.rent_amount > 0) {
             message += `  ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
