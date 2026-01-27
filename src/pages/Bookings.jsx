@@ -88,7 +88,6 @@ export default function BookingsPage() {
   const [aiResult, setAiResult] = useState(null);
   const [aiAction, setAiAction] = useState(null);
   const [aiActionLoading, setAiActionLoading] = useState(false);
-  const [createPaymentOnBooking, setCreatePaymentOnBooking] = useState(false);
   const itemsPerPage = 20;
 
   const queryClient = useQueryClient();
@@ -689,45 +688,13 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
         throw new Error('ไม่พบห้องที่เลือก');
       }
 
-      const newBooking = await base44.entities.TemporaryBooking.create(data);
-      
-      // สร้าง Payment ถ้าติ๊ก checkbox และมียอดคงเหลือ
-      if (data.shouldCreatePayment && data.remainingAmount > 0) {
-        const dueDate = data.contract_deadline || new Date().toISOString().split('T')[0];
-        
-        await base44.entities.Payment.create({
-          branch_id: selectedBranchId,
-          booking_id: newBooking.id,
-          room_id: data.room_id,
-          payment_category: 'booking_deposit',
-          due_date: dueDate,
-          security_deposit_amount: data.security_deposit || 0,
-          advance_rent_amount: data.advance_rent || 0,
-          common_fee_amount: data.common_fee_included || 0,
-          total_amount: data.remainingAmount,
-          paid_amount: 0,
-          status: 'pending',
-          notes: `รายการชำระจากการจองห้อง ${room.room_number} - ${data.guest_name}\n` +
-                 `เงินประกัน: ${(data.security_deposit || 0).toLocaleString()} บาท\n` +
-                 `ค่าเช่าล่วงหน้า: ${(data.advance_rent || 0).toLocaleString()} บาท\n` +
-                 `ค่าส่วนกลาง: ${(data.common_fee_included || 0).toLocaleString()} บาท\n` +
-                 `ชำระแล้ว (มัดจำ): ${(data.deposit_amount || 0).toLocaleString()} บาท`
-        });
-      }
-      
-      return newBooking;
+      return await base44.entities.TemporaryBooking.create(data);
     },
-    onSuccess: (newBooking, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries(['temporaryBookings', selectedBranchId]);
-      queryClient.invalidateQueries(['payments', selectedBranchId]);
       setShowDialog(false);
       resetForm();
-      
-      if (variables.shouldCreatePayment && variables.remainingAmount > 0) {
-        toast.success('บันทึกการจองและสร้างรายการชำระเงินสำเร็จ');
-      } else {
-        toast.success('บันทึกการจองชั่วคราว');
-      }
+      toast.success('บันทึกการจองชั่วคราว');
     },
     onError: (error) => {
       toast.error(error.message || 'เกิดข้อผิดพลาด');
@@ -908,7 +875,6 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
     const securityDeposit = formData.security_deposit ? parseFloat(formData.security_deposit) : 0;
     const advanceRent = formData.advance_rent ? parseFloat(formData.advance_rent) : 0;
     const commonFeeIncluded = formData.common_fee_included ? parseFloat(formData.common_fee_included) : 0;
-    const remainingAmount = securityDeposit + advanceRent + commonFeeIncluded;
     
     const data = {
       ...formData,
@@ -917,9 +883,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       advance_rent: advanceRent,
       common_fee_included: commonFeeIncluded,
       booking_type: dialogBookingType,
-      branch_id: selectedBranchId,
-      shouldCreatePayment: createPaymentOnBooking,
-      remainingAmount: remainingAmount
+      branch_id: selectedBranchId
     };
 
     if (editingBooking) {
@@ -969,7 +933,6 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   const resetForm = () => {
     setEditingBooking(null);
     setDialogBookingType('daily');
-    setCreatePaymentOnBooking(false);
     setFormData({
       room_id: '',
       guest_name: '',
@@ -1957,25 +1920,6 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                 </span>
                               </div>
                             </div>
-                            
-                            {(Number(formData.security_deposit || 0) + Number(formData.advance_rent || 0) + Number(formData.common_fee_included || 0)) > 0 && (
-                              <div className="mt-3 pt-3 border-t border-blue-300">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={createPaymentOnBooking}
-                                    onChange={(e) => setCreatePaymentOnBooking(e.target.checked)}
-                                    className="w-4 h-4 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <span className="text-sm text-blue-800 font-medium">
-                                    ✅ สร้างรายการรอชำระในหน้าการชำระเงิน
-                                  </span>
-                                </label>
-                                <p className="text-xs text-blue-600 ml-6 mt-1">
-                                  ระบบจะสร้างบิลรอชำระสำหรับยอดคงเหลือให้อัตโนมัติ
-                                </p>
-                              </div>
-                            )}
                           </div>
                         )}
                       </>
