@@ -474,9 +474,9 @@ Deno.serve(async (req) => {
                             spacing: "sm",
                             contents: [
                                 { type: "text", text: "ผู้เช่า", size: "sm", color: "#aaaaaa" },
-                                { type: "text", text: tenant.full_name, size: "md", weight: "bold", color: "#111111" },
+                                { type: "text", text: tenant.full_name || "ไม่ระบุ", size: "md", weight: "bold", color: "#111111" },
                                 { type: "text", text: `ห้อง ${room?.room_number || 'N/A'}`, size: "sm", color: "#555555" },
-                                { type: "text", text: tenant.phone, size: "sm", color: "#555555" }
+                                ...(tenant.phone ? [{ type: "text", text: tenant.phone, size: "sm", color: "#555555" }] : [])
                             ]
                         },
                         { type: "separator", margin: "lg" },
