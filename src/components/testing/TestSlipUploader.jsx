@@ -29,17 +29,20 @@ export default function TestSlipUploader() {
     loadBranches();
   }, []);
 
-  // โหลดห้องทั้งหมด (ไม่บังคับต้องเลือกสาขา)
+  // โหลดห้องเมื่อเลือกสาขา
   useEffect(() => {
+    if (!selectedBranchId) {
+      setRooms([]);
+      setSelectedRoomId('');
+      return;
+    }
+
     const loadRooms = async () => {
       setLoading(true);
       try {
         const allRooms = await base44.entities.Room.list('-room_number', 500);
-        // ถ้าเลือกสาขา ให้แสดงเฉพาะห้องของสาขานั้น ถ้าไม่ได้เลือก แสดงทั้งหมด
-        const filteredRooms = selectedBranchId 
-          ? allRooms.filter(r => r.branch_id === selectedBranchId)
-          : allRooms;
-        setRooms(filteredRooms);
+        const branchRooms = allRooms.filter(r => r.branch_id === selectedBranchId);
+        setRooms(branchRooms);
         setSelectedRoomId('');
       } catch (error) {
         console.error('Error loading rooms:', error);
@@ -161,7 +164,7 @@ export default function TestSlipUploader() {
               <Select 
                 value={selectedRoomId} 
                 onValueChange={setSelectedRoomId}
-                disabled={loading || rooms.length === 0}
+                disabled={!selectedBranchId || loading}
               >
                 <SelectTrigger className="text-sm bg-white">
                   <SelectValue placeholder={loading ? "กำลังโหลด..." : "เลือกห้อง"} />
