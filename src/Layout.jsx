@@ -1170,6 +1170,33 @@ export default function Layout({ children, currentPageName }) {
   // Developer สามารถเข้าถึงทุกหน้าได้แม้แพ็กเกจหมดอายุ
   const isDeveloper = userRole === 'developer';
 
+  // ⭐ Developer pages - allow developers & owners
+  if ((currentPageName === 'AIFinancialAnalysis' ||
+       currentPageName === 'AIGuidelines' ||
+       currentPageName === 'f12' ||
+       currentPageName === 'WebhookLogs' ||
+       currentPageName === 'UserBranchAccess' ||
+       currentPageName === 'DataLists' ||
+       currentPageName === 'DataArchive' ||
+       currentPageName === 'CustomTestDataGenerator' ||
+       currentPageName === 'CronJobSettings' ||
+       currentPageName === 'BannerManagement' ||
+       currentPageName === 'DeveloperGuide' ||
+       currentPageName === 'TestingAdmin' ||
+       currentPageName === 'TestInvoiceGeneration' ||
+       currentPageName === 'TestLine') && 
+      !isDeveloper && userRole !== 'owner') {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 via-red-50 to-orange-50">
+        <motion.div className="text-center">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">ไม่มีสิทธิ์เข้าถึง</h2>
+          <p className="text-slate-600">หน้านี้สำหรับผู้พัฒนาเท่านั้น</p>
+        </motion.div>
+      </div>
+    );
+  }
+
   // ⭐ Developer เข้าถึงทุกหน้าได้โดยไม่ต้องเช็ค package - ไม่ return children เฉยๆ แต่ให้ไปแสดง sidebar ด้วย
   // แต่ไม่ redirect ไปหน้า package pages
 
