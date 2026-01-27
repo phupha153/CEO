@@ -161,7 +161,7 @@ export default function TestSlipUploader() {
               <Select 
                 value={selectedRoomId} 
                 onValueChange={setSelectedRoomId}
-                disabled={!selectedBranchId || loading}
+                disabled={loading || rooms.length === 0}
               >
                 <SelectTrigger className="text-sm bg-white">
                   <SelectValue placeholder={loading ? "กำลังโหลด..." : "เลือกห้อง"} />
