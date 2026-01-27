@@ -118,8 +118,64 @@ export default function ChatWindow({
     try {
       await onSendMessage(newMessage.trim());
       setNewMessage('');
+      
+      // Mark as read automatically
+      setReadReceipts(prev => ({
+        ...prev,
+        [conversation?.id]: new Date().toISOString()
+      }));
     } catch (error) {
       toast.error('ส่งข้อความไม่สำเร็จ: ' + error.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const compressImage = async (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+          
+          // Resize if larger than 1200px
+          if (width > 1200 || height > 1200) {
+            const ratio = Math.min(1200 / width, 1200 / height);
+            width *= ratio;
+            height *= ratio;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convert to WebP with quality 0.7
+          canvas.toBlob(resolve, 'image/webp', 0.7);
+        };
+      };
+    });
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSending(true);
+    try {
+      const compressedBlob = await compressImage(file);
+      const compressedFile = new File([compressedBlob], `image_${Date.now()}.webp`, { type: 'image/webp' });
+      
+      const uploadedUrl = await base44.integrations.Core.UploadFile({ file: compressedFile });
+      
+      await onSendMessage(`[รูปภาพ]`, uploadedUrl.file_url);
+      toast.success(`อัพโหลดสำเร็จ (${(compressedFile.size / 1024).toFixed(1)} KB)`);
+    } catch (error) {
+      toast.error('อัพโหลดรูปไม่สำเร็จ: ' + error.message);
     } finally {
       setSending(false);
     }
