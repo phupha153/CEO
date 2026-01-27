@@ -113,31 +113,32 @@ export default function TestSlipUploader() {
           notes: `${testPayment.notes || ''}\n\n⚠️ รอตรวจสอบซ้ำ: ห้อง ${selectedRoom?.room_number} - [TEST] ทดสอบระบบตรวจสอบสลิป - ${new Date().toISOString()}`
         });
 
-        // เรียก verifySlip อัตโนมัติ
-        toast.loading('🔍 กำลังตรวจสอบสลิป...', { id: toastId });
-        
-        try {
-          const verifyResult = await base44.functions.invoke('verifySlip', { 
-            payment_id: testPayment.id 
-          });
+        // เรียก recheckPendingSlips เพื่อตรวจสอบทุกบิลรอชำระ
+          toast.loading('🔍 กำลังตรวจสอบสลิปทั้งหมด...', { id: toastId });
 
-          if (verifyResult.data.success) {
-            toast.success(`✅ ตรวจสอบสลิปสำเร็จ\nห้อง ${selectedRoom?.room_number} (${selectedBranch?.branch_name})\n📊 ผลลัพธ์: ${verifyResult.data.message || 'ยืนยันแล้ว'}`, { 
-              id: toastId, 
-              duration: 5000 
+          try {
+            const recheckResult = await base44.functions.invoke('recheckPendingSlips', { 
+              room_id: selectedRoomId,
+              branch_id: selectedBranchId
             });
-          } else {
-            toast.error(`❌ ตรวจสอบสลิปไม่สำเร็จ\n⚠️ ${verifyResult.data.message || 'ข้อมูลไม่ตรงกัน'}`, { 
+
+            if (recheckResult.data.success) {
+              toast.success(`✅ ตรวจสอบสลิปสำเร็จ\nห้อง ${selectedRoom?.room_number} (${selectedBranch?.branch_name})\n📊 ${recheckResult.data.message}`, { 
+                id: toastId, 
+                duration: 5000 
+              });
+            } else {
+              toast.error(`❌ ตรวจสอบสลิปไม่สำเร็จ\n⚠️ ${recheckResult.data.message || 'ข้อมูลไม่ตรงกัน'}`, { 
+                id: toastId, 
+                duration: 5000 
+              });
+            }
+          } catch (recheckError) {
+            toast.error(`❌ เกิดข้อผิดพลาดในการตรวจสอบ: ${recheckError.message}`, { 
               id: toastId, 
               duration: 5000 
             });
           }
-        } catch (verifyError) {
-          toast.error(`❌ เกิดข้อผิดพลาดในการตรวจสอบ: ${verifyError.message}`, { 
-            id: toastId, 
-            duration: 5000 
-          });
-        }
       } else {
         toast.success(`✅ อัพโหลดสลิปสำเร็จ\nห้อง ${selectedRoom?.room_number} (${selectedBranch?.branch_name})\n(ไม่มีบิลรอชำระ - เพื่อทดสอบเท่านั้น)`, { 
           id: toastId, 
