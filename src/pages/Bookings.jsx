@@ -81,6 +81,8 @@ export default function BookingsPage() {
     notes: ''
   });
 
+  const [createPaymentOnBooking, setCreatePaymentOnBooking] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -678,23 +680,56 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   };
 
   const createTempMutation = useMutation({
-    mutationFn: async (data) => {
+    mutationFn: async ({ bookingData, shouldCreatePayment }) => {
       if (!canAdd) {
         throw new Error('คุณไม่มีสิทธิ์เพิ่มการจอง');
       }
 
-      const room = rooms.find(r => r.id === data.room_id);
+      const room = rooms.find(r => r.id === bookingData.room_id);
       if (!room) {
         throw new Error('ไม่พบห้องที่เลือก');
       }
 
-      return await base44.entities.TemporaryBooking.create(data);
+      const newBooking = await base44.entities.TemporaryBooking.create(bookingData);
+
+      // สร้าง Payment ถ้าติ๊กถูก
+      if (shouldCreatePayment) {
+        const securityDeposit = bookingData.security_deposit || 0;
+        const advanceRent = bookingData.advance_rent || 0;
+        const commonFee = bookingData.common_fee_included || 0;
+        const totalRemaining = securityDeposit + advanceRent + commonFee;
+        
+        if (totalRemaining > 0) {
+          const dueDate = bookingData.contract_deadline || bookingData.check_in_date;
+          
+          await base44.entities.Payment.create({
+            branch_id: selectedBranchId,
+            booking_id: newBooking.id,
+            room_id: newBooking.room_id,
+            payment_category: 'booking_deposit',
+            due_date: dueDate,
+            security_deposit_amount: securityDeposit,
+            advance_rent_amount: advanceRent,
+            common_fee_amount: commonFee,
+            total_amount: totalRemaining,
+            status: 'pending',
+            notes: `รายการชำระจากการจองห้อง ${room.room_number} - ${bookingData.guest_name}\n` +
+                   `เงินประกัน: ${securityDeposit.toLocaleString()} บาท\n` +
+                   `ค่าเช่าล่วงหน้า: ${advanceRent.toLocaleString()} บาท\n` +
+                   `ค่าส่วนกลาง: ${commonFee.toLocaleString()} บาท`
+          });
+        }
+      }
+
+      return newBooking;
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['temporaryBookings', selectedBranchId]);
+      queryClient.invalidateQueries(['payments', selectedBranchId]);
       setShowDialog(false);
       resetForm();
-      toast.success('บันทึกการจองชั่วคราว');
+      setCreatePaymentOnBooking(false);
+      toast.success('บันทึกการจองชั่วคราวสำเร็จ');
     },
     onError: (error) => {
       toast.error(error.message || 'เกิดข้อผิดพลาด');
@@ -889,7 +924,10 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
     if (editingBooking) {
       updateTempMutation.mutate({ id: editingBooking.id, data });
     } else {
-      createTempMutation.mutate(data);
+      createTempMutation.mutate({ 
+        bookingData: data, 
+        shouldCreatePayment: createPaymentOnBooking 
+      });
     }
   };
 
@@ -952,6 +990,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       deposit_slip_url: '',
       notes: ''
     });
+    setCreatePaymentOnBooking(false);
   };
 
   const getStatusBadge = (status) => {
@@ -1089,11 +1128,15 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                     guest_email: '',
                     check_in_date: new Date().toISOString().split('T')[0],
                     check_out_date: '',
-                    deposit_amount: 0,
-                    deposit_payment_method: 'cash',
-                    total_amount: 0,
+                    deposit_amount: '',
+                    security_deposit: '',
+                    advance_rent: '',
+                    common_fee_included: '',
+                    deposit_payment_method: 'transfer',
+                    deposit_slip_url: '',
                     notes: ''
                   });
+                  setCreatePaymentOnBooking(false);
                   setShowDialog(true);
                 }}
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
@@ -1590,14 +1633,28 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                     value={formData.room_id}
                     onChange={(e) => {
                       const selectedRoom = rooms.find(r => r.id === e.target.value);
-                      setFormData({ 
-                        ...formData, 
-                        room_id: e.target.value,
-                        // ถ้าเลือกห้องแล้ว ให้ดึงค่าเริ่มต้นจากราคาห้อง
-                        security_deposit: selectedRoom ? selectedRoom.price?.toString() : '',
-                        advance_rent: selectedRoom ? selectedRoom.price?.toString() : '',
-                        common_fee_included: selectedRoom?.common_fee?.toString() || ''
-                      });
+                      if (selectedRoom) {
+                        // Auto-fill ตามประเภทห้อง
+                        if (dialogBookingType === 'daily') {
+                          setFormData({ 
+                            ...formData, 
+                            room_id: e.target.value,
+                            security_deposit: selectedRoom.price?.toString() || '',
+                            deposit_amount: ''
+                          });
+                        } else {
+                          // รายเดือน
+                          setFormData({ 
+                            ...formData, 
+                            room_id: e.target.value,
+                            security_deposit: selectedRoom.price?.toString() || '',
+                            advance_rent: selectedRoom.price?.toString() || '',
+                            common_fee_included: selectedRoom.common_fee?.toString() || ''
+                          });
+                        }
+                      } else {
+                        setFormData({ ...formData, room_id: e.target.value });
+                      }
                     }}
                     required
                     className="w-full p-2 border rounded-md"
@@ -1994,6 +2051,41 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                     placeholder="หมายเหตุเพิ่มเติม..."
                   />
                 </div>
+
+                {!editingBooking && dialogBookingType === 'monthly' && (
+                  Number(formData.security_deposit || 0) + 
+                  Number(formData.advance_rent || 0) + 
+                  Number(formData.common_fee_included || 0)
+                ) > 0 && (
+                  <div className="border-t pt-4">
+                    <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          id="createPaymentCheck"
+                          checked={createPaymentOnBooking}
+                          onChange={(e) => setCreatePaymentOnBooking(e.target.checked)}
+                          className="w-5 h-5 mt-0.5 rounded border-green-400 text-green-600 focus:ring-green-500"
+                        />
+                        <div className="flex-1">
+                          <label htmlFor="createPaymentCheck" className="font-semibold text-green-800 cursor-pointer">
+                            สร้างรายการชำระเงินทันที
+                          </label>
+                          <p className="text-xs text-green-700 mt-1">
+                            ระบบจะสร้างรายการรอชำระในหน้า "การชำระเงิน" ทันทีหลังบันทึกการจอง
+                          </p>
+                          <p className="text-xs font-semibold text-green-800 mt-2">
+                            💰 ยอดรอชำระ: {(
+                              Number(formData.security_deposit || 0) +
+                              Number(formData.advance_rent || 0) +
+                              Number(formData.common_fee_included || 0)
+                            ).toLocaleString()} บาท
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-2 pt-4">
                   <Button
