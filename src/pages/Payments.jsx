@@ -1335,17 +1335,35 @@ export default function PaymentsPage() {
           }
         }
 
-        if ((tenant?.line_user_id || tenant?.facebook_user_id) && canSendReceipt) {
+        // ⭐ Fetch ข้อมูล Tenant ใหม่เพื่อให้แน่ใจว่าได้ line_user_id ล่าสุด
+        let freshTenant = tenant;
+        if (updatedPayment.tenant_id) {
           try {
-            const platform = tenant?.facebook_user_id ? 'Facebook' : 'LINE';
+            const tenantResults = await base44.entities.Tenant.filter({ id: updatedPayment.tenant_id }, '', 1);
+            if (tenantResults && tenantResults.length > 0) {
+              freshTenant = tenantResults[0];
+              console.log('🔄 Fetched fresh tenant data:', { 
+                name: freshTenant.full_name,
+                has_line: !!freshTenant.line_user_id,
+                has_facebook: !!freshTenant.facebook_user_id
+              });
+            }
+          } catch (error) {
+            console.warn('⚠️ Failed to fetch fresh tenant data:', error);
+          }
+        }
+
+        if ((freshTenant?.line_user_id || freshTenant?.facebook_user_id) && canSendReceipt) {
+          try {
+            const platform = freshTenant?.facebook_user_id ? 'Facebook' : 'LINE';
             toast.info(`กำลังส่งใบเสร็จทาง ${platform}...`, { duration: 2000 });
             
-            const response = tenant?.facebook_user_id
+            const response = freshTenant?.facebook_user_id
               ? await base44.functions.invoke('sendFacebookReceipt', { paymentId: updatedPayment.id })
               : await base44.functions.invoke('sendReceipt', { paymentId: updatedPayment.id });
             
             if (response.data?.success) {
-              toast.success(`✅ ส่งใบเสร็จทาง ${platform} สำเร็จ\nส่งถึง: ${tenant.full_name}`, { duration: 5000 });
+              toast.success(`✅ ส่งใบเสร็จทาง ${platform} สำเร็จ\nส่งถึง: ${freshTenant.full_name}`, { duration: 5000 });
             } else {
               toast.warning(`ยืนยันชำระสำเร็จ แต่ไม่สามารถส่งใบเสร็จได้: ${response.data?.error || 'ไม่ทราบสาเหตุ'}`, { duration: 5000 });
             }
@@ -1353,7 +1371,7 @@ export default function PaymentsPage() {
             console.error('Auto-send receipt error:', error);
             toast.warning('ยืนยันชำระสำเร็จ แต่ไม่สามารถส่งใบเสร็จอัตโนมัติได้: ' + error.message, { duration: 5000 });
           }
-        } else if (!tenant?.line_user_id && !tenant?.facebook_user_id) {
+        } else if (!freshTenant?.line_user_id && !freshTenant?.facebook_user_id) {
           toast.success('ยืนยันชำระสำเร็จ (ผู้เช่ายังไม่ได้เชื่อมต่อระบบแชท)', { duration: 3000 });
         } else {
           toast.success('อัปเดตสถานะสำเร็จ', { duration: 3000 });
