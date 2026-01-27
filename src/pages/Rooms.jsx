@@ -59,10 +59,6 @@ export default function RoomsPage() {
   const [isFlatRateWater, setIsFlatRateWater] = useState(false);
   const [isFlatRateElectricity, setIsFlatRateElectricity] = useState(false);
   
-  // Payment creation states
-  const [createPaymentNow, setCreatePaymentNow] = useState(false);
-  const [paymentDueDate, setPaymentDueDate] = useState('');
-  
   // Bulk Selection State
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedRooms, setSelectedRooms] = useState([]);
@@ -1310,40 +1306,12 @@ ${JSON.stringify(roomsWithAC, null, 2)}
         await base44.entities.Room.update(room.id, { status: 'occupied' });
       }
       
-      // ⭐ สร้าง Payment ถ้าติ๊กเลือก
-      let newPayment = null;
-      if (data.createPaymentNow && data.paymentDueDate) {
-        const totalAmount = (data.security_deposit || 0) + (data.advance_rent || 0) + (data.common_fee_included || 0);
-        const paidAmount = data.deposit_amount || 0;
-        
-        newPayment = await base44.entities.Payment.create({
-          branch_id: selectedBranchId,
-          booking_id: newBooking.id,
-          room_id: room.id,
-          tenant_id: newBooking.tenant_id || null,
-          payment_category: dialogBookingType === 'daily' ? 'booking_deposit' : 'security_deposit',
-          due_date: data.paymentDueDate,
-          total_amount: totalAmount,
-          paid_amount: paidAmount,
-          status: paidAmount >= totalAmount ? 'paid' : 'pending',
-          security_deposit_amount: data.security_deposit || 0,
-          advance_rent_amount: data.advance_rent || 0,
-          common_fee_amount: data.common_fee_included || 0,
-          payment_slip_url: data.deposit_slip_url || null,
-          payment_method: data.deposit_payment_method || 'transfer',
-          notes: `สร้างจากการจองห้อง ${room.room_number}`
-        });
-      }
-      
-      return { booking: newBooking, room, payment: newPayment };
+      return { booking: newBooking, room };
     },
-    onSuccess: async ({ booking, room, payment }) => {
+    onSuccess: async ({ booking, room }) => {
       await queryClient.invalidateQueries(['rooms', selectedBranchId]);
       await queryClient.invalidateQueries(['bookings', selectedBranchId]);
       await queryClient.invalidateQueries(['temporaryBookings', selectedBranchId]);
-      if (payment) {
-        await queryClient.invalidateQueries(['payments', selectedBranchId]);
-      }
       
       // บันทึก log
       await base44.entities.ActivityLog.create({
@@ -1354,14 +1322,12 @@ ${JSON.stringify(roomsWithAC, null, 2)}
         entity_name: `ห้อง ${room.room_number} - ${booking.guest_name || 'รายวัน'}`,
         user_email: currentUser?.email,
         user_name: currentUser?.full_name,
-        description: `จองห้อง ${room.room_number} (${dialogBookingType === 'daily' ? 'รายวัน' : 'รายเดือน'})${payment ? ' + สร้างบิลชำระเงิน' : ''}`
+        description: `จองห้อง ${room.room_number} (${dialogBookingType === 'daily' ? 'รายวัน' : 'รายเดือน'})`
       });
       
       setShowReservationDialog(false);
       setReservingRoom(null);
-      setCreatePaymentNow(false);
-      setPaymentDueDate('');
-      toast.success(payment ? 'จองห้องและสร้างบิลสำเร็จ' : 'จองห้องสำเร็จ');
+      toast.success('จองห้องสำเร็จ');
     },
     onError: (error) => {
       toast.error(error.message || 'เกิดข้อผิดพลาด');
@@ -1637,8 +1603,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
   const handleReserve = (room) => {
     setReservingRoom(room);
     setDialogBookingType(room.room_type || 'daily');
-    setCreatePaymentNow(false);
-    setPaymentDueDate('');
     setFormData({
       room_number: '',
       floor: '',
@@ -3983,9 +3947,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                   contract_deadline: formData.contract_deadline,
                   deposit_payment_method: formData.deposit_payment_method,
                   deposit_slip_url: formData.deposit_slip_url,
-                  notes: formData.notes,
-                  createPaymentNow: createPaymentNow,
-                  paymentDueDate: paymentDueDate
+                  notes: formData.notes
                 };
 
                 createBookingMutation.mutate(data);
@@ -4368,81 +4330,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       </div>
                     )}
                   </div>
-                </div>
-
-                {/* เพิ่มการชำระเงินทันที */}
-                <div className="border-t pt-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Checkbox
-                      id="create-payment"
-                      checked={createPaymentNow}
-                      onCheckedChange={(checked) => {
-                        setCreatePaymentNow(checked);
-                        if (!checked) setPaymentDueDate('');
-                      }}
-                    />
-                    <Label htmlFor="create-payment" className="cursor-pointer font-medium text-green-700 flex items-center gap-2">
-                      <DollarSign className="w-5 h-5" />
-                      เพิ่มการชำระเงินทันที (สร้างบิล)
-                    </Label>
-                  </div>
-
-                  {createPaymentNow && (
-                    <div className="ml-8 space-y-3 p-4 bg-green-50 rounded-lg border border-green-200">
-                      <div>
-                        <Label>กำหนดชำระภายในวันที่ *</Label>
-                        <Input
-                          type="date"
-                          value={paymentDueDate}
-                          onChange={(e) => setPaymentDueDate(e.target.value)}
-                          required={createPaymentNow}
-                          disabled={createBookingMutation.isPending}
-                          className="bg-white"
-                        />
-                      </div>
-                      
-                      <div className="bg-white p-3 rounded-lg border border-green-300">
-                        <p className="text-xs text-green-800 mb-2">📋 บิลที่จะสร้าง:</p>
-                        <div className="space-y-1 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">ยอดรวม:</span>
-                            <span className="font-bold text-green-700">
-                              {(
-                                Number(formData.security_deposit || 0) +
-                                Number(formData.advance_rent || 0) +
-                                Number(formData.common_fee_included || 0)
-                              ).toLocaleString()} บาท
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-slate-600">ชำระแล้ว:</span>
-                            <span className="text-green-600">
-                              {Number(formData.deposit_amount || 0).toLocaleString()} บาท
-                            </span>
-                          </div>
-                          <div className="flex justify-between border-t border-green-200 pt-1 mt-1">
-                            <span className="text-slate-600">คงเหลือ:</span>
-                            <span className="font-bold text-orange-600">
-                              {Math.max(0,
-                                Number(formData.security_deposit || 0) +
-                                Number(formData.advance_rent || 0) +
-                                Number(formData.common_fee_included || 0) -
-                                Number(formData.deposit_amount || 0)
-                              ).toLocaleString()} บาท
-                            </span>
-                          </div>
-                          {paymentDueDate && (
-                            <div className="flex justify-between text-blue-700 text-xs mt-2">
-                              <span>📅 ครบกำหนด:</span>
-                              <span className="font-semibold">
-                                {format(parseISO(paymentDueDate), 'd MMM yyyy', { locale: th })}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 <div>
