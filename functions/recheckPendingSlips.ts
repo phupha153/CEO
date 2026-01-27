@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
                         // เช็คยอดเงิน
                         if (slipAmount < expectedAmount * 0.95) {
                             console.log(`   ⚠️ Amount mismatch: ${slipAmount} < ${expectedAmount * 0.95} (95% of expected)`);
-                    await base44.asServiceRole.entities.Payment.update(payment.id, {
+                    await entityService.Payment.update(payment.id, {
                         notes: `${payment.notes}\n\n⚠️ ยอดเงินไม่ตรง: สลิป ${slipAmount} บาท / ต้องชำระ ${expectedAmount} บาท`
                     });
                     
