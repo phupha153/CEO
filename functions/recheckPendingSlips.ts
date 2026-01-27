@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
                         // ลองเกิน 3 ครั้งแล้ว - ให้ตรวจสอบด้วยตนเอง
                         console.log(`   ❌ Max retries reached (${retryCount}), marking for manual review`);
 
-                        await base44.asServiceRole.entities.Payment.update(payment.id, {
+                        await entityService.Payment.update(payment.id, {
                             notes: `${payment.notes}\n\n⚠️ ตรวจสอบไม่สำเร็จหลังลอง ${retryCount + 1} ครั้ง - กรุณาตรวจสอบด้วยตนเอง`
                         });
 
