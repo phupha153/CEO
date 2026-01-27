@@ -395,8 +395,8 @@ export default function AIFinancialAnalysis() {
     }
   }, [rooms.length, payments.length, selectedBranchId, dateRangeType, customRange.from, customRange.to]);
 
-  // 🔒 Access Control - Developer Only
-  if (!isDeveloper) {
+  // 🔒 Access Control - Wait for user to load, then check role
+  if (!userLoading && !isDeveloper) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-50 flex items-center justify-center">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
