@@ -311,7 +311,7 @@ Deno.serve(async (req) => {
                 }
 
                 // ✅ ทุกอย่างถูกต้อง - อัปเดตเป็น paid
-                await base44.asServiceRole.entities.Payment.update(payment.id, {
+                await entityService.Payment.update(payment.id, {
                     status: 'paid',
                     payment_date: transDate.split('T')[0],
                     notes: `${payment.notes}\n\n✅ ตรวจสอบสลิปอัตโนมัติสำเร็จ (Cron): ${senderName} โอน ${slipAmount.toLocaleString()} บาท`
