@@ -179,14 +179,16 @@ export default function TestSlipUploader() {
               </Select>
             </div>
 
-            {selectedRoomId && payments.length === 0 && (
-              <p className="text-xs text-red-600">⚠️ ไม่พบบิลรอชำระของห้องนี้</p>
-            )}
-
             {selectedRoomId && payments.length > 0 && (
               <div className="text-xs text-green-600">
                 <p>✅ พบบิลรอชำระ {payments.length} รายการ</p>
                 <p className="font-semibold">💰 ยอดบิล: {payments[0]?.total_amount?.toLocaleString() || 0} บาท</p>
+              </div>
+            )}
+
+            {selectedRoomId && payments.length === 0 && (
+              <div className="text-xs text-blue-600">
+                ℹ️ ไม่มีบิลรอชำระ - สลิปนี้เพื่อทดสอบเท่านั้น
               </div>
             )}
 
@@ -195,7 +197,7 @@ export default function TestSlipUploader() {
                 type="file" 
                 accept="image/jpeg,image/jpg,image/png"
                 onChange={handleUpload}
-                disabled={!selectedRoomId || payments.length === 0 || uploading}
+                disabled={!selectedRoomId || uploading}
                 className="text-sm flex-1"
               />
               {uploading && <Loader2 className="w-4 h-4 animate-spin text-purple-600" />}
