@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,16 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Brain, Loader2, RefreshCw, TrendingUp, DollarSign, AlertTriangle, Target, Lightbulb, BarChart3, CalendarIcon, Lock } from "lucide-react";
+import { Brain, Loader2, RefreshCw, TrendingUp, DollarSign, AlertTriangle, Target, Lightbulb, BarChart3, CalendarIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import PageHeader from "../components/shared/PageHeader";
 import { parseISO, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, isWithinInterval, format } from "date-fns";
 import { th } from "date-fns/locale";
-import { createPageUrl } from "@/utils";
 
 export default function AIFinancialAnalysis() {
-  const navigate = useNavigate();
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -91,10 +88,9 @@ export default function AIFinancialAnalysis() {
     queryFn: () => base44.entities.Branch.list(),
   });
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   const userAccessibleBranches = currentUser?.accessible_branches;
   const canViewAllBranches = userRole === 'developer' && (!userAccessibleBranches || userAccessibleBranches.length === 0);
-  const isDeveloper = userRole === 'developer';
 
   // กรองสาขาตามสิทธิ์
   const branches = React.useMemo(() => {
