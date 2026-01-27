@@ -29,20 +29,17 @@ export default function TestSlipUploader() {
     loadBranches();
   }, []);
 
-  // โหลดห้องเมื่อเลือกสาขา
+  // โหลดห้องทั้งหมด (ไม่บังคับต้องเลือกสาขา)
   useEffect(() => {
-    if (!selectedBranchId) {
-      setRooms([]);
-      setSelectedRoomId('');
-      return;
-    }
-
     const loadRooms = async () => {
       setLoading(true);
       try {
         const allRooms = await base44.entities.Room.list('-room_number', 500);
-        const branchRooms = allRooms.filter(r => r.branch_id === selectedBranchId);
-        setRooms(branchRooms);
+        // ถ้าเลือกสาขา ให้แสดงเฉพาะห้องของสาขานั้น ถ้าไม่ได้เลือก แสดงทั้งหมด
+        const filteredRooms = selectedBranchId 
+          ? allRooms.filter(r => r.branch_id === selectedBranchId)
+          : allRooms;
+        setRooms(filteredRooms);
         setSelectedRoomId('');
       } catch (error) {
         console.error('Error loading rooms:', error);
