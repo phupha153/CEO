@@ -1447,22 +1447,10 @@ export default function Layout({ children, currentPageName }) {
       return null; // ⭐ ไม่แสดงอะไรเลยขณะโหลด (ป้องกัน flash)
     }
 
-    // ⭐ FIX: อ่าน plan_status จาก data object ด้วย (บาง user เก็บใน data)
-    const userPlanStatus = currentUser.plan_status || currentUser.data?.plan_status;
-    const userTrialEndsAt = currentUser.trial_ends_at || currentUser.data?.trial_ends_at;
-
     // ⭐ ถ้ามีสาขาเลือก ให้ดู status ของเจ้าของสาขา, ถ้าไม่มีให้ดูของตัวเอง
-    const planStatus = branchOwnerStatus?.plan_status || userPlanStatus;
-    const trialEndsAt = branchOwnerStatus?.trial_ends_at || userTrialEndsAt;
+    const planStatus = branchOwnerStatus?.plan_status || currentUser.plan_status || 'trial';
+    const trialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
     const isOwner = branchOwnerStatus?.is_owner !== false; // ถ้าไม่มีข้อมูล = ตัวเอง
-
-    // 🐛 Debug log
-    console.log('📊 [renderSubscriptionBanner]', {
-      email: currentUser.email,
-      userPlanStatus,
-      branchOwnerPlanStatus: branchOwnerStatus?.plan_status,
-      finalPlanStatus: planStatus
-    });
 
     if (planStatus === 'trial' && trialEndsAt) {
       try {
@@ -1582,12 +1570,8 @@ export default function Layout({ children, currentPageName }) {
   }
 
   // ⭐ Normalize วันที่ด้วย startOfDay เพื่อให้คำนวณวันคงเหลือได้แม่นยำ (ไม่ขึ้นกับเวลาในวัน)
-  // ⭐ FIX: อ่านจาก data object ด้วย
-  const userPlanStatusForCalc = currentUser.plan_status || currentUser.data?.plan_status;
-  const userTrialEndsAtForCalc = currentUser.trial_ends_at || currentUser.data?.trial_ends_at;
-  
-  const trialEndsAt = branchOwnerStatus?.trial_ends_at || userTrialEndsAtForCalc;
-  const planStatus = branchOwnerStatus?.plan_status || userPlanStatusForCalc;
+  const trialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
+  const planStatus = branchOwnerStatus?.plan_status || currentUser.plan_status || 'trial';
 
   if (planStatus === 'trial' && trialEndsAt) {
     try {
