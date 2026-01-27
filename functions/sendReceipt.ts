@@ -333,7 +333,7 @@ Deno.serve(async (req) => {
 
         // สร้างรายการ items
         const items = [];
-        if (payment.rent_amount > 0) {
+        if (payment.rent_amount && payment.rent_amount > 0) {
             items.push({
                 type: "box",
                 layout: "horizontal",
@@ -343,27 +343,27 @@ Deno.serve(async (req) => {
                 ]
             });
         }
-        if (payment.electricity_amount > 0) {
+        if (payment.electricity_amount && payment.electricity_amount > 0) {
             items.push({
                 type: "box",
                 layout: "horizontal",
                 contents: [
-                    { type: "text", text: `ค่าไฟ (${payment.electricity_units} หน่วย)`, size: "sm", color: "#555555", flex: 0 },
+                    { type: "text", text: `ค่าไฟ${payment.electricity_units ? ` (${payment.electricity_units} หน่วย)` : ''}`, size: "sm", color: "#555555", flex: 0 },
                     { type: "text", text: `${payment.electricity_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "sm", color: "#111111", align: "end" }
                 ]
             });
         }
-        if (payment.water_amount > 0) {
+        if (payment.water_amount && payment.water_amount > 0) {
             items.push({
                 type: "box",
                 layout: "horizontal",
                 contents: [
-                    { type: "text", text: `ค่าน้ำ (${payment.water_units} หน่วย)`, size: "sm", color: "#555555", flex: 0 },
+                    { type: "text", text: `ค่าน้ำ${payment.water_units ? ` (${payment.water_units} หน่วย)` : ''}`, size: "sm", color: "#555555", flex: 0 },
                     { type: "text", text: `${payment.water_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "sm", color: "#111111", align: "end" }
                 ]
             });
         }
-        if (payment.internet_amount > 0) {
+        if (payment.internet_amount && payment.internet_amount > 0) {
             items.push({
                 type: "box",
                 layout: "horizontal",
@@ -373,7 +373,7 @@ Deno.serve(async (req) => {
                 ]
             });
         }
-        if (payment.common_fee_amount > 0) {
+        if (payment.common_fee_amount && payment.common_fee_amount > 0) {
             items.push({
                 type: "box",
                 layout: "horizontal",
@@ -383,7 +383,7 @@ Deno.serve(async (req) => {
                 ]
             });
         }
-        if (payment.parking_fee_amount > 0) {
+        if (payment.parking_fee_amount && payment.parking_fee_amount > 0) {
             items.push({
                 type: "box",
                 layout: "horizontal",
@@ -393,7 +393,7 @@ Deno.serve(async (req) => {
                 ]
             });
         }
-        if (payment.other_amount > 0) {
+        if (payment.other_amount && payment.other_amount > 0) {
             items.push({
                 type: "box",
                 layout: "horizontal",
@@ -403,13 +403,25 @@ Deno.serve(async (req) => {
                 ]
             });
         }
-        if (payment.late_fee_amount > 0) {
+        if (payment.late_fee_amount && payment.late_fee_amount > 0) {
             items.push({
                 type: "box",
                 layout: "horizontal",
                 contents: [
                     { type: "text", text: "ค่าปรับชำระล่าช้า", size: "sm", color: "#dc2626", flex: 0 },
                     { type: "text", text: `${payment.late_fee_amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "sm", color: "#dc2626", align: "end", weight: "bold" }
+                ]
+            });
+        }
+        
+        // ⭐ FIX: ถ้าไม่มีรายการเลย ให้เพิ่มรายการเริ่มต้น
+        if (items.length === 0) {
+            items.push({
+                type: "box",
+                layout: "horizontal",
+                contents: [
+                    { type: "text", text: "ค่าเช่า", size: "sm", color: "#555555", flex: 0 },
+                    { type: "text", text: `${(payment.total_amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`, size: "sm", color: "#111111", align: "end" }
                 ]
             });
         }
