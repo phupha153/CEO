@@ -837,10 +837,9 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       });
 
       // ถ้าเลือกสร้างรายการชำระเงิน
-      if (shouldCreatePayment) {
-        const room = rooms.find(r => r.id === booking.room_id);
-        const today = new Date().toISOString().split('T')[0];
-        const dueDate = booking.contract_deadline || today;
+       if (shouldCreatePayment) {
+         const room = rooms.find(r => r.id === booking.room_id);
+         const dueDate = booking.check_out_date || booking.contract_deadline || new Date().toISOString().split('T')[0];
         
         // คำนวณยอดรวมที่ต้องชำระ (ไม่รวมเงินจองที่จ่ายไปแล้ว)
         const securityDeposit = booking.security_deposit || 0;
