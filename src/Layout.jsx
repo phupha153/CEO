@@ -1479,6 +1479,8 @@ export default function Layout({ children, currentPageName }) {
       } catch {}
     }
 
+    // Active plan = no banner (subscription is valid)
+    // Only show warning if subscription expires within 30 days
     if (planStatus === 'active') {
       const activeSub = appSubscriptions.find(s => s.status === 'active');
       if (activeSub && activeSub.subscription_end_date) {
@@ -1507,6 +1509,8 @@ export default function Layout({ children, currentPageName }) {
           }
         } catch {}
       }
+      // ✅ Active plan with plenty of time = no banner needed
+      return null;
     }
 
     return null;
