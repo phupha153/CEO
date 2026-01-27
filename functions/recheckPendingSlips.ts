@@ -302,7 +302,7 @@ Deno.serve(async (req) => {
 
                 if (!accountMatch || !nameMatch) {
                     console.log(`   ⚠️ Account/Name mismatch`);
-                    await base44.asServiceRole.entities.Payment.update(payment.id, {
+                    await entityService.Payment.update(payment.id, {
                         notes: `${payment.notes}\n\n⚠️ โอนไปผิดบัญชีหรือชื่อไม่ตรง - กรุณาตรวจสอบด้วยตนเอง`
                     });
                     
