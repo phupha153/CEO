@@ -439,9 +439,9 @@ Deno.serve(async (req) => {
                     message += `รายละเอียดค่าใช้จ่าย:\n`;
                     message += `━━━━━━━━━━━━━━━━━━━━\n`;
                     
-                    if (payment.rent_amount > 0) message += `🏠 ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
-                    if (payment.electricity_amount > 0) message += `⚡ ค่าไฟ (${payment.electricity_units || 0} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-                    if (payment.water_amount > 0) message += `💧 ค่าน้ำ (${payment.water_units || 0} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
+                    if (payment.rent_amount >= 0) message += `🏠 ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+                    if (payment.electricity_amount >= 0) message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
+                    if (payment.water_amount >= 0) message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
                     if (payment.internet_amount > 0) message += `🌐 ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
                     if (payment.common_fee_amount > 0) message += `🧹 ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
                     if (payment.parking_fee_amount > 0) message += `🚗 ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
@@ -490,9 +490,9 @@ Deno.serve(async (req) => {
                     message += `รายละเอียดค่าใช้จ่าย:\n`;
                     message += `━━━━━━━━━━━━━━━━━━━━\n`;
 
-                    if (payment.rent_amount > 0) message += `🏠 ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
-                    if (payment.electricity_amount > 0) message += `⚡ ค่าไฟ (${payment.electricity_units || 0} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
-                    if (payment.water_amount > 0) message += `💧 ค่าน้ำ (${payment.water_units || 0} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
+                    if (payment.rent_amount >= 0) message += `🏠 ค่าเช่า: ${payment.rent_amount.toLocaleString()} บาท\n`;
+                    if (payment.electricity_amount >= 0) message += `⚡ ค่าไฟ (${payment.electricity_units} หน่วย): ${payment.electricity_amount.toLocaleString()} บาท\n`;
+                    if (payment.water_amount >= 0) message += `💧 ค่าน้ำ (${payment.water_units} หน่วย): ${payment.water_amount.toLocaleString()} บาท\n`;
                     if (payment.internet_amount > 0) message += `🌐 ค่าอินเทอร์เน็ต: ${payment.internet_amount.toLocaleString()} บาท\n`;
                     if (payment.common_fee_amount > 0) message += `🧹 ค่าส่วนกลาง: ${payment.common_fee_amount.toLocaleString()} บาท\n`;
                     if (payment.parking_fee_amount > 0) message += `🚗 ค่าที่จอดรถ: ${payment.parking_fee_amount.toLocaleString()} บาท\n`;
