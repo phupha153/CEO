@@ -34,14 +34,12 @@ import NotificationSettings from './pages/NotificationSettings';
 import OwnerAI from './pages/OwnerAI';
 import PackagePaymentPage from './pages/PackagePaymentPage';
 import PackageSelection from './pages/PackageSelection';
-import Payments from './pages/Payments';
 import PrintReceipts from './pages/PrintReceipts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import PublicInvoice from './pages/PublicInvoice';
 import PublicReceipt from './pages/PublicReceipt';
 import Receipt from './pages/Receipt';
 import Rooms from './pages/Rooms';
-import Settings from './pages/Settings';
 import SupportTickets from './pages/SupportTickets';
 import Tenants from './pages/Tenants';
 import TestInvoiceGeneration from './pages/TestInvoiceGeneration';
@@ -56,6 +54,8 @@ import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
 import UsersDashboard from './pages/UsersDashboard';
+import Settings from './pages/Settings';
+import Payments from './pages/Payments';
 import __Layout from './Layout.jsx';
 
 
@@ -96,14 +96,12 @@ export const PAGES = {
     "OwnerAI": OwnerAI,
     "PackagePaymentPage": PackagePaymentPage,
     "PackageSelection": PackageSelection,
-    "Payments": Payments,
     "PrintReceipts": PrintReceipts,
     "PrivacyPolicy": PrivacyPolicy,
     "PublicInvoice": PublicInvoice,
     "PublicReceipt": PublicReceipt,
     "Receipt": Receipt,
     "Rooms": Rooms,
-    "Settings": Settings,
     "SupportTickets": SupportTickets,
     "Tenants": Tenants,
     "TestInvoiceGeneration": TestInvoiceGeneration,
@@ -118,6 +116,8 @@ export const PAGES = {
     "f12": f12,
     "reports": reports,
     "UsersDashboard": UsersDashboard,
+    "Settings": Settings,
+    "Payments": Payments,
 }
 
 export const pagesConfig = {

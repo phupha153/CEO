@@ -55,6 +55,8 @@ const PERMISSIONS_LIST = [
   { id: 'payments_delete', label: 'ลบรายการชำระเงิน', category: 'การชำระเงิน' },
   { id: 'payments_update_status', label: 'อัปเดตสถานะการชำระเงิน', category: 'การชำระเงิน' },
   { id: 'payments_send_receipt', label: 'ส่งใบเสร็จ', category: 'การชำระเงิน' },
+  { id: 'payments_generate_bills', label: 'สร้างบิลรายเดือนอัตโนมัติ', category: 'การชำระเงิน' },
+  { id: 'payments_send_bills_bulk', label: 'ส่งบิลทุกห้องพร้อมกัน', category: 'การชำระเงิน' },
 
   { id: 'meter_readings_view', label: 'ดูบันทึกมิเตอร์', category: 'บันทึกมิเตอร์' },
   { id: 'meter_readings_add', label: 'เพิ่มบันทึกมิเตอร์', category: 'บันทึกมิเตอร์' },
@@ -94,7 +96,7 @@ const DEFAULT_PERMISSIONS_MAP = {
     "tenants_view", "tenants_add", "tenants_edit",
     "bookings_view_daily", "bookings_add_daily", "bookings_edit_daily", "bookings_delete_daily",
     "contracts_view_monthly", "contracts_add_monthly", "contracts_edit_monthly",
-    "payments_view", "payments_add", "payments_update_status", "payments_send_receipt",
+    "payments_view", "payments_add", "payments_update_status", "payments_send_receipt", "payments_generate_bills", "payments_send_bills_bulk",
     "meter_readings_view", "meter_readings_add", "meter_readings_edit", "meter_readings_edit_history",
     "expenses_view", "expenses_add",
     "maintenance_view", "maintenance_add", "maintenance_edit", "maintenance_update_status",

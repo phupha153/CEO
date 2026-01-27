@@ -212,6 +212,8 @@ export default function PaymentsPage() {
   const canViewInvoice = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_view_invoice');
   const canViewReceipt = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_view_receipt');
   const canAutoCalculate = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_autocalculate');
+  const canGenerateBills = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_generate_bills');
+  const canSendBillsBulk = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_send_bills_bulk');
   const canDeleteTestData = userRole === 'developer';
 
   const { data: roomViewPayments = [], isFetching: roomViewFetching } = useQuery({
@@ -2736,7 +2738,7 @@ Return JSON.`;
             </div>
 
             <div className="flex items-center gap-2">
-              {canAdd && (
+              {canGenerateBills && (
                 <GenerateMonthlyBillsButton 
                   branchId={selectedBranchId} 
                   roomsNeedingBills={roomsNeedingBills}
@@ -2744,7 +2746,7 @@ Return JSON.`;
                   compact 
                 />
               )}
-              {canSendReminder && (
+              {canSendBillsBulk && (
                 <Button
                   onClick={() => openReminderDialog()}
                   disabled={sendingAll || tenantsWithLine === 0}
