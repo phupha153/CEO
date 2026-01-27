@@ -1,4 +1,3 @@
-import AIFinancialAnalysis from './pages/AIFinancialAnalysis';
 import AIGuidelines from './pages/AIGuidelines';
 import AccountingData from './pages/AccountingData';
 import ActivityLog from './pages/ActivityLog';
@@ -56,11 +55,11 @@ import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
 import Settings from './pages/Settings';
+import AIFinancialAnalysis from './pages/AIFinancialAnalysis';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "AIFinancialAnalysis": AIFinancialAnalysis,
     "AIGuidelines": AIGuidelines,
     "AccountingData": AccountingData,
     "ActivityLog": ActivityLog,
@@ -118,6 +117,7 @@ export const PAGES = {
     "f12": f12,
     "reports": reports,
     "Settings": Settings,
+    "AIFinancialAnalysis": AIFinancialAnalysis,
 }
 
 export const pagesConfig = {

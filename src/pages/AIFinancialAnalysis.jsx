@@ -80,7 +80,7 @@ export default function AIFinancialAnalysis() {
     queryFn: () => base44.entities.Config.list(),
   });
 
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
     staleTime: 60 * 60 * 1000,
