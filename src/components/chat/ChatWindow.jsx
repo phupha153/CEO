@@ -90,6 +90,23 @@ export default function ChatWindow({
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
 
+  // ✅ Auto-refresh ทุก 2-3 วินาที
+  useEffect(() => {
+    if (!conversation || !onRefresh) return;
+
+    refreshIntervalRef.current = setInterval(async () => {
+      try {
+        await onRefresh();
+      } catch (error) {
+        console.warn('Auto-refresh failed:', error);
+      }
+    }, 2500);
+
+    return () => {
+      if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
+    };
+  }, [conversation, onRefresh]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
