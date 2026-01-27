@@ -110,9 +110,12 @@ export default function BranchSelection() {
   });
 
   // ⚡ Parallel Queries - ไม่รอ CRM check (แต่จะเช็ค CRM ก่อนแสดงข้อมูล)
-  const { data: branches = [], isLoading } = useQuery({
+  const { data: branchesResponse, isLoading } = useQuery({
     queryKey: ['branches'],
-    queryFn: () => base44.entities.Branch.list(),
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getBranches', {});
+      return response.data;
+    },
     enabled: !!currentUser && !userLoading,
     retry: 1,
     staleTime: 5 * 60 * 1000,
@@ -120,23 +123,44 @@ export default function BranchSelection() {
     refetchOnWindowFocus: false,
   });
 
-  const { data: configs = [] } = useQuery({
+  const branches = branchesResponse?.data || [];
+
+  const { data: configsResponse } = useQuery({
     queryKey: ['configs'],
-    queryFn: () => base44.entities.Config.list(),
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Config',
+        filters: {},
+        limit: 1000
+      });
+      return response.data;
+    },
     enabled: !!currentUser && !userLoading,
     retry: 1,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
-  const { data: banners = [] } = useQuery({
+  const configs = configsResponse?.data || [];
+
+  const { data: bannersResponse } = useQuery({
     queryKey: ['banners'],
-    queryFn: () => base44.entities.Banner.list('-priority', 10),
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Banner',
+        filters: {},
+        sort: '-priority',
+        limit: 10
+      });
+      return response.data;
+    },
     enabled: !!currentUser && !userLoading,
     retry: 1,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  const banners = bannersResponse?.data || [];
 
   // ⚡ Lazy Load - โหลดหลัง UI แสดงแล้ว (ไม่บล็อก initial render)
   const { data: allRooms = [] } = useQuery({
@@ -299,108 +323,26 @@ export default function BranchSelection() {
   const createMutation = useMutation({
     mutationFn: async (data) => {
       const branchData = { ...data };
+      const billSettings = {
+        bill_generation_day: branchData.bill_generation_day,
+        payment_due_day: branchData.payment_due_day
+      };
       delete branchData.bill_generation_day;
       delete branchData.payment_due_day;
-      return await base44.entities.Branch.create(branchData);
+
+      const response = await base44.functions.invoke('createBranch', {
+        branchData,
+        billSettings
+      });
+
+      return response.data;
     },
-    onSuccess: async (newBranch, variables) => {
+    onSuccess: async (result) => {
       queryClient.invalidateQueries(['branches']);
-
-      // ⭐ บันทึกเฉพาะข้อมูลที่ user กรอกมาจริงๆ (ไม่ copy จากสาขาอื่น)
-      try {
-        const configsToCreate = [];
-        
-        // บันทึกข้อมูลพื้นฐานที่กรอกมา
-        if (variables.branch_name) {
-          configsToCreate.push({ 
-            key: 'building_name', 
-            value: variables.branch_name, 
-            value_type: 'string', 
-            description: 'ชื่อหอพัก', 
-            category: 'general',
-            branch_id: newBranch.id
-          });
-        }
-        
-        if (variables.address) {
-          configsToCreate.push({ 
-            key: 'building_address', 
-            value: variables.address, 
-            value_type: 'string', 
-            description: 'ที่อยู่หอพัก', 
-            category: 'general',
-            branch_id: newBranch.id
-          });
-        }
-        
-        if (variables.phone) {
-          configsToCreate.push({ 
-            key: 'building_phone', 
-            value: variables.phone, 
-            value_type: 'string', 
-            description: 'เบอร์โทรหอพัก', 
-            category: 'general',
-            branch_id: newBranch.id
-          });
-        }
-        
-        if (variables.manager_name) {
-          configsToCreate.push({ 
-            key: 'building_manager', 
-            value: variables.manager_name, 
-            value_type: 'string', 
-            description: 'ผู้ดูแลหอพัก', 
-            category: 'general',
-            branch_id: newBranch.id
-          });
-        }
-        
-        // บันทึก bill settings ถ้ากรอกมา
-        if (variables.bill_generation_day) {
-          configsToCreate.push({ 
-            key: 'bill_generation_day', 
-            value: variables.bill_generation_day, 
-            value_type: 'number', 
-            description: 'วันที่สร้างบิลอัตโนมัติ', 
-            category: 'billing',
-            branch_id: newBranch.id
-          });
-        }
-        
-        if (variables.payment_due_day) {
-          configsToCreate.push({ 
-            key: 'pay_day', 
-            value: variables.payment_due_day, 
-            value_type: 'number', 
-            description: 'วันครบกำหนดชำระเงิน', 
-            category: 'billing',
-            branch_id: newBranch.id
-          });
-        }
-        
-        if (configsToCreate.length > 0) {
-          await base44.entities.Config.bulkCreate(configsToCreate);
-        }
-      } catch (error) {
-        console.error('Failed to create configs:', error);
-      }
-
       queryClient.invalidateQueries(['configs']);
+      queryClient.invalidateQueries(['currentUser']);
 
       try {
-        const currentBranches = userAccessibleBranches || [];
-        const updatedBranches = [...currentBranches, newBranch.id];
-        await base44.entities.User.update(currentUser.id, {
-          accessible_branches: updatedBranches,
-          custom_role: 'owner'
-        });
-        queryClient.invalidateQueries(['currentUser']);
-      } catch (error) {
-        console.error('Failed to update user branch access:', error);
-      }
-
-      try {
-        // ⭐ Init user trial (ถ้าเป็นสาขาแรก)
         await base44.functions.invoke('initUserTrial');
         queryClient.invalidateQueries(['currentUser']);
       } catch (error) {
@@ -423,9 +365,9 @@ export default function BranchSelection() {
       setIsSubmitting(false);
       toast.success('เพิ่มสาขาสำเร็จ');
     },
-    onError: () => {
+    onError: (error) => {
       setIsSubmitting(false);
-      toast.error('เกิดข้อผิดพลาด');
+      toast.error(error?.response?.data?.error || 'เกิดข้อผิดพลาด');
     },
   });
 
@@ -451,13 +393,7 @@ export default function BranchSelection() {
       return;
     }
 
-    const existingBranch = branches.find(b => 
-      b.branch_code.toLowerCase() === formData.branch_code.toLowerCase()
-    );
-    if (existingBranch) {
-      toast.error(`รหัสสาขา "${formData.branch_code}" มีอยู่แล้ว กรุณาใช้รหัสอื่น`);
-      return;
-    }
+
 
     if (!canAddMoreBranches && userRole !== 'developer') {
       toast.error(`Trial ใช้งานได้ 1 สาขา - อัปเกรดเพื่อเพิ่มสาขาได้ไม่จำกัด`);
@@ -465,7 +401,7 @@ export default function BranchSelection() {
     }
 
     setIsSubmitting(true);
-    createMutation.mutate({ ...formData, owner_id: currentUser.email });
+    createMutation.mutate(formData);
   };
 
   const handleSelectBranch = (branch) => {
