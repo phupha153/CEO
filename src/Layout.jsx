@@ -1448,9 +1448,10 @@ export default function Layout({ children, currentPageName }) {
     }
 
     // ⭐ ถ้ามีสาขาเลือก ให้ดู status ของเจ้าของสาขา, ถ้าไม่มีให้ดูของตัวเอง
-    const planStatus = branchOwnerStatus?.plan_status || currentUser.plan_status || 'trial';
-    const trialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser.trial_ends_at;
-    const isOwner = branchOwnerStatus?.is_owner !== false; // ถ้าไม่มีข้อมูล = ตัวเอง
+    // FIX: ตัวเอง (currentUser) = branchOwnerStatus จะ null ถ้าคนนี้เป็น owner
+    const planStatus = branchOwnerStatus?.plan_status || currentUser?.plan_status || 'trial';
+    const trialEndsAt = branchOwnerStatus?.trial_ends_at || currentUser?.trial_ends_at;
+    const isOwner = true; // Owner ชาร์จของตัวเอง เสมอ
 
     if (planStatus === 'trial' && trialEndsAt) {
       try {
@@ -1479,8 +1480,6 @@ export default function Layout({ children, currentPageName }) {
       } catch {}
     }
 
-    // Active plan = no banner (subscription is valid)
-    // Only show warning if subscription expires within 30 days
     if (planStatus === 'active') {
       const activeSub = appSubscriptions.find(s => s.status === 'active');
       if (activeSub && activeSub.subscription_end_date) {
@@ -1509,8 +1508,6 @@ export default function Layout({ children, currentPageName }) {
           }
         } catch {}
       }
-      // ✅ Active plan with plenty of time = no banner needed
-      return null;
     }
 
     return null;
