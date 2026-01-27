@@ -166,10 +166,12 @@ Deno.serve(async (req) => {
     // ✅ Step 5: Enrich payment data (Server-side JOIN simulation)
     const enrichedPayments = payments.map(payment => {
       const tenant = tenantsMap.get(payment.tenant_id);
+      const room = roomsMap.get(payment.room_id);
       return {
         ...payment,
-        room_number: roomsMap.get(payment.room_id)?.room_number || 'N/A',
-        room_type: roomsMap.get(payment.room_id)?.room_type,
+        room_id: payment.room_id,
+        room_number: room?.room_number || 'N/A',
+        room_type: room?.room_type,
         tenant_name: tenant?.full_name || 'N/A',
         tenant_phone: tenant?.phone,
         tenant_line_user_id: tenant?.line_user_id || null,
