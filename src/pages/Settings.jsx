@@ -1091,22 +1091,16 @@ export default function Settings() {
 
   const removeEmployeeFromBranchMutation = useMutation({
     mutationFn: async ({ userId, userEmail }) => {
-      const user = users.find(u => u.id === userId);
-      if (!user) throw new Error('ไม่พบข้อมูลผู้ใช้');
-
-      const currentBranches = user.accessible_branches || [];
-      const updatedBranches = currentBranches.filter(b => b !== selectedBranch?.id);
-
-      await base44.entities.User.update(userId, { 
-        accessible_branches: updatedBranches 
+      const response = await base44.functions.invoke('removeEmployeeFromBranch', {
+        userId,
+        branch_id: selectedBranch?.id
       });
-
-      return { userEmail };
+      return response.data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries(['users']);
       queryClient.invalidateQueries(['usersInMyBranches']);
-      toast.success(`ยกเลิกสิทธิ์การเข้าถึงสาขาสำเร็จ`);
+      toast.success(data.message || 'ยกเลิกสิทธิ์การเข้าถึงสาขาสำเร็จ');
     },
     onError: (error) => {
       toast.error('ยกเลิกสิทธิ์ไม่สำเร็จ: ' + error.message);
