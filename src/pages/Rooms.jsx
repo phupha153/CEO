@@ -54,8 +54,6 @@ export default function RoomsPage() {
   const [connectCheckInDate, setConnectCheckInDate] = useState('');
   const [connectCheckOutDate, setConnectCheckOutDate] = useState('');
   const [showMinCharges, setShowMinCharges] = useState(false);
-  const [createPaymentNow, setCreatePaymentNow] = useState(false);
-  const [paymentDueDate, setPaymentDueDate] = useState('');
   const [enableMinWater, setEnableMinWater] = useState(false);
   const [enableMinElectricity, setEnableMinElectricity] = useState(false);
   const [isFlatRateWater, setIsFlatRateWater] = useState(false);
@@ -1308,25 +1306,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
         await base44.entities.Room.update(room.id, { status: 'occupied' });
       }
       
-      // ⭐ สร้าง Payment ถ้าเลือก "เพิ่มการชำระเงินเลย"
-      let newPayment = null;
-      if (data.createPaymentNow && data.paymentDueDate) {
-        const paymentData = {
-          branch_id: selectedBranchId,
-          booking_id: newBooking.id,
-          room_id: room.id,
-          tenant_id: newBooking.tenant_id || null,
-          payment_category: dialogBookingType === 'daily' ? 'booking_deposit' : 'advance_rent',
-          due_date: data.paymentDueDate,
-          total_amount: data.totalBookingAmount || 0,
-          paid_amount: data.deposit_amount || 0,
-          status: (data.deposit_amount >= data.totalBookingAmount) ? 'paid' : 'pending'
-        };
-        
-        newPayment = await base44.entities.Payment.create(paymentData);
-      }
-      
-      return { booking: newBooking, room, payment: newPayment };
+      return { booking: newBooking, room };
     },
     onSuccess: async ({ booking, room }) => {
       await queryClient.invalidateQueries(['rooms', selectedBranchId]);
@@ -3967,9 +3947,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                   contract_deadline: formData.contract_deadline,
                   deposit_payment_method: formData.deposit_payment_method,
                   deposit_slip_url: formData.deposit_slip_url,
-                  notes: formData.notes,
-                  createPaymentNow,
-                  paymentDueDate
+                  notes: formData.notes
                 };
 
                 createBookingMutation.mutate(data);
@@ -4362,61 +4340,6 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                     disabled={createBookingMutation.isPending}
                     placeholder="หมายเหตุเพิ่มเติม..."
                   />
-                </div>
-
-                {/* เพิ่มบิลชำระเงินทันที */}
-                <div className="border-t pt-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Checkbox
-                      id="create-payment-now"
-                      checked={createPaymentNow}
-                      onCheckedChange={setCreatePaymentNow}
-                    />
-                    <Label htmlFor="create-payment-now" className="cursor-pointer font-semibold text-slate-800">
-                      <span className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-green-600" />
-                        เพิ่มบิลการชำระเงินเลย
-                      </span>
-                    </Label>
-                  </div>
-
-                  {createPaymentNow && (
-                    <div className="pl-9 space-y-3">
-                      <div>
-                        <Label>วันครบกำหนดชำระ *</Label>
-                        <Input
-                          type="date"
-                          value={paymentDueDate}
-                          onChange={(e) => setPaymentDueDate(e.target.value)}
-                          required
-                          disabled={createBookingMutation.isPending}
-                        />
-                      </div>
-                      <Card className="bg-green-50 border-green-200">
-                        <CardContent className="p-3">
-                          <p className="text-sm text-green-800">
-                            ✅ จะสร้างบิลชำระเงินอัตโนมัติ<br/>
-                            💰 ยอดรวม: {(
-                              Number(formData.deposit_amount || 0) +
-                              Number(formData.security_deposit || 0) +
-                              Number(formData.advance_rent || 0) +
-                              Number(formData.common_fee_included || 0)
-                            ).toLocaleString()} บาท<br/>
-                            {formData.deposit_amount > 0 && (
-                              <>
-                                ✓ ชำระแล้ว: {Number(formData.deposit_amount).toLocaleString()} บาท<br/>
-                              </>
-                            )}
-                            ⏳ คงค้าง: {Math.max(0,
-                              Number(formData.security_deposit || 0) +
-                              Number(formData.advance_rent || 0) +
-                              Number(formData.common_fee_included || 0)
-                            ).toLocaleString()} บาท
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4">
