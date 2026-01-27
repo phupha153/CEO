@@ -164,15 +164,20 @@ Deno.serve(async (req) => {
     if (debug) logs.push({ step: 'Step 4: Rooms & Tenants', data: step4Data });
 
     // ✅ Step 5: Enrich payment data (Server-side JOIN simulation)
-    const enrichedPayments = payments.map(payment => ({
-      ...payment,
-      room_number: roomsMap.get(payment.room_id)?.room_number || 'N/A',
-      room_type: roomsMap.get(payment.room_id)?.room_type,
-      tenant_name: tenantsMap.get(payment.tenant_id)?.full_name || 'N/A',
-      tenant_phone: tenantsMap.get(payment.tenant_id)?.phone,
-      tenant_line_user_id: tenantsMap.get(payment.tenant_id)?.line_user_id,
-      tenant_facebook_user_id: tenantsMap.get(payment.tenant_id)?.facebook_user_id,
-    }));
+    const enrichedPayments = payments.map(payment => {
+      const tenant = tenantsMap.get(payment.tenant_id);
+      return {
+        ...payment,
+        room_number: roomsMap.get(payment.room_id)?.room_number || 'N/A',
+        room_type: roomsMap.get(payment.room_id)?.room_type,
+        tenant_name: tenant?.full_name || 'N/A',
+        tenant_phone: tenant?.phone,
+        tenant_line_user_id: tenant?.line_user_id || null,
+        tenant_facebook_user_id: tenant?.facebook_user_id || null,
+        line_user_id: tenant?.line_user_id || null,
+        facebook_user_id: tenant?.facebook_user_id || null,
+      };
+    });
 
     const step5Data = {
       enriched_count: enrichedPayments.length,
