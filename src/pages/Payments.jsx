@@ -1760,6 +1760,12 @@ export default function PaymentsPage() {
     try {
       const payment = payments.find(p => p.id === paymentId);
       
+      if (!payment) {
+        toast.error('ไม่พบข้อมูลการชำระเงิน');
+        setSendingReceipt(false);
+        return;
+      }
+      
       // ⭐ FIX: ดึงข้อมูล Tenant ล่าสุดจากฐานข้อมูลเสมอ
       const latestTenantData = await base44.entities.Tenant.filter({ id: payment.tenant_id }, '', 1);
       const tenant = latestTenantData?.[0];
