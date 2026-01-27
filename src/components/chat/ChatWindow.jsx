@@ -410,10 +410,16 @@ export default function ChatWindow({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 relative z-0">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 relative z-0">
           {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+            <div className="flex flex-col gap-3 p-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse">
+                  <div className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`rounded-2xl h-8 ${i % 2 === 0 ? 'bg-blue-200 w-48' : 'bg-slate-200 w-56'}`} />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : messages.length === 0 ? (
             <div className="text-center text-slate-400 py-8">
