@@ -93,12 +93,6 @@ export default function TestSlipUploader() {
       return;
     }
 
-    if (payments.length === 0) {
-      toast.error('ไม่พบบิลรอชำระของห้องนี้');
-      e.target.value = '';
-      return;
-    }
-
     setUploading(true);
     const toastId = toast.loading('กำลังอัพโหลดสลิปทดสอบ...');
 
@@ -106,21 +100,27 @@ export default function TestSlipUploader() {
       // อัพโหลดไฟล์
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
 
-      // ใช้บิลแรกที่เจอ
-      const testPayment = payments[0];
       const selectedRoom = rooms.find(r => r.id === selectedRoomId);
       const selectedBranch = branches.find(b => b.id === selectedBranchId);
 
-      // อัพเดตบิลให้มีสลิปและสถานะรอตรวจสอบ
-      await base44.entities.Payment.update(testPayment.id, {
-        payment_slip_url: file_url,
-        notes: `${testPayment.notes || ''}\n\n⚠️ รอตรวจสอบซ้ำ: ห้อง ${selectedRoom?.room_number} - [TEST] ทดสอบระบบตรวจสอบสลิป - ${new Date().toISOString()}`
-      });
+      // ถ้ามีบิลรอชำระ อัพเดตบิลแรก ถ้าไม่มี แค่แสดงข้อมูล
+      if (payments.length > 0) {
+        const testPayment = payments[0];
+        await base44.entities.Payment.update(testPayment.id, {
+          payment_slip_url: file_url,
+          notes: `${testPayment.notes || ''}\n\n⚠️ รอตรวจสอบซ้ำ: ห้อง ${selectedRoom?.room_number} - [TEST] ทดสอบระบบตรวจสอบสลิป - ${new Date().toISOString()}`
+        });
 
-      toast.success(`✅ บันทึกสลิปทดสอบสำเร็จ\nห้อง ${selectedRoom?.room_number} (${selectedBranch?.branch_name})\n💰 ยอดบิล: ${testPayment.total_amount?.toLocaleString() || 0} บาท`, { 
-        id: toastId, 
-        duration: 5000 
-      });
+        toast.success(`✅ บันทึกสลิปทดสอบสำเร็จ\nห้อง ${selectedRoom?.room_number} (${selectedBranch?.branch_name})\n💰 ยอดบิล: ${testPayment.total_amount?.toLocaleString() || 0} บาท`, { 
+          id: toastId, 
+          duration: 5000 
+        });
+      } else {
+        toast.success(`✅ อัพโหลดสลิปสำเร็จ\nห้อง ${selectedRoom?.room_number} (${selectedBranch?.branch_name})\n(ไม่มีบิลรอชำระ - เพื่อทดสอบเท่านั้น)`, { 
+          id: toastId, 
+          duration: 5000 
+        });
+      }
 
       e.target.value = '';
     } catch (error) {
