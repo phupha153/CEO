@@ -2052,7 +2052,8 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                   />
                 </div>
 
-                {!editingBooking && dialogBookingType === 'monthly' && (
+                {!editingBooking && dialogBookingType === 'monthly' && 
+                  (Number(formData.security_deposit || 0) + Number(formData.advance_rent || 0) + Number(formData.common_fee_included || 0)) > 0 && (
                   <div className="border-t pt-4">
                     <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                       <div className="flex items-start gap-3">
