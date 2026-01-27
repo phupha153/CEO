@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
         }
 
         // ดึง Config สำหรับ LINE Token และบัญชีธนาคาร
-        const configs = await base44.asServiceRole.entities.Config.list();
+        const configs = await entityService.Config.list();
         const getConfigValue = (key, branchId = null) => {
             if (branchId) {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
         };
 
         // ดึง Tenant ทั้งหมดสำหรับส่ง LINE
-        const tenants = await base44.asServiceRole.entities.Tenant.list('-created_date', 5000);
+        const tenants = await entityService.Tenant.list('-created_date', 5000);
 
         let successCount = 0;
         let failCount = 0;
