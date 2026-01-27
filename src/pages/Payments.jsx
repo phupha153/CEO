@@ -1758,7 +1758,11 @@ export default function PaymentsPage() {
 
     setSendingReceipt(paymentId);
     try {
-      const payment = payments.find(p => p.id === paymentId);
+      // ⭐ FIX: ดึง Payment จาก DB โดยตรง (ไม่ใช้ cache)
+      console.log('🔍 Fetching payment from DB:', paymentId);
+      const paymentData = await base44.entities.Payment.filter({ id: paymentId }, '', 1);
+      const payment = paymentData?.[0];
+      
       if (!payment) {
         toast.error('ไม่พบข้อมูล Payment');
         setSendingReceipt(false);
