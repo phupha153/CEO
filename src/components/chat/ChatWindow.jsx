@@ -492,6 +492,24 @@ export default function ChatWindow({
               }}
               disabled={sending}
             />
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={sending}
+                className="hidden"
+              />
+              <Button
+                asChild
+                variant="outline"
+                size="icon"
+                disabled={sending}
+                className="hover:bg-slate-100"
+              >
+                <span><ImageIcon className="w-4 h-4" /></span>
+              </Button>
+            </label>
             <Button
               onClick={handleSend}
               disabled={!newMessage.trim() || sending}
