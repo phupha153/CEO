@@ -454,12 +454,24 @@ export default function ChatWindow({
                       <span className="text-xs">
                         {msg.created_date && format(new Date(msg.created_date), 'HH:mm')}
                       </span>
-                      {isOutgoing && <span className="text-xs">• ส่งจากแอป</span>}
+                      {isOutgoing && (
+                        <>
+                          <span className="text-xs">•</span>
+                          {readReceipts[conversation?.id] ? '✓✓' : '✓'}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
               );
             })
+          )}
+          {typingUsers.size > 0 && (
+            <div className="flex justify-start">
+              <div className="bg-slate-100 text-slate-600 rounded-2xl rounded-bl-md px-4 py-2 text-sm">
+                กำลังพิมพ์... <span className="animate-pulse">●●●</span>
+              </div>
+            </div>
           )}
           <div ref={messagesEndRef} />
         </div>
