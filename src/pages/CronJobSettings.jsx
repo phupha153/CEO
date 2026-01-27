@@ -184,7 +184,7 @@ export default function CronJobSettings() {
     MaterialDelivery: true
   });
 
-  const { data: currentUser } = useQuery({
+  const { data: currentUser, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
   });
@@ -249,10 +249,10 @@ export default function CronJobSettings() {
     }
   }, [cronDeleteConfigs]);
 
-  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
+  const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
 
-  // ถ้าไม่ใช่ developer ให้ redirect
-  if (currentUser && userRole !== 'developer') {
+  // ถ้าไม่ใช่ developer ให้ redirect (รอให้ user โหลดเสร็จก่อน)
+  if (!userLoading && currentUser && userRole !== 'developer') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-6">
         <Card className="max-w-md">
