@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
                         // ยังลองได้อีก - อัปเดต notes
                         console.log(`   ⏳ Still not found, retry ${retryCount + 1}/3`);
 
-                        await base44.asServiceRole.entities.Payment.update(payment.id, {
+                        await entityService.Payment.update(payment.id, {
                             notes: `${payment.notes}\n\n⏳ ลองครั้งที่ ${retryCount + 1}: ยังไม่พบข้อมูล - ${new Date().toISOString()}`
                         });
 
