@@ -37,9 +37,12 @@ Deno.serve(async (req) => {
         let skip = 0;
         let hasMore = true;
         
+        // ⭐ ใช้ service role ถ้าไม่มี auth, ถ้ามี user ให้ใช้ user's auth
+        const entityService = isServiceRole ? base44.asServiceRole.entities : base44.entities;
+        
         while (hasMore) {
             // ดึงเฉพาะ pending payments
-            const batch = await base44.asServiceRole.entities.Payment.filter(
+            const batch = await entityService.Payment.filter(
                 { status: 'pending' }, 
                 '-created_date', 
                 BATCH_SIZE, 
