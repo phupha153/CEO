@@ -2052,8 +2052,16 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                   />
                 </div>
 
-                {!editingBooking && dialogBookingType === 'monthly' && 
-                  (Number(formData.security_deposit || 0) + Number(formData.advance_rent || 0) + Number(formData.common_fee_included || 0)) > 0 && (
+                {!editingBooking && (() => {
+                  const totalAmount = dialogBookingType === 'daily'
+                    ? Number(formData.security_deposit || 0)
+                    : (
+                        Number(formData.security_deposit || 0) +
+                        Number(formData.advance_rent || 0) +
+                        Number(formData.common_fee_included || 0)
+                      );
+                  return totalAmount > 0;
+                })() && (
                   <div className="border-t pt-4">
                     <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                       <div className="flex items-start gap-3">
@@ -2073,9 +2081,13 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                           </p>
                           <p className="text-xs font-semibold text-green-800 mt-2">
                             💰 ยอดรอชำระ: {(
-                              Number(formData.security_deposit || 0) +
-                              Number(formData.advance_rent || 0) +
-                              Number(formData.common_fee_included || 0)
+                              dialogBookingType === 'daily'
+                                ? Number(formData.security_deposit || 0)
+                                : (
+                                    Number(formData.security_deposit || 0) +
+                                    Number(formData.advance_rent || 0) +
+                                    Number(formData.common_fee_included || 0)
+                                  )
                             ).toLocaleString()} บาท
                           </p>
                         </div>
