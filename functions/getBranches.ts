@@ -20,12 +20,10 @@ Deno.serve(async (req) => {
     });
 
     // ดึงสาขาทั้งหมด
-    let allBranches = await base44.asServiceRole.entities.Branch.list('-created_date', 1000);
+    const branchesResult = await base44.asServiceRole.entities.Branch.list('-created_date', 1000);
     
-    // ✅ Handle ถ้า SDK return เป็น object แทน array
-    if (!Array.isArray(allBranches)) {
-      allBranches = [];
-    }
+    // ✅ SDK อาจ return {data: [...]} แทน array โดยตรง
+    const allBranches = Array.isArray(branchesResult) ? branchesResult : (branchesResult?.data || []);
 
     // 🔒 SECURITY: กรองตามสิทธิ์
     let filteredBranches = [];
