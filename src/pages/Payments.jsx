@@ -212,8 +212,6 @@ export default function PaymentsPage() {
   const canViewInvoice = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_view_invoice');
   const canViewReceipt = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_view_receipt');
   const canAutoCalculate = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_autocalculate');
-  const canGenerateBills = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_generate_bills');
-  const canSendBillsBulk = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_send_bills_bulk');
   const canDeleteTestData = userRole === 'developer';
 
   const { data: roomViewPayments = [], isFetching: roomViewFetching } = useQuery({
@@ -1627,9 +1625,7 @@ export default function PaymentsPage() {
   };
 
   const openReminderDialog = (paymentId = null, forceTemplate = null) => {
-    // เช็คสิทธิ์ส่งบิลเดี่ยว vs ส่งหลายห้อง
-    const requiredPermission = paymentId ? canSendReminder : canSendBillsBulk;
-    if (!requiredPermission) {
+    if (!canSendReminder) {
       toast.error('คุณไม่มีสิทธิ์ส่งข้อความแจ้งเตือน');
       return;
     }
@@ -2740,7 +2736,7 @@ Return JSON.`;
             </div>
 
             <div className="flex items-center gap-2">
-              {canGenerateBills && (
+              {canAdd && (
                 <GenerateMonthlyBillsButton 
                   branchId={selectedBranchId} 
                   roomsNeedingBills={roomsNeedingBills}
@@ -2748,7 +2744,7 @@ Return JSON.`;
                   compact 
                 />
               )}
-              {canSendBillsBulk && (
+              {canSendReminder && (
                 <Button
                   onClick={() => openReminderDialog()}
                   disabled={sendingAll || tenantsWithLine === 0}
