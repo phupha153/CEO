@@ -52,6 +52,9 @@ function isAccountMatch(maskedSlipAccount, myRealAccount) {
 
 // ⭐ Helper: Extract amount จาก Slip2Go response (ลองหลาย path เพราะ API อาจเปลี่ยน structure)
 function extractAmount(slipData) {
+    console.log('\n🔍 === EXTRACT AMOUNT DEBUG ===');
+    console.log('📋 Full slipData structure:', JSON.stringify(slipData, null, 2));
+    
     const possiblePaths = [
         ['amount'],
         ['transAmount'],
@@ -59,18 +62,26 @@ function extractAmount(slipData) {
         ['payment', 'amount'],
         ['data', 'amount'],
         ['receiver', 'amount'],
-        ['sender', 'amount']
+        ['sender', 'amount'],
+        ['receiver', 'account', 'amount'],
+        ['sender', 'account', 'amount']
     ];
+    
+    console.log(`🔎 Trying ${possiblePaths.length} possible paths...`);
     
     for (const path of possiblePaths) {
         let current = slipData;
         let isValid = true;
         
+        console.log(`  Testing path: ${path.join('.')}`);
+        
         for (const key of path) {
             if (current && typeof current === 'object' && key in current) {
                 current = current[key];
+                console.log(`    ✓ Found key "${key}":`, typeof current === 'object' ? '{...}' : current);
             } else {
                 isValid = false;
+                console.log(`    ✗ Key "${key}" not found`);
                 break;
             }
         }
@@ -78,13 +89,18 @@ function extractAmount(slipData) {
         if (isValid && current !== null && current !== undefined) {
             const amount = typeof current === 'number' ? current : parseFloat(current);
             if (!isNaN(amount) && amount > 0) {
-                console.log(`💰 Found amount at path: ${path.join('.')} = ${amount}`);
+                console.log(`💰 ✅ SUCCESS! Found amount at path: ${path.join('.')} = ${amount}`);
+                console.log('=============================\n');
                 return amount;
+            } else {
+                console.log(`    ⚠️ Invalid amount value: ${current} (parsed: ${amount})`);
             }
         }
     }
     
-    console.warn('⚠️ Could not find amount in any known path');
+    console.error('❌ FAILED! Could not find amount in ANY path!');
+    console.error('📋 Available keys in slipData:', Object.keys(slipData || {}));
+    console.log('=============================\n');
     return 0;
 }
 

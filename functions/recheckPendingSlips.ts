@@ -52,6 +52,9 @@ function isAccountMatch(maskedSlipAccount, myRealAccount) {
 
 // ⭐ Helper: Extract amount จาก Slip2Go response (ลองหลาย path)
 function extractAmount(slipData) {
+    console.log('\n🔍 === EXTRACT AMOUNT DEBUG ===');
+    console.log('📋 Full slipData structure:', JSON.stringify(slipData, null, 2));
+    
     const possiblePaths = [
         ['amount'],
         ['transAmount'],
@@ -59,18 +62,26 @@ function extractAmount(slipData) {
         ['payment', 'amount'],
         ['data', 'amount'],
         ['receiver', 'amount'],
-        ['sender', 'amount']
+        ['sender', 'amount'],
+        ['receiver', 'account', 'amount'],
+        ['sender', 'account', 'amount']
     ];
+    
+    console.log(`🔎 Trying ${possiblePaths.length} possible paths...`);
     
     for (const path of possiblePaths) {
         let current = slipData;
         let isValid = true;
         
+        console.log(`  Testing path: ${path.join('.')}`);
+        
         for (const key of path) {
             if (current && typeof current === 'object' && key in current) {
                 current = current[key];
+                console.log(`    ✓ Found key "${key}":`, typeof current === 'object' ? '{...}' : current);
             } else {
                 isValid = false;
+                console.log(`    ✗ Key "${key}" not found`);
                 break;
             }
         }
@@ -78,13 +89,18 @@ function extractAmount(slipData) {
         if (isValid && current !== null && current !== undefined) {
             const amount = typeof current === 'number' ? current : parseFloat(current);
             if (!isNaN(amount) && amount > 0) {
-                console.log(`💰 Found amount at path: ${path.join('.')} = ${amount}`);
+                console.log(`💰 ✅ SUCCESS! Found amount at path: ${path.join('.')} = ${amount}`);
+                console.log('=============================\n');
                 return amount;
+            } else {
+                console.log(`    ⚠️ Invalid amount value: ${current} (parsed: ${amount})`);
             }
         }
     }
     
-    console.warn('⚠️ Could not find amount in any known path');
+    console.error('❌ FAILED! Could not find amount in ANY path!');
+    console.error('📋 Available keys in slipData:', Object.keys(slipData || {}));
+    console.log('=============================\n');
     return 0;
 }
 
@@ -224,12 +240,12 @@ Deno.serve(async (req) => {
             );
             
             if (Array.isArray(batch) && batch.length > 0) {
-                // กรองเฉพาะที่มี slip และ notes รอตรวจสอบ
+                // กรองเฉพาะที่มี slip และ notes รอตรวจสอบ (รองรับทั้ง "รอตรวจสอบ" และ "รอตรวจสอบซ้ำ")
                 const filtered = batch.filter(p => 
                     p.payment_slip_url && 
                     p.branch_id &&
                     p.notes && 
-                    (p.notes.includes('รอตรวจสอบซ้ำ') || p.notes.includes('รอตรวจสอบ'))
+                    p.notes.includes('รอตรวจสอบ')
                 );
                 pendingWithSlip = pendingWithSlip.concat(filtered);
                 
@@ -269,7 +285,7 @@ Deno.serve(async (req) => {
         }
 
         // ดึง Config สำหรับ LINE Token และบัญชีธนาคาร
-        const configs = await entityService.Config.list();
+        const configs = await base44.asServiceRole.entities.Config.list();
         const getConfigValue = (key, branchId = null) => {
             if (branchId) {
                 const branchConfig = configs.find(c => c.key === key && c.branch_id === branchId);
@@ -279,8 +295,8 @@ Deno.serve(async (req) => {
             return globalConfig?.value || null;
         };
 
-        // ดึง Tenant ทั้งหมดสำหรับส่ง LINE
-        const tenants = await entityService.Tenant.list('-created_date', 5000);
+        // ดึง Tenant ทั้งหมดสำหรับส่ง LINE (ใช้ service role เสมอ)
+        const tenants = await base44.asServiceRole.entities.Tenant.list('-created_date', 5000);
 
         let successCount = 0;
         let failCount = 0;
@@ -434,7 +450,7 @@ Deno.serve(async (req) => {
                             const tenant = tenants.find(t => t.id === payment.tenant_id);
                             if (tenant?.line_user_id) {
                                 await sendLineMessage(base44, tenant.line_user_id, 
-                                    `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n💵 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n   (รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท`,
+                                    `💰 ได้รับเงินแล้ว ${slipAmount.toLocaleString()} บาท\n\n✅ ชำระไปแล้ว: ${totalPaid.toLocaleString()} บาท\n💵 ต้องชำระ: ${expectedAmount.toLocaleString()} บาท${lateFeeAmount > 0 ? `\n(รวมค่าปรับ ${lateFeeAmount.toLocaleString()} บาท)` : ''}\n\n⚠️ ต้องโอนเพิ่มอีก: ${shortfall.toLocaleString()} บาท`,
                                     payment.branch_id,
                                     configs
                                 );
