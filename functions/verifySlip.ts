@@ -52,6 +52,10 @@ function isAccountMatch(maskedSlipAccount, myRealAccount) {
 
 // ⭐ Helper: Extract amount จาก Slip2Go response (ลองหลาย path เพราะ API อาจเปลี่ยน structure)
 function extractAmount(slipData) {
+    console.log('🔍 === EXTRACT AMOUNT DEBUG ===');
+    console.log('Input slipData keys:', Object.keys(slipData || {}));
+    console.log('Full slipData:', JSON.stringify(slipData, null, 2).substring(0, 1000));
+    
     const possiblePaths = [
         ['amount'],
         ['transAmount'],
@@ -59,32 +63,42 @@ function extractAmount(slipData) {
         ['payment', 'amount'],
         ['data', 'amount'],
         ['receiver', 'amount'],
-        ['sender', 'amount']
+        ['sender', 'amount'],
+        ['sender', 'account', 'amount'],
+        ['receiver', 'account', 'amount']
     ];
     
     for (const path of possiblePaths) {
         let current = slipData;
         let isValid = true;
         
+        console.log(`  Trying path: ${path.join('.')}`);
+        
         for (const key of path) {
             if (current && typeof current === 'object' && key in current) {
                 current = current[key];
+                console.log(`    ✓ Found key "${key}", current type: ${typeof current}`);
             } else {
                 isValid = false;
+                console.log(`    ✗ Key "${key}" not found`);
                 break;
             }
         }
         
         if (isValid && current !== null && current !== undefined) {
             const amount = typeof current === 'number' ? current : parseFloat(current);
+            console.log(`    Final value: ${current} → parsed: ${amount}`);
             if (!isNaN(amount) && amount > 0) {
-                console.log(`💰 Found amount at path: ${path.join('.')} = ${amount}`);
+                console.log(`✅ Found amount at path: ${path.join('.')} = ${amount}`);
+                console.log('==============================\n');
                 return amount;
             }
         }
     }
     
-    console.warn('⚠️ Could not find amount in any known path');
+    console.error('❌ Could not find amount in any known path');
+    console.error('Available keys in slipData:', Object.keys(slipData || {}));
+    console.error('==============================\n');
     return 0;
 }
 
