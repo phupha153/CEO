@@ -2605,16 +2605,12 @@ Return JSON.`;
           </Card>
 
           {(() => {
-            // ⭐ FIX: ตรวจสอบว่า payments โหลดเสร็จแล้ว + ไม่ใช่ default []
-            const isInitialLoad = paymentsLoading || isDataFetching || (payments.length === 0 && !paymentsResponse);
-            if (isInitialLoad) return null;
-
             const needReviewPayments = payments.filter(p => {
               const hasReviewFlag = p.notes?.includes('⚠️ รอตรวจสอบ');
               const alreadyConfirmed = p.notes?.includes('✅ ยืนยันชำระแล้ว');
               return hasReviewFlag && !alreadyConfirmed;
             });
-            if (needReviewPayments.length === 0) return null;
+            if (needReviewPayments.length === 0 || paymentsLoading || isDataFetching) return null;
 
             return (
               <motion.div 
