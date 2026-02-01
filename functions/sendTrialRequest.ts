@@ -26,21 +26,27 @@ Deno.serve(async (req) => {
 กรุณาติดต่อลูกค้ากลับเพื่อดำเนินการต่อ
         `.trim();
 
-        await base44.integrations.Core.SendEmail({
-            to: adminEmail,
-            subject: `🎯 คำขอทดลองใช้งาน - ${name}`,
-            body: emailBody
-        });
+        try {
+            const emailResult = await base44.integrations.Core.SendEmail({
+                to: adminEmail,
+                subject: `🎯 คำขอทดลองใช้งาน - ${name}`,
+                body: emailBody
+            });
+            console.log('Email sent successfully:', emailResult);
+        } catch (emailError) {
+            console.error('SendEmail error:', emailError);
+            throw new Error(`ไม่สามารถส่งอีเมลได้: ${emailError.message || 'Unknown error'}`);
+        }
 
         return Response.json({ 
             success: true,
-            message: 'ส่งคำขอสำเร็จ' 
+            message: 'ส่งคำขอสำเร็จ ทีมงานจะติดต่อคุณในเร็วๆ นี้' 
         });
 
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Trial request error:', error);
         return Response.json({ 
-            error: error.message 
+            error: error.message || 'เกิดข้อผิดพลาดในการส่งคำขอ' 
         }, { status: 500 });
     }
 });
