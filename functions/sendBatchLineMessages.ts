@@ -145,6 +145,7 @@ Deno.serve(async (req) => {
 
                     return await retryOperation(async () => {
                         const messages = [{ type: 'text', text: recipient.message }];
+                        console.log(`🔐 Sending LINE: userId=${recipient.lineUserId}, tokenLen=${token?.length}, msgLen=${recipient.message?.length}`);
                         const response = await fetch('https://api.line.me/v2/bot/message/push', {
                             method: 'POST',
                             headers: {
@@ -159,8 +160,10 @@ Deno.serve(async (req) => {
 
                         if (!response.ok) {
                             const errorData = await response.json();
+                            console.error(`❌ LINE API Error: status=${response.status}, message=${errorData.message}`);
                             throw new Error(errorData.message || `HTTP ${response.status}`);
                         }
+                        console.log(`✅ LINE sent to ${recipient.lineUserId}`);
                         return { success: true, lineUserId: recipient.lineUserId };
                     }, retryAttempts, 1000);
                 }).map(p => p.catch(e => ({ success: false, lineUserId: null, error: e.message })));
