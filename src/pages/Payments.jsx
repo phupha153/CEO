@@ -2461,7 +2461,7 @@ Return JSON.`;
                   className="bg-red-50 border-red-300 text-red-600 hover:bg-red-100 shadow-lg gap-2"
                 >
                   <Plus className="w-5 h-5" />
-                  <span className="hidden md:inline">เพิ่มผู้เช่าแบบจำนวนมาก</span>
+                  <span className="hidden md:inline">เพิ่มผู้เช่าตามเลขห้อง</span>
                 </Button>
               </div>
             )}
@@ -3834,7 +3834,7 @@ Return JSON.`;
                           className="bg-red-600 hover:bg-red-700 text-white flex-shrink-0 whitespace-nowrap"
                         >
                           <Plus className="w-4 h-4 mr-1" />
-                          เพิ่มผู้เช่าแบบจำนวนมาก
+                          เพิ่มผู้เช่าตามเลขห้อง
                         </Button>
                       </div>
                     )}

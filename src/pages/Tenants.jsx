@@ -2751,7 +2751,7 @@ const tenantSchema = {
                       className="border-green-600 text-green-600 hover:bg-green-50"
                     >
                       <Users className="w-4 h-4 mr-2" />
-                      สร้างผู้เช่าจำนวนมาก
+                      เพิ่มผู้เช่าตามเลขห้อง
                     </Button>
                   </div>
                 )}
