@@ -2700,18 +2700,29 @@ const tenantSchema = {
           </div>
 
           {tenantsLoading && tenants.length === 0 ? (
-            <div className="space-y-3 animate-pulse">
-              {[...Array(8)].map((_, i) => (
-                <div key={i} className="flex items-center gap-3 bg-white/80 rounded-lg p-4">
-                  <div className="w-12 h-12 bg-slate-200 rounded-full"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-slate-200 rounded" style={{ width: `${60 + Math.random() * 30}%` }}></div>
-                    <div className="h-3 bg-slate-200 rounded" style={{ width: `${40 + Math.random() * 20}%` }}></div>
-                  </div>
-                  <div className="w-20 h-6 bg-slate-200 rounded"></div>
-                </div>
-              ))}
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-12 h-12 bg-slate-200 rounded-full flex-shrink-0"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-slate-200 rounded" style={{ width: '70%' }}></div>
+                        <div className="h-3 bg-slate-200 rounded" style={{ width: '50%' }}></div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-3 bg-slate-200 rounded" style={{ width: '80%' }}></div>
+                      <div className="h-3 bg-slate-200 rounded" style={{ width: '60%' }}></div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <div className="h-8 bg-slate-200 rounded flex-1"></div>
+                      <div className="h-8 bg-slate-200 rounded flex-1"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           ) : filteredTenants.length === 0 && tenants.length > 0 && debouncedSearch ? (
             <Card className="bg-yellow-50 border-yellow-200">
               <CardContent className="p-8 text-center">
