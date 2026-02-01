@@ -2482,19 +2482,29 @@ const tenantSchema = {
               )}
 
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg rounded-3xl">
-            <CardContent className="p-6 md:p-8 space-y-6 relative">
-              <div className="absolute inset-0 bg-white/50 blur-xl pointer-events-none z-0 rounded-3xl"></div>
-              <div className="relative z-10 flex flex-col md:flex-row gap-3">
-                <div className="flex-1">
-                  <AISearchBox
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    onAISearch={handleAISearch}
-                    onStopSearch={handleStopAISearch}
-                    aiSearching={aiSearching}
-                    placeholder="ค้นหาผู้เช่า หรือถามเช่น 'ผู้เช่าที่ค้างชำระ' 'ผู้เช่าชั้น 3'"
-                  />
-                </div>
+            <CardContent className="p-6 md:p-8 space-y-6 relative">
+              <div className="absolute inset-0 bg-white/50 blur-xl pointer-events-none z-0 rounded-3xl"></div>
+              <div className="relative z-10 flex flex-col md:flex-row gap-3">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none z-10" />
+                  <Input
+                    type="text"
+                    placeholder="ค้นหาผู้เช่า (ชื่อ, เบอร์, ห้อง...)"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-14 pl-12 pr-10 bg-white/90 backdrop-blur-xl border-white/70 shadow-lg rounded-2xl text-base focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all w-full"
+                  />
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-10 w-10 p-0 hover:bg-slate-100/80 rounded-xl z-10"
+                    >
+                      <X className="w-4 h-4 text-slate-500" />
+                    </Button>
+                  )}
+                </div>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full md:w-48 h-14 justify-between rounded-2xl bg-white/60 backdrop-blur-xl shadow-lg border-white/70">
@@ -2524,71 +2534,7 @@ const tenantSchema = {
                 </Popover>
               </div>
 
-              {aiAction && (
-                <AIActionConfirmation
-                  action={aiAction}
-                  onConfirm={handleConfirmAIAction}
-                  onCancel={() => {
-                    console.log('❌ AI action cancelled');
-                    setAiAction(null);
-                    toast.info('ยกเลิกการดำเนินการแล้ว - ไม่มีการเปลี่ยนแปลงข้อมูล');
-                  }}
-                  isLoading={executingAction}
-                />
-              )}
 
-              {aiResult && !aiAction && (
-                <AIResultCard aiResult={aiResult}>
-                  {aiResult.tenants && aiResult.tenants.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                      <p className="text-sm font-semibold text-purple-800">ผู้เช่าที่เกี่ยวข้อง:</p>
-                      {aiResult.tenants.map((tenant, idx) => {
-                        const tenantData = tenants.find(t => t.id === tenant.tenant_id);
-                        const activeBookings = tenantData ? getActiveBookings(tenantData.id) : [];
-                        const avgRating = tenantData ? getTenantAverageRating(tenantData.id) : null;
-
-                        return (
-                          <div key={idx} className="bg-white/70 rounded-lg p-3 border border-purple-200 hover:shadow-md transition-shadow">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <User className="w-4 h-4 text-purple-600" />
-                                  <span className="font-semibold text-slate-800">
-                                    {tenant.full_name}
-                                  </span>
-                                  {avgRating !== null && (
-                                    <Badge className="bg-yellow-100 text-yellow-700 text-xs">
-                                      ⭐ {avgRating.toFixed(1)}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="text-sm text-slate-600 mb-2">{tenant.reason}</p>
-                                {tenantData && (
-                                  <div className="text-xs text-slate-500 space-y-0.5">
-                                    <p>เบอร์โทร: {tenantData.phone}</p>
-                                    {activeBookings.length > 0 && (
-                                      <p>เช่าอยู่: {activeBookings.length} ห้อง</p>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                              {tenantData && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleTenantClick(tenantData)}
-                                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 flex-shrink-0"
-                                >
-                                  ดูรายละเอียด
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </AIResultCard>
-              )}
             </CardContent>
           </Card>
 
