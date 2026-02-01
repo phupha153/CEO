@@ -1527,27 +1527,13 @@ export default function MeterReadings() {
           {/* Floor Filter + View Mode Toggle */}
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
             <CardContent className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-                <div className="flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-slate-600" />
-                  <select
-                    value={selectedFloor}
-                    onChange={(e) => setSelectedFloor(e.target.value)}
-                    className="p-2 border rounded-md flex-1 md:flex-none"
-                  >
-                    <option value="all">ทุกชั้น</option>
-                    {sortedFloorsForDropdown.map(floor => (
-                      <option key={floor} value={floor}>ชั้น {floor}</option>
-                    ))}
-                  </select>
-                </div>
-
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-slate-600" />
                   <select
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="p-2 border rounded-md text-sm flex-1 md:flex-none"
+                    className="p-2 border rounded-md text-sm"
                   >
                     {(() => {
                       const months = [];
@@ -1560,6 +1546,20 @@ export default function MeterReadings() {
                       }
                       return months;
                     })()}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-slate-600" />
+                  <select
+                    value={selectedFloor}
+                    onChange={(e) => setSelectedFloor(e.target.value)}
+                    className="p-2 border rounded-md"
+                  >
+                    <option value="all">ทุกชั้น</option>
+                    {sortedFloorsForDropdown.map(floor => (
+                      <option key={floor} value={floor}>ชั้น {floor}</option>
+                    ))}
                   </select>
                 </div>
 
