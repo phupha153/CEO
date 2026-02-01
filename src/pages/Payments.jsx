@@ -2453,17 +2453,7 @@ Return JSON.`;
             )}
 
             {canAdd && tenants.length === 0 && (
-              <div className="flex flex-col items-end gap-2">
-                <p className="text-xs text-red-500 font-medium whitespace-nowrap">⚠️ ไม่สามารถเพิ่มการชำระเงินได้</p>
-                <Button
-                  onClick={() => navigate(createPageUrl('Tenants'))}
-                  variant="outline"
-                  className="bg-red-50 border-red-300 text-red-600 hover:bg-red-100 shadow-lg gap-2"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span className="hidden md:inline">เพิ่มผู้เช่าตามเลขห้อง</span>
-                </Button>
-              </div>
+              <p className="text-xs text-red-500 font-medium whitespace-nowrap">⚠️ ไม่สามารถเพิ่มการชำระเงินได้</p>
             )}
           </>
         }
@@ -3826,16 +3816,8 @@ Return JSON.`;
                         <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
                           <p className="font-semibold text-red-800">⚠️ ไม่สามารถเพิ่มการชำระเงินได้ตอนนี้</p>
-                          <p className="text-sm text-red-700 mt-1">ยังไม่มีผู้เช่าในระบบ ระบบจะสร้างผู้เช่าตามเลขห้องให้อัตโนมัติ</p>
+                          <p className="text-sm text-red-700 mt-1">ยังไม่มีผู้เช่าในระบบ กรุณาไปที่หน้าผู้เช่าเพื่อเพิ่มผู้เช่าตามเลขห้อง</p>
                         </div>
-                        <Button
-                          onClick={() => navigate(createPageUrl('Tenants'))}
-                          size="sm"
-                          className="bg-red-600 hover:bg-red-700 text-white flex-shrink-0 whitespace-nowrap"
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          เพิ่มผู้เช่าตามเลขห้อง
-                        </Button>
                       </div>
                     )}
                     <div className="flex items-center justify-between mb-6">
