@@ -81,6 +81,8 @@ export default function TenantsPage() {
   });
   const [showBulkTenantGenerator, setShowBulkTenantGenerator] = useState(false);
   const [generatingTenants, setGeneratingTenants] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState(null);
+  const [longPressTarget, setLongPressTarget] = useState(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1604,11 +1606,31 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
   };
 
   const toggleTenantSelection = (tenantId) => {
-    setSelectedTenants(prev =>
-      prev.includes(tenantId)
-        ? prev.filter(id => id !== tenantId)
-        : [...prev, tenantId]
-    );
+    setSelectedTenants(prev =>
+      prev.includes(tenantId)
+        ? prev.filter(id => id !== tenantId)
+        : [...prev, tenantId]
+    );
+  };
+
+  const handleLongPressStart = (e, tenantId) => {
+    if (isSelectionMode) return;
+
+    const timer = setTimeout(() => {
+      setIsSelectionMode(true);
+      setSelectedTenants([tenantId]);
+      toast.info('เข้าสู่โหมดเลือกหลายรายการ', { duration: 2000 });
+    }, 500);
+    setLongPressTimer(timer);
+    setLongPressTarget(tenantId);
+  };
+
+  const handleLongPressEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+    setLongPressTarget(null);
   };
 
   const toggleSelectAllInPage = () => {
@@ -3032,41 +3054,60 @@ const tenantSchema = {
                                       })()
           ) : viewMode === 'card' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {tenantCardsData.map(({ tenant, activeBookings, hasExpiringSoon, avgRating, paymentScore, vehicleCount, lastRoomNumber }) => (
-                <div key={tenant.id} className="relative">
-                  {isSelectionMode && (
-                    <div
-                      className={`absolute top-3 left-3 z-10 w-6 h-6 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all ${
-                        selectedTenants.includes(tenant.id)
-                          ? 'bg-blue-600 border-blue-600 text-white'
-                          : 'bg-white/90 border-slate-300 hover:border-blue-400'
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleTenantSelection(tenant.id);
-                      }}
-                    >
-                      {selectedTenants.includes(tenant.id) && <Check className="w-4 h-4" />}
-                    </div>
-                  )}
-                  <div className={isSelectionMode && selectedTenants.includes(tenant.id) ? 'ring-2 ring-blue-500 rounded-2xl' : ''}>
-                    <TenantCard
-                      tenant={tenant}
-                      activeBookings={activeBookings}
-                      hasExpiringSoon={hasExpiringSoon}
-                      avgRating={avgRating}
-                      paymentScore={paymentScore}
-                      vehicleCount={vehicleCount}
-                      onClick={handleTenantClick}
-                      getRoomInfo={getRoomInfo}
-                      isContractExpiringSoon={isContractExpiringSoon}
-                      getDaysUntilExpiry={getDaysUntilExpiry}
-                      lastRoomNumber={lastRoomNumber}
-                      userRole={userRole}
-                    />
-                  </div>
-                </div>
-              ))}
+              {tenantCardsData.map(({ tenant, activeBookings, hasExpiringSoon, avgRating, paymentScore, vehicleCount, lastRoomNumber }) => (
+                <div key={tenant.id} className="relative">
+                  {isSelectionMode && (
+                    <div
+                      className={`absolute top-3 left-3 z-10 w-6 h-6 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all ${
+                        selectedTenants.includes(tenant.id)
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'bg-white/90 border-slate-300 hover:border-blue-400'
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleTenantSelection(tenant.id);
+                      }}
+                    >
+                      {selectedTenants.includes(tenant.id) && <Check className="w-4 h-4" />}
+                    </div>
+                  )}
+                  <div 
+                    className={`${isSelectionMode && selectedTenants.includes(tenant.id) ? 'ring-2 ring-blue-500 rounded-2xl' : ''} ${longPressTarget === tenant.id ? 'scale-95 transition-transform' : ''}`}
+                    onMouseDown={(e) => {
+                      if (!isSelectionMode) handleLongPressStart(e, tenant.id);
+                    }}
+                    onMouseUp={handleLongPressEnd}
+                    onMouseLeave={handleLongPressEnd}
+                    onTouchStart={(e) => {
+                      if (!isSelectionMode) handleLongPressStart(e, tenant.id);
+                    }}
+                    onTouchEnd={handleLongPressEnd}
+                    onTouchCancel={handleLongPressEnd}
+                    onContextMenu={(e) => e.preventDefault()}
+                  >
+                    <TenantCard
+                      tenant={tenant}
+                      activeBookings={activeBookings}
+                      hasExpiringSoon={hasExpiringSoon}
+                      avgRating={avgRating}
+                      paymentScore={paymentScore}
+                      vehicleCount={vehicleCount}
+                      onClick={(t) => {
+                        if (isSelectionMode) {
+                          toggleTenantSelection(t.id);
+                        } else {
+                          handleTenantClick(t);
+                        }
+                      }}
+                      getRoomInfo={getRoomInfo}
+                      isContractExpiringSoon={isContractExpiringSoon}
+                      getDaysUntilExpiry={getDaysUntilExpiry}
+                      lastRoomNumber={lastRoomNumber}
+                      userRole={userRole}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg rounded-2xl overflow-hidden">
