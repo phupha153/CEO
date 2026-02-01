@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,11 +46,11 @@ export default function MeterReadings() {
     electricity_previous: 0, // Added for create/update mutations
   });
 
-  // ✅ เพิ่ม pagination และ search
-  const [currentPage, setCurrentPage] = useState(1);
+  // ✅ Infinite Scroll
+  const [displayLimit, setDisplayLimit] = useState(20);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const itemsPerPage = 20;
+  const loadMoreRef = useRef(null);
 
   const queryClient = useQueryClient();
 
@@ -74,10 +74,32 @@ export default function MeterReadings() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-      setCurrentPage(1); // Reset page on search change
+      setDisplayLimit(20); // Reset limit on search change
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // ✅ Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayLimit < roomsDataForDisplay.length) {
+          setDisplayLimit(prev => Math.min(prev + 20, roomsDataForDisplay.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [displayLimit, roomsDataForDisplay.length]);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -1097,15 +1119,13 @@ export default function MeterReadings() {
     });
   }, [rooms, selectedFloor, debouncedSearch, bookings, tenants, getActiveBooking, getTenantInfo]);
 
-  // ✅ Pagination
-  const totalPages = Math.ceil(roomsDataForDisplay.length / itemsPerPage);
-  const paginatedRooms = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return roomsDataForDisplay.slice(startIndex, startIndex + itemsPerPage);
-  }, [roomsDataForDisplay, currentPage, itemsPerPage]);
+  // ✅ Infinite Scroll Display
+  const displayedRooms = useMemo(() => {
+    return roomsDataForDisplay.slice(0, displayLimit);
+  }, [roomsDataForDisplay, displayLimit]);
 
   const displayRoomsByFloor = useMemo(() => {
-    const grouped = paginatedRooms.reduce((acc, room) => {
+    const grouped = displayedRooms.reduce((acc, room) => {
       const floor = room.floor || 1;
       if (!acc[floor]) {
         acc[floor] = [];
@@ -1124,7 +1144,7 @@ export default function MeterReadings() {
     });
     
     return grouped;
-  }, [paginatedRooms]);
+  }, [displayedRooms]);
 
   const displayFloors = Object.keys(displayRoomsByFloor).sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
 
@@ -1148,9 +1168,9 @@ export default function MeterReadings() {
   const sortedFloorsForDropdown = Object.keys(allRoomsByFloorForDropdown).sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
 
 
-  // ✅ Reset page when filters change
+  // ✅ Reset display limit when filters change
   useEffect(() => {
-    setCurrentPage(1);
+    setDisplayLimit(20);
   }, [selectedFloor, debouncedSearch]);
 
   // Read only for summary card
@@ -2223,36 +2243,22 @@ export default function MeterReadings() {
             </div>
           )}
 
-          {/* ✅ Pagination */}
-          {totalPages > 1 && (
+          {/* ✅ Load More Indicator */}
+          {displayLimit < roomsDataForDisplay.length && (
+            <div ref={loadMoreRef} className="py-8 text-center">
+              <div className="inline-flex items-center gap-2 text-slate-600">
+                <div className="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <span>กำลังโหลดเพิ่ม...</span>
+              </div>
+            </div>
+          )}
+
+          {displayLimit >= roomsDataForDisplay.length && roomsDataForDisplay.length > 20 && (
             <Card className="bg-white/80 backdrop-blur-sm">
-              <CardContent className="p-4">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-slate-600">
-                    แสดง {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, roomsDataForDisplay.length)} จาก {roomsDataForDisplay.length} ห้อง
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      ← ก่อนหน้า
-                    </Button>
-                    <span className="px-3 py-2 text-sm">
-                      {currentPage} / {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      ถัดไป →
-                    </Button>
-                  </div>
-                </div>
+              <CardContent className="p-4 text-center">
+                <p className="text-sm text-slate-600">
+                  แสดงครบทั้งหมด {roomsDataForDisplay.length} ห้อง
+                </p>
               </CardContent>
             </Card>
           )}
