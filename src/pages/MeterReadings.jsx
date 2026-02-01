@@ -797,23 +797,21 @@ export default function MeterReadings() {
     return map;
   }, [meterReadings]);
 
-  // ✅ NEW: Check if room has been recorded THIS MONTH (current month, not selected month)
+  // ✅ Check if room has been recorded in the SELECTED month
   const recordedRoomsThisMonthMap = useMemo(() => {
     const map = new Map();
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth(); // 0-11
+    const [year, month] = selectedMonth.split('-').map(Number);
 
     meterReadings.forEach(r => {
       try {
         const readingDate = parseISO(r.reading_date);
-        if (readingDate.getMonth() === currentMonth && readingDate.getFullYear() === currentYear) {
+        if (readingDate.getMonth() === (month - 1) && readingDate.getFullYear() === year) {
           map.set(r.room_id, true);
         }
       } catch {}
     });
     return map;
-  }, [meterReadings]);
+  }, [meterReadings, selectedMonth]);
 
   const getRoomInfo = useCallback((roomId) => roomsMap.get(roomId), [roomsMap]);
   const getActiveBooking = useCallback((roomId) => bookingsMap.get(roomId), [bookingsMap]);
