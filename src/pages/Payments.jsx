@@ -2774,8 +2774,6 @@ Return JSON.`;
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-4 py-3">
-            <div className="flex items-center gap-2" data-selection-control>
-
             <div className="flex items-center gap-2">
               {canGenerateBills && (
                 <GenerateMonthlyBillsButton 
