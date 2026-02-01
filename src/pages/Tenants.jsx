@@ -5404,12 +5404,13 @@ const tenantSchema = {
                       </Button>
                     </div>
                   </div>
-                )}
-              </div>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  )}
+                  </div>
+                  </div>
+                  </Card>
+                  </motion.div>
+                  )}
+                  </AnimatePresence>
     </div>
   );
 }
