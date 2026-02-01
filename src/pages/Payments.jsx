@@ -2452,9 +2452,7 @@ Return JSON.`;
               </Button>
             )}
 
-            {canAdd && tenants.length === 0 && (
-              <p className="text-xs text-red-500 font-medium whitespace-nowrap">⚠️ ไม่สามารถเพิ่มการชำระเงินได้</p>
-            )}
+
           </>
         }
       />
