@@ -3825,16 +3825,16 @@ Return JSON.`;
                       <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
-                          <p className="font-semibold text-red-800">ยังไม่มีผู้เช่าในระบบ</p>
-                          <p className="text-xs text-red-700 mt-1">กรุณาเพิ่มผู้เช่าเพื่อสามารถดูข้อมูลการชำระเงินตามห้อง</p>
+                          <p className="font-semibold text-red-800">⚠️ ไม่สามารถเพิ่มการชำระเงินได้ตอนนี้</p>
+                          <p className="text-sm text-red-700 mt-1">ยังไม่มีผู้เช่าในระบบ ระบบจะสร้างผู้เช่าตามเลขห้องให้อัตโนมัติ</p>
                         </div>
                         <Button
                           onClick={() => navigate(createPageUrl('Tenants'))}
                           size="sm"
-                          className="bg-red-600 hover:bg-red-700 text-white flex-shrink-0"
+                          className="bg-red-600 hover:bg-red-700 text-white flex-shrink-0 whitespace-nowrap"
                         >
                           <Plus className="w-4 h-4 mr-1" />
-                          เพิ่มผู้เช่า
+                          เพิ่มผู้เช่าแบบจำนวนมาก
                         </Button>
                       </div>
                     )}
