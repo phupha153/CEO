@@ -20,6 +20,8 @@ Deno.serve(async (req) => {
         const body = text ? JSON.parse(text) : {};
         
         const branchId = body.branch_id;
+        const lineUserId = body.line_user_id; // รับ LINE ID จากพารามิเตอร์
+        
         if (!branchId) {
             return Response.json({ error: 'branch_id is required' }, { status: 400 });
         }
@@ -103,13 +105,18 @@ Deno.serve(async (req) => {
         for (let i = 1; i <= 100; i++) {
             const firstName = firstNames[i % firstNames.length];
             const lastName = lastNames[Math.floor(i / firstNames.length) % lastNames.length];
-            tenantsData.push({
+            const tenantData = {
                 branch_id: branchId,
                 full_name: `${firstName} ${lastName} ${i}`,
                 phone: `08${String(i).padStart(8, '0')}`,
                 facebook_user_id: '24594617136884643',
                 status: 'active'
-            });
+            };
+            // ⭐ ใส่ LINE ID ถ้ามี (100% ของ tenant ตัวแรกได้ LINE ID นั้น)
+            if (lineUserId && i === 1) {
+                tenantData.line_user_id = lineUserId;
+            }
+            tenantsData.push(tenantData);
         }
 
         const createdTenants = await base44.asServiceRole.entities.Tenant.bulkCreate(tenantsData);
