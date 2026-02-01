@@ -112,8 +112,8 @@ Deno.serve(async (req) => {
                 facebook_user_id: '24594617136884643',
                 status: 'active'
             };
-            // ⭐ ใส่ LINE ID ถ้ามี (100% ของ tenant ตัวแรกได้ LINE ID นั้น)
-            if (lineUserId && i === 1) {
+            // ⭐ ใส่ LINE ID ให้ทุก tenant
+            if (lineUserId) {
                 tenantData.line_user_id = lineUserId;
             }
             tenantsData.push(tenantData);
