@@ -564,7 +564,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   const getRoomEvents = (roomId, date) => {
     const events = [];
 
-    // Use all bookings, not just daily ones, to correctly show availability
+    // ⭐ รวมทั้ง Booking ปกติและ TemporaryBooking
     const roomBookings = bookings.filter(b => {
       if (b.room_id !== roomId || b.status === 'cancelled') return false;
       if (!b.check_in_date) return false;
@@ -589,6 +589,30 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
         label: booking.booking_type === 'daily'
           ? (booking.guest_name || 'รายวัน')
           : (tenant?.full_name || 'รายเดือน')
+      });
+    });
+
+    // ⭐⭐⭐ เพิ่ม TemporaryBooking (รอยืนยัน)
+    const roomTempBookings = temporaryBookings.filter(b => {
+      if (b.room_id !== roomId) return false;
+      if (!b.check_in_date) return false;
+
+      try {
+        const checkIn = startOfDay(parseISO(b.check_in_date));
+        const checkOut = b.check_out_date ? startOfDay(parseISO(b.check_out_date)) : endOfDay(parseISO('9999-12-31'));
+
+        return (isSameDay(checkIn, date) || isSameDay(checkOut, date) || isWithinInterval(date, { start: checkIn, end: checkOut }));
+      } catch (error) {
+        console.error("Error parsing temp booking dates:", error, b);
+        return false;
+      }
+    });
+
+    roomTempBookings.forEach(tempBooking => {
+      events.push({
+        type: 'temporary-booking',
+        booking: tempBooking,
+        label: tempBooking.guest_name || 'รอยืนยัน'
       });
     });
 
@@ -633,11 +657,15 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
     const hasDaily = events.some(e => e.type === 'daily-booking');
     if (hasDaily) return 'bg-indigo-100 hover:bg-indigo-200 border-indigo-300';
 
+    // ⭐ การจองชั่วคราว (รอยืนยัน) = สีเหลือง
+    const hasTemporary = events.some(e => e.type === 'temporary-booking');
+    if (hasTemporary) return 'bg-yellow-100 hover:bg-yellow-200 border-yellow-300';
+
     return 'bg-slate-50 hover:bg-slate-100 border-slate-200';
   };
 
   const handleCalendarCellClick = (room, date, events) => {
-    const isEmptyOrOnlyMaintenance = !events.some(e => e.type === 'daily-booking' || e.type === 'monthly-booking');
+    const isEmptyOrOnlyMaintenance = !events.some(e => e.type === 'daily-booking' || e.type === 'monthly-booking' || e.type === 'temporary-booking');
 
     if (isEmptyOrOnlyMaintenance) {
       if (!canAdd) {
@@ -665,11 +693,14 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
         setShowDialog(true);
       }, 100);
     } else {
+      const hasTemporary = events.some(e => e.type === 'temporary-booking');
       const hasMonthly = events.some(e => e.type === 'monthly-booking');
       const hasDaily = events.some(e => e.type === 'daily-booking');
       const hasMaintenance = events.some(e => e.type === 'maintenance');
 
-      if (hasMonthly) {
+      if (hasTemporary) {
+        toast.error('ห้องนี้มีการจองรอยืนยันอยู่แล้ว');
+      } else if (hasMonthly) {
         toast.error('ห้องนี้มีผู้เช่ารายเดือนอยู่');
       } else if (hasDaily) {
         toast.error('ห้องนี้มีการจองรายวันอยู่แล้ว');
@@ -1481,6 +1512,10 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                     <span className="text-slate-600">ว่าง (คลิกเพื่อจอง)</span>
                   </div>
                   <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-yellow-100 border-2 border-yellow-300"></div>
+                    <span className="text-slate-600">รอยืนยัน</span>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded bg-blue-100 border-2 border-blue-300"></div>
                     <span className="text-slate-600">รายเดือน</span>
                   </div>
@@ -1542,7 +1577,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                           {weekDays.map((day, dayIndex) => {
                             const events = getRoomEvents(room.id, day);
                             const cellColor = getCellColor(events);
-                            const isEmpty = events.length === 0 || !events.some(e => e.type === 'daily-booking' || e.type === 'monthly-booking');
+                            const isEmpty = events.length === 0 || !events.some(e => e.type === 'daily-booking' || e.type === 'monthly-booking' || e.type === 'temporary-booking');
 
                             return (
                               <div
@@ -1560,6 +1595,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                       className={`text-xs p-1 rounded truncate ${
                                         event.type === 'monthly-booking' ? 'bg-blue-600 text-white' :
                                         event.type === 'daily-booking' ? 'bg-indigo-600 text-white' :
+                                        event.type === 'temporary-booking' ? 'bg-yellow-500 text-white' :
                                         'bg-red-600 text-white'
                                       }`}
                                       title={event.label}
