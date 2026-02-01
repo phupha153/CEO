@@ -2574,18 +2574,18 @@ const tenantSchema = {
             <CardContent className="p-6 md:p-8 space-y-6 relative">
               <div className="absolute inset-0 bg-white/50 blur-xl pointer-events-none z-0 rounded-3xl"></div>
 
-              {/* Quick Actions Bar */}
+              {/* Quick Actions Bar - Sticky ติดด้านบนเสมอ */}
               {isSelectionMode && (
-                <div className="relative z-10 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 border-2 border-blue-200">
+                <div className="sticky top-0 z-30 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-3 md:p-4 border-2 border-blue-200 shadow-lg backdrop-blur-sm">
                   <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={toggleSelectAllInPage}
-                      className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50"
+                      className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50 font-semibold"
                     >
                       <CheckSquare className="w-4 h-4 mr-2" />
-                      เลือกทั้งหมดในหน้านี้ ({displayedTenants.length})
+                      เลือกทั้งหมด ({displayedTenants.length})
                     </Button>
 
                     {selectedTenants.length > 0 && (
@@ -2597,7 +2597,7 @@ const tenantSchema = {
                           className="bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
                         >
                           <X className="w-4 h-4 mr-2" />
-                          ล้างการเลือก
+                          ล้าง
                         </Button>
 
                         <Button
@@ -2605,7 +2605,7 @@ const tenantSchema = {
                           variant="destructive"
                           onClick={handleBulkDelete}
                           disabled={isBulkExecuting}
-                          className="bg-red-600 hover:bg-red-700 ml-auto"
+                          className="bg-red-600 hover:bg-red-700 ml-auto font-semibold shadow-md"
                         >
                           {isBulkExecuting ? (
                             <>
@@ -2615,7 +2615,7 @@ const tenantSchema = {
                           ) : (
                             <>
                               <Trash2 className="w-4 h-4 mr-2" />
-                              ลบที่เลือก ({selectedTenants.length})
+                              ลบ ({selectedTenants.length})
                             </>
                           )}
                         </Button>
