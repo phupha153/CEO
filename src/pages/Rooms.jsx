@@ -4542,8 +4542,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 <Card className="bg-white shadow-2xl border-slate-200 overflow-hidden">
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-blue-100 p-2 rounded-lg">
+                      <div className="bg-blue-100 p-2 rounded-lg">
                           <CheckSquare className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
@@ -4551,16 +4550,32 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                           <p className="text-xs text-slate-500">จัดการหลายห้องพร้อมกันด้วย AI</p>
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setSelectedRooms([])}
-                        className="text-red-600 hover:bg-red-50"
-                        data-selection-control
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        ยกเลิก
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={toggleSelectAllInPage}
+                          className="bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100"
+                          disabled={displayedRooms.length === 0}
+                          data-selection-control
+                        >
+                          <CheckSquare className="w-4 h-4 mr-1" />
+                          เลือกทั้งหมด ({displayedRooms.length})
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => {
+                            setSelectedRooms([]);
+                            setIsSelectionMode(false);
+                          }}
+                          className="text-slate-600 hover:bg-slate-50"
+                          data-selection-control
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          ยกเลิก
+                        </Button>
+                      </div>
                     </div>
 
                     {!bulkAIResult ? (
