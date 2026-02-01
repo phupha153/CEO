@@ -2454,14 +2454,14 @@ Return JSON.`;
 
             {canAdd && tenants.length === 0 && (
               <div className="flex flex-col items-end gap-2">
-                <p className="text-xs text-red-500 font-medium whitespace-nowrap">ยังไม่มีผู้เช่าในระบบ</p>
+                <p className="text-xs text-red-500 font-medium whitespace-nowrap">⚠️ ไม่สามารถเพิ่มการชำระเงินได้</p>
                 <Button
                   onClick={() => navigate(createPageUrl('Tenants'))}
                   variant="outline"
-                  className="bg-white border-blue-500 text-blue-600 hover:bg-blue-50 shadow-lg gap-2"
+                  className="bg-red-50 border-red-300 text-red-600 hover:bg-red-100 shadow-lg gap-2"
                 >
                   <Plus className="w-5 h-5" />
-                  <span className="hidden md:inline">เพิ่มผู้เช่าหลายรายการ</span>
+                  <span className="hidden md:inline">เพิ่มผู้เช่าแบบจำนวนมาก</span>
                 </Button>
               </div>
             )}
