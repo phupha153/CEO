@@ -11,6 +11,7 @@ import { Brain, Loader2, RefreshCw, TrendingUp, DollarSign, AlertTriangle, Targe
 import { motion } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import PageHeader from "../components/shared/PageHeader";
+import ScrollToTopButton from "../components/shared/ScrollToTopButton";
 import { parseISO, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, isWithinInterval, format } from "date-fns";
 import { th } from "date-fns/locale";
 import { createPageUrl } from "@/utils";
@@ -613,6 +614,8 @@ export default function AIFinancialAnalysis() {
 
         </div>
       </div>
+      
+      <ScrollToTopButton />
     </div>
   );
 }
