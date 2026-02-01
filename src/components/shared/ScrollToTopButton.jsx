@@ -23,7 +23,7 @@ export default function ScrollToTopButton() {
         shouldShow: scrollTop > 100
       });
       
-      setIsVisible(scrollTop > 100);
+      setIsVisible(scrollTop > 400);
     };
 
     // ฟัง scroll จาก main content container
@@ -68,13 +68,21 @@ export default function ScrollToTopButton() {
   console.log('🔵 ScrollToTopButton render:', { isVisible });
 
   return (
-    <Button
-      onClick={scrollToTop}
-      className="fixed bottom-8 right-8 z-[99999] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-2xl hover:shadow-3xl rounded-full w-16 h-16 p-0 flex items-center justify-center transition-all duration-300 hover:scale-110 pointer-events-auto"
-      style={{ display: isVisible ? 'flex' : 'none' }}
-      title="กลับไปด้านบน"
+    <div
+      className="fixed bottom-8 right-8 z-[99999] transition-all duration-500 ease-out pointer-events-auto"
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.8)',
+        pointerEvents: isVisible ? 'auto' : 'none'
+      }}
     >
-      <ArrowUp className="w-6 h-6 animate-bounce" />
-    </Button>
+      <button
+        onClick={scrollToTop}
+        className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/30 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
+        title="กลับไปด้านบน"
+      >
+        <ArrowUp className="w-5 h-5" />
+      </button>
+    </div>
   );
 }
