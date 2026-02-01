@@ -207,6 +207,27 @@ export default function TenantsPage() {
     setDisplayLimit(50);
   }, [selectedStatuses]);
 
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayLimit < filteredTenants.length) {
+          setDisplayLimit(prev => Math.min(prev + 50, filteredTenants.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [displayLimit, filteredTenants.length]);
+
   const retryConfig = {
     retry: 0,
     retryDelay: 0,
@@ -2010,32 +2031,11 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     }
 
     return result;
-    }, [tenants, debouncedSearch, selectedStatuses, aiResult, getActiveBookings, getRoomInfo, isContractExpiringSoon, getPaymentStatus]);
+  }, [tenants, debouncedSearch, selectedStatuses, aiResult, getActiveBookings, getRoomInfo, isContractExpiringSoon, getPaymentStatus]);
 
-    useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && displayLimit < filteredTenants.length) {
-          setDisplayLimit(prev => Math.min(prev + 50, filteredTenants.length));
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
-      }
-    };
-    }, [displayLimit, filteredTenants.length]);
-
-    const displayedTenants = useMemo(() => {
-    return filteredTenants.slice(0, displayLimit);
-    }, [filteredTenants, displayLimit]);
+  const displayedTenants = useMemo(() => {
+    return filteredTenants.slice(0, displayLimit);
+  }, [filteredTenants, displayLimit]);
 
   const tenantCardsData = useMemo(() => {
     return displayedTenants.map(tenant => {
@@ -2357,9 +2357,8 @@ const tenantSchema = {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
-      <ScrollToTopButton />
-      <PageHeader
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
+      <PageHeader
         title="ผู้เช่า & สัญญาเช่า"
         subtitle={`สาขา ${selectedBranchName}`}
         icon={Users}
