@@ -1457,12 +1457,21 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                       {format(weekDays[0], 'd MMM', { locale: th })} - {format(weekDays[6], 'd MMM yyyy', { locale: th })}
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentCalendarDate(new Date())}
-                  >
-                    วันนี้
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentCalendarDate(new Date())}
+                    >
+                      วันนี้
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setCurrentCalendarDate(addWeeks(currentCalendarDate, 1))}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-4 items-center text-sm bg-slate-50 p-3 rounded-lg">
