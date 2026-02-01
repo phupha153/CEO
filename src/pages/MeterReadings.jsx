@@ -35,6 +35,7 @@ export default function MeterReadings() {
   const [showAllAlerts, setShowAllAlerts] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState('auto'); // จะตั้งค่าจริงหลังจากโหลด config
   const [editingPreviousForRoom, setEditingPreviousForRoom] = useState(null); // room_id ที่กำลังแก้ไขค่าก่อน
+  const [showAddMoreFormForRoom, setShowAddMoreFormForRoom] = useState(null); // room_id ที่กำลังแสดงฟอร์มบันทึกเพิ่ม
   const [formData, setFormData] = useState({
     room_id: '',
     reading_date: new Date().toISOString().split('T')[0],
@@ -1820,73 +1821,120 @@ export default function MeterReadings() {
                                        </div>
                                      )}
 
-                                     <div className="grid grid-cols-2 gap-2">
-                                       <div>
-                                         <Label className="text-xs">น้ำปัจจุบัน</Label>
-                                         <Input
-                                           type="number"
-                                           step="0.01"
-                                           placeholder="150.5"
-                                           value={cardReadings[room.id]?.water_current || ''}
-                                           onChange={(e) => setCardReadings({
-                                             ...cardReadings,
-                                             [room.id]: {
-                                               ...cardReadings[room.id],
-                                               water_current: e.target.value
+                                     {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
+                                     {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
+                                       <div className="space-y-3">
+                                         <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
+                                           <div className="flex items-center justify-center gap-2 mb-2">
+                                             <Check className="w-5 h-5 text-green-600" />
+                                             <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
+                                           </div>
+                                           {latest && (
+                                             <div className="flex justify-center gap-4 text-xs text-slate-600 mb-3">
+                                               <span>น้ำ: {latest.water_units} หน่วย</span>
+                                               <span>ไฟ: {latest.electricity_units} หน่วย</span>
+                                             </div>
+                                           )}
+                                           <Button
+                                             onClick={() => setShowAddMoreFormForRoom(room.id)}
+                                             size="sm"
+                                             variant="outline"
+                                             className="border-green-600 text-green-600 hover:bg-green-50"
+                                           >
+                                             <Plus className="w-3 h-3 mr-1" />
+                                             บันทึกเพิ่ม
+                                           </Button>
+                                         </div>
+                                       </div>
+                                     ) : (
+                                       <>
+                                         {hasRecordedThisMonth(room.id) && (
+                                           <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
+                                             <p className="text-xs text-amber-700 text-center">⚠️ เดือนนี้บันทึกแล้ว - กำลังบันทึกเพิ่ม</p>
+                                           </div>
+                                         )}
+                                         <div className="grid grid-cols-2 gap-2">
+                                           <div>
+                                             <Label className="text-xs">น้ำปัจจุบัน</Label>
+                                             <Input
+                                               type="number"
+                                               step="0.01"
+                                               placeholder="150.5"
+                                               value={cardReadings[room.id]?.water_current || ''}
+                                               onChange={(e) => setCardReadings({
+                                                 ...cardReadings,
+                                                 [room.id]: {
+                                                   ...cardReadings[room.id],
+                                                   water_current: e.target.value
+                                                 }
+                                               })}
+                                               disabled={!canAdd || createSingleMutation.isPending}
+                                               className="h-9 text-sm"
+                                             />
+                                           </div>
+
+                                           <div>
+                                             <Label className="text-xs">ไฟปัจจุบัน</Label>
+                                             <Input
+                                               type="number"
+                                               step="0.01"
+                                               placeholder="250.0"
+                                               value={cardReadings[room.id]?.electricity_current || ''}
+                                               onChange={(e) => setCardReadings({
+                                                 ...cardReadings,
+                                                 [room.id]: {
+                                                   ...cardReadings[room.id],
+                                                   electricity_current: e.target.value
+                                                 }
+                                               })}
+                                               disabled={!canAdd || createSingleMutation.isPending}
+                                               className="h-9 text-sm"
+                                             />
+                                           </div>
+                                         </div>
+
+                                         <div className="flex gap-2">
+                                           <Button
+                                             onClick={() => handleSaveSingleReading(room.id)}
+                                             disabled={
+                                               !canAdd || 
+                                               createSingleMutation.isPending ||
+                                               (cardReadings[room.id]?.water_current == null || cardReadings[room.id]?.water_current === '') ||
+                                               (cardReadings[room.id]?.electricity_current == null || cardReadings[room.id]?.electricity_current === '')
                                              }
-                                           })}
-                                           disabled={!canAdd || createSingleMutation.isPending}
-                                           className="h-9 text-sm"
-                                         />
-                                       </div>
-
-                                       <div>
-                                         <Label className="text-xs">ไฟปัจจุบัน</Label>
-                                         <Input
-                                           type="number"
-                                           step="0.01"
-                                           placeholder="250.0"
-                                           value={cardReadings[room.id]?.electricity_current || ''}
-                                           onChange={(e) => setCardReadings({
-                                             ...cardReadings,
-                                             [room.id]: {
-                                               ...cardReadings[room.id],
-                                               electricity_current: e.target.value
-                                             }
-                                           })}
-                                           disabled={!canAdd || createSingleMutation.isPending}
-                                           className="h-9 text-sm"
-                                         />
-                                       </div>
-                                     </div>
-
-                                     <Button
-                                       onClick={() => handleSaveSingleReading(room.id)}
-                                       disabled={
-                                         !canAdd || 
-                                         createSingleMutation.isPending ||
-                                         (cardReadings[room.id]?.water_current == null || cardReadings[room.id]?.water_current === '') ||
-                                                                                  (cardReadings[room.id]?.electricity_current == null || cardReadings[room.id]?.electricity_current === '')
-                                       }
-                                       className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-9"
-                                     >
-                                       {createSingleMutation.isPending ? (
-                                         <>
-                                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                                           กำลังบันทึก...
-                                         </>
-                                       ) : (
-                                         <>
-                                           <Check className="w-4 h-4 mr-2" />
-                                           {hasRecordedThisMonth(room.id) ? 'บันทึกเพิ่ม' : 'บันทึก'}
-                                         </>
-                                       )}
-                                     </Button>
-
-                                     {hasRecordedThisMonth(room.id) && (
-                                       <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-center">
-                                         <p className="text-xs text-green-700 font-medium">✓ เดือนนี้บันทึกแล้ว</p>
-                                       </div>
+                                             className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-9"
+                                           >
+                                             {createSingleMutation.isPending ? (
+                                               <>
+                                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                                 กำลังบันทึก...
+                                               </>
+                                             ) : (
+                                               <>
+                                                 <Check className="w-4 h-4 mr-2" />
+                                                 บันทึก
+                                               </>
+                                             )}
+                                           </Button>
+                                           {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom === room.id && (
+                                             <Button
+                                               onClick={() => {
+                                                 setShowAddMoreFormForRoom(null);
+                                                 setCardReadings(prev => {
+                                                   const newState = {...prev};
+                                                   delete newState[room.id];
+                                                   return newState;
+                                                 });
+                                               }}
+                                               size="sm"
+                                               variant="outline"
+                                               className="h-9"
+                                             >
+                                               <X className="w-4 h-4" />
+                                             </Button>
+                                           )}
+                                         </div>
+                                       </>
                                      )}
 
                                      {latest && (
