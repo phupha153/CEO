@@ -2573,6 +2573,58 @@ const tenantSchema = {
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg rounded-3xl">
             <CardContent className="p-6 md:p-8 space-y-6 relative">
               <div className="absolute inset-0 bg-white/50 blur-xl pointer-events-none z-0 rounded-3xl"></div>
+
+              {/* Quick Actions Bar */}
+              {isSelectionMode && (
+                <div className="relative z-10 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 border-2 border-blue-200">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={toggleSelectAllInPage}
+                      className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50"
+                    >
+                      <CheckSquare className="w-4 h-4 mr-2" />
+                      เลือกทั้งหมดในหน้านี้ ({displayedTenants.length})
+                    </Button>
+
+                    {selectedTenants.length > 0 && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setSelectedTenants([])}
+                          className="bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+                        >
+                          <X className="w-4 h-4 mr-2" />
+                          ล้างการเลือก
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={handleBulkDelete}
+                          disabled={isBulkExecuting}
+                          className="bg-red-600 hover:bg-red-700 ml-auto"
+                        >
+                          {isBulkExecuting ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              กำลังลบ...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              ลบที่เลือก ({selectedTenants.length})
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="relative z-10 flex flex-col md:flex-row gap-3">
                 <div className="flex-1 relative">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none z-10" />
