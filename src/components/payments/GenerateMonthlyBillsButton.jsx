@@ -2,27 +2,16 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar, Loader2, Users, AlertTriangle } from "lucide-react";
+import { Calendar, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
-import { createPageUrl } from "@/utils";
 
-export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills = 0, onSuccess, compact = false, tenants = [] }) {
+export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills = 0, onSuccess, compact = false }) {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const [generating, setGenerating] = useState(false);
   const [processingQueue, setProcessingQueue] = useState(false);
   const [isCheckingAccess, setIsCheckingAccess] = useState(false);
-  const [showNoTenantsDialog, setShowNoTenantsDialog] = useState(false);
 
   const handleGenerateBills = async () => {
-    // เช็คว่ามีผู้เช่าหรือไม่
-    if (!tenants || tenants.length === 0) {
-      setShowNoTenantsDialog(true);
-      return;
-    }
-
     if (!confirm('คุณต้องการสร้างบิลประจำเดือนนี้ใช่หรือไม่?')) {
       return;
     }
@@ -152,105 +141,39 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
 
   if (compact) {
     return (
-      <>
-        <Button
-          onClick={handleGenerateBills}
-          disabled={isLoading || roomsNeedingBills === 0}
-          size="sm"
-          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-        >
-          {isLoading ? (
-            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-          ) : (
-            <Calendar className="w-4 h-4 mr-1" />
-          )}
-          {isCheckingAccess ? 'ตรวจสอบสิทธิ์...' : `สร้างบิลเดือนนี้${roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}`}
-        </Button>
-
-        <Dialog open={showNoTenantsDialog} onOpenChange={setShowNoTenantsDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-amber-700">
-                <AlertTriangle className="w-6 h-6" />
-                ยังไม่มีผู้เช่าในระบบ
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="text-sm text-amber-800 mb-3">
-                  ไม่สามารถสร้างบิลได้เนื่องจากยังไม่มีผู้เช่าในระบบ
-                </p>
-                <p className="text-sm text-amber-700">
-                  กรุณาเพิ่มผู้เช่าก่อนเพื่อสร้างบิลรายเดือน
-                </p>
-              </div>
-              <Button
-                onClick={() => {
-                  setShowNoTenantsDialog(false);
-                  navigate(createPageUrl('Tenants'));
-                }}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                ไปหน้าจัดการผู้เช่า
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </>
+      <Button
+        onClick={handleGenerateBills}
+        disabled={isLoading || roomsNeedingBills === 0}
+        size="sm"
+        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+      >
+        {isLoading ? (
+          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+        ) : (
+          <Calendar className="w-4 h-4 mr-1" />
+        )}
+        {isCheckingAccess ? 'ตรวจสอบสิทธิ์...' : `สร้างบิลเดือนนี้${roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}`}
+      </Button>
     );
   }
 
   return (
-    <>
-      <Button
-        onClick={handleGenerateBills}
-        disabled={isLoading || roomsNeedingBills === 0}
-        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            {isCheckingAccess ? 'ตรวจสอบสิทธิ์...' : (processingQueue ? 'กำลังส่งบิล...' : 'กำลังสร้างบิล...')}
-          </>
-        ) : (
-          <>
-            <Calendar className="w-4 h-4 mr-2" />
-            สร้างบิลประจำเดือนนี้{roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}
-          </>
-        )}
-      </Button>
-
-      <Dialog open={showNoTenantsDialog} onOpenChange={setShowNoTenantsDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-amber-700">
-              <AlertTriangle className="w-6 h-6" />
-              ยังไม่มีผู้เช่าในระบบ
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-sm text-amber-800 mb-3">
-                ไม่สามารถสร้างบิลได้เนื่องจากยังไม่มีผู้เช่าในระบบ
-              </p>
-              <p className="text-sm text-amber-700">
-                กรุณาเพิ่มผู้เช่าก่อนเพื่อสร้างบิลรายเดือน
-              </p>
-            </div>
-            <Button
-              onClick={() => {
-                setShowNoTenantsDialog(false);
-                navigate(createPageUrl('Tenants'));
-              }}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-            >
-              <Users className="w-4 h-4 mr-2" />
-              ไปหน้าจัดการผู้เช่า
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+    <Button
+      onClick={handleGenerateBills}
+      disabled={isLoading || roomsNeedingBills === 0}
+      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+    >
+      {isLoading ? (
+        <>
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          {isCheckingAccess ? 'ตรวจสอบสิทธิ์...' : (processingQueue ? 'กำลังส่งบิล...' : 'กำลังสร้างบิล...')}
+        </>
+      ) : (
+        <>
+          <Calendar className="w-4 h-4 mr-2" />
+          สร้างบิลประจำเดือนนี้{roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}
+        </>
+      )}
+    </Button>
   );
 }
