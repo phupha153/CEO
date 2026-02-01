@@ -145,17 +145,29 @@ Deno.serve(async (req) => {
 
                     return await retryOperation(async () => {
                         const messages = [{ type: 'text', text: recipient.message }];
-                        console.log(`🔐 Sending LINE: userId=${recipient.lineUserId}, tokenLen=${token?.length}, msgLen=${recipient.message?.length}`);
+                        
+                        // ⭐ Validate before sending
+                        if (!recipient.lineUserId || typeof recipient.lineUserId !== 'string' || recipient.lineUserId.trim() === '') {
+                            throw new Error(`Invalid lineUserId: ${JSON.stringify(recipient.lineUserId)}`);
+                        }
+                        if (!recipient.message || typeof recipient.message !== 'string' || recipient.message.trim() === '') {
+                            throw new Error(`Invalid message: ${JSON.stringify(recipient.message)}`);
+                        }
+
+                        const payload = {
+                            to: recipient.lineUserId.trim(),
+                            messages: messages
+                        };
+                        
+                        console.log(`🔐 LINE payload: to="${payload.to}", msgCount=${messages.length}, msgLen=${recipient.message.length}`);
+                        
                         const response = await fetch('https://api.line.me/v2/bot/message/push', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'Authorization': `Bearer ${token}`
                             },
-                            body: JSON.stringify({
-                                to: recipient.lineUserId,
-                                messages: messages
-                            })
+                            body: JSON.stringify(payload)
                         });
 
                         if (!response.ok) {
