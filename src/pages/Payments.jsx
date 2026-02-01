@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PageHeader from "../components/shared/PageHeader";
+import ScrollToTopButton from "../components/shared/ScrollToTopButton";
 import AISearchBox from "../components/shared/AISearchBox";
 import AIResultCard from "../components/shared/AIResultCard";
 import AIActionConfirmation from "../components/shared/AIActionConfirmation";
