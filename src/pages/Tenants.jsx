@@ -24,6 +24,7 @@ import TenantCard from "../components/tenants/TenantCard";
 import PrepaidDialog from "../components/tenants/PrepaidDialog";
 import LineConnectButton from "../components/tenants/LineConnectButton";
 import PageHeader from "../components/shared/PageHeader";
+import ScrollToTopButton from "../components/shared/ScrollToTopButton";
 import { motion, AnimatePresence } from "framer-motion";
 import AISearchBox from "../components/shared/AISearchBox";
 import AIResultCard from "../components/shared/AIResultCard";

@@ -20,6 +20,7 @@ import { differenceInDays, parseISO, format, isWithinInterval, subDays } from "d
 import { th } from "date-fns/locale";
 import ExcelUploader from "../components/shared/ExcelUploader";
 import PageHeader from "../components/shared/PageHeader";
+import ScrollToTopButton from "../components/shared/ScrollToTopButton";
 import AISearchBox from "../components/shared/AISearchBox";
 import AIResultCard from "../components/shared/AIResultCard";
 import AIActionConfirmation from "../components/shared/AIActionConfirmation";
