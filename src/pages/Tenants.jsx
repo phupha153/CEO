@@ -516,48 +516,53 @@ export default function TenantsPage() {
 
       const promptText = `คุณเป็นผู้ช่วย AI ระบบจัดการหอพัก ตอบคำถามผู้ใช้ให้ตรงประเด็น
 
-📌 คำถาม/คำสั่ง: "${searchQuery}"
-📅 วันที่วันนี้: ${format(new Date(), 'yyyy-MM-dd')}
+      📌 คำถาม/คำสั่ง: "${searchQuery}"
+      📅 วันที่วันนี้: ${format(new Date(), 'yyyy-MM-dd')}
 
-📋 ข้อมูลผู้เช่า (${tenantsWithAvgRating.length} คน):
-${JSON.stringify(tenantsWithAvgRating.slice(0, 30), null, 2)}
+      📋 ข้อมูลผู้เช่า (${tenantsWithAvgRating.length} คน):
+      ${JSON.stringify(tenantsWithAvgRating.slice(0, 30), null, 2)}
 
-📋 ผู้เช่าที่มีคะแนน (${tenantsWithRatingOnly.length} คน):
-${JSON.stringify(tenantsWithRatingOnly.slice(0, 30), null, 2)}
+      📋 ผู้เช่าที่มีคะแนน (${tenantsWithRatingOnly.length} คน):
+      ${JSON.stringify(tenantsWithRatingOnly.slice(0, 30), null, 2)}
 
-📋 ข้อมูลสัญญาเช่า (${bookingsData.length} สัญญา):
-${JSON.stringify(bookingsData.slice(0, 30), null, 2)}
+      📋 ข้อมูลสัญญาเช่า (${bookingsData.length} สัญญา):
+      ${JSON.stringify(bookingsData.slice(0, 30), null, 2)}
 
-📋 ข้อมูลการชำระเงิน (${paymentsData.length} รายการ):
-${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
+      📋 ข้อมูลการชำระเงิน (${paymentsData.length} รายการ):
+      ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
 
-🔍 **วิธีตอบ:**
+      🔍 **วิธีตอบ:**
 
-1. **ถ้าเป็นคำถาม** (เช่น "ผู้เช่าที่ค้างชำระ", "ผู้เช่าห้อง 501", "ใครคะแนนดี"):
-   - ตอบ answer ให้ตรงคำถาม เช่น "ผู้เช่าที่ค้างชำระ: สมชาย, สมหญิง"
-   - action_type = "view"
-   - tenants = รายการผู้เช่าที่เกี่ยวข้องพร้อม reason อธิบาย
+      1. **ถ้าเป็นคำถาม** (เช่น "ผู้เช่าที่ค้างชำระ", "ผู้เช่าห้อง 501", "ใครคะแนนดี"):
+      - ตอบ answer ให้ตรงคำถาม เช่น "ผู้เช่าที่ค้างชำระ: สมชาย, สมหญิง"
+      - action_type = "view"
+      - tenants = รายการผู้เช่าที่เกี่ยวข้องพร้อม reason อธิบาย
 
-2. **ถ้าเป็นคำสั่งแก้ไข** (เช่น "แก้เบอร์สมชาย เป็น 0812345678"):
-   - action_type = "update"
-   - tenant_id = ID ของผู้เช่า
-   - changes = {"field": {"label": "ชื่อ", "old": "ค่าเดิม", "new": "ค่าใหม่"}}
+      2. **ถ้าเป็นคำสั่งแก้ไข** (เช่น "แก้เบอร์สมชาย เป็น 0812345678"):
+      - action_type = "update"
+      - tenant_id = ID ของผู้เช่า
+      - changes = {"field": {"label": "ชื่อ", "old": "ค่าเดิม", "new": "ค่าใหม่"}}
 
-⚠️ **สำคัญมาก:**
-- ตอบ answer ให้ตรงคำถาม ห้ามตอบว่า "วิเคราะห์ข้อมูลเสร็จสิ้น" ถ้าเป็นคำถาม
-- reason ใน tenants ต้องอธิบายว่าทำไมผู้เช่านี้ถึงอยู่ในรายการ
-- ตอบภาษาไทย
-- **เมื่อถามเรื่องคะแนน ความเสี่ยง หรือผู้เช่าที่คะแนนน้อย:** ให้ใช้ข้อมูลจาก "ผู้เช่าที่มีคะแนน" เท่านั้น (avg_rating ไม่เป็น null) ห้ามรวมผู้เช่าที่ยังไม่มีคะแนน`;
+      3. **ถ้าเป็นคำสั่งลบ** (เช่น "ลบสมชาย", "ลบผู้เช่าห้อง 501"):
+      - action_type = "delete"
+      - tenant_id = ID ของผู้เช่า
+      - answer = "จะลบผู้เช่า [ชื่อ] พร้อมสัญญาเช่าและข้อมูลทั้งหมด"
+
+      ⚠️ **สำคัญมาก:**
+      - ตอบ answer ให้ตรงคำถาม ห้ามตอบว่า "วิเคราะห์ข้อมูลเสร็จสิ้น" ถ้าเป็นคำถาม
+      - reason ใน tenants ต้องอธิบายว่าทำไมผู้เช่านี้ถึงอยู่ในรายการ
+      - ตอบภาษาไทย
+      - **เมื่อถามเรื่องคะแนน ความเสี่ยง หรือผู้เช่าที่คะแนนน้อย:** ให้ใช้ข้อมูลจาก "ผู้เช่าที่มีคะแนน" เท่านั้น (avg_rating ไม่เป็น null) ห้ามรวมผู้เช่าที่ยังไม่มีคะแนน`;
 
       const response = await Promise.race([
         base44.integrations.Core.InvokeLLM({
           prompt: promptText,
           response_json_schema: {
-            type: "object",
-            properties: {
-              answer: { type: "string" },
-              action_type: { type: "string", enum: ["view", "update", "create"] },
-              tenant_id: { type: "string" },
+            type: "object",
+            properties: {
+              answer: { type: "string" },
+              action_type: { type: "string", enum: ["view", "update", "create", "delete"] },
+              tenant_id: { type: "string" },
               changes: {
                 type: "object",
                 additionalProperties: {
@@ -594,20 +599,20 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
       ]);
 
       if (!controller.signal.aborted) {
-        setAiResult(response);
+        setAiResult(response);
 
-        if (response.action_type === 'update' || response.action_type === 'create') {
-          setAiAction({
-            action_type: response.action_type,
-            tenant_id: response.tenant_id,
-            changes: response.changes,
-            data: response.data,
-            description: response.answer
-          });
-          toast.info('กรุณายืนยันการดำเนินการ');
-        } else {
-          toast.success('วิเคราะห์สำเร็จ');
-        }
+        if (response.action_type === 'update' || response.action_type === 'create' || response.action_type === 'delete') {
+          setAiAction({
+            action_type: response.action_type,
+            tenant_id: response.tenant_id,
+            changes: response.changes,
+            data: response.data,
+            description: response.answer
+          });
+          toast.info('กรุณายืนยันการดำเนินการ');
+        } else {
+          toast.success('วิเคราะห์สำเร็จ');
+        }
       }
     } catch (error) {
       if (error.message === 'ยกเลิกการค้นหา') {
