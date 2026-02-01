@@ -311,6 +311,13 @@ Deno.serve(async (req) => {
                 console.log(`⚠️ Skipping payment ${payment.id}: No LINE or Facebook connection`);
                 continue;
             }
+            
+            // 🔍 DEBUG: ตรวจสอบ LINE ID
+            if (tenant.line_user_id) {
+                console.log(`✅ Payment ${payment.id}: tenant.line_user_id = "${tenant.line_user_id}"`);
+            } else {
+                console.log(`⚠️ Payment ${payment.id}: No line_user_id on tenant (facebook_id: ${tenant.facebook_user_id ? 'YES' : 'NO'})`);
+            }
 
             // คำนวณ overdue
             let daysOverdue = 0;
@@ -499,12 +506,12 @@ Deno.serve(async (req) => {
                     message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
 
                 } else {
-                    // --- CASE 3: ปกติ (Advance/General) - มีลิงก์ + ธนาคาร ---
-                    console.log(`📝 Using ADVANCE/GENERAL template (WITH LINK) for payment ${payment.id}`);
-                    const frontendUrl = Deno.env.get('FRONTEND_URL');
-                    const paymentBranchId = payment.branch_id || branchId;
-                    const invoiceLink = frontendUrl ? `${frontendUrl}publicinvoice?id=${payment.id}&branchId=${paymentBranchId}` : null;
-                    console.log(`🔗 Invoice link generated: ${invoiceLink || 'N/A'}`);
+                     // --- CASE 3: ปกติ (Advance/General) - มีลิงก์ + ธนาคาร ---
+                     console.log(`📝 Using ADVANCE/GENERAL template (WITH LINK) for payment ${payment.id}`);
+                     const frontendUrl = Deno.env.get('FRONTEND_URL');
+                     const paymentBranchId = payment.branch_id || branchId;
+                     const invoiceLink = frontendUrl ? `${frontendUrl}/publicinvoice?id=${payment.id}&branchId=${paymentBranchId}` : null;
+                     console.log(`🔗 Invoice link generated: ${invoiceLink || 'N/A'}`);
 
                     message = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
                     message += `สวัสดีคุณ ${tenant.full_name}\n`;
@@ -533,7 +540,7 @@ Deno.serve(async (req) => {
                 }
                 }
 
-                recipients.push({
+                const recipient = {
                 lineUserId: tenant.line_user_id || null,
                 facebookUserId: tenant.facebook_user_id || null,
                 message: message,
@@ -543,9 +550,13 @@ Deno.serve(async (req) => {
                     tenantName: tenant.full_name,
                     roomNumber: room?.room_number,
                     branchId: payment.branch_id,
-                    platform: tenant.facebook_user_id ? 'facebook' : 'line'
+                    platform: tenant.line_user_id ? 'line' : tenant.facebook_user_id ? 'facebook' : 'unknown'
                 }
-            });
+            };
+            
+            // 🔍 DEBUG: ตรวจสอบ recipient
+            console.log(`📍 Recipient created: ${payment.id} | line=${recipient.lineUserId ? '✅' : '❌'} | fb=${recipient.facebookUserId ? '✅' : '❌'}`);
+            recipients.push(recipient);
         }
 
         if (recipients.length === 0) {

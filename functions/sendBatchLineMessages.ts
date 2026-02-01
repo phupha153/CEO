@@ -110,24 +110,27 @@ Deno.serve(async (req) => {
         }
 
         // Process by Branch
-        for (const [branchId, branchRecipients] of recipientsByBranch) {
-            const token = await getLineToken(base44, configs, branchId);
-            if (!token) {
-                branchRecipients.forEach(r => {
-                    results.errors.push({ lineUserId: r.lineUserId, error: 'No LINE Token found' });
-                    results.failed++;
-                });
-                continue;
-            }
+         for (const [branchId, branchRecipients] of recipientsByBranch) {
+             const token = await getLineToken(base44, configs, branchId);
+             if (!token) {
+                 branchRecipients.forEach(r => {
+                     results.errors.push({ lineUserId: r.lineUserId, error: 'No LINE Token found' });
+                     results.failed++;
+                 });
+                 console.error(`❌ CRITICAL: No LINE token found for branch ${branchId.substring(0, 8)}... - skipping ${branchRecipients.length} recipients`);
+                 continue;
+             }
 
-            // Get Rate Limit Settings from Config (Priority: Config > Options > Default)
-            const batchSize = parseInt(getConfigValue('line_batch_size', options.batchSize || '20', branchId));
-            const delayBetweenBatches = parseInt(getConfigValue('line_batch_delay_ms', options.delayBetweenBatches || '2000', branchId));
-            const delayBetweenMessages = parseInt(getConfigValue('line_message_delay_ms', options.delayBetweenMessages || '100', branchId));
-            const retryAttempts = parseInt(getConfigValue('line_max_retries', options.retryAttempts || '3', branchId));
+             console.log(`✅ LINE token found for branch ${branchId.substring(0, 8)}... (length: ${token.length})`);
 
-            console.log(`🚀 Sending to Branch ${branchId}: ${branchRecipients.length} recipients`);
-            console.log(`⚙️ Config: Batch=${batchSize}, BatchDelay=${delayBetweenBatches}ms, MsgDelay=${delayBetweenMessages}ms`);
+             // Get Rate Limit Settings from Config (Priority: Config > Options > Default)
+             const batchSize = parseInt(getConfigValue('line_batch_size', options.batchSize || '20', branchId));
+             const delayBetweenBatches = parseInt(getConfigValue('line_batch_delay_ms', options.delayBetweenBatches || '2000', branchId));
+             const delayBetweenMessages = parseInt(getConfigValue('line_message_delay_ms', options.delayBetweenMessages || '100', branchId));
+             const retryAttempts = parseInt(getConfigValue('line_max_retries', options.retryAttempts || '3', branchId));
+
+             console.log(`🚀 Sending to Branch ${branchId}: ${branchRecipients.length} recipients`);
+             console.log(`⚙️ Config: Batch=${batchSize}, BatchDelay=${delayBetweenBatches}ms, MsgDelay=${delayBetweenMessages}ms`);
 
             // Create Batches
             const batches = [];
@@ -145,40 +148,26 @@ Deno.serve(async (req) => {
 
                     return await retryOperation(async () => {
                         const messages = [{ type: 'text', text: recipient.message }];
-                        
-                        // ⭐ Validate before sending
-                        if (!recipient.lineUserId || typeof recipient.lineUserId !== 'string' || recipient.lineUserId.trim() === '') {
-                            throw new Error(`Invalid lineUserId: ${JSON.stringify(recipient.lineUserId)}`);
-                        }
-                        if (!recipient.message || typeof recipient.message !== 'string' || recipient.message.trim() === '') {
-                            throw new Error(`Invalid message: ${JSON.stringify(recipient.message)}`);
-                        }
-
-                        const payload = {
-                            to: recipient.lineUserId.trim(),
-                            messages: messages
-                        };
-                        
-                        const payloadJson = JSON.stringify(payload);
-                        console.log(`🔐 LINE payload JSON: ${payloadJson}`);
-                        console.log(`🔐 Token: ${token.substring(0, 20)}...${token.substring(token.length - 10)}`);
-                        
                         const response = await fetch('https://api.line.me/v2/bot/message/push', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'Authorization': `Bearer ${token}`
                             },
-                            body: payloadJson
+                            body: JSON.stringify({
+                                to: recipient.lineUserId,
+                                messages: messages
+                            })
                         });
 
                         if (!response.ok) {
-                            const errorData = await response.json();
-                            console.error(`❌ LINE API Error: status=${response.status}, message=${errorData.message}`);
-                            throw new Error(errorData.message || `HTTP ${response.status}`);
-                        }
-                        console.log(`✅ LINE sent to ${recipient.lineUserId}`);
-                        return { success: true, lineUserId: recipient.lineUserId };
+                             const errorData = await response.json();
+                             const errorMsg = errorData.message || `HTTP ${response.status}`;
+                             console.error(`❌ LINE API Error for ${recipient.lineUserId}: ${errorMsg}`);
+                             throw new Error(errorMsg);
+                         }
+                         console.log(`✅ LINE sent to ${recipient.lineUserId.substring(0, 10)}...`);
+                         return { success: true, lineUserId: recipient.lineUserId };
                     }, retryAttempts, 1000);
                 }).map(p => p.catch(e => ({ success: false, lineUserId: null, error: e.message })));
 
