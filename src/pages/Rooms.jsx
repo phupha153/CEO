@@ -182,27 +182,6 @@ export default function RoomsPage() {
     setDisplayLimit(50);
   }, [selectedFloor, selectedStatuses]);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && displayLimit < filteredRooms.length) {
-          setDisplayLimit(prev => Math.min(prev + 50, filteredRooms.length));
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
-      }
-    };
-  }, [displayLimit, filteredRooms.length]);
-
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
@@ -957,6 +936,27 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     const floors = [...new Set(rooms.map(r => r.floor))].sort((a, b) => a - b);
     return floors;
   }, [rooms]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayLimit < filteredRooms.length) {
+          setDisplayLimit(prev => Math.min(prev + 50, filteredRooms.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [displayLimit, filteredRooms.length]);
 
   const displayedRooms = useMemo(() => {
     return filteredRooms.slice(0, displayLimit);
