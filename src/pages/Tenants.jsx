@@ -2357,8 +2357,9 @@ const tenantSchema = {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
-      <PageHeader
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
+      <ScrollToTopButton />
+      <PageHeader
         title="ผู้เช่า & สัญญาเช่า"
         subtitle={`สาขา ${selectedBranchName}`}
         icon={Users}
