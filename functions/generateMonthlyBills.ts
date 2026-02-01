@@ -661,7 +661,7 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                // ⭐ CRITICAL FIX: Check if booking.tenant_id is valid + use cache (no DB refresh)
+                // ⭐ CRITICAL FIX: Check if booking.tenant_id is valid + refresh from DB
                 if (!activeBooking.tenant_id) {
                     console.log(`⏭️ Room ${room.room_number}: No tenant_id in booking - skip`);
                     continue;
@@ -669,10 +669,23 @@ Deno.serve(async (req) => {
 
                 let tenant = tenantsMap.get(activeBooking.tenant_id);
                 
-                // ⭐ Use cache from Step 3 (O(1) lookup, NO fresh DB call)
-                if (!tenant) {
-                    // Tenant doesn't exist or was deleted
-                    console.log(`⏭️ Room ${room.room_number}: Tenant ${activeBooking.tenant_id} NOT FOUND in cache - skip`);
+                // Force refresh from DB (bypass cache)
+                try {
+                    const freshTenants = await base44.asServiceRole.entities.Tenant.filter(
+                        { id: activeBooking.tenant_id },
+                        '',
+                        1
+                    );
+                    if (freshTenants && freshTenants.length > 0) {
+                        tenant = freshTenants[0];
+                        tenantsMap.set(activeBooking.tenant_id, tenant);
+                    } else {
+                        // Tenant doesn't exist or was deleted
+                        console.log(`⏭️ Room ${room.room_number}: Tenant ${activeBooking.tenant_id} NOT FOUND in DB - skip`);
+                        continue;
+                    }
+                } catch (refreshErr) {
+                    console.warn(`   ⚠️ Could not fetch tenant ${activeBooking.tenant_id}: ${refreshErr.message}`);
                     continue;
                 }
 
