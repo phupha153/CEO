@@ -95,11 +95,10 @@ Deno.serve(async (req) => {
         for (const recipient of recipients) {
             const branchId = recipient.branchId || recipient.metadata?.branchId;
             if (!branchId) {
-                const errMsg = `No branch_id for recipient ${recipient.lineUserId}`;
-                console.error(`❌ ${errMsg}`);
                 results.errors.push({
                     lineUserId: recipient.lineUserId,
-                    error: errMsg
+                    error: 'No branch_id provided',
+                    metadata: recipient.metadata
                 });
                 results.failed++;
                 continue;
@@ -109,24 +108,17 @@ Deno.serve(async (req) => {
             }
             recipientsByBranch.get(branchId).push(recipient);
         }
-        
-        console.log(`📊 Grouped recipients by branch: ${recipientsByBranch.size} branches`);
 
         // Process by Branch
         for (const [branchId, branchRecipients] of recipientsByBranch) {
-            console.log(`🔍 Processing branch: ${branchId}, checking token...`);
             const token = await getLineToken(base44, configs, branchId);
             if (!token) {
-                const errMsg = `No LINE Token found for branch ${branchId}`;
-                console.error(`❌ ${errMsg}`);
                 branchRecipients.forEach(r => {
-                    results.errors.push({ lineUserId: r.lineUserId, error: errMsg, branchId });
+                    results.errors.push({ lineUserId: r.lineUserId, error: 'No LINE Token found' });
                     results.failed++;
                 });
                 continue;
             }
-            console.log(`✅ Token found for branch ${branchId} (${token.substring(0, 20)}...)`);
-            console.log(`📤 Sending ${branchRecipients.length} messages for branch ${branchId}`);
 
             // Get Rate Limit Settings from Config (Priority: Config > Options > Default)
             const batchSize = parseInt(getConfigValue('line_batch_size', options.batchSize || '20', branchId));
@@ -175,23 +167,13 @@ Deno.serve(async (req) => {
 
                 const batchResults = await Promise.all(batchPromises);
                 
-                let batchSuccess = 0;
-                let batchFailed = 0;
                 batchResults.forEach(res => {
-                    if (res.success) {
-                        results.success++;
-                        batchSuccess++;
-                    } else {
+                    if (res.success) results.success++;
+                    else {
                         results.failed++;
-                        batchFailed++;
-                        results.errors.push({ 
-                            lineUserId: res.lineUserId,
-                            error: res.error,
-                            branchId
-                        });
+                        results.errors.push({ error: res.error });
                     }
                 });
-                console.log(`📊 Batch ${bIdx + 1}/${batches.length}: ${batchSuccess}✅ ${batchFailed}❌`);
 
                 // Delay between batches
                 if (bIdx < batches.length - 1) {
