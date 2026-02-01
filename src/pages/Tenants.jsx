@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -47,7 +47,8 @@ export default function TenantsPage() {
   const [extractingData, setExtractingData] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [displayLimit, setDisplayLimit] = useState(50);
+  const loadMoreRef = useRef(null);
   const [aiSearching, setAiSearching] = useState(false);
   const [aiResult, setAiResult] = useState(null);
   const [aiAbortController, setAiAbortController] = useState(null);
@@ -189,11 +190,11 @@ export default function TenantsPage() {
   const canEditDeposit = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('bookings_edit_deposit');
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-      setCurrentPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setDisplayLimit(50);
+    }, 300);
+    return () => clearTimeout(timer);
   }, [searchQuery]);
 
   useEffect(() => {
@@ -203,8 +204,29 @@ export default function TenantsPage() {
   }, [searchQuery]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [currentPage]);
+    setDisplayLimit(50);
+  }, [selectedStatuses]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayLimit < filteredTenants.length) {
+          setDisplayLimit(prev => Math.min(prev + 50, filteredTenants.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [displayLimit, filteredTenants.length]);
 
   const retryConfig = {
     retry: 0,
@@ -1599,14 +1621,14 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
   };
 
   const toggleSelectAllInPage = () => {
-    const pageTenantIds = paginatedTenants.map(t => t.id);
-    const allSelectedOnPage = pageTenantIds.every(id => selectedTenants.includes(id));
+    const displayedTenantIds = displayedTenants.map(t => t.id);
+    const allSelectedOnPage = displayedTenantIds.every(id => selectedTenants.includes(id));
 
-    if (allSelectedOnPage) {
-      setSelectedTenants(prev => prev.filter(id => !pageTenantIds.includes(id)));
-    } else {
-      setSelectedTenants(prev => [...new Set([...prev, ...pageTenantIds])]);
-    }
+    if (allSelectedOnPage) {
+      setSelectedTenants(prev => prev.filter(id => !displayedTenantIds.includes(id)));
+    } else {
+      setSelectedTenants(prev => [...new Set([...prev, ...displayedTenantIds])]);
+    }
   };
 
   const handleCellEdit = async (tenantId, field, value) => {
@@ -1932,12 +1954,12 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
   };
 
   const toggleStatus = (status) => {
-    setSelectedStatuses(prev =>
-      prev.includes(status)
-        ? prev.filter(s => s !== status)
-        : [...prev, status]
-    );
-    setCurrentPage(1);
+    setSelectedStatuses(prev =>
+      prev.includes(status)
+        ? prev.filter(s => s !== status)
+        : [...prev, status]
+    );
+    setDisplayLimit(50);
   };
 
   const getStatusLabel = (status) => {
@@ -2011,14 +2033,12 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     return result;
   }, [tenants, debouncedSearch, selectedStatuses, aiResult, getActiveBookings, getRoomInfo, isContractExpiringSoon, getPaymentStatus]);
 
-  const totalPages = Math.ceil(filteredTenants.length / itemsPerPage);
-  const paginatedTenants = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredTenants.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredTenants, currentPage]);
+  const displayedTenants = useMemo(() => {
+    return filteredTenants.slice(0, displayLimit);
+  }, [filteredTenants, displayLimit]);
 
   const tenantCardsData = useMemo(() => {
-    return paginatedTenants.map(tenant => {
+    return displayedTenants.map(tenant => {
       const activeBookings = getActiveBookings(tenant.id);
       const hasExpiringSoon = activeBookings.some(b => isContractExpiringSoon(b));
       const avgRating = getTenantAverageRating(tenant.id);
@@ -2065,7 +2085,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
         lastRoomNumber
       };
     });
-  }, [paginatedTenants, getActiveBookings, isContractExpiringSoon, getTenantAverageRating, getVehicleCount, bookings, getRoomInfo]);
+    }, [displayedTenants, getActiveBookings, isContractExpiringSoon, getTenantAverageRating, getVehicleCount, bookings, getRoomInfo]);
 const tenantSchema = {
     type: "object",
     additionalProperties: true,
@@ -2995,7 +3015,7 @@ const tenantSchema = {
               )}
               
               <ExcelTable
-                tenants={paginatedTenants}
+                tenants={displayedTenants}
                 getActiveBookings={getActiveBookings}
                 getRoomInfo={getRoomInfo}
                 getTenantAverageRating={getTenantAverageRating}
@@ -3017,60 +3037,23 @@ const tenantSchema = {
             </Card>
           )}
 
-          {totalPages > 1 && (
-            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
-              <CardContent className="p-4">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-slate-600">
-                    แสดง {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredTenants.length)} จาก {filteredTenants.length} คน
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      ← ก่อนหน้า
-                    </Button>
-                    <div className="flex items-center gap-1">
-                      {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                        let pageNum;
-                        if (totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
+          {displayLimit < filteredTenants.length && (
+            <div ref={loadMoreRef} className="py-8 text-center">
+              <div className="inline-flex items-center gap-2 text-slate-600">
+                <div className="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <span>กำลังโหลดเพิ่ม...</span>
+              </div>
+            </div>
+          )}
 
-                        return (
-                          <Button
-                            key={i}
-                            variant={currentPage === pageNum ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={currentPage === pageNum ? "bg-blue-600 text-white" : ""}
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      ถัดไป →
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {displayLimit >= filteredTenants.length && filteredTenants.length > 50 && (
+            <Card className="bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-4 text-center">
+                <p className="text-sm text-slate-600">
+                  แสดงครบทั้งหมด {filteredTenants.length} คน
+                </p>
+              </CardContent>
+            </Card>
           )}
 
           <Dialog

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -105,7 +105,7 @@ export default function RoomsPage() {
     };
   }, [isSelectionMode]);
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const [displayLimit, setDisplayLimit] = useState(50);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedFloor, setSelectedFloor] = useState('all');
@@ -115,7 +115,7 @@ export default function RoomsPage() {
   const [aiResult, setAiResult] = useState(null);
   const [aiAction, setAiAction] = useState(null);
   const [executingAction, setExecutingAction] = useState(false);
-  const itemsPerPage = 50;
+  const loadMoreRef = useRef(null);
 
   const [formData, setFormData] = useState({
     room_number: '',
@@ -166,7 +166,7 @@ export default function RoomsPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-      setCurrentPage(1);
+      setDisplayLimit(50);
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -179,8 +179,29 @@ export default function RoomsPage() {
   }, [searchQuery]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [currentPage, selectedFloor, selectedStatuses]);
+    setDisplayLimit(50);
+  }, [selectedFloor, selectedStatuses]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayLimit < filteredRooms.length) {
+          setDisplayLimit(prev => Math.min(prev + 50, filteredRooms.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [displayLimit, filteredRooms.length]);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -937,15 +958,13 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     return floors;
   }, [rooms]);
 
-  const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
-  const paginatedRooms = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredRooms.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredRooms, currentPage, itemsPerPage]);
+  const displayedRooms = useMemo(() => {
+    return filteredRooms.slice(0, displayLimit);
+  }, [filteredRooms, displayLimit]);
 
   const roomsByFloorInPage = useMemo(() => {
     const grouped = {};
-    paginatedRooms.forEach(room => {
+    displayedRooms.forEach(room => {
       const floor = room.floor;
       if (!grouped[floor]) {
         grouped[floor] = [];
@@ -953,7 +972,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       grouped[floor].push(room);
     });
     return grouped;
-  }, [paginatedRooms]);
+  }, [displayedRooms]);
 
   const sortedFloorsInPage = Object.keys(roomsByFloorInPage).sort((a, b) => (parseInt(a) || 0) - (parseInt(b) || 0));
 
@@ -1363,13 +1382,13 @@ ${JSON.stringify(roomsWithAC, null, 2)}
   };
 
   const toggleSelectAllInPage = () => {
-    const pageRoomIds = paginatedRooms.map(r => r.id);
-    const allSelected = pageRoomIds.every(id => selectedRooms.includes(id));
+    const displayedRoomIds = displayedRooms.map(r => r.id);
+    const allSelected = displayedRoomIds.every(id => selectedRooms.includes(id));
     
     if (allSelected) {
-      setSelectedRooms(prev => prev.filter(id => !pageRoomIds.includes(id)));
+      setSelectedRooms(prev => prev.filter(id => !displayedRoomIds.includes(id)));
     } else {
-      setSelectedRooms(prev => [...new Set([...prev, ...pageRoomIds])]);
+      setSelectedRooms(prev => [...new Set([...prev, ...displayedRoomIds])]);
     }
   };
 
@@ -1658,7 +1677,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
         ? prev.filter(s => s !== status)
         : [...prev, status]
     );
-    setCurrentPage(1);
+    setDisplayLimit(50);
   };
 
   const getStatusLabel = (status) => {
@@ -2384,7 +2403,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                     setSearchQuery('');
                     setSelectedFloor('all');
                     setSelectedStatuses([]);
-                    setCurrentPage(1);
+                    setDisplayLimit(50);
                   }}
                 >
                   ล้างการกรอง
@@ -2437,7 +2456,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             </Card>
           )}
 
-          {paginatedRooms.length > 0 && (
+          {displayedRooms.length > 0 && (
             <div className="space-y-6">
               {sortedFloorsInPage.map((floor) => (
                 <motion.div
@@ -2673,78 +2692,21 @@ ${JSON.stringify(roomsWithAC, null, 2)}
             </div>
           )}
 
-          {totalPages > 1 && (
-            <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
-              <CardContent className="p-4">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                  <p className="text-xs md:text-sm text-slate-600">
-                    แสดง {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredRooms.length)} จาก {filteredRooms.length} ห้อง
-                  </p>
-                  <div className="flex gap-2 items-center">
-                    {selectedRooms.length > 0 && (
-                      <span className="text-sm font-medium text-blue-600 mr-2">
-                        เลือก {selectedRooms.length} ห้อง
-                      </span>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={toggleSelectAllInPage}
-                      className="rounded-xl text-blue-600 border-blue-200 hover:bg-blue-50"
-                      data-selection-control
-                    >
-                      {paginatedRooms.every(r => selectedRooms.includes(r.id)) ? 'ยกเลิกเลือกหน้านี้' : 'เลือกทั้งหมดในหน้านี้'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      className="rounded-xl"
-                    >
-                      <ChevronLeft className="w-4 h-4 mr-1" />
-                      ก่อนหน้า
-                    </Button>
+          {displayLimit < filteredRooms.length && (
+            <div ref={loadMoreRef} className="py-8 text-center">
+              <div className="inline-flex items-center gap-2 text-slate-600">
+                <div className="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <span>กำลังโหลดเพิ่ม...</span>
+              </div>
+            </div>
+          )}
 
-                    <div className="flex items-center gap-1">
-                      {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                        let pageNum;
-                        if (totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
-                        if (pageNum < 1 || pageNum > totalPages) return null;
-                        return (
-                          <Button
-                            key={i}
-                            variant={currentPage === pageNum ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => setCurrentPage(pageNum)}
-                            className={`rounded-xl ${currentPage === pageNum ? "bg-blue-600 text-white hover:bg-blue-700" : ""}`}
-                          >
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                      className="rounded-xl"
-                    >
-                      ถัดไป
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </div>
-                </div>
+          {displayLimit >= filteredRooms.length && filteredRooms.length > 50 && (
+            <Card className="bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-4 text-center">
+                <p className="text-sm text-slate-600">
+                  แสดงครบทั้งหมด {filteredRooms.length} ห้อง
+                </p>
               </CardContent>
             </Card>
           )}

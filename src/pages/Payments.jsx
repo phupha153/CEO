@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -62,8 +62,8 @@ export default function PaymentsPage() {
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('payments_view_mode') || 'room';
   });
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
+  const [displayLimit, setDisplayLimit] = useState(50);
+  const loadMoreRef = useRef(null);
   const [sortBy, setSortBy] = useState('due_date'); // 'due_date', 'room', 'created_date', 'amount'
   const [debugLogs, setDebugLogs] = useState([]);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
@@ -266,7 +266,7 @@ export default function PaymentsPage() {
   };
 
   const { data: paymentsResponse, isLoading: paymentsLoading, isFetching: paymentsFetching } = useQuery({
-    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy],
+    queryKey: ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, displayLimit, sortBy],
     queryFn: async () => {
       if (!selectedBranchId) return { data: [], total: 0, page: 1, totalPages: 0, counts: { all: 0, paid: 0, pending: 0, overdue: 0, partial_paid: 0 }, logs: [] };
       
@@ -276,8 +276,8 @@ export default function PaymentsPage() {
         date_range_type: dateRangeType,
         custom_range: dateRangeType === 'custom' ? customRange : null,
         search_query: searchQuery,
-        page: currentPage,
-        limit: itemsPerPage,
+        page: 1,
+        limit: displayLimit,
         sort_by: sortBy,
         debug: true
       });
@@ -881,12 +881,32 @@ export default function PaymentsPage() {
     return payments;
   }, [payments, aiResult]);
 
-  const totalPages = paymentsResponse?.totalPages || 1;
-  const paginatedPayments = filteredPayments;
+  const displayedPayments = filteredPayments;
 
   useEffect(() => {
-    setCurrentPage(1);
+    setDisplayLimit(50);
   }, [dateRangeType, customRange, statusFilter, searchQuery, aiResult]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayLimit < filteredPayments.length) {
+          setDisplayLimit(prev => Math.min(prev + 50, filteredPayments.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current && viewMode !== 'room') {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [displayLimit, filteredPayments.length, viewMode]);
 
   const totalAmounts = useMemo(() => {
     const calculateSum = (paymentsToSum) => {
@@ -2210,14 +2230,14 @@ ${JSON.stringify(bookingsData, null, 2)}
   };
 
   const toggleSelectAllInPage = () => {
-    const currentViewPayments = viewMode === 'room' ? roomViewPayments : paginatedPayments;
-    const pagePaymentIds = currentViewPayments.map(p => p.id);
-    const allSelectedOnPage = pagePaymentIds.every(id => selectedPaymentIds.includes(id));
+    const currentViewPayments = viewMode === 'room' ? roomViewPayments : displayedPayments;
+    const displayedPaymentIds = currentViewPayments.map(p => p.id);
+    const allSelectedOnPage = displayedPaymentIds.every(id => selectedPaymentIds.includes(id));
 
     if (allSelectedOnPage) {
-      setSelectedPaymentIds(prev => prev.filter(id => !pagePaymentIds.includes(id)));
+      setSelectedPaymentIds(prev => prev.filter(id => !displayedPaymentIds.includes(id)));
     } else {
-      setSelectedPaymentIds(prev => [...new Set([...prev, ...pagePaymentIds])]);
+      setSelectedPaymentIds(prev => [...new Set([...prev, ...displayedPaymentIds])]);
     }
   };
 
@@ -3087,7 +3107,7 @@ Return JSON.`;
           ) : viewMode === 'card' && (
                 <div className="grid grid-cols-1 gap-4 relative">
                   <AnimatePresence>
-                    {paginatedPayments.map((payment) => {
+                    {displayedPayments.map((payment) => {
                       const effectiveStatus = getEffectiveStatus(payment);
                       const room = payment.room_number ? { room_number: payment.room_number } : getRoomInfo(payment.room_id);
                       const tenant = payment.tenant_name ? { 
@@ -3622,7 +3642,7 @@ Return JSON.`;
                           </tr>
                         </thead>
                         <tbody>
-                          {paginatedPayments.map((payment) => {
+                          {displayedPayments.map((payment) => {
                             const effectiveStatus = getEffectiveStatus(payment);
                             const tenant = payment.tenant_name ? { 
                               full_name: payment.tenant_name,
@@ -4315,44 +4335,21 @@ Return JSON.`;
                                        </Card>
                                        )}
 
-          {totalPages > 1 && viewMode !== 'room' && (
-            <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
-              <CardContent className="p-4">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                  <p className="text-sm text-slate-600">
-                    แสดง {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalFilteredCount)} จาก {totalFilteredCount} รายการ
-                  </p>
-                  <div className="flex items-center gap-1">
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>
-                      <ChevronLeft className="w-4 h-4 mr-1" />
-                      ก่อนหน้า
-                    </Button>
-                    <div className="flex items-center gap-1">
-                      {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                        let pageNum;
-                        if (totalPages <= 5) {
-                          pageNum = i + 1;
-                        } else if (currentPage <= 3) {
-                          pageNum = i + 1;
-                        } else if (currentPage >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i;
-                        } else {
-                          pageNum = currentPage - 2 + i;
-                        }
+          {displayLimit < filteredPayments.length && viewMode !== 'room' && (
+            <div ref={loadMoreRef} className="py-8 text-center">
+              <div className="inline-flex items-center gap-2 text-slate-600">
+                <div className="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <span>กำลังโหลดเพิ่ม...</span>
+              </div>
+            </div>
+          )}
 
-                        return (
-                          <Button key={i} variant={currentPage === pageNum ? "default" : "outline"} size="sm" onClick={() => setCurrentPage(pageNum)} className={currentPage === pageNum ? "bg-blue-600 text-white hover:bg-blue-600" : ""}>
-                            {pageNum}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>
-                      ถัดไป
-                      <ChevronRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  </div>
-                </div>
+          {displayLimit >= filteredPayments.length && filteredPayments.length > 50 && viewMode !== 'room' && (
+            <Card className="bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-4 text-center">
+                <p className="text-sm text-slate-600">
+                  แสดงครบทั้งหมด {filteredPayments.length} รายการ
+                </p>
               </CardContent>
             </Card>
           )}
