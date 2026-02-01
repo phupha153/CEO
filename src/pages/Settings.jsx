@@ -220,7 +220,6 @@ export default function Settings() {
     bill_generation_day: '27',
     pay_day: '5',
     late_fee_per_day: '',
-    auto_send_bills: false,
     bill_advance_notice_days: '3',
     send_advance_reminder: false,
     send_due_date_reminder: false,
@@ -734,7 +733,6 @@ export default function Settings() {
     }
     const billGenerationDayConfig = getConfigValue('bill_generation_day', true);
     const payDayConfig = getConfigValue('pay_day', true);
-    const autoSendBillsConfig = getConfigValue('auto_send_bills_after_generation', false);
     const billAdvanceNoticeConfig = getConfigValue('bill_advance_notice_days', true);
     const sendAdvanceReminderConfig = getConfigValue('send_advance_reminder', false);
     const sendDueDateReminderConfig = getConfigValue('send_due_date_reminder', false);
@@ -834,7 +832,6 @@ export default function Settings() {
     }
 
     // ⭐ ถ้าไม่มี branch-specific config = ใช้ false เสมอ (ไม่ fallback ไป global)
-    const hasBranchAutoSend = configs.some(c => c.key === 'auto_send_bills_after_generation' && c.branch_id === selectedBranch?.id);
     const hasBranchAdvance = configs.some(c => c.key === 'send_advance_reminder' && c.branch_id === selectedBranch?.id);
     const hasBranchDueDate = configs.some(c => c.key === 'send_due_date_reminder' && c.branch_id === selectedBranch?.id);
     const hasBranchOverdue = configs.some(c => c.key === 'send_overdue_reminder' && c.branch_id === selectedBranch?.id);
@@ -843,7 +840,6 @@ export default function Settings() {
       bill_generation_day: billGenerationDayConfig?.value || '27',
       pay_day: payDayConfig?.value || '5',
       late_fee_per_day: lateFeeConfig?.value || '',
-      auto_send_bills: hasBranchAutoSend ? (autoSendBillsConfig?.value === 'true') : false,
       bill_advance_notice_days: billAdvanceNoticeConfig?.value || '3',
       send_advance_reminder: hasBranchAdvance ? (sendAdvanceReminderConfig?.value === 'true') : false,
       send_due_date_reminder: hasBranchDueDate ? (sendDueDateReminderConfig?.value === 'true') : false,
@@ -1463,7 +1459,6 @@ export default function Settings() {
         { key: 'bill_generation_day', value: billSettings.bill_generation_day, description: 'วันที่สร้างบิลอัตโนมัติ (วันที่ของเดือน)', category: 'general', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif },
         { key: 'pay_day', value: billSettings.pay_day, description: 'วันครบกำหนดชำระ (วันที่ของเดือน)', category: 'general', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif },
         { key: 'late_payment_fee_per_day', value: billSettings.late_fee_per_day, description: 'ค่าปรับล่าช้าต่อวัน (บาท)', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif },
-        { key: 'auto_send_bills_after_generation', value: billSettings.auto_send_bills ? 'true' : 'false', description: 'ส่งบิลอัตโนมัติหลังจากสร้างบิล', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif },
         { key: 'bill_advance_notice_days', value: billSettings.bill_advance_notice_days, description: 'แจ้งบิลล่วงหน้ากี่วัน', category: 'general', value_type: 'number', applyToAllBranches: applyToAllBranches_billNotif },
         { key: 'send_advance_reminder', value: billSettings.send_advance_reminder ? 'true' : 'false', description: 'เปิด/ปิดการแจ้งบิลล่วงหน้า', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif },
         { key: 'send_due_date_reminder', value: billSettings.send_due_date_reminder ? 'true' : 'false', description: 'ส่งข้อความเตือนในวันครบกำหนดชำระ', category: 'general', value_type: 'string', applyToAllBranches: applyToAllBranches_billNotif },
@@ -2990,26 +2985,6 @@ export default function Settings() {
                                   </div>
                                 </div>
                               )}
-
-                              <label className={`flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 ${hasBankConfig ? 'cursor-pointer hover:bg-slate-100' : 'opacity-50 cursor-not-allowed'} transition-colors`}>
-                                <input
-                                  type="checkbox"
-                                  checked={billSettings.auto_send_bills}
-                                  onChange={(e) => {
-                                    if (hasBankConfig) {
-                                      setBillSettings({ ...billSettings, auto_send_bills: e.target.checked });
-                                    } else {
-                                      toast.error('กรุณากรอกข้อมูลบัญชีธนาคารก่อน');
-                                    }
-                                  }}
-                                  disabled={!hasBankConfig}
-                                  className="w-5 h-5 rounded"
-                                />
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium text-slate-800">ส่งบิลทาง LINE หลังสร้างบิล</p>
-                                  <p className="text-xs text-slate-600">ส่งใบแจ้งหนี้ให้ผู้เช่าทันทีเมื่อสร้างบิล</p>
-                                </div>
-                              </label>
 
                               <label className={`flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 ${hasBankConfig ? 'cursor-pointer hover:bg-slate-100' : 'opacity-50 cursor-not-allowed'} transition-colors`}>
                                 <input
