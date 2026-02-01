@@ -159,7 +159,9 @@ Deno.serve(async (req) => {
                             messages: messages
                         };
                         
-                        console.log(`🔐 LINE payload: to="${payload.to}", msgCount=${messages.length}, msgLen=${recipient.message.length}`);
+                        const payloadJson = JSON.stringify(payload);
+                        console.log(`🔐 LINE payload JSON: ${payloadJson}`);
+                        console.log(`🔐 Token: ${token.substring(0, 20)}...${token.substring(token.length - 10)}`);
                         
                         const response = await fetch('https://api.line.me/v2/bot/message/push', {
                             method: 'POST',
@@ -167,7 +169,7 @@ Deno.serve(async (req) => {
                                 'Content-Type': 'application/json',
                                 'Authorization': `Bearer ${token}`
                             },
-                            body: JSON.stringify(payload)
+                            body: payloadJson
                         });
 
                         if (!response.ok) {
