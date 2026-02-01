@@ -30,6 +30,7 @@ import AIResultCard from "../components/shared/AIResultCard";
 import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import ExcelTable from "../components/tenants/ExcelTable";
 import BulkTenantGenerator from "../components/tenants/BulkTenantGenerator";
+import BackToTopButton from "../components/shared/BackToTopButton";
 
 export default function TenantsPage() {
   const navigate = useNavigate();
@@ -5271,6 +5272,8 @@ const tenantSchema = {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
+
+      <BackToTopButton />
+      </div>
+      );
+      }

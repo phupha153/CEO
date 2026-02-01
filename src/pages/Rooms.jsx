@@ -4827,6 +4827,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BackToTopButton />
     </div>
   );
 }
