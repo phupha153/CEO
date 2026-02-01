@@ -1939,17 +1939,19 @@ ${JSON.stringify(roomsWithAC, null, 2)}
           icon={DoorOpen}
         />
         <div className="px-4 md:px-8 py-6">
-          <div className="max-w-7xl mx-auto space-y-3 animate-pulse">
-            {[...Array(10)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-slate-200 rounded-lg"></div>
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-slate-200 rounded" style={{ width: `${60 + Math.random() * 30}%` }}></div>
-                  <div className="h-3 bg-slate-200 rounded" style={{ width: `${40 + Math.random() * 20}%` }}></div>
-                </div>
-                <div className="w-20 h-6 bg-slate-200 rounded"></div>
-              </div>
-            ))}
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4 animate-pulse">
+              {[...Array(12)].map((_, i) => (
+                <Card key={i} className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg overflow-hidden">
+                  <div className="h-2 bg-slate-200"></div>
+                  <CardContent className="p-3 md:p-4 space-y-2">
+                    <div className="h-6 bg-slate-200 rounded mx-auto" style={{ width: '60%' }}></div>
+                    <div className="h-4 bg-slate-200 rounded" style={{ width: '80%' }}></div>
+                    <div className="h-3 bg-slate-200 rounded" style={{ width: '50%' }}></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
       </div>
