@@ -2780,6 +2780,7 @@ Return JSON.`;
                   roomsNeedingBills={roomsNeedingBills}
                   onSuccess={() => queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] })} 
                   compact 
+                  tenants={tenants}
                 />
               )}
               {canSendBillsBulk && (

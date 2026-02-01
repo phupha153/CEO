@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Calendar, Loader2, Users, AlertTriangle } from "lucide-react";
@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
-export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills = 0, onSuccess, compact = false }) {
+export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills = 0, onSuccess, compact = false, tenants = [] }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [generating, setGenerating] = useState(false);
@@ -16,28 +16,9 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
   const [isCheckingAccess, setIsCheckingAccess] = useState(false);
   const [showNoTenantsDialog, setShowNoTenantsDialog] = useState(false);
 
-  const { data: tenants = [], isLoading: tenantsLoading } = useQuery({
-    queryKey: ['tenants', branchId],
-    queryFn: async () => {
-      if (!branchId) return [];
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Tenant',
-        filters: { branch_id: branchId, status: 'active' },
-        limit: 500
-      });
-      return response.data.data;
-    },
-    enabled: !!branchId,
-    staleTime: 2 * 60 * 1000,
-  });
-
   const handleGenerateBills = async () => {
-    if (tenantsLoading) {
-      toast.info('กำลังโหลดข้อมูลผู้เช่า...');
-      return;
-    }
-
-    if (tenants.length === 0) {
+    // เช็คว่ามีผู้เช่าหรือไม่
+    if (!tenants || tenants.length === 0) {
       setShowNoTenantsDialog(true);
       return;
     }
