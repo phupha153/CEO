@@ -16,6 +16,7 @@ import { th } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import PageHeader from "../components/shared/PageHeader";
+import ScrollToTopButton from "../components/shared/ScrollToTopButton";
 
 export default function Maintenance() {
   const [showDialog, setShowDialog] = useState(false);
@@ -377,6 +378,7 @@ export default function Maintenance() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
+      <ScrollToTopButton />
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-400/10 to-pink-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />

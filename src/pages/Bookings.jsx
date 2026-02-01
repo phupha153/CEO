@@ -49,6 +49,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import PageHeader from "../components/shared/PageHeader";
+import ScrollToTopButton from "../components/shared/ScrollToTopButton";
 import AISearchBox from "../components/shared/AISearchBox";
 import AIResultCard from "../components/shared/AIResultCard";
 import AIActionConfirmation from "../components/shared/AIActionConfirmation";
@@ -1129,6 +1130,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
+      <ScrollToTopButton />
       <PageHeader
         title="การจองห้อง"
         subtitle={`สาขา ${selectedBranchName}`}

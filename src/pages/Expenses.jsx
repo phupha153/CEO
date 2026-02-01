@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import StatsCard from "../components/dashboard/StatsCard";
 import PageHeader from "../components/shared/PageHeader";
+import ScrollToTopButton from "../components/shared/ScrollToTopButton";
 
 export default function Expenses() {
   const [showDialog, setShowDialog] = useState(false);
@@ -414,6 +415,7 @@ export default function Expenses() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
+      <ScrollToTopButton />
       <PageHeader
         title="ค่าใช้จ่าย"
         subtitle={`สาขา ${selectedBranchName}`}
