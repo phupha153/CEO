@@ -796,10 +796,27 @@ export default function MeterReadings() {
     return map;
   }, [meterReadings]);
 
+  // ✅ NEW: Check if room has been recorded in the currently selected month
+  const recordedRoomsThisMonthMap = useMemo(() => {
+    const map = new Map();
+    const [year, month] = selectedMonth.split('-').map(Number);
+
+    meterReadings.forEach(r => {
+      try {
+        const readingDate = parseISO(r.reading_date);
+        if (readingDate.getMonth() === (month - 1) && readingDate.getFullYear() === year) {
+          map.set(r.room_id, true);
+        }
+      } catch {}
+    });
+    return map;
+  }, [meterReadings, selectedMonth]);
+
   const getRoomInfo = useCallback((roomId) => roomsMap.get(roomId), [roomsMap]);
   const getActiveBooking = useCallback((roomId) => bookingsMap.get(roomId), [bookingsMap]);
   const getTenantInfo = useCallback((tenantId) => tenantsMap.get(tenantId), [tenantsMap]);
   const getLatestReading = useCallback((roomId) => meterReadingsMap.get(roomId), [meterReadingsMap]);
+  const hasRecordedThisMonth = useCallback((roomId) => recordedRoomsThisMonthMap.has(roomId), [recordedRoomsThisMonthMap]);
 
   const { totalElectricityThisMonth, totalWaterThisMonth, monthReadingsCount } = useMemo(() => {
     const [year, month] = selectedMonth.split('-').map(Number);
@@ -1676,15 +1693,21 @@ export default function MeterReadings() {
                               {/* Desktop View - คลิกเปิด Dialog */}
                               {!isMobile && (
                                 <Card 
-                                  className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl hover:shadow-2xl transition-all cursor-pointer"
+                                  className={`bg-white/80 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all cursor-pointer ${hasRecordedThisMonth(room.id) ? 'border-2 border-green-500' : 'border-slate-200/60'}`}
                                   onClick={() => handleRoomCardClick(room)}
                                 >
                                   <CardContent className="p-6">
                                     <div className="flex items-center justify-between mb-4">
-                                      <div>
+                                      <div className="flex items-center gap-2">
                                         <h3 className="text-xl font-bold text-slate-800">ห้อง {room.room_number}</h3>
+                                        {hasRecordedThisMonth(room.id) && (
+                                          <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+                                            <Check className="w-3 h-3 mr-1" />
+                                            บันทึกแล้ว
+                                          </Badge>
+                                        )}
                                         {tenant && (
-                                          <p className="text-sm text-slate-500">{tenant.full_name}</p>
+                                          <p className="text-sm text-slate-500 ml-2">{tenant.full_name}</p>
                                         )}
                                       </div>
                                       {hasReading && (
@@ -1749,13 +1772,19 @@ export default function MeterReadings() {
 
                               {/* Mobile View - กรอกข้อมูลในการ์ดเลย */}
                               {isMobile && (
-                                <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl hover:shadow-2xl transition-all">
+                                <Card className={`bg-white/80 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all ${hasRecordedThisMonth(room.id) ? 'border-2 border-green-500' : 'border-slate-200/60'}`}>
                                   <CardContent className="p-6">
                                     <div className="flex items-center justify-between mb-4">
-                                      <div>
+                                      <div className="flex items-center gap-2">
                                         <h3 className="text-xl font-bold text-slate-800">ห้อง {room.room_number}</h3>
+                                        {hasRecordedThisMonth(room.id) && (
+                                          <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+                                            <Check className="w-3 h-3 mr-1" />
+                                            บันทึกแล้ว
+                                          </Badge>
+                                        )}
                                         {tenant && (
-                                          <p className="text-sm text-slate-500">{tenant.full_name}</p>
+                                          <p className="text-sm text-slate-500 ml-2">{tenant.full_name}</p>
                                         )}
                                       </div>
                                       {hasReading && (
@@ -1835,7 +1864,7 @@ export default function MeterReadings() {
                                          !canAdd || 
                                          createSingleMutation.isPending ||
                                          (cardReadings[room.id]?.water_current == null || cardReadings[room.id]?.water_current === '') ||
-                                                                                   (cardReadings[room.id]?.electricity_current == null || cardReadings[room.id]?.electricity_current === '')
+                                                                                  (cardReadings[room.id]?.electricity_current == null || cardReadings[room.id]?.electricity_current === '')
                                        }
                                        className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-9"
                                      >
@@ -1847,10 +1876,16 @@ export default function MeterReadings() {
                                        ) : (
                                          <>
                                            <Check className="w-4 h-4 mr-2" />
-                                           บันทึก
+                                           {hasRecordedThisMonth(room.id) ? 'บันทึกเพิ่ม' : 'บันทึก'}
                                          </>
                                        )}
                                      </Button>
+
+                                     {hasRecordedThisMonth(room.id) && (
+                                       <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-center">
+                                         <p className="text-xs text-green-700 font-medium">✓ เดือนนี้บันทึกแล้ว</p>
+                                       </div>
+                                     )}
 
                                      {latest && (
                                        <div className="pt-3 border-t text-center">
@@ -1978,7 +2013,13 @@ export default function MeterReadings() {
                                     <td className="px-4 py-3 text-sm font-medium text-slate-800">
                                       <div className="flex items-center gap-2">
                                         {room.room_number}
-                                        {!hasExistingReading && !isViewMode && (
+                                        {hasRecordedThisMonth(room.id) && (
+                                          <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs">
+                                            <Check className="w-3 h-3 mr-1" />
+                                            บันทึกแล้ว
+                                          </Badge>
+                                        )}
+                                        {!hasExistingReading && !isViewMode && !hasRecordedThisMonth(room.id) && (
                                           <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">
                                             ครั้งแรก
                                           </Badge>
