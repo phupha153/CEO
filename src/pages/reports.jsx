@@ -691,10 +691,47 @@ export default function ReportsPage() {
           icon={BarChart3}
         />
         <div className="px-4 md:px-8 py-6">
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-              <p className="text-slate-600 text-lg">กำลังโหลดข้อมูลการชำระเงิน...</p>
+          <div className="max-w-7xl mx-auto space-y-6 animate-pulse">
+            {/* Stats Cards Skeleton */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+              {[...Array(4)].map((_, i) => (
+                <Card key={i} className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
+                  <CardContent className="p-3 md:p-6">
+                    <div className="flex items-start justify-between mb-3 md:mb-4">
+                      <div className="w-8 h-8 md:w-12 md:h-12 rounded-xl bg-slate-200" />
+                    </div>
+                    <div className="h-3 md:h-4 bg-slate-200 rounded w-20 mb-2" />
+                    <div className="h-6 md:h-8 bg-slate-200 rounded w-28 mb-1" />
+                    <div className="h-2 md:h-3 bg-slate-200 rounded w-16" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Chart Skeleton */}
+            <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl overflow-hidden rounded-3xl">
+              <CardHeader className="pb-4">
+                <div className="h-6 bg-slate-200 rounded w-64" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-[280px] bg-slate-100 rounded-2xl" />
+              </CardContent>
+            </Card>
+
+            {/* Pie Charts Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {[...Array(2)].map((_, i) => (
+                <Card key={i} className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl overflow-hidden rounded-3xl">
+                  <CardHeader className="pb-4">
+                    <div className="h-6 bg-slate-200 rounded w-48" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px] flex items-center justify-center">
+                      <div className="w-48 h-48 rounded-full bg-slate-200" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
         </div>
