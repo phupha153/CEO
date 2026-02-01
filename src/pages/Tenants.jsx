@@ -2570,60 +2570,66 @@ const tenantSchema = {
                 </Card>
               )}
 
+          {/* Quick Actions Bar - อยู่นอก Card เพื่อให้เห็นชัดเจน */}
+          {isSelectionMode && (
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-300 shadow-xl rounded-2xl sticky top-4 z-40">
+              <CardContent className="p-4">
+                <div className="flex flex-wrap gap-2 items-center">
+                  <div className="flex items-center gap-2 mr-2">
+                    <CheckSquare className="w-5 h-5 text-blue-600" />
+                    <span className="font-bold text-blue-900">เลือกแล้ว: {selectedTenants.length} คน</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={toggleSelectAllInPage}
+                    className="bg-white border-blue-400 text-blue-700 hover:bg-blue-50 font-semibold"
+                  >
+                    <CheckSquare className="w-4 h-4 mr-2" />
+                    เลือกทั้งหมดในหน้านี้ ({displayedTenants.length})
+                  </Button>
+
+                  {selectedTenants.length > 0 && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedTenants([])}
+                        className="bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        ล้างการเลือก
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={handleBulkDelete}
+                        disabled={isBulkExecuting}
+                        className="bg-red-600 hover:bg-red-700 ml-auto font-bold shadow-md"
+                      >
+                        {isBulkExecuting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            กำลังลบ...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            ลบที่เลือก ({selectedTenants.length})
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg rounded-3xl">
             <CardContent className="p-6 md:p-8 space-y-6 relative">
               <div className="absolute inset-0 bg-white/50 blur-xl pointer-events-none z-0 rounded-3xl"></div>
-
-              {/* Quick Actions Bar - Sticky ติดด้านบนเสมอ */}
-              {isSelectionMode && (
-                <div className="sticky top-0 z-30 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-3 md:p-4 border-2 border-blue-200 shadow-lg backdrop-blur-sm">
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={toggleSelectAllInPage}
-                      className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50 font-semibold"
-                    >
-                      <CheckSquare className="w-4 h-4 mr-2" />
-                      เลือกทั้งหมด ({displayedTenants.length})
-                    </Button>
-
-                    {selectedTenants.length > 0 && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setSelectedTenants([])}
-                          className="bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
-                        >
-                          <X className="w-4 h-4 mr-2" />
-                          ล้าง
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={handleBulkDelete}
-                          disabled={isBulkExecuting}
-                          className="bg-red-600 hover:bg-red-700 ml-auto font-semibold shadow-md"
-                        >
-                          {isBulkExecuting ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              กำลังลบ...
-                            </>
-                          ) : (
-                            <>
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              ลบ ({selectedTenants.length})
-                            </>
-                          )}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
 
               <div className="relative z-10 flex flex-col md:flex-row gap-3">
                 <div className="flex-1 relative">
