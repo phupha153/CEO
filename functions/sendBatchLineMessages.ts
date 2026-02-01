@@ -175,13 +175,23 @@ Deno.serve(async (req) => {
 
                 const batchResults = await Promise.all(batchPromises);
                 
+                let batchSuccess = 0;
+                let batchFailed = 0;
                 batchResults.forEach(res => {
-                    if (res.success) results.success++;
-                    else {
+                    if (res.success) {
+                        results.success++;
+                        batchSuccess++;
+                    } else {
                         results.failed++;
-                        results.errors.push({ error: res.error });
+                        batchFailed++;
+                        results.errors.push({ 
+                            lineUserId: res.lineUserId,
+                            error: res.error,
+                            branchId
+                        });
                     }
                 });
+                console.log(`📊 Batch ${bIdx + 1}/${batches.length}: ${batchSuccess}✅ ${batchFailed}❌`);
 
                 // Delay between batches
                 if (bIdx < batches.length - 1) {
