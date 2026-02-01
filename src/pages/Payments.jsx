@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -430,9 +429,7 @@ export default function PaymentsPage() {
     if (!configs || configs.length === 0 || !selectedBranchId) return;
   }, []);
 
-  // ⭐ FIX: รวมสถานะการโหลดทั้งหมด
   const isDataFetching = paymentsFetching || bookingsFetching || roomsFetching || tenantsFetching;
-  const isInitialDataLoading = bookingsFetching || roomsFetching || tenantsFetching;
 
   const currentDateMemo = useMemo(() => {
     const testDateConfig = configs.find(c => c.key === 'test_current_date');
@@ -3305,7 +3302,7 @@ Return JSON.`;
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           e.preventDefault();
-                                          setConfirmPaymentDialog({ open: true, payment: p });
+                                          setConfirmPaymentDialog({ open: true, payment });
                                         }}
                                         disabled={updateStatusMutation.isPending}
                                       >
@@ -3679,7 +3676,7 @@ Return JSON.`;
                               <th className="px-4 py-3 text-center w-12">
                                 <div
                                   className={`w-5 h-5 mx-auto rounded border-2 flex items-center justify-center cursor-pointer transition-all ${
-                                    displayedPayments.every(p => selectedPaymentIds.includes(p.id))
+                                    paginatedPayments.every(p => selectedPaymentIds.includes(p.id))
                                       ? 'bg-blue-600 border-blue-600 text-white'
                                       : 'bg-white border-slate-300 hover:border-blue-400'
                                   }`}
@@ -3688,7 +3685,7 @@ Return JSON.`;
                                     toggleSelectAllInPage();
                                   }}
                                 >
-                                  {displayedPayments.every(p => selectedPaymentIds.includes(p.id)) && (
+                                  {paginatedPayments.every(p => selectedPaymentIds.includes(p.id)) && (
                                     <Check className="w-3 h-3" />
                                   )}
                                 </div>
