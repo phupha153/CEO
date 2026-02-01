@@ -2636,14 +2636,7 @@ const tenantSchema = {
                             type="checkbox"
                             id={`status-${status}`}
                             checked={selectedStatuses.includes(status)}
-                            onChange={() => {
-                              toggleStatus(status);
-                              // ⭐ ถ้าเลือก payment_overdue → เข้าโหมดเลือกหลายรายการ
-                              if (status === 'payment_overdue' && !selectedStatuses.includes(status)) {
-                                setIsSelectionMode(true);
-                                toast.info('เข้าสู่โหมดเลือกหลายรายการ', { duration: 2000 });
-                              }
-                            }}
+                            onChange={() => toggleStatus(status)}
                             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
                           <label htmlFor={`status-${status}`} className="text-sm font-medium text-slate-700 cursor-pointer">
