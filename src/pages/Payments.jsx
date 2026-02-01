@@ -2420,7 +2420,7 @@ Return JSON.`;
   }
 
   const isLoading = (viewMode === 'room' ? roomViewFetching : paymentsLoading);
-  const hasNoData = viewMode === 'room' ? (roomViewPayments.length === 0) : (paginatedPayments.length === 0);
+  const hasNoData = viewMode === 'room' ? (roomViewPayments.length === 0) : (displayedPayments.length === 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
@@ -3099,7 +3099,7 @@ Return JSON.`;
               <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-xl font-semibold text-slate-800">กำลังโหลดข้อมูล...</p>
             </div>
-          ) : viewMode === 'card' && paginatedPayments.length === 0 ? (
+          ) : viewMode === 'card' && displayedPayments.length === 0 ? (
             <div className="text-center p-8 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl rounded-xl">
               <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
               <p className="text-xl font-semibold text-slate-800">ไม่พบรายการชำระเงิน</p>
