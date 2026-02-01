@@ -506,12 +506,12 @@ Deno.serve(async (req) => {
                     message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
 
                 } else {
-                    // --- CASE 3: ปกติ (Advance/General) - มีลิงก์ + ธนาคาร ---
-                    console.log(`📝 Using ADVANCE/GENERAL template (WITH LINK) for payment ${payment.id}`);
-                    const frontendUrl = Deno.env.get('FRONTEND_URL');
-                    const paymentBranchId = payment.branch_id || branchId;
-                    const invoiceLink = frontendUrl ? `${frontendUrl}publicinvoice?id=${payment.id}&branchId=${paymentBranchId}` : null;
-                    console.log(`🔗 Invoice link generated: ${invoiceLink || 'N/A'}`);
+                     // --- CASE 3: ปกติ (Advance/General) - มีลิงก์ + ธนาคาร ---
+                     console.log(`📝 Using ADVANCE/GENERAL template (WITH LINK) for payment ${payment.id}`);
+                     const frontendUrl = Deno.env.get('FRONTEND_URL');
+                     const paymentBranchId = payment.branch_id || branchId;
+                     const invoiceLink = frontendUrl ? `${frontendUrl}/publicinvoice?id=${payment.id}&branchId=${paymentBranchId}` : null;
+                     console.log(`🔗 Invoice link generated: ${invoiceLink || 'N/A'}`);
 
                     message = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
                     message += `สวัสดีคุณ ${tenant.full_name}\n`;
