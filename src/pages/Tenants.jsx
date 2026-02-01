@@ -207,27 +207,6 @@ export default function TenantsPage() {
     setDisplayLimit(50);
   }, [selectedStatuses]);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && displayLimit < filteredTenants.length) {
-          setDisplayLimit(prev => Math.min(prev + 50, filteredTenants.length));
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
-      }
-    };
-  }, [displayLimit, filteredTenants.length]);
-
   const retryConfig = {
     retry: 0,
     retryDelay: 0,
@@ -2031,9 +2010,30 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     }
 
     return result;
-  }, [tenants, debouncedSearch, selectedStatuses, aiResult, getActiveBookings, getRoomInfo, isContractExpiringSoon, getPaymentStatus]);
+    }, [tenants, debouncedSearch, selectedStatuses, aiResult, getActiveBookings, getRoomInfo, isContractExpiringSoon, getPaymentStatus]);
 
-  const displayedTenants = useMemo(() => {
+    useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayLimit < filteredTenants.length) {
+          setDisplayLimit(prev => Math.min(prev + 50, filteredTenants.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+    }, [displayLimit, filteredTenants.length]);
+
+    const displayedTenants = useMemo(() => {
     return filteredTenants.slice(0, displayLimit);
   }, [filteredTenants, displayLimit]);
 
