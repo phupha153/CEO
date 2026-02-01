@@ -29,6 +29,7 @@ import AISearchBox from "../components/shared/AISearchBox";
 import AIResultCard from "../components/shared/AIResultCard";
 import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import ExcelTable from "../components/tenants/ExcelTable";
+import BulkTenantGenerator from "../components/tenants/BulkTenantGenerator";
 
 export default function TenantsPage() {
   const navigate = useNavigate();
@@ -72,10 +73,12 @@ export default function TenantsPage() {
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [showMoveOutDialog, setShowMoveOutDialog] = useState(false);
   const [moveOutData, setMoveOutData] = useState({
-    returnDeposit: true,
-    depositAmount: '',
-    depositNotes: ''
+    returnDeposit: true,
+    depositAmount: '',
+    depositNotes: ''
   });
+  const [showBulkTenantGenerator, setShowBulkTenantGenerator] = useState(false);
+  const [generatingTenants, setGeneratingTenants] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -2703,25 +2706,35 @@ const tenantSchema = {
               </CardContent>
             </Card>
           ) : tenants.length === 0 ? (
-            <Card className="bg-slate-50">
-              <CardContent className="p-8 text-center">
-                <Users className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-slate-700 mb-2">ยังไม่มีผู้เช่าในสาขานี้</h3>
-                <p className="text-slate-500 mb-4">เริ่มต้นเพิ่มผู้เช่าคนแรกของคุณ</p>
-                {canAdd && (
-                  <Button
-                    onClick={() => {
-                      resetForm();
-                      setShowDialog(true);
-                    }}
-                    className="mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    เพิ่มผู้เช่าใหม่
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+            <Card className="bg-slate-50">
+              <CardContent className="p-8 text-center">
+                <Users className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-slate-700 mb-2">ยังไม่มีผู้เช่าในสาขานี้</h3>
+                <p className="text-slate-500 mb-4">เริ่มต้นเพิ่มผู้เช่าคนแรกของคุณ</p>
+                {canAdd && (
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                    <Button
+                      onClick={() => {
+                        resetForm();
+                        setShowDialog(true);
+                      }}
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      เพิ่มผู้เช่าทีละคน
+                    </Button>
+                    <Button
+                      onClick={() => setShowBulkTenantGenerator(true)}
+                      variant="outline"
+                      className="border-green-600 text-green-600 hover:bg-green-50"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      สร้างผู้เช่าจำนวนมาก
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           ) : null}
 
           {viewMode === 'room' ? (
@@ -5098,9 +5111,50 @@ const tenantSchema = {
         </DialogContent>
       </Dialog>
 
+      {/* Bulk Tenant Generator Dialog */}
+      <BulkTenantGenerator
+        open={showBulkTenantGenerator}
+        onOpenChange={setShowBulkTenantGenerator}
+        rooms={rooms}
+        isLoading={generatingTenants}
+        onConfirm={async (selectedRoomIds) => {
+          if (selectedRoomIds.length === 0) {
+            toast.error('กรุณาเลือกห้องอย่างน้อย 1 ห้อง');
+            return;
+          }
+
+          if (!confirm(`สร้างผู้เช่าสำหรับ ${selectedRoomIds.length} ห้อง?`)) {
+            return;
+          }
+
+          setGeneratingTenants(true);
+          try {
+            const response = await base44.functions.invoke('generateRoomBasedMockTenants', {
+              branch_id: selectedBranchId,
+              room_ids: selectedRoomIds // ส่งเฉพาะห้องที่เลือก
+            });
+
+            if (response.data.success) {
+              queryClient.invalidateQueries(['tenants', selectedBranchId]);
+              queryClient.invalidateQueries(['bookings', selectedBranchId]);
+              queryClient.invalidateQueries(['rooms', selectedBranchId]);
+
+              toast.success(`✅ สร้างผู้เช่าสำเร็จ ${response.data.tenants_created} คน`);
+              setShowBulkTenantGenerator(false);
+            } else {
+              toast.error(response.data.error || 'เกิดข้อผิดพลาด');
+            }
+          } catch (error) {
+            toast.error('เกิดข้อผิดพลาด: ' + error.message);
+          } finally {
+            setGeneratingTenants(false);
+          }
+        }}
+      />
+
       {/* Floating Bulk AI Action Bar */}
       <AnimatePresence>
-        {selectedTenants.length > 0 && (
+        {selectedTenants.length > 0 && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
