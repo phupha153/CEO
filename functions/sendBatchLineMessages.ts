@@ -111,17 +111,29 @@ Deno.serve(async (req) => {
 
         // Process by Branch
          for (const [branchId, branchRecipients] of recipientsByBranch) {
-             const token = await getLineToken(base44, configs, branchId);
-             if (!token) {
-                 branchRecipients.forEach(r => {
-                     results.errors.push({ lineUserId: r.lineUserId, error: 'No LINE Token found' });
-                     results.failed++;
-                 });
-                 console.error(`❌ CRITICAL: No LINE token found for branch ${branchId.substring(0, 8)}... - skipping ${branchRecipients.length} recipients`);
-                 continue;
-             }
+              const token = await getLineToken(base44, configs, branchId);
+              console.log(`🔍 getLineToken check: branchId=${branchId.substring(0, 8)}... | token exists? ${!!token} | token length=${token?.length || 0}`);
 
-             console.log(`✅ LINE token found for branch ${branchId.substring(0, 8)}... (length: ${token.length})`);
+              if (!token) {
+                  // ⭐ DEBUG: เช็ค configs
+                  const branchSpecific = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
+                  const globalConfig = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
+                  const envToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+
+                  console.error(`❌ CRITICAL: No LINE token found for branch ${branchId.substring(0, 8)}...`);
+                  console.error(`   Branch-specific config: ${branchSpecific ? 'YES (value=' + (branchSpecific.value?.substring(0, 10) || 'EMPTY') + '...)' : 'NO'}`);
+                  console.error(`   Global config: ${globalConfig ? 'YES (value=' + (globalConfig.value?.substring(0, 10) || 'EMPTY') + '...)' : 'NO'}`);
+                  console.error(`   ENV variable: ${envToken ? 'YES (length=' + envToken.length + ')' : 'NO'}`);
+                  console.error(`   Recipients affected: ${branchRecipients.length}`);
+
+                  branchRecipients.forEach(r => {
+                      results.errors.push({ lineUserId: r.lineUserId, error: 'No LINE Token found' });
+                      results.failed++;
+                  });
+                  continue;
+              }
+
+              console.log(`✅ LINE token found for branch ${branchId.substring(0, 8)}... (length: ${token.length})`);
 
              // Get Rate Limit Settings from Config (Priority: Config > Options > Default)
              const batchSize = parseInt(getConfigValue('line_batch_size', options.batchSize || '20', branchId));
