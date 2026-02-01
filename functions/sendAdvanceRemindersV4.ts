@@ -161,7 +161,7 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
             branch_id: branchId,
             status: { $ne: 'paid' },
             due_date: targetDateStr
-        }, '-id', 50, offset);
+        }, '-id', 200, offset);
 
         if (payments.length === 0) {
             hasMore = false;
@@ -325,7 +325,7 @@ async function processBranchWorker(base44, branchId, getConfig, testLineUserId) 
                 console.error(`❌ Branch ${branchId}: 0 successful sends despite ${recipients.length} recipients (LINE sent but no paymentIds collected!)`);
             }
         }
-        offset += 50;
+        offset += 200;
         await delay(100); // ⬆️ เพิ่มจาก 50ms → 100ms (ลด database pressure)
     }
     return branchSent;
