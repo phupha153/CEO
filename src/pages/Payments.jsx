@@ -27,6 +27,7 @@ import GenerateMonthlyBillsButton from "@/components/payments/GenerateMonthlyBil
 import SlipPreviewDialog from "@/components/shared/SlipPreviewDialog";
 import SendReminderDialog from "@/components/payments/SendReminderDialog";
 import ConfirmPaymentDialog from "@/components/payments/ConfirmPaymentDialog";
+import BulkTenantGenerator from "@/components/tenants/BulkTenantGenerator";
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
@@ -100,6 +101,8 @@ export default function PaymentsPage() {
   const [isBulkExecuting, setIsBulkExecuting] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [longPressTarget, setLongPressTarget] = useState(null);
+  const [showBulkTenantGenerator, setShowBulkTenantGenerator] = useState(false);
+  const [generatingTenants, setGeneratingTenants] = useState(false);
 
   useEffect(() => {
     window.resetPaymentsAI = () => {
@@ -3868,7 +3871,7 @@ Return JSON.`;
               {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
                   <CardContent className="p-4 md:p-6">
-                    {!tenantsFetching && tenants.length === 0 && (
+                    {!tenantsFetching && !bookingsFetching && tenants.length === 0 && (
                       <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                         <div className="flex items-start gap-3">
                           <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -3876,11 +3879,11 @@ Return JSON.`;
                             <p className="font-semibold text-red-800">⚠️ ไม่สามารถเพิ่มการชำระเงินได้ตอนนี้</p>
                             <p className="text-sm text-red-700 mt-1 mb-3">ยังไม่มีผู้เช่าในระบบ กรุณาเพิ่มผู้เช่าก่อนเพื่อสร้างบิลชำระเงิน</p>
                             <Button
-                              onClick={() => navigate(`${createPageUrl('Tenants')}?openDialog=true`)}
+                              onClick={() => setShowBulkTenantGenerator(true)}
                               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md"
                             >
-                              <Plus className="w-4 h-4 mr-2" />
-                              เพิ่มผู้เช่า
+                              <Users className="w-4 h-4 mr-2" />
+                              เพิ่มผู้เช่าตามห้อง
                             </Button>
                           </div>
                         </div>
@@ -5182,6 +5185,47 @@ Return JSON.`;
           confirming={updateStatusMutation.isPending}
         />
       )}
+
+      <BulkTenantGenerator
+        open={showBulkTenantGenerator}
+        onOpenChange={setShowBulkTenantGenerator}
+        rooms={rooms}
+        isLoading={generatingTenants}
+        onConfirm={async (selectedRoomIds) => {
+          if (selectedRoomIds.length === 0) {
+            toast.error('กรุณาเลือกห้องอย่างน้อย 1 ห้อง');
+            return;
+          }
+
+          if (!confirm(`สร้างผู้เช่าสำหรับ ${selectedRoomIds.length} ห้อง?`)) {
+            return;
+          }
+
+          setGeneratingTenants(true);
+          try {
+            const response = await base44.functions.invoke('generateRoomBasedMockTenants', {
+              branch_id: selectedBranchId,
+              room_ids: selectedRoomIds
+            });
+
+            if (response.data.success) {
+              queryClient.invalidateQueries({ queryKey: ['tenants', selectedBranchId] });
+              queryClient.invalidateQueries({ queryKey: ['bookings', selectedBranchId] });
+              queryClient.invalidateQueries({ queryKey: ['rooms', selectedBranchId] });
+              queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
+
+              toast.success(`✅ สร้างผู้เช่าสำเร็จ ${response.data.tenants_created} คน`);
+              setShowBulkTenantGenerator(false);
+            } else {
+              toast.error(response.data.error || 'เกิดข้อผิดพลาด');
+            }
+          } catch (error) {
+            toast.error('เกิดข้อผิดพลาด: ' + error.message);
+          } finally {
+            setGeneratingTenants(false);
+          }
+        }}
+      />
     </div>
   );
 }
