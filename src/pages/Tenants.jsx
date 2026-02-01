@@ -1848,17 +1848,59 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
   }, [contracts, contractSearchQuery, contractStatusFilter, getTenantInfo, getRoomInfo]);
 
   const handleConfirmAIAction = async () => {
-    if (!aiAction) {
-      console.log('⚠️ No AI action to confirm');
-      return;
-    }
+    if (!aiAction) {
+      console.log('⚠️ No AI action to confirm');
+      return;
+    }
 
-    console.log('✅ Confirming AI action:', aiAction.action_type);
-    setExecutingAction(true);
+    console.log('✅ Confirming AI action:', aiAction.action_type);
+    setExecutingAction(true);
 
-    try {
-      // Bulk Update - แก้ไขหลายคนพร้อมกัน
-      if (aiAction.action_type === 'bulk_update' && aiAction.tenant_ids) {
+    try {
+      // Delete - ลบผู้เช่า + Booking + ข้อมูลที่เกี่ยวข้อง
+      if (aiAction.action_type === 'delete' && aiAction.tenant_id) {
+        const tenant = tenants.find(t => t.id === aiAction.tenant_id);
+        if (!tenant) {
+          toast.error('ไม่พบผู้เช่า');
+          setExecutingAction(false);
+          return;
+        }
+
+        // ⚠️ ขอยืนยันก่อนลบ
+        const activeBookings = getActiveBookings(tenant.id);
+        const bookingInfo = activeBookings.length > 0 
+          ? `\n\n📋 สัญญาเช่า: ${activeBookings.length} สัญญา` 
+          : '';
+
+        const confirmDelete = window.confirm(
+          `⚠️ คุณแน่ใจหรือไม่ว่าต้องการลบผู้เช่า "${tenant.full_name}"?${bookingInfo}\n\n` +
+          `การกระทำนี้จะลบข้อมูลทั้งหมดอย่างถาวร:\n` +
+          `• ผู้เช่า\n` +
+          `• สัญญาเช่าทั้งหมด (${activeBookings.length} สัญญา)\n` +
+          `• การชำระเงิน\n` +
+          `• คะแนน\n` +
+          `• สัญญาอย่างเป็นทางการ`
+        );
+
+        if (!confirmDelete) {
+          toast.info('ยกเลิกการลบแล้ว');
+          setExecutingAction(false);
+          setAiAction(null);
+          return;
+        }
+
+        console.log('🗑️ Deleting tenant:', tenant.id);
+        await deleteMutation.mutateAsync(tenant.id);
+        toast.success(`✅ ลบผู้เช่า "${tenant.full_name}" และข้อมูลที่เกี่ยวข้องสำเร็จ`);
+        setAiAction(null);
+        setAiResult(null);
+        setSearchQuery('');
+        setExecutingAction(false);
+        return;
+      }
+
+      // Bulk Update - แก้ไขหลายคนพร้อมกัน
+      if (aiAction.action_type === 'bulk_update' && aiAction.tenant_ids) {
         const tenantIds = aiAction.tenant_ids;
         const changes = aiAction.changes;
 
