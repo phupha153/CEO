@@ -101,6 +101,9 @@ async function getLineToken(base44, branchId = null) {
 
 // ⭐ V2.1 - Fixed: Invoice links removed from overdue/due_date templates
 Deno.serve(async (req) => {
+    const START_TIME = Date.now();
+    const SAFETY_LIMIT_MS = 85 * 1000;
+    
     try {
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
@@ -186,16 +189,40 @@ Deno.serve(async (req) => {
                 allRooms = room ? [room] : [];
             }
         } else if (branch_id) {
-            // ดึงเฉพาะ branch นั้น
-            const [configResults, tenantResults, roomResults] = await Promise.all([
+            // ดึงเฉพาะ branch นั้น + Pagination
+            const [configResults, ...data] = await Promise.all([
                 base44.asServiceRole.entities.Config.list(),
-                base44.asServiceRole.entities.Tenant.filter({ branch_id }),
-                base44.asServiceRole.entities.Room.filter({ branch_id })
+                (async () => {
+                    const result = [];
+                    let offset = 0;
+                    const limit = 500;
+                    while (true) {
+                        const chunk = await base44.asServiceRole.entities.Tenant.filter({ branch_id }, '-id', limit, offset);
+                        if (chunk.length === 0) break;
+                        result.push(...chunk);
+                        offset += limit;
+                        if (chunk.length < limit) break;
+                    }
+                    return result;
+                })(),
+                (async () => {
+                    const result = [];
+                    let offset = 0;
+                    const limit = 500;
+                    while (true) {
+                        const chunk = await base44.asServiceRole.entities.Room.filter({ branch_id }, '-id', limit, offset);
+                        if (chunk.length === 0) break;
+                        result.push(...chunk);
+                        offset += limit;
+                        if (chunk.length < limit) break;
+                    }
+                    return result;
+                })()
             ]);
 
             configs = configResults;
-            allTenants = Array.isArray(tenantResults) ? tenantResults : [];
-            allRooms = Array.isArray(roomResults) ? roomResults : [];
+            allTenants = data[0] || [];
+            allRooms = data[1] || [];
 
             // 🛡️ Safety Check: Validate Bank Config
             const bankName = getConfigValue('bank_name', branch_id, null);
@@ -245,8 +272,31 @@ Deno.serve(async (req) => {
         console.log(`📤 Processing ${paymentsToSend.length} payments...`);
 
         const recipients = [];
+        
+        // ⭐ Cache tiered configs + fees per day OUTSIDE the loop (O(1) instead of O(n))
+        const tiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === branch_id) 
+            || configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
+        const tiersEnabled = tiersEnabledConfig?.value === 'true';
+        
+        const tiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === branch_id) 
+            || configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
+        let cachedTiers = null;
+        if (tiersConfig?.value) {
+            try {
+                cachedTiers = JSON.parse(tiersConfig.value);
+            } catch {}
+        }
+        
+        const feePerDayConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === branch_id)
+            || configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
+        const feePerDay = parseFloat(feePerDayConfig?.value || '0');
 
         for (const payment of paymentsToSend) {
+            // 🛑 Safety timeout check
+            if (Date.now() - START_TIME > SAFETY_LIMIT_MS) {
+                console.error('⚠️ Timeout! Stopping payment processing');
+                break;
+            }
             const tenant = tenantMap.get(payment.tenant_id);
             const room = roomMap.get(payment.room_id);
 
@@ -311,41 +361,21 @@ Deno.serve(async (req) => {
                     }
 
                     if (shouldRecalculate) {
-                        const branchTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === branchId);
-                        const globalTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
-                        const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
-                        const tiersEnabled = tiersEnabledConfig?.value === 'true';
-
-                        if (tiersEnabled) {
-                            const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === branchId);
-                            const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
-                            const tiersConfig = branchTiersConfig || globalTiersConfig;
-
-                            if (tiersConfig?.value) {
-                                try {
-                                    const tiers = JSON.parse(tiersConfig.value);
-                                    for (const tier of tiers) {
-                                        const daysFrom = tier.days_from || 1;
-                                        const daysTo = tier.days_to || 999;
-                                        const feePerDay = parseFloat(tier.fee_per_day || 0);
-                                        if (daysOverdue >= daysFrom) {
-                                            const daysInTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
-                                            if (daysInTier > 0) calculatedLateFee += daysInTier * feePerDay;
-                                        }
-                                        if (daysOverdue <= daysTo) break;
-                                    }
-                                } catch (e) {
-                                    console.error('Error parsing tiers:', e);
+                        // ⭐ Use CACHED configs (O(1) - already fetched outside loop)
+                        if (tiersEnabled && cachedTiers) {
+                            for (const tier of cachedTiers) {
+                                const daysFrom = tier.days_from || 1;
+                                const daysTo = tier.days_to || 999;
+                                const tierFeePerDay = parseFloat(tier.fee_per_day || 0);
+                                if (daysOverdue >= daysFrom) {
+                                    const daysInTier = Math.min(daysOverdue, daysTo) - daysFrom + 1;
+                                    if (daysInTier > 0) calculatedLateFee += daysInTier * tierFeePerDay;
                                 }
+                                if (daysOverdue <= daysTo) break;
                             }
-                        } else {
-                            const branchConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && c.branch_id === branchId);
-                            const globalConfig = configs.find(c => c.key === 'late_payment_fee_per_day' && !c.branch_id);
-                            const config = branchConfig || globalConfig;
-                            const feePerDay = parseFloat(config?.value || '0');
-                            if (!isNaN(feePerDay) && feePerDay > 0) {
-                                calculatedLateFee = daysOverdue * feePerDay;
-                            }
+                        } else if (!isNaN(feePerDay) && feePerDay > 0) {
+                            // ⭐ Use CACHED feePerDay
+                            calculatedLateFee = daysOverdue * feePerDay;
                         }
 
                         console.log(`   💰 Calculated late fee: ${calculatedLateFee} บาท (${daysOverdue} วัน)`);
@@ -398,18 +428,10 @@ Deno.serve(async (req) => {
                 const originalAmount = payment.total_amount - (payment.late_fee_amount || 0);
                 const totalWithLateFee = originalAmount + lateFee;
 
-                const lateFeePerDayConfig = getConfigValue('late_payment_fee_per_day', branchId, '0');
-                const feePerDay = parseFloat(lateFeePerDayConfig);
-
-                // ⭐ ดึงค่าปรับแบบขั้นบันได (ถ้ามี)
-                const lateFeeStructureConfig = configs.find(c => 
-                    c.key === 'late_fee_tiers' && c.branch_id === branchId
-                );
+                // ⭐ Use CACHED configs (already fetched outside loop)
                 let lateFeeStructure = null;
-                if (lateFeeStructureConfig?.value) {
-                    try {
-                        lateFeeStructure = JSON.parse(lateFeeStructureConfig.value);
-                    } catch {}
+                if (tiersEnabled && cachedTiers) {
+                    lateFeeStructure = cachedTiers;
                 }
 
                 if (template === 'overdue') {
