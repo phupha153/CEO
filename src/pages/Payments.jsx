@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -2143,57 +2144,9 @@ ${JSON.stringify(bookingsData, null, 2)}
         if (!actionData.id) {
           throw new Error('ไม่พบ ID ของรายการที่ต้องการลบ');
         }
-        
-        // 🔍 ดึงข้อมูล Payment เพื่อหา tenant_id
-        const paymentToDelete = payments.find(p => p.id === actionData.id);
-        if (!paymentToDelete) {
-          throw new Error('ไม่พบการชำระเงินที่ต้องการลบ');
-        }
-
-        // ⚠️ ขอยืนยันก่อนลบ
-        const room = getRoomInfo(paymentToDelete.room_id);
-        const tenant = getTenantInfo(paymentToDelete.tenant_id);
-        
-        const confirmDelete = window.confirm(
-          `⚠️ คุณแน่ใจว่าต้องการลบบิลห้อง ${room?.room_number || 'N/A'}?\n\n` +
-          `ผู้เช่า: ${tenant?.full_name || 'N/A'}\n` +
-          `ยอดเงิน: ${(paymentToDelete.total_amount || 0).toLocaleString()} บาท\n\n` +
-          `การกระทำนี้ไม่สามารถย้อนกลับได้`
-        );
-
-        if (!confirmDelete) {
-          toast.info('ยกเลิกการลบแล้ว');
-          setAiActionLoading(false);
-          setAiAction(null);
-          return;
-        }
-
-        // 🗑️ ลบ Booking ที่เกี่ยวข้องก่อน (ถ้ามี tenant_id)
-        if (paymentToDelete.tenant_id) {
-          try {
-            const tenantBookings = await base44.entities.Booking.filter({ 
-              tenant_id: paymentToDelete.tenant_id,
-              branch_id: selectedBranchId 
-            });
-            
-            if (tenantBookings && tenantBookings.length > 0) {
-              for (const booking of tenantBookings) {
-                // อัปเดตห้องเป็นว่างก่อนลบ booking
-                if (booking.room_id && booking.status === 'active') {
-                  await base44.entities.Room.update(booking.room_id, { status: 'available' });
-                }
-                await base44.entities.Booking.delete(booking.id);
-              }
-              console.log(`✅ ลบ Booking ที่เกี่ยวข้อง ${tenantBookings.length} รายการ`);
-            }
-          } catch (bookingError) {
-            console.warn('⚠️ ไม่สามารถลบ Booking:', bookingError.message);
-          }
-        }
-
-        // 🗑️ ลบ Payment
+        const paymentToDelete = payments.find(p => p.id === actionData.id) || { id: actionData.id };
         await deleteMutation.mutateAsync(paymentToDelete);
-        toast.success('ลบรายการและข้อมูลที่เกี่ยวข้องสำเร็จ');
+        toast.success('ลบรายการสำเร็จ');
       } else {
         let paymentData = { ...actionData };
 
