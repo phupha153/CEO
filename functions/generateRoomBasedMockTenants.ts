@@ -10,14 +10,20 @@ Deno.serve(async (req) => {
 
     try {
         const base44 = createClientFromRequest(req);
-        const { branch_id } = await req.json();
+        const { branch_id, room_ids } = await req.json();
 
         if (!branch_id) {
             return Response.json({ success: false, error: 'Branch ID is required' }, { status: 400 });
         }
 
-        // Fetch all rooms for the given branch
-        const rooms = await base44.asServiceRole.entities.Room.filter({ branch_id: branch_id });
+        // Fetch rooms - ถ้ามี room_ids ให้ดึงเฉพาะห้องที่เลือก, ไม่งั้นดึงทั้งหมด
+        let rooms;
+        if (room_ids && room_ids.length > 0) {
+            rooms = await base44.asServiceRole.entities.Room.filter({ branch_id: branch_id });
+            rooms = rooms.filter(r => room_ids.includes(r.id));
+        } else {
+            rooms = await base44.asServiceRole.entities.Room.filter({ branch_id: branch_id });
+        }
         console.log(`Found ${rooms.length} rooms in branch ${branch_id}`);
 
         let createdTenantsCount = 0;
