@@ -7,7 +7,7 @@ export default function ScrollToTopButton() {
 
   useEffect(() => {
     const toggleVisibility = () => {
-      if (window.scrollY > 500) {
+      if (window.scrollY > 200) {
         setIsVisible(true);
       } else {
         setIsVisible(false);
@@ -30,9 +30,10 @@ export default function ScrollToTopButton() {
   return (
     <Button
       onClick={scrollToTop}
-      className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-blue-600 hover:bg-blue-700 text-white shadow-2xl rounded-full w-12 h-12 p-0 flex items-center justify-center animate-in fade-in slide-in-from-top-5"
+      className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-2xl rounded-full w-14 h-14 p-0 flex items-center justify-center animate-bounce"
+      title="กลับไปด้านบน"
     >
-      <ArrowUp className="w-5 h-5" />
+      <ArrowUp className="w-6 h-6" />
     </Button>
   );
 }
