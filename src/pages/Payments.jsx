@@ -250,7 +250,8 @@ export default function PaymentsPage() {
         search_query: '',
         page: 1,
         limit: 5000,
-        sort_by: 'room'
+        sort_by: 'room',
+        exclude_dismissed: true
       });
       
       return response.data?.data || [];
@@ -280,7 +281,8 @@ export default function PaymentsPage() {
         page: 1,
         limit: displayLimit,
         sort_by: sortBy,
-        debug: true
+        debug: true,
+        exclude_dismissed: true
       });
       
       if (response.data?.logs) {
@@ -2318,6 +2320,45 @@ Return JSON.`;
       toast.error('AI Error');
     } finally {
       setAiSearching(false);
+    }
+  };
+
+  const handleBulkDismiss = async () => {
+    if (selectedPaymentIds.length === 0) return;
+
+    const confirmed = confirm(`ซ่อนรายการ ${selectedPaymentIds.length} รายการ?\n\n(รายการจะถูกซ่อนจากการแสดงผล แต่ยังคงอยู่ในระบบ)`);
+    if (!confirmed) return;
+
+    setIsBulkExecuting(true);
+    try {
+      const nowIso = new Date().toISOString();
+      const chunkSize = 20;
+      
+      for (let i = 0; i < selectedPaymentIds.length; i += chunkSize) {
+        const chunk = selectedPaymentIds.slice(i, i + chunkSize);
+        await Promise.all(chunk.map(id => 
+          base44.entities.Payment.update(id, {
+            is_dismissed: true,
+            dismissed_at: nowIso,
+            dismissed_by: currentUser?.email
+          })
+        ));
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-room-view'] }),
+        queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
+      ]);
+
+      setSelectedPaymentIds([]);
+      setIsSelectionMode(false);
+      toast.success(`ซ่อนรายการสำเร็จ ${selectedPaymentIds.length} รายการ`);
+    } catch (error) {
+      toast.error('เกิดข้อผิดพลาด: ' + error.message);
+    } finally {
+      setIsBulkExecuting(false);
     }
   };
 
@@ -4641,15 +4682,44 @@ Return JSON.`;
                       <p className="text-xs text-slate-500">จัดการการชำระเงินหลายรายการพร้อมกันด้วย AI</p>
                     </div>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setSelectedPaymentIds([])}
-                    className="text-red-600 hover:bg-red-50"
-                  >
-                    <X className="w-4 h-4 mr-1" />
-                    ล้างการเลือก
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={selectAllFilteredPayments}
+                      className="bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100"
+                      disabled={(viewMode === 'room' ? roomViewPayments : filteredPayments).length === 0}
+                    >
+                      <CheckSquare className="w-4 h-4 mr-1" />
+                      เลือกทั้งหมด ({(viewMode === 'room' ? roomViewPayments : filteredPayments).length})
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleBulkDismiss}
+                      disabled={isBulkExecuting}
+                      className="bg-red-50 border-red-300 text-red-700 hover:bg-red-100"
+                    >
+                      {isBulkExecuting ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4 mr-1" />
+                      )}
+                      ซ่อนรายการ
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setSelectedPaymentIds([]);
+                        setIsSelectionMode(false);
+                      }}
+                      className="text-slate-600 hover:bg-slate-50"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      ยกเลิก
+                    </Button>
+                  </div>
                 </div>
 
                 {!bulkAIResult ? (
