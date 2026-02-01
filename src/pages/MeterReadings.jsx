@@ -1617,7 +1617,7 @@ export default function MeterReadings() {
 
           {viewMode === 'card' && (
             <div className="space-y-8">
-              {displayFloors.map((floor, floorIndex) => {
+              {displayFloors.map((floor) => {
                 const floorRooms = displayRoomsByFloor[floor];
                 const floorHasUnsaved = floorRooms.some(room => cardReadings[room.id]?.water_current || cardReadings[room.id]?.electricity_current);
                 
@@ -1652,17 +1652,15 @@ export default function MeterReadings() {
                         </Button>
                       )}
                       
-                      {floorIndex === 0 && (
-                        <Button
-                          onClick={() => setViewMode('table')}
-                          variant="outline"
-                          size="sm"
-                          className="border-slate-400 text-slate-600 hover:bg-slate-50"
-                        >
-                          <List className="w-4 h-4 mr-1" />
-                          ตาราง
-                        </Button>
-                      )}
+                      <Button
+                        onClick={() => setViewMode('table')}
+                        variant="outline"
+                        size="sm"
+                        className="border-slate-400 text-slate-600 hover:bg-slate-50"
+                      >
+                        <List className="w-4 h-4 mr-1" />
+                        ตาราง
+                      </Button>
                     </div>
                   </div>
 
@@ -2009,12 +2007,24 @@ export default function MeterReadings() {
 
               {displayFloors.map((floor) => (
                 <div key={floor} className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Building2 className="w-6 h-6 text-blue-600" />
-                    <h2 className="text-2xl font-bold text-slate-800">ชั้น {floor}</h2>
-                    <Badge variant="outline" className="text-sm">
-                      {displayRoomsByFloor[floor].length} ห้อง
-                    </Badge>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-3">
+                      <Building2 className="w-6 h-6 text-blue-600" />
+                      <h2 className="text-2xl font-bold text-slate-800">ชั้น {floor}</h2>
+                      <Badge variant="outline" className="text-sm">
+                        {displayRoomsByFloor[floor].length} ห้อง
+                      </Badge>
+                    </div>
+                    
+                    <Button
+                      onClick={() => setViewMode('card')}
+                      variant="outline"
+                      size="sm"
+                      className="border-slate-400 text-slate-600 hover:bg-slate-50"
+                    >
+                      <Grid className="w-4 h-4 mr-1" />
+                      การ์ด
+                    </Button>
                   </div>
 
                   <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl">
