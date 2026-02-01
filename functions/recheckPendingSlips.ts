@@ -422,6 +422,13 @@ Deno.serve(async (req) => {
 
                         console.log(`   💰 Slip Amount: ${slipAmount} บาท`);
                         console.log(`   👤 Sender: ${senderName}`);
+                        
+                        // ⭐ ถ้ายอด = 0 → เงียบ ไม่ตอบอะไร (รอตรวจสอบซ้ำรอบถัดไป)
+                        if (slipAmount === 0 || isNaN(slipAmount)) {
+                            console.log(`   ⏳ Amount is 0 or invalid - skipping silently (waiting for next recheck)`);
+                            skippedCount++;
+                            continue;
+                        }
 
                         // ⭐⭐⭐ คำนวณค่าปรับก่อนเช็คยอด
                         const paymentDateOnly = transDate.split('T')[0];
@@ -517,10 +524,23 @@ Deno.serve(async (req) => {
                 console.log('====================================================\n');
 
                 if (!accountMatch) {
-                    console.log(`   ⚠️ Account mismatch`);
+                    console.log(`   ⚠️ Account mismatch - notifying customer`);
+                    
+                    const errorMsg = `โอนเงินไปผิดบัญชี\n\nตรวจพบโอนเข้า: ${receiverAccount || receiverPromptPay}\nควรโอนเข้า: ${expectedAccountNumber || expectedPromptPay}\n\nกรุณาตรวจสอบอีกครั้ง`;
+                    
                     await entityService.Payment.update(payment.id, {
-                        notes: `${payment.notes}\n\n⚠️ โอนไปผิดบัญชี - กรุณาตรวจสอบด้วยตนเอง`
+                        notes: `${payment.notes}\n\n⚠️ รอตรวจสอบ: ${errorMsg}`
                     });
+                    
+                    // ⭐ ส่ง LINE แจ้งลูกค้าว่าโอนผิดบัญชี
+                    const tenant = tenants.find(t => t.id === payment.tenant_id);
+                    if (tenant?.line_user_id) {
+                        await sendLineMessage(base44, tenant.line_user_id, 
+                            `❌ ${errorMsg}\n\nกรุณารอเจ้าของหอพักตรวจสอบ หรือโอนใหม่ที่บัญชีที่ถูกต้องค่ะ 🙏`,
+                            payment.branch_id,
+                            configs
+                        );
+                    }
                     
                     failCount++;
                     continue;
