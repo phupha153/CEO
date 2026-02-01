@@ -7,31 +7,22 @@ export default function ScrollToTopButton() {
 
   useEffect(() => {
     const toggleVisibility = () => {
-      // ตรวจจับ scroll จากทั้ง window และ scroll containers
-      const scrollY = window.scrollY || document.documentElement.scrollTop;
-      const mainContent = document.querySelector('main.flex-1');
-      const mainScroll = mainContent?.scrollTop || 0;
+      // ✅ หา scroll container จริงๆ (main content ใน Layout)
+      const mainContent = document.querySelector('main.flex-1 > div');
+      const scrollTop = mainContent?.scrollTop || 0;
       
-      if (scrollY > 200 || mainScroll > 200) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
+      setIsVisible(scrollTop > 200);
     };
 
-    // ฟัง scroll จากทั้ง window และ main content
-    window.addEventListener('scroll', toggleVisibility);
+    // ฟัง scroll จาก main content container
+    const mainContent = document.querySelector('main.flex-1 > div');
     
-    const mainContent = document.querySelector('main.flex-1');
     if (mainContent) {
       mainContent.addEventListener('scroll', toggleVisibility);
+      toggleVisibility(); // Check immediately
     }
-    
-    // เช็คทันทีตอน mount
-    toggleVisibility();
 
     return () => {
-      window.removeEventListener('scroll', toggleVisibility);
       if (mainContent) {
         mainContent.removeEventListener('scroll', toggleVisibility);
       }
@@ -39,13 +30,7 @@ export default function ScrollToTopButton() {
   }, []);
 
   const scrollToTop = () => {
-    // Scroll ทั้ง window และ main content
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-    
-    const mainContent = document.querySelector('main.flex-1');
+    const mainContent = document.querySelector('main.flex-1 > div');
     if (mainContent) {
       mainContent.scrollTo({
         top: 0,
