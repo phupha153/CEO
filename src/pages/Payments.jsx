@@ -3868,7 +3868,7 @@ Return JSON.`;
               {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
                   <CardContent className="p-4 md:p-6">
-                    {tenants.length === 0 && (
+                    {!tenantsFetching && tenants.length === 0 && (
                       <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
                         <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
