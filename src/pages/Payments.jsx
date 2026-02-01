@@ -23,7 +23,6 @@ import AISearchBox from "../components/shared/AISearchBox";
 import AIResultCard from "../components/shared/AIResultCard";
 import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import SendAdvanceReminderButton from "@/components/settings/SendAdvanceReminderButton";
-import ScrollToTopButton from '../components/shared/ScrollToTopButton';
 import GenerateMonthlyBillsButton from "@/components/payments/GenerateMonthlyBillsButton";
 import SlipPreviewDialog from "@/components/shared/SlipPreviewDialog";
 import SendReminderDialog from "@/components/payments/SendReminderDialog";
