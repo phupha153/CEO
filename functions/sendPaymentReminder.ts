@@ -71,27 +71,30 @@ async function getLineToken(base44, branchId = null) {
     try {
         const configs = await base44.asServiceRole.entities.Config.list();
 
-        // ⭐ ใช้ token เฉพาะสาขาเท่านั้น (ไม่ fallback ไป global หรือ env)
+        // 1️⃣ ลองหา token เฉพาะสาขา
         if (branchId) {
             const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
             if (branchToken?.value?.trim()) {
                 console.log(`✅ Using branch-specific token for branch: ${branchId.substring(0, 8)}...`);
                 return branchToken.value.trim();
             }
-
-            // ⭐ ไม่มี token ของสาขานี้
-            console.warn(`⚠️ No LINE token found for branch: ${branchId.substring(0, 8)}...`);
-            return null;
         }
 
-        // กรณี Global token (เผื่อไว้ แต่ระบบนี้เน้น Branch)
+        // 2️⃣ Fallback ไป global token
         const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
         if (globalToken?.value?.trim()) {
-            console.log('✅ Using global token from Config database');
+            console.log(`✅ Using global token from Config (branch ${branchId?.substring(0, 8) || 'N/A'} not found)`);
             return globalToken.value.trim();
         }
 
-        console.warn('⚠️ No LINE token found');
+        // 3️⃣ Fallback ไป environment variable
+        const envToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+        if (envToken?.trim()) {
+            console.log('✅ Using LINE token from environment variable');
+            return envToken.trim();
+        }
+
+        console.warn(`⚠️ No LINE token found for branch: ${branchId?.substring(0, 8) || 'N/A'} (tried: branch config, global config, environment)`);
         return null;
     } catch (error) {
         console.error('❌ Error fetching LINE token:', error);
@@ -503,7 +506,7 @@ Deno.serve(async (req) => {
                     console.log(`📝 Using ADVANCE/GENERAL template (WITH LINK) for payment ${payment.id}`);
                     const frontendUrl = Deno.env.get('FRONTEND_URL');
                     const paymentBranchId = payment.branch_id || branchId;
-                    const invoiceLink = frontendUrl ? `${frontendUrl}publicinvoice?id=${payment.id}&branchId=${paymentBranchId}` : null;
+                    const invoiceLink = frontendUrl ? `${frontendUrl}/publicinvoice?id=${payment.id}&branchId=${paymentBranchId}` : null;
                     console.log(`🔗 Invoice link generated: ${invoiceLink || 'N/A'}`);
 
                     message = `📢 ${buildingName} - แจ้งเตือนค่าเช่า\n\n`;
