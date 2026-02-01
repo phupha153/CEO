@@ -1524,7 +1524,7 @@ export default function MeterReadings() {
             </Card>
           )}
 
-          {/* Floor Filter + View Mode Toggle */}
+          {/* Floor Filter + AI Analysis */}
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
             <CardContent className="p-4">
               <div className="flex flex-wrap items-center gap-3">
@@ -1577,19 +1577,6 @@ export default function MeterReadings() {
                   )}
                   AI
                 </Button>
-
-                <Button
-                  onClick={() => setViewMode(viewMode === 'card' ? 'table' : 'card')}
-                  variant="outline"
-                  size="sm"
-                  className="border-slate-400 text-slate-600 hover:bg-slate-50"
-                >
-                  {viewMode === 'card' ? (
-                    <><List className="w-4 h-4 mr-1" />ตาราง</>
-                  ) : (
-                    <><Grid className="w-4 h-4 mr-1" />การ์ด</>
-                  )}
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1630,13 +1617,13 @@ export default function MeterReadings() {
 
           {viewMode === 'card' && (
             <div className="space-y-8">
-              {displayFloors.map((floor) => {
+              {displayFloors.map((floor, floorIndex) => {
                 const floorRooms = displayRoomsByFloor[floor];
                 const floorHasUnsaved = floorRooms.some(room => cardReadings[room.id]?.water_current || cardReadings[room.id]?.electricity_current);
                 
                 return (
                 <div key={floor} className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center gap-3">
                       <Building2 className="w-6 h-6 text-blue-600" />
                       <h2 className="text-2xl font-bold text-slate-800">ชั้น {floor}</h2>
@@ -1645,24 +1632,38 @@ export default function MeterReadings() {
                       </Badge>
                     </div>
                     
-                    {isMobile && floorHasUnsaved && (
-                      <Button
-                        onClick={() => {
-                          // บันทึกทุกห้องในชั้นที่กรอกข้อมูลแล้ว
-                          floorRooms.forEach(room => {
-                            const data = cardReadings[room.id];
-                            if (data?.water_current && data?.electricity_current) {
-                              handleSaveSingleReading(room.id);
-                            }
-                          });
-                        }}
-                        size="sm"
-                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                      >
-                        <Save className="w-4 h-4 mr-1" />
-                        บันทึกชั้นนี้
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {isMobile && floorHasUnsaved && (
+                        <Button
+                          onClick={() => {
+                            // บันทึกทุกห้องในชั้นที่กรอกข้อมูลแล้ว
+                            floorRooms.forEach(room => {
+                              const data = cardReadings[room.id];
+                              if (data?.water_current && data?.electricity_current) {
+                                handleSaveSingleReading(room.id);
+                              }
+                            });
+                          }}
+                          size="sm"
+                          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                        >
+                          <Save className="w-4 h-4 mr-1" />
+                          บันทึกชั้นนี้
+                        </Button>
+                      )}
+                      
+                      {floorIndex === 0 && (
+                        <Button
+                          onClick={() => setViewMode('table')}
+                          variant="outline"
+                          size="sm"
+                          className="border-slate-400 text-slate-600 hover:bg-slate-50"
+                        >
+                          <List className="w-4 h-4 mr-1" />
+                          ตาราง
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
