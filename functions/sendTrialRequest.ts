@@ -10,14 +10,12 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วน' }, { status: 400 });
         }
 
-        // ดึง admin_email จาก Config (ต้องเป็น user ที่ลงทะเบียนในระบบ)
-        const configs = await base44.asServiceRole.entities.Config.list();
-        const adminEmailConfig = configs.find(c => c.key === 'admin_email' && !c.branch_id);
-        const adminEmail = adminEmailConfig?.value;
+        // ดึง admin_email จาก Secret
+        const adminEmail = Deno.env.get('admin_email');
         
         if (!adminEmail) {
             return Response.json({ 
-                error: 'ไม่พบอีเมลแอดมิน ในระบบ กรุณาติดต่อเจ้าหน้าที่' 
+                error: 'ไม่พบอีเมลแอดมิน โปรดติดต่อเจ้าหน้าที่' 
             }, { status: 500 });
         }
 
