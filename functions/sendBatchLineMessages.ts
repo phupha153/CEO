@@ -95,10 +95,11 @@ Deno.serve(async (req) => {
         for (const recipient of recipients) {
             const branchId = recipient.branchId || recipient.metadata?.branchId;
             if (!branchId) {
+                const errMsg = `No branch_id for recipient ${recipient.lineUserId}`;
+                console.error(`❌ ${errMsg}`);
                 results.errors.push({
                     lineUserId: recipient.lineUserId,
-                    error: 'No branch_id provided',
-                    metadata: recipient.metadata
+                    error: errMsg
                 });
                 results.failed++;
                 continue;
@@ -108,6 +109,8 @@ Deno.serve(async (req) => {
             }
             recipientsByBranch.get(branchId).push(recipient);
         }
+        
+        console.log(`📊 Grouped recipients by branch: ${recipientsByBranch.size} branches`);
 
         // Process by Branch
         for (const [branchId, branchRecipients] of recipientsByBranch) {
