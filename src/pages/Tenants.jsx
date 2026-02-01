@@ -30,7 +30,6 @@ import AIResultCard from "../components/shared/AIResultCard";
 import AIActionConfirmation from "../components/shared/AIActionConfirmation";
 import ExcelTable from "../components/tenants/ExcelTable";
 import BulkTenantGenerator from "../components/tenants/BulkTenantGenerator";
-import BackToTopButton from "../components/shared/BackToTopButton";
 
 export default function TenantsPage() {
   const navigate = useNavigate();
@@ -207,6 +206,27 @@ export default function TenantsPage() {
   useEffect(() => {
     setDisplayLimit(50);
   }, [selectedStatuses]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayLimit < filteredTenants.length) {
+          setDisplayLimit(prev => Math.min(prev + 50, filteredTenants.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [displayLimit, filteredTenants.length]);
 
   const retryConfig = {
     retry: 0,
@@ -2011,32 +2031,11 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     }
 
     return result;
-    }, [tenants, debouncedSearch, selectedStatuses, aiResult, getActiveBookings, getRoomInfo, isContractExpiringSoon, getPaymentStatus]);
+  }, [tenants, debouncedSearch, selectedStatuses, aiResult, getActiveBookings, getRoomInfo, isContractExpiringSoon, getPaymentStatus]);
 
-    useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && displayLimit < filteredTenants.length) {
-          setDisplayLimit(prev => Math.min(prev + 50, filteredTenants.length));
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
-      }
-    };
-    }, [displayLimit, filteredTenants.length]);
-
-    const displayedTenants = useMemo(() => {
-    return filteredTenants.slice(0, displayLimit);
-    }, [filteredTenants, displayLimit]);
+  const displayedTenants = useMemo(() => {
+    return filteredTenants.slice(0, displayLimit);
+  }, [filteredTenants, displayLimit]);
 
   const tenantCardsData = useMemo(() => {
     return displayedTenants.map(tenant => {
@@ -5272,8 +5271,6 @@ const tenantSchema = {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <BackToTopButton />
-      </div>
-      );
-      }
+    </div>
+  );
+}
