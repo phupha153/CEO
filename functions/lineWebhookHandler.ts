@@ -1396,11 +1396,8 @@ async function handleSlipImage(base44, lineUserId, messageId, branchId = null, r
                     notes: `${pendingPayment.notes || ''}\n\n⏳ รอตรวจสอบซ้ำ: ธนาคารยังไม่มีข้อมูล - ${now}`
                 });
 
-                await sendMessage(base44, lineUserId, 
-                    `📸 ได้รับสลิปแล้ว!\n\n⏳ ธนาคารกำลังประมวลผล\nระบบจะตรวจสอบซ้ำอัตโนมัติ\n\nหากชำระครบจะได้รับใบเสร็จอัตโนมัติค่ะ`,
-                    branchId,
-                    replyToken
-                );
+                // ⭐ ไม่ตอบกลับอะไร - ให้ cron job ตรวจสอบซ้ำแบบเงียบๆ
+                console.log('📸 Slip saved silently - waiting for cron recheck');
                 return;
             }
 
