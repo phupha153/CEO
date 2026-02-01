@@ -2146,9 +2146,39 @@ ${JSON.stringify(bookingsData, null, 2)}
         if (!actionData.id) {
           throw new Error('ไม่พบ ID ของรายการที่ต้องการลบ');
         }
-        const paymentToDelete = payments.find(p => p.id === actionData.id) || { id: actionData.id };
+        
+        // 🔍 ดึงข้อมูล Payment เพื่อหา tenant_id
+        const paymentToDelete = payments.find(p => p.id === actionData.id);
+        if (!paymentToDelete) {
+          throw new Error('ไม่พบการชำระเงินที่ต้องการลบ');
+        }
+
+        // 🗑️ ลบ Booking ที่เกี่ยวข้องก่อน (ถ้ามี tenant_id)
+        if (paymentToDelete.tenant_id) {
+          try {
+            const tenantBookings = await base44.entities.Booking.filter({ 
+              tenant_id: paymentToDelete.tenant_id,
+              branch_id: selectedBranchId 
+            });
+            
+            if (tenantBookings && tenantBookings.length > 0) {
+              for (const booking of tenantBookings) {
+                // อัปเดตห้องเป็นว่างก่อนลบ booking
+                if (booking.room_id && booking.status === 'active') {
+                  await base44.entities.Room.update(booking.room_id, { status: 'available' });
+                }
+                await base44.entities.Booking.delete(booking.id);
+              }
+              console.log(`✅ ลบ Booking ที่เกี่ยวข้อง ${tenantBookings.length} รายการ`);
+            }
+          } catch (bookingError) {
+            console.warn('⚠️ ไม่สามารถลบ Booking:', bookingError.message);
+          }
+        }
+
+        // 🗑️ ลบ Payment
         await deleteMutation.mutateAsync(paymentToDelete);
-        toast.success('ลบรายการสำเร็จ');
+        toast.success('ลบรายการและข้อมูลที่เกี่ยวข้องสำเร็จ');
       } else {
         let paymentData = { ...actionData };
 
