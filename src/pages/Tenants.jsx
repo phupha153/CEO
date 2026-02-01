@@ -2599,31 +2599,38 @@ const tenantSchema = {
                   </div>
                 </div>
                 <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-48 h-14 justify-between rounded-2xl bg-white/60 backdrop-blur-xl shadow-lg border-white/70">
-                      <span className="text-sm font-medium">{selectedStatuses.length === 0 ? 'ทุกสถานะ' : `เลือกแล้ว ${selectedStatuses.length} สถานะ`}</span>
-                      <ChevronRight className="w-4 h-4 ml-2 rotate-90" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-4 bg-white/95 backdrop-blur-2xl border-white/80 rounded-2xl shadow-2xl" align="start">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-slate-700">สถานะผู้เช่า:</Label>
-                      {['active', 'moved_out', 'expiring_soon', 'near_payment', 'payment_overdue'].map(status => (
-                        <div key={status} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`status-${status}`}
-                            checked={selectedStatuses.includes(status)}
-                            onChange={() => toggleStatus(status)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <label htmlFor={`status-${status}`} className="text-sm font-medium text-slate-700 cursor-pointer">
-                            {getStatusLabel(status)}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </PopoverContent>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full md:w-48 h-14 justify-between rounded-2xl bg-white/60 backdrop-blur-xl shadow-lg border-white/70">
+                      <span className="text-sm font-medium">{selectedStatuses.length === 0 ? 'ทุกสถานะ' : `เลือกแล้ว ${selectedStatuses.length} สถานะ`}</span>
+                      <ChevronRight className="w-4 h-4 ml-2 rotate-90" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-4 bg-white/95 backdrop-blur-2xl border-white/80 rounded-2xl shadow-2xl" align="start">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-slate-700">สถานะผู้เช่า:</Label>
+                      {['active', 'moved_out', 'expiring_soon', 'near_payment', 'payment_overdue'].map(status => (
+                        <div key={status} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`status-${status}`}
+                            checked={selectedStatuses.includes(status)}
+                            onChange={() => {
+                              toggleStatus(status);
+                              // ⭐ ถ้าเลือก payment_overdue → เข้าโหมดเลือกหลายรายการ
+                              if (status === 'payment_overdue' && !selectedStatuses.includes(status)) {
+                                setIsSelectionMode(true);
+                                toast.info('เข้าสู่โหมดเลือกหลายรายการ', { duration: 2000 });
+                              }
+                            }}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <label htmlFor={`status-${status}`} className="text-sm font-medium text-slate-700 cursor-pointer">
+                            {getStatusLabel(status)}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
                 </Popover>
                 </div>
 
