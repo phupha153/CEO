@@ -7,22 +7,51 @@ export default function ScrollToTopButton() {
 
   useEffect(() => {
     const toggleVisibility = () => {
-      if (window.scrollY > 200) {
+      // ตรวจจับ scroll จากทั้ง window และ scroll containers
+      const scrollY = window.scrollY || document.documentElement.scrollTop;
+      const mainContent = document.querySelector('main.flex-1');
+      const mainScroll = mainContent?.scrollTop || 0;
+      
+      if (scrollY > 200 || mainScroll > 200) {
         setIsVisible(true);
       } else {
         setIsVisible(false);
       }
     };
 
+    // ฟัง scroll จากทั้ง window และ main content
     window.addEventListener('scroll', toggleVisibility);
-    return () => window.removeEventListener('scroll', toggleVisibility);
+    
+    const mainContent = document.querySelector('main.flex-1');
+    if (mainContent) {
+      mainContent.addEventListener('scroll', toggleVisibility);
+    }
+    
+    // เช็คทันทีตอน mount
+    toggleVisibility();
+
+    return () => {
+      window.removeEventListener('scroll', toggleVisibility);
+      if (mainContent) {
+        mainContent.removeEventListener('scroll', toggleVisibility);
+      }
+    };
   }, []);
 
   const scrollToTop = () => {
+    // Scroll ทั้ง window และ main content
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     });
+    
+    const mainContent = document.querySelector('main.flex-1');
+    if (mainContent) {
+      mainContent.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
   };
 
   if (!isVisible) return null;
@@ -30,10 +59,10 @@ export default function ScrollToTopButton() {
   return (
     <Button
       onClick={scrollToTop}
-      className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-2xl rounded-full w-14 h-14 p-0 flex items-center justify-center animate-bounce"
+      className="fixed bottom-8 right-8 z-[9999] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-2xl hover:shadow-3xl rounded-full w-16 h-16 p-0 flex items-center justify-center transition-all duration-300 hover:scale-110"
       title="กลับไปด้านบน"
     >
-      <ArrowUp className="w-6 h-6" />
+      <ArrowUp className="w-6 h-6 animate-bounce" />
     </Button>
   );
 }
