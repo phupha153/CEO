@@ -83,11 +83,22 @@ export default function TenantsPage() {
   const [generatingTenants, setGeneratingTenants] = useState(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const searchQueryParam = params.get('search');
-    if (searchQueryParam) {
-      setSearchQuery(decodeURIComponent(searchQueryParam));
-    }
+    const params = new URLSearchParams(window.location.search);
+    const searchQueryParam = params.get('search');
+    if (searchQueryParam) {
+      setSearchQuery(decodeURIComponent(searchQueryParam));
+    }
+
+    // Auto-open dialog if requested
+    const openDialog = params.get('openDialog');
+    if (openDialog === 'true') {
+      setEditingTenant(null);
+      resetForm();
+      setShowDialog(true);
+      // Clear URL param
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
   }, []);
 
   const itemsPerPage = 50;

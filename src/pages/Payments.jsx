@@ -3869,11 +3869,20 @@ Return JSON.`;
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
                   <CardContent className="p-4 md:p-6">
                     {!tenantsFetching && tenants.length === 0 && (
-                      <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="font-semibold text-red-800">⚠️ ไม่สามารถเพิ่มการชำระเงินได้ตอนนี้</p>
-                          <p className="text-sm text-red-700 mt-1">ยังไม่มีผู้เช่าในระบบ กรุณาไปที่หน้าผู้เช่าเพื่อเพิ่มผู้เช่าตามเลขห้อง</p>
+                      <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="font-semibold text-red-800">⚠️ ไม่สามารถเพิ่มการชำระเงินได้ตอนนี้</p>
+                            <p className="text-sm text-red-700 mt-1 mb-3">ยังไม่มีผู้เช่าในระบบ กรุณาเพิ่มผู้เช่าก่อนเพื่อสร้างบิลชำระเงิน</p>
+                            <Button
+                              onClick={() => navigate(`${createPageUrl('Tenants')}?openDialog=true`)}
+                              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              เพิ่มผู้เช่า
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )}
