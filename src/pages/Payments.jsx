@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,7 +28,6 @@ import GenerateMonthlyBillsButton from "@/components/payments/GenerateMonthlyBil
 import SlipPreviewDialog from "@/components/shared/SlipPreviewDialog";
 import SendReminderDialog from "@/components/payments/SendReminderDialog";
 import ConfirmPaymentDialog from "@/components/payments/ConfirmPaymentDialog";
-import BulkTenantGenerator from "@/components/tenants/BulkTenantGenerator";
 
 export default function PaymentsPage() {
   const navigate = useNavigate();
@@ -101,8 +101,6 @@ export default function PaymentsPage() {
   const [isBulkExecuting, setIsBulkExecuting] = useState(false);
   const [longPressTimer, setLongPressTimer] = useState(null);
   const [longPressTarget, setLongPressTarget] = useState(null);
-  const [showBulkTenantGenerator, setShowBulkTenantGenerator] = useState(false);
-  const [generatingTenants, setGeneratingTenants] = useState(false);
 
   useEffect(() => {
     window.resetPaymentsAI = () => {
@@ -1177,7 +1175,7 @@ export default function PaymentsPage() {
       await queryClient.cancelQueries({ queryKey: ['payments-room-view'] });
       await queryClient.cancelQueries({ queryKey: ['payments-count', selectedBranchId] });
 
-      const queryKeyFiltered = ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, currentPage, sortBy];
+      const queryKeyFiltered = ['payments-filtered', selectedBranchId, statusFilter, dateRangeType, customRange, searchQuery, displayLimit, sortBy];
       const queryKeyRoomView = ['payments-room-view', selectedBranchId, roomViewMonth];
 
       const previousPaymentsFiltered = queryClient.getQueryData(queryKeyFiltered);
@@ -2481,7 +2479,7 @@ Return JSON.`;
         icon={CreditCard}
         actions={
           <>
-            {canAdd && !tenantsFetching && tenants.length > 0 && (
+            {canAdd && !tenantsFetching && !bookingsFetching && tenants.length > 0 && (
               <Button
                 onClick={() => {
                   setEditingPayment(null);
@@ -2495,7 +2493,7 @@ Return JSON.`;
                 <span className="hidden md:inline">เพิ่มการชำระเงิน</span>
               </Button>
             )}
-            {canAdd && tenantsFetching && (
+            {canAdd && (tenantsFetching || bookingsFetching) && (
               <Button
                 disabled
                 className="bg-slate-400 shadow-lg gap-2 cursor-wait"
@@ -2504,7 +2502,7 @@ Return JSON.`;
                 <span className="hidden md:inline">กำลังโหลด...</span>
               </Button>
             )}
-            {canAdd && !tenantsFetching && tenants.length === 0 && (
+            {canAdd && !tenantsFetching && !bookingsFetching && tenants.length === 0 && (
               <Button
                 disabled
                 className="bg-slate-400 shadow-lg gap-2"
@@ -3679,7 +3677,7 @@ Return JSON.`;
                               <th className="px-4 py-3 text-center w-12">
                                 <div
                                   className={`w-5 h-5 mx-auto rounded border-2 flex items-center justify-center cursor-pointer transition-all ${
-                                    paginatedPayments.every(p => selectedPaymentIds.includes(p.id))
+                                    displayedPayments.every(p => selectedPaymentIds.includes(p.id))
                                       ? 'bg-blue-600 border-blue-600 text-white'
                                       : 'bg-white border-slate-300 hover:border-blue-400'
                                   }`}
@@ -3688,7 +3686,7 @@ Return JSON.`;
                                     toggleSelectAllInPage();
                                   }}
                                 >
-                                  {paginatedPayments.every(p => selectedPaymentIds.includes(p.id)) && (
+                                  {displayedPayments.every(p => selectedPaymentIds.includes(p.id)) && (
                                     <Check className="w-3 h-3" />
                                   )}
                                 </div>
@@ -3871,23 +3869,12 @@ Return JSON.`;
               {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
                   <CardContent className="p-4 md:p-6">
-                    {!tenantsFetching && !bookingsFetching && tenants.length === 0 && (
-                      <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-start gap-3 flex-1">
-                            <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                            <div>
-                              <p className="font-semibold text-red-800">⚠️ ไม่สามารถเพิ่มการชำระเงินได้ตอนนี้</p>
-                              <p className="text-sm text-red-700 mt-1">ยังไม่มีผู้เช่าในระบบ กรุณาเพิ่มผู้เช่าก่อนเพื่อสร้างบิลชำระเงิน</p>
-                            </div>
-                          </div>
-                          <Button
-                            onClick={() => setShowBulkTenantGenerator(true)}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md flex-shrink-0"
-                          >
-                            <Users className="w-4 h-4 mr-2" />
-                            เพิ่มผู้เช่าตามห้อง
-                          </Button>
+                    {!tenantsFetching && !bookingsFetching && tenants.length === 0 && bookings.length === 0 && (
+                      <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-semibold text-red-800">⚠️ ไม่สามารถเพิ่มการชำระเงินได้ตอนนี้</p>
+                          <p className="text-sm text-red-700 mt-1">ยังไม่มีผู้เช่าในระบบ หรือไม่มีการจองห้องที่ใช้งานอยู่ กรุณาไปที่หน้าผู้เช่าเพื่อเพิ่มผู้เช่าตามเลขห้อง</p>
                         </div>
                       </div>
                     )}
@@ -5187,47 +5174,6 @@ Return JSON.`;
           confirming={updateStatusMutation.isPending}
         />
       )}
-
-      <BulkTenantGenerator
-        open={showBulkTenantGenerator}
-        onOpenChange={setShowBulkTenantGenerator}
-        rooms={rooms}
-        isLoading={generatingTenants}
-        onConfirm={async (selectedRoomIds) => {
-          if (selectedRoomIds.length === 0) {
-            toast.error('กรุณาเลือกห้องอย่างน้อย 1 ห้อง');
-            return;
-          }
-
-          if (!confirm(`สร้างผู้เช่าสำหรับ ${selectedRoomIds.length} ห้อง?`)) {
-            return;
-          }
-
-          setGeneratingTenants(true);
-          try {
-            const response = await base44.functions.invoke('generateRoomBasedMockTenants', {
-              branch_id: selectedBranchId,
-              room_ids: selectedRoomIds
-            });
-
-            if (response.data.success) {
-              queryClient.invalidateQueries({ queryKey: ['tenants', selectedBranchId] });
-              queryClient.invalidateQueries({ queryKey: ['bookings', selectedBranchId] });
-              queryClient.invalidateQueries({ queryKey: ['rooms', selectedBranchId] });
-              queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
-
-              toast.success(`✅ สร้างผู้เช่าสำเร็จ ${response.data.tenants_created} คน`);
-              setShowBulkTenantGenerator(false);
-            } else {
-              toast.error(response.data.error || 'เกิดข้อผิดพลาด');
-            }
-          } catch (error) {
-            toast.error('เกิดข้อผิดพลาด: ' + error.message);
-          } finally {
-            setGeneratingTenants(false);
-          }
-        }}
-      />
     </div>
   );
 }
