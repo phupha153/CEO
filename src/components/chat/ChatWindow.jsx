@@ -90,9 +90,9 @@ export default function ChatWindow({
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
 
-  // ✅ Auto-refresh ทุก 2-3 วินาที
+  // ✅ Auto-refresh ทุก 2-3 วินาที (ขึ้นอยู่กับว่า dialog เปิดหรือไม่)
   useEffect(() => {
-    if (!conversation || !onRefresh) return;
+    if (!conversation || !onRefresh || showAddTenantDialog) return;
 
     refreshIntervalRef.current = setInterval(async () => {
       try {
@@ -105,7 +105,7 @@ export default function ChatWindow({
     return () => {
       if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
     };
-  }, [conversation, onRefresh]);
+  }, [conversation, onRefresh, showAddTenantDialog]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
