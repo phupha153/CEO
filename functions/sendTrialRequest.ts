@@ -10,10 +10,8 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'กรุณากรอกข้อมูลให้ครบถ้วน' }, { status: 400 });
         }
 
-        // ดึง admin email จาก Config
-        const configs = await base44.asServiceRole.entities.Config.list();
-        const adminEmailConfig = configs.find(c => c.key === 'admin_email' && !c.branch_id);
-        const adminEmail = adminEmailConfig?.value || 'admin@example.com';
+        // ส่งไปที่อีเมล admin
+        const adminEmail = 'ttn2.20official@gmail.com';
 
         // ส่งอีเมลแจ้ง admin
         const emailBody = `
