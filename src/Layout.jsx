@@ -1108,8 +1108,7 @@ export default function Layout({ children, currentPageName }) {
     mutationFn: async (count) => {
       const response = await base44.functions.invoke('generateConnectedTestData', {
         branch_id: selectedBranch?.id,
-        count: count,
-        line_user_id: 'Ubdb4d0f4e51a8928d9b8b13b00cfeb3'
+        count: count
       });
       return response.data;
     },
