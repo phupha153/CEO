@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import PageHeader from "../components/shared/PageHeader";
 import ExcelUploader from "../components/shared/ExcelUploader";
+import ScrollToTopButton from "../components/shared/ScrollToTopButton";
 
 export default function MeterReadings() {
   const [showDialog, setShowDialog] = useState(false);
@@ -2574,6 +2575,8 @@ export default function MeterReadings() {
           )}
         </DialogContent>
       </Dialog>
+
+      <ScrollToTopButton />
     </div>
   );
 }
