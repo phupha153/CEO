@@ -79,28 +79,6 @@ export default function MeterReadings() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // ✅ Infinite scroll observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && displayLimit < roomsDataForDisplay.length) {
-          setDisplayLimit(prev => Math.min(prev + 20, roomsDataForDisplay.length));
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
-    }
-
-    return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
-      }
-    };
-  }, [displayLimit, roomsDataForDisplay.length]);
-
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
@@ -1172,6 +1150,28 @@ export default function MeterReadings() {
   useEffect(() => {
     setDisplayLimit(20);
   }, [selectedFloor, debouncedSearch]);
+
+  // ✅ Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayLimit < roomsDataForDisplay.length) {
+          setDisplayLimit(prev => Math.min(prev + 20, roomsDataForDisplay.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [displayLimit, roomsDataForDisplay.length]);
 
   // Read only for summary card
   const readingsByRoomForSummary = allOccupiedRooms.reduce((acc, room) => {
