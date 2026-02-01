@@ -2462,6 +2462,32 @@ Return JSON.`;
           <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
             <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
             <CardContent className="p-4 md:p-6 relative">
+              <div className="flex gap-2 mb-3" data-selection-control>
+                <Button
+                  variant={isSelectionMode ? 'destructive' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    setIsSelectionMode(!isSelectionMode);
+                    if (isSelectionMode) setSelectedPaymentIds([]);
+                  }}
+                  className="shadow-sm flex-shrink-0"
+                >
+                  {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายรายการ</>}
+                </Button>
+
+                {isSelectionMode && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={selectAllFilteredPayments}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md flex-shrink-0"
+                    disabled={(viewMode === 'room' ? roomViewPayments : filteredPayments).length === 0}
+                  >
+                    <CheckSquare className="w-4 h-4 mr-2" />
+                    <span className="font-semibold">เลือกทุกรายการ ({(viewMode === 'room' ? roomViewPayments : filteredPayments).length})</span>
+                  </Button>
+                )}
+              </div>
               <div className="relative">
                 <AISearchBox
                   searchQuery={searchQuery}
@@ -2748,33 +2774,6 @@ Return JSON.`;
           )}
 
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-4 py-3">
-            <div className="flex items-center gap-2" data-selection-control>
-              <Button
-                variant={isSelectionMode ? 'destructive' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  setIsSelectionMode(!isSelectionMode);
-                  if (isSelectionMode) setSelectedPaymentIds([]);
-                }}
-                className="shadow-sm"
-              >
-                {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายรายการ</>}
-              </Button>
-
-              {isSelectionMode && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={selectAllFilteredPayments}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md px-4 py-2 h-auto"
-                  disabled={(viewMode === 'room' ? roomViewPayments : filteredPayments).length === 0}
-                >
-                  <CheckSquare className="w-5 h-5 mr-2" />
-                  <span className="font-semibold">เลือกทุกรายการ ({(viewMode === 'room' ? roomViewPayments : filteredPayments).length})</span>
-                </Button>
-              )}
-            </div>
-
             <div className="flex items-center gap-2">
               {canGenerateBills && (
                 <GenerateMonthlyBillsButton 
@@ -4653,26 +4652,77 @@ Return JSON.`;
                 </div>
 
                 {!bulkAIResult ? (
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500" />
-                      <Input 
-                        placeholder="บอก AI ว่าจะทำอะไร... (เช่น 'แก้สถานะเป็น paid', 'ส่งบิลทาง LINE')" 
-                        value={bulkAIQuery}
-                        onChange={e => setBulkAIQuery(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && handleBulkAIRequest()}
-                        className="pl-10 bg-slate-50 border-slate-200"
-                        autoFocus
-                      />
-                    </div>
-                    <Button 
-                      onClick={handleBulkAIRequest} 
-                      disabled={aiSearching || !bulkAIQuery.trim()}
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
-                    >
-                      {aiSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4 mr-2" /> AI แก้ไข</>}
-                    </Button>
-                  </div>
+                 <div className="space-y-2">
+                   <div className="flex gap-2">
+                     <div className="relative flex-1">
+                       <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500" />
+                       <Input 
+                         placeholder="บอก AI ว่าจะทำอะไร... (เช่น 'แก้สถานะเป็น paid', 'ส่งบิลทาง LINE')" 
+                         value={bulkAIQuery}
+                         onChange={e => setBulkAIQuery(e.target.value)}
+                         onKeyDown={e => e.key === 'Enter' && handleBulkAIRequest()}
+                         className="pl-10 bg-slate-50 border-slate-200"
+                         autoFocus
+                       />
+                     </div>
+                     <Button 
+                       onClick={handleBulkAIRequest} 
+                       disabled={aiSearching || !bulkAIQuery.trim()}
+                       className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
+                     >
+                       {aiSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4 mr-2" /> AI แก้ไข</>}
+                     </Button>
+                   </div>
+                   {canDelete && (
+                     <div className="flex justify-end">
+                       <Button
+                         onClick={async () => {
+                           if (!confirm(`⚠️ ต้องการลบ ${selectedPaymentIds.length} รายการหรือไม่?\n\nการกระทำนี้ไม่สามารถย้อนกลับได้`)) return;
+
+                           setIsBulkExecuting(true);
+                           try {
+                             const chunkSize = 10;
+                             for (let i = 0; i < selectedPaymentIds.length; i += chunkSize) {
+                               const chunk = selectedPaymentIds.slice(i, i + chunkSize);
+                               await Promise.all(chunk.map(id => base44.entities.Payment.delete(id)));
+                             }
+
+                             await Promise.all([
+                               queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] }),
+                               queryClient.invalidateQueries({ queryKey: ['payments-filtered'] }),
+                               queryClient.invalidateQueries({ queryKey: ['payments-room-view'] }),
+                               queryClient.invalidateQueries({ queryKey: ['payments-count'] }),
+                             ]);
+
+                             setSelectedPaymentIds([]);
+                             setIsSelectionMode(false);
+                             toast.success(`ลบสำเร็จ ${selectedPaymentIds.length} รายการ`);
+                           } catch (error) {
+                             toast.error('เกิดข้อผิดพลาด: ' + error.message);
+                           } finally {
+                             setIsBulkExecuting(false);
+                           }
+                         }}
+                         disabled={isBulkExecuting}
+                         variant="destructive"
+                         size="sm"
+                         className="shadow-md"
+                       >
+                         {isBulkExecuting ? (
+                           <>
+                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                             กำลังลบ...
+                           </>
+                         ) : (
+                           <>
+                             <Trash2 className="w-4 h-4 mr-2" />
+                             ลบรายการที่เลือก ({selectedPaymentIds.length})
+                           </>
+                         )}
+                       </Button>
+                     </div>
+                   )}
+                 </div>
                 ) : (
                   <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                     <div className="flex items-start gap-3 mb-4">
