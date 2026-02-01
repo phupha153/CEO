@@ -2342,19 +2342,8 @@ const tenantSchema = {
         actions={
           <>
             {activeTab === 'tenants' && (
-              <>
-                {isDeveloper && (
-                  <Button
-                    onClick={() => setShowDevPanel(!showDevPanel)}
-                    variant={showDevPanel ? 'default' : 'outline'}
-                    size="sm"
-                    className={showDevPanel ? 'bg-purple-600 text-white' : 'border-purple-600 text-purple-600 hover:bg-purple-50'}
-                  >
-                    <Sparkles className="w-4 h-4 md:mr-2" />
-                    <span className="hidden md:inline">{showDevPanel ? 'ซ่อนเครื่องมือ Dev' : 'เครื่องมือ Dev'}</span>
-                  </Button>
-                )}
-                <Button
+              <>
+                <Button
                   onClick={handleDownloadExistingTenants}
                   variant="outline"
                   className="border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md"
