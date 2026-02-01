@@ -1529,23 +1529,23 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <div className="min-w-[800px]">
+                <div className="overflow-x-auto -mx-4 md:mx-0">
+                  <div className="min-w-[600px] md:min-w-[800px]">
                     <div className="grid grid-cols-8 border-b-2 border-slate-200">
-                      <div className="p-3 bg-slate-100 font-semibold text-slate-700 border-r border-slate-200 text-sm">
+                      <div className="p-1.5 md:p-3 bg-slate-100 font-semibold text-slate-700 border-r border-slate-200 text-xs md:text-sm">
                         ห้อง
                       </div>
                       {weekDays.map((day, index) => (
                         <div
                           key={index}
-                          className={`p-3 text-center border-r border-slate-200 text-sm ${
+                          className={`p-1.5 md:p-3 text-center border-r border-slate-200 text-xs md:text-sm ${
                             isSameDay(day, new Date()) ? 'bg-blue-50' : 'bg-slate-50'
                           }`}
                         >
-                          <div className="font-semibold text-slate-800">
+                          <div className="font-semibold text-slate-800 text-[10px] md:text-sm">
                             {format(day, 'EEE', { locale: th })}
                           </div>
-                          <div className={`text-xs ${
+                          <div className={`text-[9px] md:text-xs ${
                             isSameDay(day, new Date()) ? 'text-blue-600 font-bold' : 'text-slate-500'
                           }`}>
                             {format(day, 'd MMM', { locale: th })}
@@ -1557,19 +1557,19 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                     <div className="divide-y divide-slate-200">
                       {sortedRooms.map((room) => (
                         <div key={room.id} className="grid grid-cols-8 hover:bg-slate-50 transition-colors">
-                          <div className="p-3 border-r border-slate-200 bg-slate-50">
-                            <div className="flex items-center gap-2">
-                              <DoorOpen className="w-4 h-4 text-blue-600" />
-                              <span className="font-semibold text-slate-800 text-sm">{room.room_number}</span>
+                          <div className="p-1.5 md:p-3 border-r border-slate-200 bg-slate-50">
+                            <div className="flex items-center gap-1 md:gap-2">
+                              <DoorOpen className="w-3 md:w-4 h-3 md:h-4 text-blue-600" />
+                              <span className="font-semibold text-slate-800 text-xs md:text-sm">{room.room_number}</span>
                             </div>
-                            <div className="flex flex-col gap-1 mt-1">
-                              <span className="text-xs text-slate-500">ชั้น {room.floor}</span>
-                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full w-fit ${
+                            <div className="flex flex-col gap-0.5 md:gap-1 mt-0.5 md:mt-1">
+                              <span className="text-[9px] md:text-xs text-slate-500">ชั้น {room.floor}</span>
+                              <span className={`text-[8px] md:text-[10px] px-1 md:px-1.5 py-0.5 rounded-full w-fit ${
                                 room.room_type === 'monthly' 
                                   ? 'bg-blue-100 text-blue-700' 
                                   : 'bg-orange-100 text-orange-700'
                               }`}>
-                                {room.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
+                                {room.room_type === 'monthly' ? 'เดือน' : 'วัน'}
                               </span>
                             </div>
                           </div>
@@ -1582,17 +1582,17 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                             return (
                               <div
                                 key={dayIndex}
-                                className={`p-2 min-h-[60px] border-r border-slate-200 transition-all ${cellColor} ${
+                                className={`p-1 md:p-2 min-h-[50px] md:min-h-[60px] border-r border-slate-200 transition-all ${cellColor} ${
                                   isEmpty && canAdd ? 'cursor-pointer hover:ring-2 hover:ring-green-400' : ''
                                 }`}
                                 onClick={() => handleCalendarCellClick(room, day, events)}
                                 title={isEmpty && canAdd ? 'คลิกเพื่อจองห้อง' : ''}
                               >
-                                <div className="space-y-1">
+                                <div className="space-y-0.5 md:space-y-1">
                                   {events.map((event, eventIndex) => (
                                     <div
                                       key={eventIndex}
-                                      className={`text-xs p-1 rounded truncate ${
+                                      className={`text-[9px] md:text-xs p-0.5 md:p-1 rounded truncate ${
                                         event.type === 'monthly-booking' ? 'bg-blue-600 text-white' :
                                         event.type === 'daily-booking' ? 'bg-indigo-600 text-white' :
                                         event.type === 'temporary-booking' ? 'bg-yellow-500 text-white' :
@@ -1601,22 +1601,22 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                       title={event.label}
                                     >
                                       {event.type === 'maintenance' ? (
-                                        <div className="flex items-center gap-1">
-                                          <Wrench className="w-3 h-3" />
+                                        <div className="flex items-center gap-0.5 md:gap-1">
+                                          <Wrench className="w-2 md:w-3 h-2 md:h-3" />
                                           <span className="truncate">{event.label}</span>
                                         </div>
                                       ) : (
-                                        <div className="flex items-center gap-1">
-                                          <User className="w-3 h-3" />
+                                        <div className="flex items-center gap-0.5 md:gap-1">
+                                          <User className="w-2 md:w-3 h-2 md:h-3" />
                                           <span className="truncate">{event.label}</span>
                                         </div>
                                       )}
                                     </div>
                                   ))}
                                   {events.length === 0 && (
-                                    <div className="text-xs text-center text-green-600 font-semibold py-2">
+                                    <div className="text-[10px] md:text-xs text-center text-green-600 font-semibold py-1 md:py-2">
                                       ว่าง
-                                      {canAdd && <div className="text-[10px] text-green-500 mt-0.5">คลิกเพื่อจอง</div>}
+                                      {canAdd && <div className="text-[8px] md:text-[10px] text-green-500 mt-0.5">คลิก</div>}
                                     </div>
                                   )}
                                 </div>
