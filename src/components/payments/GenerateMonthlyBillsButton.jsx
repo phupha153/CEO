@@ -16,7 +16,7 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
   const [isCheckingAccess, setIsCheckingAccess] = useState(false);
   const [showNoTenantsDialog, setShowNoTenantsDialog] = useState(false);
 
-  const { data: tenants = [] } = useQuery({
+  const { data: tenants = [], isLoading: tenantsLoading } = useQuery({
     queryKey: ['tenants', branchId],
     queryFn: async () => {
       if (!branchId) return [];
@@ -32,6 +32,11 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
   });
 
   const handleGenerateBills = async () => {
+    if (tenantsLoading) {
+      toast.info('กำลังโหลดข้อมูลผู้เช่า...');
+      return;
+    }
+
     if (tenants.length === 0) {
       setShowNoTenantsDialog(true);
       return;
