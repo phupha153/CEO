@@ -90,9 +90,9 @@ export default function ChatWindow({
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
 
-  // ✅ Auto-refresh ทุก 2-3 วินาที (ขึ้นอยู่กับว่า dialog เปิดหรือไม่)
+  // ✅ Auto-refresh ทุก 10 วินาที (ช่วงเวลายาวขึ้นเพื่อหลีกเลี่ยง rate limit)
   useEffect(() => {
-    if (!conversation || !onRefresh || showAddTenantDialog) return;
+    if (!conversation || !onRefresh || showAddTenantDialog || sending) return;
 
     refreshIntervalRef.current = setInterval(async () => {
       try {
@@ -100,12 +100,12 @@ export default function ChatWindow({
       } catch (error) {
         console.warn('Auto-refresh failed:', error);
       }
-    }, 2500);
+    }, 10000); // เปลี่ยนจาก 2500ms เป็น 10000ms
 
     return () => {
       if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
     };
-  }, [conversation, onRefresh, showAddTenantDialog]);
+  }, [conversation, onRefresh, showAddTenantDialog, sending]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
