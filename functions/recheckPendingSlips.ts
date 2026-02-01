@@ -352,9 +352,11 @@ Deno.serve(async (req) => {
                 console.log(`   📦 Created File object: ${file.name}, size: ${file.size}, type: ${file.type}`);
 
                 // ส่งไปตรวจสอบกับ Slip2Go
+                // ⭐ FIX: ปิด checkDuplicate เพราะครั้งแรกอาจได้ "200404 not found" แต่ครั้งที่ 2 จะได้ "duplicate" โดยไม่มี data
+                // → ถ้าปิด checkDuplicate ระบบจะส่งข้อมูลสลิปกลับมาเสมอ แม้จะซ้ำก็ตาม
                 const formData = new FormData();
                 formData.append('file', file);
-                formData.append('payload', JSON.stringify({ checkDuplicate: true }));
+                formData.append('payload', JSON.stringify({ checkDuplicate: false }));
 
                 const slip2goResponse = await fetch('https://connect.slip2go.com/api/verify-slip/qr-image/info', {
                     method: 'POST',
