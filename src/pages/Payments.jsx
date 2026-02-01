@@ -3821,6 +3821,23 @@ Return JSON.`;
               {viewMode === 'room' && (
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-xl relative">
                   <CardContent className="p-4 md:p-6">
+                    {tenants.length === 0 && (
+                      <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-semibold text-red-800">ยังไม่มีผู้เช่าในระบบ</p>
+                          <p className="text-xs text-red-700 mt-1">กรุณาเพิ่มผู้เช่าเพื่อสามารถดูข้อมูลการชำระเงินตามห้อง</p>
+                        </div>
+                        <Button
+                          onClick={() => navigate(createPageUrl('Tenants'))}
+                          size="sm"
+                          className="bg-red-600 hover:bg-red-700 text-white flex-shrink-0"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          เพิ่มผู้เช่า
+                        </Button>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-2">
                         <Button
