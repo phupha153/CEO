@@ -4705,7 +4705,7 @@ Return JSON.`;
                       ) : (
                         <Trash2 className="w-4 h-4 mr-1" />
                       )}
-                      ซ่อนรายการ
+                      ลบ
                     </Button>
                     <Button 
                       variant="ghost" 
