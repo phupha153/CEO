@@ -77,9 +77,9 @@ export default function BulkTenantGenerator({ open, onOpenChange, rooms, onConfi
                 <div className="space-y-2">
                   <p className="font-semibold text-blue-900">ℹ️ วิธีใช้งาน:</p>
                   <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                    <li>เลือกห้องที่ต้องการสร้างผู้เช่า (เฉพาะห้องว่างเท่านั้น)</li>
+                    <li>เลือกห้องที่ต้องการสร้างผู้เช่า</li>
                     <li>ระบบจะสร้างผู้เช่าใหม่ โดยใช้ <strong>เลขห้อง</strong> เป็นชื่อผู้เช่า</li>
-                    <li>สร้างการจองห้องพร้อมกัน (สัญญา 6 เดือน)</li>
+                    <li>สร้างการจองห้องพร้อมกัน (สัญญา 1 ปี)</li>
                     <li>อัพเดทสถานะห้องเป็น "มีผู้เช่า" อัตโนมัติ</li>
                   </ul>
                   <p className="text-xs text-blue-700 mt-2">

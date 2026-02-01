@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
                 // Create a mock booking for the new tenant
                 const checkInDate = new Date();
                 checkInDate.setDate(1); // วันแรกของเดือนปัจจุบัน
-                const checkOutDate = addMonths(checkInDate, 6); // จองไว้ 6 เดือน
+                const checkOutDate = addMonths(checkInDate, 12); // จองไว้ 1 ปี
 
                 const mockBooking = await base44.asServiceRole.entities.Booking.create({
                     branch_id: branch_id,
