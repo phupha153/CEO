@@ -602,6 +602,8 @@ Deno.serve(async (req) => {
 
         if (lineRecipients.length > 0) {
             try {
+                console.log(`📝 Preparing ${lineRecipients.length} LINE recipients for batch send...`);
+
                 // ⭐ Clean recipients to avoid circular JSON
                 const cleanedRecipients = lineRecipients.map(r => ({
                     lineUserId: r.lineUserId,
@@ -612,10 +614,19 @@ Deno.serve(async (req) => {
                         tenantId: r.metadata?.tenantId,
                         tenantName: r.metadata?.tenantName,
                         roomNumber: r.metadata?.roomNumber,
-                        branchId: r.metadata?.branchId,
                         platform: r.metadata?.platform
                     }
                 }));
+
+                // 🔍 Debug: Log first recipient structure
+                if (cleanedRecipients.length > 0) {
+                    console.log(`✅ Sample recipient structure:`, JSON.stringify({
+                        lineUserId: cleanedRecipients[0].lineUserId,
+                        branchId: cleanedRecipients[0].branchId,
+                        hasMessage: !!cleanedRecipients[0].message,
+                        messagePreview: cleanedRecipients[0].message?.substring(0, 50) || 'N/A'
+                    }));
+                }
 
                 const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
                     recipients: cleanedRecipients,
