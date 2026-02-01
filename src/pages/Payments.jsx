@@ -2478,7 +2478,7 @@ Return JSON.`;
         icon={CreditCard}
         actions={
           <>
-            {canAdd && tenants.length > 0 && (
+            {canAdd && !tenantsFetching && tenants.length > 0 && (
               <Button
                 onClick={() => {
                   setEditingPayment(null);
@@ -2492,7 +2492,25 @@ Return JSON.`;
                 <span className="hidden md:inline">เพิ่มการชำระเงิน</span>
               </Button>
             )}
-
+            {canAdd && tenantsFetching && (
+              <Button
+                disabled
+                className="bg-slate-400 shadow-lg gap-2 cursor-wait"
+              >
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span className="hidden md:inline">กำลังโหลด...</span>
+              </Button>
+            )}
+            {canAdd && !tenantsFetching && tenants.length === 0 && (
+              <Button
+                disabled
+                className="bg-slate-400 shadow-lg gap-2"
+                title="ยังไม่มีผู้เช่าในระบบ กรุณาเพิ่มผู้เช่าก่อน"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="hidden md:inline">เพิ่มการชำระเงิน</span>
+              </Button>
+            )}
 
           </>
         }
