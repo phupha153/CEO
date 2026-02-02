@@ -138,44 +138,26 @@ export default function AddTenantDialog({
               </div>
             )}
             
-            {createBooking && aiData?.room_numbers && aiData.room_numbers.length > 0 && (
+            {bookings.length > 0 && (
               <div className="space-y-2">
-                {aiData.room_numbers.map((roomNum, idx) => (
+                {bookings.map((booking, idx) => (
                   <div key={idx} className="p-3 bg-green-50 border border-green-200 rounded-lg">
                     <p className="text-sm font-semibold text-green-900 flex items-center gap-2">
                       <Home className="w-4 h-4" />
-                      จะสร้างสัญญาเช่าห้อง {roomNum}
+                      จะสร้างสัญญาเช่าห้อง {booking.room_number || '(ยังไม่เลือก)'}
                     </p>
-                    {formData.check_in_date && (
+                    {booking.check_in_date && (
                       <p className="text-xs text-green-700 mt-1">
-                        วันเริ่มเช่า: {formData.check_in_date}
+                        วันเริ่มเช่า: {booking.check_in_date}
                       </p>
                     )}
-                    {formData.deposit_amount && (
+                    {booking.deposit_amount && (
                       <p className="text-xs text-green-700 mt-1">
-                        เงินมัดจำ: {parseFloat(formData.deposit_amount).toLocaleString()} บาท
+                        เงินมัดจำ: {parseFloat(booking.deposit_amount).toLocaleString()} บาท
                       </p>
                     )}
                   </div>
                 ))}
-              </div>
-            )}
-            {createBooking && formData.room_number && (!aiData?.room_numbers || aiData.room_numbers.length === 0) && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                <p className="text-sm font-semibold text-green-900 flex items-center gap-2">
-                  <Home className="w-4 h-4" />
-                  จะสร้างสัญญาเช่าห้อง {formData.room_number}
-                </p>
-                {formData.check_in_date && (
-                  <p className="text-xs text-green-700 mt-1">
-                    วันเริ่มเช่า: {formData.check_in_date}
-                  </p>
-                )}
-                {formData.deposit_amount && (
-                  <p className="text-xs text-green-700 mt-1">
-                    เงินมัดจำ: {parseFloat(formData.deposit_amount).toLocaleString()} บาท
-                  </p>
-                )}
               </div>
             )}
           </div>
