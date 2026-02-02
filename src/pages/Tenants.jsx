@@ -5285,12 +5285,14 @@ const tenantSchema = {
                     </div>
                   </div>
 
-                  {!bulkAIResult ? (
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500" />
-                      <Input 
-                        placeholder="บอก AI ว่าจะทำอะไร... (เช่น 'ย้ายออกทั้งหมด', 'แก้สถานะเป็น active')"
+                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-blue-100 p-2 rounded-lg">
+                      <CheckSquare className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800">เลือกแล้ว {selectedTenants.length} คน</p>
+                      <p className="text-xs text-slate-500">จัดการผู้เช่าหลายคนพร้อมกันด้วย AI</p>
                     </div>
                   </div>
                   <Button 
