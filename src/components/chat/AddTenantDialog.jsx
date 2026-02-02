@@ -61,15 +61,30 @@ export default function AddTenantDialog({
       return;
     }
 
-    if (createBooking && !formData.room_number) {
-      toast.error('กรุณาเลือกห้องสำหรับสัญญาเช่า');
-      return;
+    if (bookings.length > 0) {
+      const invalidBooking = bookings.find(b => !b.room_number);
+      if (invalidBooking) {
+        toast.error('กรุณาเลือกห้องสำหรับสัญญาเช่าทุกรายการ');
+        return;
+      }
     }
 
     onSubmit({
       tenantData: formData,
-      createBooking,
+      bookings: bookings,
     });
+  };
+
+  const addBooking = () => {
+    setBookings([...bookings, { room_number: '', check_in_date: '', deposit_amount: '' }]);
+  };
+
+  const removeBooking = (index) => {
+    setBookings(bookings.filter((_, i) => i !== index));
+  };
+
+  const updateBooking = (index, field, value) => {
+    setBookings(bookings.map((b, i) => i === index ? { ...b, [field]: value } : b));
   };
 
   return (
