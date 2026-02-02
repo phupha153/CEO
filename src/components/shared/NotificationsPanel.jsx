@@ -33,7 +33,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'owner' : 'employee');
   const userAccessibleBranches = currentUser?.accessible_branches || [];
   const showAllBranches = userRole === 'developer' || userRole === 'owner';
-  const canDelete = userRole === 'developer' || userRole === 'owner';
+  const canDelete = userRole === 'developer';
 
   // 🔒 Security: คำนวณสาขาที่มีสิทธิ์เข้าถึง
   const allowedBranchIds = useMemo(() => {
