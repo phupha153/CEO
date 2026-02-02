@@ -2815,9 +2815,9 @@ Return JSON.`;
                   setIsSelectionMode(!isSelectionMode);
                   if (isSelectionMode) setSelectedPaymentIds([]);
                 }}
-                className="shadow-sm"
+                className="shadow-sm hidden md:inline-flex"
               >
-                {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> <span className="hidden md:inline">เลือกหลายรายการ</span><span className="md:hidden">เลือก</span></>}
+                {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายรายการ</>}
               </Button>
 
               {isSelectionMode && (
