@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -4687,7 +4686,7 @@ Return JSON.`;
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 left-4 right-4 md:left-[280px] md:right-6 md:w-auto md:max-w-3xl z-50"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-3xl px-4 z-50"
           >
             <Card className="bg-white shadow-2xl border-slate-200 overflow-hidden">
               <div className="p-4">
