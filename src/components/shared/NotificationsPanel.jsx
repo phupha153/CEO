@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell, DollarSign, DoorOpen, Wrench, Clock, X, AlertTriangle, Calendar, Package, TrendingDown, CheckCheck, ChevronDown, ChevronUp, Building2, Filter, Trash2, UserPlus, Check, Loader2, ZoomIn } from "lucide-react";
+import { Bell, DollarSign, DoorOpen, Wrench, Clock, X, AlertTriangle, Calendar, Package, TrendingDown, CheckCheck, ChevronDown, ChevronUp, Building2, Filter, Trash2, UserPlus, Check, Loader2, ZoomIn, CheckCircle2 } from "lucide-react";
 import SlipPreviewDialog from "./SlipPreviewDialog";
 import PageHeader from "./PageHeader";
 import { toast } from "sonner";
