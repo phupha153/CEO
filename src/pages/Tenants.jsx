@@ -5244,6 +5244,159 @@ const tenantSchema = {
           }
         }}
       />
+
+      {/* Floating Bulk AI Action Bar */}
+      <AnimatePresence>
+        {selectedTenants.length > 0 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-6 left-4 right-4 md:left-[280px] md:right-6 md:w-auto md:max-w-3xl z-50"
+          >
+            <Card className="bg-white shadow-2xl border-slate-200 overflow-hidden">
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-blue-100 p-2 rounded-lg">
+                      <CheckSquare className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800">เลือกแล้ว {selectedTenants.length} รายการ</p>
+                      <p className="text-xs text-slate-500">จัดการผู้เช่าหลายคนพร้อมกันด้วย AI</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedTenants(filteredTenants.map(t => t.id));
+                        toast.success(`เลือกแล้ว ${filteredTenants.length} รายการทั้งหมด`, { duration: 2000 });
+                      }}
+                      className="bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100"
+                      disabled={filteredTenants.length === 0}
+                    >
+                      <CheckSquare className="w-4 h-4 mr-1" />
+                      เลือกทั้งหมด ({filteredTenants.length})
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleBulkDelete}
+                      disabled={isBulkExecuting}
+                      className="bg-red-50 border-red-300 text-red-700 hover:bg-red-100"
+                    >
+                      {isBulkExecuting ? (
+                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4 mr-1" />
+                      )}
+                      ลบ
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => {
+                        setSelectedTenants([]);
+                        setIsSelectionMode(false);
+                      }}
+                      className="text-slate-600 hover:bg-slate-50"
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      ยกเลิก
+                    </Button>
+                  </div>
+                </div>
+
+                {!bulkAIResult ? (
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500" />
+                      <Input 
+                        placeholder="บอก AI ว่าจะทำอะไร... (เช่น 'แก้สถานะเป็น active', 'เพิ่มรถยนต์')" 
+                        value={bulkAIQuery}
+                        onChange={e => setBulkAIQuery(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handleAIBulkRequest()}
+                        className="pl-10 bg-slate-50 border-slate-200"
+                        autoFocus
+                      />
+                    </div>
+                    <Button 
+                      onClick={handleAIBulkRequest} 
+                      disabled={aiSearching || !bulkAIQuery.trim()}
+                      className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
+                    >
+                      {aiSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4 mr-2" /> AI แก้ไข</>}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="bg-white p-2 rounded-lg border shadow-sm">
+                        <Sparkles className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-slate-800">{bulkAIResult.confirmation_message}</p>
+                        <p className="text-sm text-slate-600 mt-1">{bulkAIResult.description}</p>
+
+                        {bulkAIResult.action === 'update' && bulkAIResult.changes && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {Object.entries(bulkAIResult.changes).map(([key, value]) => (
+                              <Badge key={key} className="bg-blue-100 text-blue-700">
+                                {key}: {value}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        {bulkAIResult.action === 'add_vehicle' && (
+                          <Badge className="mt-2 bg-purple-100 text-purple-700">
+                            🚗 {bulkAIResult.vehicle_type === 'car' ? 'รถยนต์' : 'มอเตอร์ไซค์'} 
+                            {bulkAIResult.vehicle_plate && ` - ${bulkAIResult.vehicle_plate}`}
+                          </Badge>
+                        )}
+                        {bulkAIResult.action === 'delete' && (
+                          <Badge variant="destructive" className="mt-2">ลบถาวร</Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 justify-end">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setBulkAIResult(null);
+                          setBulkAIQuery('');
+                        }}
+                        disabled={isBulkExecuting}
+                      >
+                        แก้ไขคำสั่ง
+                      </Button>
+                      <Button 
+                        onClick={executeBulkAction} 
+                        disabled={isBulkExecuting}
+                        className={bulkAIResult.action === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
+                      >
+                        {isBulkExecuting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            กำลังดำเนินการ...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                            ยืนยันทำรายการ
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
       </div>
       );
       }
