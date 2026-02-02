@@ -2725,25 +2725,27 @@ const tenantSchema = {
           
 
           <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-600">
-              {debouncedSearch ? `พบ ${filteredTenants.length} คน จากทั้งหมด ${tenants.length} คน` : `ผู้เช่าในสาขานี้: ${tenants.length} คน`}
-            </p>
-            <div className="flex gap-2 items-center">
-              {/* Selection Mode Toggle */}
-              {!isSelectionMode && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setIsSelectionMode(true);
-                  }}
-                  className="shadow-sm"
-                >
-                  <CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายรายการ
-                </Button>
-              )}
+            <p className="text-sm text-slate-600">
+              {debouncedSearch ? `พบ ${filteredTenants.length} คน จากทั้งหมด ${tenants.length} คน` : `ผู้เช่าในสาขานี้: ${tenants.length} คน`}
+            </p>
+            <div className="flex gap-2 items-center">
+              {/* Selection Mode Toggle */}
+              <Button
+                variant={isSelectionMode ? 'destructive' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  const newSelectionMode = !isSelectionMode;
+                  setIsSelectionMode(newSelectionMode);
+                  if (!newSelectionMode) {
+                    setSelectedTenants([]);
+                  }
+                }}
+                className="shadow-sm"
+              >
+                {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายรายการ</>}
+              </Button>
 
-              <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
+              <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
                 <Button
                   variant={viewMode === 'card' ? 'default' : 'ghost'}
                   size="sm"
@@ -5253,8 +5255,9 @@ const tenantSchema = {
             className="fixed bottom-6 left-4 right-4 md:left-[280px] md:right-6 md:w-auto md:max-w-3xl z-50"
           >
             <Card className="bg-white shadow-2xl border-slate-200 overflow-hidden">
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-3">
+              <div className="p-4 space-y-4">
+                {/* Quick Action Buttons */}
+                <div className="flex flex-wrap gap-2 pb-3 border-b">
                   <div className="flex items-center gap-2 mr-auto">
                     <CheckSquare className="w-5 h-5 text-blue-600" />
                     <span className="font-bold text-slate-800">เลือกแล้ว: {selectedTenants.length} คน</span>
