@@ -92,6 +92,7 @@ import Receipt from './pages/Receipt';
 import Rooms from './pages/Rooms';
 import Settings from './pages/Settings';
 import SupportTickets from './pages/SupportTickets';
+import Tenants from './pages/Tenants';
 import TestInvoiceGeneration from './pages/TestInvoiceGeneration';
 import TestLine from './pages/TestLine';
 import TestingAdmin from './pages/TestingAdmin';
@@ -104,7 +105,6 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import Tenants from './pages/Tenants';
 import __Layout from './Layout.jsx';
 
 
@@ -154,6 +154,7 @@ export const PAGES = {
     "Rooms": Rooms,
     "Settings": Settings,
     "SupportTickets": SupportTickets,
+    "Tenants": Tenants,
     "TestInvoiceGeneration": TestInvoiceGeneration,
     "TestLine": TestLine,
     "TestingAdmin": TestingAdmin,
@@ -166,7 +167,6 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "Tenants": Tenants,
 }
 
 export const pagesConfig = {
