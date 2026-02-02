@@ -381,17 +381,46 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         p.status !== 'paid' &&
         !p.notes?.includes('✅ ยืนยันชำระแล้ว')
       );
-      
-      // 🐛 Debug: Log ข้อมูล payments ทั้งหมด
-      if (branchId === selectedBranchId) {
-        console.log('🔔 [NotificationsPanel] Branch Payments:', {
-          branchId,
-          total: payments.length,
-          failedSlipCount: failedSlipPayments.length,
-          failedSlipIds: failedSlipPayments.map(p => p.id),
-          samplePayment: payments[0]
+
+      // 0.5 ✅ การชำระเงินใหม่ (วันนี้ที่ชำระแล้ว)
+      const recentPaidPayments = payments.filter(p => {
+        if (p.status !== 'paid') return false;
+        if (!p.payment_date) return false;
+        try {
+          const paymentDate = parseISO(p.payment_date);
+          const paymentDateStart = new Date(paymentDate.getFullYear(), paymentDate.getMonth(), paymentDate.getDate());
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          return paymentDateStart.getTime() === todayStart.getTime();
+        } catch {
+          return false;
+        }
+      });
+
+      recentPaidPayments.forEach(payment => {
+        const room = rooms.find(r => r.id === payment.room_id);
+        const tenant = tenants.find(t => t.id === payment.tenant_id);
+        const roomNumber = room?.room_number || tenant?.full_name || 'N/A';
+
+        alerts.push({
+          id: `paid-${payment.id}`,
+          type: 'paid',
+          icon: CheckCheck,
+          color: 'green',
+          title: `✅ ชำระเงินแล้ว - ห้อง ${roomNumber}`,
+          message: `${tenant?.full_name || 'N/A'} · ${payment.total_amount?.toLocaleString()} ฿`,
+          branch: branchName,
+          branchId: branchId,
+          time: payment.payment_date || new Date().toISOString(),
+          action: () => {
+            if (showAllBranches && branchId !== selectedBranchId) {
+              localStorage.setItem('selected_branch_id', branchId);
+              localStorage.setItem('selected_branch_name', branchName);
+            }
+            navigate(createPageUrl('Payments'));
+            onClose();
+          }
         });
-      }
+      });
 
       if (failedSlipPayments.length > 0) {
         failedSlipPayments.forEach(payment => {
