@@ -362,6 +362,17 @@ export default function NotificationsPanel({ isOpen, onClose }) {
         p.status !== 'paid' &&
         !p.notes?.includes('✅ ยืนยันชำระแล้ว')
       );
+      
+      // 🐛 Debug: Log ข้อมูล payments ทั้งหมด
+      if (branchId === selectedBranchId) {
+        console.log('🔔 [NotificationsPanel] Branch Payments:', {
+          branchId,
+          total: payments.length,
+          failedSlipCount: failedSlipPayments.length,
+          failedSlipIds: failedSlipPayments.map(p => p.id),
+          samplePayment: payments[0]
+        });
+      }
 
       if (failedSlipPayments.length > 0) {
         failedSlipPayments.forEach(payment => {
