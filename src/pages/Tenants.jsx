@@ -5282,11 +5282,11 @@ const tenantSchema = {
                     <div>
                       <p className="font-bold text-slate-800">AI แก้ไขหลายรายการ</p>
                       <p className="text-xs text-slate-500">จัดการ {selectedTenants.length} คนพร้อมกัน</p>
-                      </div>
-                      </div>
+                    </div>
+                  </div>
 
-                      {!bulkAIResult ? (
-                      <div className="flex gap-2">
+                  {!bulkAIResult ? (
+                    <div className="flex gap-2">
                   <div className="flex items-center gap-2">
                     <div className="bg-blue-100 p-2 rounded-lg">
                       <CheckSquare className="w-5 h-5 text-blue-600" />
