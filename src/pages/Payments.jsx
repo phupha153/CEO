@@ -2605,12 +2605,14 @@ Return JSON.`;
           </Card>
 
           {(() => {
-            const needReviewPayments = payments.filter(p => {
+            const paymentsForReview = viewMode === 'room' ? roomViewPayments : payments;
+            const needReviewPayments = paymentsForReview.filter(p => {
               const hasReviewFlag = p.notes?.includes('⚠️ รอตรวจสอบ');
               const alreadyConfirmed = p.notes?.includes('✅ ยืนยันชำระแล้ว');
               return hasReviewFlag && !alreadyConfirmed;
             });
-            if (needReviewPayments.length === 0 || paymentsLoading) return null;
+            const isLoadingReview = viewMode === 'room' ? roomViewFetching : paymentsLoading;
+            if (needReviewPayments.length === 0 || isLoadingReview) return null;
 
             return (
               <motion.div 
