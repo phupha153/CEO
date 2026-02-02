@@ -34,7 +34,7 @@ ${chatContext}
 - เบอร์โทรศัพท์
 - ที่อยู่
 - เลขบัตรประชาชน (13 หลัก)
-- เลขห้องที่ต้องการเช่า
+- เลขห้องที่ต้องการเช่า (ถ้ามีหลายห้อง เช่น "105,106,107" ให้แยกเป็น array ["105", "106", "107"])
 - วันที่เริ่มเช่า (รูปแบบ YYYY-MM-DD)
 - จำนวนเงินมัดจำ
 
@@ -47,6 +47,10 @@ ${chatContext}
           address: { type: ["string", "null"] },
           national_id: { type: ["string", "null"] },
           room_number: { type: ["string", "null"] },
+          room_numbers: { 
+            type: ["array", "null"],
+            items: { type: "string" }
+          },
           check_in_date: { type: ["string", "null"] },
           deposit_amount: { type: ["number", "null"] }
         }
