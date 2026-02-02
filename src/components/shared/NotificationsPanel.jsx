@@ -1188,27 +1188,25 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                                           </div>
                                           <div className="flex items-center gap-2">
                                             {!isRead && (
-                                              <motion.div 
-                                                initial={{ scale: 0 }}
-                                                animate={{ scale: 1 }}
-                                                className={`w-3 h-3 bg-gradient-to-br ${colorMap[notif.color].gradient} rounded-full flex-shrink-0 shadow-lg mt-0.5`}
-                                              ></motion.div>
-                                            )}
-                                            {canDelete && !notif.expandable && (
-                                              {notif.type !== 'paid' && (
-                                                <Button
-                                                  variant="ghost"
-                                                  size="icon"
-                                                  className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all rounded-full"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    deleteNotificationMutation.mutate(notif.id);
-                                                  }}
-                                                >
-                                                  <X className="w-4 h-4" />
-                                                </Button>
-                                              )}
-                                            )}
+                                               <motion.div 
+                                                 initial={{ scale: 0 }}
+                                                 animate={{ scale: 1 }}
+                                                 className={`w-3 h-3 bg-gradient-to-br ${colorMap[notif.color].gradient} rounded-full flex-shrink-0 shadow-lg mt-0.5`}
+                                               ></motion.div>
+                                             )}
+                                             {canDelete && !notif.expandable && notif.type !== 'paid' && (
+                                               <Button
+                                                 variant="ghost"
+                                                 size="icon"
+                                                 className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all rounded-full"
+                                                 onClick={(e) => {
+                                                   e.stopPropagation();
+                                                   deleteNotificationMutation.mutate(notif.id);
+                                                 }}
+                                               >
+                                                 <X className="w-4 h-4" />
+                                               </Button>
+                                             )}
                                           </div>
                                         </div>
                                         <p className="text-sm text-slate-700 leading-relaxed">{notif.message}</p>
