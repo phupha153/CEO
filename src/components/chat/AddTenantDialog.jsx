@@ -22,11 +22,8 @@ export default function AddTenantDialog({
     phone: '',
     address: '',
     national_id: '',
-    room_number: '',
-    check_in_date: '',
-    deposit_amount: '',
   });
-  const [createBooking, setCreateBooking] = useState(false);
+  const [bookings, setBookings] = useState([]);
 
   // เมื่อ AI ส่งข้อมูลมา ให้กรอกในฟอร์มอัตโนมัติ
   useEffect(() => {
