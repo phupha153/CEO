@@ -5252,7 +5252,7 @@ const tenantSchema = {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-3xl px-4 z-50"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-3xl z-50"
           >
             <Card className="bg-white shadow-2xl border-slate-200 overflow-hidden">
               <div className="p-4">
