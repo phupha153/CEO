@@ -2817,7 +2817,7 @@ Return JSON.`;
                 }}
                 className="shadow-sm"
               >
-                {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายรายการ</>}
+                {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> <span className="hidden md:inline">เลือกหลายรายการ</span><span className="md:hidden">เลือก</span></>}
               </Button>
 
               {isSelectionMode && (
@@ -2825,7 +2825,7 @@ Return JSON.`;
                   variant="default"
                   size="sm"
                   onClick={selectAllFilteredPayments}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md px-4 py-2 h-auto"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md px-4 py-2 h-auto hidden md:flex"
                   disabled={(viewMode === 'room' ? roomViewPayments : filteredPayments).length === 0}
                 >
                   <CheckSquare className="w-5 h-5 mr-2" />
