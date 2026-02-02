@@ -2610,7 +2610,7 @@ Return JSON.`;
               const alreadyConfirmed = p.notes?.includes('✅ ยืนยันชำระแล้ว');
               return hasReviewFlag && !alreadyConfirmed;
             });
-            if (needReviewPayments.length === 0 || paymentsLoading || isDataFetching) return null;
+            if (needReviewPayments.length === 0 || paymentsLoading) return null;
 
             return (
               <motion.div 
