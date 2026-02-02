@@ -1195,17 +1195,19 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                                               ></motion.div>
                                             )}
                                             {canDelete && !notif.expandable && (
-                                              <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all rounded-full"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  deleteNotificationMutation.mutate(notif.id);
-                                                }}
-                                              >
-                                                <X className="w-4 h-4" />
-                                              </Button>
+                                              {notif.type !== 'paid' && (
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all rounded-full"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    deleteNotificationMutation.mutate(notif.id);
+                                                  }}
+                                                >
+                                                  <X className="w-4 h-4" />
+                                                </Button>
+                                              )}
                                             )}
                                           </div>
                                         </div>
