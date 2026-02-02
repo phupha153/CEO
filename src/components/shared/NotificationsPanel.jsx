@@ -75,19 +75,38 @@ export default function NotificationsPanel({ isOpen, onClose }) {
     );
   }, [allBranches, userRole, userAccessibleBranches]);
 
-  // 🚀 Optimization: ดึงข้อมูลทั้งหมดในครั้งเดียว (1 API call แทน 6 calls)
-  const { data: batchData, isLoading: paymentsLoading } = useQuery({
+  // 🔔 ดึงข้อมูล Payments โดยตรง (เหมือนหน้า Payments)
+  const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
+    queryKey: ['notifications-payments', allowedBranchIds],
+    queryFn: async () => {
+      // ดึงจากทุกสาขาที่มีสิทธิ์
+      const branchIds = allowedBranchIds || branches.map(b => b.id);
+      if (!branchIds || branchIds.length === 0) return [];
+      
+      const allResults = await Promise.all(
+        branchIds.map(branchId => 
+          base44.entities.Payment.filter({ branch_id: branchId }, '-created_date', 1000)
+        )
+      );
+      return allResults.flat();
+    },
+    enabled: isOpen && canLoadData && branches.length > 0,
+    staleTime: 10 * 1000,
+    refetchOnMount: true,
+  });
+
+  // ดึงข้อมูลอื่นๆ จาก batch API
+  const { data: batchData } = useQuery({
     queryKey: ['notifications-batch', 'secure', allowedBranchIds],
     queryFn: async () => {
       const response = await base44.functions.invoke('getBatchNotifications', {});
       return response.data;
     },
     enabled: isOpen && canLoadData,
-    staleTime: 30 * 1000, // Cache 30 วินาที
+    staleTime: 30 * 1000,
     refetchOnMount: true,
   });
 
-  const allPayments = batchData?.payments || [];
   const allRooms = batchData?.rooms || [];
   const allMaintenanceRequests = batchData?.maintenance || [];
   const allBookings = batchData?.bookings || [];
