@@ -4542,28 +4542,29 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                 className="fixed bottom-6 z-50 left-4 right-4 md:left-[280px] md:right-6 md:max-w-5xl"
               >
                 <Card className="bg-white shadow-2xl border-slate-200 overflow-hidden">
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="bg-blue-100 p-2 rounded-lg">
+                  <div className="p-3 md:p-4">
+                    <div className="flex flex-col md:flex-row md:items-center gap-3 mb-3">
+                      <div className="flex items-center gap-2 flex-1">
+                        <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
                           <CheckSquare className="w-5 h-5 text-blue-600" />
                         </div>
-                        <div>
-                          <p className="font-bold text-slate-800">เลือกแล้ว {selectedRooms.length} ห้อง</p>
-                          <p className="text-xs text-slate-500">จัดการหลายห้องพร้อมกันด้วย AI</p>
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-800 text-sm md:text-base">เลือกแล้ว {selectedRooms.length} ห้อง</p>
+                          <p className="text-xs text-slate-500 hidden md:block">จัดการหลายห้องพร้อมกันด้วย AI</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={toggleSelectAllInPage}
-                          className="bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100"
+                          className="bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100 text-xs flex-1 md:flex-initial"
                           disabled={displayedRooms.length === 0}
                           data-selection-control
                         >
-                          <CheckSquare className="w-4 h-4 mr-1" />
-                          เลือกทั้งหมด ({displayedRooms.length})
+                          <CheckSquare className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-1" />
+                          <span className="hidden md:inline">เลือกทั้งหมด ({displayedRooms.length})</span>
+                          <span className="md:hidden">ทั้งหมด</span>
                         </Button>
                         <Button 
                           variant="ghost" 
@@ -4572,11 +4573,11 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                             setSelectedRooms([]);
                             setIsSelectionMode(false);
                           }}
-                          className="text-slate-600 hover:bg-slate-50"
+                          className="text-slate-600 hover:bg-slate-50 text-xs flex-1 md:flex-initial"
                           data-selection-control
                         >
-                          <X className="w-4 h-4 mr-1" />
-                          ยกเลิก
+                          <X className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-1" />
+                          <span className="hidden md:inline">ยกเลิก</span>
                         </Button>
                       </div>
                     </div>

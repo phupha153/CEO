@@ -4689,41 +4689,42 @@ Return JSON.`;
             className="fixed bottom-6 z-50 left-4 right-4 md:left-[280px] md:right-6 md:max-w-5xl"
           >
             <Card className="bg-white shadow-2xl border-slate-200 overflow-hidden">
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="bg-blue-100 p-2 rounded-lg">
+              <div className="p-3 md:p-4">
+                <div className="flex flex-col md:flex-row md:items-center gap-3 mb-3">
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="bg-blue-100 p-2 rounded-lg flex-shrink-0">
                       <CheckSquare className="w-5 h-5 text-blue-600" />
                     </div>
-                    <div>
-                      <p className="font-bold text-slate-800">เลือกแล้ว {selectedPaymentIds.length} รายการ</p>
-                      <p className="text-xs text-slate-500">จัดการการชำระเงินหลายรายการพร้อมกันด้วย AI</p>
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-800 text-sm md:text-base">เลือกแล้ว {selectedPaymentIds.length} รายการ</p>
+                      <p className="text-xs text-slate-500 hidden md:block">จัดการการชำระเงินหลายรายการพร้อมกันด้วย AI</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={selectAllFilteredPayments}
-                      className="bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100"
+                      className="bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100 text-xs flex-1 md:flex-initial"
                       disabled={(viewMode === 'room' ? roomViewPayments : filteredPayments).length === 0}
                     >
-                      <CheckSquare className="w-4 h-4 mr-1" />
-                      เลือกทั้งหมด ({(viewMode === 'room' ? roomViewPayments : filteredPayments).length})
+                      <CheckSquare className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-1" />
+                      <span className="hidden md:inline">เลือกทั้งหมด ({(viewMode === 'room' ? roomViewPayments : filteredPayments).length})</span>
+                      <span className="md:hidden">ทั้งหมด</span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleBulkDismiss}
                       disabled={isBulkExecuting}
-                      className="bg-red-50 border-red-300 text-red-700 hover:bg-red-100"
+                      className="bg-red-50 border-red-300 text-red-700 hover:bg-red-100 text-xs flex-1 md:flex-initial"
                     >
                       {isBulkExecuting ? (
-                        <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                        <Loader2 className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-1 animate-spin" />
                       ) : (
-                        <Trash2 className="w-4 h-4 mr-1" />
+                        <Trash2 className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-1" />
                       )}
-                      ลบ
+                      <span className="hidden md:inline">ลบ</span>
                     </Button>
                     <Button 
                       variant="ghost" 
@@ -4732,10 +4733,10 @@ Return JSON.`;
                         setSelectedPaymentIds([]);
                         setIsSelectionMode(false);
                       }}
-                      className="text-slate-600 hover:bg-slate-50"
+                      className="text-slate-600 hover:bg-slate-50 text-xs flex-1 md:flex-initial"
                     >
-                      <X className="w-4 h-4 mr-1" />
-                      ยกเลิก
+                      <X className="w-3.5 h-3.5 md:w-4 md:h-4 md:mr-1" />
+                      <span className="hidden md:inline">ยกเลิก</span>
                     </Button>
                   </div>
                 </div>
