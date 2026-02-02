@@ -2610,7 +2610,7 @@ Return JSON.`;
               const alreadyConfirmed = p.notes?.includes('✅ ยืนยันชำระแล้ว');
               return hasReviewFlag && !alreadyConfirmed;
             });
-            if (needReviewPayments.length === 0 || paymentsLoading) return null;
+            if (needReviewPayments.length === 0 || paymentsLoading || isDataFetching) return null;
 
             return (
               <motion.div 
@@ -2659,12 +2659,7 @@ Return JSON.`;
                                     }}
                                     className="w-full cursor-pointer"
                                   >
-                                    <img 
-                                      src={p.payment_slip_url} 
-                                      alt="สลิป" 
-                                      loading="lazy"
-                                      className="w-full max-h-24 object-contain rounded border border-amber-200 bg-slate-50 mb-2 hover:opacity-80 transition-opacity" 
-                                    />
+                                    <img src={p.payment_slip_url} alt="สลิป" className="w-full max-h-24 object-contain rounded border border-amber-200 bg-slate-50 mb-2 hover:opacity-80 transition-opacity" />
                                   </button>
                                 )}
                                 <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
