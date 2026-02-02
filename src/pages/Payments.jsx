@@ -231,6 +231,8 @@ export default function PaymentsPage() {
   const canSendBillsBulk = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_send_bills_bulk');
   const canDeleteTestData = userRole === 'developer';
 
+  const hasOpenRoomDialog = Object.values(openRoomDialogs).some(v => v === true);
+
   const { data: roomViewPayments = [], isFetching: roomViewFetching } = useQuery({
     queryKey: ['payments-room-view', selectedBranchId, roomViewMonth],
     queryFn: async () => {
@@ -256,7 +258,7 @@ export default function PaymentsPage() {
       
       return response.data?.data || [];
     },
-    enabled: canView && !!selectedBranchId && viewMode === 'room',
+    enabled: canView && !!selectedBranchId && (viewMode === 'room' || hasOpenRoomDialog),
     retry: 0,
     staleTime: 30 * 1000,
     placeholderData: (previousData) => previousData,
