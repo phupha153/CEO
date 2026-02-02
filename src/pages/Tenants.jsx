@@ -5291,7 +5291,6 @@ const tenantSchema = {
                       <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500" />
                       <Input 
                         placeholder="บอก AI ว่าจะทำอะไร... (เช่น 'ย้ายออกทั้งหมด', 'แก้สถานะเป็น active')"
-                      <p className="text-xs text-slate-500">จัดการผู้เช่าหลายคนพร้อมกันด้วย AI</p>
                     </div>
                   </div>
                   <Button 
