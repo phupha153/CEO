@@ -5253,9 +5253,8 @@ const tenantSchema = {
             className="fixed bottom-6 left-4 right-4 md:left-[280px] md:right-6 md:w-auto md:max-w-3xl z-50"
           >
             <Card className="bg-white shadow-2xl border-slate-200 overflow-hidden">
-              <div className="p-4 space-y-4">
-                {/* Quick Action Buttons */}
-                <div className="flex flex-wrap gap-2 pb-3 border-b">
+              <div className="p-4">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 mr-auto">
                     <CheckSquare className="w-5 h-5 text-blue-600" />
                     <span className="font-bold text-slate-800">เลือกแล้ว: {selectedTenants.length} คน</span>
