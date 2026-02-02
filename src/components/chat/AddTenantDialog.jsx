@@ -33,10 +33,23 @@ export default function AddTenantDialog({
         phone: aiData.phone || '',
         address: aiData.address || '',
         national_id: aiData.national_id || '',
-        room_number: aiData.room_number || '',
-        check_in_date: aiData.check_in_date || '',
-        deposit_amount: aiData.deposit_amount || '',
       });
+      
+      // ถ้า AI ส่ง room_numbers มา (หลายห้อง) ให้สร้าง bookings array
+      if (aiData.room_numbers && aiData.room_numbers.length > 0) {
+        setBookings(aiData.room_numbers.map(roomNum => ({
+          room_number: roomNum,
+          check_in_date: aiData.check_in_date || '',
+          deposit_amount: aiData.deposit_amount || ''
+        })));
+      } else if (aiData.room_number) {
+        // ถ้ามีแค่ห้องเดียว
+        setBookings([{
+          room_number: aiData.room_number,
+          check_in_date: aiData.check_in_date || '',
+          deposit_amount: aiData.deposit_amount || ''
+        }]);
+      }
     }
   }, [aiData]);
 
