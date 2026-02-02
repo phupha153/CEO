@@ -5285,8 +5285,7 @@ const tenantSchema = {
                     </div>
                   </div>
 
-                  {!bulkAIResult ? (
-                    <div className="flex gap-2">
+                  <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="bg-blue-100 p-2 rounded-lg">
                       <CheckSquare className="w-5 h-5 text-blue-600" />
