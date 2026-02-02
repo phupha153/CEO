@@ -218,58 +218,72 @@ export default function AddTenantDialog({
                 <Home className="w-4 h-4" />
                 ข้อมูลการเช่าห้อง
               </h3>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={createBooking}
-                  onChange={(e) => setCreateBooking(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded"
-                />
-                <span className="text-sm font-medium text-slate-700">เพิ่มสัญญาเช่า</span>
-              </label>
+              <Button
+                type="button"
+                size="sm"
+                onClick={addBooking}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                เพิ่มสัญญาเช่า
+              </Button>
             </div>
 
-            {createBooking && (
-              <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div>
-                  <Label>เลือกห้อง *</Label>
-                  <select
-                    value={formData.room_number}
-                    onChange={(e) => setFormData({ ...formData, room_number: e.target.value })}
-                    className="w-full text-sm border rounded-lg px-3 py-2"
-                    required={createBooking}
-                  >
-                    <option value="">-- เลือกห้อง --</option>
-                    {rooms
-                      .filter(r => r.status === 'available')
-                      .sort((a, b) => a.room_number.localeCompare(b.room_number, 'th', { numeric: true }))
-                      .map(room => (
-                        <option key={room.id} value={room.room_number}>
-                          ห้อง {room.room_number} - {room.price?.toLocaleString()} บาท/เดือน
-                        </option>
-                      ))}
-                  </select>
-                </div>
+            {bookings.length > 0 && (
+              <div className="space-y-3">
+                {bookings.map((booking, index) => (
+                  <div key={index} className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200 relative">
+                    {bookings.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeBooking(index)}
+                        className="absolute top-2 right-2 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                    <p className="text-xs font-semibold text-blue-800">สัญญาที่ {index + 1}</p>
+                    <div>
+                      <Label>เลือกห้อง *</Label>
+                      <select
+                        value={booking.room_number}
+                        onChange={(e) => updateBooking(index, 'room_number', e.target.value)}
+                        className="w-full text-sm border rounded-lg px-3 py-2"
+                        required
+                      >
+                        <option value="">-- เลือกห้อง --</option>
+                        {rooms
+                          .filter(r => r.status === 'available')
+                          .sort((a, b) => a.room_number.localeCompare(b.room_number, 'th', { numeric: true }))
+                          .map(room => (
+                            <option key={room.id} value={room.room_number}>
+                              ห้อง {room.room_number} - {room.price?.toLocaleString()} บาท/เดือน
+                            </option>
+                          ))}
+                      </select>
+                    </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>วันเริ่มเช่า</Label>
-                    <Input
-                      type="date"
-                      value={formData.check_in_date}
-                      onChange={(e) => setFormData({ ...formData, check_in_date: e.target.value })}
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>วันเริ่มเช่า</Label>
+                        <Input
+                          type="date"
+                          value={booking.check_in_date}
+                          onChange={(e) => updateBooking(index, 'check_in_date', e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>เงินมัดจำ (บาท)</Label>
+                        <Input
+                          type="number"
+                          value={booking.deposit_amount}
+                          onChange={(e) => updateBooking(index, 'deposit_amount', e.target.value)}
+                          placeholder="5000"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <Label>เงินมัดจำ (บาท)</Label>
-                    <Input
-                      type="number"
-                      value={formData.deposit_amount}
-                      onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
-                      placeholder="5000"
-                    />
-                  </div>
-                </div>
+                ))}
               </div>
             )}
           </div>
