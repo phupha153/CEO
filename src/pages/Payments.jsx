@@ -2818,7 +2818,7 @@ Return JSON.`;
             </div>
 
             <div className="flex items-center gap-2 w-full md:w-auto">
-              {canAdd && roomsNeedingBills > 0 && (
+              {canAdd && (
                 <GenerateMonthlyBillsButton
                   branchId={selectedBranchId}
                   roomsNeedingBills={roomsNeedingBills}
