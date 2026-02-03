@@ -2724,57 +2724,81 @@ const tenantSchema = {
 
           
 
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-600">
-              {debouncedSearch ? `พบ ${filteredTenants.length} คน จากทั้งหมด ${tenants.length} คน` : `ผู้เช่าในสาขานี้: ${tenants.length} คน`}
-            </p>
-            <div className="flex gap-2 items-center">
-              {/* Selection Mode Toggle */}
-              <Button
-                variant={isSelectionMode ? 'destructive' : 'outline'}
-                size="sm"
-                onClick={() => {
-                  const newSelectionMode = !isSelectionMode;
-                  setIsSelectionMode(newSelectionMode);
-                  if (!newSelectionMode) {
-                    setSelectedTenants([]);
-                  }
-                }}
-                className="shadow-sm"
-              >
-                {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายรายการ</>}
-              </Button>
+          <div className="space-y-3">
+            {/* แถวบน: ข้อมูลสถิติ + ปุ่มเลือกหลายรายการ */}
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm text-slate-600 leading-relaxed">
+                {debouncedSearch ? (
+                  <>
+                    พบ <span className="font-semibold">{filteredTenants.length}</span> คน<br className="md:hidden" />
+                    <span className="hidden md:inline"> </span>จากทั้งหมด {tenants.length} คน
+                  </>
+                ) : (
+                  <>
+                    ผู้เช่าในสาขานี้:<br className="md:hidden" />
+                    <span className="hidden md:inline"> </span><span className="font-semibold">{tenants.length} คน</span>
+                  </>
+                )}
+              </p>
 
-              <div className="flex flex-row gap-1 bg-white border border-slate-200 rounded-lg p-1">
-                <Button
-                  variant={viewMode === 'card' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('card')}
-                  className={`h-8 px-3 rounded-md ${viewMode === 'card' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
-                >
-                  <Grid3x3 className="w-4 h-4 md:mr-1" />
-                  <span className="hidden md:inline text-xs">การ์ด</span>
-                </Button>
-                <Button
-                  variant={viewMode === 'table' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('table')}
-                  className={`h-8 px-3 rounded-md ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
-                >
-                  <TableIcon className="w-4 h-4 md:mr-1" />
-                  <span className="hidden md:inline text-xs">ตาราง</span>
-                </Button>
-                <Button
-                  variant={viewMode === 'room' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('room')}
-                  className={`h-8 px-3 rounded-md ${viewMode === 'room' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
-                >
-                  <Home className="w-4 h-4 md:mr-1" />
-                  <span className="hidden md:inline text-xs">ห้อง</span>
-                </Button>
-              </div>
-            </div>
+              <Button
+                variant={isSelectionMode ? 'destructive' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  const newSelectionMode = !isSelectionMode;
+                  setIsSelectionMode(newSelectionMode);
+                  if (!newSelectionMode) {
+                    setSelectedTenants([]);
+                  }
+                }}
+                className="shadow-sm flex-shrink-0"
+              >
+                {isSelectionMode ? (
+                  <>
+                    <X className="w-4 h-4 md:mr-2" />
+                    <span className="hidden md:inline">ยกเลิก</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="w-4 h-4 md:mr-2" />
+                    <span className="hidden md:inline">เลือกหลายรายการ</span>
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* แถวล่าง: ปุ่ม View Mode */}
+            <div className="flex justify-end">
+              <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
+                <Button
+                  variant={viewMode === 'card' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('card')}
+                  className={`h-8 px-3 rounded-md ${viewMode === 'card' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                >
+                  <Grid3x3 className="w-4 h-4 md:mr-1" />
+                  <span className="hidden md:inline text-xs">การ์ด</span>
+                </Button>
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('table')}
+                  className={`h-8 px-3 rounded-md ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                >
+                  <TableIcon className="w-4 h-4 md:mr-1" />
+                  <span className="hidden md:inline text-xs">ตาราง</span>
+                </Button>
+                <Button
+                  variant={viewMode === 'room' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('room')}
+                  className={`h-8 px-3 rounded-md ${viewMode === 'room' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                >
+                  <Home className="w-4 h-4 md:mr-1" />
+                  <span className="hidden md:inline text-xs">ห้อง</span>
+                </Button>
+              </div>
+            </div>
           </div>
 
           {tenantsLoading && tenants.length === 0 ? (
