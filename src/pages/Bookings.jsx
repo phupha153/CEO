@@ -565,9 +565,9 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   const getRoomEvents = (roomId, date) => {
     const events = [];
 
-    // ⭐ รวมทั้ง Booking ปกติและ TemporaryBooking
+    // ⭐ แสดงเฉพาะ booking ที่ status = 'active' เท่านั้น (ไม่รวม completed, cancelled)
     const roomBookings = bookings.filter(b => {
-      if (b.room_id !== roomId || b.status === 'cancelled') return false;
+      if (b.room_id !== roomId || b.status !== 'active') return false;
       if (!b.check_in_date) return false;
 
       try {
@@ -593,7 +593,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       });
     });
 
-    // ⭐⭐⭐ เพิ่ม TemporaryBooking (รอยืนยัน)
+    // ⭐ แสดงเฉพาะ TemporaryBooking ที่ยังใช้งานอยู่ (ไม่ต้องเช็ค status เพราะ temp ไม่มี completed/cancelled)
     const roomTempBookings = temporaryBookings.filter(b => {
       if (b.room_id !== roomId) return false;
       if (!b.check_in_date) return false;
