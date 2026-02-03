@@ -403,17 +403,17 @@ export default function Maintenance() {
 
       <div className="px-4 md:px-8 py-6 relative z-10">
         <div className="max-w-7xl mx-auto space-y-6">
-          <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
-            <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
-            <CardContent className="p-3 md:p-6 relative">
-              <div className="space-y-3 md:space-y-4">
+          <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-xl md:rounded-2xl overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 md:w-64 h-40 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
+            <CardContent className="p-2 md:p-5 relative">
+              <div className="space-y-2 md:space-y-3">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
-                    placeholder="ค้นหาคำขอซ่อม (หัวข้อ, ห้อง, ชื่อผู้เช่า...)"
+                    placeholder="ค้นหา..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-10 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl text-sm md:text-base"
+                    className="pl-8 pr-8 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg text-xs md:text-sm h-8 md:h-9"
                   />
                   {searchQuery && (
                     <Button
@@ -421,18 +421,18 @@ export default function Maintenance() {
                       onClick={() => setSearchQuery('')}
                       variant="ghost"
                       size="icon"
-                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7"
+                      className="absolute right-0.5 top-1/2 transform -translate-y-1/2 h-6 w-6"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3" />
                     </Button>
                   )}
                 </div>
 
-                <div className="flex flex-row flex-wrap items-center gap-1.5 md:gap-3">
-                  <div className="flex flex-row items-center gap-1.5">
-                    <Label className="text-xs md:text-sm font-semibold text-slate-700 flex-shrink-0 whitespace-nowrap">หมวดหมู่:</Label>
+                <div className="flex flex-wrap items-center justify-start gap-1 md:gap-2">
+                  <div className="flex items-center gap-1">
+                    <Label className="text-xs font-semibold text-slate-700 flex-shrink-0">หมวดหมู่</Label>
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger className="w-24 md:w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl h-8 md:h-9 text-xs md:text-sm">
+                      <SelectTrigger className="w-20 md:w-28 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg h-7 md:h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -446,10 +446,10 @@ export default function Maintenance() {
                     </Select>
                   </div>
 
-                  <div className="flex flex-row items-center gap-1.5">
-                    <Label className="text-xs md:text-sm font-semibold text-slate-700 flex-shrink-0 whitespace-nowrap">ความสำคัญ:</Label>
+                  <div className="flex items-center gap-1">
+                    <Label className="text-xs font-semibold text-slate-700 flex-shrink-0">ความสำคัญ</Label>
                     <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                      <SelectTrigger className="w-24 md:w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl h-8 md:h-9 text-xs md:text-sm">
+                      <SelectTrigger className="w-20 md:w-28 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg h-7 md:h-8 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
