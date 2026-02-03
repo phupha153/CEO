@@ -2827,7 +2827,7 @@ Return JSON.`;
             <div className="flex items-center gap-2">
               {canAdd && roomsNeedingBills > 0 && (
                 <GenerateMonthlyBillsButton
-                  selectedBranchId={selectedBranchId}
+                  branchId={selectedBranchId}
                   roomsNeedingBills={roomsNeedingBills}
                   onSuccess={() => {
                     queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
