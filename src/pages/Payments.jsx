@@ -2789,7 +2789,7 @@ Return JSON.`;
             </Card>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-2 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-2 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-lg px-1.5 py-1.5">
             <div className="flex items-center gap-2" data-selection-control>
               <Button
                 variant={isSelectionMode ? 'destructive' : 'outline'}
