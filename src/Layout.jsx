@@ -1912,6 +1912,7 @@ export default function Layout({ children, currentPageName }) {
             {children}
           </div>
         </main>
+        <BottomNavigation />
         </div>
         </SidebarProvider>
         );
