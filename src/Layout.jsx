@@ -1906,7 +1906,8 @@ export default function Layout({ children, currentPageName }) {
 
           <div 
             ref={mainContentRef}
-            className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden"
+            className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden md:pb-0 pb-24"
+            style={{ overscrollBehaviorY: 'none' }}
           >
             {children}
           </div>
