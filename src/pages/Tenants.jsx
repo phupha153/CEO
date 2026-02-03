@@ -2719,8 +2719,8 @@ const tenantSchema = {
 
           
 
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-slate-600">
+          <div className="flex items-center justify-between gap-3 flex-wrap md:flex-nowrap">
+            <p className="text-sm text-slate-600 whitespace-nowrap">
               {debouncedSearch ? (
                 <>
                   พบ <span className="font-semibold">{filteredTenants.length}</span> คน จากทั้งหมด {tenants.length} คน
@@ -2732,7 +2732,7 @@ const tenantSchema = {
               )}
             </p>
 
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center flex-shrink-0">
               <Button
                 variant={isSelectionMode ? 'destructive' : 'outline'}
                 size="sm"
