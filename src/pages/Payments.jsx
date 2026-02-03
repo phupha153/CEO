@@ -222,13 +222,8 @@ export default function PaymentsPage() {
   const canEdit = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_edit');
   const canDelete = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_delete');
   const canConfirmPaid = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_confirm');
-  const canSendReminder = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_send_reminder');
+  const canSendCommsManual = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_send_comms_manual');
   const canSendReceipt = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_send_receipt');
-  const canViewInvoice = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_view_invoice');
-  const canViewReceipt = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_view_receipt');
-  const canAutoCalculate = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_autocalculate');
-  const canGenerateBills = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_generate_bills');
-  const canSendBillsBulk = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_send_bills_bulk');
   const canDeleteTestData = userRole === 'developer';
 
   const { data: roomViewPayments = [], isFetching: roomViewFetching } = useQuery({
@@ -696,12 +691,6 @@ export default function PaymentsPage() {
   }, [configs, currentDateMemo, selectedBranchId]);
 
   const autoCalculatePayment = async (roomId) => {
-    if (!canAutoCalculate) {
-      toast.error('คุณไม่มีสิทธิ์ใช้ฟังก์ชันคำนวณอัตโนมัติ');
-      setAutoCalculating(false);
-      return;
-    }
-
     if (!roomId) {
       toast.error('กรุณาเลือกห้องก่อน');
       setAutoCalculating(false);
@@ -1664,7 +1653,7 @@ export default function PaymentsPage() {
   };
 
   const openReminderDialog = (paymentId = null, forceTemplate = null) => {
-    if (!canSendReminder) {
+    if (!canSendCommsManual) {
       toast.error('คุณไม่มีสิทธิ์ส่งข้อความแจ้งเตือน');
       return;
     }
@@ -2837,15 +2826,7 @@ Return JSON.`;
             </div>
 
             <div className="flex items-center gap-2">
-              {canGenerateBills && (
-                <GenerateMonthlyBillsButton 
-                  branchId={selectedBranchId} 
-                  roomsNeedingBills={roomsNeedingBills}
-                  onSuccess={() => queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] })} 
-                  compact 
-                />
-              )}
-              {canSendBillsBulk && (
+              {canSendCommsManual && (
                 <Button
                   onClick={() => openReminderDialog()}
                   disabled={sendingAll || tenantsWithLine === 0}
@@ -3012,7 +2993,7 @@ Return JSON.`;
           </div>
 
           <div className="flex items-center justify-between gap-4">
-            {canSendReminder && (
+            {canSendCommsManual && (
               <p className="text-xs text-slate-500">
                 บิลรอบนี้: {(() => {
                   const now = new Date();
@@ -3183,7 +3164,7 @@ Return JSON.`;
                       } : getTenantInfo(payment.tenant_id);
                       const lateFee = (payment.late_fee_amount && payment.late_fee_amount > 0) ? 0 : calculateLateFee(payment);
                       const totalWithLateFee = (payment.total_amount || 0) + lateFee;
-                      const canSendReminderForPayment = canSendReminder && (effectiveStatus === 'pending' || effectiveStatus === 'overdue') && tenant && (tenant.line_user_id || tenant.facebook_user_id);
+                      const canSendReminderForPayment = canSendCommsManual && (effectiveStatus === 'pending' || effectiveStatus === 'overdue') && tenant && (tenant.line_user_id || tenant.facebook_user_id);
                       const canSendReceiptForPayment = canSendReceipt && effectiveStatus === 'paid' && tenant && (tenant.line_user_id || tenant.facebook_user_id);
                       const hasNoLine = !tenant || (!tenant.line_user_id && !tenant.facebook_user_id);
                       const isPaid = effectiveStatus === 'paid';
@@ -3492,7 +3473,7 @@ Return JSON.`;
                                   </Button>
                                 )}
 
-                                {!isPaid && canViewInvoice && (
+                                {!isPaid && (
                                   <Link to={`${createPageUrl('Invoice')}?paymentId=${payment.id}`} className="flex-shrink-0">
                                     <Button size="sm" variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
                                       <FileText className="w-4 h-4 mr-1" />
@@ -3501,7 +3482,7 @@ Return JSON.`;
                                   </Link>
                                 )}
 
-                                {isPaid && canViewReceipt && (
+                                {isPaid && (
                                   <Link to={`${createPageUrl('Receipt')}?paymentId=${payment.id}`} className="flex-shrink-0">
                                     <Button size="sm" className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700">
                                       <Receipt className="w-4 h-4 mr-1" />
@@ -3651,7 +3632,7 @@ Return JSON.`;
                                 )}
                               </div>
 
-                              {hasNoLine && (effectiveStatus === 'pending' || effectiveStatus === 'overdue') && canSendReminder && (
+                              {hasNoLine && (effectiveStatus === 'pending' || effectiveStatus === 'overdue') && canSendCommsManual && (
                                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-amber-700 flex items-start gap-2 mt-3">
                                   <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                                   <span>ผู้เช่ายังไม่ได้เชื่อมต่อระบบแชท</span>
@@ -3701,7 +3682,7 @@ Return JSON.`;
                             <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">ค่าน้ำ</th>
                             <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">ยอดรวม</th>
                             <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">สถานะ</th>
-                            {(canEdit || canDelete || canViewInvoice || canViewReceipt || canConfirmPaid || canSendReminder || canSendReceipt) && (
+                            {(canEdit || canDelete || canConfirmPaid || canSendCommsManual || canSendReceipt) && (
                               <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">จัดการ</th>
                             )}
                           </tr>
@@ -3801,15 +3782,15 @@ Return JSON.`;
                                   )}
                                 </td>
                                 <td className="px-4 py-3 text-sm">{getStatusBadge(effectiveStatus, payment)}</td>
-                                {(canEdit || canDelete || canViewInvoice || canViewReceipt || canConfirmPaid || canSendReminder || canSendReceipt) && (
+                                {(canEdit || canDelete || canConfirmPaid || canSendCommsManual || canSendReceipt) && (
                                   <td className="px-4 py-3">
                                     <div className="flex justify-center gap-1">
-                                      {!isPaid && canViewInvoice && (
+                                      {!isPaid && (
                                         <Link to={`${createPageUrl('Invoice')}?paymentId=${payment.id}`}>
                                           <Button variant="ghost" size="icon" className="h-8 w-8" title="ใบแจ้งหนี้"><FileText className="w-4 h-4" /></Button>
                                         </Link>
                                       )}
-                                      {isPaid && canViewReceipt && (
+                                      {isPaid && (
                                         <Link to={`${createPageUrl('Receipt')}?paymentId=${payment.id}`}>
                                           <Button variant="ghost" size="icon" className="h-8 w-8" title="ใบเสร็จรับเงิน"><Receipt className="w-4 h-4" /></Button>
                                         </Link>
@@ -3827,7 +3808,7 @@ Return JSON.`;
                                           <CheckCircle2 className="w-4 h-4" />
                                         </Button>
                                       )}
-                                      {(effectiveStatus === 'pending' || effectiveStatus === 'overdue') && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendReminder && (
+                                      {(effectiveStatus === 'pending' || effectiveStatus === 'overdue') && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendCommsManual && (
                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50" onClick={() => openReminderDialog(payment.id)} disabled={sendingReminder === payment.id} title={effectiveStatus === 'overdue' ? 'แจ้งเตือนเกินกำหนด' : 'แจ้งเตือนครบกำหนด'}>
                                          {sendingReminder === payment.id ? (
                                            <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
@@ -4212,7 +4193,7 @@ Return JSON.`;
                                            </div>
 
                                            <div className="flex flex-wrap gap-2 pt-3 border-t">
-                                             {effectiveStatus !== 'paid' && canViewInvoice && (
+                                             {effectiveStatus !== 'paid' && (
                                                <Link to={`${createPageUrl('Invoice')}?paymentId=${roomPayment.id}`} className="flex-1 min-w-[100px]">
                                                  <Button size="sm" variant="outline" className="w-full text-xs">
                                                    <FileText className="w-3 h-3 mr-1" />
@@ -4220,7 +4201,7 @@ Return JSON.`;
                                                  </Button>
                                                </Link>
                                              )}
-                                             {effectiveStatus === 'paid' && canViewReceipt && (
+                                             {effectiveStatus === 'paid' && (
                                                <Link to={`${createPageUrl('Receipt')}?paymentId=${roomPayment.id}`} className="flex-1 min-w-[100px]">
                                                  <Button size="sm" className="w-full text-xs bg-green-600 hover:bg-green-700">
                                                    <Receipt className="w-3 h-3 mr-1" />
@@ -4257,7 +4238,7 @@ Return JSON.`;
                                                  ยืนยันชำระ
                                                </Button>
                                              )}
-                                             {effectiveStatus !== 'paid' && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendReminder && (
+                                             {effectiveStatus !== 'paid' && (tenant?.line_user_id || tenant?.facebook_user_id) && canSendCommsManual && (
                                                <Button 
                                                  size="sm" 
                                                  className="w-full text-xs bg-purple-600 hover:bg-purple-700"
@@ -4470,7 +4451,7 @@ Return JSON.`;
                   </Select>
                 </div>
 
-                {formData.room_id && !editingPayment && canAutoCalculate && (
+                {formData.room_id && !editingPayment && (
                   <Button type="button" onClick={() => autoCalculatePayment(formData.room_id)} disabled={autoCalculating} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
                     {autoCalculating ? (
                       <>

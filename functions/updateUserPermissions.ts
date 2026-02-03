@@ -7,7 +7,7 @@ const VALID_PERMISSIONS = [
   'bookings_view_daily', 'bookings_add_daily', 'bookings_edit_daily', 'bookings_delete_daily',
   'contracts_view_monthly', 'contracts_add_monthly', 'contracts_edit_monthly', 'contracts_delete_monthly',
   'payments_view', 'payments_add', 'payments_edit', 'bookings_edit_deposit', 'payments_delete',
-  'payments_update_status', 'payments_send_receipt', 'payments_generate_bills', 'payments_send_bills_bulk',
+  'payments_confirm', 'payments_send_receipt', 'payments_send_comms_manual',
   'meter_readings_view', 'meter_readings_add', 'meter_readings_edit', 'meter_readings_edit_history', 'meter_readings_delete',
   'expenses_view', 'expenses_add', 'expenses_edit', 'expenses_delete',
   'maintenance_view', 'maintenance_add', 'maintenance_edit', 'maintenance_delete', 'maintenance_update_status',
