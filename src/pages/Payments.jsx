@@ -2998,33 +2998,130 @@ Return JSON.`;
           </div>
 
           <div className="flex items-center justify-between gap-4">
-            {canSendCommsManual && (
-              <p className="text-xs text-slate-500">
-                บิลรอบนี้: {(() => {
-                  const now = new Date();
-                  const currentDay = now.getDate();
-                  let cycleStart, cycleEnd;
-                  
-                  if (currentDay >= 20) {
-                    cycleStart = new Date(now.getFullYear(), now.getMonth(), 20);
-                    cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 20);
-                  } else {
-                    cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, 20);
-                    cycleEnd = new Date(now.getFullYear(), now.getMonth(), 20);
-                  }
-                  
-                  const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
-                  const billsThisCycle = payments.filter(p => {
-                    if (!p.due_date) return false;
-                    try {
-                      const dueDate = parseISO(p.due_date);
-                      return dueDate >= cycleStart && dueDate < cycleEnd;
-                    } catch { return false; }
-                  }).length;
-                  return `${billsThisCycle}/${occupiedRooms}`;
-                })()}
-              </p>
-            )}
+            <div className="flex items-center gap-3">
+              {canSendCommsManual && (
+                <p className="text-xs text-slate-500">
+                  บิลรอบนี้: {(() => {
+                    const now = new Date();
+                    const currentDay = now.getDate();
+                    let cycleStart, cycleEnd;
+                    
+                    if (currentDay >= 20) {
+                      cycleStart = new Date(now.getFullYear(), now.getMonth(), 20);
+                      cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 20);
+                    } else {
+                      cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, 20);
+                      cycleEnd = new Date(now.getFullYear(), now.getMonth(), 20);
+                    }
+                    
+                    const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
+                    const billsThisCycle = payments.filter(p => {
+                      if (!p.due_date) return false;
+                      try {
+                        const dueDate = parseISO(p.due_date);
+                        return dueDate >= cycleStart && dueDate < cycleEnd;
+                      } catch { return false; }
+                    }).length;
+                    return `${billsThisCycle}/${occupiedRooms}`;
+                  })()}
+                </p>
+              )}
+
+              {viewMode !== 'room' && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <SlidersHorizontal className="w-4 h-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-4 bg-white/95 backdrop-blur-2xl border-white/80 rounded-2xl shadow-2xl" align="start">
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-xs font-semibold text-slate-700 mb-2 block">ช่วงเวลา</Label>
+                        <Select value={dateRangeType} onValueChange={setDateRangeType}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="this_month">เดือนนี้</SelectItem>
+                            <SelectItem value="last_month">1 เดือนที่แล้ว</SelectItem>
+                            <SelectItem value="3_months">3 เดือน</SelectItem>
+                            <SelectItem value="6_months">6 เดือน</SelectItem>
+                            <SelectItem value="12_months">12 เดือน</SelectItem>
+                            <SelectItem value="this_year">ปีนี้</SelectItem>
+                            <SelectItem value="last_year">ปีที่แล้ว</SelectItem>
+                            <SelectItem value="all">ทั้งหมด</SelectItem>
+                            <SelectItem value="custom">กำหนดเอง</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label className="text-xs font-semibold text-slate-700 mb-2 block">สถานะ</Label>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">ทั้งหมด</SelectItem>
+                            <SelectItem value="pending">รอชำระ</SelectItem>
+                            <SelectItem value="partial_paid">ชำระบางส่วน</SelectItem>
+                            <SelectItem value="overdue">เกินกำหนด</SelectItem>
+                            <SelectItem value="paid">ชำระแล้ว</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs font-semibold text-slate-700 mb-2 block">เรียงตาม</Label>
+                        <Select value={sortBy} onValueChange={setSortBy}>
+                          <SelectTrigger className="w-full">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="due_date">วันครบกำหนด</SelectItem>
+                            <SelectItem value="room">หมายเลขห้อง</SelectItem>
+                            <SelectItem value="created_date">วันที่สร้าง</SelectItem>
+                            <SelectItem value="amount">ยอดเงิน</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {dateRangeType === 'custom' && (
+                        <div>
+                          <Label className="text-xs font-semibold text-slate-700 mb-2 block">เลือกวันที่</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full gap-2 border-green-300 text-green-700 hover:bg-green-50"
+                              >
+                                <CalendarIcon className="w-4 h-4" />
+                                {format(customRange.from, 'd MMM', { locale: th })} - {format(customRange.to, 'd MMM', { locale: th })}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                              <CalendarComponent
+                                mode="range"
+                                selected={customRange}
+                                onSelect={(range) => {
+                                  if (range?.from && range?.to) {
+                                    setCustomRange(range);
+                                  }
+                                }}
+                                numberOfMonths={2}
+                                locale={th}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
             
             <div className="flex items-center gap-1 bg-white/90 backdrop-blur-xl shadow-md border border-white/60 rounded-xl p-1">
               <Button
