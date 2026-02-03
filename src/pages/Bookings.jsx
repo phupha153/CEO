@@ -847,6 +847,12 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   const [pendingCheckInBooking, setPendingCheckInBooking] = useState(null);
   const [createPaymentOnCheckIn, setCreatePaymentOnCheckIn] = useState(true);
   
+  const [cancelBookingDialog, setCancelBookingDialog] = useState(false);
+  const [pendingCancelBooking, setPendingCancelBooking] = useState(null);
+  
+  const [checkoutBookingDialog, setCheckoutBookingDialog] = useState(false);
+  const [pendingCheckoutBooking, setPendingCheckoutBooking] = useState(null);
+  
   const [confirmTenantDialog, setConfirmTenantDialog] = useState(false);
   const [pendingTempBooking, setPendingTempBooking] = useState(null);
   const [selectedTenant, setSelectedTenant] = useState(null);
@@ -909,6 +915,52 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
       setCheckInConfirmDialog(false);
       setPendingCheckInBooking(null);
       toast.success('ยืนยันการเข้าพักสำเร็จ');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'เกิดข้อผิดพลาด');
+    }
+  });
+
+  const cancelBookingMutation = useMutation({
+    mutationFn: async (booking) => {
+      if (!canDelete && !canCancel) {
+        throw new Error('คุณไม่มีสิทธิ์ยกเลิกการจอง');
+      }
+      
+      await base44.entities.Booking.update(booking.id, {
+        status: 'cancelled'
+      });
+      
+      return booking;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['bookings', selectedBranchId]);
+      setCancelBookingDialog(false);
+      setPendingCancelBooking(null);
+      toast.success('ยกเลิกการจองสำเร็จ');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'เกิดข้อผิดพลาด');
+    }
+  });
+
+  const checkoutBookingMutation = useMutation({
+    mutationFn: async (booking) => {
+      if (!canCheckOut) {
+        throw new Error('คุณไม่มีสิทธิ์ยืนยันการเช็คเอาท์');
+      }
+      
+      await base44.entities.Booking.update(booking.id, {
+        status: 'completed'
+      });
+      
+      return booking;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['bookings', selectedBranchId]);
+      setCheckoutBookingDialog(false);
+      setPendingCheckoutBooking(null);
+      toast.success('บันทึกการเช็คเอาท์สำเร็จ');
     },
     onError: (error) => {
       toast.error(error.message || 'เกิดข้อผิดพลาด');
