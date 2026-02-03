@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Droplets, Zap, Calendar, TrendingUp, Building2, LayoutGrid, Table as TableIcon, Save, History, Check, Trash2, Search, X, AlertTriangle, List, Grid, Gauge, Download, Upload, FileSpreadsheet, Pencil, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Droplets, Zap, Calendar, TrendingUp, Building2, LayoutGrid, Table as TableIcon, Save, History, Check, Trash2, Search, X, AlertTriangle, List, Grid, Gauge, Download, Upload, FileSpreadsheet, Pencil, Sparkles, Loader2, CheckCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
