@@ -1320,49 +1320,139 @@ export default function MeterReadings() {
 
       <div className="px-4 md:px-8 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Summary Cards */}
-          <div className="grid grid-cols-3 gap-3 md:gap-4">
-            <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all">
-              <CardContent className="p-3 md:p-5">
-                <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between gap-2">
-                  <div className="flex-1 text-center md:text-left">
-                    <p className="text-blue-100 text-[10px] md:text-sm mb-1 font-medium leading-tight">ห้องที่มีการบันทึก</p>
-                    <p className="text-2xl md:text-4xl font-bold">{Object.keys(readingsByRoomForSummary).length}</p>
+          {/* Summary Cards - สไตล์เดียวกับหน้าการชำระเงิน */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card className="relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 opacity-5" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-400 to-purple-500 opacity-10 blur-3xl" />
+                
+                <CardContent className="p-4 md:p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl blur-md opacity-30" />
+                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg">
+                        <Gauge className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="hidden md:flex w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm items-center justify-center">
-                    <Gauge className="w-7 h-7 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-yellow-500 to-orange-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all">
-              <CardContent className="p-3 md:p-5">
-                <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between gap-2">
-                    <div className="flex-1 text-center md:text-left">
-                        <p className="text-yellow-100 text-[10px] md:text-sm mb-1 font-medium leading-tight">ไฟใช้ (หน่วย)</p>
-                        <p className="text-2xl md:text-4xl font-bold">{totalElectricityThisMonth.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</p>
-                        <p className="text-yellow-100 text-[9px] md:text-xs mt-0.5 md:mt-1">{monthReadingsCount} รายการ</p>
-                    </div>
-                    <div className="hidden md:flex w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm items-center justify-center">
-                      <Zap className="w-7 h-7 text-white" />
-                    </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-cyan-500 to-blue-600 text-white border-0 shadow-xl hover:shadow-2xl transition-all">
-                <CardContent className="p-3 md:p-5">
-                    <div className="flex flex-col items-center md:flex-row md:items-center md:justify-between gap-2">
-                        <div className="flex-1 text-center md:text-left">
-                            <p className="text-cyan-100 text-[10px] md:text-sm mb-1 font-medium leading-tight">น้ำใช้ (หน่วย)</p>
-                            <p className="text-2xl md:text-4xl font-bold">{totalWaterThisMonth.toLocaleString('th-TH', { maximumFractionDigits: 0 })}</p>
-                            <p className="text-cyan-100 text-[9px] md:text-xs mt-0.5 md:mt-1">{monthReadingsCount} รายการ</p>
-                        </div>
-                        <div className="hidden md:flex w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm items-center justify-center">
-                          <Droplets className="w-7 h-7 text-white" />
-                        </div>
-                    </div>
+                  <p className="text-sm font-medium text-slate-500 mb-1 hidden md:block">ห้องที่มีการบันทึก</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-800"
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                  >
+                    {Object.keys(readingsByRoomForSummary).length}
+                  </motion.p>
+                  <p className="text-xs text-slate-500 mt-1">ห้อง</p>
                 </CardContent>
-            </Card>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <Card className="relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-yellow-500 to-orange-600 opacity-5" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-400 to-orange-500 opacity-10 blur-3xl" />
+                
+                <CardContent className="p-4 md:p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl blur-md opacity-30" />
+                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-600 shadow-lg">
+                        <Zap className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm font-medium text-slate-500 mb-1 hidden md:block">ไฟฟ้าใช้ทั้งหมด</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-800"
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                  >
+                    {totalElectricityThisMonth.toLocaleString('th-TH')}
+                  </motion.p>
+                  <p className="text-xs text-slate-500 mt-1">หน่วย ({monthReadingsCount} รายการ)</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+              transition={{ duration: 0.3, delay: 0.2 }}
+            >
+              <Card className="relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-blue-600 opacity-5" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-cyan-400 to-blue-500 opacity-10 blur-3xl" />
+                
+                <CardContent className="p-4 md:p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl blur-md opacity-30" />
+                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 shadow-lg">
+                        <Droplets className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm font-medium text-slate-500 mb-1 hidden md:block">น้ำใช้ทั้งหมด</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-800"
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                  >
+                    {totalWaterThisMonth.toLocaleString('th-TH')}
+                  </motion.p>
+                  <p className="text-xs text-slate-500 mt-1">หน่วย ({monthReadingsCount} รายการ)</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+              transition={{ duration: 0.3, delay: 0.3 }}
+            >
+              <Card className="relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600 opacity-5" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400 to-emerald-500 opacity-10 blur-3xl" />
+                
+                <CardContent className="p-4 md:p-6 relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl blur-md opacity-30" />
+                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
+                        <CheckCircle className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm font-medium text-slate-500 mb-1 hidden md:block">บันทึกเดือนนี้</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-800"
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 200 }}
+                  >
+                    {monthReadingsCount}
+                  </motion.p>
+                  <p className="text-xs text-slate-500 mt-1">ห้อง</p>
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
 
           {/* AI Analysis Result */}
