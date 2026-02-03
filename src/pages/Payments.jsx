@@ -2817,7 +2817,7 @@ Return JSON.`;
               )}
             </div>
 
-            <div className="flex items-center gap-2 flex-1 md:flex-initial justify-end">
+            <div className="flex items-center gap-2 w-full md:w-auto md:flex-initial justify-end">
               {canAdd && roomsNeedingBills > 0 && (
                 <GenerateMonthlyBillsButton
                   branchId={selectedBranchId}
@@ -2837,7 +2837,7 @@ Return JSON.`;
                   disabled={sendingAll || tenantsWithLine === 0}
                   size="sm"
                   variant="outline"
-                  className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap flex-1 md:flex-initial"
                 >
                   {sendingAll ? (
                     <>
