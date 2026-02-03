@@ -2931,32 +2931,7 @@ Return JSON.`;
             </motion.div>
           </div>
 
-          <div className="hidden md:flex items-center gap-2 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-4 py-3" data-selection-control>
-            <Button
-              variant={isSelectionMode ? 'destructive' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setIsSelectionMode(!isSelectionMode);
-                if (isSelectionMode) setSelectedPaymentIds([]);
-              }}
-              className="shadow-sm h-10"
-            >
-              {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายรายการ</>}
-            </Button>
 
-            {isSelectionMode && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={selectAllFilteredPayments}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md h-10"
-                disabled={(viewMode === 'room' ? roomViewPayments : filteredPayments).length === 0}
-              >
-                <CheckSquare className="w-5 h-5 mr-2" />
-                <span className="font-semibold">เลือกทุกรายการ ({(viewMode === 'room' ? roomViewPayments : filteredPayments).length})</span>
-              </Button>
-            )}
-          </div>
 
           <div className="grid grid-cols-2 gap-2 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-4 py-3 md:flex md:justify-center">
             {canAdd && (
@@ -2998,33 +2973,47 @@ Return JSON.`;
           </div>
 
           <div className="flex items-center justify-between gap-4">
-            {canSendCommsManual && (
-              <p className="text-xs text-slate-500">
-                บิลรอบนี้: {(() => {
-                  const now = new Date();
-                  const currentDay = now.getDate();
-                  let cycleStart, cycleEnd;
-                  
-                  if (currentDay >= 20) {
-                    cycleStart = new Date(now.getFullYear(), now.getMonth(), 20);
-                    cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 20);
-                  } else {
-                    cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, 20);
-                    cycleEnd = new Date(now.getFullYear(), now.getMonth(), 20);
-                  }
-                  
-                  const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
-                  const billsThisCycle = payments.filter(p => {
-                    if (!p.due_date) return false;
-                    try {
-                      const dueDate = parseISO(p.due_date);
-                      return dueDate >= cycleStart && dueDate < cycleEnd;
-                    } catch { return false; }
-                  }).length;
-                  return `${billsThisCycle}/${occupiedRooms}`;
-                })()}
-              </p>
-            )}
+            <div className="flex items-center gap-3">
+              {canSendCommsManual && (
+                <p className="text-xs text-slate-500">
+                  บิลรอบนี้: {(() => {
+                    const now = new Date();
+                    const currentDay = now.getDate();
+                    let cycleStart, cycleEnd;
+                    
+                    if (currentDay >= 20) {
+                      cycleStart = new Date(now.getFullYear(), now.getMonth(), 20);
+                      cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 20);
+                    } else {
+                      cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, 20);
+                      cycleEnd = new Date(now.getFullYear(), now.getMonth(), 20);
+                    }
+                    
+                    const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
+                    const billsThisCycle = payments.filter(p => {
+                      if (!p.due_date) return false;
+                      try {
+                        const dueDate = parseISO(p.due_date);
+                        return dueDate >= cycleStart && dueDate < cycleEnd;
+                      } catch { return false; }
+                    }).length;
+                    return `${billsThisCycle}/${occupiedRooms}`;
+                  })()}
+                </p>
+              )}
+
+              <Button
+                variant={isSelectionMode ? 'destructive' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setIsSelectionMode(!isSelectionMode);
+                  if (isSelectionMode) setSelectedPaymentIds([]);
+                }}
+                className="shadow-sm h-8"
+              >
+                {isSelectionMode ? <><X className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">ยกเลิก</span></> : <><CheckSquare className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">เลือกหลายรายการ</span></>}
+              </Button>
+            </div>
             
             <div className="flex items-center gap-1 bg-white/90 backdrop-blur-xl shadow-md border border-white/60 rounded-xl p-1">
               <Button
