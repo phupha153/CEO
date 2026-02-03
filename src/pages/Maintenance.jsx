@@ -428,11 +428,11 @@ export default function Maintenance() {
                   )}
                 </div>
 
-                <div className="flex flex-col md:flex-row md:flex-wrap items-stretch md:items-center gap-2 md:gap-3">
-                  <div className="flex flex-col md:flex-row md:items-center gap-2">
+                <div className="flex flex-row flex-wrap items-center gap-2 md:gap-3">
+                  <div className="flex flex-row items-center gap-2">
                     <Label className="text-xs md:text-sm font-semibold text-slate-700 flex-shrink-0">หมวดหมู่:</Label>
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger className="w-full md:w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl h-9 md:h-10">
+                      <SelectTrigger className="w-32 md:w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl h-9">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -446,10 +446,10 @@ export default function Maintenance() {
                     </Select>
                   </div>
 
-                  <div className="flex flex-col md:flex-row md:items-center gap-2">
+                  <div className="flex flex-row items-center gap-2">
                     <Label className="text-xs md:text-sm font-semibold text-slate-700 flex-shrink-0">ความสำคัญ:</Label>
                     <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                      <SelectTrigger className="w-full md:w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl h-9 md:h-10">
+                      <SelectTrigger className="w-32 md:w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl h-9">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
