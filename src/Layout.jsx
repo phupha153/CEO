@@ -7,6 +7,7 @@ import BranchSelection from "./pages/BranchSelection";
 import { differenceInDays, parseISO, startOfDay, format } from "date-fns";
 import OnboardingTutorial from "./components/onboarding/OnboardingTutorial";
 import NotificationsPanel from "./components/shared/NotificationsPanel";
+import BottomNavigation from "./components/mobile/BottomNavigation";
 import {
         LayoutDashboard,
         DoorOpen,
