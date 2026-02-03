@@ -2829,6 +2829,7 @@ Return JSON.`;
                 <GenerateMonthlyBillsButton
                   branchId={selectedBranchId}
                   roomsNeedingBills={roomsNeedingBills}
+                  compact={true}
                   onSuccess={() => {
                     queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
                     queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });

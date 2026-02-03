@@ -145,14 +145,15 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
         onClick={handleGenerateBills}
         disabled={isLoading || roomsNeedingBills === 0}
         size="sm"
-        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+        variant="outline"
+        className="border-blue-300 text-blue-700 hover:bg-blue-50 whitespace-nowrap"
       >
         {isLoading ? (
-          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
         ) : (
-          <Calendar className="w-4 h-4 mr-1" />
+          <Calendar className="w-3 h-3 mr-1" />
         )}
-        {isCheckingAccess ? 'ตรวจสอบสิทธิ์...' : `สร้างบิลเดือนนี้${roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}`}
+        {isCheckingAccess ? 'ตรวจสอบ...' : `สร้างบิล${roomsNeedingBills > 0 ? ` (${roomsNeedingBills})` : ''}`}
       </Button>
     );
   }
