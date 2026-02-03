@@ -7,7 +7,6 @@ import BranchSelection from "./pages/BranchSelection";
 import { differenceInDays, parseISO, startOfDay, format } from "date-fns";
 import OnboardingTutorial from "./components/onboarding/OnboardingTutorial";
 import NotificationsPanel from "./components/shared/NotificationsPanel";
-import BottomNavigation from "./components/mobile/BottomNavigation";
 import {
         LayoutDashboard,
         DoorOpen,
@@ -442,19 +441,15 @@ export default function Layout({ children, currentPageName }) {
     };
   }, []);
 
-  // ⭐ Initialize theme from localStorage or system preference
+  // ⭐ Force light theme
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || (
-      window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-    );
-
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-
-    document.documentElement.setAttribute('data-theme', savedTheme);
+    document.documentElement.classList.remove('dark', 'theme-dark', 'dark-mode');
+    document.body.classList.remove('dark', 'theme-dark', 'dark-mode');
+    localStorage.removeItem('theme');
+    localStorage.removeItem('darkMode');
+    localStorage.removeItem('dark-mode');
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.body.setAttribute('data-theme', 'light');
 
     // Suppress WebSocket errors that don't affect functionality
     const originalConsoleError = console.error;
@@ -1877,8 +1872,8 @@ export default function Layout({ children, currentPageName }) {
             {currentUser && <NotificationsPanel />}
           </div>
 
-          <header className="relative z-30 bg-white/40 backdrop-blur-2xl border-b border-white/40 px-3 py-3 md:hidden shadow-sm flex-shrink-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-              <div className="flex items-center justify-between gap-2">
+          <header className="relative z-30 bg-white/40 backdrop-blur-2xl border-b border-white/40 px-3 py-3 md:hidden shadow-sm flex-shrink-0">
+            <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <SidebarTrigger className="hover:bg-white/50 p-1.5 rounded-xl transition-all duration-300 z-40 flex-shrink-0" />
                 <div className="flex items-center gap-1.5 min-w-0">
@@ -1906,13 +1901,11 @@ export default function Layout({ children, currentPageName }) {
 
           <div 
             ref={mainContentRef}
-            className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden md:pb-0 pb-24"
-            style={{ overscrollBehaviorY: 'none' }}
+            className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden"
           >
             {children}
           </div>
         </main>
-        <BottomNavigation />
         </div>
         </SidebarProvider>
         );
