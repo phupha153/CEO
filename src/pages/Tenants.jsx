@@ -2593,7 +2593,7 @@ const tenantSchema = {
 
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-32 h-14 justify-between rounded-2xl bg-white/90 backdrop-blur-xl shadow-lg border-white/70">
+                    <Button variant="outline" className="w-full md:w-40 h-14 justify-between rounded-2xl bg-white/90 backdrop-blur-xl shadow-lg border-white/70">
                       <span className="text-sm font-medium">{selectedStatuses.length === 0 ? 'ทุกสถานะ' : `เลือกแล้ว ${selectedStatuses.length} สถานะ`}</span>
                       <ChevronRight className="w-4 h-4 ml-2 rotate-90" />
                     </Button>
