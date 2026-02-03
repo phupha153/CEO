@@ -1763,9 +1763,12 @@ export default function Settings() {
   };
 
   const handleSaveUserPermissions = (userId) => {
+    const validPermissionIds = new Set(PERMISSIONS_LIST.map(p => p.id));
+    const permissions = (userPermissions[userId] || []).filter(p => validPermissionIds.has(p));
+    
     updateUserPermissionsMutation.mutate({
       userId,
-      permissions: userPermissions[userId] || []
+      permissions
     });
   };
 
@@ -1776,7 +1779,10 @@ export default function Settings() {
 
     // โหลดสิทธิ์เริ่มต้นถ้ายังไม่มีสิทธิ์
     const currentPermissions = user.permissions || [];
-    if (currentPermissions.length === 0) {
+    const validPermissionIds = new Set(PERMISSIONS_LIST.map(p => p.id));
+    const filteredPermissions = currentPermissions.filter(p => validPermissionIds.has(p));
+    
+    if (filteredPermissions.length === 0) {
       const role = user.custom_role || (user.role === 'admin' ? 'owner' : 'employee');
       const defaultPerms = DEFAULT_PERMISSIONS_MAP[role] || [];
 
@@ -1786,6 +1792,17 @@ export default function Settings() {
       }));
 
       toast.info(`โหลดสิทธิ์เริ่มต้นสำหรับ ${role === 'owner' ? 'เจ้าของหอพัก' : role === 'manager' ? 'ผู้จัดการ' : 'พนักงาน'}`);
+    } else {
+      const removedCount = currentPermissions.length - filteredPermissions.length;
+      
+      setUserPermissions(prev => ({
+        ...prev,
+        [user.id]: filteredPermissions
+      }));
+      
+      if (removedCount > 0) {
+        toast.info(`ลบสิทธิ์ที่ไม่ถูกต้องออก ${removedCount} รายการ`);
+      }
     }
   };
 
