@@ -2568,7 +2568,7 @@ const tenantSchema = {
 
 
           <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg rounded-3xl">
-            <CardContent className="p-6 md:p-8 space-y-6 relative">
+            <CardContent className="p-4 md:p-6 space-y-4 relative">
               <div className="absolute inset-0 bg-white/50 blur-xl pointer-events-none z-0 rounded-3xl"></div>
 
               <div className="relative z-10 flex flex-col md:flex-row gap-3">
