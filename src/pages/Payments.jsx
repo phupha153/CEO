@@ -2466,19 +2466,7 @@ Return JSON.`;
         subtitle={`สาขา ${selectedBranchName}`}
         icon={CreditCard}
         actions={
-          <div className="flex items-center gap-2">
-            {canAdd && roomsNeedingBills > 0 && (
-              <GenerateMonthlyBillsButton
-                selectedBranchId={selectedBranchId}
-                roomsNeedingBills={roomsNeedingBills}
-                onSuccess={() => {
-                  queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
-                  queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
-                  queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
-                  queryClient.invalidateQueries({ queryKey: ['payments-count'] });
-                }}
-              />
-            )}
+          <>
             {canAdd && !tenantsFetching && !bookingsFetching && tenants.length > 0 && (
               <Button
                 onClick={() => {
@@ -2512,7 +2500,7 @@ Return JSON.`;
                 <span className="hidden md:inline">เพิ่มการชำระเงิน</span>
               </Button>
             )}
-          </div>
+          </>
         }
       />
 
@@ -2837,6 +2825,18 @@ Return JSON.`;
             </div>
 
             <div className="flex items-center gap-2">
+              {canAdd && roomsNeedingBills > 0 && (
+                <GenerateMonthlyBillsButton
+                  selectedBranchId={selectedBranchId}
+                  roomsNeedingBills={roomsNeedingBills}
+                  onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
+                    queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
+                    queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
+                    queryClient.invalidateQueries({ queryKey: ['payments-count'] });
+                  }}
+                />
+              )}
               {canSendCommsManual && (
                 <Button
                   onClick={() => openReminderDialog()}
