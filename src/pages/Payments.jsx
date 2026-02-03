@@ -2789,8 +2789,8 @@ Return JSON.`;
             </Card>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-2 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-3 py-3">
-            <div className="flex items-center gap-2" data-selection-control>
+          <div className="flex flex-wrap items-stretch justify-between gap-3 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-4 py-3 min-h-[64px]">
+            <div className="flex items-center gap-2 self-center" data-selection-control>
               <Button
                 variant={isSelectionMode ? 'destructive' : 'outline'}
                 size="sm"
@@ -2817,7 +2817,7 @@ Return JSON.`;
               )}
             </div>
 
-            <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="flex items-center gap-2 w-full md:w-auto self-center">
               {canAdd && (
                 <GenerateMonthlyBillsButton
                   branchId={selectedBranchId}
