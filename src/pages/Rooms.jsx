@@ -3475,22 +3475,66 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                             const today = new Date().toISOString().split('T')[0];
                                             const isTemp = temporaryBookings.some(b => b.id === displayBooking.id);
                                             
-                                            const updatePromise = isTemp
-                                              ? base44.entities.TemporaryBooking.update(displayBooking.id, { actual_check_in_date: today })
-                                              : base44.entities.Booking.update(displayBooking.id, { actual_check_in_date: today });
-                                            
-                                            updatePromise.then(() => {
-                                              queryClient.invalidateQueries(['bookings']);
-                                              queryClient.invalidateQueries(['temporaryBookings']);
-                                              toast.success('ยืนยันเข้าพักสำเร็จ');
-                                            }).catch(err => {
-                                              toast.error('เกิดข้อผิดพลาด: ' + err.message);
-                                            });
+                                            if (isDaily && isTemp) {
+                                              // สำหรับรายวัน: สร้าง Booking จริง + เปลี่ยนห้องเป็น occupied
+                                              try {
+                                                const tempBooking = temporaryBookings.find(b => b.id === displayBooking.id);
+                                                
+                                                // 1. สร้าง Booking จริง (ไม่มี tenant_id)
+                                                await base44.entities.Booking.create({
+                                                  branch_id: selectedBranchId,
+                                                  room_id: tempBooking.room_id,
+                                                  guest_name: tempBooking.guest_name,
+                                                  guest_phone: tempBooking.guest_phone,
+                                                  guest_email: tempBooking.guest_email,
+                                                  guest_national_id: tempBooking.guest_national_id,
+                                                  guest_address: tempBooking.guest_address,
+                                                  check_in_date: tempBooking.check_in_date,
+                                                  actual_check_in_date: today,
+                                                  check_out_date: tempBooking.check_out_date,
+                                                  booking_type: 'daily',
+                                                  status: 'active',
+                                                  deposit_amount: tempBooking.deposit_amount,
+                                                  security_deposit: tempBooking.security_deposit,
+                                                  total_booking_amount: tempBooking.total_booking_amount,
+                                                  remaining_amount: tempBooking.remaining_amount,
+                                                  deposit_payment_method: tempBooking.deposit_payment_method,
+                                                  deposit_slip_url: tempBooking.deposit_slip_url,
+                                                  notes: tempBooking.notes
+                                                });
+                                                
+                                                // 2. เปลี่ยนห้องเป็น occupied
+                                                await base44.entities.Room.update(selectedRoom.id, { status: 'occupied' });
+                                                
+                                                // 3. ลบ TemporaryBooking เก่า
+                                                await base44.entities.TemporaryBooking.delete(tempBooking.id);
+                                                
+                                                queryClient.invalidateQueries(['bookings']);
+                                                queryClient.invalidateQueries(['temporaryBookings']);
+                                                queryClient.invalidateQueries(['rooms']);
+                                                toast.success('ยืนยันเข้าพักสำเร็จ - ห้องเปลี่ยนเป็นมีผู้เข้าพักแล้ว');
+                                              } catch (err) {
+                                                toast.error('เกิดข้อผิดพลาด: ' + err.message);
+                                              }
+                                            } else {
+                                              // สำหรับรายเดือนหรือ Booking ปกติ: แค่อัพเดท actual_check_in_date
+                                              const updatePromise = isTemp
+                                                ? base44.entities.TemporaryBooking.update(displayBooking.id, { actual_check_in_date: today })
+                                                : base44.entities.Booking.update(displayBooking.id, { actual_check_in_date: today });
+                                              
+                                              updatePromise.then(() => {
+                                                queryClient.invalidateQueries(['bookings']);
+                                                queryClient.invalidateQueries(['temporaryBookings']);
+                                                toast.success('ยืนยันเข้าพักสำเร็จ');
+                                              }).catch(err => {
+                                                toast.error('เกิดข้อผิดพลาด: ' + err.message);
+                                              });
+                                            }
                                           }}
                                           className="bg-green-600 text-white border-green-600 hover:bg-green-700"
                                         >
                                           <Check className="w-4 h-4 mr-1" />
-                                          ยืนยันเข้าพัก
+                                          {isDaily ? 'มีผู้เข้าพัก' : 'ยืนยันเข้าพัก'}
                                         </Button>
                                       )}
                                       {hasCheckedIn && isDaily && (canEdit || canDelete) && (
