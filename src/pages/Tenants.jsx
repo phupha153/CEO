@@ -2745,34 +2745,34 @@ const tenantSchema = {
                 {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายรายการ</>}
               </Button>
 
-              <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
-                <Button
-                  variant={viewMode === 'card' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('card')}
-                  className={`h-8 px-3 rounded-md ${viewMode === 'card' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
-                >
-                  <Grid3x3 className="w-4 h-4 md:mr-1" />
-                  <span className="hidden md:inline text-xs">การ์ด</span>
-                </Button>
-                <Button
-                  variant={viewMode === 'table' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('table')}
-                  className={`h-8 px-3 rounded-md ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
-                >
-                  <TableIcon className="w-4 h-4 md:mr-1" />
-                  <span className="hidden md:inline text-xs">ตาราง</span>
-                </Button>
-                <Button
-                  variant={viewMode === 'room' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('room')}
-                  className={`h-8 px-3 rounded-md ${viewMode === 'room' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
-                >
-                  <Home className="w-4 h-4 md:mr-1" />
-                  <span className="hidden md:inline text-xs">ห้อง</span>
-                </Button>
+              <div className="flex flex-row gap-1 bg-white border border-slate-200 rounded-lg p-1">
+                <Button
+                  variant={viewMode === 'card' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('card')}
+                  className={`h-8 px-3 rounded-md ${viewMode === 'card' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                >
+                  <Grid3x3 className="w-4 h-4 md:mr-1" />
+                  <span className="hidden md:inline text-xs">การ์ด</span>
+                </Button>
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('table')}
+                  className={`h-8 px-3 rounded-md ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                >
+                  <TableIcon className="w-4 h-4 md:mr-1" />
+                  <span className="hidden md:inline text-xs">ตาราง</span>
+                </Button>
+                <Button
+                  variant={viewMode === 'room' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('room')}
+                  className={`h-8 px-3 rounded-md ${viewMode === 'room' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                >
+                  <Home className="w-4 h-4 md:mr-1" />
+                  <span className="hidden md:inline text-xs">ห้อง</span>
+                </Button>
               </div>
             </div>
           </div>
