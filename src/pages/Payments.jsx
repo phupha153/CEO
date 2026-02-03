@@ -2958,19 +2958,21 @@ Return JSON.`;
             )}
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-2 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-4 py-3">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-center gap-2 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-4 py-3">
             {canAdd && (
-              <GenerateMonthlyBillsButton
-                branchId={selectedBranchId}
-                roomsNeedingBills={roomsNeedingBills}
-                compact={true}
-                onSuccess={() => {
-                  queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
-                  queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
-                  queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
-                  queryClient.invalidateQueries({ queryKey: ['payments-count'] });
-                }}
-              />
+              <div className="flex-1 md:flex-initial">
+                <GenerateMonthlyBillsButton
+                  branchId={selectedBranchId}
+                  roomsNeedingBills={roomsNeedingBills}
+                  compact={true}
+                  onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
+                    queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
+                    queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
+                    queryClient.invalidateQueries({ queryKey: ['payments-count'] });
+                  }}
+                />
+              </div>
             )}
             {canSendCommsManual && (
               <Button
@@ -2978,7 +2980,7 @@ Return JSON.`;
                 disabled={sendingAll || tenantsWithLine === 0}
                 size="sm"
                 variant="outline"
-                className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap h-10"
+                className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap h-10 flex-1 md:flex-initial"
               >
                 {sendingAll ? (
                   <>
