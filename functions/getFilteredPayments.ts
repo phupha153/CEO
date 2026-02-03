@@ -18,7 +18,8 @@ Deno.serve(async (req) => {
       page = 1,
       limit = 50,
       sort_by = 'due_date',
-      debug = false
+      debug = false,
+      exclude_dismissed = false
     } = await req.json();
 
     const logs = [];
@@ -164,7 +165,7 @@ Deno.serve(async (req) => {
     if (debug) logs.push({ step: 'Step 4: Rooms & Tenants', data: step4Data });
 
     // ✅ Step 5: Enrich payment data (Server-side JOIN simulation)
-    const enrichedPayments = payments.map(payment => {
+    let enrichedPayments = payments.map(payment => {
       const tenant = tenantsMap.get(payment.tenant_id);
       return {
         ...payment,
@@ -178,6 +179,11 @@ Deno.serve(async (req) => {
         facebook_user_id: tenant?.facebook_user_id || null,
       };
     });
+
+    // 🔒 ถ้า exclude_dismissed = true → กรองรายการที่ซ่อนออก
+    if (exclude_dismissed) {
+      enrichedPayments = enrichedPayments.filter(p => !p.is_dismissed);
+    }
 
     const step5Data = {
       enriched_count: enrichedPayments.length,
