@@ -2824,7 +2824,7 @@ Return JSON.`;
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-1 md:flex-initial justify-end">
               {canAdd && roomsNeedingBills > 0 && (
                 <GenerateMonthlyBillsButton
                   branchId={selectedBranchId}
