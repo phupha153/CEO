@@ -406,14 +406,14 @@ export default function Maintenance() {
           <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-xl md:rounded-2xl overflow-hidden">
             <div className="absolute top-0 right-0 w-40 md:w-64 h-40 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
             <CardContent className="p-2 md:p-5 relative">
-              <div className="space-y-2 md:space-y-3">
-                <div className="relative">
+              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
+                <div className="relative flex-1 md:flex-none md:min-w-64">
                   <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
                     placeholder="ค้นหา..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 pr-8 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg text-xs md:text-sm h-8 md:h-9"
+                    className="pl-8 pr-8 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg text-xs md:text-sm h-8 md:h-9 w-full"
                   />
                   {searchQuery && (
                     <Button
@@ -428,7 +428,7 @@ export default function Maintenance() {
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center justify-start gap-1 md:gap-2">
+                <div className="flex flex-wrap items-center gap-1 md:gap-2">
                   <div className="flex items-center gap-1">
                     <Label className="text-xs font-semibold text-slate-700 flex-shrink-0">หมวดหมู่</Label>
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
