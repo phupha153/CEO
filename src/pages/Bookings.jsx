@@ -1284,6 +1284,23 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
             </CardContent>
           </Card>
 
+          {/* Empty State */}
+          {filteredBookings.length === 0 && filteredTempBookings.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
+                <CardContent className="p-12 text-center">
+                  <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-800 mb-2">ไม่มีการจอง</h3>
+                  <p className="text-slate-500">ไม่พบการจองในสถานะนี้ หรือไม่ตรงกับคำค้นหา</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           {/* Temporary Bookings */}
           {filteredTempBookings.length > 0 && (
             <div className="space-y-3">
