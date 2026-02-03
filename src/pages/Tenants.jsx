@@ -2593,7 +2593,7 @@ const tenantSchema = {
 
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-10 w-10">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 -translate-y-1">
                       <Filter className="w-4 h-4" />
                     </Button>
                   </PopoverTrigger>
