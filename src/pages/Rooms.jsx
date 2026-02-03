@@ -2496,7 +2496,10 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                           {roomsByFloorInPage[floor].map((room) => {
                             const booking = getActiveBooking(room.id);
                             const tenant = booking ? getTenantInfo(booking.tenant_id) : null;
-                            const expiringSoon = booking && isContractExpiringSoon(booking);
+                            const isDaily = booking?.booking_type === 'daily';
+                            const hasCheckedIn = booking?.actual_check_in_date;
+                            const isOverdueCheckout = isDaily && hasCheckedIn && booking?.check_out_date && new Date() > new Date(booking.check_out_date);
+                            const expiringSoon = booking && (isContractExpiringSoon(booking) || isOverdueCheckout);
                             const daysLeft = booking ? getDaysUntilExpiry(booking) : null;
                             const paymentStatus = getPaymentStatus(room.id);
                             const acNeedsCleaning = needsACCleaning(room);
@@ -2625,7 +2628,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                   )}
                                   <div className="absolute top-2 right-2 z-10 flex gap-1">
                                     {expiringSoon && (
-                                      <div className="bg-red-500 text-white rounded-full p-1 animate-pulse" title="ใกล้หมดสัญญา">
+                                      <div className="bg-red-500 text-white rounded-full p-1 animate-pulse" title={isOverdueCheckout ? "เกินวันเช็คเอาท์" : "ใกล้หมดสัญญา"}>
                                         <AlertTriangle className="w-3 h-3 md:w-4 md:h-4" />
                                       </div>
                                     )}
