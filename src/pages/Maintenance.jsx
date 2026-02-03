@@ -407,7 +407,7 @@ export default function Maintenance() {
             <div className="absolute top-0 right-0 w-40 md:w-64 h-40 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
             <CardContent className="p-2 md:p-5 relative">
               <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
-                <div className="relative flex-1 md:flex-none md:min-w-64">
+                <div className="relative flex-1">
                   <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <Input
                     placeholder="ค้นหา..."
