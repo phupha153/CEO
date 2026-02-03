@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ⭐ CSS Variables for Dark Mode Support */
+:root {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+/* ⭐ Mobile Safe Area Support */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* ⭐ Disable text selection on UI elements */
+button,
+a,
+svg,
+[role="button"],
+[role="menuitem"],
+[role="tab"],
+.sidebar,
+.nav-item,
+.icon {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* ⭐ Disable overscroll bounce on iOS */
+body {
+  overscroll-behavior-y: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* ⭐ Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ⭐ Prevent zoom on iOS input focus */
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
+/* ⭐ iOS Safari fixes */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+textarea {
+  font-size: 16px;
+  -webkit-appearance: none;
+  -webkit-border-radius: 0;
+}
+
+/* ⭐ Remove default iOS styles */
+button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* ⭐ Viewport height fix for mobile */
+body {
+  height: 100vh;
+  height: 100dvh;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+}
+
+/* ⭐ Prevent layout shift on scrollbar */
+html {
+  overflow-y: scroll;
+}
+
+@media (max-width: 640px) {
+  html {
+    overflow-y: auto;
+  }
+}
