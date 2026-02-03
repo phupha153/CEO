@@ -1192,10 +1192,15 @@ ${JSON.stringify(roomsWithAC, null, 2)}
         moved_out_date: new Date().toISOString().split('T')[0]
       });
 
-      // 2. Update Booking status
-      await base44.entities.Booking.update(booking.id, { status: 'completed' });
+      // 2. Update Booking status - เช็คว่ามาจาก entity ไหน
+      const isTemporaryBooking = temporaryBookings.some(b => b.id === booking.id);
+      if (isTemporaryBooking) {
+        await base44.entities.TemporaryBooking.update(booking.id, { status: 'completed' });
+      } else {
+        await base44.entities.Booking.update(booking.id, { status: 'completed' });
+      }
       
-      // 3. Update Room status
+      // 3. Update Room status เป็น available
       await base44.entities.Room.update(room.id, { status: 'available' });
 
       return { room, tenant };
@@ -1203,9 +1208,11 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     onSuccess: ({ room, tenant }) => {
       queryClient.invalidateQueries({ queryKey: ['tenants', selectedBranchId] });
       queryClient.invalidateQueries({ queryKey: ['bookings', selectedBranchId] });
+      queryClient.invalidateQueries({ queryKey: ['temporaryBookings', selectedBranchId] });
       queryClient.invalidateQueries({ queryKey: ['rooms', selectedBranchId, 'v2'] });
+      queryClient.invalidateQueries({ queryKey: ['rooms', selectedBranchId, 'secure'] });
       setShowDetailDialog(false);
-      toast.success(`ดำเนินการย้ายออก ${tenant.full_name} จากห้อง ${room.room_number} สำเร็จ`);
+      toast.success(`ย้ายออก ${tenant.full_name} จากห้อง ${room.room_number} สำเร็จ (ห้องถูกเปลี่ยนเป็นว่างแล้ว)`);
     },
     onError: (error) => {
       toast.error(error.message || 'เกิดข้อผิดพลาดในการย้ายออก');
