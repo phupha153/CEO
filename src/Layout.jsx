@@ -441,15 +441,19 @@ export default function Layout({ children, currentPageName }) {
     };
   }, []);
 
-  // ⭐ Force light theme
+  // ⭐ Initialize theme from localStorage or system preference
   useEffect(() => {
-    document.documentElement.classList.remove('dark', 'theme-dark', 'dark-mode');
-    document.body.classList.remove('dark', 'theme-dark', 'dark-mode');
-    localStorage.removeItem('theme');
-    localStorage.removeItem('darkMode');
-    localStorage.removeItem('dark-mode');
-    document.documentElement.setAttribute('data-theme', 'light');
-    document.body.setAttribute('data-theme', 'light');
+    const savedTheme = localStorage.getItem('theme') || (
+      window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    );
+
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
+    document.documentElement.setAttribute('data-theme', savedTheme);
 
     // Suppress WebSocket errors that don't affect functionality
     const originalConsoleError = console.error;
