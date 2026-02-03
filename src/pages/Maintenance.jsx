@@ -482,9 +482,14 @@ export default function Maintenance() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="text-center py-10 text-slate-500"
                 >
-                  ไม่พบคำขอซ่อมในสถานะนี้ หรือไม่ตรงกับคำค้นหา
+                  <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
+                    <CardContent className="p-12 text-center">
+                      <Wrench className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-slate-800 mb-2">ไม่มีคำขอซ่อม</h3>
+                      <p className="text-slate-500">ไม่พบคำขอซ่อมในสถานะนี้ หรือไม่ตรงกับคำค้นหา</p>
+                    </CardContent>
+                  </Card>
                 </motion.div>
               ) : (
                 paginatedRequests.map((request) => {
