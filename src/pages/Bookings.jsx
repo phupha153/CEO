@@ -1461,30 +1461,40 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                           </div>
 
                           <div className="flex flex-wrap md:flex-col gap-1.5 md:gap-2 justify-end md:justify-start">
-                            <Button
-                                size="sm"
-                                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-3 md:px-4 text-xs md:text-sm"
-                               onClick={() => {
-                                 if (booking.booking_type === 'monthly') {
-                                   // แสดง Dialog เพื่อยืนยันผู้เช่าสำหรับรายเดือน
-                                   setPendingTempBooking(booking);
-                                   setTenantFormData({
-                                     full_name: booking.guest_name || '',
-                                     phone: booking.guest_phone || '',
-                                     national_id: booking.guest_national_id || '',
-                                     email: booking.guest_email || ''
-                                   });
-                                   setConfirmTenantDialog(true);
-                                 } else {
-                                   // รายวัน ยืนยันโดยตรง
-                                   confirmTempBookingMutation.mutate({ tempBooking: booking, tenantId: null });
-                                 }
-                               }}
-                               disabled={confirmTempBookingMutation.isPending}
-                             >
-                               {confirmTempBookingMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1.5" />}
-                               ยืนยัน
-                             </Button>
+                          <Button
+                          size="sm"
+                          className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 font-semibold px-3 md:px-4 text-xs md:text-sm"
+                          onClick={() => {
+                           if (booking.booking_type === 'monthly') {
+                             // แสดง Dialog เพื่อยืนยันผู้เช่าสำหรับรายเดือน
+                             setPendingTempBooking(booking);
+                             setTenantFormData({
+                               full_name: booking.guest_name || '',
+                               phone: booking.guest_phone || '',
+                               national_id: booking.guest_national_id || '',
+                               email: booking.guest_email || ''
+                             });
+                             setConfirmTenantDialog(true);
+                           } else {
+                             // รายวัน ยืนยันโดยตรง
+                             confirmTempBookingMutation.mutate({ tempBooking: booking, tenantId: null });
+                           }
+                          }}
+                          disabled={confirmTempBookingMutation.isPending}
+                          >
+                          {confirmTempBookingMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1.5" />}
+                          ยืนยัน
+                          </Button>
+                          <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteTemp(booking.id)}
+                          className="border-red-300 text-red-600 hover:bg-red-50 font-semibold px-2.5 md:px-4 text-xs md:text-sm"
+                          disabled={deleteTempBookingMutation.isPending}
+                          >
+                          <Trash2 className="w-3 md:w-4 h-3 md:h-4 mr-0.5 md:mr-1.5" />
+                          <span className="hidden sm:inline">ลบ</span>
+                          </Button>
                              {booking.booking_type === 'monthly' && (
                                <Button
                                  variant="outline"
@@ -1508,20 +1518,6 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                <Edit2 className="w-3 md:w-4 h-3 md:h-4 mr-0.5 md:mr-1.5" />
                                <span className="hidden sm:inline">แก้ไข</span>
                                <span className="sm:hidden">แก</span>
-                             </Button>
-                             <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-red-300 text-red-600 hover:bg-red-50 font-semibold px-2.5 md:px-4 text-xs md:text-sm"
-                              onClick={() => {
-                                if (confirm('ลบการจองนี้ใช่ไหม?')) {
-                                  deleteTempBookingMutation.mutate(booking.id);
-                                }
-                              }}
-                              disabled={deleteTempBookingMutation.isPending}
-                             >
-                              <Trash2 className="w-3 md:w-4 h-3 md:h-4 mr-0.5 md:mr-1.5" />
-                              <span className="hidden sm:inline">ลบ</span>
                              </Button>
                           </div>
                         </div>
