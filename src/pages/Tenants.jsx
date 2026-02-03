@@ -2436,63 +2436,40 @@ const tenantSchema = {
         icon={Users}
         actions={
           <>
-            {activeTab === 'tenants' && (
-              <>
-                <Button
-                  variant={isSelectionMode ? 'destructive' : 'outline'}
-                  onClick={() => {
-                    const newSelectionMode = !isSelectionMode;
-                    setIsSelectionMode(newSelectionMode);
-                    if (!newSelectionMode) {
-                      setSelectedTenants([]);
-                    }
-                  }}
-                  className="shadow-md"
-                >
-                  {isSelectionMode ? (
-                    <>
-                      <X className="w-4 h-4 md:mr-2" />
-                      <span className="hidden md:inline">ยกเลิก</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckSquare className="w-4 h-4 md:mr-2" />
-                      <span className="hidden md:inline">เลือกหลายรายการ</span>
-                    </>
-                  )}
-                </Button>
-                <Button
-                  onClick={handleDownloadExistingTenants}
-                  variant="outline"
-                  className="border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md"
-                >
-                  <Download className="w-4 h-4 md:mr-2" />
-                  <span className="hidden md:inline">ดาวน์โหลดข้อมูล</span>
-                </Button>
-                <Button
-                  onClick={() => setShowUploadDialog(true)}
-                  variant="outline"
-                  className="border-green-600 text-green-600 hover:bg-green-50 shadow-md"
-                >
-                  <Upload className="w-4 h-4 md:mr-2" />
-                  <span className="hidden md:inline">นำเข้าข้อมูล</span>
-                </Button>
-                {canAdd && (
-                  <Button
-                    onClick={() => {
-                      setEditingTenant(null);
-                      resetForm();
-                      setShowDialog(true);
-                    }}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
-                    data-onboarding="add-tenant-button"
-                  >
-                    <Plus className="w-5 h-5 md:mr-2" />
-                    <span className="hidden md:inline">เพิ่มผู้เช่า</span>
-                  </Button>
-                )}
-              </>
-            )}
+            {activeTab === 'tenants' && (
+              <>
+                <Button
+                  onClick={handleDownloadExistingTenants}
+                  variant="outline"
+                  className="border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md"
+                >
+                  <Download className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">ดาวน์โหลดข้อมูล</span>
+                </Button>
+                <Button
+                  onClick={() => setShowUploadDialog(true)}
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50 shadow-md"
+                >
+                  <Upload className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">นำเข้าข้อมูล</span>
+                </Button>
+                {canAdd && (
+                  <Button
+                    onClick={() => {
+                      setEditingTenant(null);
+                      resetForm();
+                      setShowDialog(true);
+                    }}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
+                    data-onboarding="add-tenant-button"
+                  >
+                    <Plus className="w-5 h-5 md:mr-2" />
+                    <span className="hidden md:inline">เพิ่มผู้เช่า</span>
+                  </Button>
+                )}
+              </>
+            )}
             {activeTab === 'contracts' && canAddContract && (
               <Button
                 onClick={() => navigate(createPageUrl('ContractEditor'))}
@@ -2728,6 +2705,31 @@ const tenantSchema = {
             </p>
 
             <div className="flex gap-2 items-center flex-shrink-0">
+              <Button
+                variant={isSelectionMode ? 'destructive' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  const newSelectionMode = !isSelectionMode;
+                  setIsSelectionMode(newSelectionMode);
+                  if (!newSelectionMode) {
+                    setSelectedTenants([]);
+                  }
+                }}
+                className="shadow-sm"
+              >
+                {isSelectionMode ? (
+                  <>
+                    <X className="w-4 h-4 md:mr-2" />
+                    <span className="hidden md:inline">ยกเลิก</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="w-4 h-4 md:mr-2" />
+                    <span className="hidden md:inline">เลือกหลายรายการ</span>
+                  </>
+                )}
+              </Button>
+
               <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1 flex-shrink-0">
                 <Button
                   variant={viewMode === 'card' ? 'default' : 'ghost'}
