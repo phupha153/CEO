@@ -566,9 +566,11 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   const getRoomEvents = (roomId, date) => {
     const events = [];
 
-    // ⭐ แสดงเฉพาะ booking ที่ status = 'active' เท่านั้น (ไม่รวม completed, cancelled)
+    // ⭐ แสดงเฉพาะ booking ที่ status = 'active' เท่านั้น (ซ่อน completed, cancelled)
     const roomBookings = bookings.filter(b => {
-      if (b.room_id !== roomId || b.status !== 'active') return false;
+      // กรอง: room_id ต้องตรง + status ต้อง active เท่านั้น
+      if (b.room_id !== roomId) return false;
+      if (b.status !== 'active') return false; // ⭐ ซ่อน booking ที่ไม่ active
       if (!b.check_in_date) return false;
 
       try {
