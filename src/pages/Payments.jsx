@@ -2837,7 +2837,7 @@ Return JSON.`;
                   disabled={sendingAll || tenantsWithLine === 0}
                   size="sm"
                   variant="outline"
-                  className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap flex-1 md:flex-initial"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap flex-1 md:flex-initial h-10"
                 >
                   {sendingAll ? (
                     <>
