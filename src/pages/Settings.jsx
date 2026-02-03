@@ -110,7 +110,7 @@ const DEFAULT_PERMISSIONS_MAP = {
     "tenants_view",
     "bookings_view_daily",
     "contracts_view_monthly",
-    "payments_view", "payments_send_receipt",
+    "payments_view",
     "meter_readings_view", "meter_readings_add", "meter_readings_edit", "meter_readings_edit_history",
     "expenses_view",
     "maintenance_view", "maintenance_add"
