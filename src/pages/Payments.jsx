@@ -2315,23 +2315,16 @@ Return JSON.`;
   const handleBulkDismiss = async () => {
     if (selectedPaymentIds.length === 0) return;
 
-    const confirmed = confirm(`ซ่อนรายการ ${selectedPaymentIds.length} รายการ?\n\n(รายการจะถูกซ่อนจากการแสดงผล แต่ยังคงอยู่ในระบบ)`);
+    const confirmed = confirm(`ลบรายการ ${selectedPaymentIds.length} รายการ?\n\nคำเตือน: การลบจะไม่สามารถกู้คืนได้`);
     if (!confirmed) return;
 
     setIsBulkExecuting(true);
     try {
-      const nowIso = new Date().toISOString();
       const chunkSize = 20;
       
       for (let i = 0; i < selectedPaymentIds.length; i += chunkSize) {
         const chunk = selectedPaymentIds.slice(i, i + chunkSize);
-        await Promise.all(chunk.map(id => 
-          base44.entities.Payment.update(id, {
-            is_dismissed: true,
-            dismissed_at: nowIso,
-            dismissed_by: currentUser?.email
-          })
-        ));
+        await Promise.all(chunk.map(id => base44.entities.Payment.delete(id)));
       }
 
       await Promise.all([
@@ -2343,7 +2336,7 @@ Return JSON.`;
 
       setSelectedPaymentIds([]);
       setIsSelectionMode(false);
-      toast.success(`ซ่อนรายการสำเร็จ ${selectedPaymentIds.length} รายการ`);
+      toast.success(`ลบรายการสำเร็จ ${selectedPaymentIds.length} รายการ`);
     } catch (error) {
       toast.error('เกิดข้อผิดพลาด: ' + error.message);
     } finally {
