@@ -221,8 +221,8 @@ export default function PaymentsPage() {
   const canAdd = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_add');
   const canEdit = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_edit');
   const canDelete = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_delete');
-  const canConfirmPaid = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_confirm_paid');
-  const canSendReminder = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_send_reminder') || userPermissions.includes('payments_send_bills_bulk');
+  const canConfirmPaid = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_confirm');
+  const canSendReminder = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_send_reminder');
   const canSendReceipt = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_send_receipt');
   const canViewInvoice = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_view_invoice');
   const canViewReceipt = userRole === 'developer' || userRole === 'owner' || userPermissions.includes('payments_view_receipt');

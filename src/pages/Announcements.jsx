@@ -381,10 +381,10 @@ export default function Announcements() {
   };
 
   const handleToggleAll = () => {
-    if (selectedTenants.size === tenantsWithLine.length) {
+    if (selectedTenants.size === tenantsWithMessaging.length) {
       setSelectedTenants(new Set());
     } else {
-      setSelectedTenants(new Set(tenantsWithLine.map(t => t.id)));
+      setSelectedTenants(new Set(tenantsWithMessaging.map(t => t.id)));
     }
   };
 
@@ -395,8 +395,8 @@ export default function Announcements() {
     }
 
     const targets = targetType === 'all' 
-      ? tenantsWithLine 
-      : tenantsWithLine.filter(t => selectedTenants.has(t.id));
+      ? tenantsWithMessaging 
+      : tenantsWithMessaging.filter(t => selectedTenants.has(t.id));
 
     if (targets.length === 0) {
       toast.error('กรุณาเลือกผู้รับอย่างน้อย 1 คน');
@@ -413,32 +413,93 @@ export default function Announcements() {
     setCurrentSending(''); // Reset current sending display
 
     try {
-      // ✅ ใช้ batch sending function ใหม่
-      const recipients = targets.map(tenant => ({
-        lineUserId: tenant.line_user_id,
-        branchId: tenant.branch_id,
-        message: message,
-        metadata: {
-          tenantId: tenant.id,
-          tenantName: tenant.full_name,
-          roomNumber: tenant.room_number,
-          branchId: tenant.branch_id
+      // ✅ แยกส่งตาม platform (LINE / Facebook)
+      const lineTargets = targets.filter(t => t.line_user_id);
+      const facebookTargets = targets.filter(t => t.facebook_user_id);
+      
+      let totalSuccess = 0;
+      let totalFailed = 0;
+      let allErrors = [];
+
+      // ส่งผ่าน LINE
+      if (lineTargets.length > 0) {
+        const lineRecipients = lineTargets.map(tenant => ({
+          lineUserId: tenant.line_user_id,
+          branchId: tenant.branch_id,
+          message: message,
+          metadata: {
+            tenantId: tenant.id,
+            tenantName: tenant.full_name,
+            roomNumber: tenant.room_number,
+            branchId: tenant.branch_id
+          }
+        }));
+
+        console.log(`📤 Sending to ${lineRecipients.length} LINE recipients...`);
+
+        const lineResponse = await base44.functions.invoke('sendBatchLineMessages', {
+          recipients: lineRecipients,
+          options: {
+            batchSize: 20,
+            delayBetweenBatches: 2000,
+            delayBetweenMessages: 100,
+            retryAttempts: 3
+          }
+        });
+
+        totalSuccess += lineResponse.data?.successfulSends || 0;
+        totalFailed += lineResponse.data?.failedSends || 0;
+        if (lineResponse.data?.errors) allErrors.push(...lineResponse.data.errors);
+      }
+
+      // ส่งผ่าน Facebook
+      if (facebookTargets.length > 0) {
+        console.log(`📤 Sending to ${facebookTargets.length} Facebook recipients...`);
+        
+        for (const tenant of facebookTargets) {
+          try {
+            setCurrentSending(`กำลังส่งถึง ${tenant.full_name}...`);
+            
+            const fbResponse = await base44.functions.invoke('sendFacebookMessage', {
+              recipientId: tenant.facebook_user_id,
+              message: message,
+              branch_id: selectedBranchId
+            });
+
+            if (!fbResponse.data?.error) {
+              totalSuccess++;
+              
+              // บันทึกข้อความขาออก
+              const user = await base44.auth.me();
+              await base44.entities.FacebookMessage.create({
+                branch_id: selectedBranchId,
+                tenant_id: tenant.id,
+                facebook_user_id: tenant.facebook_user_id,
+                facebook_display_name: tenant.full_name,
+                direction: 'outgoing',
+                message_type: 'text',
+                content: message,
+                sent_by: user?.email
+              });
+            } else {
+              totalFailed++;
+              allErrors.push({ recipient: tenant.full_name, reason: fbResponse.data.error });
+            }
+          } catch (error) {
+            console.error(`Failed to send to ${tenant.full_name}:`, error);
+            totalFailed++;
+            allErrors.push({ recipient: tenant.full_name, reason: error.message });
+          }
+          
+          await new Promise(r => setTimeout(r, 500));
         }
-      }));
+      }
 
-      console.log(`📤 Sending to ${recipients.length} recipients via batch function...`);
-
-      const response = await base44.functions.invoke('sendBatchLineMessages', {
-        recipients: recipients,
-        options: {
-          batchSize: 20,           // ส่งพร้อมกัน 20 คนต่อ batch
-          delayBetweenBatches: 2000, // รอ 2 วินาทีระหว่าง batch
-          delayBetweenMessages: 100,  // รอ 100ms ระหว่างข้อความ
-          retryAttempts: 3         // ลองใหม่ 3 ครั้ง
-        }
-      });
-
-      const apiResult = response.data;
+      const apiResult = {
+        successfulSends: totalSuccess,
+        failedSends: totalFailed,
+        errors: allErrors
+      };
 
       console.log('📬 Batch Send Result:', apiResult);
 
@@ -851,14 +912,14 @@ export default function Announcements() {
           )}
 
           {/* Warning if no registered tenants for the selected branch */}
-          {selectedBranchId && tenantsWithLine.length === 0 && (
+          {selectedBranchId && tenantsWithMessaging.length === 0 && (
             <Card className="bg-red-50 border-red-200">
               <CardContent className="p-4 flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-red-800">ยังไม่มีผู้เช่าที่ลงทะเบียน LINE ในสาขานี้</p>
+                  <p className="font-semibold text-red-800">ยังไม่มีผู้เช่าที่เชื่อมต่อระบบแชทในสาขานี้</p>
                   <p className="text-sm text-red-700 mt-1">
-                    กรุณาแจ้งให้ผู้เช่าแอด LINE Official Account และส่งข้อความมาก่อน เพื่อให้ระบบบันทึก User ID
+                    กรุณาแจ้งให้ผู้เช่าเชื่อมต่อ LINE หรือ Facebook Messenger เพื่อรับข้อความประกาศ
                   </p>
                 </div>
               </CardContent>
@@ -936,7 +997,7 @@ export default function Announcements() {
                     <div className="flex-1 min-w-0">
                       <span className="font-medium text-sm text-slate-800">ส่งหาทุกคน</span>
                       <p className="text-xs text-slate-500">
-                        ({tenantsWithLine.length} คน)
+                        ({tenantsWithMessaging.length} คน • {tenantsWithLine.length} LINE, {tenantsWithFacebook.length} FB)
                       </p>
                     </div>
                   </label>
@@ -976,12 +1037,12 @@ export default function Announcements() {
                         onClick={handleToggleAll}
                         className="text-blue-600 hover:underline font-medium"
                       >
-                        {selectedTenants.size === tenantsWithLine.length ? 'ยกเลิก' : 'ทั้งหมด'}
+                        {selectedTenants.size === tenantsWithMessaging.length ? 'ยกเลิก' : 'ทั้งหมด'}
                       </button>
                     </div>
 
                     <div className="border rounded-lg overflow-hidden max-h-[300px] overflow-y-auto bg-white">
-                      {tenantsWithLine
+                      {tenantsWithMessaging
                         .filter(t => {
                           const searchLower = searchTerm.toLowerCase();
                           const displayName = `${t.full_name}${t.room_number ? ` - ${t.room_number}` : ''}`.toLowerCase();
@@ -1001,6 +1062,15 @@ export default function Announcements() {
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-xs md:text-sm text-slate-800 truncate">
                               {tenant.full_name}
+                              {tenant.line_user_id && tenant.facebook_user_id && (
+                                <Badge className="ml-1 bg-blue-500 text-white text-[10px] px-1 py-0">L+F</Badge>
+                              )}
+                              {tenant.line_user_id && !tenant.facebook_user_id && (
+                                <Badge className="ml-1 bg-green-500 text-white text-[10px] px-1 py-0">L</Badge>
+                              )}
+                              {!tenant.line_user_id && tenant.facebook_user_id && (
+                                <Badge className="ml-1 bg-blue-600 text-white text-[10px] px-1 py-0">F</Badge>
+                              )}
                             </p>
                             {tenant.room_number && (
                               <p className="text-xs text-slate-500 truncate">
@@ -1010,9 +1080,9 @@ export default function Announcements() {
                           </div>
                         </label>
                       ))}
-                      {tenantsWithLine.length === 0 && (
+                      {tenantsWithMessaging.length === 0 && (
                         <div className="p-3 text-center text-slate-500 text-xs">
-                          ไม่พบผู้เช่าที่มี LINE
+                          ไม่พบผู้เช่าที่เชื่อมต่อระบบแชท
                         </div>
                       )}
                     </div>
@@ -1037,7 +1107,7 @@ export default function Announcements() {
                   </Button>
                   <Button
                     onClick={handleSend}
-                    disabled={sending || !message.trim() || tenantsWithLine.length === 0 || !selectedBranchId}
+                    disabled={sending || !message.trim() || tenantsWithMessaging.length === 0 || !selectedBranchId}
                     className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg text-xs h-8"
                     size="sm"
                   >
@@ -1049,7 +1119,7 @@ export default function Announcements() {
                     ) : (
                       <>
                         <Send className="w-4 h-4 mr-1" />
-                        ส่ง ({targetType === 'all' ? tenantsWithLine.length : selectedTenants.size})
+                        ส่ง ({targetType === 'all' ? tenantsWithMessaging.length : selectedTenants.size})
                       </>
                     )}
                   </Button>
@@ -1074,8 +1144,8 @@ export default function Announcements() {
                 <div className="flex justify-between items-center pt-2 border-t">
                   <div className="text-xs md:text-sm text-slate-600">
                     ส่งไปยัง: <span className="font-bold text-blue-600">
-                      {targetType === 'all' ? tenantsWithLine.length : selectedTenants.size} คน
-                    </span>
+                      {targetType === 'all' ? tenantsWithMessaging.length : selectedTenants.size} คน
+                    </span> ({targetType === 'all' ? `${tenantsWithLine.length} LINE, ${tenantsWithFacebook.length} FB` : ''})
                   </div>
                 </div>
               </CardContent>
