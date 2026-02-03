@@ -2719,9 +2719,20 @@ const tenantSchema = {
 
           
 
-          <div className="space-y-3">
-            {/* แถวบน: ปุ่มเลือกหลายรายการ */}
-            <div className="flex justify-end hidden md:flex">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-slate-600">
+              {debouncedSearch ? (
+                <>
+                  พบ <span className="font-semibold">{filteredTenants.length}</span> คน จากทั้งหมด {tenants.length} คน
+                </>
+              ) : (
+                <>
+                  ผู้เช่าในสาขานี้: <span className="font-semibold">{tenants.length} คน</span>
+                </>
+              )}
+            </p>
+
+            <div className="flex gap-2 items-center">
               <Button
                 variant={isSelectionMode ? 'destructive' : 'outline'}
                 size="sm"
@@ -2746,21 +2757,6 @@ const tenantSchema = {
                   </>
                 )}
               </Button>
-            </div>
-
-            {/* แถวล่าง: ข้อความสถิติ + ปุ่ม View Mode */}
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm text-slate-600">
-                {debouncedSearch ? (
-                  <>
-                    พบ <span className="font-semibold">{filteredTenants.length}</span> คน จากทั้งหมด {tenants.length} คน
-                  </>
-                ) : (
-                  <>
-                    ผู้เช่าในสาขานี้: <span className="font-semibold">{tenants.length} คน</span>
-                  </>
-                )}
-              </p>
 
               <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1 flex-shrink-0">
                 <Button
