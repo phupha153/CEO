@@ -2973,35 +2973,35 @@ Return JSON.`;
           </div>
 
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              {canSendCommsManual && (
-                <p className="text-xs text-slate-500">
-                  บิลรอบนี้: {(() => {
-                    const now = new Date();
-                    const currentDay = now.getDate();
-                    let cycleStart, cycleEnd;
-                    
-                    if (currentDay >= 20) {
-                      cycleStart = new Date(now.getFullYear(), now.getMonth(), 20);
-                      cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 20);
-                    } else {
-                      cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, 20);
-                      cycleEnd = new Date(now.getFullYear(), now.getMonth(), 20);
-                    }
-                    
-                    const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
-                    const billsThisCycle = payments.filter(p => {
-                      if (!p.due_date) return false;
-                      try {
-                        const dueDate = parseISO(p.due_date);
-                        return dueDate >= cycleStart && dueDate < cycleEnd;
-                      } catch { return false; }
-                    }).length;
-                    return `${billsThisCycle}/${occupiedRooms}`;
-                  })()}
-                </p>
-              )}
-
+            {canSendCommsManual && (
+              <p className="text-xs text-slate-500">
+                บิลรอบนี้: {(() => {
+                  const now = new Date();
+                  const currentDay = now.getDate();
+                  let cycleStart, cycleEnd;
+                  
+                  if (currentDay >= 20) {
+                    cycleStart = new Date(now.getFullYear(), now.getMonth(), 20);
+                    cycleEnd = new Date(now.getFullYear(), now.getMonth() + 1, 20);
+                  } else {
+                    cycleStart = new Date(now.getFullYear(), now.getMonth() - 1, 20);
+                    cycleEnd = new Date(now.getFullYear(), now.getMonth(), 20);
+                  }
+                  
+                  const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
+                  const billsThisCycle = payments.filter(p => {
+                    if (!p.due_date) return false;
+                    try {
+                      const dueDate = parseISO(p.due_date);
+                      return dueDate >= cycleStart && dueDate < cycleEnd;
+                    } catch { return false; }
+                  }).length;
+                  return `${billsThisCycle}/${occupiedRooms}`;
+                })()}
+              </p>
+            )}
+            
+            <div className="flex items-center gap-2">
               <Button
                 variant={isSelectionMode ? 'destructive' : 'outline'}
                 size="sm"
@@ -3013,9 +3013,8 @@ Return JSON.`;
               >
                 {isSelectionMode ? <><X className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">ยกเลิก</span></> : <><CheckSquare className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">เลือกหลายรายการ</span></>}
               </Button>
-            </div>
-            
-            <div className="flex items-center gap-1 bg-white/90 backdrop-blur-xl shadow-md border border-white/60 rounded-xl p-1">
+              
+              <div className="flex items-center gap-1 bg-white/90 backdrop-blur-xl shadow-md border border-white/60 rounded-xl p-1">
               <Button
                 variant={viewMode === 'room' ? 'default' : 'ghost'}
                 size="sm"
@@ -3040,6 +3039,7 @@ Return JSON.`;
               >
                 <TableIcon className="w-4 h-4" />
               </Button>
+              </div>
             </div>
           </div>
 
