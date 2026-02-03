@@ -2725,22 +2725,8 @@ const tenantSchema = {
           
 
           <div className="space-y-3">
-            {/* แถวบน: ข้อมูลสถิติ + ปุ่มเลือกหลายรายการ */}
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-sm text-slate-600 leading-relaxed">
-                {debouncedSearch ? (
-                  <>
-                    พบ <span className="font-semibold">{filteredTenants.length}</span> คน<br className="md:hidden" />
-                    <span className="hidden md:inline"> </span>จากทั้งหมด {tenants.length} คน
-                  </>
-                ) : (
-                  <>
-                    ผู้เช่าในสาขานี้:<br className="md:hidden" />
-                    <span className="hidden md:inline"> </span><span className="font-semibold">{tenants.length} คน</span>
-                  </>
-                )}
-              </p>
-
+            {/* แถวบน: ปุ่มเลือกหลายรายการ */}
+            <div className="flex justify-end">
               <Button
                 variant={isSelectionMode ? 'destructive' : 'outline'}
                 size="sm"
@@ -2751,7 +2737,7 @@ const tenantSchema = {
                     setSelectedTenants([]);
                   }
                 }}
-                className="shadow-sm flex-shrink-0"
+                className="shadow-sm"
               >
                 {isSelectionMode ? (
                   <>
@@ -2767,9 +2753,21 @@ const tenantSchema = {
               </Button>
             </div>
 
-            {/* แถวล่าง: ปุ่ม View Mode */}
-            <div className="flex justify-end">
-              <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
+            {/* แถวล่าง: ข้อความสถิติ + ปุ่ม View Mode */}
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-slate-600">
+                {debouncedSearch ? (
+                  <>
+                    พบ <span className="font-semibold">{filteredTenants.length}</span> คน จากทั้งหมด {tenants.length} คน
+                  </>
+                ) : (
+                  <>
+                    ผู้เช่าในสาขานี้: <span className="font-semibold">{tenants.length} คน</span>
+                  </>
+                )}
+              </p>
+
+              <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1 flex-shrink-0">
                 <Button
                   variant={viewMode === 'card' ? 'default' : 'ghost'}
                   size="sm"
