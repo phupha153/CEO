@@ -3,11 +3,12 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Download, Loader2, AlertCircle, Clock, CheckCircle } from "lucide-react";
+import { Download, Loader2, AlertCircle, Clock, CheckCircle, Zap, Droplets, CreditCard, Home } from "lucide-react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { th } from "date-fns/locale";
 import { base44 } from "@/api/base44Client";
 import html2canvas from "html2canvas";
+import { motion } from "framer-motion";
 
 // ฟังก์ชันแปลงตัวเลขเป็นตัวหนังสือไทย
 function numberToThaiText(number) {
@@ -365,6 +366,137 @@ export default function PublicInvoice() {
       </div>
 
       <div className="invoice-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px]">
+        {/* Summary Cards - Payments Style */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 print:hidden">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-500 to-orange-600 opacity-5" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-yellow-400 to-orange-500 opacity-10 blur-3xl" />
+              
+              <CardContent className="p-4 md:p-6 relative">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl blur-md opacity-30" />
+                    <div className="relative p-3 rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-600 shadow-lg">
+                      <Zap className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm font-medium text-slate-500 mb-1">ค่าไฟฟ้า</p>
+                <motion.p 
+                  className="text-3xl font-bold text-slate-800"
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200 }}
+                >
+                  {(invoiceData.electricity_amount || 0).toLocaleString('th-TH')}
+                </motion.p>
+                <p className="text-xs text-slate-500 mt-1">{invoiceData.electricity_units || 0} หน่วย</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
+            <Card className="relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-600 opacity-5" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400 to-cyan-500 opacity-10 blur-3xl" />
+              
+              <CardContent className="p-4 md:p-6 relative">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl blur-md opacity-30" />
+                    <div className="relative p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 shadow-lg">
+                      <Droplets className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm font-medium text-slate-500 mb-1">ค่าน้ำประปา</p>
+                <motion.p 
+                  className="text-3xl font-bold text-slate-800"
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200 }}
+                >
+                  {(invoiceData.water_amount || 0).toLocaleString('th-TH')}
+                </motion.p>
+                <p className="text-xs text-slate-500 mt-1">{invoiceData.water_units || 0} หน่วย</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+          >
+            <Card className="relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-indigo-600 opacity-5" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-400 to-indigo-500 opacity-10 blur-3xl" />
+              
+              <CardContent className="p-4 md:p-6 relative">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl blur-md opacity-30" />
+                    <div className="relative p-3 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg">
+                      <Home className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm font-medium text-slate-500 mb-1">ค่าเช่า</p>
+                <motion.p 
+                  className="text-3xl font-bold text-slate-800"
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200 }}
+                >
+                  {(invoiceData.rent_amount || 0).toLocaleString('th-TH')}
+                </motion.p>
+                <p className="text-xs text-slate-500 mt-1">บาท</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
+          >
+            <Card className={`relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl ${isOverdue ? 'ring-2 ring-red-500' : ''}`}>
+              <div className={`absolute inset-0 bg-gradient-to-br ${isOverdue ? 'from-red-500 to-red-600' : 'from-green-500 to-emerald-600'} opacity-5`} />
+              <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${isOverdue ? 'from-red-400 to-red-500' : 'from-green-400 to-emerald-500'} opacity-10 blur-3xl`} />
+              
+              <CardContent className="p-4 md:p-6 relative">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="relative">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${isOverdue ? 'from-red-500 to-red-600' : 'from-green-500 to-emerald-600'} rounded-2xl blur-md opacity-30`} />
+                    <div className={`relative p-3 rounded-2xl bg-gradient-to-br ${isOverdue ? 'from-red-500 to-red-600' : 'from-green-500 to-emerald-600'} shadow-lg`}>
+                      <CreditCard className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm font-medium text-slate-500 mb-1">ยอดรวมทั้งสิ้น</p>
+                <motion.p 
+                  className="text-3xl font-bold text-slate-800"
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 200 }}
+                >
+                  {(invoiceData.total_amount || 0).toLocaleString('th-TH')}
+                </motion.p>
+                <p className="text-xs text-slate-500 mt-1">บาท</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
         <div className="invoice-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden" ref={invoiceRef}>
           <div className="p-3 md:p-8 print:p-5">
             <div className="mb-2 md:mb-4 pb-2 md:pb-3 border-b border-slate-200">
