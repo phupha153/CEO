@@ -59,6 +59,8 @@ export default function RoomsPage() {
   const [enableMinElectricity, setEnableMinElectricity] = useState(false);
   const [isFlatRateWater, setIsFlatRateWater] = useState(false);
   const [isFlatRateElectricity, setIsFlatRateElectricity] = useState(false);
+  const [showEditBookingDialog, setShowEditBookingDialog] = useState(false);
+  const [editingBooking, setEditingBooking] = useState(null);
   
   // Bulk Selection State
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -1361,6 +1363,30 @@ ${JSON.stringify(roomsWithAC, null, 2)}
     }
   });
 
+  const updateBookingMutation = useMutation({
+    mutationFn: async ({ bookingId, data, isTemp }) => {
+      if (!canEdit) {
+        throw new Error('คุณไม่มีสิทธิ์แก้ไขการจอง');
+      }
+      
+      if (isTemp) {
+        return await base44.entities.TemporaryBooking.update(bookingId, data);
+      } else {
+        return await base44.entities.Booking.update(bookingId, data);
+      }
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries(['bookings', selectedBranchId]);
+      await queryClient.invalidateQueries(['temporaryBookings', selectedBranchId]);
+      setShowEditBookingDialog(false);
+      setEditingBooking(null);
+      toast.success('แก้ไขข้อมูลการจองสำเร็จ');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'เกิดข้อผิดพลาด');
+    }
+  });
+
   const handleLongPressStart = (e, roomId) => {
     if (isSelectionMode) return;
     
@@ -1664,6 +1690,22 @@ ${JSON.stringify(roomsWithAC, null, 2)}
       notes: ''
     });
     setShowReservationDialog(true);
+  };
+
+  const handleEditBooking = (booking) => {
+    setEditingBooking(booking);
+    setFormData({
+      ...formData,
+      guest_name: booking.guest_name || '',
+      guest_phone: booking.guest_phone || '',
+      guest_email: booking.guest_email || '',
+      guest_national_id: booking.guest_national_id || '',
+      guest_address: booking.guest_address || '',
+      check_in_date: booking.check_in_date || '',
+      check_out_date: booking.check_out_date || '',
+      notes: booking.notes || ''
+    });
+    setShowEditBookingDialog(true);
   };
 
   const getRoomColor = (status) => {
@@ -3469,12 +3511,26 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                         <p className="text-xs text-orange-600 mt-1">มีการจองแต่ยังไม่ได้ยืนยันเป็นผู้เช่า</p>
                                       )}
                                     </div>
-                                    <div className="flex gap-2">
-                                      {!hasCheckedIn && (canEdit || canDelete) && (
-                                        <Button 
-                                          variant="outline" 
-                                          size="sm"
-                                          onClick={async () => {
+                                    <div className="flex flex-wrap gap-2">
+                                     {(canEdit || canDelete) && (
+                                       <Button 
+                                         variant="outline" 
+                                         size="sm"
+                                         onClick={() => {
+                                           setEditingBooking(displayBooking);
+                                           setShowEditBookingDialog(true);
+                                         }}
+                                         className="bg-blue-600 text-white border-blue-600 hover:bg-blue-700"
+                                       >
+                                         <Edit2 className="w-4 h-4 mr-1" />
+                                         แก้ไข
+                                       </Button>
+                                     )}
+                                     {!hasCheckedIn && (canEdit || canDelete) && (
+                                       <Button 
+                                         variant="outline" 
+                                         size="sm"
+                                         onClick={async () => {
                                             const today = new Date().toISOString().split('T')[0];
                                             const isTemp = temporaryBookings.some(b => b.id === displayBooking.id);
                                             
@@ -4900,6 +4956,178 @@ ${JSON.stringify(roomsWithAC, null, 2)}
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEditBookingDialog} onOpenChange={setShowEditBookingDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto pointer-events-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit2 className="w-5 h-5 text-blue-600" />
+              แก้ไขข้อมูลการเข้าพัก
+            </DialogTitle>
+          </DialogHeader>
+
+          {editingBooking && (
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              
+              const isTemp = temporaryBookings.some(b => b.id === editingBooking.id);
+              
+              const data = {
+                guest_name: formData.guest_name,
+                guest_phone: formData.guest_phone,
+                guest_email: formData.guest_email,
+                guest_national_id: formData.guest_national_id,
+                guest_address: formData.guest_address,
+                check_in_date: formData.check_in_date,
+                check_out_date: formData.check_out_date,
+                notes: formData.notes
+              };
+
+              updateBookingMutation.mutate({
+                bookingId: editingBooking.id,
+                data,
+                isTemp
+              });
+            }} className="space-y-4">
+              <div className="bg-slate-50 rounded-lg p-4 border">
+                <p className="text-sm text-slate-600">ห้อง:</p>
+                <p className="text-xl font-bold text-slate-800">
+                  {rooms.find(r => r.id === editingBooking.room_id)?.room_number}
+                </p>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                  <User className="w-5 h-5 text-blue-600" />
+                  ข้อมูลผู้เข้าพัก
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>ชื่อผู้เข้าพัก *</Label>
+                    <Input
+                      value={formData.guest_name}
+                      onChange={(e) => setFormData({ ...formData, guest_name: e.target.value })}
+                      required
+                      placeholder="ชื่อ-นามสกุล"
+                      disabled={updateBookingMutation.isPending}
+                    />
+                  </div>
+                  <div>
+                    <Label>เบอร์โทรศัพท์ *</Label>
+                    <Input
+                      value={formData.guest_phone}
+                      onChange={(e) => setFormData({ ...formData, guest_phone: e.target.value })}
+                      required
+                      placeholder="0812345678"
+                      disabled={updateBookingMutation.isPending}
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div>
+                    <Label>เลขบัตรประชาชน</Label>
+                    <Input
+                      value={formData.guest_national_id}
+                      onChange={(e) => setFormData({ ...formData, guest_national_id: e.target.value })}
+                      placeholder="1234567890123"
+                      maxLength={13}
+                      disabled={updateBookingMutation.isPending}
+                    />
+                  </div>
+                  <div>
+                    <Label>อีเมล</Label>
+                    <Input
+                      type="email"
+                      value={formData.guest_email}
+                      onChange={(e) => setFormData({ ...formData, guest_email: e.target.value })}
+                      placeholder="email@example.com"
+                      disabled={updateBookingMutation.isPending}
+                    />
+                  </div>
+                </div>
+                
+                <div className="mt-3">
+                  <Label>ที่อยู่</Label>
+                  <Input
+                    value={formData.guest_address}
+                    onChange={(e) => setFormData({ ...formData, guest_address: e.target.value })}
+                    placeholder="บ้านเลขที่ ถนน ตำบล อำเภอ จังหวัด"
+                    disabled={updateBookingMutation.isPending}
+                  />
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h3 className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                  <CalendarIcon className="w-5 h-5 text-blue-600" />
+                  วันที่พัก
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>วันเข้าพัก *</Label>
+                    <Input
+                      type="date"
+                      value={formData.check_in_date}
+                      onChange={(e) => setFormData({ ...formData, check_in_date: e.target.value })}
+                      required
+                      disabled={updateBookingMutation.isPending}
+                    />
+                  </div>
+                  <div>
+                    <Label>วันออก {editingBooking.booking_type === 'daily' ? '*' : '(ถ้ามี)'}</Label>
+                    <Input
+                      type="date"
+                      value={formData.check_out_date}
+                      onChange={(e) => setFormData({ ...formData, check_out_date: e.target.value })}
+                      required={editingBooking.booking_type === 'daily'}
+                      disabled={updateBookingMutation.isPending}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label>หมายเหตุ</Label>
+                <Input
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  disabled={updateBookingMutation.isPending}
+                  placeholder="หมายเหตุเพิ่มเติม..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowEditBookingDialog(false);
+                    setEditingBooking(null);
+                  }}
+                  disabled={updateBookingMutation.isPending}
+                >
+                  ยกเลิก
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600"
+                  disabled={updateBookingMutation.isPending}
+                >
+                  {updateBookingMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      กำลังบันทึก...
+                    </>
+                  ) : (
+                    'บันทึก'
+                  )}
+                </Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>
