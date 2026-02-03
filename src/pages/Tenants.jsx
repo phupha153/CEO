@@ -2726,7 +2726,7 @@ const tenantSchema = {
 
           <div className="space-y-3">
             {/* แถวบน: ปุ่มเลือกหลายรายการ */}
-            <div className="flex justify-end">
+            <div className="flex justify-end hidden md:flex">
               <Button
                 variant={isSelectionMode ? 'destructive' : 'outline'}
                 size="sm"
