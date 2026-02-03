@@ -2567,85 +2567,58 @@ const tenantSchema = {
 
 
 
-          <Card className="bg-white/80 backdrop-blur-sm border-slate-200 shadow-lg rounded-3xl">
-            <CardContent className="p-4 md:p-6 space-y-4 relative">
-              <div className="absolute inset-0 bg-white/50 blur-xl pointer-events-none z-0 rounded-3xl"></div>
+          <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
+            <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
+            <CardContent className="p-4 md:p-6 relative">
+              <div className="relative">
+                <AISearchBox
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  onAISearch={handleAISearch}
+                  onStopSearch={handleStopAISearch}
+                  aiSearching={aiSearching}
+                  placeholder="ค้นหาผู้เช่า หรือถามเช่น 'ผู้เช่าที่ค้างชำระ' 'ผู้เช่าชั้น 3'"
+                />
 
-              <div className="relative z-10 flex flex-col md:flex-row gap-3">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none z-10" />
-                  <Input
-                    type="text"
-                    placeholder="ค้นหาผู้เช่า หรือถามเช่น 'ผู้เช่าที่ค้างชำระ' 'ผู้เช่าชั้น 3'"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && searchQuery.trim()) {
-                        handleAISearch();
-                      }
-                    }}
-                    className="h-14 pl-12 pr-24 bg-white/90 backdrop-blur-xl border-white/70 shadow-lg rounded-2xl text-base focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 transition-all w-full"
-                  />
-                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex gap-1 z-10">
-                    {searchQuery && !aiSearching && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setSearchQuery('')}
-                        className="h-10 w-10 p-0 hover:bg-slate-100/80 rounded-xl"
-                      >
-                        <X className="w-4 h-4 text-slate-500" />
-                      </Button>
-                    )}
-                    <Button
-                      size="sm"
-                      onClick={aiSearching ? handleStopAISearch : handleAISearch}
-                      disabled={!searchQuery.trim() && !aiSearching}
-                      className={`h-10 px-4 rounded-xl ${
-                        aiSearching 
-                          ? 'bg-red-500 hover:bg-red-600 text-white' 
-                          : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white'
-                      }`}
-                    >
-                      {aiSearching ? (
-                        <>
-                          <X className="w-4 h-4 mr-1" />
-                          หยุด
-                        </>
-                      ) : (
-                        <Search className="w-4 h-4" />
-                      )}
-                    </Button>
+                {aiSearching && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl mt-4">
+                    <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-3">
+                      <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
+                      <p className="text-slate-700 font-medium">AI กำลังวิเคราะห์...</p>
+                    </div>
                   </div>
+                )}
+              </div>
+
+              <div className="mt-4">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full md:w-auto h-10 justify-between rounded-xl bg-white/90 shadow-md border-slate-300">
+                      <span className="text-sm font-medium">{selectedStatuses.length === 0 ? 'ทุกสถานะ' : `เลือกแล้ว ${selectedStatuses.length} สถานะ`}</span>
+                      <ChevronRight className="w-4 h-4 ml-2 rotate-90" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-4 bg-white/95 backdrop-blur-2xl border-white/80 rounded-2xl shadow-2xl" align="start">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-slate-700">สถานะผู้เช่า:</Label>
+                      {['active', 'moved_out', 'expiring_soon', 'near_payment', 'payment_overdue'].map(status => (
+                        <div key={status} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={`status-${status}`}
+                            checked={selectedStatuses.includes(status)}
+                            onChange={() => toggleStatus(status)}
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <label htmlFor={`status-${status}`} className="text-sm font-medium text-slate-700 cursor-pointer">
+                            {getStatusLabel(status)}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 </div>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-48 h-14 justify-between rounded-2xl bg-white/60 backdrop-blur-xl shadow-lg border-white/70">
-                      <span className="text-sm font-medium">{selectedStatuses.length === 0 ? 'ทุกสถานะ' : `เลือกแล้ว ${selectedStatuses.length} สถานะ`}</span>
-                      <ChevronRight className="w-4 h-4 ml-2 rotate-90" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-4 bg-white/95 backdrop-blur-2xl border-white/80 rounded-2xl shadow-2xl" align="start">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-semibold text-slate-700">สถานะผู้เช่า:</Label>
-                      {['active', 'moved_out', 'expiring_soon', 'near_payment', 'payment_overdue'].map(status => (
-                        <div key={status} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`status-${status}`}
-                            checked={selectedStatuses.includes(status)}
-                            onChange={() => toggleStatus(status)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <label htmlFor={`status-${status}`} className="text-sm font-medium text-slate-700 cursor-pointer">
-                            {getStatusLabel(status)}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                </div>
 
                 {aiAction && (
                 <AIActionConfirmation
