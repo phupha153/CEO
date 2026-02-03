@@ -1670,7 +1670,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                 className={`p-1 md:p-2 min-h-[50px] md:min-h-[60px] border-r border-slate-200 transition-all ${cellColor} ${
                                   isEmpty && canAdd ? 'cursor-pointer hover:ring-2 hover:ring-green-400' : ''
                                 }`}
-                                onClick={() => handleCalendarCellClick(room, day, events)}
+                                onClick={() => isEmpty && handleCalendarCellClick(room, day, events)}
                                 title={isEmpty && canAdd ? 'คลิกเพื่อจองห้อง' : ''}
                               >
                                 <div className="space-y-0.5 md:space-y-1">
