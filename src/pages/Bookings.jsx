@@ -1674,13 +1674,39 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                   {events.map((event, eventIndex) => (
                                     <div
                                       key={eventIndex}
-                                      className={`text-[9px] md:text-xs p-0.5 md:p-1 rounded truncate ${
+                                      className={`text-[9px] md:text-xs p-0.5 md:p-1 rounded truncate cursor-pointer hover:opacity-80 ${
                                         event.type === 'monthly-booking' ? 'bg-blue-600 text-white' :
                                         event.type === 'daily-booking' ? 'bg-indigo-600 text-white' :
                                         event.type === 'temporary-booking' ? 'bg-yellow-500 text-white' :
                                         'bg-red-600 text-white'
                                       }`}
-                                      title={event.label}
+                                      title={`${event.label} - คลิกเพื่อจัดการ`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+
+                                        if (event.type === 'daily-booking' || event.type === 'monthly-booking') {
+                                          const actions = [
+                                            { label: 'เช็คเอาท์', action: 'checkout' },
+                                            { label: 'ยกเลิก', action: 'cancel' }
+                                          ];
+
+                                          const choice = prompt(
+                                            `ห้อง ${room.room_number} - ${event.booking.guest_name}\n\n` +
+                                            `พิมพ์:\n` +
+                                            `1 = เช็คเอาท์\n` +
+                                            `2 = ยกเลิกการจอง\n` +
+                                            `0 = ปิด`
+                                          );
+
+                                          if (choice === '1') {
+                                            setPendingCheckoutBooking(event.booking);
+                                            setCheckoutBookingDialog(true);
+                                          } else if (choice === '2') {
+                                            setPendingCancelBooking(event.booking);
+                                            setCancelBookingDialog(true);
+                                          }
+                                        }
+                                      }}
                                     >
                                       {event.type === 'maintenance' ? (
                                         <div className="flex items-center gap-0.5 md:gap-1">
