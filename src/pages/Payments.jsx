@@ -2789,70 +2789,66 @@ Return JSON.`;
             </Card>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-2 bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-4 py-3">
-            <div className="flex items-center gap-2" data-selection-control>
+          <div className="flex items-center gap-2" data-selection-control>
+            <Button
+              variant={isSelectionMode ? 'destructive' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setIsSelectionMode(!isSelectionMode);
+                if (isSelectionMode) setSelectedPaymentIds([]);
+              }}
+              className="shadow-sm hidden md:inline-flex"
+            >
+              {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายรายการ</>}
+            </Button>
+
+            {isSelectionMode && (
               <Button
-                variant={isSelectionMode ? 'destructive' : 'outline'}
+                variant="default"
                 size="sm"
-                onClick={() => {
-                  setIsSelectionMode(!isSelectionMode);
-                  if (isSelectionMode) setSelectedPaymentIds([]);
-                }}
-                className="shadow-sm hidden md:inline-flex"
+                onClick={selectAllFilteredPayments}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md px-4 py-2 h-auto hidden"
+                disabled={(viewMode === 'room' ? roomViewPayments : filteredPayments).length === 0}
               >
-                {isSelectionMode ? <><X className="w-4 h-4 mr-2" /> ยกเลิก</> : <><CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายรายการ</>}
+                <CheckSquare className="w-5 h-5 mr-2" />
+                <span className="font-semibold">เลือกทุกรายการ ({(viewMode === 'room' ? roomViewPayments : filteredPayments).length})</span>
               </Button>
+            )}
 
-              {isSelectionMode && (
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={selectAllFilteredPayments}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md px-4 py-2 h-auto hidden"
-                  disabled={(viewMode === 'room' ? roomViewPayments : filteredPayments).length === 0}
-                >
-                  <CheckSquare className="w-5 h-5 mr-2" />
-                  <span className="font-semibold">เลือกทุกรายการ ({(viewMode === 'room' ? roomViewPayments : filteredPayments).length})</span>
-                </Button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              {canAdd && (
-                <GenerateMonthlyBillsButton
-                  branchId={selectedBranchId}
-                  roomsNeedingBills={roomsNeedingBills}
-                  compact={true}
-                  onSuccess={() => {
-                    queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
-                    queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
-                    queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
-                    queryClient.invalidateQueries({ queryKey: ['payments-count'] });
-                  }}
-                />
-              )}
-              {canSendCommsManual && (
-                <Button
-                  onClick={() => openReminderDialog()}
-                  disabled={sendingAll || tenantsWithLine === 0}
-                  size="sm"
-                  variant="outline"
-                  className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap flex-1 md:flex-initial h-10"
-                >
-                  {sendingAll ? (
-                    <>
-                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                      กำลังส่ง...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-3 h-3 mr-1" />
-                      ส่งบิลทุกห้อง {tenantsWithLine > 0 && `(${tenantsWithLine})`}
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
+            {canAdd && (
+              <GenerateMonthlyBillsButton
+                branchId={selectedBranchId}
+                roomsNeedingBills={roomsNeedingBills}
+                compact={true}
+                onSuccess={() => {
+                  queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
+                  queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
+                  queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
+                  queryClient.invalidateQueries({ queryKey: ['payments-count'] });
+                }}
+              />
+            )}
+            {canSendCommsManual && (
+              <Button
+                onClick={() => openReminderDialog()}
+                disabled={sendingAll || tenantsWithLine === 0}
+                size="sm"
+                variant="outline"
+                className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap h-10"
+              >
+                {sendingAll ? (
+                  <>
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    กำลังส่ง...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3 h-3 mr-1" />
+                    ส่งบิลทุกห้อง {tenantsWithLine > 0 && `(${tenantsWithLine})`}
+                  </>
+                )}
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
