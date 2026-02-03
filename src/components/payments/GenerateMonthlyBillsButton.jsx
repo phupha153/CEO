@@ -146,7 +146,7 @@ export default function GenerateMonthlyBillsButton({ branchId, roomsNeedingBills
         disabled={isLoading || roomsNeedingBills === 0}
         size="sm"
         variant="outline"
-        className="border-blue-300 text-blue-700 hover:bg-blue-50 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed h-10"
+        className="border-blue-300 text-blue-700 hover:bg-blue-50 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed h-10 w-full"
       >
         {isLoading ? (
           <Loader2 className="w-3 h-3 mr-1 animate-spin" />
