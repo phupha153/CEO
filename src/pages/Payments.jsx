@@ -2815,40 +2815,42 @@ Return JSON.`;
               </Button>
             )}
 
-            {canAdd && (
-              <GenerateMonthlyBillsButton
-                branchId={selectedBranchId}
-                roomsNeedingBills={roomsNeedingBills}
-                compact={true}
-                onSuccess={() => {
-                  queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
-                  queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
-                  queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
-                  queryClient.invalidateQueries({ queryKey: ['payments-count'] });
-                }}
-              />
-            )}
-            {canSendCommsManual && (
-              <Button
-                onClick={() => openReminderDialog()}
-                disabled={sendingAll || tenantsWithLine === 0}
-                size="sm"
-                variant="outline"
-                className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap h-10"
-              >
-                {sendingAll ? (
-                  <>
-                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                    กำลังส่ง...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-3 h-3 mr-1" />
-                    ส่งบิลทุกห้อง {tenantsWithLine > 0 && `(${tenantsWithLine})`}
-                  </>
-                )}
-              </Button>
-            )}
+            <div className="flex items-center gap-2 w-full md:w-auto bg-white/60 backdrop-blur-xl border border-white/50 shadow-lg rounded-xl px-4 py-3">
+              {canAdd && (
+                <GenerateMonthlyBillsButton
+                  branchId={selectedBranchId}
+                  roomsNeedingBills={roomsNeedingBills}
+                  compact={true}
+                  onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['payments', selectedBranchId] });
+                    queryClient.invalidateQueries({ queryKey: ['payments-filtered'] });
+                    queryClient.invalidateQueries({ queryKey: ['payments-room-view'] });
+                    queryClient.invalidateQueries({ queryKey: ['payments-count'] });
+                  }}
+                />
+              )}
+              {canSendCommsManual && (
+                <Button
+                  onClick={() => openReminderDialog()}
+                  disabled={sendingAll || tenantsWithLine === 0}
+                  size="sm"
+                  variant="outline"
+                  className="border-purple-300 text-purple-700 hover:bg-purple-50 whitespace-nowrap h-10"
+                >
+                  {sendingAll ? (
+                    <>
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                      กำลังส่ง...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3 h-3 mr-1" />
+                      ส่งบิลทุกห้อง {tenantsWithLine > 0 && `(${tenantsWithLine})`}
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
