@@ -208,8 +208,9 @@ export default function BookingsPage() {
 
   const [selectedFilter, setSelectedFilter] = useState('all');
 
-  const dailyBookings = useMemo(() => bookings.filter(b => b.booking_type === 'daily'), [bookings]);
-  const monthlyBookings = useMemo(() => bookings.filter(b => b.booking_type === 'monthly'), [bookings]);
+  // ⭐ กรองเฉพาะ booking ที่ยังใช้งานอยู่ (status = 'active') เท่านั้น
+  const dailyBookings = useMemo(() => bookings.filter(b => b.booking_type === 'daily' && b.status === 'active'), [bookings]);
+  const monthlyBookings = useMemo(() => bookings.filter(b => b.booking_type === 'monthly' && b.status === 'active'), [bookings]);
   
   const dailyTempBookings = useMemo(() => temporaryBookings.filter(b => b.booking_type === 'daily'), [temporaryBookings]);
   const monthlyTempBookings = useMemo(() => temporaryBookings.filter(b => b.booking_type === 'monthly'), [temporaryBookings]);
