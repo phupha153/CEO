@@ -2570,30 +2570,30 @@ const tenantSchema = {
           <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
             <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
             <CardContent className="p-4 md:p-6 relative">
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="flex-1 relative">
-                  <AISearchBox
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    onAISearch={handleAISearch}
-                    onStopSearch={handleStopAISearch}
-                    aiSearching={aiSearching}
-                    placeholder="ค้นหาผู้เช่า หรือถามเช่น 'ผู้เช่าที่ค้างชำระ' 'ผู้เช่าชั้น 3'"
-                  />
+              <div className="relative">
+                <AISearchBox
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  onAISearch={handleAISearch}
+                  onStopSearch={handleStopAISearch}
+                  aiSearching={aiSearching}
+                  placeholder="ค้นหาผู้เช่า หรือถามเช่น 'ผู้เช่าที่ค้างชำระ' 'ผู้เช่าชั้น 3'"
+                />
 
-                  {aiSearching && (
-                    <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl mt-4">
-                      <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-3">
-                        <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
-                        <p className="text-slate-700 font-medium">AI กำลังวิเคราะห์...</p>
-                      </div>
+                {aiSearching && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl mt-4">
+                    <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-3">
+                      <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
+                      <p className="text-slate-700 font-medium">AI กำลังวิเคราะห์...</p>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
 
+              <div className="mt-4">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full md:w-48 h-14 justify-between rounded-2xl bg-white/60 backdrop-blur-xl shadow-lg border-white/70">
+                    <Button variant="outline" className="w-full md:w-auto h-10 justify-between rounded-xl bg-white/90 shadow-md border-slate-300">
                       <span className="text-sm font-medium">{selectedStatuses.length === 0 ? 'ทุกสถานะ' : `เลือกแล้ว ${selectedStatuses.length} สถานะ`}</span>
                       <ChevronRight className="w-4 h-4 ml-2 rotate-90" />
                     </Button>
