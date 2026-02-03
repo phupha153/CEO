@@ -405,15 +405,15 @@ export default function Maintenance() {
         <div className="max-w-7xl mx-auto space-y-6">
           <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
             <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
-            <CardContent className="p-4 md:p-6 relative">
-              <div className="space-y-4">
+            <CardContent className="p-3 md:p-6 relative">
+              <div className="space-y-3 md:space-y-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                   <Input
                     placeholder="ค้นหาคำขอซ่อม (หัวข้อ, ห้อง, ชื่อผู้เช่า...)"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-10 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl"
+                    className="pl-10 pr-10 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl text-sm md:text-base"
                   />
                   {searchQuery && (
                     <Button
@@ -428,11 +428,11 @@ export default function Maintenance() {
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-semibold text-slate-700">หมวดหมู่:</Label>
+                <div className="flex flex-col md:flex-row md:flex-wrap items-stretch md:items-center gap-2 md:gap-3">
+                  <div className="flex flex-col md:flex-row md:items-center gap-2">
+                    <Label className="text-xs md:text-sm font-semibold text-slate-700 flex-shrink-0">หมวดหมู่:</Label>
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger className="w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl">
+                      <SelectTrigger className="w-full md:w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl h-9 md:h-10">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -446,10 +446,10 @@ export default function Maintenance() {
                     </Select>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-semibold text-slate-700">ความสำคัญ:</Label>
+                  <div className="flex flex-col md:flex-row md:items-center gap-2">
+                    <Label className="text-xs md:text-sm font-semibold text-slate-700 flex-shrink-0">ความสำคัญ:</Label>
                     <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                      <SelectTrigger className="w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-xl">
+                      <SelectTrigger className="w-full md:w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl h-9 md:h-10">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
