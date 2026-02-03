@@ -428,11 +428,11 @@ export default function Maintenance() {
                   )}
                 </div>
 
-                <div className="flex flex-row flex-wrap items-center gap-2 md:gap-3">
-                  <div className="flex flex-row items-center gap-2">
-                    <Label className="text-xs md:text-sm font-semibold text-slate-700 flex-shrink-0">หมวดหมู่:</Label>
+                <div className="flex flex-row flex-wrap items-center gap-1.5 md:gap-3">
+                  <div className="flex flex-row items-center gap-1.5">
+                    <Label className="text-xs md:text-sm font-semibold text-slate-700 flex-shrink-0 whitespace-nowrap">หมวดหมู่:</Label>
                     <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <SelectTrigger className="w-32 md:w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl h-9">
+                      <SelectTrigger className="w-24 md:w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl h-8 md:h-9 text-xs md:text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -446,10 +446,10 @@ export default function Maintenance() {
                     </Select>
                   </div>
 
-                  <div className="flex flex-row items-center gap-2">
-                    <Label className="text-xs md:text-sm font-semibold text-slate-700 flex-shrink-0">ความสำคัญ:</Label>
+                  <div className="flex flex-row items-center gap-1.5">
+                    <Label className="text-xs md:text-sm font-semibold text-slate-700 flex-shrink-0 whitespace-nowrap">ความสำคัญ:</Label>
                     <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-                      <SelectTrigger className="w-32 md:w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl h-9">
+                      <SelectTrigger className="w-24 md:w-36 bg-white/90 backdrop-blur-xl shadow-md border-white/60 rounded-lg md:rounded-xl h-8 md:h-9 text-xs md:text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
