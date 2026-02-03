@@ -100,8 +100,9 @@ Deno.serve(async (req) => {
 
         console.log(`📋 Found: room=${room?.room_number}, tenant=${tenant?.full_name}, branch=${branch?.branch_name}`);
         
-        if (!room || !tenant || !branch) {
-            console.error(`❌ Missing data: room=${!!room}, tenant=${!!tenant}, branch=${!!branch}`);
+        // ⭐ แก้ไข: อนุญาตให้เปิดได้แม้ไม่มี tenant (tenant เป็น optional)
+        if (!room || !branch) {
+            console.error(`❌ Missing required data: room=${!!room}, tenant=${!!tenant}, branch=${!!branch}`);
             console.error(`   Room search result: ${JSON.stringify(roomResults)}`);
             console.error(`   Tenant search result: ${JSON.stringify(tenantResults)}`);
             console.error(`   Branch search result: ${JSON.stringify(branchResults)}`);
@@ -109,6 +110,11 @@ Deno.serve(async (req) => {
                 success: false, 
                 error: `ข้อมูลไม่ครบถ้วน: room=${!!room}, tenant=${!!tenant}, branch=${!!branch}` 
             }, { status: 500 });
+        }
+        
+        // ⭐ แจ้งเตือนถ้าไม่มี tenant
+        if (!tenant) {
+            console.warn('⚠️ ไม่พบข้อมูลผู้เช่า แต่อนุญาตให้เปิดใบแจ้งหนี้ได้');
         }
 
         // ดึง config ของสาขา
@@ -166,12 +172,12 @@ Deno.serve(async (req) => {
                 room_number: room.room_number,
                 floor: room.floor
             },
-            tenant: {
+            tenant: tenant ? {
                 full_name: tenant.full_name,
                 phone: tenant.phone,
                 address: tenant.address,
                 national_id: tenant.national_id
-            },
+            } : null,
             bank: {
                 name: configData.bank_name || 'กสิกรไทย',
                 account_number: configData.bank_account_number || '',
