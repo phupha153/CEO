@@ -3537,7 +3537,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                                           className="bg-green-600 text-white border-green-600 hover:bg-green-700"
                                         >
                                           <Check className="w-4 h-4 mr-1" />
-                                          {isDaily ? 'มีผู้เข้าพัก' : 'ยืนยันเข้าพัก'}
+                                          ยืนยันเข้าพัก
                                         </Button>
                                       )}
                                       {hasCheckedIn && isDaily && (canEdit || canDelete) && (
