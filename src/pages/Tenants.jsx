@@ -2439,28 +2439,36 @@ const tenantSchema = {
             {activeTab === 'tenants' && (
               <>
                 <Button
-                  onClick={() => setShowUploadDialog(true)}
-                  variant="outline"
-                  className="border-green-600 text-green-600 hover:bg-green-50 shadow-md"
-                >
-                  <Upload className="w-4 h-4 md:mr-2" />
-                  <span className="hidden md:inline">นำเข้าข้อมูล</span>
-                </Button>
-                {canAdd && (
-                  <Button
-                    onClick={() => {
-                      setEditingTenant(null);
-                      resetForm();
-                      setShowDialog(true);
-                    }}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
-                    data-onboarding="add-tenant-button"
-                  >
-                    <Plus className="w-5 h-5 md:mr-2" />
-                    <span className="hidden md:inline">เพิ่มผู้เช่า</span>
-                  </Button>
-                )}
-              </>
+                  onClick={handleDownloadExistingTenants}
+                  variant="outline"
+                  className="border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md"
+                >
+                  <Download className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">ดาวน์โหลดข้อมูล</span>
+                </Button>
+                <Button
+                  onClick={() => setShowUploadDialog(true)}
+                  variant="outline"
+                  className="border-green-600 text-green-600 hover:bg-green-50 shadow-md"
+                >
+                  <Upload className="w-4 h-4 md:mr-2" />
+                  <span className="hidden md:inline">นำเข้าข้อมูล</span>
+                </Button>
+                {canAdd && (
+                  <Button
+                    onClick={() => {
+                      setEditingTenant(null);
+                      resetForm();
+                      setShowDialog(true);
+                    }}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
+                    data-onboarding="add-tenant-button"
+                  >
+                    <Plus className="w-5 h-5 md:mr-2" />
+                    <span className="hidden md:inline">เพิ่มผู้เช่า</span>
+                  </Button>
+                )}
+              </>
             )}
             {activeTab === 'contracts' && canAddContract && (
               <Button
@@ -2754,46 +2762,34 @@ const tenantSchema = {
                 )}
               </p>
 
-              <div className="flex items-center gap-2">
+              <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1 flex-shrink-0">
                 <Button
-                  onClick={handleDownloadExistingTenants}
-                  variant="outline"
+                  variant={viewMode === 'card' ? 'default' : 'ghost'}
                   size="sm"
-                  className="border-blue-600 text-blue-600 hover:bg-blue-50 h-8 px-3"
+                  onClick={() => setViewMode('card')}
+                  className={`h-8 px-3 rounded-md ${viewMode === 'card' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
                 >
-                  <Download className="w-4 h-4 md:mr-1" />
-                  <span className="hidden md:inline text-xs">ดาวน์โหลด</span>
+                  <Grid3x3 className="w-4 h-4 md:mr-1" />
+                  <span className="hidden md:inline text-xs">การ์ด</span>
                 </Button>
-
-                <div className="flex gap-1 bg-white border border-slate-200 rounded-lg p-1">
-                  <Button
-                    variant={viewMode === 'card' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('card')}
-                    className={`h-8 px-3 rounded-md ${viewMode === 'card' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
-                  >
-                    <Grid3x3 className="w-4 h-4 md:mr-1" />
-                    <span className="hidden md:inline text-xs">การ์ด</span>
-                  </Button>
-                  <Button
-                    variant={viewMode === 'table' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('table')}
-                    className={`h-8 px-3 rounded-md ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
-                  >
-                    <TableIcon className="w-4 h-4 md:mr-1" />
-                    <span className="hidden md:inline text-xs">ตาราง</span>
-                  </Button>
-                  <Button
-                    variant={viewMode === 'room' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('room')}
-                    className={`h-8 px-3 rounded-md ${viewMode === 'room' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
-                  >
-                    <Home className="w-4 h-4 md:mr-1" />
-                    <span className="hidden md:inline text-xs">ห้อง</span>
-                  </Button>
-                </div>
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('table')}
+                  className={`h-8 px-3 rounded-md ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                >
+                  <TableIcon className="w-4 h-4 md:mr-1" />
+                  <span className="hidden md:inline text-xs">ตาราง</span>
+                </Button>
+                <Button
+                  variant={viewMode === 'room' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('room')}
+                  className={`h-8 px-3 rounded-md ${viewMode === 'room' ? 'bg-blue-600 text-white' : 'text-slate-600'}`}
+                >
+                  <Home className="w-4 h-4 md:mr-1" />
+                  <span className="hidden md:inline text-xs">ห้อง</span>
+                </Button>
               </div>
             </div>
           </div>
