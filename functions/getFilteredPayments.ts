@@ -18,8 +18,7 @@ Deno.serve(async (req) => {
       page = 1,
       limit = 50,
       sort_by = 'due_date',
-      debug = false,
-      exclude_dismissed = true
+      debug = false
     } = await req.json();
 
     const logs = [];
@@ -115,11 +114,6 @@ Deno.serve(async (req) => {
 
     // ✅ Step 2: Build filter query (Server-side)
     const filterQuery = { branch_id };
-    
-    // ⭐ Exclude dismissed payments
-    if (exclude_dismissed) {
-      filterQuery.is_dismissed = { $ne: true };
-    }
     
     if (dateRange) {
       filterQuery.due_date = {
