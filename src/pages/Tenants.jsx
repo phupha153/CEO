@@ -17,6 +17,7 @@ import { format, parseISO, differenceInDays, addMonths, startOfMonth } from "dat
 import { th } from "date-fns/locale";
 import { Link, useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import * as XLSX from "xlsx";
 import ExcelUploader from "../components/shared/ExcelUploader";
 import RatingDialog from "../components/tenants/RatingDialog";
 import RatingDisplay from "../components/tenants/RatingDisplay";
@@ -2203,47 +2204,41 @@ const tenantSchema = {
 
 
     const handleDownloadExistingTenants = () => {
-    // รวมข้อมูล booking ด้วย
-    const headers = ["ชื่อ-นามสกุล", "เบอร์โทร", "เพศ", "อายุ", "LINE ID", "เลขบัตรประชาชน", "อีเมล", "ที่อยู่", "เบอร์ติดต่อฉุกเฉิน", "สถานะผู้เช่า", "หมายเหตุ", "เลขห้อง", "วันเริ่มสัญญา", "วันสิ้นสุดสัญญา", "เงินมัดจำ", "สถานะการจอง"];
-    const csvContent = [
-        headers.join(','),
-        ...tenants.map(t => {
-            // หา booking ที่ active ของผู้เช่านี้
-            const activeBooking = bookings.find(b => b.tenant_id === t.id && b.status === 'active' && b.booking_type === 'monthly');
-            const room = activeBooking ? rooms.find(r => r.id === activeBooking.room_id) : null;
-            
-            return [
-                `"${t.full_name || ''}"`,
-                t.phone || '',
-                t.gender || '',
-                t.age || '',
-                t.line_id || '',
-                t.national_id || '',
-                t.email || '',
-                `"${(t.address || '').replace(/"/g, '""')}"`,
-                t.emergency_contact || '',
-                t.status || 'active',
-                `"${(t.notes || '').replace(/"/g, '""')}"`,
-                room?.room_number || '',
-                activeBooking?.check_in_date || '',
-                activeBooking?.check_out_date || '',
-                activeBooking?.deposit_amount || '',
-                activeBooking?.status || ''
-            ].join(',');
-        })
-    ].join('\n');
+    // เตรียมข้อมูลสำหรับ Excel
+    const excelData = tenants.map(t => {
+      // หา booking ที่ active ของผู้เช่านี้
+      const activeBooking = bookings.find(b => b.tenant_id === t.id && b.status === 'active' && b.booking_type === 'monthly');
+      const room = activeBooking ? rooms.find(r => r.id === activeBooking.room_id) : null;
 
-    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `tenants_data_${selectedBranchName}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success('ดาวน์โหลดข้อมูลผู้เช่าสำเร็จ');
-  };
+      return {
+        "ชื่อ-นามสกุล": t.full_name || '',
+        "เบอร์โทร": t.phone || '',
+        "เพศ": t.gender || '',
+        "อายุ": t.age || '',
+        "LINE ID": t.line_id || '',
+        "เลขบัตรประชาชน": t.national_id || '',
+        "อีเมล": t.email || '',
+        "ที่อยู่": t.address || '',
+        "เบอร์ติดต่อฉุกเฉิน": t.emergency_contact || '',
+        "สถานะผู้เช่า": t.status || 'active',
+        "หมายเหตุ": t.notes || '',
+        "เลขห้อง": room?.room_number || '',
+        "วันเริ่มสัญญา": activeBooking?.check_in_date || '',
+        "วันสิ้นสุดสัญญา": activeBooking?.check_out_date || '',
+        "เงินมัดจำ": activeBooking?.deposit_amount || '',
+        "สถานะการจอง": activeBooking?.status || ''
+      };
+    });
+
+    // สร้าง workbook และ worksheet
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "ผู้เช่า");
+
+    // ดาวน์โหลดไฟล์ Excel
+    XLSX.writeFile(workbook, `tenants_data_${selectedBranchName}.xlsx`);
+    toast.success('ดาวน์โหลดข้อมูลผู้เช่าสำเร็จ (Excel)');
+    };
 
   // ⭐ จุดแก้ไข: เปลี่ยนฟังก์ชันนี้ใหม่ทั้งหมด เพื่อให้รับไฟล์จาก Google Sheets ได้
   const handleTenantImport = async (importedData) => {
