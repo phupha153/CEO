@@ -2593,7 +2593,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
 
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="mx-2 my-1 text-sm font-medium rounded-md inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-10 w-10">
+                    <Button variant="outline" className="text-slate-400 my-1 text-sm font-medium rounded-md inline-flex items-center justify-center gap-2 whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover:bg-accent hover:text-accent-foreground h-10 w-10">
                       <span className="text-sm font-medium">{selectedStatuses.length === 0 ? 'ทุกสถานะ' : `เลือกแล้ว ${selectedStatuses.length} สถานะ`}</span>
                       <ChevronRight className="w-4 h-4 ml-2 rotate-90" />
                     </Button>
