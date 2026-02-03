@@ -26,12 +26,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing entity parameter' }, { status: 400 });
     }
 
-    // ตรวจสอบสิทธิ์เข้าถึงสาขา (ใช้ตัวแปร userRole จาก line 31 แล้ว)
+    // ตรวจสอบสิทธิ์เข้าถึงสาขา
     const accessibleBranches = user.accessible_branches;
 
-    // Developer ที่ไม่มี accessible_branches = เข้าถึงทุกสาขา
-    // Owner ที่ไม่มี accessible_branches = เข้าถึงทุกสาขา (ของตัวเอง)
-    const canAccessAllBranches = (userRole === 'developer' || userRole === 'owner') && (!accessibleBranches || accessibleBranches.length === 0);
+    // Developer/Owner ที่ไม่มี accessible_branches set = เข้าถึงทุกสาขา
+    const canAccessAllBranches = (userRole === 'developer' || userRole === 'owner') ? true : (!!accessibleBranches && accessibleBranches.length > 0);
 
     console.log('🔍 getSecureData - Access Check:', {
       userRole,
