@@ -330,7 +330,7 @@ export default function PackageSelectionPage() {
                         onClick={() => setBillingCycle(months)}
                         className={`px-3 sm:px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                           billingCycle === months
-                            ? 'bg-gradient-to-r from-blue-600 to-orange-500 text-white shadow-lg'
+                            ? 'bg-orange-500 text-white shadow-lg'
                             : 'text-slate-600 hover:bg-slate-50'
                         }`}
                       >
