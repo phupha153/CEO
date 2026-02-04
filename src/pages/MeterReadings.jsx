@@ -2118,8 +2118,8 @@ export default function MeterReadings() {
                                              disabled={
                                                !canAdd || 
                                                createSingleMutation.isPending ||
-                                               (cardReadings[room.id]?.water_current == null || cardReadings[room.id]?.water_current === '') ||
-                                               (cardReadings[room.id]?.electricity_current == null || cardReadings[room.id]?.electricity_current === '')
+                                               ((cardReadings[room.id]?.water_current == null || cardReadings[room.id]?.water_current === '') &&
+                                                (cardReadings[room.id]?.electricity_current == null || cardReadings[room.id]?.electricity_current === ''))
                                              }
                                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-9"
                                            >
@@ -2152,38 +2152,38 @@ export default function MeterReadings() {
                                                <X className="w-4 h-4" />
                                              </Button>
                                            )}
-                                         </div>
-                                       </>
-                                     )}
+                                           </div>
+                                           </>
+                                           )}
 
-                                     {latest && (
-                                       <div className="pt-3 border-t text-center">
-                                         <p className="text-xs text-slate-500">
+                                           {latest && (
+                                           <div className="pt-3 border-t text-center">
+                                           <p className="text-xs text-slate-500">
                                            บันทึกล่าสุด: {format(parseISO(latest.reading_date), 'd MMM yyyy', { locale: th })}
-                                         </p>
-                                         <div className="flex justify-center gap-4 mt-2 text-xs">
+                                           </p>
+                                           <div className="flex justify-center gap-4 mt-2 text-xs">
                                            <span className="text-blue-600">ใช้น้ำ: {latest.water_units} หน่วย</span>
                                            <span className="text-yellow-600">ใช้ไฟ: {latest.electricity_units} หน่วย</span>
-                                         </div>
-                                       </div>
-                                     )}
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              )}
-                            </motion.div>
-                          );
-                        })}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              );
-              })}
-            </div>
-          )}
+                                           </div>
+                                           </div>
+                                           )}
+                                           </div>
+                                           </CardContent>
+                                           </Card>
+                                           )}
+                                           </motion.div>
+                                           );
+                                           })}
+                                           </AnimatePresence>
+                                           </div>
+                                           </div>
+                                           );
+                                           })}
+                                           </div>
+                                           )}
 
-          {/* Table View */}
-          {viewMode === 'table' && (
+                                           {/* Table View */}
+                                           {viewMode === 'table' && (
             <div className="space-y-6">
               {/* ตัวเลือกเวอร์ชัน */}
               <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
