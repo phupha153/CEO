@@ -2136,13 +2136,64 @@ export default function MeterReadings() {
                                           </div>
                                         </div>
                                       ) : (
-                                        <>
+                                        <div className="space-y-3">
                                           {hasRecordedThisMonth(room.id) && (
                                             <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
                                               <p className="text-xs text-amber-700 text-center">⚠️ เดือนนี้บันทึกแล้ว - กำลังบันทึกเพิ่ม</p>
                                             </div>
                                           )}
+                                          {!latest && (
+                                            <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 mb-3">
+                                              <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
+                                                <AlertTriangle className="w-4 h-4" />
+                                                บันทึกครั้งแรก (ตั้งต้น)
+                                              </p>
+                                              <p className="text-xs text-amber-700 mt-1">
+                                                กรุณาระบุเลขมิเตอร์ตั้งต้น (ครั้งก่อน)
+                                              </p>
+                                            </div>
+                                          )}
                                           <div className="grid grid-cols-2 gap-2">
+                                            {!latest && (
+                                              <>
+                                                <div>
+                                                  <Label className="text-xs">น้ำ ครั้งก่อน</Label>
+                                                  <Input
+                                                    type="number"
+                                                    step="0.01"
+                                                    placeholder="0"
+                                                    value={cardReadings[room.id]?.water_previous || ''}
+                                                    onChange={(e) => setCardReadings({
+                                                      ...cardReadings,
+                                                      [room.id]: {
+                                                        ...cardReadings[room.id],
+                                                        water_previous: e.target.value
+                                                      }
+                                                    })}
+                                                    disabled={!canAdd || createSingleMutation.isPending}
+                                                    className="h-9 text-sm"
+                                                  />
+                                                </div>
+                                                <div>
+                                                  <Label className="text-xs">ไฟ ครั้งก่อน</Label>
+                                                  <Input
+                                                    type="number"
+                                                    step="0.01"
+                                                    placeholder="0"
+                                                    value={cardReadings[room.id]?.electricity_previous || ''}
+                                                    onChange={(e) => setCardReadings({
+                                                      ...cardReadings,
+                                                      [room.id]: {
+                                                        ...cardReadings[room.id],
+                                                        electricity_previous: e.target.value
+                                                      }
+                                                    })}
+                                                    disabled={!canAdd || createSingleMutation.isPending}
+                                                    className="h-9 text-sm"
+                                                  />
+                                                </div>
+                                              </>
+                                            )}
                                             <div>
                                               <Label className="text-xs">น้ำปัจจุบัน</Label>
                                               <Input
@@ -2222,9 +2273,9 @@ export default function MeterReadings() {
                                                 <X className="w-4 h-4" />
                                               </Button>
                                             )}
-                                            </div>
-                                            </>
-                                            )}
+                                          </div>
+                                        </>
+                                      )}
 
                                             {latest && (
                                             <div className="pt-3 border-t text-center">
