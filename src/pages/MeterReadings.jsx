@@ -1875,7 +1875,7 @@ export default function MeterReadings() {
                                             </div>
                                           </div>
                                         ) : (
-                                          <>
+                                          <div className="space-y-3">
                                             {hasRecordedThisMonth(room.id) && (
                                               <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
                                                 <p className="text-xs text-amber-700 text-center">⚠️ เดือนนี้บันทึกแล้ว - กำลังบันทึกเพิ่ม</p>
@@ -2013,11 +2013,11 @@ export default function MeterReadings() {
                                                 </Button>
                                               )}
                                             </div>
-                                            </div>
-                                            )}
+                                          </div>
+                                        )}
 
-                                            {latest && (
-                                            <div className="pt-3 border-t text-center">
+                                        {latest && (
+                                          <div className="pt-3 border-t text-center">
                                             <p className="text-xs text-slate-500">
                                               บันทึกล่าสุด: {format(parseISO(latest.reading_date), 'd MMM yyyy', { locale: th })}
                                             </p>
@@ -2025,13 +2025,13 @@ export default function MeterReadings() {
                                               <span className="text-blue-600">ใช้น้ำ: {latest.water_units} หน่วย</span>
                                               <span className="text-yellow-600">ใช้ไฟ: {latest.electricity_units} หน่วย</span>
                                             </div>
-                                            </div>
-                                            )}
-                                            </div>
-                                            )}
-                                            </CardContent>
-                                            </Card>
-                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              )}
 
                               {/* Mobile View - กรอกข้อมูลในการ์ดเลย */}
                               {isMobile && (
