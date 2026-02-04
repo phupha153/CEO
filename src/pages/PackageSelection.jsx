@@ -320,7 +320,7 @@ export default function PackageSelectionPage() {
               {/* Duration Selection - All Options with Scroll */}
               <div className="flex justify-center mt-5 px-4">
                 <div className="w-full max-w-3xl overflow-x-auto scrollbar-hide">
-                  <div className="bg-white my-2 p-1.5 rounded-xl inline-flex items-center gap-1.5 sm:gap-2 sm:p-2 shadow-md min-w-max">
+                  <div className="my-2 p-1.5 inline-flex items-center gap-1.5 sm:gap-2 sm:p-2 min-w-max">
                     {[
                     { months: '1', label: '1 เดือน', save: null },
                     { months: '3', label: '3 เดือน', save: 'ลด 5%' },
@@ -332,11 +332,11 @@ export default function PackageSelectionPage() {
                     <button
                       key={months}
                       onClick={() => setBillingCycle(months)}
-                      className={`px-3 sm:px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
-                       billingCycle === months ?
-                       'bg-orange-500 text-white shadow-lg' :
-                       'text-slate-600 hover:bg-slate-50'}`
-                       }>
+                      className={`px-3 sm:px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
+                      billingCycle === months ?
+                      'bg-orange-500 text-white shadow-lg' :
+                      'text-slate-600 hover:bg-slate-50'}`
+                      }>
 
                         <div>{label}</div>
                         {save &&
