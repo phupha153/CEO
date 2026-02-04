@@ -306,31 +306,38 @@ export default function PackageSelectionPage() {
                 </div>
               </div>
               
-              {/* Duration Selection - 3 Options */}
-              <div className="flex justify-center mt-5">
-                <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-white rounded-xl p-1.5 sm:p-2 shadow-md">
-                  {[
-                    { months: '6', label: '6 เดือน', save: 'ลด 10%' },
-                    { months: '12', label: '1 ปี', save: 'ลด 15%' },
-                    { months: '24', label: '2 ปี', save: 'ลด 25%' }
-                  ].map(({ months, label, save }) => (
-                    <button
-                      key={months}
-                      onClick={() => setBillingCycle(months)}
-                      className={`px-4 sm:px-5 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
-                        billingCycle === months
-                          ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
-                          : 'text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div>{label}</div>
-                      <div className={`text-[10px] font-medium mt-0.5 ${
-                        billingCycle === months ? 'text-white/90' : 'text-green-600'
-                      }`}>
-                        {save}
-                      </div>
-                    </button>
-                  ))}
+              {/* Duration Selection - All Options with Scroll */}
+              <div className="flex justify-center mt-5 px-4">
+                <div className="w-full max-w-3xl overflow-x-auto scrollbar-hide">
+                  <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-white rounded-xl p-1.5 sm:p-2 shadow-md min-w-max">
+                    {[
+                      { months: '1', label: '1 เดือน', save: null },
+                      { months: '3', label: '3 เดือน', save: 'ลด 5%' },
+                      { months: '6', label: '6 เดือน', save: 'ลด 10%' },
+                      { months: '12', label: '1 ปี', save: 'ลด 15%' },
+                      { months: '24', label: '2 ปี', save: 'ลด 25%' },
+                      { months: '36', label: '3 ปี', save: 'ลด 35%' }
+                    ].map(({ months, label, save }) => (
+                      <button
+                        key={months}
+                        onClick={() => setBillingCycle(months)}
+                        className={`px-3 sm:px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
+                          billingCycle === months
+                            ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
+                            : 'text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div>{label}</div>
+                        {save && (
+                          <div className={`text-[10px] font-medium mt-0.5 ${
+                            billingCycle === months ? 'text-white/90' : 'text-green-600'
+                          }`}>
+                            {save}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
