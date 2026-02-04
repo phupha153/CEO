@@ -1901,23 +1901,39 @@ export default function MeterReadings() {
                                     </div>
 
                                     <div className="space-y-3">
-                                     {latest && (
-                                       <div className="bg-blue-50 rounded-lg p-2 mb-2">
-                                         <p className="text-xs text-slate-600 mb-1">ค่ามิเตอร์ครั้งก่อน:</p>
-                                         <div className="flex items-center gap-3 text-xs">
-                                           <div className="flex items-center gap-1">
-                                             <Droplets className="w-3 h-3 text-blue-600" />
-                                             <span className="text-slate-600">น้ำ:</span>
-                                             <span className="font-bold text-blue-600">{latest.water_current}</span>
-                                           </div>
-                                           <div className="flex items-center gap-1">
-                                             <Zap className="w-3 h-3 text-yellow-600" />
-                                             <span className="text-slate-600">ไฟ:</span>
-                                             <span className="font-bold text-yellow-600">{latest.electricity_current}</span>
-                                           </div>
-                                         </div>
-                                       </div>
-                                     )}
+                                      {latest && (
+                                        <div 
+                                          onClick={() => {
+                                            if (!canEdit) {
+                                              toast.error('คุณไม่มีสิทธิ์แก้ไขมิเตอร์');
+                                              return;
+                                            }
+                                            handleViewHistory(room);
+                                            setEditingReading({
+                                              id: latest.id,
+                                              water_previous: latest.water_previous,
+                                              water_current: latest.water_current,
+                                              electricity_previous: latest.electricity_previous,
+                                              electricity_current: latest.electricity_current
+                                            });
+                                          }}
+                                          className={`bg-blue-50 rounded-lg p-2 mb-2 ${canEdit ? 'cursor-pointer hover:bg-blue-100 transition-colors' : 'opacity-60'}`}
+                                        >
+                                          <p className="text-xs text-slate-600 mb-1">ค่ามิเตอร์ครั้งก่อน: {canEdit ? '(คลิกแก้ไข)' : '(ดูอย่างเดียว)'}</p>
+                                          <div className="flex items-center gap-3 text-xs">
+                                            <div className="flex items-center gap-1">
+                                              <Droplets className="w-3 h-3 text-blue-600" />
+                                              <span className="text-slate-600">น้ำ:</span>
+                                              <span className="font-bold text-blue-600">{latest.water_current}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                              <Zap className="w-3 h-3 text-yellow-600" />
+                                              <span className="text-slate-600">ไฟ:</span>
+                                              <span className="font-bold text-yellow-600">{latest.electricity_current}</span>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
 
                                      {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
                                      {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
