@@ -291,11 +291,11 @@ export default function PackageSelectionPage() {
           >
             <div className="text-center mb-12">
               <h1 className="text-4xl md:text-5xl font-bold mb-2">
-                <span className="text-slate-900">Small investment</span>
+                <span className="text-slate-900">ลงทุนน้อย</span>
               </h1>
               <h2 className="text-4xl md:text-5xl font-bold mb-6">
                 <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                  Huge productivity boost
+                  จัดการหอพักได้อย่างมืออาชีพ
                 </span>
               </h2>
               <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-600">
@@ -303,19 +303,19 @@ export default function PackageSelectionPage() {
                   <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
                     <Check className="w-3 h-3 text-green-600" />
                   </div>
-                  <span>One-time purchase</span>
+                  <span>ครบทุกฟีเจอร์การจัดการหอพัก</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
                     <Check className="w-3 h-3 text-green-600" />
                   </div>
-                  <span>All the features in every plan</span>
+                  <span>รองรับหลายสาขา</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
                     <Check className="w-3 h-3 text-green-600" />
                   </div>
-                  <span>30-day Money Back Guarantee</span>
+                  <span>ระบบแจ้งเตือนอัตโนมัติ</span>
                 </div>
               </div>
               
@@ -580,7 +580,7 @@ export default function PackageSelectionPage() {
                                     if (pkg.description.text) return String(pkg.description.text);
                                     return '';
                                   }
-                                  return isBasic ? 'Perfect For Small Teams' : isPro ? 'Perfect For Growing Teams' : 'For Large Organizations';
+                                  return isBasic ? 'เหมาะสำหรับหอพักขนาดเล็ก' : isPro ? 'เหมาะสำหรับหอพักขนาดกลาง' : 'เหมาะสำหรับหอพักหลายสาขา';
                                 })()}
                               </p>
                             </div>
