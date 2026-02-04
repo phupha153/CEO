@@ -306,32 +306,29 @@ export default function PackageSelectionPage() {
                 </div>
               </div>
               
-              {/* Duration Selection - 4 Options */}
-              <div className="flex justify-center mt-6">
-                <div className="inline-flex items-center gap-2 bg-white rounded-xl p-2 shadow-md border border-slate-200">
+              {/* Duration Selection - 3 Options */}
+              <div className="flex justify-center mt-5">
+                <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-white rounded-xl p-1.5 sm:p-2 shadow-md">
                   {[
-                    { months: '1', label: '1 เดือน' },
-                    { months: '6', label: '6 เดือน', discount: '10%' },
-                    { months: '12', label: '1 ปี', discount: '15%' },
-                    { months: '24', label: '2 ปี', discount: '25%' }
-                  ].map(({ months, label, discount }) => (
+                    { months: '6', label: '6 เดือน', save: 'ลด 10%' },
+                    { months: '12', label: '1 ปี', save: 'ลด 15%' },
+                    { months: '24', label: '2 ปี', save: 'ลด 25%' }
+                  ].map(({ months, label, save }) => (
                     <button
                       key={months}
                       onClick={() => setBillingCycle(months)}
-                      className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+                      className={`px-4 sm:px-5 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all ${
                         billingCycle === months
-                          ? 'bg-slate-900 text-white shadow-md'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                          ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
+                          : 'text-slate-600 hover:bg-slate-50'
                       }`}
                     >
                       <div>{label}</div>
-                      {discount && (
-                        <div className={`text-[10px] font-normal mt-0.5 ${
-                          billingCycle === months ? 'text-green-300' : 'text-green-600'
-                        }`}>
-                          ลด {discount}
-                        </div>
-                      )}
+                      <div className={`text-[10px] font-medium mt-0.5 ${
+                        billingCycle === months ? 'text-white/90' : 'text-green-600'
+                      }`}>
+                        {save}
+                      </div>
                     </button>
                   ))}
                 </div>
