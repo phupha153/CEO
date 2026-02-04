@@ -82,6 +82,47 @@ export default function MeterReadings() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // ✅ Auto-save draft to localStorage (debounced)
+  useEffect(() => {
+    if (Object.keys(cardReadings).length === 0) return;
+
+    if (draftSaveTimeoutRef.current) clearTimeout(draftSaveTimeoutRef.current);
+
+    draftSaveTimeoutRef.current = setTimeout(() => {
+      const roomsWithData = Object.entries(cardReadings)
+        .filter(([_, data]) => data?.water_current || data?.electricity_current)
+        .map(([roomId]) => roomId);
+
+      if (roomsWithData.length > 0) {
+        localStorage.setItem(
+          `meterReadings_draft_${selectedBranchId}`,
+          JSON.stringify(cardReadings)
+        );
+        setUnsavedRooms(new Set(roomsWithData));
+      }
+    }, 1000); // Save after 1 second of inactivity
+
+    return () => {
+      if (draftSaveTimeoutRef.current) clearTimeout(draftSaveTimeoutRef.current);
+    };
+  }, [cardReadings, selectedBranchId]);
+
+  // ✅ Load draft from localStorage on mount
+  useEffect(() => {
+    if (!selectedBranchId) return;
+    const draft = localStorage.getItem(`meterReadings_draft_${selectedBranchId}`);
+    if (draft) {
+      try {
+        setCardReadings(JSON.parse(draft));
+        const parsed = JSON.parse(draft);
+        const roomsWithData = Object.entries(parsed)
+          .filter(([_, data]) => data?.water_current || data?.electricity_current)
+          .map(([roomId]) => roomId);
+        setUnsavedRooms(new Set(roomsWithData));
+      } catch {}
+    }
+  }, [selectedBranchId]);
+
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
