@@ -184,7 +184,7 @@ Deno.serve(async (req) => {
                 account_name: configData.bank_account_name || ''
             },
             recipient: {
-                building_name: configData.building_name || branch.branch_name || 'W RESIDENTS',
+                building_name: configData.building_name || branch.branch_name || '',
                 building_logo: configData.building_logo || '',
                 building_address: branch.address || '',
                 building_phone: configData.contact_phone || branch.phone || '',
