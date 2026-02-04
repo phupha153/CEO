@@ -290,19 +290,19 @@ export default function PackageSelectionPage() {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="text-center mb-6 md:mb-8 px-4">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 md:mb-4 leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black mb-3 md:mb-4 leading-tight">
                 <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                  งานหอพัก 1 วัน เสร็จใน 5 นาที
+                  งานหอพัก 1 วัน<br/>เสร็จใน 5 นาที
                 </span>
               </h1>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5 text-xs sm:text-sm text-slate-600">
+              <div className="flex items-center justify-center gap-3 sm:gap-5 text-xs sm:text-sm text-slate-600">
                 <div className="flex items-center gap-1.5">
                   <Check className="w-4 h-4 text-green-600" />
-                  <span>แจ้งเตือนผู้เช่าอัตโนมัติ</span>
+                  <span className="whitespace-nowrap">แจ้งเตือนผู้เช่าอัตโนมัติ</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Check className="w-4 h-4 text-green-600" />
-                  <span>บัญชีเสร็จใน 5 นาที</span>
+                  <span className="whitespace-nowrap">บัญชีเสร็จใน 5 นาที</span>
                 </div>
               </div>
               
