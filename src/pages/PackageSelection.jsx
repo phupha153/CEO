@@ -289,7 +289,7 @@ export default function PackageSelectionPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="text-center mb-16">
+            <div className="text-center mb-16 font-['Prompt']">
               <h1 className="text-3xl md:text-4xl font-extrabold mb-4 text-slate-900">
                 ซื้อความสบาย
               </h1>
