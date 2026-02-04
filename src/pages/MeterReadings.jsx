@@ -1805,21 +1805,16 @@ export default function MeterReadings() {
 
                                     {/* ถ้าไม่เคยบันทึก - แสดง Empty State */}
                                     {!hasReading ? (
-                                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                                      <button
+                                        onClick={() => setShowAddMoreFormForRoom(room.id)}
+                                        className="flex flex-col items-center justify-center py-12 w-full hover:opacity-80 transition-opacity"
+                                      >
                                         <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-3">
                                           <Plus className="w-8 h-8 text-blue-600" />
                                         </div>
                                         <p className="text-slate-700 font-semibold mb-1">ยังไม่มีการบันทึก</p>
-                                        <p className="text-sm text-slate-500 mb-4">เป็นครั้งแรกในการบันทึกมิเตอร์</p>
-                                        <Button
-                                          onClick={() => setShowAddMoreFormForRoom(room.id)}
-                                          className="bg-blue-600 hover:bg-blue-700 text-white"
-                                          size="sm"
-                                        >
-                                          <Plus className="w-4 h-4 mr-1" />
-                                          บันทึกครั้งแรก
-                                        </Button>
-                                      </div>
+                                        <p className="text-sm text-slate-500">เป็นครั้งแรกในการบันทึกมิเตอร์</p>
+                                      </button>
                                     ) : (
                                       <div className="space-y-3">
                                         {latest && (
