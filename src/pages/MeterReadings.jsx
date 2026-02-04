@@ -393,8 +393,9 @@ export default function MeterReadings() {
       const previousReadings = meterReadings.filter(r => r.room_id === data.room_id);
       const latestPrevious = previousReadings.length > 0 ? previousReadings[0] : null;
 
-      const waterPrevious = latestPrevious?.water_current || 0;
-      const electricityPrevious = latestPrevious?.electricity_current || 0;
+      // ใช้ค่า previous ที่ส่งมา หรือค่าล่าสุดจากประวัติ หรือ 0 ถ้าไม่มี
+      const waterPrevious = data.water_previous !== undefined ? data.water_previous : (latestPrevious?.water_current || 0);
+      const electricityPrevious = data.electricity_previous !== undefined ? data.electricity_previous : (latestPrevious?.electricity_current || 0);
       
       const waterCurrent = data.water_current ? parseFloat(data.water_current) : waterPrevious;
       const electricityCurrent = data.electricity_current ? parseFloat(data.electricity_current) : electricityPrevious;
