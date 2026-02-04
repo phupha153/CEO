@@ -393,9 +393,8 @@ export default function MeterReadings() {
       const previousReadings = meterReadings.filter(r => r.room_id === data.room_id);
       const latestPrevious = previousReadings.length > 0 ? previousReadings[0] : null;
 
-      // ใช้ค่า previous ที่ส่งมา หรือค่าล่าสุดจากประวัติ หรือ 0 ถ้าไม่มี
-      const waterPrevious = data.water_previous !== undefined ? data.water_previous : (latestPrevious?.water_current || 0);
-      const electricityPrevious = data.electricity_previous !== undefined ? data.electricity_previous : (latestPrevious?.electricity_current || 0);
+      const waterPrevious = latestPrevious?.water_current || 0;
+      const electricityPrevious = latestPrevious?.electricity_current || 0;
       
       const waterCurrent = data.water_current ? parseFloat(data.water_current) : waterPrevious;
       const electricityCurrent = data.electricity_current ? parseFloat(data.electricity_current) : electricityPrevious;
@@ -744,8 +743,6 @@ export default function MeterReadings() {
       room_id: roomId,
       water_current: data.water_current && data.water_current !== '' ? parseFloat(data.water_current) : null,
       electricity_current: data.electricity_current && data.electricity_current !== '' ? parseFloat(data.electricity_current) : null,
-      water_previous: data.water_previous && data.water_previous !== '' ? parseFloat(data.water_previous) : undefined,
-      electricity_previous: data.electricity_previous && data.electricity_previous !== '' ? parseFloat(data.electricity_previous) : undefined,
       notes: data.notes || ''
     });
   };
@@ -1875,7 +1872,7 @@ export default function MeterReadings() {
                                             </div>
                                           </div>
                                         ) : (
-                                          <div className="space-y-3">
+                                          <>
                                             {hasRecordedThisMonth(room.id) && (
                                               <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
                                                 <p className="text-xs text-amber-700 text-center">⚠️ เดือนนี้บันทึกแล้ว - กำลังบันทึกเพิ่ม</p>
@@ -2013,7 +2010,7 @@ export default function MeterReadings() {
                                                 </Button>
                                               )}
                                             </div>
-                                          </div>
+                                          </>
                                         )}
 
                                         {latest && (
@@ -2136,64 +2133,13 @@ export default function MeterReadings() {
                                           </div>
                                         </div>
                                       ) : (
-                                        <div className="space-y-3">
+                                        <>
                                           {hasRecordedThisMonth(room.id) && (
                                             <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
                                               <p className="text-xs text-amber-700 text-center">⚠️ เดือนนี้บันทึกแล้ว - กำลังบันทึกเพิ่ม</p>
                                             </div>
                                           )}
-                                          {!latest && (
-                                            <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 mb-3">
-                                              <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
-                                                <AlertTriangle className="w-4 h-4" />
-                                                บันทึกครั้งแรก (ตั้งต้น)
-                                              </p>
-                                              <p className="text-xs text-amber-700 mt-1">
-                                                กรุณาระบุเลขมิเตอร์ตั้งต้น (ครั้งก่อน)
-                                              </p>
-                                            </div>
-                                          )}
                                           <div className="grid grid-cols-2 gap-2">
-                                            {!latest && (
-                                              <>
-                                                <div>
-                                                  <Label className="text-xs">น้ำ ครั้งก่อน</Label>
-                                                  <Input
-                                                    type="number"
-                                                    step="0.01"
-                                                    placeholder="0"
-                                                    value={cardReadings[room.id]?.water_previous || ''}
-                                                    onChange={(e) => setCardReadings({
-                                                      ...cardReadings,
-                                                      [room.id]: {
-                                                        ...cardReadings[room.id],
-                                                        water_previous: e.target.value
-                                                      }
-                                                    })}
-                                                    disabled={!canAdd || createSingleMutation.isPending}
-                                                    className="h-9 text-sm"
-                                                  />
-                                                </div>
-                                                <div>
-                                                  <Label className="text-xs">ไฟ ครั้งก่อน</Label>
-                                                  <Input
-                                                    type="number"
-                                                    step="0.01"
-                                                    placeholder="0"
-                                                    value={cardReadings[room.id]?.electricity_previous || ''}
-                                                    onChange={(e) => setCardReadings({
-                                                      ...cardReadings,
-                                                      [room.id]: {
-                                                        ...cardReadings[room.id],
-                                                        electricity_previous: e.target.value
-                                                      }
-                                                    })}
-                                                    disabled={!canAdd || createSingleMutation.isPending}
-                                                    className="h-9 text-sm"
-                                                  />
-                                                </div>
-                                              </>
-                                            )}
                                             <div>
                                               <Label className="text-xs">น้ำปัจจุบัน</Label>
                                               <Input
@@ -2274,34 +2220,25 @@ export default function MeterReadings() {
                                               </Button>
                                             )}
                                             </div>
+                                            </>
                                             )}
 
                                             {latest && (
                                             <div className="pt-3 border-t text-center">
                                             <p className="text-xs text-slate-500">
-                                             บันทึกล่าสุด: {format(parseISO(latest.reading_date), 'd MMM yyyy', { locale: th })}
+                                            บันทึกล่าสุด: {format(parseISO(latest.reading_date), 'd MMM yyyy', { locale: th })}
                                             </p>
                                             <div className="flex justify-center gap-4 mt-2 text-xs">
-                                             <span className="text-blue-600">ใช้น้ำ: {latest.water_units} หน่วย</span>
-                                             <span className="text-yellow-600">ใช้ไฟ: {latest.electricity_units} หน่วย</span>
+                                            <span className="text-blue-600">ใช้น้ำ: {latest.water_units} หน่วย</span>
+                                            <span className="text-yellow-600">ใช้ไฟ: {latest.electricity_units} หน่วย</span>
                                             </div>
                                             </div>
                                             )}
                                             </div>
-                                            )}
-                                            </CardContent>
-                                            </Card>
-                                            )}
-                                            </motion.div>
-                                            );
-                                            })}
-                                            </AnimatePresence>
-                                            </div>
-                                            </div>
-                                            );
-                                            })}
-                                            </div>
-                                            )}
+                                          )}
+                                          </CardContent>
+                                          </Card>
+                                          )}
                                            </motion.div>
                                            );
                                            })}
