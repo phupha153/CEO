@@ -295,7 +295,7 @@ export default function PackageSelectionPage() {
               </h1>
               <h2 className="text-3xl md:text-4xl font-semibold mb-6">
                 <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                  เปลี่ยนงานหอพักหนึ่งวันให้เสร็จภายใน 5 นาที
+                  เปลี่ยนงานหอพัก 1 วันให้เสร็จภายใน 5 นาที
                 </span>
               </h2>
               <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-600">
