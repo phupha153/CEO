@@ -2592,6 +2592,26 @@ export default function MeterReadings() {
                           placeholder="0"
                         />
                       </div>
+                      <div>
+                        <Label className="text-slate-600">มิเตอร์น้ำ (ปัจจุบัน)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.water_current}
+                          onChange={(e) => setFormData({ ...formData, water_current: e.target.value })}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-slate-600">มิเตอร์ไฟ (ปัจจุบัน)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={formData.electricity_current}
+                          onChange={(e) => setFormData({ ...formData, electricity_current: e.target.value })}
+                          placeholder="0"
+                        />
+                      </div>
                     </div>
                   </div>
                 );
