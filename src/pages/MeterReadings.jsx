@@ -1805,15 +1805,10 @@ export default function MeterReadings() {
 
                                     {/* ถ้าไม่เคยบันทึก - แสดง Empty State */}
                                     {!hasReading ? (
-                                     <button
-                                       onClick={(e) => {
-                                         e.preventDefault();
-                                         e.stopPropagation();
-                                         console.log('🔵 Empty state clicked, room:', room.id);
-                                         setShowAddMoreFormForRoom(room.id);
-                                       }}
-                                       className="w-full flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-blue-300 rounded-xl bg-gradient-to-br from-blue-50 to-sky-50 cursor-pointer hover:border-blue-500 hover:from-blue-100 hover:to-sky-100 hover:shadow-md transition-all active:scale-95"
-                                     >
+                                      <button
+                                        onClick={() => setShowAddMoreFormForRoom(room.id)}
+                                        className="w-full flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-blue-300 rounded-xl bg-gradient-to-br from-blue-50 to-sky-50 cursor-pointer hover:border-blue-500 hover:from-blue-100 hover:to-sky-100 hover:shadow-md transition-all active:scale-95"
+                                      >
                                         <div className="w-16 h-16 rounded-full bg-white border-2 border-blue-200 flex items-center justify-center mb-3 hover:border-blue-400 transition-colors shadow-sm">
                                           <Plus className="w-8 h-8 text-blue-600" />
                                         </div>
@@ -1859,19 +1854,22 @@ export default function MeterReadings() {
                                         {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
                                         {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
                                           <div className="space-y-3">
-                                            <button
-                                              onClick={() => setShowAddMoreFormForRoom(room.id)}
-                                              className="w-full bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center cursor-pointer hover:bg-green-100 hover:border-green-300 transition-all active:scale-95"
-                                            >
+                                            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
                                               <div className="flex items-center justify-center gap-2 mb-2">
                                                 <Check className="w-5 h-5 text-green-600" />
                                                 <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
                                               </div>
-                                              <div className="flex items-center justify-center gap-1 text-green-600 text-sm font-medium">
-                                                <Plus className="w-3 h-3" />
+
+                                              <Button
+                                                onClick={() => setShowAddMoreFormForRoom(room.id)}
+                                                size="sm"
+                                                variant="outline"
+                                                className="border-green-600 text-green-600 hover:bg-green-50"
+                                              >
+                                                <Plus className="w-3 h-3 mr-1" />
                                                 บันทึกเพิ่ม
-                                              </div>
-                                            </button>
+                                              </Button>
+                                            </div>
                                           </div>
                                         ) : (
                                           <>
@@ -2013,12 +2011,7 @@ export default function MeterReadings() {
                                    {/* ถ้าไม่เคยบันทึก - แสดง Empty State */}
                                    {!hasReading ? (
                                      <button
-                                       onClick={(e) => {
-                                         e.preventDefault();
-                                         e.stopPropagation();
-                                         console.log('🔵 Mobile empty state clicked, room:', room.id);
-                                         setShowAddMoreFormForRoom(room.id);
-                                       }}
+                                       onClick={() => setShowAddMoreFormForRoom(room.id)}
                                        className="flex flex-col items-center justify-center py-12 w-full cursor-pointer hover:bg-blue-50 transition-all rounded-lg p-4 active:scale-95"
                                      >
                                        <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-3 hover:bg-blue-200 transition-colors">
@@ -2066,10 +2059,7 @@ export default function MeterReadings() {
                                       {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
                                       {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
                                         <div className="space-y-3">
-                                          <button
-                                            onClick={() => setShowAddMoreFormForRoom(room.id)}
-                                            className="w-full bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center cursor-pointer hover:bg-green-100 hover:border-green-300 transition-all active:scale-95"
-                                          >
+                                          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
                                             <div className="flex items-center justify-center gap-2 mb-2">
                                               <Check className="w-5 h-5 text-green-600" />
                                               <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
@@ -2080,11 +2070,16 @@ export default function MeterReadings() {
                                                 <span>ไฟ: {latest.electricity_units} หน่วย</span>
                                               </div>
                                             )}
-                                            <div className="flex items-center justify-center gap-1 text-green-600 text-sm font-medium">
-                                              <Plus className="w-3 h-3" />
+                                            <Button
+                                              onClick={() => setShowAddMoreFormForRoom(room.id)}
+                                              size="sm"
+                                              variant="outline"
+                                              className="border-green-600 text-green-600 hover:bg-green-50"
+                                            >
+                                              <Plus className="w-3 h-3 mr-1" />
                                               บันทึกเพิ่ม
-                                            </div>
-                                          </button>
+                                            </Button>
+                                          </div>
                                         </div>
                                       ) : (
                                         <>
