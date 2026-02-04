@@ -3047,6 +3047,27 @@ Return JSON.`;
                 <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
                   <CardContent className="p-4">
                     <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-col gap-1 flex-1 min-w-[180px]">
+                        <label className="text-xs font-semibold text-slate-700">ค้นหา</label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                          <Input
+                            placeholder="ค้นหา ห้อง, ชื่อผู้เช่า, เบอร์โทร..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 bg-white/90 shadow-md border-slate-300 rounded-xl text-xs"
+                          />
+                          {searchQuery && (
+                            <button
+                              onClick={() => setSearchQuery('')}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 hover:bg-slate-100 rounded-full p-1"
+                            >
+                              <X className="w-3 h-3 text-slate-400" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
                         <label className="text-xs font-semibold text-slate-700">ช่วงเวลา</label>
                         <Select value={dateRangeType} onValueChange={setDateRangeType}>
@@ -3854,6 +3875,25 @@ Return JSON.`;
                         </div>
                       </div>
                     )}
+                    <div className="mb-4">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Input
+                          placeholder="ค้นหา ห้อง, ชื่อผู้เช่า..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9 bg-white/90 shadow-md border-slate-300 rounded-xl"
+                        />
+                        {searchQuery && (
+                          <button
+                            onClick={() => setSearchQuery('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 hover:bg-slate-100 rounded-full p-1"
+                          >
+                            <X className="w-3 h-3 text-slate-400" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-2">
                         <Button
