@@ -2184,15 +2184,15 @@ export default function MeterReadings() {
                                            )}
 
                                            {/* Table View */}
-                                           {viewMode === 'table' && (
-            <div className="space-y-6">
-              {/* ตัวเลือกเวอร์ชัน */}
-              <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
-                <CardContent className="p-4">
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <History className="w-5 h-5 text-blue-600" />
-                      <Label className="font-medium">เวอร์ชัน:</Label>
+                                                                            {viewMode === 'table' && (
+                                             <div className="space-y-6">
+                                               {/* ตัวเลือกเวอร์ชัน + ประเภทมิเตอร์ */}
+                                               <Card className="bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg">
+                                                 <CardContent className="p-4">
+                                                   <div className="flex flex-wrap items-center gap-4">
+                                                     <div className="flex items-center gap-2">
+                                                       <History className="w-5 h-5 text-blue-600" />
+                                                       <Label className="font-medium">เวอร์ชัน:</Label>
                       <select
                         value={selectedReadingVersion}
                         onChange={(e) => {
