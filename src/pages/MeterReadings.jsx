@@ -2030,31 +2030,30 @@ export default function MeterReadings() {
                                          {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
                                          {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
                                            <div className="space-y-3">
-                                       <div className="space-y-3">
-                                         <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
-                                           <div className="flex items-center justify-center gap-2 mb-2">
-                                             <Check className="w-5 h-5 text-green-600" />
-                                             <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
-                                           </div>
-                                           {latest && (
-                                             <div className="flex justify-center gap-4 text-xs text-slate-600 mb-3">
-                                               <span>น้ำ: {latest.water_units} หน่วย</span>
-                                               <span>ไฟ: {latest.electricity_units} หน่วย</span>
+                                             <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
+                                               <div className="flex items-center justify-center gap-2 mb-2">
+                                                 <Check className="w-5 h-5 text-green-600" />
+                                                 <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
+                                               </div>
+                                               {latest && (
+                                                 <div className="flex justify-center gap-4 text-xs text-slate-600 mb-3">
+                                                   <span>น้ำ: {latest.water_units} หน่วย</span>
+                                                   <span>ไฟ: {latest.electricity_units} หน่วย</span>
+                                                 </div>
+                                               )}
+                                               <Button
+                                                 onClick={() => setShowAddMoreFormForRoom(room.id)}
+                                                 size="sm"
+                                                 variant="outline"
+                                                 className="border-green-600 text-green-600 hover:bg-green-50"
+                                               >
+                                                 <Plus className="w-3 h-3 mr-1" />
+                                                 บันทึกเพิ่ม
+                                               </Button>
                                              </div>
-                                           )}
-                                           <Button
-                                             onClick={() => setShowAddMoreFormForRoom(room.id)}
-                                             size="sm"
-                                             variant="outline"
-                                             className="border-green-600 text-green-600 hover:bg-green-50"
-                                           >
-                                             <Plus className="w-3 h-3 mr-1" />
-                                             บันทึกเพิ่ม
-                                           </Button>
-                                         </div>
-                                       </div>
-                                     ) : (
-                                       <>
+                                           </div>
+                                         ) : (
+                                           <>
                                          {hasRecordedThisMonth(room.id) && (
                                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
                                              <p className="text-xs text-amber-700 text-center">⚠️ เดือนนี้บันทึกแล้ว - กำลังบันทึกเพิ่ม</p>
