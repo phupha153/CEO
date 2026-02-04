@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Plus, Edit2, Trash2, Receipt, Zap, Droplets, Wrench, Wifi, Users, ShoppingCart, CalendarIcon, TrendingDown, Search, X, AlertTriangle, Wallet } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { format, parseISO, startOfMonth, endOfMonth, isWithinInterval, subMonths } from "date-fns";
 import { th } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -27,6 +27,7 @@ export default function Expenses() {
   const [editingExpense, setEditingExpense] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [dateRangeType, setDateRangeType] = useState('this_month'); // 'this_month', '3_months', '6_months', 'custom'
   const [dateRange, setDateRange] = useState({
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date())
@@ -58,6 +59,34 @@ export default function Expenses() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // ✅ Auto-update date range based on type
+  useEffect(() => {
+    const now = new Date();
+    switch (dateRangeType) {
+      case 'this_month':
+        setDateRange({
+          from: startOfMonth(now),
+          to: endOfMonth(now)
+        });
+        break;
+      case '3_months':
+        setDateRange({
+          from: startOfMonth(subMonths(now, 2)),
+          to: endOfMonth(now)
+        });
+        break;
+      case '6_months':
+        setDateRange({
+          from: startOfMonth(subMonths(now, 5)),
+          to: endOfMonth(now)
+        });
+        break;
+      case 'custom':
+        // Keep existing custom range
+        break;
+    }
+  }, [dateRangeType]);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -551,29 +580,51 @@ export default function Expenses() {
               </Tabs>
             </Card>
             <Card className="flex-shrink-0 bg-white/80 backdrop-blur-sm border-slate-200/60 shadow-lg p-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="gap-2 bg-white/80 backdrop-blur-sm w-full md:w-auto">
-                    <CalendarIcon className="w-4 h-4" />
-                    {dateRange.from && dateRange.to ? (
-                      <>
-                        {format(dateRange.from, 'd MMM', { locale: th })} - {format(dateRange.to, 'd MMM yyyy', { locale: th })}
-                      </>
-                    ) : (
-                      'เลือกช่วงวันที่'
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="range"
-                    selected={dateRange}
-                    onSelect={setDateRange}
-                    numberOfMonths={2}
-                    locale={th}
-                  />
-                </PopoverContent>
-              </Popover>
+              <div className="flex items-center gap-2">
+                <Select value={dateRangeType} onValueChange={setDateRangeType}>
+                  <SelectTrigger className="w-32 bg-white/80 backdrop-blur-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="this_month">เดือนนี้</SelectItem>
+                    <SelectItem value="3_months">3 เดือน</SelectItem>
+                    <SelectItem value="6_months">6 เดือน</SelectItem>
+                    <SelectItem value="custom">กำหนดเอง</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {dateRangeType === 'custom' && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="gap-2 bg-white/80 backdrop-blur-sm">
+                        <CalendarIcon className="w-4 h-4" />
+                        {dateRange.from && dateRange.to ? (
+                          <>
+                            {format(dateRange.from, 'd MMM', { locale: th })} - {format(dateRange.to, 'd MMM yyyy', { locale: th })}
+                          </>
+                        ) : (
+                          'เลือกช่วงวันที่'
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        mode="range"
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                        locale={th}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+
+                {dateRangeType !== 'custom' && (
+                  <div className="text-sm text-slate-600 px-2">
+                    {format(dateRange.from, 'd MMM', { locale: th })} - {format(dateRange.to, 'd MMM yyyy', { locale: th })}
+                  </div>
+                )}
+              </div>
             </Card>
           </div>
           
