@@ -2277,20 +2277,30 @@ export default function MeterReadings() {
                                             )}
 
                                             {latest && (
-                                              <div className="pt-3 border-t text-center">
-                                                <p className="text-xs text-slate-500">
-                                                  บันทึกล่าสุด: {format(parseISO(latest.reading_date), 'd MMM yyyy', { locale: th })}
-                                                </p>
-                                                <div className="flex justify-center gap-4 mt-2 text-xs">
-                                                  <span className="text-blue-600">ใช้น้ำ: {latest.water_units} หน่วย</span>
-                                                  <span className="text-yellow-600">ใช้ไฟ: {latest.electricity_units} หน่วย</span>
-                                                </div>
-                                              </div>
+                                            <div className="pt-3 border-t text-center">
+                                            <p className="text-xs text-slate-500">
+                                              บันทึกล่าสุด: {format(parseISO(latest.reading_date), 'd MMM yyyy', { locale: th })}
+                                            </p>
+                                            <div className="flex justify-center gap-4 mt-2 text-xs">
+                                              <span className="text-blue-600">ใช้น้ำ: {latest.water_units} หน่วย</span>
+                                              <span className="text-yellow-600">ใช้ไฟ: {latest.electricity_units} หน่วย</span>
+                                            </div>
+                                            </div>
                                             )}
                                             </div>
                                             )}
                                             </CardContent>
                                             </Card>
+                                            )}
+                                            </motion.div>
+                                            );
+                                            })}
+                                            </AnimatePresence>
+                                            </div>
+                                            </div>
+                                            );
+                                            })}
+                                            </div>
                                             )}
                                             </motion.div>
                                             );
