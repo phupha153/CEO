@@ -2235,36 +2235,33 @@ export default function MeterReadings() {
                       </Badge>
                     )}
 
-                    <div className="flex items-center gap-3">
-                      <Label className="font-medium">ประเภทมิเตอร์:</Label>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant={meterTypeSelection.tableType === 'water' ? 'default' : 'outline'}
-                          onClick={() => setMeterTypeSelection({...meterTypeSelection, tableType: 'water'})}
-                          className={meterTypeSelection.tableType === 'water' ? 'bg-blue-600 text-white' : ''}
-                        >
-                          <Droplets className="w-4 h-4 mr-1" />
-                          น้ำเท่านั้น
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={meterTypeSelection.tableType === 'electricity' ? 'default' : 'outline'}
-                          onClick={() => setMeterTypeSelection({...meterTypeSelection, tableType: 'electricity'})}
-                          className={meterTypeSelection.tableType === 'electricity' ? 'bg-yellow-600 text-white' : ''}
-                        >
-                          <Zap className="w-4 h-4 mr-1" />
-                          ไฟเท่านั้น
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={meterTypeSelection.tableType === 'both' || !meterTypeSelection.tableType ? 'default' : 'outline'}
-                          onClick={() => setMeterTypeSelection({...meterTypeSelection, tableType: 'both'})}
-                          className={meterTypeSelection.tableType === 'both' || !meterTypeSelection.tableType ? 'bg-purple-600 text-white' : ''}
-                        >
-                          น้ำ + ไฟ
-                        </Button>
-                      </div>
+                    <div className="flex flex-wrap gap-2 md:gap-3">
+                      <Button
+                        size="sm"
+                        variant={meterTypeSelection.tableType === 'water' ? 'default' : 'outline'}
+                        onClick={() => setMeterTypeSelection({...meterTypeSelection, tableType: 'water'})}
+                        className={`${meterTypeSelection.tableType === 'water' ? 'bg-blue-600 text-white' : ''} text-xs md:text-sm`}
+                      >
+                        <Droplets className="w-3 h-3 md:w-4 md:h-4 mr-1" />
+                        น้ำ
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={meterTypeSelection.tableType === 'electricity' ? 'default' : 'outline'}
+                        onClick={() => setMeterTypeSelection({...meterTypeSelection, tableType: 'electricity'})}
+                        className={`${meterTypeSelection.tableType === 'electricity' ? 'bg-yellow-600 text-white' : ''} text-xs md:text-sm`}
+                      >
+                        <Zap className="w-3 h-3 md:w-4 md:h-4 mr-1" />
+                        ไฟ
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={meterTypeSelection.tableType === 'both' || !meterTypeSelection.tableType ? 'default' : 'outline'}
+                        onClick={() => setMeterTypeSelection({...meterTypeSelection, tableType: 'both'})}
+                        className={`${meterTypeSelection.tableType === 'both' || !meterTypeSelection.tableType ? 'bg-purple-600 text-white' : ''} text-xs md:text-sm`}
+                      >
+                        ทั้งสอง
+                      </Button>
                     </div>
                     </div>
                     </CardContent>
