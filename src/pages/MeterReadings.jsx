@@ -2029,8 +2029,7 @@ export default function MeterReadings() {
 
                                          {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
                                          {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
-                                       </>
-                                     )}
+                                           <div className="space-y-3">
                                        <div className="space-y-3">
                                          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
                                            <div className="flex items-center justify-center gap-2 mb-2">
