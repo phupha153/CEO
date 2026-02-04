@@ -51,7 +51,9 @@ export default function MeterReadings() {
   const [displayLimit, setDisplayLimit] = useState(20);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [unsavedRooms, setUnsavedRooms] = useState(new Set());
   const loadMoreRef = useRef(null);
+  const draftSaveTimeoutRef = useRef(null);
 
   const queryClient = useQueryClient();
 
