@@ -1803,8 +1803,8 @@ export default function MeterReadings() {
                                       )}
                                     </div>
 
-                                    {/* ถ้าไม่เคยบันทึก - แสดง Empty State */}
-                                    {!hasReading ? (
+                                    {/* ถ้าไม่เคยบันทึก - แสดง Empty State หรือ Form */}
+                                    {!hasReading && showAddMoreFormForRoom !== room.id ? (
                                       <button
                                         onClick={() => setShowAddMoreFormForRoom(room.id)}
                                         className="w-full flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-blue-300 rounded-xl bg-gradient-to-br from-blue-50 to-sky-50 cursor-pointer hover:border-blue-500 hover:from-blue-100 hover:to-sky-100 hover:shadow-md transition-all active:scale-95 group"
