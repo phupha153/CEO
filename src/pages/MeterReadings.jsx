@@ -1901,44 +1901,136 @@ export default function MeterReadings() {
                                     </div>
 
                                     <div className="space-y-3">
-                                     {latest && (
-                                       <div className="bg-blue-50 rounded-lg p-2 mb-2">
-                                         <div className="flex items-center justify-between mb-1">
-                                           <p className="text-xs text-slate-600">ค่ามิเตอร์ครั้งก่อน:</p>
-                                           {(canEditHistory || userRole === 'owner' || userRole === 'developer') && (
-                                             <Button
-                                               variant="ghost"
-                                               size="sm"
-                                               onClick={() => setEditingReading({
-                                                 id: latest.id,
-                                                 water_previous: latest.water_previous,
-                                                 water_current: latest.water_current,
-                                                 electricity_previous: latest.electricity_previous,
-                                                 electricity_current: latest.electricity_current
-                                               })}
-                                               className="h-6 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
-                                             >
-                                               <Pencil className="w-3 h-3" />
-                                             </Button>
-                                           )}
+                                     {/* Edit Mode for Previous Reading */}
+                                     {editingReading?.id === latest?.id ? (
+                                       <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-3 space-y-3">
+                                         <div className="flex justify-between items-center">
+                                           <p className="text-sm font-bold text-amber-800">แก้ไขค่ามิเตอร์ครั้งก่อน</p>
+                                           <Button
+                                             variant="ghost"
+                                             size="sm"
+                                             onClick={() => setEditingReading(null)}
+                                             className="h-6 px-2"
+                                           >
+                                             <X className="w-3 h-3" />
+                                           </Button>
                                          </div>
-                                         <div className="flex items-center gap-3 text-xs">
-                                           <div className="flex items-center gap-1">
-                                             <Droplets className="w-3 h-3 text-blue-600" />
-                                             <span className="text-slate-600">น้ำ:</span>
-                                             <span className="font-bold text-blue-600">{latest.water_current}</span>
+
+                                         <div className="grid grid-cols-2 gap-2">
+                                           <div>
+                                             <Label className="text-xs text-blue-600">น้ำครั้งก่อน</Label>
+                                             <Input
+                                               type="number"
+                                               step="0.01"
+                                               value={editingReading.water_previous}
+                                               onChange={(e) => setEditingReading({...editingReading, water_previous: e.target.value})}
+                                               className="h-8 text-sm"
+                                             />
                                            </div>
-                                           <div className="flex items-center gap-1">
-                                             <Zap className="w-3 h-3 text-yellow-600" />
-                                             <span className="text-slate-600">ไฟ:</span>
-                                             <span className="font-bold text-yellow-600">{latest.electricity_current}</span>
+                                           <div>
+                                             <Label className="text-xs text-blue-600">น้ำปัจจุบัน</Label>
+                                             <Input
+                                               type="number"
+                                               step="0.01"
+                                               value={editingReading.water_current}
+                                               onChange={(e) => setEditingReading({...editingReading, water_current: e.target.value})}
+                                               className="h-8 text-sm"
+                                             />
                                            </div>
+                                           <div>
+                                             <Label className="text-xs text-yellow-600">ไฟครั้งก่อน</Label>
+                                             <Input
+                                               type="number"
+                                               step="0.01"
+                                               value={editingReading.electricity_previous}
+                                               onChange={(e) => setEditingReading({...editingReading, electricity_previous: e.target.value})}
+                                               className="h-8 text-sm"
+                                             />
+                                           </div>
+                                           <div>
+                                             <Label className="text-xs text-yellow-600">ไฟปัจจุบัน</Label>
+                                             <Input
+                                               type="number"
+                                               step="0.01"
+                                               value={editingReading.electricity_current}
+                                               onChange={(e) => setEditingReading({...editingReading, electricity_current: e.target.value})}
+                                               className="h-8 text-sm"
+                                             />
+                                           </div>
+                                         </div>
+
+                                         <div className="flex gap-2">
+                                           <Button 
+                                             variant="outline" 
+                                             size="sm" 
+                                             onClick={() => setEditingReading(null)}
+                                             className="flex-1 h-8"
+                                           >
+                                             ยกเลิก
+                                           </Button>
+                                           <Button 
+                                             size="sm"
+                                             disabled={updateMutation.isPending}
+                                             onClick={() => {
+                                               updateMutation.mutate({
+                                                 id: editingReading.id,
+                                                 data: {
+                                                   water_previous: editingReading.water_previous,
+                                                   water_current: editingReading.water_current,
+                                                   electricity_previous: editingReading.electricity_previous,
+                                                   electricity_current: editingReading.electricity_current
+                                                 }
+                                               });
+                                               setEditingReading(null);
+                                             }}
+                                             className="flex-1 bg-green-600 hover:bg-green-700 h-8"
+                                           >
+                                             {updateMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+                                           </Button>
                                          </div>
                                        </div>
-                                     )}
+                                     ) : (
+                                       <>
+                                         {latest && (
+                                          <div className="bg-blue-50 rounded-lg p-2 mb-2">
+                                            <div className="flex items-center justify-between mb-1">
+                                              <p className="text-xs text-slate-600">ค่ามิเตอร์ครั้งก่อน:</p>
+                                              {(canEditHistory || userRole === 'owner' || userRole === 'developer') && (
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  onClick={() => setEditingReading({
+                                                    id: latest.id,
+                                                    water_previous: latest.water_previous,
+                                                    water_current: latest.water_current,
+                                                    electricity_previous: latest.electricity_previous,
+                                                    electricity_current: latest.electricity_current
+                                                  })}
+                                                  className="h-6 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                                                >
+                                                  <Pencil className="w-3 h-3" />
+                                                </Button>
+                                              )}
+                                            </div>
+                                            <div className="flex items-center gap-3 text-xs">
+                                              <div className="flex items-center gap-1">
+                                                <Droplets className="w-3 h-3 text-blue-600" />
+                                                <span className="text-slate-600">น้ำ:</span>
+                                                <span className="font-bold text-blue-600">{latest.water_current}</span>
+                                              </div>
+                                              <div className="flex items-center gap-1">
+                                                <Zap className="w-3 h-3 text-yellow-600" />
+                                                <span className="text-slate-600">ไฟ:</span>
+                                                <span className="font-bold text-yellow-600">{latest.electricity_current}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
 
-                                     {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
-                                     {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
+                                         {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
+                                         {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
+                                       </>
+                                     )}
                                        <div className="space-y-3">
                                          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
                                            <div className="flex items-center justify-center gap-2 mb-2">
