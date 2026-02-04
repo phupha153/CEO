@@ -470,6 +470,28 @@ export default function MeterReadings() {
         delete newState[variables.room_id];
         return newState;
       });
+
+      // ✅ Clear unsaved mark
+      setUnsavedRooms(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(variables.room_id);
+        return newSet;
+      });
+
+      // ✅ Clear draft from localStorage
+      const draft = localStorage.getItem(`meterReadings_draft_${selectedBranchId}`);
+      if (draft) {
+        try {
+          const parsed = JSON.parse(draft);
+          delete parsed[variables.room_id];
+          if (Object.keys(parsed).length > 0) {
+            localStorage.setItem(`meterReadings_draft_${selectedBranchId}`, JSON.stringify(parsed));
+          } else {
+            localStorage.removeItem(`meterReadings_draft_${selectedBranchId}`);
+          }
+        } catch {}
+      }
+
       toast.success('บันทึกมิเตอร์สำเร็จ');
       
       // บันทึก log ใน background
