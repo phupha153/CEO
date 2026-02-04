@@ -1301,19 +1301,7 @@ export default function MeterReadings() {
               </>
             )}
 
-            {viewMode === 'table' && Object.keys(bulkReadings).length > 0 && (
-              <Button
-                onClick={handleBulkSave}
-                disabled={bulkCreateMutation.isPending || !canAdd}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-              >
-                {bulkCreateMutation.isPending ? (
-                  <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />กำลังบันทึก...</>
-                ) : (
-                  <><Save className="w-4 h-4 mr-2" />บันทึกทั้งหมด ({Object.keys(bulkReadings).length})</>
-                )}
-              </Button>
-            )}
+
 
           </div>
         }
