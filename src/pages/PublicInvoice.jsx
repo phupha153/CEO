@@ -272,7 +272,7 @@ export default function PublicInvoice() {
   }
 
   const buildingLogo = invoiceData?.recipient?.building_logo || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
-  const buildingName = invoiceData?.recipient?.building_name || 'W RESIDENTS';
+  const buildingName = invoiceData?.recipient?.building_name || '';
 
   return (
     <div className="min-h-screen bg-slate-50 print:bg-white">

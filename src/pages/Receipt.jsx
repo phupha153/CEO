@@ -332,7 +332,7 @@ export default function Receipt() {
   }
 
   const buildingLogo = receiptData?.recipient?.building_logo || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
-  const buildingName = receiptData?.recipient?.building_name || 'W RESIDENTS';
+  const buildingName = receiptData?.recipient?.building_name || '';
 
   // Debug info - เพิ่มข้อมูลดิบจาก API
   const debugInfo = {
