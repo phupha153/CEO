@@ -1859,25 +1859,19 @@ export default function MeterReadings() {
                                       {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
                                         <div className="space-y-3">
                                           <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
-                                            <div className="flex items-center justify-center gap-2 mb-2">
-                                              <Check className="w-5 h-5 text-green-600" />
-                                              <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
-                                            </div>
-                                            {latest && (
-                                              <div className="flex justify-center gap-4 text-xs text-slate-600 mb-3">
-                                                <span>น้ำ: {latest.water_units} หน่วย</span>
-                                                <span>ไฟ: {latest.electricity_units} หน่วย</span>
-                                              </div>
-                                            )}
-                                            <Button
-                                              onClick={() => setShowAddMoreFormForRoom(room.id)}
-                                              size="sm"
-                                              variant="outline"
-                                              className="border-green-600 text-green-600 hover:bg-green-50"
-                                            >
-                                              <Plus className="w-3 h-3 mr-1" />
-                                              บันทึกเพิ่ม
-                                            </Button>
+                                           <div className="flex items-center justify-center gap-2 mb-2">
+                                             <Check className="w-5 h-5 text-green-600" />
+                                             <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
+                                           </div>
+                                           <Button
+                                             onClick={() => setShowAddMoreFormForRoom(room.id)}
+                                             size="sm"
+                                             variant="outline"
+                                             className="border-green-600 text-green-600 hover:bg-green-50"
+                                           >
+                                             <Plus className="w-3 h-3 mr-1" />
+                                             บันทึกเพิ่ม
+                                           </Button>
                                           </div>
                                         </div>
                                       ) : (
@@ -1971,15 +1965,11 @@ export default function MeterReadings() {
                                         </>
                                       )}
 
-                                      {latest && (
+                                      {latest && !hasRecordedThisMonth(room.id) && (
                                         <div className="pt-3 border-t text-center">
                                           <p className="text-xs text-slate-500">
                                             บันทึกล่าสุด: {format(parseISO(latest.reading_date), 'd MMM yyyy', { locale: th })}
                                           </p>
-                                          <div className="flex justify-center gap-4 mt-2 text-xs">
-                                            <span className="text-blue-600">ใช้น้ำ: {latest.water_units} หน่วย</span>
-                                            <span className="text-yellow-600">ใช้ไฟ: {latest.electricity_units} หน่วย</span>
-                                          </div>
                                         </div>
                                       )}
                                     </div>
