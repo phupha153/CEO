@@ -332,7 +332,7 @@ export default function PackageSelectionPage() {
                     <button
                       key={months}
                       onClick={() => setBillingCycle(months)}
-                      className={`px-3 sm:px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
+                      className={`px-3 sm:px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                       billingCycle === months ?
                       'bg-orange-500 text-white shadow-lg' :
                       'text-slate-600 hover:bg-slate-50'}`
