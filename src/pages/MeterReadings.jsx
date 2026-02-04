@@ -1863,12 +1863,7 @@ export default function MeterReadings() {
                                               <Check className="w-5 h-5 text-green-600" />
                                               <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
                                             </div>
-                                            {latest && (
-                                              <div className="flex justify-center gap-4 text-xs text-slate-600 mb-3">
-                                                <span>น้ำ: {latest.water_units} หน่วย</span>
-                                                <span>ไฟ: {latest.electricity_units} หน่วย</span>
-                                              </div>
-                                            )}
+
                                             <Button
                                               onClick={() => setShowAddMoreFormForRoom(room.id)}
                                               size="sm"
