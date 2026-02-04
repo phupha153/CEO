@@ -313,7 +313,7 @@ export default function PackageSelectionPage() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Check className="w-4 h-4 text-green-600" />
-                  <span className="whitespace-nowrap">ระบบตรวจสอบสลิปด้วย</span>
+                  <span className="whitespace-nowrap">ระบบตรวจสอบสลิป</span>
                 </div>
               </div>
               
