@@ -2065,6 +2065,11 @@ export default function MeterReadings() {
                                             บันทึกแล้ว
                                           </Badge>
                                         )}
+                                        {unsavedRooms.has(room.id) && (
+                                          <Badge className="bg-amber-100 text-amber-700 border border-amber-300">
+                                            💾 ร่างบันทึก
+                                          </Badge>
+                                        )}
                                         {tenant && (
                                           <p className="text-sm text-slate-500 ml-2">{tenant.full_name}</p>
                                         )}
