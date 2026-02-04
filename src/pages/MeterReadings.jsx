@@ -740,8 +740,8 @@ export default function MeterReadings() {
 
     createSingleMutation.mutate({
       room_id: roomId,
-      water_current: data.water_current,
-      electricity_current: data.electricity_current,
+      water_current: data.water_current && data.water_current !== '' ? parseFloat(data.water_current) : null,
+      electricity_current: data.electricity_current && data.electricity_current !== '' ? parseFloat(data.electricity_current) : null,
       notes: data.notes || ''
     });
   };
