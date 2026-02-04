@@ -395,8 +395,8 @@ export default function MeterReadings() {
       const waterPrevious = latestPrevious?.water_current || 0;
       const electricityPrevious = latestPrevious?.electricity_current || 0;
       
-      const waterCurrent = data.water_current ? parseFloat(data.water_current) : waterPrevious;
-      const electricityCurrent = data.electricity_current ? parseFloat(data.electricity_current) : electricityPrevious;
+      const waterCurrent = parseFloat(data.water_current);
+      const electricityCurrent = parseFloat(data.electricity_current);
 
       const waterUnits = waterCurrent - waterPrevious;
       const electricityUnits = electricityCurrent - electricityPrevious;
@@ -740,8 +740,8 @@ export default function MeterReadings() {
 
     createSingleMutation.mutate({
       room_id: roomId,
-      water_current: data.water_current ? parseFloat(data.water_current) : null,
-      electricity_current: data.electricity_current ? parseFloat(data.electricity_current) : null,
+      water_current: data.water_current,
+      electricity_current: data.electricity_current,
       notes: data.notes || ''
     });
   };
