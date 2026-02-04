@@ -2207,9 +2207,9 @@ export default function MeterReadings() {
                             setBulkReadingDate(new Date().toISOString().split('T')[0]);
                           }
                         }}
-                        className="p-2 border rounded-lg min-w-[200px]"
-                      >
-                        <option value="new">➕ บันทึกใหม่ (วันนี้)</option>
+                          className="p-2 border rounded-lg hidden md:block min-w-[200px]"
+                        >
+                          <option value="new">➕ บันทึกใหม่ (วันนี้)</option>
                         {/* แสดงประวัติจัดกลุ่มตามวันที่ - ดูอย่างเดียว (แสดงทั้ง developer และพนักงาน) */}
                         {(() => {
                           const dateGroups = {};
