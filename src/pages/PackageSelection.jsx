@@ -302,10 +302,10 @@ export default function PackageSelectionPage() {
                 <span className="text-slate-900">เสร็จภายใน </span>
                 <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">5 นาที</span>
               </h1>
-              <div className="flex items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-slate-600">
+              <div className="flex items-center justify-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-600">
                 <div className="flex items-center gap-1.5">
                   <Check className="w-4 h-4 text-green-600" />
-                  <span className="whitespace-nowrap">แจ้งเตือนผู้เช่าอัตโนมัติ</span>
+                  <span className="whitespace-nowrap">ส่งแจ้งเตือนค่าเช่า-เกินกำหนดอัตโนมัติ</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Check className="w-4 h-4 text-green-600" />
