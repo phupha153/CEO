@@ -2013,7 +2013,12 @@ export default function MeterReadings() {
                                    {/* ถ้าไม่เคยบันทึก - แสดง Empty State */}
                                    {!hasReading ? (
                                      <button
-                                       onClick={() => setShowAddMoreFormForRoom(room.id)}
+                                       onClick={(e) => {
+                                         e.preventDefault();
+                                         e.stopPropagation();
+                                         console.log('🔵 Mobile empty state clicked, room:', room.id);
+                                         setShowAddMoreFormForRoom(room.id);
+                                       }}
                                        className="flex flex-col items-center justify-center py-12 w-full cursor-pointer hover:bg-blue-50 transition-all rounded-lg p-4 active:scale-95"
                                      >
                                        <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-3 hover:bg-blue-200 transition-colors">
