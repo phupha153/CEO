@@ -26,7 +26,8 @@ export default function MeterReadings() {
   const [viewMode, setViewMode] = useState('card');
   const [selectedFloor, setSelectedFloor] = useState('all');
   const [bulkReadings, setBulkReadings] = useState({});
-  const [cardReadings, setCardReadings] = useState({}); // สำหรับ Mobile Card View
+  const [cardReadings, setCardReadings] = useState({});
+  const [submittedFields, setSubmittedFields] = useState({}); // { roomId: { water: true, electricity: true } } // สำหรับ Mobile Card View
   const [isMobile, setIsMobile] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [bulkReadingDate, setBulkReadingDate] = useState(new Date().toISOString().split('T')[0]);
