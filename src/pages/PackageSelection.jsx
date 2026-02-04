@@ -320,7 +320,7 @@ export default function PackageSelectionPage() {
               {/* Duration Selection - All Options with Scroll */}
               <div className="flex justify-center mt-5 px-4">
                 <div className="w-full max-w-3xl overflow-x-auto scrollbar-hide">
-                  <div className="my-2 p-1.5 inline-flex items-center gap-1.5 sm:gap-2 sm:p-2 min-w-max">
+                  <div className="bg-white my-2 p-1.5 rounded-full inline-flex items-center gap-1.5 sm:gap-2 sm:p-2 shadow-md min-w-max">
                     {[
                     { months: '1', label: '1 เดือน', save: null },
                     { months: '3', label: '3 เดือน', save: 'ลด 5%' },
