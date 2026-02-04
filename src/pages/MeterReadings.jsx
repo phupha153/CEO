@@ -390,12 +390,22 @@ export default function MeterReadings() {
       if (!canAdd) {
         throw new Error('คุณไม่มีสิทธิ์บันทึกมิเตอร์');
       }
-      const previousReadings = meterReadings.filter(r => r.room_id === data.room_id);
-      const latestPrevious = previousReadings.length > 0 ? previousReadings[0] : null;
 
-      const waterPrevious = latestPrevious?.water_current || 0;
-      const electricityPrevious = latestPrevious?.electricity_current || 0;
-      
+      // ใช้ค่า water_previous & electricity_previous จาก data ที่ส่งมา หรือ auto-detect จากประวัติ
+      let waterPrevious = data.water_previous ? parseFloat(data.water_previous) : null;
+      let electricityPrevious = data.electricity_previous ? parseFloat(data.electricity_previous) : null;
+
+      // ถ้าไม่ได้ส่งมา ให้ดึงจากประวัติ
+      if (waterPrevious === null || waterPrevious === '') {
+        const latestReading = meterReadings.find(r => r.room_id === data.room_id);
+        waterPrevious = latestReading?.water_current || 0;
+      }
+
+      if (electricityPrevious === null || electricityPrevious === '') {
+        const latestReading = meterReadings.find(r => r.room_id === data.room_id);
+        electricityPrevious = latestReading?.electricity_current || 0;
+      }
+
       const waterCurrent = data.water_current ? parseFloat(data.water_current) : waterPrevious;
       const electricityCurrent = data.electricity_current ? parseFloat(data.electricity_current) : electricityPrevious;
 
