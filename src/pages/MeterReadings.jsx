@@ -2054,12 +2054,12 @@ export default function MeterReadings() {
                                            </div>
                                          ) : (
                                            <>
-                                         {hasRecordedThisMonth(room.id) && (
-                                           <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
-                                             <p className="text-xs text-amber-700 text-center">⚠️ เดือนนี้บันทึกแล้ว - กำลังบันทึกเพิ่ม</p>
-                                           </div>
-                                         )}
-                                         <div className="grid grid-cols-2 gap-2">
+                                             {hasRecordedThisMonth(room.id) && (
+                                               <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
+                                                 <p className="text-xs text-amber-700 text-center">⚠️ เดือนนี้บันทึกแล้ว - กำลังบันทึกเพิ่ม</p>
+                                               </div>
+                                             )}
+                                             <div className="grid grid-cols-2 gap-2">
                                            <div>
                                              <Label className="text-xs">น้ำปัจจุบัน</Label>
                                              <Input
