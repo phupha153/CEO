@@ -2829,6 +2829,28 @@ export default function MeterReadings() {
         </DialogContent>
       </Dialog>
 
+      {/* Fixed Save Button for Table View */}
+      {viewMode === 'table' && Object.keys(bulkReadings).length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed bottom-6 right-6 z-40"
+        >
+          <Button
+            onClick={handleBulkSave}
+            disabled={bulkCreateMutation.isPending || !canAdd}
+            size="lg"
+            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transition-shadow"
+          >
+            {bulkCreateMutation.isPending ? (
+              <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />กำลังบันทึก...</>
+            ) : (
+              <><Save className="w-4 h-4 mr-2" />บันทึกทั้งหมด ({Object.keys(bulkReadings).length})</>
+            )}
+          </Button>
+        </motion.div>
+      )}
+
       <ScrollToTopButton />
     </div>
   );
