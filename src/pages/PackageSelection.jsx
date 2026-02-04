@@ -289,61 +289,48 @@ export default function PackageSelectionPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="text-center mb-8 md:mb-12 px-4">
-              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-2 leading-tight">
-                <span className="text-slate-900">คืนเวลาชีวิต</span>
-              </h1>
-              <h2 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-4 md:mb-6 leading-tight">
+            <div className="text-center mb-6 md:mb-8 px-4">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 md:mb-4 leading-tight">
                 <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                  งานหอพัก 1 วัน<br className="sm:hidden" /> เสร็จใน 5 นาที
+                  งานหอพัก 1 วัน เสร็จใน 5 นาที
                 </span>
-              </h2>
-              <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs sm:text-sm text-slate-600 max-w-2xl mx-auto">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                    <Check className="w-3 h-3 text-green-600" />
-                  </div>
-                  <span>จัดการห้องพักอัตโนมัติ</span>
+              </h1>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5 text-xs sm:text-sm text-slate-600">
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>แจ้งเตือนผู้เช่าอัตโนมัติ</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                    <Check className="w-3 h-3 text-green-600" />
-                  </div>
-                  <span>แจ้งเตือนผู้เช่าทันที</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                    <Check className="w-3 h-3 text-green-600" />
-                  </div>
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-4 h-4 text-green-600" />
                   <span>บัญชีเสร็จใน 5 นาที</span>
                 </div>
               </div>
               
-              {/* Duration Selection - 6 Presets (1 month - 3 years) */}
-              <div className="flex justify-center mb-8 mt-8">
-                <div className="inline-flex flex-wrap items-center gap-2 bg-white rounded-2xl p-3 shadow-lg border border-slate-200 justify-center max-w-2xl">
+              {/* Duration Selection - 4 Options */}
+              <div className="flex justify-center mt-6">
+                <div className="inline-flex items-center gap-2 bg-white rounded-xl p-2 shadow-md border border-slate-200">
                   {[
-                    { months: '1', label: '1 เดือน', badge: null },
-                    { months: '3', label: '3 เดือน', badge: 'ประหยัด 5%' },
-                    { months: '6', label: '6 เดือน', badge: 'ประหยัด 10%' },
-                    { months: '12', label: '1 ปี', badge: 'ประหยัด 15%' },
-                    { months: '24', label: '2 ปี', badge: 'ประหยัด 25%' },
-                    { months: '36', label: '3 ปี', badge: 'ประหยัด 35%' }
-                  ].map(({ months, label, badge }) => (
+                    { months: '1', label: '1 เดือน' },
+                    { months: '6', label: '6 เดือน', discount: '10%' },
+                    { months: '12', label: '1 ปี', discount: '15%' },
+                    { months: '24', label: '2 ปี', discount: '25%' }
+                  ].map(({ months, label, discount }) => (
                     <button
                       key={months}
                       onClick={() => setBillingCycle(months)}
-                      className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+                      className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
                         billingCycle === months
-                          ? 'bg-slate-900 text-white shadow-md scale-105'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                          ? 'bg-slate-900 text-white shadow-md'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                       }`}
                     >
-                      {label}
-                      {badge && (
-                        <span className="ml-1.5 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full font-bold">
-                          {badge}
-                        </span>
+                      <div>{label}</div>
+                      {discount && (
+                        <div className={`text-[10px] font-normal mt-0.5 ${
+                          billingCycle === months ? 'text-green-300' : 'text-green-600'
+                        }`}>
+                          ลด {discount}
+                        </div>
                       )}
                     </button>
                   ))}
