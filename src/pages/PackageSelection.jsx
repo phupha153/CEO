@@ -352,7 +352,7 @@ export default function PackageSelectionPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
             {loadingPackages ?
             <div className="text-center py-12">
@@ -783,6 +783,8 @@ export default function PackageSelectionPage() {
           </motion.div>
         </div>
       </div>
-    </div>);
+    </div>
+  );
+}
 
 }
