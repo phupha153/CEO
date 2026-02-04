@@ -248,12 +248,11 @@ export default function PackageSelectionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 relative overflow-hidden">
-      {/* Gradient Background Blobs - เหมือนหน้า Landing */}
-      <div className="absolute inset-0 opacity-40 pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 right-1/4 w-80 h-80 bg-orange-400/10 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 relative overflow-hidden">
+      {/* Gradient Background Blobs */}
+      <div className="absolute inset-0 opacity-30 pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/15 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-orange-400/15 rounded-full blur-3xl" />
       </div>
 
       <div className="relative z-10 p-4 flex items-center justify-between">
@@ -331,8 +330,8 @@ export default function PackageSelectionPage() {
                         onClick={() => setBillingCycle(months)}
                         className={`px-3 sm:px-4 py-2.5 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${
                           billingCycle === months
-                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                            : 'text-slate-600 hover:bg-blue-50'
+                            ? 'bg-gradient-to-r from-blue-600 to-orange-500 text-white shadow-lg'
+                            : 'text-slate-600 hover:bg-slate-50'
                         }`}
                       >
                         <div>{label}</div>
