@@ -2235,7 +2235,7 @@ export default function MeterReadings() {
                       </Badge>
                     )}
 
-                    <div className="hidden lg:flex items-center gap-3">
+                    <div className="flex items-center gap-3">
                       <Label className="font-medium">ประเภทมิเตอร์:</Label>
                       <div className="flex gap-2">
                         <Button
