@@ -733,8 +733,8 @@ export default function MeterReadings() {
   // บันทึกมิเตอร์ทีละห้อง (Mobile Card View)
   const handleSaveSingleReading = (roomId) => {
     const data = cardReadings[roomId];
-    if (!data || data.water_current == null || data.water_current === '' || data.electricity_current == null || data.electricity_current === '') {
-      toast.error('กรุณากรอกข้อมูลมิเตอร์ให้ครบถ้วน');
+    if (!data || (data.water_current == null || data.water_current === '') && (data.electricity_current == null || data.electricity_current === '')) {
+      toast.error('กรุณากรอกข้อมูลมิเตอร์อย่างน้อย 1 อย่าง');
       return;
     }
 
