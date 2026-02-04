@@ -2300,10 +2300,18 @@ export default function MeterReadings() {
                             <tr>
                               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">ห้อง</th>
                               <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 hidden md:table-cell">ผู้เช่า</th>
-                              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์น้ำก่อน</th>
-                              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์น้ำปัจจุบัน</th>
-                              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์ไฟก่อน</th>
-                              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์ไฟปัจจุบัน</th>
+                              {(meterTypeSelection.tableType === 'water' || !meterTypeSelection.tableType || meterTypeSelection.tableType === 'both') && (
+                                <>
+                                  <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์น้ำก่อน</th>
+                                  <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์น้ำปัจจุบัน</th>
+                                </>
+                              )}
+                              {(meterTypeSelection.tableType === 'electricity' || !meterTypeSelection.tableType || meterTypeSelection.tableType === 'both') && (
+                                <>
+                                  <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์ไฟก่อน</th>
+                                  <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">มิเตอร์ไฟปัจจุบัน</th>
+                                </>
+                              )}
                               <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700"></th>
                             </tr>
                           </thead>
