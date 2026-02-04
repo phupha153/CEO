@@ -733,26 +733,15 @@ export default function MeterReadings() {
   // บันทึกมิเตอร์ทีละห้อง (Mobile Card View)
   const handleSaveSingleReading = (roomId) => {
     const data = cardReadings[roomId];
-    const hasWater = data?.water_current && data.water_current !== '';
-    const hasElec = data?.electricity_current && data.electricity_current !== '';
-    
-    // ถ้าบันทึกครั้งแรก (ไม่มีประวัติ) = ต้องกรอกทั้ง 2 อย่าง
-    const latest = getLatestReading(roomId);
-    if (!latest && (!hasWater || !hasElec)) {
-      toast.error('บันทึกครั้งแรก: กรุณากรอกน้ำและไฟทั้ง 2 อย่าง');
-      return;
-    }
-
-    // ถ้าบันทึกเพิ่ม (มีประวัติแล้ว) = ต้องกรอกอย่างน้อย 1 อย่าง
-    if (latest && !hasWater && !hasElec) {
-      toast.error('กรุณากรอกน้ำหรือไฟอย่างน้อย 1 อย่าง');
+    if (!data || (data.water_current == null || data.water_current === '') && (data.electricity_current == null || data.electricity_current === '')) {
+      toast.error('กรุณากรอกข้อมูลมิเตอร์อย่างน้อย 1 อย่าง');
       return;
     }
 
     createSingleMutation.mutate({
       room_id: roomId,
-      water_current: hasWater ? parseFloat(data.water_current) : null,
-      electricity_current: hasElec ? parseFloat(data.electricity_current) : null,
+      water_current: data.water_current && data.water_current !== '' ? parseFloat(data.water_current) : null,
+      electricity_current: data.electricity_current && data.electricity_current !== '' ? parseFloat(data.electricity_current) : null,
       notes: data.notes || ''
     });
   };
