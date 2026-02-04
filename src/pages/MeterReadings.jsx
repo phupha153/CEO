@@ -51,9 +51,7 @@ export default function MeterReadings() {
   const [displayLimit, setDisplayLimit] = useState(20);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [unsavedRooms, setUnsavedRooms] = useState(new Set());
   const loadMoreRef = useRef(null);
-  const draftSaveTimeoutRef = useRef(null);
 
   const queryClient = useQueryClient();
 
@@ -81,47 +79,6 @@ export default function MeterReadings() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
-  // ✅ Auto-save draft to localStorage (debounced)
-  useEffect(() => {
-    if (Object.keys(cardReadings).length === 0) return;
-
-    if (draftSaveTimeoutRef.current) clearTimeout(draftSaveTimeoutRef.current);
-
-    draftSaveTimeoutRef.current = setTimeout(() => {
-      const roomsWithData = Object.entries(cardReadings)
-        .filter(([_, data]) => data?.water_current || data?.electricity_current)
-        .map(([roomId]) => roomId);
-
-      if (roomsWithData.length > 0) {
-        localStorage.setItem(
-          `meterReadings_draft_${selectedBranchId}`,
-          JSON.stringify(cardReadings)
-        );
-        setUnsavedRooms(new Set(roomsWithData));
-      }
-    }, 1000); // Save after 1 second of inactivity
-
-    return () => {
-      if (draftSaveTimeoutRef.current) clearTimeout(draftSaveTimeoutRef.current);
-    };
-  }, [cardReadings, selectedBranchId]);
-
-  // ✅ Load draft from localStorage on mount
-  useEffect(() => {
-    if (!selectedBranchId) return;
-    const draft = localStorage.getItem(`meterReadings_draft_${selectedBranchId}`);
-    if (draft) {
-      try {
-        setCardReadings(JSON.parse(draft));
-        const parsed = JSON.parse(draft);
-        const roomsWithData = Object.entries(parsed)
-          .filter(([_, data]) => data?.water_current || data?.electricity_current)
-          .map(([roomId]) => roomId);
-        setUnsavedRooms(new Set(roomsWithData));
-      } catch {}
-    }
-  }, [selectedBranchId]);
 
   const { data: currentUser } = useQuery({
     queryKey: ['currentUser'],
@@ -470,28 +427,6 @@ export default function MeterReadings() {
         delete newState[variables.room_id];
         return newState;
       });
-
-      // ✅ Clear unsaved mark
-      setUnsavedRooms(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(variables.room_id);
-        return newSet;
-      });
-
-      // ✅ Clear draft from localStorage
-      const draft = localStorage.getItem(`meterReadings_draft_${selectedBranchId}`);
-      if (draft) {
-        try {
-          const parsed = JSON.parse(draft);
-          delete parsed[variables.room_id];
-          if (Object.keys(parsed).length > 0) {
-            localStorage.setItem(`meterReadings_draft_${selectedBranchId}`, JSON.stringify(parsed));
-          } else {
-            localStorage.removeItem(`meterReadings_draft_${selectedBranchId}`);
-          }
-        } catch {}
-      }
-
       toast.success('บันทึกมิเตอร์สำเร็จ');
       
       // บันทึก log ใน background
@@ -1869,11 +1804,6 @@ export default function MeterReadings() {
                                             บันทึกแล้ว
                                           </Badge>
                                         )}
-                                        {unsavedRooms.has(room.id) && (
-                                          <Badge className="bg-amber-100 text-amber-700 border border-amber-300">
-                                            💾 ร่างบันทึก
-                                          </Badge>
-                                        )}
                                         {tenant && (
                                           <p className="text-sm text-slate-500 ml-2">{tenant.full_name}</p>
                                         )}
@@ -2068,11 +1998,6 @@ export default function MeterReadings() {
                                           <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
                                             <Check className="w-3 h-3 mr-1" />
                                             บันทึกแล้ว
-                                          </Badge>
-                                        )}
-                                        {unsavedRooms.has(room.id) && (
-                                          <Badge className="bg-amber-100 text-amber-700 border border-amber-300">
-                                            💾 ร่างบันทึก
                                           </Badge>
                                         )}
                                         {tenant && (
