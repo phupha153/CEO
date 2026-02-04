@@ -121,10 +121,10 @@ export default function AllBranchesDashboard() {
   });
 
   // กรองการจองตามสาขาที่เข้าถึงได้
-  const bookings = useMemo(() => 
-    allBookings.filter(booking => accessibleBranchIds.has(booking.branch_id)),
-    [allBookings, accessibleBranchIds]
-  );
+  const bookings = useMemo(() => {
+    if (!Array.isArray(allBookings)) return [];
+    return allBookings.filter(booking => accessibleBranchIds.has(booking.branch_id));
+  }, [allBookings, accessibleBranchIds]);
 
   const { data: allPayments = [], isLoading: paymentsLoading } = useQuery({
     queryKey: ['allPayments', 'secure'],
