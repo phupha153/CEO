@@ -37,6 +37,7 @@ export default function MeterReadings() {
   const [selectedMonth, setSelectedMonth] = useState('auto'); // จะตั้งค่าจริงหลังจากโหลด config
   const [editingPreviousForRoom, setEditingPreviousForRoom] = useState(null); // room_id ที่กำลังแก้ไขค่าก่อน
   const [showAddMoreFormForRoom, setShowAddMoreFormForRoom] = useState(null); // room_id ที่กำลังแสดงฟอร์มบันทึกเพิ่ม
+  const [meterTypeSelection, setMeterTypeSelection] = useState({}); // room_id -> 'water' | 'electricity' | 'both'
   const [formData, setFormData] = useState({
     room_id: '',
     reading_date: new Date().toISOString().split('T')[0],
