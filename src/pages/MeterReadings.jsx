@@ -1854,22 +1854,19 @@ export default function MeterReadings() {
                                         {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
                                         {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
                                           <div className="space-y-3">
-                                            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
+                                            <button
+                                              onClick={() => setShowAddMoreFormForRoom(room.id)}
+                                              className="w-full bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center cursor-pointer hover:bg-green-100 hover:border-green-300 transition-all active:scale-95"
+                                            >
                                               <div className="flex items-center justify-center gap-2 mb-2">
                                                 <Check className="w-5 h-5 text-green-600" />
                                                 <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
                                               </div>
-
-                                              <Button
-                                                onClick={() => setShowAddMoreFormForRoom(room.id)}
-                                                size="sm"
-                                                variant="outline"
-                                                className="border-green-600 text-green-600 hover:bg-green-50"
-                                              >
-                                                <Plus className="w-3 h-3 mr-1" />
+                                              <div className="flex items-center justify-center gap-1 text-green-600 text-sm font-medium">
+                                                <Plus className="w-3 h-3" />
                                                 บันทึกเพิ่ม
-                                              </Button>
-                                            </div>
+                                              </div>
+                                            </button>
                                           </div>
                                         ) : (
                                           <>
