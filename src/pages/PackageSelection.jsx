@@ -290,12 +290,17 @@ export default function PackageSelectionPage() {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="text-center mb-6 md:mb-8 px-4">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black mb-3 md:mb-4 leading-tight">
-                <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                  งานหอพัก 1 วัน<br/>เสร็จใน 5 นาที
-                </span>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black mb-3 md:mb-4 leading-tight">
+                <span className="text-slate-900">งานหอพัก </span>
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">1 วัน</span><br/>
+                <span className="text-slate-900">เสร็จภายใน </span>
+                <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">5 นาที</span>
               </h1>
-              <div className="flex items-center justify-center gap-3 sm:gap-5 text-xs sm:text-sm text-slate-600">
+              <p className="text-base sm:text-lg text-slate-600 mb-4 max-w-2xl mx-auto leading-relaxed">
+                ปล่อยให้<span className="text-blue-600 font-semibold"> ระบบ</span>ทำงานแทนคุณ<br/>
+                ตั้งแต่การสร้างบิล ส่งแจ้งเตือน ไปจนถึงรายงานทางการเงิน
+              </p>
+              <div className="flex items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-slate-600">
                 <div className="flex items-center gap-1.5">
                   <Check className="w-4 h-4 text-green-600" />
                   <span className="whitespace-nowrap">แจ้งเตือนผู้เช่าอัตโนมัติ</span>
