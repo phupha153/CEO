@@ -2012,9 +2012,9 @@ export default function MeterReadings() {
                                    {!hasReading ? (
                                      <button
                                        onClick={() => setShowAddMoreFormForRoom(room.id)}
-                                       className="flex flex-col items-center justify-center py-12 w-full hover:opacity-80 transition-opacity"
+                                       className="flex flex-col items-center justify-center py-12 w-full cursor-pointer hover:bg-blue-50 transition-all rounded-lg p-4 active:scale-95"
                                      >
-                                       <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-3">
+                                       <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-3 hover:bg-blue-200 transition-colors">
                                          <Plus className="w-8 h-8 text-blue-600" />
                                        </div>
                                        <p className="text-slate-700 font-semibold mb-1">ยังไม่มีการบันทึก</p>
