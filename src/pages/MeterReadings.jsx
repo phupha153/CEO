@@ -753,6 +753,8 @@ export default function MeterReadings() {
       room_id: roomId,
       water_current: data.water_current && data.water_current !== '' ? parseFloat(data.water_current) : null,
       electricity_current: data.electricity_current && data.electricity_current !== '' ? parseFloat(data.electricity_current) : null,
+      water_previous: data.water_previous !== undefined && data.water_previous !== '' ? parseFloat(data.water_previous) : null,
+      electricity_previous: data.electricity_previous !== undefined && data.electricity_previous !== '' ? parseFloat(data.electricity_previous) : null,
       notes: data.notes || ''
     });
   };
