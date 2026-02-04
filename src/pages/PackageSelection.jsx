@@ -336,7 +336,7 @@ export default function PackageSelectionPage() {
                        billingCycle === months ?
                        'bg-orange-500 text-white shadow-lg' :
                        'text-slate-600 hover:bg-slate-50'}`
-                      }>
+                       }>
 
                         <div>{label}</div>
                         {save &&
