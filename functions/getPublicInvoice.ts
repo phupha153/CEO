@@ -179,7 +179,7 @@ Deno.serve(async (req) => {
                 national_id: tenant.national_id
             } : null,
             bank: {
-                name: configData.bank_name || 'กสิกรไทย',
+                name: configData.bank_name || '',
                 account_number: configData.bank_account_number || '',
                 account_name: configData.bank_account_name || ''
             },
@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
                 company_phone: getConfigValue('company_phone') || '',
                 company_address: getConfigValue('company_address') || '',
                 account_name: configData.bank_account_name || '',
-                receiver_signature: getConfigValue('receipt_signature') || ''
+                receiver_signature: getConfigValue('receipt_signature')
             },
             configs: relevantConfigs  // ⭐ ส่ง configs กลับไปด้วย
         };
