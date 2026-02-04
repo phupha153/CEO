@@ -2374,116 +2374,112 @@ export default function MeterReadings() {
 
       {/* Dialog สำหรับ Desktop */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>บันทึกมิเตอร์ - ห้อง {editingRoom?.room_number}</DialogTitle>
           </DialogHeader>
           
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {(() => {
               const latest = getLatestReading(editingRoom?.id);
-              // ถ้าไม่มีประวัติเก่า (ครั้งแรก) ให้แสดงช่องกรอกเลขมิเตอร์ตั้งต้น
-              if (!latest) {
+              
+              if (latest) {
                 return (
-                  <div className="space-y-4 border-b pb-4 mb-4">
-                    <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
-                      <p className="text-sm text-amber-800 font-medium flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4" />
-                        บันทึกครั้งแรก (ตั้งต้น)
-                      </p>
-                      <p className="text-xs text-amber-700 mt-1">
-                        กรุณาระบุเลขมิเตอร์ตั้งต้น (ครั้งก่อน) เพื่อใช้คำนวณยอดหน่วยที่ใช้จริง
-                        หากเป็นการจดครั้งแรกและไม่ต้องการคิดเงิน ให้ใส่เลขเท่ากับมิเตอร์ปัจจุบัน
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-slate-600">มิเตอร์น้ำ (ครั้งก่อน)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={formData.water_previous}
-                          onChange={(e) => setFormData({ ...formData, water_previous: e.target.value })}
-                          placeholder="0"
-                        />
+                  <div className="bg-blue-50 rounded-lg p-2 mb-2">
+                    <p className="text-xs text-slate-600 mb-1">ค่ามิเตอร์ครั้งก่อน:</p>
+                    <div className="flex items-center gap-3 text-xs">
+                      <div className="flex items-center gap-1">
+                        <Droplets className="w-3 h-3 text-blue-600" />
+                        <span className="text-slate-600">น้ำ:</span>
+                        <span className="font-bold text-blue-600">{latest.water_current}</span>
                       </div>
-                      <div>
-                        <Label className="text-slate-600">มิเตอร์ไฟ (ครั้งก่อน)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={formData.electricity_previous}
-                          onChange={(e) => setFormData({ ...formData, electricity_previous: e.target.value })}
-                          placeholder="0"
-                        />
+                      <div className="flex items-center gap-1">
+                        <Zap className="w-3 h-3 text-yellow-600" />
+                        <span className="text-slate-600">ไฟ:</span>
+                        <span className="font-bold text-yellow-600">{latest.electricity_current}</span>
                       </div>
                     </div>
                   </div>
                 );
               }
-              
+
               return (
-                <div className="bg-blue-50 rounded-lg p-3">
-                  <p className="text-xs text-slate-600 mb-2">ค่ามิเตอร์ครั้งก่อน (อัตโนมัติ):</p>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Droplets className="w-4 h-4 text-blue-600" />
-                      <span className="text-slate-600">น้ำ:</span>
-                      <span className="font-bold text-blue-600">{latest.water_current}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-yellow-600" />
-                      <span className="text-slate-600">ไฟ:</span>
-                      <span className="font-bold text-yellow-600">{latest.electricity_current}</span>
-                    </div>
-                  </div>
+                <div className="bg-amber-50 p-2 rounded-lg border border-amber-200 mb-2">
+                  <p className="text-xs text-amber-700 font-medium">บันทึกครั้งแรก - กรุณาระบุเลขมิเตอร์ตั้งต้น</p>
                 </div>
               );
             })()}
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label>มิเตอร์น้ำ (ปัจจุบัน) *</Label>
+                <Label className="text-xs">น้ำปัจจุบัน</Label>
                 <Input
                   type="number"
                   step="0.01"
+                  placeholder="150.5"
                   value={formData.water_current}
                   onChange={(e) => setFormData({ ...formData, water_current: e.target.value })}
-                  placeholder="เช่น 150.5"
                   required
+                  className="h-9 text-sm"
                 />
                 {formData.water_current && (
-                  <p className="text-xs text-right mt-1 text-slate-500">
-                    ใช้ไป: {(parseFloat(formData.water_current) - parseFloat(formData.water_previous || 0)).toFixed(2)} หน่วย
+                  <p className="text-xs text-right mt-0.5 text-slate-500">
+                    ใช้ไป: {(parseFloat(formData.water_current) - parseFloat(formData.water_previous || 0)).toFixed(2)}
                   </p>
                 )}
               </div>
 
               <div>
-                <Label>มิเตอร์ไฟ (ปัจจุบัน) *</Label>
+                <Label className="text-xs">ไฟปัจจุบัน</Label>
                 <Input
                   type="number"
                   step="0.01"
+                  placeholder="250.0"
                   value={formData.electricity_current}
                   onChange={(e) => setFormData({ ...formData, electricity_current: e.target.value })}
-                  placeholder="เช่น 250.0"
                   required
+                  className="h-9 text-sm"
                 />
                 {formData.electricity_current && (
-                  <p className="text-xs text-right mt-1 text-slate-500">
-                    ใช้ไป: {(parseFloat(formData.electricity_current) - parseFloat(formData.electricity_previous || 0)).toFixed(2)} หน่วย
+                  <p className="text-xs text-right mt-0.5 text-slate-500">
+                    ใช้ไป: {(parseFloat(formData.electricity_current) - parseFloat(formData.electricity_previous || 0)).toFixed(2)}
                   </p>
                 )}
               </div>
             </div>
 
+            {!getLatestReading(editingRoom?.id) && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">น้ำครั้งก่อน</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0"
+                    value={formData.water_previous}
+                    onChange={(e) => setFormData({ ...formData, water_previous: e.target.value })}
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">ไฟครั้งก่อน</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0"
+                    value={formData.electricity_previous}
+                    onChange={(e) => setFormData({ ...formData, electricity_previous: e.target.value })}
+                    className="h-9 text-sm"
+                  />
+                </div>
+              </div>
+            )}
 
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setShowDialog(false)}>
+            <div className="flex gap-2 pt-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowDialog(false)} className="flex-1 h-9">
                 ยกเลิก
               </Button>
-              <Button type="submit" disabled={createMutation.isPending} className="bg-gradient-to-r from-green-600 to-emerald-600">
+              <Button type="submit" disabled={createMutation.isPending} className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-9">
                 {createMutation.isPending ? 'กำลังบันทึก...' : 'บันทึก'}
               </Button>
             </div>
