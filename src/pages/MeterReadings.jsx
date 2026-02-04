@@ -1903,7 +1903,25 @@ export default function MeterReadings() {
                                     <div className="space-y-3">
                                      {latest && (
                                        <div className="bg-blue-50 rounded-lg p-2 mb-2">
-                                         <p className="text-xs text-slate-600 mb-1">ค่ามิเตอร์ครั้งก่อน:</p>
+                                         <div className="flex items-center justify-between mb-1">
+                                           <p className="text-xs text-slate-600">ค่ามิเตอร์ครั้งก่อน:</p>
+                                           {canEdit && (
+                                             <Button
+                                               size="sm"
+                                               variant="ghost"
+                                               onClick={() => setEditingReading({
+                                                 id: latest.id,
+                                                 water_previous: latest.water_previous,
+                                                 water_current: latest.water_current,
+                                                 electricity_previous: latest.electricity_previous,
+                                                 electricity_current: latest.electricity_current
+                                               })}
+                                               className="h-6 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                                             >
+                                               <Pencil className="w-3 h-3" />
+                                             </Button>
+                                           )}
+                                         </div>
                                          <div className="flex items-center gap-3 text-xs">
                                            <div className="flex items-center gap-1">
                                              <Droplets className="w-3 h-3 text-blue-600" />
