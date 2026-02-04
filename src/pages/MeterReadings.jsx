@@ -1798,12 +1798,6 @@ export default function MeterReadings() {
                                     <div className="flex items-center justify-between mb-4">
                                       <div className="flex items-center gap-2">
                                         <h3 className="text-xl font-bold text-slate-800">ห้อง {room.room_number}</h3>
-                                        {hasRecordedThisMonth(room.id) && (
-                                          <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-                                            <Check className="w-3 h-3 mr-1" />
-                                            บันทึกแล้ว
-                                          </Badge>
-                                        )}
                                         {tenant && (
                                           <p className="text-sm text-slate-500 ml-2">{tenant.full_name}</p>
                                         )}
