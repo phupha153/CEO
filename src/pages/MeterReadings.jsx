@@ -395,8 +395,8 @@ export default function MeterReadings() {
       const waterPrevious = latestPrevious?.water_current || 0;
       const electricityPrevious = latestPrevious?.electricity_current || 0;
       
-      const waterCurrent = parseFloat(data.water_current);
-      const electricityCurrent = parseFloat(data.electricity_current);
+      const waterCurrent = data.water_current ? parseFloat(data.water_current) : waterPrevious;
+      const electricityCurrent = data.electricity_current ? parseFloat(data.electricity_current) : electricityPrevious;
 
       const waterUnits = waterCurrent - waterPrevious;
       const electricityUnits = electricityCurrent - electricityPrevious;
