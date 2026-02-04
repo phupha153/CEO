@@ -255,7 +255,7 @@ export default function PackageSelectionPage() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-orange-400/15 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 p-4 flex items-center justify-between mb-8">
+      <div className="relative z-10 p-4 flex items-center justify-between">
         <Button
           onClick={() => navigate(createPageUrl('Dashboard'))}
           variant="ghost"
@@ -291,7 +291,11 @@ export default function PackageSelectionPage() {
 
       <div className="relative z-10 min-h-[calc(100vh-80px)] flex items-center justify-center p-4">
         <div className="w-full max-w-7xl">
-          <div className="text-center mb-6 md:mb-8 px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}>
+
+            <div className="text-center mb-6 md:mb-8 px-4">
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-black mb-4 md:mb-6 leading-tight">
                 <span className="text-slate-900">งานหอพัก </span>
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">1 วัน</span><br />
@@ -316,7 +320,7 @@ export default function PackageSelectionPage() {
               {/* Duration Selection - All Options with Scroll */}
               <div className="flex justify-center mt-5 px-4">
                 <div className="w-full max-w-3xl overflow-x-auto scrollbar-hide">
-                  <div className="bg-white my-2 p-1.5 rounded-xl inline-flex items-center gap-1.5 sm:gap-2 sm:p-2 shadow-md min-w-max">
+                  <div className="bg-white my-2 p-1.5 rounded-full inline-flex items-center gap-1.5 sm:gap-2 sm:p-2 shadow-md min-w-max">
                     {[
                     { months: '1', label: '1 เดือน', save: null },
                     { months: '3', label: '3 เดือน', save: 'ลด 5%' },
@@ -775,9 +779,9 @@ export default function PackageSelectionPage() {
                 </div>
               </>
             }
+          </motion.div>
         </div>
       </div>
-    </div>
-  );
+    </div>);
 
 }
