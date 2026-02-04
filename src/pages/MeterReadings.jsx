@@ -26,8 +26,7 @@ export default function MeterReadings() {
   const [viewMode, setViewMode] = useState('card');
   const [selectedFloor, setSelectedFloor] = useState('all');
   const [bulkReadings, setBulkReadings] = useState({});
-  const [cardReadings, setCardReadings] = useState({});
-  const [submittedFields, setSubmittedFields] = useState({}); // { roomId: { water: true, electricity: true } } // สำหรับ Mobile Card View
+  const [cardReadings, setCardReadings] = useState({}); // สำหรับ Mobile Card View
   const [isMobile, setIsMobile] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [bulkReadingDate, setBulkReadingDate] = useState(new Date().toISOString().split('T')[0]);
@@ -1850,42 +1849,20 @@ export default function MeterReadings() {
                                         </div>
                                       )}
 
-                                      {/* ถ้าบันทึกแล้ว แสดงสถานะของแต่ละฟิลด์ */}
+                                      {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
                                       {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
                                         <div className="space-y-3">
-                                          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
-                                            <div className="flex items-center justify-center gap-2 mb-3">
+                                          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
+                                            <div className="flex items-center justify-center gap-2 mb-2">
                                               <Check className="w-5 h-5 text-green-600" />
                                               <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
-                                            </div>
-
-                                            {/* แสดงสถานะของแต่ละฟิลด์ */}
-                                            <div className="space-y-2 text-sm mb-3">
-                                              {latest?.water_current !== undefined && (
-                                                <div className="flex items-center justify-between bg-white rounded px-2 py-1">
-                                                  <span className="text-slate-600">น้ำ:</span>
-                                                  <div className="flex items-center gap-1">
-                                                    <Check className="w-4 h-4 text-green-600" />
-                                                    <span className="text-green-700 font-medium">{latest.water_current} หน่วย</span>
-                                                  </div>
-                                                </div>
-                                              )}
-                                              {latest?.electricity_current !== undefined && (
-                                                <div className="flex items-center justify-between bg-white rounded px-2 py-1">
-                                                  <span className="text-slate-600">ไฟ:</span>
-                                                  <div className="flex items-center gap-1">
-                                                    <Check className="w-4 h-4 text-green-600" />
-                                                    <span className="text-green-700 font-medium">{latest.electricity_current} หน่วย</span>
-                                                  </div>
-                                                </div>
-                                              )}
                                             </div>
 
                                             <Button
                                               onClick={() => setShowAddMoreFormForRoom(room.id)}
                                               size="sm"
                                               variant="outline"
-                                              className="border-green-600 text-green-600 hover:bg-green-50 w-full"
+                                              className="border-green-600 text-green-600 hover:bg-green-50"
                                             >
                                               <Plus className="w-3 h-3 mr-1" />
                                               บันทึกเพิ่ม
@@ -2063,41 +2040,25 @@ export default function MeterReadings() {
                                         </div>
                                       )}
 
-                                     {/* ถ้าบันทึกแล้ว แสดงสถานะของแต่ละฟิลด์ */}
+                                     {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
                                      {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
                                        <div className="space-y-3">
-                                         <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
-                                           <div className="flex items-center justify-center gap-2 mb-3">
+                                         <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
+                                           <div className="flex items-center justify-center gap-2 mb-2">
                                              <Check className="w-5 h-5 text-green-600" />
                                              <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
                                            </div>
-
-                                           {/* แสดงสถานะของแต่ละฟิลด์ */}
-                                           <div className="space-y-2 text-sm mb-3">
-                                             {latest?.water_current !== undefined && (
-                                               <div className="flex items-center justify-between bg-white rounded px-2 py-1">
-                                                 <span className="text-slate-600">น้ำ:</span>
-                                                 <div className="flex items-center gap-1">
-                                                   <Check className="w-4 h-4 text-green-600" />
-                                                   <span className="text-green-700 font-medium">{latest.water_current} หน่วย</span>
-                                                 </div>
-                                               </div>
-                                             )}
-                                             {latest?.electricity_current !== undefined && (
-                                               <div className="flex items-center justify-between bg-white rounded px-2 py-1">
-                                                 <span className="text-slate-600">ไฟ:</span>
-                                                 <div className="flex items-center gap-1">
-                                                   <Check className="w-4 h-4 text-green-600" />
-                                                   <span className="text-green-700 font-medium">{latest.electricity_current} หน่วย</span>
-                                                 </div>
-                                               </div>
-                                             )}
-                                           </div>
+                                           {latest && (
+                                             <div className="flex justify-center gap-4 text-xs text-slate-600 mb-3">
+                                               <span>น้ำ: {latest.water_units} หน่วย</span>
+                                               <span>ไฟ: {latest.electricity_units} หน่วย</span>
+                                             </div>
+                                           )}
                                            <Button
                                              onClick={() => setShowAddMoreFormForRoom(room.id)}
                                              size="sm"
                                              variant="outline"
-                                             className="border-green-600 text-green-600 hover:bg-green-50 w-full"
+                                             className="border-green-600 text-green-600 hover:bg-green-50"
                                            >
                                              <Plus className="w-3 h-3 mr-1" />
                                              บันทึกเพิ่ม
