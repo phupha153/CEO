@@ -1807,9 +1807,9 @@ export default function MeterReadings() {
                                     {!hasReading ? (
                                       <button
                                         onClick={() => setShowAddMoreFormForRoom(room.id)}
-                                        className="w-full flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-blue-300 rounded-xl bg-gradient-to-br from-blue-50 to-sky-50 cursor-pointer hover:border-blue-500 hover:from-blue-100 hover:to-sky-100 hover:shadow-md transition-all active:scale-95"
+                                        className="w-full flex flex-col items-center justify-center py-12 px-4 border-2 border-dashed border-blue-300 rounded-xl bg-gradient-to-br from-blue-50 to-sky-50 cursor-pointer hover:border-blue-500 hover:from-blue-100 hover:to-sky-100 hover:shadow-md transition-all active:scale-95 group"
                                       >
-                                        <div className="w-16 h-16 rounded-full bg-white border-2 border-blue-200 flex items-center justify-center mb-3 hover:border-blue-400 transition-colors shadow-sm">
+                                        <div className="w-16 h-16 rounded-full bg-white border-2 border-blue-200 flex items-center justify-center mb-3 group-hover:border-blue-400 transition-colors shadow-sm">
                                           <Plus className="w-8 h-8 text-blue-600" />
                                         </div>
                                         <p className="text-slate-700 font-semibold mb-1">ยังไม่มีการบันทึก</p>
