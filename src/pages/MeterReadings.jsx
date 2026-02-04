@@ -1967,199 +1967,218 @@ export default function MeterReadings() {
 
                               {/* Mobile View - กรอกข้อมูลในการ์ดเลย */}
                               {isMobile && (
-                                <Card className={`bg-white/80 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all ${hasRecordedThisMonth(room.id) ? 'border-2 border-green-500' : 'border-slate-200/60'}`}>
-                                  <CardContent className="p-6">
-                                    <div className="flex items-center justify-between mb-4">
-                                      <div className="flex items-center gap-2">
-                                        <h3 className="text-xl font-bold text-slate-800">ห้อง {room.room_number}</h3>
-                                        {hasRecordedThisMonth(room.id) && (
-                                          <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
-                                            <Check className="w-3 h-3 mr-1" />
-                                            บันทึกแล้ว
-                                          </Badge>
-                                        )}
-                                        {tenant && (
-                                          <p className="text-sm text-slate-500 ml-2">{tenant.full_name}</p>
-                                        )}
-                                      </div>
-                                      {hasReading && (
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => handleViewHistory(room)}
-                                          className="text-blue-600 hover:text-blue-700"
-                                        >
-                                          <History className="w-4 h-4" />
-                                        </Button>
-                                      )}
-                                    </div>
+                               <Card className={`bg-white/80 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all ${hasRecordedThisMonth(room.id) ? 'border-2 border-green-500' : 'border-slate-200/60'}`}>
+                                 <CardContent className="p-6">
+                                   <div className="flex items-center justify-between mb-4">
+                                     <div className="flex items-center gap-2">
+                                       <h3 className="text-xl font-bold text-slate-800">ห้อง {room.room_number}</h3>
+                                       {hasRecordedThisMonth(room.id) && (
+                                         <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+                                           <Check className="w-3 h-3 mr-1" />
+                                           บันทึกแล้ว
+                                         </Badge>
+                                       )}
+                                       {tenant && (
+                                         <p className="text-sm text-slate-500 ml-2">{tenant.full_name}</p>
+                                       )}
+                                     </div>
+                                     {hasReading && (
+                                       <Button
+                                         size="sm"
+                                         variant="ghost"
+                                         onClick={() => handleViewHistory(room)}
+                                         className="text-blue-600 hover:text-blue-700"
+                                       >
+                                         <History className="w-4 h-4" />
+                                       </Button>
+                                     )}
+                                   </div>
 
-                                    <div className="space-y-3">
-                                      {latest && (
-                                        <div 
-                                          onClick={() => {
-                                            if (!canEdit) {
-                                              toast.error('คุณไม่มีสิทธิ์แก้ไขมิเตอร์');
-                                              return;
-                                            }
-                                            handleViewHistory(room);
-                                            setEditingReading({
-                                              id: latest.id,
-                                              water_previous: latest.water_previous,
-                                              water_current: latest.water_current,
-                                              electricity_previous: latest.electricity_previous,
-                                              electricity_current: latest.electricity_current
-                                            });
-                                          }}
-                                          className={`bg-blue-50 rounded-lg p-2 mb-2 ${canEdit ? 'cursor-pointer hover:bg-blue-100 transition-colors' : 'opacity-60'}`}
-                                        >
-                                          <p className="text-xs text-slate-600 mb-1">ค่ามิเตอร์ครั้งก่อน: {canEdit ? '(คลิกแก้ไข)' : '(ดูอย่างเดียว)'}</p>
-                                          <div className="flex items-center gap-3 text-xs">
-                                            <div className="flex items-center gap-1">
-                                              <Droplets className="w-3 h-3 text-blue-600" />
-                                              <span className="text-slate-600">น้ำ:</span>
-                                              <span className="font-bold text-blue-600">{latest.water_current}</span>
+                                   {/* ถ้าไม่เคยบันทึก - แสดง Empty State */}
+                                   {!hasReading ? (
+                                     <div className="flex flex-col items-center justify-center py-12 text-center">
+                                       <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mb-3">
+                                         <Plus className="w-8 h-8 text-blue-600" />
+                                       </div>
+                                       <p className="text-slate-700 font-semibold mb-1">ยังไม่มีการบันทึก</p>
+                                       <p className="text-sm text-slate-500 mb-4">เป็นครั้งแรกในการบันทึกมิเตอร์</p>
+                                       <Button
+                                         onClick={() => setShowAddMoreFormForRoom(room.id)}
+                                         className="bg-blue-600 hover:bg-blue-700 text-white"
+                                         size="sm"
+                                       >
+                                         <Plus className="w-4 h-4 mr-1" />
+                                         บันทึกครั้งแรก
+                                       </Button>
+                                     </div>
+                                   ) : (
+                                     <div className="space-y-3">
+                                       {latest && (
+                                         <div 
+                                           onClick={() => {
+                                             if (!canEdit) {
+                                               toast.error('คุณไม่มีสิทธิ์แก้ไขมิเตอร์');
+                                               return;
+                                             }
+                                             handleViewHistory(room);
+                                             setEditingReading({
+                                               id: latest.id,
+                                               water_previous: latest.water_previous,
+                                               water_current: latest.water_current,
+                                               electricity_previous: latest.electricity_previous,
+                                               electricity_current: latest.electricity_current
+                                             });
+                                           }}
+                                           className={`bg-blue-50 rounded-lg p-2 mb-2 ${canEdit ? 'cursor-pointer hover:bg-blue-100 transition-colors' : 'opacity-60'}`}
+                                         >
+                                           <p className="text-xs text-slate-600 mb-1">ค่ามิเตอร์ครั้งก่อน: {canEdit ? '(คลิกแก้ไข)' : '(ดูอย่างเดียว)'}</p>
+                                           <div className="flex items-center gap-3 text-xs">
+                                             <div className="flex items-center gap-1">
+                                               <Droplets className="w-3 h-3 text-blue-600" />
+                                               <span className="text-slate-600">น้ำ:</span>
+                                               <span className="font-bold text-blue-600">{latest.water_current}</span>
+                                             </div>
+                                             <div className="flex items-center gap-1">
+                                               <Zap className="w-3 h-3 text-yellow-600" />
+                                               <span className="text-slate-600">ไฟ:</span>
+                                               <span className="font-bold text-yellow-600">{latest.electricity_current}</span>
+                                             </div>
+                                           </div>
+                                         </div>
+                                       )}
+
+                                      {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
+                                      {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
+                                        <div className="space-y-3">
+                                          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
+                                            <div className="flex items-center justify-center gap-2 mb-2">
+                                              <Check className="w-5 h-5 text-green-600" />
+                                              <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
                                             </div>
-                                            <div className="flex items-center gap-1">
-                                              <Zap className="w-3 h-3 text-yellow-600" />
-                                              <span className="text-slate-600">ไฟ:</span>
-                                              <span className="font-bold text-yellow-600">{latest.electricity_current}</span>
-                                            </div>
+                                            {latest && (
+                                              <div className="flex justify-center gap-4 text-xs text-slate-600 mb-3">
+                                                <span>น้ำ: {latest.water_units} หน่วย</span>
+                                                <span>ไฟ: {latest.electricity_units} หน่วย</span>
+                                              </div>
+                                            )}
+                                            <Button
+                                              onClick={() => setShowAddMoreFormForRoom(room.id)}
+                                              size="sm"
+                                              variant="outline"
+                                              className="border-green-600 text-green-600 hover:bg-green-50"
+                                            >
+                                              <Plus className="w-3 h-3 mr-1" />
+                                              บันทึกเพิ่ม
+                                            </Button>
                                           </div>
                                         </div>
-                                      )}
+                                      ) : (
+                                        <>
+                                          {hasRecordedThisMonth(room.id) && (
+                                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
+                                              <p className="text-xs text-amber-700 text-center">⚠️ เดือนนี้บันทึกแล้ว - กำลังบันทึกเพิ่ม</p>
+                                            </div>
+                                          )}
+                                          <div className="grid grid-cols-2 gap-2">
+                                            <div>
+                                              <Label className="text-xs">น้ำปัจจุบัน</Label>
+                                              <Input
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="150.5"
+                                                value={cardReadings[room.id]?.water_current || ''}
+                                                onChange={(e) => setCardReadings({
+                                                  ...cardReadings,
+                                                  [room.id]: {
+                                                    ...cardReadings[room.id],
+                                                    water_current: e.target.value
+                                                  }
+                                                })}
+                                                disabled={!canAdd || createSingleMutation.isPending}
+                                                className="h-9 text-sm"
+                                              />
+                                            </div>
 
-                                     {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
-                                     {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
-                                       <div className="space-y-3">
-                                         <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
-                                           <div className="flex items-center justify-center gap-2 mb-2">
-                                             <Check className="w-5 h-5 text-green-600" />
-                                             <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
-                                           </div>
-                                           {latest && (
-                                             <div className="flex justify-center gap-4 text-xs text-slate-600 mb-3">
-                                               <span>น้ำ: {latest.water_units} หน่วย</span>
-                                               <span>ไฟ: {latest.electricity_units} หน่วย</span>
-                                             </div>
-                                           )}
-                                           <Button
-                                             onClick={() => setShowAddMoreFormForRoom(room.id)}
-                                             size="sm"
-                                             variant="outline"
-                                             className="border-green-600 text-green-600 hover:bg-green-50"
-                                           >
-                                             <Plus className="w-3 h-3 mr-1" />
-                                             บันทึกเพิ่ม
-                                           </Button>
-                                         </div>
-                                       </div>
-                                     ) : (
-                                       <>
-                                         {hasRecordedThisMonth(room.id) && (
-                                           <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-2">
-                                             <p className="text-xs text-amber-700 text-center">⚠️ เดือนนี้บันทึกแล้ว - กำลังบันทึกเพิ่ม</p>
-                                           </div>
-                                         )}
-                                         <div className="grid grid-cols-2 gap-2">
-                                           <div>
-                                             <Label className="text-xs">น้ำปัจจุบัน</Label>
-                                             <Input
-                                               type="number"
-                                               step="0.01"
-                                               placeholder="150.5"
-                                               value={cardReadings[room.id]?.water_current || ''}
-                                               onChange={(e) => setCardReadings({
-                                                 ...cardReadings,
-                                                 [room.id]: {
-                                                   ...cardReadings[room.id],
-                                                   water_current: e.target.value
-                                                 }
-                                               })}
-                                               disabled={!canAdd || createSingleMutation.isPending}
-                                               className="h-9 text-sm"
-                                             />
-                                           </div>
+                                            <div>
+                                              <Label className="text-xs">ไฟปัจจุบัน</Label>
+                                              <Input
+                                                type="number"
+                                                step="0.01"
+                                                placeholder="250.0"
+                                                value={cardReadings[room.id]?.electricity_current || ''}
+                                                onChange={(e) => setCardReadings({
+                                                  ...cardReadings,
+                                                  [room.id]: {
+                                                    ...cardReadings[room.id],
+                                                    electricity_current: e.target.value
+                                                  }
+                                                })}
+                                                disabled={!canAdd || createSingleMutation.isPending}
+                                                className="h-9 text-sm"
+                                              />
+                                            </div>
+                                          </div>
 
-                                           <div>
-                                             <Label className="text-xs">ไฟปัจจุบัน</Label>
-                                             <Input
-                                               type="number"
-                                               step="0.01"
-                                               placeholder="250.0"
-                                               value={cardReadings[room.id]?.electricity_current || ''}
-                                               onChange={(e) => setCardReadings({
-                                                 ...cardReadings,
-                                                 [room.id]: {
-                                                   ...cardReadings[room.id],
-                                                   electricity_current: e.target.value
-                                                 }
-                                               })}
-                                               disabled={!canAdd || createSingleMutation.isPending}
-                                               className="h-9 text-sm"
-                                             />
-                                           </div>
-                                         </div>
+                                          <div className="flex gap-2">
+                                            <Button
+                                              onClick={() => handleSaveSingleReading(room.id)}
+                                              disabled={
+                                                !canAdd || 
+                                                createSingleMutation.isPending ||
+                                                ((cardReadings[room.id]?.water_current == null || cardReadings[room.id]?.water_current === '') &&
+                                                 (cardReadings[room.id]?.electricity_current == null || cardReadings[room.id]?.electricity_current === ''))
+                                              }
+                                              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-9"
+                                            >
+                                              {createSingleMutation.isPending ? (
+                                                <>
+                                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                                  กำลังบันทึก...
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Check className="w-4 h-4 mr-2" />
+                                                  บันทึก
+                                                </>
+                                              )}
+                                            </Button>
+                                            {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom === room.id && (
+                                              <Button
+                                                onClick={() => {
+                                                  setShowAddMoreFormForRoom(null);
+                                                  setCardReadings(prev => {
+                                                    const newState = {...prev};
+                                                    delete newState[room.id];
+                                                    return newState;
+                                                  });
+                                                }}
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-9"
+                                              >
+                                                <X className="w-4 h-4" />
+                                              </Button>
+                                            )}
+                                            </div>
+                                            </>
+                                            )}
 
-                                         <div className="flex gap-2">
-                                           <Button
-                                             onClick={() => handleSaveSingleReading(room.id)}
-                                             disabled={
-                                               !canAdd || 
-                                               createSingleMutation.isPending ||
-                                               ((cardReadings[room.id]?.water_current == null || cardReadings[room.id]?.water_current === '') &&
-                                                (cardReadings[room.id]?.electricity_current == null || cardReadings[room.id]?.electricity_current === ''))
-                                             }
-                                             className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-9"
-                                           >
-                                             {createSingleMutation.isPending ? (
-                                               <>
-                                                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                                                 กำลังบันทึก...
-                                               </>
-                                             ) : (
-                                               <>
-                                                 <Check className="w-4 h-4 mr-2" />
-                                                 บันทึก
-                                               </>
-                                             )}
-                                           </Button>
-                                           {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom === room.id && (
-                                             <Button
-                                               onClick={() => {
-                                                 setShowAddMoreFormForRoom(null);
-                                                 setCardReadings(prev => {
-                                                   const newState = {...prev};
-                                                   delete newState[room.id];
-                                                   return newState;
-                                                 });
-                                               }}
-                                               size="sm"
-                                               variant="outline"
-                                               className="h-9"
-                                             >
-                                               <X className="w-4 h-4" />
-                                             </Button>
-                                           )}
-                                           </div>
-                                           </>
-                                           )}
-
-                                           {latest && (
-                                           <div className="pt-3 border-t text-center">
-                                           <p className="text-xs text-slate-500">
-                                           บันทึกล่าสุด: {format(parseISO(latest.reading_date), 'd MMM yyyy', { locale: th })}
-                                           </p>
-                                           <div className="flex justify-center gap-4 mt-2 text-xs">
-                                           <span className="text-blue-600">ใช้น้ำ: {latest.water_units} หน่วย</span>
-                                           <span className="text-yellow-600">ใช้ไฟ: {latest.electricity_units} หน่วย</span>
-                                           </div>
-                                           </div>
-                                           )}
-                                           </div>
-                                           </CardContent>
-                                           </Card>
-                                           )}
+                                            {latest && (
+                                            <div className="pt-3 border-t text-center">
+                                            <p className="text-xs text-slate-500">
+                                            บันทึกล่าสุด: {format(parseISO(latest.reading_date), 'd MMM yyyy', { locale: th })}
+                                            </p>
+                                            <div className="flex justify-center gap-4 mt-2 text-xs">
+                                            <span className="text-blue-600">ใช้น้ำ: {latest.water_units} หน่วย</span>
+                                            <span className="text-yellow-600">ใช้ไฟ: {latest.electricity_units} หน่วย</span>
+                                            </div>
+                                            </div>
+                                            )}
+                                            </div>
+                                          )}
+                                          </CardContent>
+                                          </Card>
+                                          )}
                                            </motion.div>
                                            );
                                            })}
