@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
                 const body = JSON.parse(text);
                 testLineUserId = body.test_line_user_id || null;
                 targetBranchId = body.branch_id || null;
-                limit = body.limit || 20;
+                limit = body.limit || 50;
             }
         } catch (parseError) {
             console.log('⚠️ No body or parse error:', parseError.message);
