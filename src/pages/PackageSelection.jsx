@@ -289,39 +289,39 @@ export default function PackageSelectionPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="text-center mb-16 font-['Prompt']">
-              <h1 className="text-3xl md:text-4xl font-extrabold mb-4 text-slate-900">
-                ซื้อความสบาย
+            <div className="text-center mb-12">
+              <h1 className="text-4xl md:text-5xl font-bold mb-2">
+                <span className="text-slate-900">Small investment</span>
               </h1>
-              <h2 className="text-2xl md:text-3xl font-bold mb-8">
+              <h2 className="text-4xl md:text-5xl font-bold mb-6">
                 <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-                  เปลี่ยนงานหอพัก 1 วันให้เสร็จภายใน 5 นาที
+                  Huge productivity boost
                 </span>
               </h2>
-              <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-slate-600 max-w-3xl mx-auto">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                    <Check className="w-3.5 h-3.5 text-green-600" />
+              <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-slate-600">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-green-600" />
                   </div>
-                  <span className="font-semibold">ครบทุกฟีเจอร์</span>
+                  <span>One-time purchase</span>
                 </div>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                    <Check className="w-3.5 h-3.5 text-green-600" />
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-green-600" />
                   </div>
-                  <span className="font-semibold">รองรับหลายสาขา</span>
+                  <span>All the features in every plan</span>
                 </div>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                    <Check className="w-3.5 h-3.5 text-green-600" />
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-green-600" />
                   </div>
-                  <span className="font-semibold">แจ้งเตือนอัตโนมัติ</span>
+                  <span>30-day Money Back Guarantee</span>
                 </div>
               </div>
               
               {/* Duration Selection - 6 Presets (1 month - 3 years) */}
-              <div className="flex justify-center mb-12 mt-10">
-                <div className="inline-flex flex-wrap items-center gap-3 bg-white rounded-2xl p-4 shadow-lg border border-slate-200 justify-center max-w-3xl">
+              <div className="flex justify-center mb-8 mt-8">
+                <div className="inline-flex flex-wrap items-center gap-2 bg-white rounded-2xl p-3 shadow-lg border border-slate-200 justify-center max-w-2xl">
                   {[
                     { months: '1', label: '1 เดือน', badge: null },
                     { months: '3', label: '3 เดือน', badge: 'ประหยัด 5%' },
@@ -333,10 +333,10 @@ export default function PackageSelectionPage() {
                     <button
                       key={months}
                       onClick={() => setBillingCycle(months)}
-                      className={`px-5 py-3 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
+                      className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
                         billingCycle === months
-                          ? 'bg-gradient-to-r from-slate-800 to-slate-900 text-white shadow-lg scale-105'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                          ? 'bg-slate-900 text-white shadow-md scale-105'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                       }`}
                     >
                       {label}
@@ -448,7 +448,7 @@ export default function PackageSelectionPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                   {packages.map((pkg, index) => {
                     const isMostPopular = pkg.popular === true;
                     const isSelected = selectedPackageId === pkg.id;
@@ -580,7 +580,7 @@ export default function PackageSelectionPage() {
                                     if (pkg.description.text) return String(pkg.description.text);
                                     return '';
                                   }
-                                  return isBasic ? 'เหมาะสำหรับหอพักขนาดเล็ก' : isPro ? 'เหมาะสำหรับหอพักขนาดกลาง' : 'เหมาะสำหรับหอพักหลายสาขา';
+                                  return isBasic ? 'Perfect For Small Teams' : isPro ? 'Perfect For Growing Teams' : 'For Large Organizations';
                                 })()}
                               </p>
                             </div>
