@@ -1922,8 +1922,8 @@ export default function MeterReadings() {
                                               disabled={
                                                 !canAdd || 
                                                 createSingleMutation.isPending ||
-                                                (cardReadings[room.id]?.water_current == null || cardReadings[room.id]?.water_current === '') ||
-                                                (cardReadings[room.id]?.electricity_current == null || cardReadings[room.id]?.electricity_current === '')
+                                                ((cardReadings[room.id]?.water_current == null || cardReadings[room.id]?.water_current === '') &&
+                                                 (cardReadings[room.id]?.electricity_current == null || cardReadings[room.id]?.electricity_current === ''))
                                               }
                                               className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-9"
                                             >
