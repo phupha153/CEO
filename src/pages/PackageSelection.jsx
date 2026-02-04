@@ -255,7 +255,7 @@ export default function PackageSelectionPage() {
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-orange-400/15 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 p-4 flex items-center justify-between">
+      <div className="relative z-10 p-4 flex items-center justify-between mb-8">
         <Button
           onClick={() => navigate(createPageUrl('Dashboard'))}
           variant="ghost"
@@ -295,31 +295,30 @@ export default function PackageSelectionPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}>
 
-            <div className="text-center mb-12 md:mb-14 px-4 pb-4">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black mb-4 md:mb-6 leading-tight">
-              <span className="text-slate-900">งานหอพัก </span>
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">1 วัน</span><br />
-              <span className="text-slate-900">เสร็จภายใน </span>
-              <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">5 นาที</span>
-            </h1>
-            <div className="flex items-center justify-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-600 flex-wrap">
-              <div className="flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-green-600" />
-                <span className="whitespace-nowrap">ส่งแจ้งเตือนค่าเช่า-เกินกำหนดอัตโนมัติ</span>
+            <div className="text-center mb-6 md:mb-8 px-4">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black mb-4 md:mb-6 leading-tight">
+                <span className="text-slate-900">งานหอพัก </span>
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">1 วัน</span><br />
+                <span className="text-slate-900">เสร็จภายใน </span>
+                <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">5 นาที</span>
+              </h1>
+              <div className="flex items-center justify-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-600 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span className="whitespace-nowrap">ส่งแจ้งเตือนค่าเช่า-เกินกำหนดอัตโนมัติ</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span className="whitespace-nowrap">บัญชีเสร็จใน 5 นาที</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span className="whitespace-nowrap">ระบบตรวจสอบสลิป</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-green-600" />
-                <span className="whitespace-nowrap">บัญชีเสร็จใน 5 นาที</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-green-600" />
-                <span className="whitespace-nowrap">ระบบตรวจสอบสลิป</span>
-              </div>
-            </div>
-            </div>
-
-            {/* Duration Selection - All Options with Scroll */}
-            <div className="flex justify-center px-4 mb-8">
+              
+              {/* Duration Selection - All Options with Scroll */}
+              <div className="flex justify-center mt-5 px-4">
                 <div className="w-full max-w-3xl overflow-x-auto scrollbar-hide">
                   <div className="bg-white my-2 p-1.5 rounded-xl inline-flex items-center gap-1.5 sm:gap-2 sm:p-2 shadow-md min-w-max">
                     {[
@@ -352,7 +351,7 @@ export default function PackageSelectionPage() {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
             {loadingPackages ?
             <div className="text-center py-12">
@@ -783,8 +782,6 @@ export default function PackageSelectionPage() {
           </motion.div>
         </div>
       </div>
-    </div>
-  );
-}
+    </div>);
 
 }
