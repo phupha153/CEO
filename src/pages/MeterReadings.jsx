@@ -1852,12 +1852,10 @@ export default function MeterReadings() {
                                       {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
                                       {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
                                         <div className="space-y-3">
-                                          <div className={`${latest?.electricity_units ? 'bg-green-50 border-2 border-green-200' : 'bg-blue-50 border-2 border-blue-200'} rounded-lg p-4 text-center`}>
+                                          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
                                             <div className="flex items-center justify-center gap-2 mb-2">
-                                              <Check className={`w-5 h-5 ${latest?.electricity_units ? 'text-green-600' : 'text-blue-600'}`} />
-                                              <p className={`text-sm font-bold ${latest?.electricity_units ? 'text-green-700' : 'text-blue-700'}`}>
-                                                {latest?.electricity_units ? 'เดือนนี้บันทึกแล้ว' : '✓ บันทึกน้ำแล้ว'}
-                                              </p>
+                                              <Check className="w-5 h-5 text-green-600" />
+                                              <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
                                             </div>
 
                                             <Button
@@ -2045,17 +2043,15 @@ export default function MeterReadings() {
                                      {/* ถ้าบันทึกแล้ว แสดงข้อความ + ปุ่มเล็ก */}
                                      {hasRecordedThisMonth(room.id) && showAddMoreFormForRoom !== room.id ? (
                                        <div className="space-y-3">
-                                         <div className={`${latest?.electricity_units ? 'bg-green-50 border-2 border-green-200' : 'bg-blue-50 border-2 border-blue-200'} rounded-lg p-4 text-center`}>
+                                         <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
                                            <div className="flex items-center justify-center gap-2 mb-2">
-                                             <Check className={`w-5 h-5 ${latest?.electricity_units ? 'text-green-600' : 'text-blue-600'}`} />
-                                             <p className={`text-sm font-bold ${latest?.electricity_units ? 'text-green-700' : 'text-blue-700'}`}>
-                                               {latest?.electricity_units ? 'เดือนนี้บันทึกแล้ว' : '✓ บันทึกน้ำแล้ว'}
-                                             </p>
+                                             <Check className="w-5 h-5 text-green-600" />
+                                             <p className="text-sm font-bold text-green-700">เดือนนี้บันทึกแล้ว</p>
                                            </div>
                                            {latest && (
                                              <div className="flex justify-center gap-4 text-xs text-slate-600 mb-3">
                                                <span>น้ำ: {latest.water_units} หน่วย</span>
-                                               {latest.electricity_units !== undefined && <span>ไฟ: {latest.electricity_units} หน่วย</span>}
+                                               <span>ไฟ: {latest.electricity_units} หน่วย</span>
                                              </div>
                                            )}
                                            <Button
