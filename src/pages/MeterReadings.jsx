@@ -1966,8 +1966,8 @@ export default function MeterReadings() {
                                             บันทึกล่าสุด: {format(parseISO(latest.reading_date), 'd MMM yyyy', { locale: th })}
                                           </p>
                                           <div className="flex justify-center gap-4 mt-2 text-xs">
-                                            <span className="text-blue-600">ใช้น้ำ: {latest.water_units} หน่วย</span>
-                                            <span className="text-yellow-600">ใช้ไฟ: {latest.electricity_units} หน่วย</span>
+                                            <span className="text-blue-600">{latest.water_units} หน่วย</span>
+                                            <span className="text-yellow-600">{latest.electricity_units} หน่วย</span>
                                           </div>
                                         </div>
                                       )}
