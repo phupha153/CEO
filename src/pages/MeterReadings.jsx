@@ -2321,11 +2321,11 @@ export default function MeterReadings() {
                                       <div className="flex items-center gap-2">
                                         {room.room_number}
                                         {hasRecordedThisMonth(room.id) && (
-                                          <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white text-xs">
-                                            <Check className="w-3 h-3 mr-1" />
-                                            บันทึกแล้ว
-                                          </Badge>
-                                        )}
+                                           <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
+                                             <Check className="w-3 h-3 mr-1" />
+                                             บันทึกแล้ว
+                                           </Badge>
+                                         )}
                                         {!hasExistingReading && !isViewMode && !hasRecordedThisMonth(room.id) && (
                                           <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">
                                             ครั้งแรก
