@@ -290,10 +290,10 @@ export default function PackageSelectionPage() {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="text-center mb-16">
-              <h1 className="text-3xl md:text-4xl font-bold mb-4 text-slate-900">
+              <h1 className="text-3xl md:text-4xl font-extrabold mb-4 text-slate-900">
                 ซื้อความสบาย
               </h1>
-              <h2 className="text-2xl md:text-3xl font-medium mb-8">
+              <h2 className="text-2xl md:text-3xl font-bold mb-8">
                 <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
                   เปลี่ยนงานหอพัก 1 วันให้เสร็จภายใน 5 นาที
                 </span>
@@ -303,19 +303,19 @@ export default function PackageSelectionPage() {
                   <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
                     <Check className="w-3.5 h-3.5 text-green-600" />
                   </div>
-                  <span>ครบทุกฟีเจอร์</span>
+                  <span className="font-semibold">ครบทุกฟีเจอร์</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
                     <Check className="w-3.5 h-3.5 text-green-600" />
                   </div>
-                  <span>รองรับหลายสาขา</span>
+                  <span className="font-semibold">รองรับหลายสาขา</span>
                 </div>
                 <div className="flex items-center gap-2.5">
                   <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
                     <Check className="w-3.5 h-3.5 text-green-600" />
                   </div>
-                  <span>แจ้งเตือนอัตโนมัติ</span>
+                  <span className="font-semibold">แจ้งเตือนอัตโนมัติ</span>
                 </div>
               </div>
               
