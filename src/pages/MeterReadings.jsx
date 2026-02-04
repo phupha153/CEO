@@ -2138,10 +2138,10 @@ export default function MeterReadings() {
                                              >
                                                <X className="w-4 h-4" />
                                              </Button>
-                                           )}
-                                         </div>
-                                       </>
-                                     )}
+                                             )}
+                                             </div>
+                                             </>
+                                             )}
 
                                      {latest && (
                                        <div className="pt-3 border-t text-center">
