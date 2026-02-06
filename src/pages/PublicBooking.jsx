@@ -64,22 +64,51 @@ export default function PublicBooking() {
     staleTime: Infinity
   });
 
-  // Fetch available rooms by date
-  const { data: roomsData, isLoading: roomsLoading } = useQuery({
-    queryKey: ['publicRooms', branchId, searchDate],
+  // Fetch ALL rooms + bookings to check availability
+  const { data: allRoomsData, isLoading: roomsLoading } = useQuery({
+    queryKey: ['publicAllRooms', branchId, searchDate],
     queryFn: async () => {
-      if (!branchId) return { rooms: [], total: 0 };
-      const response = await base44.functions.invoke('getAvailableRoomsByDate', {
+      if (!branchId) return [];
+      const rooms = await base44.entities.Room.filter({ branch_id: branchId });
+      return rooms || [];
+    },
+    enabled: !!branchId && !showInitialDialog,
+    staleTime: 30000
+  });
+
+  const { data: bookingsData } = useQuery({
+    queryKey: ['publicBookings', branchId, searchDate],
+    queryFn: async () => {
+      if (!branchId || !searchDate) return [];
+      const bookings = await base44.entities.Booking.filter({ 
         branch_id: branchId,
-        check_in_date: searchDate
+        status: 'active'
       });
-      return response.data;
+      return bookings || [];
     },
     enabled: !!branchId && !!searchDate && !showInitialDialog,
     staleTime: 30000
   });
 
-  const rooms = roomsData?.rooms || [];
+  // Check which rooms are available on selected date
+  const rooms = (allRoomsData || []).map(room => {
+    const searchDateObj = new Date(searchDate);
+    const isOccupied = (bookingsData || []).some(booking => {
+      const checkIn = new Date(booking.check_in_date);
+      const checkOut = booking.check_out_date ? new Date(booking.check_out_date) : null;
+      
+      if (checkOut) {
+        return searchDateObj >= checkIn && searchDateObj < checkOut;
+      } else {
+        return booking.room_id === room.id;
+      }
+    });
+
+    return {
+      ...room,
+      isAvailable: !isOccupied
+    };
+  });
 
   // Create booking mutation
   const createBookingMutation = useMutation({
