@@ -200,7 +200,7 @@ export default function PublicBooking() {
   // Error/Loading states
   if (!branchId) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-sky-50 to-blue-100">
         <Card className="max-w-md">
           <CardHeader>
             <CardTitle className="text-red-600">❌ ไม่พบข้อมูลสาขา</CardTitle>
@@ -213,7 +213,7 @@ export default function PublicBooking() {
 
   if (branchLoading || roomsLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-sky-50 to-blue-100">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
           <p className="text-slate-600">กำลังโหลดข้อมูล...</p>
@@ -224,7 +224,7 @@ export default function PublicBooking() {
 
   if (!branch) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-sky-50 to-blue-100">
         <Card className="max-w-md">
           <CardHeader>
             <CardTitle className="text-red-600">❌ ไม่พบสาขานี้</CardTitle>
@@ -248,13 +248,13 @@ export default function PublicBooking() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-blue-100">
       {/* Initial Search Dialog */}
       <Dialog open={showInitialDialog} onOpenChange={setShowInitialDialog}>
         <DialogContent className="max-w-xl mx-4 sm:mx-0 p-0 overflow-hidden">
-          <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6 sm:p-8">
+          <div className="bg-gradient-to-br from-blue-50 via-sky-50 to-blue-100 p-6 sm:p-8">
             <DialogHeader className="text-center mb-6">
-              <DialogTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <DialogTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
                 ค้นหาห้องพัก
               </DialogTitle>
               <DialogDescription className="text-sm text-slate-600 mt-2">
@@ -343,7 +343,7 @@ export default function PublicBooking() {
               {/* Search Button */}
               <Button 
                 onClick={handleInitialSearch}
-                className="w-full h-14 text-base font-semibold bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg"
+                className="w-full h-14 text-base font-semibold bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 rounded-xl shadow-lg"
               >
                 ดูราคา
               </Button>
@@ -537,8 +537,8 @@ export default function PublicBooking() {
                       <CardContent className="p-4 sm:p-6 pt-0">
                         <div className="space-y-3 sm:space-y-4">
                           {/* Price */}
-                          <div className="text-center py-4 sm:py-5 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100">
-                            <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                          <div className="text-center py-4 sm:py-5 bg-gradient-to-r from-blue-50 to-sky-100 rounded-xl border border-blue-200">
+                            <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
                               ฿{room.price?.toLocaleString() || 'N/A'}
                             </p>
                             <p className="text-xs sm:text-sm text-slate-600 mt-1">
@@ -589,7 +589,7 @@ export default function PublicBooking() {
                                 setFormData({ ...formData, check_in_date: searchDate });
                                 setShowBookingForm(true);
                               }}
-                              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
+                              className="flex-1 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
                               disabled={!room.isAvailable}
                             >
                               {room.isAvailable ? '📝 จองห้องนี้' : '⛔ เต็มแล้ว'}
@@ -769,7 +769,7 @@ export default function PublicBooking() {
               </Button>
               <Button 
                 type="submit" 
-                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600"
+                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-700"
               >
                 ถัดไป →
               </Button>
@@ -803,10 +803,10 @@ export default function PublicBooking() {
               </div>
 
               {/* Deposit Amount */}
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-5 border border-blue-200">
+              <div className="bg-gradient-to-br from-blue-50 to-sky-100 rounded-xl p-5 border border-blue-200">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-base font-medium text-slate-700">ยอดมัดจำที่ต้องชำระ</span>
-                  <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
                     ฿200
                   </span>
                 </div>
@@ -895,7 +895,7 @@ export default function PublicBooking() {
                 <Button 
                   type="submit" 
                   disabled={createBookingMutation.isPending || !depositSlipUrl}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 disabled:opacity-50"
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-blue-700 disabled:opacity-50"
                 >
                   {createBookingMutation.isPending ? (
                     <>
@@ -976,9 +976,9 @@ export default function PublicBooking() {
                 )}
 
                 {/* Price & Details */}
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 sm:p-6 border border-blue-100">
+                <div className="bg-gradient-to-r from-blue-50 to-sky-100 rounded-xl p-4 sm:p-6 border border-blue-200">
                   <div className="text-center mb-4">
-                    <p className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    <p className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
                       ฿{detailRoom.price?.toLocaleString() || 'N/A'}
                     </p>
                     <p className="text-xs sm:text-sm text-slate-600 mt-1">
@@ -1056,7 +1056,7 @@ export default function PublicBooking() {
                       setShowRoomDetails(false);
                       setShowBookingForm(true);
                     }}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 disabled:opacity-50"
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-700 disabled:opacity-50"
                     disabled={!detailRoom.isAvailable}
                   >
                     {detailRoom.isAvailable ? 'จองห้องนี้' : 'เต็มแล้ว'}
@@ -1087,7 +1087,7 @@ export default function PublicBooking() {
               setShowSuccessDialog(false);
               window.location.reload();
             }}
-            className="w-full mt-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            className="w-full mt-6 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800"
           >
             ดูห้องอื่นๆ
           </Button>
