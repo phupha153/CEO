@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,9 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 
 export default function PublicBooking() {
-  const { branch_id } = useParams();
   const navigate = useNavigate();
+  const urlParams = new URLSearchParams(window.location.search);
+  const branch_id = urlParams.get('branch_id');
   
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [guestData, setGuestData] = useState({

@@ -3368,14 +3368,14 @@ export default function Settings() {
                           </p>
                           <div className="flex gap-2">
                             <Input
-                              value={`${window.location.origin}/PublicBooking/${selectedBranch?.id || ''}`}
+                              value={`${window.location.origin}/PublicBooking?branch_id=${selectedBranch?.id || ''}`}
                               readOnly
                               className="font-mono text-sm"
                             />
                             <Button
                               type="button"
                               onClick={() => {
-                                navigator.clipboard.writeText(`${window.location.origin}/PublicBooking/${selectedBranch?.id || ''}`);
+                                navigator.clipboard.writeText(`${window.location.origin}/PublicBooking?branch_id=${selectedBranch?.id || ''}`);
                                 toast.success('📋 คัดลอกลิงค์แล้ว!');
                               }}
                               className="bg-indigo-600 hover:bg-indigo-700 flex-shrink-0"
