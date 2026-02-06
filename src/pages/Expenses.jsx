@@ -790,6 +790,14 @@ export default function Expenses() {
             </Card>
           )}
 
+          {/* Slip Preview Dialog */}
+          <SlipPreviewDialog
+            open={slipPreview.open}
+            onOpenChange={(open) => setSlipPreview({ ...slipPreview, open })}
+            slipUrl={slipPreview.url}
+            title="ใบเสร็จ/รูปภาพค่าใช้จ่าย"
+          />
+
           {/* Form Dialog */}
           <Dialog open={showDialog} onOpenChange={setShowDialog}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
