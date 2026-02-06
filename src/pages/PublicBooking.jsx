@@ -31,6 +31,9 @@ export default function PublicBooking() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showRoomDetails, setShowRoomDetails] = useState(false);
+  const [detailRoom, setDetailRoom] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [searchDate, setSearchDate] = useState(new Date().toISOString().split('T')[0]);
   const [formData, setFormData] = useState({
     guest_name: '',
@@ -307,16 +310,30 @@ export default function PublicBooking() {
                             </p>
                           )}
 
-                          {/* Book Button */}
-                          <Button 
-                            onClick={() => {
-                              setSelectedRoom(room);
-                              setShowBookingForm(true);
-                            }}
-                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                          >
-                            จองห้องนี้
-                          </Button>
+                          {/* Action Buttons */}
+                          <div className="flex gap-2">
+                            <Button 
+                              onClick={() => {
+                                setDetailRoom(room);
+                                setCurrentImageIndex(0);
+                                setShowRoomDetails(true);
+                              }}
+                              variant="outline"
+                              className="flex-1"
+                            >
+                              ดูรายละเอียด
+                            </Button>
+                            <Button 
+                              onClick={() => {
+                                setSelectedRoom(room);
+                                setFormData({ ...formData, check_in_date: searchDate });
+                                setShowBookingForm(true);
+                              }}
+                              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                            >
+                              จองห้องนี้
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -439,6 +456,161 @@ export default function PublicBooking() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Room Details Dialog */}
+      <Dialog open={showRoomDetails} onOpenChange={setShowRoomDetails}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          {detailRoom && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-2xl">ห้อง {detailRoom.room_number}</DialogTitle>
+                <DialogDescription>
+                  {detailRoom.room_type === 'monthly' ? 'ห้องรายเดือน' : 'ห้องรายวัน'}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6 mt-4">
+                {/* Image Gallery */}
+                {detailRoom.image_urls && detailRoom.image_urls.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="relative h-64 bg-gradient-to-br from-slate-200 to-slate-300 rounded-xl overflow-hidden">
+                      <img 
+                        src={detailRoom.image_urls[currentImageIndex]} 
+                        alt={`ห้อง ${detailRoom.room_number}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/800x600?text=No+Image';
+                        }}
+                      />
+                      {detailRoom.image_urls.length > 1 && (
+                        <>
+                          <button
+                            onClick={() => setCurrentImageIndex(prev => prev === 0 ? detailRoom.image_urls.length - 1 : prev - 1)}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full"
+                          >
+                            ←
+                          </button>
+                          <button
+                            onClick={() => setCurrentImageIndex(prev => prev === detailRoom.image_urls.length - 1 ? 0 : prev + 1)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full"
+                          >
+                            →
+                          </button>
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                            {currentImageIndex + 1} / {detailRoom.image_urls.length}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {detailRoom.image_urls.length > 1 && (
+                      <div className="flex gap-2 overflow-x-auto">
+                        {detailRoom.image_urls.map((url, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCurrentImageIndex(idx)}
+                            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
+                              currentImageIndex === idx ? 'border-blue-500' : 'border-transparent'
+                            }`}
+                          >
+                            <img src={url} alt="" className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Price & Details */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
+                  <div className="text-center mb-4">
+                    <p className="text-4xl font-bold text-blue-600">
+                      ฿{detailRoom.price?.toLocaleString() || 'N/A'}
+                    </p>
+                    <p className="text-sm text-slate-600 mt-1">
+                      {detailRoom.room_type === 'monthly' ? 'ต่อเดือน' : 'ต่อวัน'}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="bg-white/70 rounded-lg p-3">
+                      <p className="text-slate-600">ชั้น</p>
+                      <p className="font-bold text-slate-800">{detailRoom.floor}</p>
+                    </div>
+                    {detailRoom.size && (
+                      <div className="bg-white/70 rounded-lg p-3">
+                        <p className="text-slate-600">ขนาด</p>
+                        <p className="font-bold text-slate-800">{detailRoom.size} ตร.ม.</p>
+                      </div>
+                    )}
+                    <div className="bg-white/70 rounded-lg p-3">
+                      <p className="text-slate-600">ค่าน้ำ</p>
+                      <p className="font-bold text-slate-800">
+                        {detailRoom.is_flat_rate_water 
+                          ? `${detailRoom.flat_rate_water_amount} ฿/เดือน`
+                          : `${detailRoom.water_rate} ฿/หน่วย`
+                        }
+                      </p>
+                    </div>
+                    <div className="bg-white/70 rounded-lg p-3">
+                      <p className="text-slate-600">ค่าไฟ</p>
+                      <p className="font-bold text-slate-800">
+                        {detailRoom.is_flat_rate_electricity 
+                          ? `${detailRoom.flat_rate_electricity_amount} ฿/เดือน`
+                          : `${detailRoom.electricity_rate} ฿/หน่วย`
+                        }
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Description */}
+                {detailRoom.description && (
+                  <div>
+                    <h3 className="font-semibold text-slate-800 mb-2">รายละเอียด</h3>
+                    <p className="text-slate-600 leading-relaxed">{detailRoom.description}</p>
+                  </div>
+                )}
+
+                {/* Amenities */}
+                {detailRoom.amenities && detailRoom.amenities.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-slate-800 mb-3">สิ่งอำนวยความสะดวก</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {detailRoom.amenities.map((amenity, idx) => (
+                        <Badge key={idx} variant="outline" className="px-3 py-1">
+                          ✓ {amenity}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowRoomDetails(false)}
+                    className="flex-1"
+                  >
+                    ปิด
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setSelectedRoom(detailRoom);
+                      setFormData({ ...formData, check_in_date: searchDate });
+                      setShowRoomDetails(false);
+                      setShowBookingForm(true);
+                    }}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600"
+                  >
+                    จองห้องนี้
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
