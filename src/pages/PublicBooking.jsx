@@ -422,16 +422,16 @@ export default function PublicBooking() {
               <p className="text-sm sm:text-base text-slate-600">
                 <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-semibold text-xs sm:text-sm">
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  {rooms.filter(r => r.isAvailable).length} ห้องว่าง
+                  {rooms.filter(r => r.isAvailable && r.room_type === formData.booking_type).length} ห้องว่าง
                 </span>
                 <span className="text-slate-400 mx-2">/</span>
-                <span className="text-slate-600">{rooms.length} ห้องทั้งหมด</span>
+                <span className="text-slate-600">{rooms.filter(r => r.room_type === formData.booking_type).length} ห้องทั้งหมด</span>
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               <AnimatePresence>
-                {rooms.map((room) => (
+                {rooms.filter(room => room.room_type === formData.booking_type).map((room) => (
                   <motion.div
                     key={room.id}
                     initial={{ opacity: 0, y: 20 }}
