@@ -1163,6 +1163,7 @@ export default function Layout({ children, currentPageName }) {
     }
     return canAccessMenuItem(item);
   }) : [];
+  
   // Admin items - show for both developer and owner
   const visibleAdminItems = currentUser && (userRole === 'developer' || userRole === 'owner') ? adminOnlyItems.filter(canAccessMenuItem) : [];
 
