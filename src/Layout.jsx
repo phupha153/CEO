@@ -1093,6 +1093,16 @@ export default function Layout({ children, currentPageName }) {
     return userPermissions.includes(item.requiredPermission);
   };
 
+  const getRoleBadge = (role) => {
+    const badges = {
+      developer: { label: '👨‍💻 Developer', color: 'from-purple-500 to-pink-500' },
+      owner: { label: '👑 เจ้าของหอพัก', color: 'from-blue-500 to-indigo-500' },
+      manager: { label: '👔 ผู้จัดการ', color: 'from-green-500 to-emerald-500' },
+      employee: { label: '👤 พนักงาน', color: 'from-slate-400 to-slate-500' }
+    };
+    return badges[role] || badges.employee;
+  };
+
   // Trial mutations - MUST be before early returns
   const generateConnectedTestDataMutation = useMutation({
     mutationFn: async (count) => {
@@ -1128,7 +1138,7 @@ export default function Layout({ children, currentPageName }) {
     }
   });
 
-  const getRoleBadge = (role) => {
+  const visibleMenuItems = currentUser ? navigationItems.filter(item => {
     const badges = {
       developer: { label: '👨‍💻 Developer', color: 'from-purple-500 to-pink-500' },
       owner: { label: '👑 เจ้าของหอพัก', color: 'from-blue-500 to-indigo-500' },
