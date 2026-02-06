@@ -1,11 +1,13 @@
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, Download, ExternalLink, ZoomIn, ZoomOut } from "lucide-react";
+import { X, Download, ExternalLink, ZoomIn, ZoomOut, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 export default function SlipPreviewDialog({ open, onOpenChange, slipUrl, title = "หลักฐานการโอน" }) {
   const [zoom, setZoom] = useState(1);
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   if (!slipUrl) return null;
 
