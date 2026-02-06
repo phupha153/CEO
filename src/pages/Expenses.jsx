@@ -42,6 +42,7 @@ export default function Expenses() {
     receipt_image: '',
     notes: ''
   });
+  const [slipPreview, setSlipPreview] = useState({ open: false, url: '' });
 
   // ✅ เพิ่ม pagination และ search
   const [currentPage, setCurrentPage] = useState(1);
