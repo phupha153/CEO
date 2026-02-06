@@ -3263,29 +3263,56 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowDialog(false)}
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                  >
-                    ยกเลิก
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600"
-                    disabled={createMutation.isPending || updateMutation.isPending}
-                  >
-                    {createMutation.isPending || updateMutation.isPending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        กำลังบันทึก...
-                      </>
-                    ) : (
-                      editingRoom ? 'อัปเดต' : 'เพิ่มห้อง'
-                    )}
-                  </Button>
+                <div className="flex justify-between gap-2 pt-4">
+                  {editingRoom && canDelete && (
+                    <Button 
+                      type="button" 
+                      variant="destructive"
+                      onClick={() => {
+                        if (confirm(`ยืนยันการลบห้อง ${editingRoom.room_number}?\n\n⚠️ การลบจะไม่สามารถย้อนกลับได้`)) {
+                          deleteMutation.mutate(editingRoom);
+                          setShowDialog(false);
+                        }
+                      }}
+                      disabled={deleteMutation.isPending}
+                    >
+                      {deleteMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          กำลังลบ...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          ลบห้อง
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  <div className="flex gap-2 ml-auto">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setShowDialog(false)}
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                    >
+                      ยกเลิก
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600"
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                    >
+                      {createMutation.isPending || updateMutation.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          กำลังบันทึก...
+                        </>
+                      ) : (
+                        editingRoom ? 'อัปเดต' : 'เพิ่มห้อง'
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </form>
             </DialogContent>
