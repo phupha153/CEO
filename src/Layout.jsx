@@ -353,8 +353,7 @@ export default function Layout({ children, currentPageName }) {
                        currentPageName === 'Receipt' || 
                        currentPageName === 'PrintReceipts' || 
                        currentPageName === 'PublicInvoice' ||
-                       currentPageName === 'PublicReceipt' ||
-                       currentPageName === 'PublicBooking';
+                       currentPageName === 'PublicReceipt';
 
   // ⭐ State declarations - MUST be before any conditional returns
   const [selectedBranch, setSelectedBranch] = useState(() => {
@@ -869,11 +868,6 @@ export default function Layout({ children, currentPageName }) {
   // ⭐ User-centric subscription check (ใช้ที่ effect แล้ว - ไม่ต้องใช้ตัวแปร subscriptionCheck อีก)
 
   useEffect(() => {
-    // ⭐ Skip ALL checks for public pages
-    if (isPublicPage) {
-      return;
-    }
-
     // ⭐ Redirect unauthenticated users to Welcome (even if there's an auth error)
     if (!isLoading && !currentUser && 
         currentPageName !== 'Welcome' &&
@@ -881,8 +875,7 @@ export default function Layout({ children, currentPageName }) {
         currentPageName !== 'Receipt' &&
         currentPageName !== 'PrintReceipts' &&
         currentPageName !== 'PublicInvoice' &&
-        currentPageName !== 'PublicReceipt' &&
-        currentPageName !== 'PublicBooking') {
+        currentPageName !== 'PublicReceipt') {
       navigate(createPageUrl('Welcome'), { replace: true });
       return;
     }
@@ -1002,9 +995,6 @@ export default function Layout({ children, currentPageName }) {
   }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading, userRole, selectedBranch, branchOwnerStatus, branchOwnerLoading]);
 
   useEffect(() => {
-    // ⭐ Skip for public pages
-    if (isPublicPage) return;
-
     if (!currentUser || isLoading || branchesLoading) return;
 
     // Pages that don't require a selected branch
@@ -1015,7 +1005,12 @@ export default function Layout({ children, currentPageName }) {
         currentPageName === 'ActivityLog' ||
         currentPageName === 'DataLists' ||
         currentPageName === 'UpdateMyBranches' ||
-        currentPageName === 'UserBranchAccess') {
+        currentPageName === 'UserBranchAccess' ||
+        currentPageName === 'PublicInvoice' ||
+        currentPageName === 'PublicReceipt' ||
+        currentPageName === 'Invoice' ||
+        currentPageName === 'Receipt' ||
+        currentPageName === 'Welcome') {
       return;
     }
 
