@@ -431,7 +431,14 @@ export default function PublicBooking() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               <AnimatePresence>
-                {rooms.filter(room => room.room_type === formData.booking_type).map((room) => (
+                {rooms
+                  .filter(room => room.room_type === formData.booking_type)
+                  .sort((a, b) => {
+                    if (a.isAvailable && !b.isAvailable) return -1;
+                    if (!a.isAvailable && b.isAvailable) return 1;
+                    return 0;
+                  })
+                  .map((room) => (
                   <motion.div
                     key={room.id}
                     initial={{ opacity: 0, y: 20 }}
