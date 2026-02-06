@@ -353,7 +353,8 @@ export default function Layout({ children, currentPageName }) {
                        currentPageName === 'Receipt' || 
                        currentPageName === 'PrintReceipts' || 
                        currentPageName === 'PublicInvoice' ||
-                       currentPageName === 'PublicReceipt';
+                       currentPageName === 'PublicReceipt' ||
+                       currentPageName === 'PublicBooking';
 
   // ⭐ State declarations - MUST be before any conditional returns
   const [selectedBranch, setSelectedBranch] = useState(() => {
