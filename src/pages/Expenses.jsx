@@ -902,6 +902,13 @@ export default function Expenses() {
               </form>
             </DialogContent>
           </Dialog>
+
+          <SlipPreviewDialog
+            open={showSlipPreview}
+            onOpenChange={setShowSlipPreview}
+            slipUrl={selectedSlipUrl}
+            title="ใบเสร็จค่าใช้จ่าย"
+          />
         </div>
       </div>
     </div>
