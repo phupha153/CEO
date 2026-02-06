@@ -31,6 +31,7 @@ export default function PublicBooking() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [searchDate, setSearchDate] = useState(new Date().toISOString().split('T')[0]);
   const [formData, setFormData] = useState({
     guest_name: '',
     guest_phone: '',
@@ -52,20 +53,22 @@ export default function PublicBooking() {
     staleTime: Infinity
   });
 
-  // Fetch available rooms
-  const { data: rooms = [], isLoading: roomsLoading } = useQuery({
-    queryKey: ['publicRooms', branchId],
+  // Fetch available rooms by date
+  const { data: roomsData, isLoading: roomsLoading } = useQuery({
+    queryKey: ['publicRooms', branchId, searchDate],
     queryFn: async () => {
-      if (!branchId) return [];
-      const allRooms = await base44.entities.Room.filter({ 
-        branch_id: branchId, 
-        status: 'available' 
-      }, '', 100);
-      return allRooms;
+      if (!branchId) return { rooms: [], total: 0 };
+      const response = await base44.functions.invoke('getAvailableRoomsByDate', {
+        branch_id: branchId,
+        check_in_date: searchDate
+      });
+      return response.data;
     },
-    enabled: !!branchId,
+    enabled: !!branchId && !!searchDate,
     staleTime: 30000
   });
+
+  const rooms = roomsData?.rooms || [];
 
   // Create booking mutation
   const createBookingMutation = useMutation({
@@ -166,17 +169,53 @@ export default function PublicBooking() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Date Picker */}
+        <Card className="mb-6 bg-white/80 backdrop-blur-xl border-white/50">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Home className="w-5 h-5 text-blue-600" />
+              ค้นหาห้องว่าง
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-sm font-medium mb-2">
+                  📅 เลือกวันที่ต้องการเข้าพัก
+                </label>
+                <Input
+                  type="date"
+                  value={searchDate}
+                  onChange={(e) => {
+                    setSearchDate(e.target.value);
+                    setFormData({ ...formData, check_in_date: e.target.value });
+                  }}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="text-base"
+                />
+              </div>
+              <Button
+                onClick={() => setSearchDate(new Date().toISOString().split('T')[0])}
+                variant="outline"
+                className="whitespace-nowrap"
+              >
+                วันนี้
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {rooms.length === 0 ? (
           <Card className="text-center py-12">
             <CardHeader>
-              <CardTitle className="text-slate-600">😔 ขออภัย ขณะนี้ไม่มีห้องว่าง</CardTitle>
-              <CardDescription>กรุณาลองใหม่ภายหลัง หรือติดต่อสาขาโดยตรง</CardDescription>
+              <CardTitle className="text-slate-600">😔 ขออภัย ไม่มีห้องว่างในวันที่เลือก</CardTitle>
+              <CardDescription>ลองเลือกวันอื่น หรือติดต่อสาขาโดยตรง</CardDescription>
             </CardHeader>
           </Card>
         ) : (
           <>
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-2">ห้องว่างทั้งหมด</h2>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">ห้องว่างสำหรับวันที่ {new Date(searchDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</h2>
               <p className="text-slate-600">พบ {rooms.length} ห้องพร้อมให้เข้าพัก</p>
             </div>
 
