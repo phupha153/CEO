@@ -421,30 +421,32 @@ export default function PublicBooking() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                <Phone className="w-4 h-4 inline mr-2" />
-                เบอร์โทรศัพท์ <span className="text-red-500">*</span>
-              </label>
-              <Input
-                value={formData.guest_phone}
-                onChange={(e) => setFormData({ ...formData, guest_phone: e.target.value })}
-                placeholder="0812345678"
-                required
-              />
-            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  <Phone className="w-4 h-4 inline mr-2" />
+                  เบอร์โทรศัพท์ <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={formData.guest_phone}
+                  onChange={(e) => setFormData({ ...formData, guest_phone: e.target.value })}
+                  placeholder="0812345678"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                <Mail className="w-4 h-4 inline mr-2" />
-                อีเมล
-              </label>
-              <Input
-                type="email"
-                value={formData.guest_email}
-                onChange={(e) => setFormData({ ...formData, guest_email: e.target.value })}
-                placeholder="example@email.com"
-              />
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  <Mail className="w-4 h-4 inline mr-2" />
+                  อีเมล
+                </label>
+                <Input
+                  type="email"
+                  value={formData.guest_email}
+                  onChange={(e) => setFormData({ ...formData, guest_email: e.target.value })}
+                  placeholder="example@email.com"
+                />
+              </div>
             </div>
 
             <div>

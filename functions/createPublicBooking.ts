@@ -6,11 +6,26 @@ Deno.serve(async (req) => {
     const payload = await req.json();
 
     // Validate required fields
-    const { guest_name, guest_phone, room_id, branch_id, check_in_date } = payload;
+    const { 
+      guest_name, 
+      guest_phone, 
+      room_id, 
+      branch_id, 
+      check_in_date,
+      check_out_date,
+      booking_type,
+      number_of_guests
+    } = payload;
     
     if (!guest_name || !guest_phone || !room_id || !branch_id) {
       return Response.json({ 
         error: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน (ชื่อ, เบอร์โทร, ห้อง)' 
+      }, { status: 400 });
+    }
+
+    if (booking_type === 'daily' && !check_out_date) {
+      return Response.json({ 
+        error: 'กรุณาระบุวันที่เช็คเอาท์สำหรับการจองรายวัน' 
       }, { status: 400 });
     }
 
@@ -40,7 +55,9 @@ Deno.serve(async (req) => {
       guest_national_id: payload.guest_national_id || '',
       guest_address: payload.guest_address || '',
       check_in_date: check_in_date || new Date().toISOString().split('T')[0],
-      booking_type: room.room_type,
+      check_out_date: check_out_date || null,
+      booking_type: booking_type || room.room_type,
+      number_of_guests: number_of_guests || 1,
       is_temporary_booking: true,
       status: 'active',
       room_no: room.room_number,
@@ -70,9 +87,12 @@ Deno.serve(async (req) => {
 📍 สาขา: ${branchName}
 🚪 ห้อง: ${room.room_number} (ชั้น ${room.floor})
 👤 ผู้จอง: ${guest_name}
+👥 จำนวนผู้เข้าพัก: ${number_of_guests || 1} คน
 📞 เบอร์: ${guest_phone}
 📧 อีเมล: ${payload.guest_email || '-'}
 📅 วันเข้าพัก: ${check_in_date || 'ไม่ระบุ'}
+${check_out_date ? `📅 วันเช็คเอาท์: ${check_out_date}` : ''}
+📝 ประเภท: ${booking_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
 
 กรุณาติดต่อผู้จองเพื่อยืนยันและดำเนินการต่อ
         `.trim()
