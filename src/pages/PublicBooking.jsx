@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   MapPin, 
   Home, 
@@ -350,6 +351,28 @@ export default function PublicBooking() {
         {/* Search Summary & Filter */}
         <Card className="mb-4 sm:mb-6 bg-white/90 backdrop-blur-xl border-white/50 shadow-lg">
           <CardContent className="p-3 sm:p-4">
+            {/* Tabs for Booking Type */}
+            <Tabs 
+              value={formData.booking_type} 
+              onValueChange={(value) => {
+                setFormData({ 
+                  ...formData, 
+                  booking_type: value,
+                  check_out_date: value === 'monthly' ? '' : formData.check_out_date
+                });
+              }}
+              className="mb-4"
+            >
+              <TabsList className="grid w-full grid-cols-2 bg-slate-100">
+                <TabsTrigger value="monthly" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                  พักชั่วคืน
+                </TabsTrigger>
+                <TabsTrigger value="daily" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+                  ที่พักรายช่วง
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2 text-xs sm:text-sm">
@@ -371,9 +394,6 @@ export default function PublicBooking() {
                     <Users className="w-3.5 h-3.5 text-purple-600" />
                     <span className="text-xs sm:text-sm font-semibold">{formData.number_of_guests} คน</span>
                   </div>
-                  <Badge variant="outline" className="text-xs">
-                    {formData.booking_type === 'monthly' ? '📅 รายเดือน' : '🏖️ รายวัน'}
-                  </Badge>
                 </div>
               </div>
               <Button
