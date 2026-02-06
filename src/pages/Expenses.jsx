@@ -21,14 +21,11 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import StatsCard from "../components/dashboard/StatsCard";
 import PageHeader from "../components/shared/PageHeader";
 import ScrollToTopButton from "../components/shared/ScrollToTopButton";
-import SlipPreviewDialog from "../components/shared/SlipPreviewDialog";
 
 export default function Expenses() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [showSlipPreview, setShowSlipPreview] = useState(false);
-  const [selectedSlipUrl, setSelectedSlipUrl] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
   const [dateRangeType, setDateRangeType] = useState('this_month'); // 'this_month', '3_months', '6_months', 'custom'
   const [dateRange, setDateRange] = useState({
@@ -695,17 +692,21 @@ export default function Expenses() {
 
                             {expense.receipt_image && (
                               <div className="mt-2">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedSlipUrl(expense.receipt_image);
-                                    setShowSlipPreview(true);
-                                  }}
+                                <a
+                                  href={expense.receipt_image}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                   className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
                                 >
                                   <Receipt className="w-4 h-4" />
                                   ดูใบเสร็จ/รูปภาพ
-                                </button>
+                                </a>
+                                {/* <img
+                                  src={expense.receipt_image}
+                                  alt="ใบเสร็จ"
+                                  className="w-32 h-32 object-cover rounded-lg border mt-2 cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={() => window.open(expense.receipt_image, '_blank')}
+                                /> */}
                               </div>
                             )}
 
@@ -902,13 +903,6 @@ export default function Expenses() {
               </form>
             </DialogContent>
           </Dialog>
-
-          <SlipPreviewDialog
-            open={showSlipPreview}
-            onOpenChange={setShowSlipPreview}
-            slipUrl={selectedSlipUrl}
-            title="ใบเสร็จค่าใช้จ่าย"
-          />
         </div>
       </div>
     </div>

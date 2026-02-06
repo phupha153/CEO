@@ -1103,7 +1103,7 @@ export default function Layout({ children, currentPageName }) {
     return badges[role] || badges.employee;
   };
 
-  // Trial mutations - MUST be before early returns
+  // Trial mutations
   const generateConnectedTestDataMutation = useMutation({
     mutationFn: async (count) => {
       const response = await base44.functions.invoke('generateConnectedTestData', {
@@ -1153,7 +1153,6 @@ export default function Layout({ children, currentPageName }) {
     }
     return canAccessMenuItem(item);
   }) : [];
-  
   // Admin items - show for both developer and owner
   const visibleAdminItems = currentUser && (userRole === 'developer' || userRole === 'owner') ? adminOnlyItems.filter(canAccessMenuItem) : [];
 
