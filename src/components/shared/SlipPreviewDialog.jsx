@@ -48,12 +48,29 @@ export default function SlipPreviewDialog({ open, onOpenChange, slipUrl, title =
             </div>
           </div>
         </DialogHeader>
-        <div className="overflow-auto max-h-[calc(90vh-80px)] bg-slate-100 p-4 flex items-center justify-center">
+        <div className="overflow-auto max-h-[calc(90vh-80px)] bg-slate-100 p-4 flex items-center justify-center relative">
+          {!imageLoaded && !imageError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+              <div className="text-center">
+                <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-3" />
+                <p className="text-slate-600 font-medium">กำลังโหลดสลิป...</p>
+              </div>
+            </div>
+          )}
+          {imageError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+              <div className="text-center">
+                <p className="text-red-600 font-medium">โหลดรูปภาพไม่สำเร็จ</p>
+              </div>
+            </div>
+          )}
           <img
             src={slipUrl}
             alt="สลิปการโอนเงิน"
-            className="max-w-full rounded-lg shadow-lg transition-transform duration-200"
+            className={`max-w-full rounded-lg shadow-lg transition-all duration-200 ${!imageLoaded ? 'opacity-0' : 'opacity-100'}`}
             style={{ transform: `scale(${zoom})`, transformOrigin: 'center' }}
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageError(true)}
           />
         </div>
       </DialogContent>
