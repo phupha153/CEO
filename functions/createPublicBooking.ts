@@ -1,0 +1,98 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const payload = await req.json();
+
+    // Validate required fields
+    const { guest_name, guest_phone, room_id, branch_id, check_in_date } = payload;
+    
+    if (!guest_name || !guest_phone || !room_id || !branch_id) {
+      return Response.json({ 
+        error: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน (ชื่อ, เบอร์โทร, ห้อง)' 
+      }, { status: 400 });
+    }
+
+    // ⚡ Use service role for backend operations
+    // 1. Check if room exists and is available
+    const rooms = await base44.asServiceRole.entities.Room.filter({
+      id: room_id,
+      branch_id: branch_id,
+      status: 'available'
+    });
+
+    if (!rooms || rooms.length === 0) {
+      return Response.json({ 
+        error: 'ห้องนี้ไม่ว่างหรือไม่พบในระบบ กรุณาเลือกห้องอื่น' 
+      }, { status: 400 });
+    }
+
+    const room = rooms[0];
+
+    // 2. Create temporary booking
+    const bookingData = {
+      branch_id,
+      room_id,
+      guest_name,
+      guest_phone,
+      guest_email: payload.guest_email || '',
+      guest_national_id: payload.guest_national_id || '',
+      guest_address: payload.guest_address || '',
+      check_in_date: check_in_date || new Date().toISOString().split('T')[0],
+      booking_type: room.room_type,
+      is_temporary_booking: true,
+      status: 'active',
+      room_no: room.room_number,
+      booking_no: `TMP-${Date.now()}`
+    };
+
+    const booking = await base44.asServiceRole.entities.Booking.create(bookingData);
+
+    // 3. Update room status to reserved
+    await base44.asServiceRole.entities.Room.update(room_id, {
+      status: 'reserved'
+    });
+
+    // 4. Send notification to admins (optional - using service role for SendEmail)
+    try {
+      const branch = await base44.asServiceRole.entities.Branch.filter({ id: branch_id });
+      const branchName = branch[0]?.branch_name || 'สาขา';
+      
+      const adminEmail = Deno.env.get('admin_email') || 'phupha20517@gmail.com';
+      
+      await base44.asServiceRole.integrations.Core.SendEmail({
+        to: adminEmail,
+        subject: `🔔 มีการจองห้องใหม่ - ${branchName}`,
+        body: `
+มีการจองห้องใหม่จากระบบออนไลน์:
+
+📍 สาขา: ${branchName}
+🚪 ห้อง: ${room.room_number} (ชั้น ${room.floor})
+👤 ผู้จอง: ${guest_name}
+📞 เบอร์: ${guest_phone}
+📧 อีเมล: ${payload.guest_email || '-'}
+📅 วันเข้าพัก: ${check_in_date || 'ไม่ระบุ'}
+
+กรุณาติดต่อผู้จองเพื่อยืนยันและดำเนินการต่อ
+        `.trim()
+      });
+    } catch (emailError) {
+      console.error('Failed to send notification email:', emailError);
+      // Don't fail the booking if email fails
+    }
+
+    return Response.json({
+      success: true,
+      message: 'จองห้องสำเร็จ! ทางสาขาจะติดต่อกลับไปเร็วๆ นี้',
+      booking_id: booking.id,
+      booking_no: booking.booking_no
+    });
+
+  } catch (error) {
+    console.error('Create public booking error:', error);
+    return Response.json({ 
+      error: error.message || 'เกิดข้อผิดพลาดในการจอง กรุณาลองใหม่อีกครั้ง' 
+    }, { status: 500 });
+  }
+});
