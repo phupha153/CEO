@@ -9,16 +9,16 @@ export default function SlipPreviewDialog({ open, onOpenChange, slipUrl, title =
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  if (!slipUrl) return null;
-
   // Reset states when dialog opens/closes
   React.useEffect(() => {
-    if (open) {
+    if (open && slipUrl) {
       setImageLoaded(false);
       setImageError(false);
       setZoom(1);
     }
   }, [open, slipUrl]);
+
+  if (!slipUrl) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
