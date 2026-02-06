@@ -3275,7 +3275,7 @@ export default function Settings() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <CreditCard className="w-5 h-5 text-purple-600" />
-                      บัญชีธนาคาร
+                      บัญชีธนาคารและลิงค์จองห้องพัก
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -3354,6 +3354,39 @@ export default function Settings() {
                         )}
                       </Button>
                     </form>
+
+                    {/* ลิงค์จองห้องพักออนไลน์ */}
+                    <div className="mt-8 pt-6 border-t">
+                      <h3 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-indigo-600" />
+                        ลิงค์จองห้องพักออนไลน์
+                      </h3>
+                      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border-2 border-indigo-200">
+                        <p className="text-sm text-slate-700 mb-4">
+                          แชร์ลิงค์นี้ให้ลูกค้าเพื่อจองห้องพักและโอนมัดจำออนไลน์
+                        </p>
+                        <div className="flex gap-2">
+                          <Input
+                            value={`${window.location.origin}/PublicBooking/${selectedBranch?.id || ''}`}
+                            readOnly
+                            className="font-mono text-sm"
+                          />
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${window.location.origin}/PublicBooking/${selectedBranch?.id || ''}`);
+                              toast.success('📋 คัดลอกลิงค์แล้ว!');
+                            }}
+                            className="bg-indigo-600 hover:bg-indigo-700 flex-shrink-0"
+                          >
+                            คัดลอก
+                          </Button>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-3">
+                          💡 ลูกค้าจะเห็นห้องว่าง + กรอกข้อมูล + อัพโหลดสลิป → ได้เลขจองทันที
+                        </p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               )}
