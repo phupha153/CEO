@@ -29,26 +29,20 @@ export default function PublicBooking() {
   const [slipPreview, setSlipPreview] = useState(null);
   const [bookingSuccess, setBookingSuccess] = useState(null);
 
-  // ดึงข้อมูลสาขา
-  const { data: branch, isLoading: branchLoading } = useQuery({
-    queryKey: ['publicBranch', branch_id],
+  // ดึงข้อมูลสาขา + Config + ห้องว่างผ่าน backend function
+  const { data: branchData, isLoading: dataLoading } = useQuery({
+    queryKey: ['publicBranchData', branch_id],
     queryFn: async () => {
       if (!branch_id) return null;
-      const branches = await base44.asServiceRole.entities.Branch.filter({ id: branch_id });
-      return branches[0] || null;
+      const response = await base44.functions.invoke('getPublicBranchDetails', { branch_id });
+      return response.data;
     },
     enabled: !!branch_id
   });
 
-  // ดึงข้อมูล Config ของสาขา
-  const { data: configs = [] } = useQuery({
-    queryKey: ['publicConfigs', branch_id],
-    queryFn: async () => {
-      const allConfigs = await base44.asServiceRole.entities.Config.list('', 200);
-      return allConfigs.filter(c => !c.branch_id || c.branch_id === branch_id);
-    },
-    enabled: !!branch_id
-  });
+  const branch = branchData?.branch || null;
+  const configs = branchData?.configs || [];
+  const availableRooms = branchData?.availableRooms || [];
 
   const getConfig = (key, defaultValue = '') => {
     const branchConfig = configs.find(c => c.key === key && c.branch_id === branch_id);
@@ -59,20 +53,6 @@ export default function PublicBooking() {
 
   const buildingLogo = getConfig('building_logo', 'https://via.placeholder.com/150');
   const buildingName = getConfig('building_name', 'หอพัก');
-
-  // ดึงห้องว่าง (status = available, room_type = monthly)
-  const { data: availableRooms = [], isLoading: roomsLoading } = useQuery({
-    queryKey: ['publicRooms', branch_id],
-    queryFn: async () => {
-      const rooms = await base44.asServiceRole.entities.Room.filter({
-        branch_id: branch_id,
-        status: 'available',
-        room_type: 'monthly'
-      }, 'floor', 100);
-      return rooms;
-    },
-    enabled: !!branch_id
-  });
 
   // Mutation สำหรับสร้างการจอง
   const createBookingMutation = useMutation({
@@ -132,7 +112,7 @@ export default function PublicBooking() {
     }
   };
 
-  if (branchLoading || roomsLoading) {
+  if (dataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
         <Loader2 className="w-12 h-12 text-blue-600 animate-spin" />
