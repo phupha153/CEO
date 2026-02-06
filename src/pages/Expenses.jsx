@@ -695,21 +695,17 @@ export default function Expenses() {
 
                             {expense.receipt_image && (
                               <div className="mt-2">
-                                <a
-                                  href={expense.receipt_image}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedSlipUrl(expense.receipt_image);
+                                    setShowSlipPreview(true);
+                                  }}
                                   className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
                                 >
                                   <Receipt className="w-4 h-4" />
                                   ดูใบเสร็จ/รูปภาพ
-                                </a>
-                                {/* <img
-                                  src={expense.receipt_image}
-                                  alt="ใบเสร็จ"
-                                  className="w-32 h-32 object-cover rounded-lg border mt-2 cursor-pointer hover:opacity-80 transition-opacity"
-                                  onClick={() => window.open(expense.receipt_image, '_blank')}
-                                /> */}
+                                </button>
                               </div>
                             )}
 
