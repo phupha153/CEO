@@ -311,15 +311,18 @@ export default function PublicBooking() {
         {rooms.length === 0 ? (
           <Card className="text-center py-12">
             <CardHeader>
-              <CardTitle className="text-slate-600">😔 ขออภัย ไม่มีห้องว่างในวันที่เลือก</CardTitle>
-              <CardDescription>ลองเลือกวันอื่น หรือติดต่อสาขาโดยตรง</CardDescription>
+              <CardTitle className="text-slate-600">😔 ไม่พบห้องพัก</CardTitle>
+              <CardDescription>กรุณาติดต่อสาขาโดยตรง</CardDescription>
             </CardHeader>
           </Card>
         ) : (
           <>
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-2">ห้องว่างสำหรับวันที่ {new Date(searchDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</h2>
-              <p className="text-slate-600">พบ {rooms.length} ห้องพร้อมให้เข้าพัก</p>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">ห้องพักทั้งหมด</h2>
+              <p className="text-slate-600">
+                <span className="text-green-600 font-semibold">{rooms.filter(r => r.isAvailable).length} ห้องว่าง</span>
+                {' '}/ {rooms.length} ห้องทั้งหมด
+              </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -330,15 +333,20 @@ export default function PublicBooking() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
+                    className={!room.isAvailable ? 'opacity-60' : ''}
                   >
-                    <Card className="overflow-hidden hover:shadow-2xl transition-all duration-300 group">
+                    <Card className={`overflow-hidden hover:shadow-2xl transition-all duration-300 group ${
+                      !room.isAvailable ? 'bg-slate-100/50' : ''
+                    }`}>
                       {/* Room Image */}
                       <div className="relative h-48 bg-gradient-to-br from-slate-200 to-slate-300 overflow-hidden">
                         {room.image_urls && room.image_urls.length > 0 ? (
                           <img 
                             src={room.image_urls[0]} 
                             alt={`ห้อง ${room.room_number}`}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ${
+                              !room.isAvailable ? 'grayscale' : ''
+                            }`}
                             onError={(e) => {
                               e.target.src = 'https://via.placeholder.com/400x300?text=No+Image';
                             }}
@@ -349,11 +357,20 @@ export default function PublicBooking() {
                           </div>
                         )}
                         <div className="absolute top-3 right-3">
-                          <Badge className="bg-green-500 text-white">ว่าง</Badge>
+                          <Badge className={room.isAvailable ? "bg-green-500 text-white" : "bg-red-500 text-white"}>
+                            {room.isAvailable ? 'ว่าง' : 'ไม่ว่าง'}
+                          </Badge>
                         </div>
                         <div className="absolute top-3 left-3">
                           <Badge className="bg-blue-500 text-white">ชั้น {room.floor}</Badge>
                         </div>
+                        {!room.isAvailable && (
+                          <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                            <div className="bg-white/90 px-4 py-2 rounded-lg font-semibold text-slate-700">
+                              เต็มแล้ว
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <CardHeader>
@@ -420,6 +437,7 @@ export default function PublicBooking() {
                               }}
                               variant="outline"
                               className="flex-1"
+                              disabled={!room.isAvailable}
                             >
                               ดูรายละเอียด
                             </Button>
@@ -429,9 +447,10 @@ export default function PublicBooking() {
                                 setFormData({ ...formData, check_in_date: searchDate });
                                 setShowBookingForm(true);
                               }}
-                              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={!room.isAvailable}
                             >
-                              จองห้องนี้
+                              {room.isAvailable ? 'จองห้องนี้' : 'เต็มแล้ว'}
                             </Button>
                           </div>
                         </div>
@@ -758,9 +777,10 @@ export default function PublicBooking() {
                       setShowRoomDetails(false);
                       setShowBookingForm(true);
                     }}
-                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600"
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 disabled:opacity-50"
+                    disabled={!detailRoom.isAvailable}
                   >
-                    จองห้องนี้
+                    {detailRoom.isAvailable ? 'จองห้องนี้' : 'เต็มแล้ว'}
                   </Button>
                 </div>
               </div>
