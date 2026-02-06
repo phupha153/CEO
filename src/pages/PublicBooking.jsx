@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   MapPin, 
   Home, 
@@ -41,7 +42,10 @@ export default function PublicBooking() {
     guest_email: '',
     guest_national_id: '',
     guest_address: '',
-    check_in_date: new Date().toISOString().split('T')[0]
+    number_of_guests: 1,
+    booking_type: 'monthly',
+    check_in_date: new Date().toISOString().split('T')[0],
+    check_out_date: ''
   });
 
   // Fetch branch info
@@ -88,7 +92,10 @@ export default function PublicBooking() {
         guest_email: '',
         guest_national_id: '',
         guest_address: '',
-        check_in_date: new Date().toISOString().split('T')[0]
+        number_of_guests: 1,
+        booking_type: 'monthly',
+        check_in_date: new Date().toISOString().split('T')[0],
+        check_out_date: ''
       });
       setSelectedRoom(null);
     },
@@ -102,6 +109,16 @@ export default function PublicBooking() {
     
     if (!formData.guest_name || !formData.guest_phone) {
       toast.error('กรุณากรอกชื่อและเบอร์โทรศัพท์');
+      return;
+    }
+
+    if (formData.booking_type === 'daily' && !formData.check_out_date) {
+      toast.error('กรุณาระบุวันที่เช็คเอาท์สำหรับการจองรายวัน');
+      return;
+    }
+
+    if (formData.booking_type === 'daily' && formData.check_out_date <= formData.check_in_date) {
+      toast.error('วันที่เช็คเอาท์ต้องหลังจากวันที่เช็คอิน');
       return;
     }
 
@@ -356,6 +373,28 @@ export default function PublicBooking() {
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div>
               <label className="block text-sm font-medium mb-2">
+                ประเภทการจอง <span className="text-red-500">*</span>
+              </label>
+              <Select 
+                value={formData.booking_type} 
+                onValueChange={(value) => setFormData({ 
+                  ...formData, 
+                  booking_type: value,
+                  check_out_date: value === 'monthly' ? '' : formData.check_out_date
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">รายเดือน</SelectItem>
+                  <SelectItem value="daily">รายวัน</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
                 <User className="w-4 h-4 inline mr-2" />
                 ชื่อ-นามสกุล <span className="text-red-500">*</span>
               </label>
@@ -363,6 +402,21 @@ export default function PublicBooking() {
                 value={formData.guest_name}
                 onChange={(e) => setFormData({ ...formData, guest_name: e.target.value })}
                 placeholder="เช่น สมชาย ใจดี"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                <User className="w-4 h-4 inline mr-2" />
+                จำนวนผู้เข้าพัก <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="number"
+                min="1"
+                max="10"
+                value={formData.number_of_guests}
+                onChange={(e) => setFormData({ ...formData, number_of_guests: parseInt(e.target.value) || 1 })}
                 required
               />
             </div>
@@ -421,15 +475,31 @@ export default function PublicBooking() {
 
             <div>
               <label className="block text-sm font-medium mb-2">
-                วันที่เข้าพัก
+                📅 วันที่เช็คอิน <span className="text-red-500">*</span>
               </label>
               <Input
                 type="date"
                 value={formData.check_in_date}
                 onChange={(e) => setFormData({ ...formData, check_in_date: e.target.value })}
                 min={new Date().toISOString().split('T')[0]}
+                required
               />
             </div>
+
+            {formData.booking_type === 'daily' && (
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  📅 วันที่เช็คเอาท์ <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="date"
+                  value={formData.check_out_date}
+                  onChange={(e) => setFormData({ ...formData, check_out_date: e.target.value })}
+                  min={formData.check_in_date}
+                  required={formData.booking_type === 'daily'}
+                />
+              </div>
+            )}
 
             <div className="flex gap-3 pt-4">
               <Button 
