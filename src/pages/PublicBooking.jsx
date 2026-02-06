@@ -42,6 +42,7 @@ export default function PublicBooking() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [searchDate, setSearchDate] = useState(new Date().toISOString().split('T')[0]);
   const [depositSlipUrl, setDepositSlipUrl] = useState('');
+  const [bookingStep, setBookingStep] = useState(1);
   const [tempSearchDate, setTempSearchDate] = useState(new Date().toISOString().split('T')[0]);
   const [tempCheckOutDate, setTempCheckOutDate] = useState('');
   const [tempNumberOfGuests, setTempNumberOfGuests] = useState(1);
@@ -68,6 +69,22 @@ export default function PublicBooking() {
     enabled: !!branchId,
     staleTime: Infinity
   });
+
+  // Fetch bank info from configs
+  const { data: configs = [] } = useQuery({
+    queryKey: ['publicConfigs', branchId],
+    queryFn: async () => {
+      if (!branchId) return [];
+      const allConfigs = await base44.entities.Config.filter({ branch_id: branchId });
+      return allConfigs || [];
+    },
+    enabled: !!branchId,
+    staleTime: Infinity
+  });
+
+  const bankName = configs.find(c => c.key === 'bank_name')?.value || '';
+  const bankAccount = configs.find(c => c.key === 'bank_account')?.value || '';
+  const bankAccountName = configs.find(c => c.key === 'bank_account_name')?.value || '';
 
   // Fetch ALL rooms + bookings to check availability
   const { data: allRoomsData, isLoading: roomsLoading } = useQuery({
@@ -142,9 +159,9 @@ export default function PublicBooking() {
     }
   });
 
-  const handleSubmit = (e) => {
+  const handleNextStep = (e) => {
     e.preventDefault();
-    
+
     if (!formData.guest_name || !formData.guest_phone) {
       toast.error('กรุณากรอกชื่อและเบอร์โทรศัพท์');
       return;
@@ -157,6 +174,17 @@ export default function PublicBooking() {
 
     if (formData.booking_type === 'daily' && formData.check_out_date <= formData.check_in_date) {
       toast.error('วันที่เช็คเอาท์ต้องหลังจากวันที่เช็คอิน');
+      return;
+    }
+
+    setBookingStep(2);
+  };
+
+  const handleSubmitPayment = (e) => {
+    e.preventDefault();
+
+    if (!depositSlipUrl) {
+      toast.error('กรุณาอัปโหลดสลิปการโอนเงิน');
       return;
     }
 
@@ -579,14 +607,25 @@ export default function PublicBooking() {
       </div>
 
       {/* Booking Form Dialog */}
-      <Dialog open={showBookingForm} onOpenChange={setShowBookingForm}>
+      <Dialog open={showBookingForm} onOpenChange={(open) => {
+        setShowBookingForm(open);
+        if (!open) {
+          setBookingStep(1);
+          setDepositSlipUrl('');
+        }
+      }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto mx-4 sm:mx-0">
           <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl">📝 จองห้อง {selectedRoom?.room_number}</DialogTitle>
-            <DialogDescription className="text-sm">กรอกข้อมูลของคุณเพื่อจองห้องพัก</DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">
+              {bookingStep === 1 ? '📝 ข้อมูลการจอง' : '💳 ชำระเงินมัดจำ'} - ห้อง {selectedRoom?.room_number}
+            </DialogTitle>
+            <DialogDescription className="text-sm">
+              {bookingStep === 1 ? 'กรอกข้อมูลของคุณเพื่อจองห้องพัก' : 'โอนเงินมัดจำเพื่อยืนยันการจอง'}
+            </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          {bookingStep === 1 ? (
+            <form onSubmit={handleNextStep} className="space-y-4 mt-4">
             <div>
               <label className="block text-sm font-medium mb-2">
                 ประเภทการจอง <span className="text-red-500">*</span>
@@ -719,71 +758,6 @@ export default function PublicBooking() {
               </div>
             )}
 
-            {/* Deposit Payment Section */}
-            <div className="border-t pt-4 mt-4">
-              <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-blue-600" />
-                ชำระเงินมัดจำ
-              </h3>
-
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 mb-4 border border-blue-200">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-slate-700">ยอดมัดจำที่ต้องชำระ</span>
-                  <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    ฿200
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600">
-                  กรุณาโอนเงินมัดจำเพื่อยืนยันการจอง
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <div className="bg-slate-50 rounded-lg p-3 text-sm">
-                  <p className="font-medium text-slate-800 mb-1">📋 ข้อมูลการโอน</p>
-                  <p className="text-slate-600">👤 ชื่อ: {formData.guest_name || 'กรุณากรอกชื่อ'}</p>
-                  <p className="text-slate-600">📞 เบอร์: {formData.guest_phone || 'กรุณากรอกเบอร์โทร'}</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    อัปโหลดสลิปการโอนเงิน <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        try {
-                          const { data } = await base44.integrations.Core.UploadFile({ file });
-                          setDepositSlipUrl(data.file_url);
-                          toast.success('อัปโหลดสลิปสำเร็จ');
-                        } catch (error) {
-                          toast.error('อัปโหลดสลิปไม่สำเร็จ');
-                        }
-                      }
-                    }}
-                    required
-                    className="cursor-pointer"
-                  />
-                  {depositSlipUrl && (
-                    <div className="mt-2 relative">
-                      <img 
-                        src={depositSlipUrl} 
-                        alt="สลิปการโอนเงิน" 
-                        className="w-full max-w-xs rounded-lg border-2 border-green-500"
-                      />
-                      <Badge className="absolute top-2 right-2 bg-green-500">
-                        <Check className="w-3 h-3 mr-1" />
-                        อัปโหลดแล้ว
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
             <div className="flex gap-3 pt-4">
               <Button 
                 type="button" 
@@ -795,22 +769,148 @@ export default function PublicBooking() {
               </Button>
               <Button 
                 type="submit" 
-                disabled={createBookingMutation.isPending || !depositSlipUrl}
-                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 disabled:opacity-50"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600"
               >
-                {createBookingMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    กำลังจอง...
-                  </>
-                ) : (
-                  'ยืนยันการจอง'
-                )}
+                ถัดไป →
               </Button>
             </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+            </form>
+            ) : (
+            <form onSubmit={handleSubmitPayment} className="space-y-4 mt-4">
+              {/* Summary */}
+              <div className="bg-slate-50 rounded-lg p-4 text-sm space-y-2">
+                <p className="font-semibold text-slate-800 mb-2">📋 สรุปข้อมูลการจอง</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <span className="text-slate-600">ชื่อ:</span>
+                  <span className="font-medium text-slate-800">{formData.guest_name}</span>
+                  <span className="text-slate-600">เบอร์โทร:</span>
+                  <span className="font-medium text-slate-800">{formData.guest_phone}</span>
+                  <span className="text-slate-600">จำนวนผู้เข้าพัก:</span>
+                  <span className="font-medium text-slate-800">{formData.number_of_guests} คน</span>
+                  <span className="text-slate-600">เช็คอิน:</span>
+                  <span className="font-medium text-slate-800">
+                    {new Date(formData.check_in_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                  {formData.check_out_date && (
+                    <>
+                      <span className="text-slate-600">เช็คเอาท์:</span>
+                      <span className="font-medium text-slate-800">
+                        {new Date(formData.check_out_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Deposit Amount */}
+              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-5 border border-blue-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-base font-medium text-slate-700">ยอดมัดจำที่ต้องชำระ</span>
+                  <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    ฿200
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600">
+                  กรุณาโอนเงินมัดจำเพื่อยืนยันการจอง
+                </p>
+              </div>
+
+              {/* Bank Info */}
+              {(bankName || bankAccount || bankAccountName) && (
+                <div className="bg-white border-2 border-blue-200 rounded-xl p-4">
+                  <p className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-blue-600" />
+                    บัญชีสำหรับโอนเงิน
+                  </p>
+                  <div className="space-y-2 text-sm">
+                    {bankName && (
+                      <div className="flex items-center justify-between bg-slate-50 rounded-lg p-2">
+                        <span className="text-slate-600">ธนาคาร:</span>
+                        <span className="font-semibold text-slate-800">{bankName}</span>
+                      </div>
+                    )}
+                    {bankAccount && (
+                      <div className="flex items-center justify-between bg-slate-50 rounded-lg p-2">
+                        <span className="text-slate-600">เลขที่บัญชี:</span>
+                        <span className="font-semibold text-slate-800 font-mono">{bankAccount}</span>
+                      </div>
+                    )}
+                    {bankAccountName && (
+                      <div className="flex items-center justify-between bg-slate-50 rounded-lg p-2">
+                        <span className="text-slate-600">ชื่อบัญชี:</span>
+                        <span className="font-semibold text-slate-800">{bankAccountName}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Slip */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  อัปโหลดสลิปการโอนเงิน <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      try {
+                        const { data } = await base44.integrations.Core.UploadFile({ file });
+                        setDepositSlipUrl(data.file_url);
+                        toast.success('อัปโหลดสลิปสำเร็จ');
+                      } catch (error) {
+                        toast.error('อัปโหลดสลิปไม่สำเร็จ');
+                      }
+                    }
+                  }}
+                  required
+                  className="cursor-pointer"
+                />
+                {depositSlipUrl && (
+                  <div className="mt-3 relative">
+                    <img 
+                      src={depositSlipUrl} 
+                      alt="สลิปการโอนเงิน" 
+                      className="w-full max-w-xs rounded-lg border-2 border-green-500 mx-auto"
+                    />
+                    <Badge className="absolute top-2 right-2 bg-green-500">
+                      <Check className="w-3 h-3 mr-1" />
+                      อัปโหลดแล้ว
+                    </Badge>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setBookingStep(1)}
+                  className="flex-1"
+                >
+                  ← ย้อนกลับ
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createBookingMutation.isPending || !depositSlipUrl}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 disabled:opacity-50"
+                >
+                  {createBookingMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      กำลังจอง...
+                    </>
+                  ) : (
+                    'ยืนยันการจอง'
+                  )}
+                </Button>
+              </div>
+            </form>
+            )}
+            </DialogContent>
+            </Dialog>
 
       {/* Room Details Dialog */}
       <Dialog open={showRoomDetails} onOpenChange={setShowRoomDetails}>
