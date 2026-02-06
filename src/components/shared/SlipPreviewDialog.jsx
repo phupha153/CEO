@@ -11,6 +11,15 @@ export default function SlipPreviewDialog({ open, onOpenChange, slipUrl, title =
 
   if (!slipUrl) return null;
 
+  // Reset states when dialog opens/closes
+  React.useEffect(() => {
+    if (open) {
+      setImageLoaded(false);
+      setImageError(false);
+      setZoom(1);
+    }
+  }, [open, slipUrl]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] p-0 overflow-hidden">
