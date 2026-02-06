@@ -26,7 +26,10 @@ export default function Welcome() {
   useEffect(() => {
     base44.auth.isAuthenticated()
       .then(authed => setIsAuthenticated(authed))
-      .catch(() => setIsAuthenticated(false));
+      .catch(() => {
+        // Expected 401 on public pages - suppress error
+        setIsAuthenticated(false);
+      });
   }, []);
 
   const handleCta = () => {
