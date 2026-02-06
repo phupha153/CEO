@@ -64,11 +64,11 @@ export default function PublicBooking() {
   const { data: availableRooms = [], isLoading: roomsLoading } = useQuery({
     queryKey: ['publicRooms', branch_id],
     queryFn: async () => {
-      const rooms = await base44.entities.Room.filter({
+      const rooms = await base44.asServiceRole.entities.Room.filter({
         branch_id: branch_id,
         status: 'available',
         room_type: 'monthly'
-      }, 'floor,room_number', 100);
+      }, 'floor', 100);
       return rooms;
     },
     enabled: !!branch_id
