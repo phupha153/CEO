@@ -876,7 +876,8 @@ export default function Layout({ children, currentPageName }) {
         currentPageName !== 'Receipt' &&
         currentPageName !== 'PrintReceipts' &&
         currentPageName !== 'PublicInvoice' &&
-        currentPageName !== 'PublicReceipt') {
+        currentPageName !== 'PublicReceipt' &&
+        currentPageName !== 'PublicBooking') {
       navigate(createPageUrl('Welcome'), { replace: true });
       return;
     }
