@@ -39,6 +39,7 @@ export default function PublicBooking() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [searchDate, setSearchDate] = useState(new Date().toISOString().split('T')[0]);
   const [tempSearchDate, setTempSearchDate] = useState(new Date().toISOString().split('T')[0]);
+  const [tempCheckOutDate, setTempCheckOutDate] = useState('');
   const [tempNumberOfGuests, setTempNumberOfGuests] = useState(1);
   const [formData, setFormData] = useState({
     guest_name: '',
@@ -205,7 +206,9 @@ export default function PublicBooking() {
     setFormData({ 
       ...formData, 
       check_in_date: tempSearchDate,
-      number_of_guests: tempNumberOfGuests
+      check_out_date: tempCheckOutDate,
+      number_of_guests: tempNumberOfGuests,
+      booking_type: tempCheckOutDate ? 'daily' : 'monthly'
     });
     setShowInitialDialog(false);
   };
@@ -226,13 +229,26 @@ export default function PublicBooking() {
           <div className="space-y-4 mt-4">
             <div>
               <label className="block text-sm font-medium mb-2">
-                📅 วันที่ต้องการเข้าพัก <span className="text-red-500">*</span>
+                📅 วันที่เช็คอิน <span className="text-red-500">*</span>
               </label>
               <Input
                 type="date"
                 value={tempSearchDate}
                 onChange={(e) => setTempSearchDate(e.target.value)}
                 min={new Date().toISOString().split('T')[0]}
+                className="text-base"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                📅 วันที่เช็คเอาท์ <span className="text-slate-500 text-xs">(ถ้าไม่ระบุ = รายเดือน)</span>
+              </label>
+              <Input
+                type="date"
+                value={tempCheckOutDate}
+                onChange={(e) => setTempCheckOutDate(e.target.value)}
+                min={tempSearchDate}
                 className="text-base"
               />
             </div>
@@ -285,17 +301,28 @@ export default function PublicBooking() {
         <Card className="mb-6 bg-white/80 backdrop-blur-xl border-white/50">
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-4 text-sm flex-wrap">
                 <div className="flex items-center gap-2">
                   <Home className="w-4 h-4 text-blue-600" />
                   <span className="font-semibold">
                     {new Date(searchDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </span>
                 </div>
+                {formData.check_out_date && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400">→</span>
+                    <span className="font-semibold">
+                      {new Date(formData.check_out_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-purple-600" />
                   <span className="font-semibold">{formData.number_of_guests} คน</span>
                 </div>
+                <Badge variant="outline" className="text-xs">
+                  {formData.booking_type === 'monthly' ? '📅 รายเดือน' : '🏖️ รายวัน'}
+                </Badge>
               </div>
               <Button
                 onClick={() => setShowInitialDialog(true)}
