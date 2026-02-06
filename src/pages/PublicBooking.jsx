@@ -34,7 +34,7 @@ export default function PublicBooking() {
     queryKey: ['publicBranch', branch_id],
     queryFn: async () => {
       if (!branch_id) return null;
-      const branches = await base44.entities.Branch.filter({ id: branch_id });
+      const branches = await base44.asServiceRole.entities.Branch.filter({ id: branch_id });
       return branches[0] || null;
     },
     enabled: !!branch_id
@@ -44,7 +44,7 @@ export default function PublicBooking() {
   const { data: configs = [] } = useQuery({
     queryKey: ['publicConfigs', branch_id],
     queryFn: async () => {
-      const allConfigs = await base44.entities.Config.list('', 200);
+      const allConfigs = await base44.asServiceRole.entities.Config.list('', 200);
       return allConfigs.filter(c => !c.branch_id || c.branch_id === branch_id);
     },
     enabled: !!branch_id
