@@ -365,10 +365,10 @@ export default function PublicBooking() {
             >
               <TabsList className="grid w-full grid-cols-2 bg-slate-100">
                 <TabsTrigger value="monthly" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                  พักชั่วคืน
+                  รายเดือน
                 </TabsTrigger>
                 <TabsTrigger value="daily" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-                  ที่พักรายช่วง
+                  รายวัน
                 </TabsTrigger>
               </TabsList>
             </Tabs>
