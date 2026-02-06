@@ -869,6 +869,11 @@ export default function Layout({ children, currentPageName }) {
   // ⭐ User-centric subscription check (ใช้ที่ effect แล้ว - ไม่ต้องใช้ตัวแปร subscriptionCheck อีก)
 
   useEffect(() => {
+    // ⭐ Skip ALL checks for public pages
+    if (isPublicPage) {
+      return;
+    }
+
     // ⭐ Redirect unauthenticated users to Welcome (even if there's an auth error)
     if (!isLoading && !currentUser && 
         currentPageName !== 'Welcome' &&
