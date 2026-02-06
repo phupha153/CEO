@@ -20,7 +20,8 @@ import {
   X,
   Loader2,
   Building2,
-  Bed
+  Bed,
+  Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -33,9 +34,12 @@ export default function PublicBooking() {
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [showRoomDetails, setShowRoomDetails] = useState(false);
+  const [showInitialDialog, setShowInitialDialog] = useState(true);
   const [detailRoom, setDetailRoom] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [searchDate, setSearchDate] = useState(new Date().toISOString().split('T')[0]);
+  const [tempSearchDate, setTempSearchDate] = useState(new Date().toISOString().split('T')[0]);
+  const [tempNumberOfGuests, setTempNumberOfGuests] = useState(1);
   const [formData, setFormData] = useState({
     guest_name: '',
     guest_phone: '',
@@ -71,7 +75,7 @@ export default function PublicBooking() {
       });
       return response.data;
     },
-    enabled: !!branchId && !!searchDate,
+    enabled: !!branchId && !!searchDate && !showInitialDialog,
     staleTime: 30000
   });
 
@@ -167,8 +171,67 @@ export default function PublicBooking() {
     );
   }
 
+  const handleInitialSearch = () => {
+    setSearchDate(tempSearchDate);
+    setFormData({ 
+      ...formData, 
+      check_in_date: tempSearchDate,
+      number_of_guests: tempNumberOfGuests
+    });
+    setShowInitialDialog(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
+      {/* Initial Search Dialog */}
+      <Dialog open={showInitialDialog} onOpenChange={setShowInitialDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2">
+              <Home className="w-6 h-6 text-blue-600" />
+              ค้นหาห้องพัก
+            </DialogTitle>
+            <DialogDescription>กรุณาระบุข้อมูลการเข้าพักของคุณ</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                📅 วันที่ต้องการเข้าพัก <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="date"
+                value={tempSearchDate}
+                onChange={(e) => setTempSearchDate(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                className="text-base"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                👥 จำนวนผู้เข้าพัก <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="number"
+                min="1"
+                max="10"
+                value={tempNumberOfGuests}
+                onChange={(e) => setTempNumberOfGuests(parseInt(e.target.value) || 1)}
+                className="text-base"
+              />
+            </div>
+
+            <Button 
+              onClick={handleInitialSearch}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            >
+              ค้นหาห้องว่าง
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-xl border-b border-white/50 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-6">
@@ -189,37 +252,28 @@ export default function PublicBooking() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Date Picker */}
+        {/* Search Summary & Filter */}
         <Card className="mb-6 bg-white/80 backdrop-blur-xl border-white/50">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Home className="w-5 h-5 text-blue-600" />
-              ค้นหาห้องว่าง
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col sm:flex-row gap-4 items-end">
-              <div className="flex-1">
-                <label className="block text-sm font-medium mb-2">
-                  📅 เลือกวันที่ต้องการเข้าพัก
-                </label>
-                <Input
-                  type="date"
-                  value={searchDate}
-                  onChange={(e) => {
-                    setSearchDate(e.target.value);
-                    setFormData({ ...formData, check_in_date: e.target.value });
-                  }}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="text-base"
-                />
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <Home className="w-4 h-4 text-blue-600" />
+                  <span className="font-semibold">
+                    {new Date(searchDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-purple-600" />
+                  <span className="font-semibold">{formData.number_of_guests} คน</span>
+                </div>
               </div>
               <Button
-                onClick={() => setSearchDate(new Date().toISOString().split('T')[0])}
+                onClick={() => setShowInitialDialog(true)}
                 variant="outline"
-                className="whitespace-nowrap"
+                size="sm"
               >
-                วันนี้
+                เปลี่ยนเงื่อนไข
               </Button>
             </div>
           </CardContent>
