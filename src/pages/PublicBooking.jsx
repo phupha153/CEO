@@ -21,7 +21,9 @@ import {
   Loader2,
   Building2,
   Bed,
-  Users
+  Users,
+  Calendar,
+  Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -217,64 +219,103 @@ export default function PublicBooking() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       {/* Initial Search Dialog */}
       <Dialog open={showInitialDialog} onOpenChange={setShowInitialDialog}>
-        <DialogContent className="max-w-md mx-4 sm:mx-0">
-          <DialogHeader>
-            <DialogTitle className="text-xl sm:text-2xl flex items-center gap-2">
-              <Home className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-              ค้นหาห้องพัก
-            </DialogTitle>
-            <DialogDescription className="text-sm">กรุณาระบุข้อมูลการเข้าพักของคุณ</DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-xl mx-4 sm:mx-0 p-0 overflow-hidden">
+          <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6 sm:p-8">
+            <DialogHeader className="text-center mb-6">
+              <DialogTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                ค้นหาห้องพัก
+              </DialogTitle>
+              <DialogDescription className="text-sm text-slate-600 mt-2">
+                ค้นหาห้องที่เหมาะกับคุณ
+              </DialogDescription>
+            </DialogHeader>
 
-          <div className="space-y-4 mt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  📅 วันที่เช็คอิน <span className="text-red-500">*</span>
-                </label>
+            <div className="space-y-4 mt-6">
+              {/* Search Box Style */}
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <Search className="w-5 h-5 text-slate-400" />
+                </div>
                 <Input
-                  type="date"
-                  value={tempSearchDate}
-                  onChange={(e) => setTempSearchDate(e.target.value)}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="text-base"
+                  value={branch?.branch_name || 'กำลังโหลด...'}
+                  disabled
+                  className="pl-12 h-14 text-base bg-slate-50 border-slate-200 text-slate-700 font-medium"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  📅 วันที่เช็คเอาท์ <span className="text-slate-500 text-xs">(ถ้าไม่ระบุ = รายเดือน)</span>
-                </label>
-                <Input
-                  type="date"
-                  value={tempCheckOutDate}
-                  onChange={(e) => setTempCheckOutDate(e.target.value)}
-                  min={tempSearchDate}
-                  className="text-base"
-                />
+              {/* Date Selection */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                    <span className="text-xs text-slate-600">เช็คอิน</span>
+                  </div>
+                  <Input
+                    type="date"
+                    value={tempSearchDate}
+                    onChange={(e) => setTempSearchDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="border-0 bg-transparent p-0 h-auto text-sm font-semibold text-slate-800"
+                  />
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                    <span className="text-xs text-slate-600">เช็คเอาท์</span>
+                  </div>
+                  <Input
+                    type="date"
+                    value={tempCheckOutDate}
+                    onChange={(e) => setTempCheckOutDate(e.target.value)}
+                    min={tempSearchDate}
+                    placeholder="รายเดือน"
+                    className="border-0 bg-transparent p-0 h-auto text-sm font-semibold text-slate-800"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                👥 จำนวนผู้เข้าพัก <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="number"
-                min="1"
-                max="10"
-                value={tempNumberOfGuests}
-                onChange={(e) => setTempNumberOfGuests(parseInt(e.target.value) || 1)}
-                className="text-base"
-              />
-            </div>
+              {/* Guest Count */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-slate-700" />
+                    <span className="text-sm font-medium text-slate-700">จำนวนผู้เข้าพัก</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTempNumberOfGuests(Math.max(1, tempNumberOfGuests - 1))}
+                      className="h-8 w-8 rounded-full p-0"
+                    >
+                      -
+                    </Button>
+                    <span className="text-base font-bold text-slate-800 min-w-[40px] text-center">
+                      {tempNumberOfGuests} คน
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setTempNumberOfGuests(Math.min(10, tempNumberOfGuests + 1))}
+                      className="h-8 w-8 rounded-full p-0"
+                    >
+                      +
+                    </Button>
+                  </div>
+                </div>
+              </div>
 
-            <Button 
-              onClick={handleInitialSearch}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-            >
-              ค้นหาห้องว่าง
-            </Button>
+              {/* Search Button */}
+              <Button 
+                onClick={handleInitialSearch}
+                className="w-full h-14 text-base font-semibold bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg"
+              >
+                ดูราคา
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
