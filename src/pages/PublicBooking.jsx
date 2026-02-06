@@ -217,13 +217,13 @@ export default function PublicBooking() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       {/* Initial Search Dialog */}
       <Dialog open={showInitialDialog} onOpenChange={setShowInitialDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md mx-4 sm:mx-0">
           <DialogHeader>
-            <DialogTitle className="text-2xl flex items-center gap-2">
-              <Home className="w-6 h-6 text-blue-600" />
+            <DialogTitle className="text-xl sm:text-2xl flex items-center gap-2">
+              <Home className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
               ค้นหาห้องพัก
             </DialogTitle>
-            <DialogDescription>กรุณาระบุข้อมูลการเข้าพักของคุณ</DialogDescription>
+            <DialogDescription className="text-sm">กรุณาระบุข้อมูลการเข้าพักของคุณ</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
@@ -280,24 +280,24 @@ export default function PublicBooking() {
       </Dialog>
 
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-white/50 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden">
+      <div className="bg-white/90 backdrop-blur-xl border-b border-white/50 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg overflow-hidden border-2 border-blue-100">
               <img
                 src={branch.image_url || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/58da6a306_DC4395DB-4B27-4859-85B3-4F2948654F9E.png'}
                 alt={branch.branch_name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain p-1"
                 onError={(e) => {
                   e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/58da6a306_DC4395DB-4B27-4859-85B3-4F2948654F9E.png';
                 }}
               />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">{branch.branch_name}</h1>
-              <p className="text-sm text-slate-600 flex items-center gap-2">
-                <MapPin className="w-4 h-4" />
-                {branch.address || 'หอพักคุณภาพ'}
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 truncate">{branch.branch_name}</h1>
+              <p className="text-xs sm:text-sm text-slate-600 flex items-center gap-1 sm:gap-2 mt-1">
+                <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="truncate">{branch.address || 'หอพักคุณภาพ'}</span>
               </p>
             </div>
           </div>
@@ -305,38 +305,41 @@ export default function PublicBooking() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Search Summary & Filter */}
-        <Card className="mb-6 bg-white/80 backdrop-blur-xl border-white/50">
-          <CardContent className="p-4">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4 text-sm flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Home className="w-4 h-4 text-blue-600" />
+        <Card className="mb-4 sm:mb-6 bg-white/90 backdrop-blur-xl border-white/50 shadow-lg">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-xs sm:text-sm">
+                  <Home className="w-4 h-4 text-blue-600 flex-shrink-0" />
                   <span className="font-semibold">
-                    {new Date(searchDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {new Date(searchDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </span>
+                  {formData.check_out_date && (
+                    <>
+                      <span className="text-slate-400">→</span>
+                      <span className="font-semibold">
+                        {new Date(formData.check_out_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </>
+                  )}
                 </div>
-                {formData.check_out_date && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400">→</span>
-                    <span className="font-semibold">
-                      {new Date(formData.check_out_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
-                    </span>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-purple-600" />
+                    <span className="text-xs sm:text-sm font-semibold">{formData.number_of_guests} คน</span>
                   </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-purple-600" />
-                  <span className="font-semibold">{formData.number_of_guests} คน</span>
+                  <Badge variant="outline" className="text-xs">
+                    {formData.booking_type === 'monthly' ? '📅 รายเดือน' : '🏖️ รายวัน'}
+                  </Badge>
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  {formData.booking_type === 'monthly' ? '📅 รายเดือน' : '🏖️ รายวัน'}
-                </Badge>
               </div>
               <Button
                 onClick={() => setShowInitialDialog(true)}
                 variant="outline"
                 size="sm"
+                className="w-full sm:w-auto"
               >
                 เปลี่ยนเงื่อนไข
               </Button>
@@ -353,15 +356,19 @@ export default function PublicBooking() {
           </Card>
         ) : (
           <>
-            <div className="mb-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-2">ห้องพักทั้งหมด</h2>
-              <p className="text-slate-600">
-                <span className="text-green-600 font-semibold">{rooms.filter(r => r.isAvailable).length} ห้องว่าง</span>
-                {' '}/ {rooms.length} ห้องทั้งหมด
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-1 sm:mb-2">ห้องพักทั้งหมด</h2>
+              <p className="text-sm sm:text-base text-slate-600">
+                <span className="inline-flex items-center gap-1.5 bg-green-50 text-green-700 px-2.5 py-1 rounded-full font-semibold text-xs sm:text-sm">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  {rooms.filter(r => r.isAvailable).length} ห้องว่าง
+                </span>
+                <span className="text-slate-400 mx-2">/</span>
+                <span className="text-slate-600">{rooms.length} ห้องทั้งหมด</span>
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               <AnimatePresence>
                 {rooms.map((room) => (
                   <motion.div
@@ -371,8 +378,8 @@ export default function PublicBooking() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     className={!room.isAvailable ? 'opacity-60' : ''}
                   >
-                    <Card className={`overflow-hidden hover:shadow-2xl transition-all duration-300 group ${
-                      !room.isAvailable ? 'bg-slate-100/50' : ''
+                    <Card className={`overflow-hidden hover:shadow-xl transition-all duration-300 group ${
+                      !room.isAvailable ? 'bg-slate-50/80 border-slate-200' : 'bg-white shadow-md'
                     }`}>
                       {/* Room Image */}
                       <div className="relative h-48 bg-gradient-to-br from-slate-200 to-slate-300 overflow-hidden">
@@ -409,18 +416,18 @@ export default function PublicBooking() {
                         )}
                       </div>
 
-                      <CardHeader>
-                        <CardTitle className="text-xl">ห้อง {room.room_number}</CardTitle>
+                      <CardHeader className="p-4 sm:p-6">
+                        <CardTitle className="text-lg sm:text-xl font-bold">ห้อง {room.room_number}</CardTitle>
                         <CardDescription>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Home className="w-4 h-4" />
+                          <div className="flex items-center gap-2 text-xs sm:text-sm mt-1">
+                            <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             <span>
                               {room.room_type === 'monthly' ? 'รายเดือน' : 'รายวัน'}
                             </span>
                             {room.size && (
                               <>
                                 <span>•</span>
-                                <Maximize2 className="w-4 h-4" />
+                                <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                                 <span>{room.size} ตร.ม.</span>
                               </>
                             )}
@@ -428,29 +435,29 @@ export default function PublicBooking() {
                         </CardDescription>
                       </CardHeader>
 
-                      <CardContent>
-                        <div className="space-y-4">
+                      <CardContent className="p-4 sm:p-6 pt-0">
+                        <div className="space-y-3 sm:space-y-4">
                           {/* Price */}
-                          <div className="text-center py-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
-                            <p className="text-3xl font-bold text-blue-600">
+                          <div className="text-center py-4 sm:py-5 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100">
+                            <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                               ฿{room.price?.toLocaleString() || 'N/A'}
                             </p>
-                            <p className="text-xs text-slate-600 mt-1">
+                            <p className="text-xs sm:text-sm text-slate-600 mt-1">
                               {room.room_type === 'monthly' ? 'ต่อเดือน' : 'ต่อวัน'}
                             </p>
                           </div>
 
                           {/* Amenities */}
                           {room.amenities && room.amenities.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-1.5 sm:gap-2">
                               {room.amenities.slice(0, 3).map((amenity, idx) => (
-                                <Badge key={idx} variant="outline" className="text-xs">
-                                  {amenity}
+                                <Badge key={idx} variant="outline" className="text-xs bg-white">
+                                  ✓ {amenity}
                                 </Badge>
                               ))}
                               {room.amenities.length > 3 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{room.amenities.length - 3} อื่นๆ
+                                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+                                  +{room.amenities.length - 3}
                                 </Badge>
                               )}
                             </div>
@@ -458,13 +465,13 @@ export default function PublicBooking() {
 
                           {/* Description */}
                           {room.description && (
-                            <p className="text-sm text-slate-600 line-clamp-2">
+                            <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed">
                               {room.description}
                             </p>
                           )}
 
                           {/* Action Buttons */}
-                          <div className="flex gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <Button 
                               onClick={() => {
                                 setDetailRoom(room);
@@ -472,7 +479,7 @@ export default function PublicBooking() {
                                 setShowRoomDetails(true);
                               }}
                               variant="outline"
-                              className="flex-1"
+                              className="flex-1 text-xs sm:text-sm"
                               disabled={!room.isAvailable}
                             >
                               ดูรายละเอียด
@@ -483,10 +490,10 @@ export default function PublicBooking() {
                                 setFormData({ ...formData, check_in_date: searchDate });
                                 setShowBookingForm(true);
                               }}
-                              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
                               disabled={!room.isAvailable}
                             >
-                              {room.isAvailable ? 'จองห้องนี้' : 'เต็มแล้ว'}
+                              {room.isAvailable ? '📝 จองห้องนี้' : '⛔ เต็มแล้ว'}
                             </Button>
                           </div>
                         </div>
@@ -502,10 +509,10 @@ export default function PublicBooking() {
 
       {/* Booking Form Dialog */}
       <Dialog open={showBookingForm} onOpenChange={setShowBookingForm}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto mx-4 sm:mx-0">
           <DialogHeader>
-            <DialogTitle>จองห้อง {selectedRoom?.room_number}</DialogTitle>
-            <DialogDescription>กรอกข้อมูลของคุณเพื่อจองห้องพัก</DialogDescription>
+            <DialogTitle className="text-lg sm:text-xl">📝 จองห้อง {selectedRoom?.room_number}</DialogTitle>
+            <DialogDescription className="text-sm">กรอกข้อมูลของคุณเพื่อจองห้องพัก</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4 mt-4">
@@ -671,12 +678,12 @@ export default function PublicBooking() {
 
       {/* Room Details Dialog */}
       <Dialog open={showRoomDetails} onOpenChange={setShowRoomDetails}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto mx-4 sm:mx-0">
           {detailRoom && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-2xl">ห้อง {detailRoom.room_number}</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-xl sm:text-2xl">🏠 ห้อง {detailRoom.room_number}</DialogTitle>
+                <DialogDescription className="text-sm">
                   {detailRoom.room_type === 'monthly' ? 'ห้องรายเดือน' : 'ห้องรายวัน'}
                 </DialogDescription>
               </DialogHeader>
@@ -733,41 +740,41 @@ export default function PublicBooking() {
                 )}
 
                 {/* Price & Details */}
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-4 sm:p-6 border border-blue-100">
                   <div className="text-center mb-4">
-                    <p className="text-4xl font-bold text-blue-600">
+                    <p className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                       ฿{detailRoom.price?.toLocaleString() || 'N/A'}
                     </p>
-                    <p className="text-sm text-slate-600 mt-1">
+                    <p className="text-xs sm:text-sm text-slate-600 mt-1">
                       {detailRoom.room_type === 'monthly' ? 'ต่อเดือน' : 'ต่อวัน'}
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="bg-white/70 rounded-lg p-3">
-                      <p className="text-slate-600">ชั้น</p>
-                      <p className="font-bold text-slate-800">{detailRoom.floor}</p>
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
+                    <div className="bg-white/80 rounded-lg p-2.5 sm:p-3">
+                      <p className="text-slate-600 text-xs">ชั้น</p>
+                      <p className="font-bold text-slate-800 text-sm sm:text-base">{detailRoom.floor}</p>
                     </div>
                     {detailRoom.size && (
-                      <div className="bg-white/70 rounded-lg p-3">
-                        <p className="text-slate-600">ขนาด</p>
-                        <p className="font-bold text-slate-800">{detailRoom.size} ตร.ม.</p>
+                      <div className="bg-white/80 rounded-lg p-2.5 sm:p-3">
+                        <p className="text-slate-600 text-xs">ขนาด</p>
+                        <p className="font-bold text-slate-800 text-sm sm:text-base">{detailRoom.size} ตร.ม.</p>
                       </div>
                     )}
-                    <div className="bg-white/70 rounded-lg p-3">
-                      <p className="text-slate-600">ค่าน้ำ</p>
-                      <p className="font-bold text-slate-800">
+                    <div className="bg-white/80 rounded-lg p-2.5 sm:p-3">
+                      <p className="text-slate-600 text-xs">ค่าน้ำ</p>
+                      <p className="font-bold text-slate-800 text-xs sm:text-sm">
                         {detailRoom.is_flat_rate_water 
-                          ? `${detailRoom.flat_rate_water_amount} ฿/เดือน`
+                          ? `${detailRoom.flat_rate_water_amount} ฿/ด.`
                           : `${detailRoom.water_rate} ฿/หน่วย`
                         }
                       </p>
                     </div>
-                    <div className="bg-white/70 rounded-lg p-3">
-                      <p className="text-slate-600">ค่าไฟ</p>
-                      <p className="font-bold text-slate-800">
+                    <div className="bg-white/80 rounded-lg p-2.5 sm:p-3">
+                      <p className="text-slate-600 text-xs">ค่าไฟ</p>
+                      <p className="font-bold text-slate-800 text-xs sm:text-sm">
                         {detailRoom.is_flat_rate_electricity 
-                          ? `${detailRoom.flat_rate_electricity_amount} ฿/เดือน`
+                          ? `${detailRoom.flat_rate_electricity_amount} ฿/ด.`
                           : `${detailRoom.electricity_rate} ฿/หน่วย`
                         }
                       </p>
@@ -778,18 +785,18 @@ export default function PublicBooking() {
                 {/* Description */}
                 {detailRoom.description && (
                   <div>
-                    <h3 className="font-semibold text-slate-800 mb-2">รายละเอียด</h3>
-                    <p className="text-slate-600 leading-relaxed">{detailRoom.description}</p>
+                    <h3 className="font-semibold text-slate-800 mb-2 text-sm sm:text-base">รายละเอียด</h3>
+                    <p className="text-slate-600 leading-relaxed text-sm">{detailRoom.description}</p>
                   </div>
                 )}
 
                 {/* Amenities */}
                 {detailRoom.amenities && detailRoom.amenities.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-slate-800 mb-3">สิ่งอำนวยความสะดวก</h3>
+                    <h3 className="font-semibold text-slate-800 mb-3 text-sm sm:text-base">สิ่งอำนวยความสะดวก</h3>
                     <div className="flex flex-wrap gap-2">
                       {detailRoom.amenities.map((amenity, idx) => (
-                        <Badge key={idx} variant="outline" className="px-3 py-1">
+                        <Badge key={idx} variant="outline" className="px-2.5 py-1 text-xs sm:text-sm bg-white">
                           ✓ {amenity}
                         </Badge>
                       ))}
@@ -827,13 +834,13 @@ export default function PublicBooking() {
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="max-w-md text-center">
-          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <Check className="w-8 h-8 text-green-600" />
+        <DialogContent className="max-w-md text-center mx-4 sm:mx-0">
+          <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+            <Check className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
           </div>
           <DialogHeader>
-            <DialogTitle className="text-2xl">จองสำเร็จ! 🎉</DialogTitle>
-            <DialogDescription className="text-base mt-4">
+            <DialogTitle className="text-xl sm:text-2xl">จองสำเร็จ! 🎉</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base mt-4 leading-relaxed">
               ทางสาขาได้รับการจองของคุณแล้ว<br/>
               และจะติดต่อกลับไปยังเบอร์โทรศัพท์ที่คุณให้ไว้<br/>
               ภายใน 24 ชั่วโมง
@@ -844,7 +851,7 @@ export default function PublicBooking() {
               setShowSuccessDialog(false);
               window.location.reload();
             }}
-            className="w-full mt-6 bg-gradient-to-r from-blue-600 to-purple-600"
+            className="w-full mt-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
           >
             ดูห้องอื่นๆ
           </Button>
