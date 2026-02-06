@@ -227,30 +227,32 @@ export default function PublicBooking() {
           </DialogHeader>
 
           <div className="space-y-4 mt-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                📅 วันที่เช็คอิน <span className="text-red-500">*</span>
-              </label>
-              <Input
-                type="date"
-                value={tempSearchDate}
-                onChange={(e) => setTempSearchDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
-                className="text-base"
-              />
-            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  📅 วันที่เช็คอิน <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="date"
+                  value={tempSearchDate}
+                  onChange={(e) => setTempSearchDate(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="text-base"
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                📅 วันที่เช็คเอาท์ <span className="text-slate-500 text-xs">(ถ้าไม่ระบุ = รายเดือน)</span>
-              </label>
-              <Input
-                type="date"
-                value={tempCheckOutDate}
-                onChange={(e) => setTempCheckOutDate(e.target.value)}
-                min={tempSearchDate}
-                className="text-base"
-              />
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  📅 วันที่เช็คเอาท์ <span className="text-slate-500 text-xs">(ถ้าไม่ระบุ = รายเดือน)</span>
+                </label>
+                <Input
+                  type="date"
+                  value={tempCheckOutDate}
+                  onChange={(e) => setTempCheckOutDate(e.target.value)}
+                  min={tempSearchDate}
+                  className="text-base"
+                />
+              </div>
             </div>
 
             <div>
@@ -281,8 +283,15 @@ export default function PublicBooking() {
       <div className="bg-white/80 backdrop-blur-xl border-b border-white/50 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden">
+              <img
+                src={branch.image_url || 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/58da6a306_DC4395DB-4B27-4859-85B3-4F2948654F9E.png'}
+                alt={branch.branch_name}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/58da6a306_DC4395DB-4B27-4859-85B3-4F2948654F9E.png';
+                }}
+              />
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900">{branch.branch_name}</h1>
