@@ -1002,6 +1002,9 @@ export default function Layout({ children, currentPageName }) {
   }, [isLoading, currentUser, navigate, currentPageName, error, crmAccessLoading, userRole, selectedBranch, branchOwnerStatus, branchOwnerLoading]);
 
   useEffect(() => {
+    // ⭐ Skip for public pages
+    if (isPublicPage) return;
+
     if (!currentUser || isLoading || branchesLoading) return;
 
     // Pages that don't require a selected branch
@@ -1012,12 +1015,7 @@ export default function Layout({ children, currentPageName }) {
         currentPageName === 'ActivityLog' ||
         currentPageName === 'DataLists' ||
         currentPageName === 'UpdateMyBranches' ||
-        currentPageName === 'UserBranchAccess' ||
-        currentPageName === 'PublicInvoice' ||
-        currentPageName === 'PublicReceipt' ||
-        currentPageName === 'Invoice' ||
-        currentPageName === 'Receipt' ||
-        currentPageName === 'Welcome') {
+        currentPageName === 'UserBranchAccess') {
       return;
     }
 
