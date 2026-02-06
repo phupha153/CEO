@@ -23,7 +23,7 @@ export default function ScrollToTopButton() {
         shouldShow: scrollTop > 100
       });
       
-      setIsVisible(scrollTop > 400);
+      setIsVisible(scrollTop > 800);
     };
 
     // ฟัง scroll จาก main content container
