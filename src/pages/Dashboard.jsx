@@ -990,7 +990,7 @@ export default function Dashboard() {
                     </Button>
                     <Button
                       onClick={() => {
-                        window.open(`/PublicBooking?branchId=${selectedBranchId}`, '_blank');
+                        navigate(`/PublicBooking?branchId=${selectedBranchId}`);
                       }}
                       size="sm"
                       variant="outline"
