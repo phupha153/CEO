@@ -21,11 +21,14 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import StatsCard from "../components/dashboard/StatsCard";
 import PageHeader from "../components/shared/PageHeader";
 import ScrollToTopButton from "../components/shared/ScrollToTopButton";
+import SlipPreviewDialog from "../components/shared/SlipPreviewDialog";
 
 export default function Expenses() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showSlipPreview, setShowSlipPreview] = useState(false);
+  const [selectedSlipUrl, setSelectedSlipUrl] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
   const [dateRangeType, setDateRangeType] = useState('this_month'); // 'this_month', '3_months', '6_months', 'custom'
   const [dateRange, setDateRange] = useState({
