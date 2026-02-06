@@ -21,6 +21,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import StatsCard from "../components/dashboard/StatsCard";
 import PageHeader from "../components/shared/PageHeader";
 import ScrollToTopButton from "../components/shared/ScrollToTopButton";
+import SlipPreviewDialog from "../components/shared/SlipPreviewDialog";
 
 export default function Expenses() {
   const [showDialog, setShowDialog] = useState(false);

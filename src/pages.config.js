@@ -68,7 +68,6 @@ import Dashboard from './pages/Dashboard';
 import DataArchive from './pages/DataArchive';
 import DataLists from './pages/DataLists';
 import DeveloperGuide from './pages/DeveloperGuide';
-import Expenses from './pages/Expenses';
 import FacebookScreencastGuide from './pages/FacebookScreencastGuide';
 import FacebookSetupGuide from './pages/FacebookSetupGuide';
 import FacebookTestDemo from './pages/FacebookTestDemo';
@@ -105,6 +104,7 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
+import Expenses from './pages/Expenses';
 import __Layout from './Layout.jsx';
 
 
@@ -130,7 +130,6 @@ export const PAGES = {
     "DataArchive": DataArchive,
     "DataLists": DataLists,
     "DeveloperGuide": DeveloperGuide,
-    "Expenses": Expenses,
     "FacebookScreencastGuide": FacebookScreencastGuide,
     "FacebookSetupGuide": FacebookSetupGuide,
     "FacebookTestDemo": FacebookTestDemo,
@@ -167,6 +166,7 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
+    "Expenses": Expenses,
 }
 
 export const pagesConfig = {
