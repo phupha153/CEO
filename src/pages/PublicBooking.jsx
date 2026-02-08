@@ -857,11 +857,12 @@ export default function PublicBooking() {
                     const file = e.target.files?.[0];
                     if (file) {
                       try {
-                        const { data } = await base44.integrations.Core.UploadFile({ file });
-                        setDepositSlipUrl(data.file_url);
+                        const result = await base44.integrations.Core.UploadFile({ file });
+                        setDepositSlipUrl(result.file_url);
                         toast.success('อัปโหลดสลิปสำเร็จ');
                       } catch (error) {
-                        toast.error('อัปโหลดสลิปไม่สำเร็จ');
+                        console.error('Upload error:', error);
+                        toast.error('อัปโหลดสลิปไม่สำเร็จ: ' + error.message);
                       }
                     }
                   }}
