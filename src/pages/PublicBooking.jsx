@@ -1001,32 +1001,20 @@ export default function PublicBooking() {
                       <p className="text-slate-600 text-xs">ค่าน้ำ</p>
                       <p className="font-bold text-slate-800 text-xs sm:text-sm">
                         {detailRoom.is_flat_rate_water 
-                          ? `${detailRoom.flat_rate_water_amount} ฿/ด. (เหมา)`
+                          ? `${detailRoom.flat_rate_water_amount} ฿/ด.`
                           : `${detailRoom.water_rate} ฿/หน่วย`
                         }
                       </p>
-                      {!detailRoom.is_flat_rate_water && detailRoom.min_water_charge > 0 && (
-                        <p className="text-xs text-slate-500 mt-0.5">ขั้นต่ำ {detailRoom.min_water_charge} ฿</p>
-                      )}
                     </div>
                     <div className="bg-white/80 rounded-lg p-2.5 sm:p-3">
                       <p className="text-slate-600 text-xs">ค่าไฟ</p>
                       <p className="font-bold text-slate-800 text-xs sm:text-sm">
                         {detailRoom.is_flat_rate_electricity 
-                          ? `${detailRoom.flat_rate_electricity_amount} ฿/ด. (เหมา)`
+                          ? `${detailRoom.flat_rate_electricity_amount} ฿/ด.`
                           : `${detailRoom.electricity_rate} ฿/หน่วย`
                         }
                       </p>
-                      {!detailRoom.is_flat_rate_electricity && detailRoom.min_electricity_charge > 0 && (
-                        <p className="text-xs text-slate-500 mt-0.5">ขั้นต่ำ {detailRoom.min_electricity_charge} ฿</p>
-                      )}
                     </div>
-                    {detailRoom.common_fee > 0 && (
-                      <div className="bg-white/80 rounded-lg p-2.5 sm:p-3 col-span-2">
-                        <p className="text-slate-600 text-xs">ค่าส่วนกลาง</p>
-                        <p className="font-bold text-slate-800 text-xs sm:text-sm">{detailRoom.common_fee} ฿/เดือน</p>
-                      </div>
-                    )}
                   </div>
                 </div>
 
