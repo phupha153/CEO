@@ -986,7 +986,7 @@ export default function PublicBooking() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm mb-3">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                     <div className="bg-white/80 rounded-lg p-2.5 sm:p-3">
                       <p className="text-slate-600 text-xs">ชั้น</p>
                       <p className="font-bold text-slate-800 text-sm sm:text-base">{detailRoom.floor}</p>
@@ -997,64 +997,24 @@ export default function PublicBooking() {
                         <p className="font-bold text-slate-800 text-sm sm:text-base">{detailRoom.size} ตร.ม.</p>
                       </div>
                     )}
-                  </div>
-
-                  {/* ค่าน้ำ-ไฟ-ส่วนกลาง (รูปแบบเดียวกับหน้า Rooms) */}
-                  <div className="grid grid-cols-2 gap-3 bg-slate-100 p-3 rounded-lg">
-                    <div>
-                      <p className="text-slate-600 text-xs flex items-center gap-1">
-                        <span className="text-blue-500">💧</span>
-                        ค่าน้ำ
-                        {detailRoom.is_flat_rate_water && (
-                          <Badge className="bg-blue-500 text-white text-[10px] px-1.5 py-0 ml-1">เหมา</Badge>
-                        )}
-                      </p>
-                      <p className="font-semibold text-blue-600 text-xs sm:text-sm">
-                        {detailRoom.is_flat_rate_water ? (
-                          `${detailRoom.flat_rate_water_amount?.toLocaleString() || 0} บาท/เดือน`
-                        ) : (
-                          detailRoom.water_rate !== null && detailRoom.water_rate !== undefined ? `${detailRoom.water_rate} บาท/หน่วย` : <span className="text-slate-400 text-xs">(ใช้ค่ากลาง)</span>
-                        )}
-                      </p>
-                      {!detailRoom.is_flat_rate_water && detailRoom.min_water_charge > 0 && (
-                        <p className="text-[10px] text-slate-500 mt-0.5">ขั้นต่ำ {detailRoom.min_water_charge} ฿</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-slate-600 text-xs flex items-center gap-1">
-                        <span className="text-orange-500">⚡</span>
-                        ค่าไฟ
-                        {detailRoom.is_flat_rate_electricity && (
-                          <Badge className="bg-orange-500 text-white text-[10px] px-1.5 py-0 ml-1">เหมา</Badge>
-                        )}
-                      </p>
-                      <p className="font-semibold text-orange-600 text-xs sm:text-sm">
-                        {detailRoom.is_flat_rate_electricity ? (
-                          `${detailRoom.flat_rate_electricity_amount?.toLocaleString() || 0} บาท/เดือน`
-                        ) : (
-                          detailRoom.electricity_rate !== null && detailRoom.electricity_rate !== undefined ? `${detailRoom.electricity_rate} บาท/หน่วย` : <span className="text-slate-400 text-xs">(ใช้ค่ากลาง)</span>
-                        )}
-                      </p>
-                      {!detailRoom.is_flat_rate_electricity && detailRoom.min_electricity_charge > 0 && (
-                        <p className="text-[10px] text-slate-500 mt-0.5">ขั้นต่ำ {detailRoom.min_electricity_charge} ฿</p>
-                      )}
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-slate-600 text-xs">ค่าส่วนกลาง</p>
-                      <p className="font-semibold text-slate-700 text-xs sm:text-sm">
-                        {detailRoom.common_fee !== undefined && detailRoom.common_fee !== null
-                          ? (detailRoom.common_fee === 0 ? '0 บาท (ไม่เสีย)' : `${detailRoom.common_fee.toLocaleString()} บาท/เดือน`)
-                          : <span className="text-slate-400 text-xs">(ใช้ค่ากลาง)</span>}
+                    <div className="bg-white/80 rounded-lg p-2.5 sm:p-3">
+                      <p className="text-slate-600 text-xs">ค่าน้ำ</p>
+                      <p className="font-bold text-slate-800 text-xs sm:text-sm">
+                        {detailRoom.is_flat_rate_water 
+                          ? `${detailRoom.flat_rate_water_amount} ฿/ด.`
+                          : `${detailRoom.water_rate} ฿/หน่วย`
+                        }
                       </p>
                     </div>
-                    {detailRoom.other_monthly_fees && detailRoom.other_monthly_fees.length > 0 && detailRoom.other_monthly_fees.map((fee, index) => (
-                      <div key={index}>
-                        <p className="text-slate-600 text-xs">{fee.name}</p>
-                        <p className="font-semibold text-purple-600 text-xs sm:text-sm">
-                          {fee.amount?.toLocaleString()} บาท
-                        </p>
-                      </div>
-                    ))}
+                    <div className="bg-white/80 rounded-lg p-2.5 sm:p-3">
+                      <p className="text-slate-600 text-xs">ค่าไฟ</p>
+                      <p className="font-bold text-slate-800 text-xs sm:text-sm">
+                        {detailRoom.is_flat_rate_electricity 
+                          ? `${detailRoom.flat_rate_electricity_amount} ฿/ด.`
+                          : `${detailRoom.electricity_rate} ฿/หน่วย`
+                        }
+                      </p>
+                    </div>
                   </div>
                 </div>
 
