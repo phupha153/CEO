@@ -705,8 +705,23 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 3. **ถ้าเป็นคำสั่งแก้ไขหลายห้อง** (เช่น \"แก้ห้อง 101, 102 เป็นว่าง\"):
    - action_type = \"bulk_update\"
    - room_ids = array ของ ID ห้อง
-   - changes = object ของการเปลี่ยนแปลง, e.g. {\"status\": \"available\"}
+   - changes = object ของการเปลี่ยนแปลง
    - rooms_list = array ของ object ที่มี room_id, room_number, old_value
+
+⚡⚡⚡ **คำสั่งพิเศษ - ค่าเหมาจ่าย:**
+- ถ้าคำสั่งมีคำว่า "เหมา", "เหมาจ่าย", "แบบเหมา", "เป็นเหมา" + "ค่าไฟ" = ต้อง set:
+  * is_flat_rate_electricity: true
+  * flat_rate_electricity_amount: ตัวเลขที่ระบุ
+  * ❌ ห้าม set electricity_rate
+- ถ้าคำสั่งมีคำว่า "เหมา", "เหมาจ่าย", "แบบเหมา", "เป็นเหมา" + "ค่าน้ำ" = ต้อง set:
+  * is_flat_rate_water: true
+  * flat_rate_water_amount: ตัวเลขที่ระบุ
+  * ❌ ห้าม set water_rate
+
+ตัวอย่าง:
+- "ปรับค่าไฟเป็นแบบเหมา 200 บาท" → changes: {"is_flat_rate_electricity": true, "flat_rate_electricity_amount": 200}
+- "ปรับค่าน้ำห้อง 101 เป็นเหมา 150" → changes: {"is_flat_rate_water": true, "flat_rate_water_amount": 150}
+- "แก้ค่าไฟห้อง 201 เป็น 8" (ไม่มีคำว่า "เหมา") → changes: {"electricity_rate": 8}
 
 ⚠️ **สำคัญมาก:**
 - ถ้าคำสั่งระบุเลขห้องหลายห้อง ให้ใช้ action_type = \"bulk_update\"
