@@ -2345,23 +2345,19 @@ export default function ContractEditor() {
               width: 100% !important;
             }
             
-            .no-print, 
-            [class*="no-print"],
+            .no-print,
             aside, 
             nav, 
             [role="navigation"], 
             [data-sidebar], 
             .sidebar, 
-            header,
-            .ql-toolbar,
-            .ql-container,
-            div:not(.contract-print):not(.contract-page):not([dangerouslySetInnerHTML]) {
+            header {
               display: none !important;
-              visibility: hidden !important;
-              height: 0 !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              border: 0 !important;
+            }
+            
+            .ql-toolbar,
+            .ql-container .ql-tooltip { 
+              display: none !important; 
             }
             
             #root, main { 
@@ -2370,6 +2366,7 @@ export default function ContractEditor() {
               padding: 0 !important; 
               background: white !important;
               width: 100% !important;
+              height: auto !important;
             }
             
             .contract-print {
