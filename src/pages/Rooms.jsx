@@ -486,14 +486,23 @@ export default function RoomsPage() {
       else if (valueMatch3) newValue = valueMatch3[1];
       else if (valueMatch2) newValue = valueMatch2[1];
 
-      // ⭐ ตรวจจับคำสั่ง "เหมาจ่าย" ก่อน
-      const isFlatRateCommand = query.includes('เหมาจ่าย') || query.includes('เหมา');
+      // ⭐ ตรวจจับคำสั่ง "เหมาจ่าย" ก่อน - เพิ่ม pattern รองรับ "ปรับ...เป็นเหมา"
+      const isFlatRateCommand = query.includes('เหมาจ่าย') || query.includes('เหมา') || 
+                                 (query.includes('ปรับ') && query.includes('เป็น') && query.includes('เหมา'));
+      
+      console.log('🔍 [AI Parser Debug]', {
+        query,
+        isFlatRateCommand,
+        hasWaterKeyword: query.includes('ค่าน้ำ') || query.includes('น้ำ'),
+        hasElectricityKeyword: query.includes('ค่าไฟ') || query.includes('ไฟฟ้า'),
+        newValue
+      });
       
       // Check for field type based on keywords
       if (query.includes('ค่าส่วนกลาง') || query.includes('ส่วนกลาง')) {
         fieldToUpdate = 'common_fee';
         fieldLabel = 'ค่าส่วนกลาง';
-      } else if (query.includes('ค่าไฟ') || query.includes('ไฟฟ้า')) {
+      } else if (query.includes('ค่าไฟ') || query.includes('ไฟฟ้า') || query.includes('ไฟ')) {
         if (isFlatRateCommand) {
           fieldToUpdate = 'flat_rate_electricity';
           fieldLabel = 'ค่าไฟเหมาจ่าย';
@@ -526,6 +535,8 @@ export default function RoomsPage() {
             newValueIsString = true;
         }
       }
+      
+      console.log('✅ [AI Parser Result]', { fieldToUpdate, fieldLabel, isFlatRateCommand });
       
       // ตรวจสอบว่าต้องการแก้ไขห้องรายวันหรือรายเดือน
       const isFilterByRoomType = query.includes('รายวัน') || query.includes('รายเดือน');
