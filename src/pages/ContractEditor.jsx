@@ -2381,9 +2381,8 @@ export default function ContractEditor() {
               page-break-after: always !important;
               page-break-inside: avoid !important;
               display: block !important;
-              width: 21cm !important;
-              height: auto !important;
-              min-height: unset !important;
+              width: 100% !important;
+              height: 29.7cm !important;
               margin: 0 !important;
               padding: 1.5cm 1.5cm 2cm 1.5cm !important;
               background: white !important;
