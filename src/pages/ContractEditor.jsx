@@ -695,7 +695,7 @@ export default function ContractEditor() {
 
       if (tenant && room) {
         const additionalRulesHtml = updatedFormData.additional_rules.length > 0
-          ? updatedFormData.additional_rules.map((rule) => `<p style="margin-left: 2em; margin-bottom: 5pt; font-size: 11pt;">${rule}</p>`).join('\n')
+          ? updatedFormData.additional_rules.map((rule) => `<p style="margin-left: 2em; margin-bottom: 4pt; font-size: 10pt;">${rule}</p>`).join('\n')
           : '';
 
         const clauses = updatedFormData.contract_clauses.length > 0 ? updatedFormData.contract_clauses : getDefaultClauses();
@@ -703,52 +703,46 @@ export default function ContractEditor() {
         const template = `
 <div style="font-family: 'TH Sarabun New', 'Sarabun', sans-serif; font-size: 12pt; line-height: 1.6;">
   
-  <div class="contract-page" style="position: relative; min-height: 29.7cm; padding: 1.2cm 1.2cm 1.2cm 1.8cm; page-break-after: always;">
-    <div style="text-align: center; margin-bottom: 12pt;">
-      <h3 style="margin: 0; font-size: 15pt; font-weight: bold;">แบบสัญญาเช่าที่พักอาศัย</h3>
-      <p style="margin: 5pt 0 0 0; font-size: 12pt;">เรื่อง ให้ผู้เช่ารักษากฎการเช่าอาศัยตามสัญญา</p>
+  <div class="contract-page" style="position: relative; min-height: 29.7cm; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always;">
+    <div style="text-align: center; margin-bottom: 10pt;">
+      <h3 style="margin: 0; font-size: 14pt; font-weight: bold;">แบบสัญญาเช่าที่พักอาศัย</h3>
+      <p style="margin: 3pt 0 0 0; font-size: 11pt;">เรื่อง ให้ผู้เช่ารักษากฎการเช่าอาศัยตามสัญญา</p>
     </div>
 
-    <div style="text-align: right; margin-bottom: 10pt;">
-      <p style="margin: 0; font-size: 11pt;">วันที่ {วันที่ทำสัญญา} พ.ศ. ........</p>
+    <div style="text-align: right; margin-bottom: 8pt;">
+      <p style="margin: 0; font-size: 10pt;">วันที่ {วันที่ทำสัญญา} พ.ศ. ........</p>
     </div>
 
-    <p style="text-indent: 2em; margin-bottom: 8pt; font-size: 11pt;">
+    <p style="text-indent: 2em; margin-bottom: 6pt; font-size: 10pt;">
       สัญญาเช่าอาคารฉบับนี้ ทำขึ้นระหว่าง
     </p>
 
-    <p style="margin-left: 2em; margin-bottom: 8pt; font-size: 11pt;">
-      (ก) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 150px; display: inline-block;">{ชื่อผู้ให้เช่า}</span> (ผู้มีอำนาจในการทำสัญญา)
+    <p style="margin-left: 2em; margin-bottom: 6pt; font-size: 10pt;">
+      (ก) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 120px; display: inline-block;">{ชื่อผู้ให้เช่า}</span> (ผู้มีอำนาจในการทำสัญญา)
     </p>
-    <p style="margin-left: 2em; margin-bottom: 5pt; font-size: 11pt;">
-      อยู่ <span style="border-bottom: 1px dotted #333; min-width: 200px; display: inline-block;">{ที่อยู่ผู้ให้เช่า}</span>
+    <p style="margin-left: 2em; margin-bottom: 4pt; font-size: 10pt;">
+      อยู่ <span style="border-bottom: 1px dotted #333; min-width: 180px; display: inline-block;">{ที่อยู่ผู้ให้เช่า}</span>
     </p>
-    <p style="margin-left: 2em; margin-bottom: 8pt; font-size: 11pt;">
-      หมายเลขโทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้ให้เช่า}</span>
-    </p>
-    <p style="margin-left: 2em; margin-bottom: 12pt; font-size: 11pt;">
-      ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้ให้เช่า" ฝ่ายหนึ่งกับ
+    <p style="margin-left: 2em; margin-bottom: 10pt; font-size: 10pt;">
+      หมายเลขโทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้ให้เช่า}</span> ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้ให้เช่า" ฝ่ายหนึ่งกับ
     </p>
 
-    <p style="margin-left: 2em; margin-bottom: 8pt; font-size: 11pt;">
-      (ข) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 150px; display: inline-block;"><strong>{ชื่อผู้เช่า}</strong></span> อายุ ......... ปี
+    <p style="margin-left: 2em; margin-bottom: 6pt; font-size: 10pt;">
+      (ข) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 120px; display: inline-block;"><strong>{ชื่อผู้เช่า}</strong></span> อายุ ......... ปี
     </p>
-    <p style="margin-left: 2em; margin-bottom: 5pt; font-size: 11pt;">
+    <p style="margin-left: 2em; margin-bottom: 4pt; font-size: 10pt;">
       เลขบัตรประชาชน <span style="border-bottom: 1px dotted #333; display: inline-block;">{เลขบัตรประชาชนผู้เช่า}</span> เบอร์โทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้เช่า}</span>
     </p>
-    <p style="margin-left: 2em; margin-bottom: 8pt; font-size: 11pt;">
-      ที่อยู่ <span style="border-bottom: 1px dotted #333; min-width: 200px; display: inline-block;">{ที่อยู่ผู้เช่า}</span>
-    </p>
-    <p style="margin-left: 2em; margin-bottom: 12pt; font-size: 11pt;">
-      ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้เช่า" อีกฝ่ายหนึ่ง
+    <p style="margin-left: 2em; margin-bottom: 10pt; font-size: 10pt;">
+      ที่อยู่ <span style="border-bottom: 1px dotted #333; min-width: 180px; display: inline-block;">{ที่อยู่ผู้เช่า}</span> ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้เช่า" อีกฝ่ายหนึ่ง
     </p>
 
-    <p style="text-indent: 2em; margin-top: 12pt; margin-bottom: 8pt; font-size: 11pt;">
+    <p style="text-indent: 2em; margin-top: 10pt; margin-bottom: 6pt; font-size: 10pt;">
       ทั้งสองฝ่ายตกลงทำสัญญาเช่าที่พักอาศัยกันโดยมีสาระสำคัญดังต่อไปนี้
     </p>
 
     ${clauses.slice(0, 8).map(clause => `
-    <p style="margin-bottom: 10pt; margin-top: 12pt; font-size: 12pt; line-height: 1.6;">
+    <p style="margin-bottom: 8pt; margin-top: 8pt; font-size: 10pt; line-height: 1.5;">
       <strong>ข้อ ${clause.clause_number}.</strong> ${clause.title ? ` ${clause.title}:` : ''} ${clause.content}
     </p>
     `).join('')}
@@ -756,16 +750,16 @@ export default function ContractEditor() {
     <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๑/๓</div>
   </div>
 
-  <div class="contract-page" style="position: relative; min-height: 29.7cm; padding: 1.2cm 1.2cm 1.2cm 1.8cm; page-break-after: always;">
+  <div class="contract-page" style="position: relative; min-height: 29.7cm; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always;">
     
     ${clauses.slice(8).map(clause => `
-    <p style="margin-bottom: 10pt; margin-top: 12pt; font-size: 12pt; line-height: 1.6;">
+    <p style="margin-bottom: 8pt; margin-top: 8pt; font-size: 10pt; line-height: 1.5;">
       <strong>ข้อ ${clause.clause_number}.</strong> ${clause.title ? ` ${clause.title}:` : ''} ${clause.content}
     </p>
     `).join('')}
 
     ${additionalRulesHtml ? `
-    <p style="margin-left: 2em; margin-bottom: 8pt; font-size: 11pt; margin-top: 15pt;">
+    <p style="margin-left: 2em; margin-bottom: 6pt; font-size: 10pt; margin-top: 12pt;">
       <strong>กฎเพิ่มเติม:</strong>
     </p>
     ${additionalRulesHtml}
@@ -774,75 +768,75 @@ export default function ContractEditor() {
     <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๒/๓</div>
   </div>
 
-  <div class="contract-page" style="position: relative; min-height: 29.7cm; padding: 1.2cm 1.2cm 1.2cm 1.8cm;">
+  <div class="contract-page" style="position: relative; min-height: 29.7cm; padding: 1.5cm 1.5cm 2cm 1.5cm;">
     
-    <p style="text-align: center; font-size: 12pt; font-weight: bold; margin-bottom: 40pt;">
+    <p style="text-align: center; font-size: 11pt; font-weight: bold; margin-bottom: 30pt;">
       ลงลายมือชื่อเพื่อเป็นสัญญา
     </p>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40pt; margin-bottom: 50pt;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30pt; margin-bottom: 40pt;">
       <div style="text-align: center;">
-        <div id="tenant-signature-placeholder" style="height: 70pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
+        <div id="tenant-signature-placeholder" style="height: 60pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
           
         </div>
-        <div style="display: flex; justify-content: center; align-items: baseline; gap: 5pt; margin-bottom: 5pt;">
-          <span style="font-size: 12pt;">ลงชื่อ</span>
-          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 180px; min-height: 1em; display: inline-block;"></span>
-          <span style="font-size: 12pt;">ผู้เช่า</span>
+        <div style="display: flex; justify-content: center; align-items: baseline; gap: 4pt; margin-bottom: 4pt;">
+          <span style="font-size: 10pt;">ลงชื่อ</span>
+          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 150px; min-height: 1em; display: inline-block;"></span>
+          <span style="font-size: 10pt;">ผู้เช่า</span>
         </div>
-        <p style="margin: 5pt 0 0 0; font-size: 12pt;">
+        <p style="margin: 4pt 0 0 0; font-size: 10pt;">
           ({ชื่อผู้เช่า})
         </p>
       </div>
 
       <div style="text-align: center;">
-        <div id="landlord-signature-placeholder" style="height: 70pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
+        <div id="landlord-signature-placeholder" style="height: 60pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
           
         </div>
-        <div style="display: flex; justify-content: center; align-items: baseline; gap: 5pt; margin-bottom: 5pt;">
-          <span style="font-size: 12pt;">ลงชื่อ</span>
-          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 180px; min-height: 1em; display: inline-block;"></span>
-          <span style="font-size: 12pt;">ผู้ให้เช่า</span>
+        <div style="display: flex; justify-content: center; align-items: baseline; gap: 4pt; margin-bottom: 4pt;">
+          <span style="font-size: 10pt;">ลงชื่อ</span>
+          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 150px; min-height: 1em; display: inline-block;"></span>
+          <span style="font-size: 10pt;">ผู้ให้เช่า</span>
         </div>
-        <p style="margin: 5pt 0 0 0; font-size: 12pt;">
+        <p style="margin: 4pt 0 0 0; font-size: 10pt;">
           ({ชื่อผู้ให้เช่า})
         </p>
       </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40pt; margin-bottom: 50pt;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30pt; margin-bottom: 40pt;">
       <div style="text-align: center;">
-        <div id="witness1-signature-placeholder" style="height: 70pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
+        <div id="witness1-signature-placeholder" style="height: 60pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
           
         </div>
-        <div style="display: flex; justify-content: center; align-items: baseline; gap: 5pt; margin-bottom: 5pt;">
-          <span style="font-size: 12pt;">ลงชื่อ</span>
-          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 180px; min-height: 1em; display: inline-block;"></span>
-          <span style="font-size: 12pt;">พยาน</span>
+        <div style="display: flex; justify-content: center; align-items: baseline; gap: 4pt; margin-bottom: 4pt;">
+          <span style="font-size: 10pt;">ลงชื่อ</span>
+          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 150px; min-height: 1em; display: inline-block;"></span>
+          <span style="font-size: 10pt;">พยาน</span>
         </div>
-        <p style="margin: 5pt 0 0 0; font-size: 12pt;">
+        <p style="margin: 4pt 0 0 0; font-size: 10pt;">
           ({ชื่อพยาน1})
         </p>
       </div>
 
       <div style="text-align: center;">
-        <div id="witness2-signature-placeholder" style="height: 70pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
+        <div id="witness2-signature-placeholder" style="height: 60pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
           
         </div>
-        <div style="display: flex; justify-content: center; align-items: baseline; gap: 5pt; margin-bottom: 5pt;">
-          <span style="font-size: 12pt;">ลงชื่อ</span>
-          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 180px; min-height: 1em; display: inline-block;"></span>
-          <span style="font-size: 12pt;">พยาน</span>
+        <div style="display: flex; justify-content: center; align-items: baseline; gap: 4pt; margin-bottom: 4pt;">
+          <span style="font-size: 10pt;">ลงชื่อ</span>
+          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 150px; min-height: 1em; display: inline-block;"></span>
+          <span style="font-size: 10pt;">พยาน</span>
         </div>
-        <p style="margin: 5pt 0 0 0; font-size: 12pt;">
+        <p style="margin: 4pt 0 0 0; font-size: 10pt;">
           ({ชื่อพยาน2})
         </p>
       </div>
     </div>
 
-    <div style="background: #e5e7eb; padding: 12pt; border: 1px solid #9ca3af; margin-top: 40pt; border-radius: 4pt;">
-      <p style="margin: 0; font-size: 11pt; font-weight: bold;">หมายเหตุ:</p>
-      <p style="margin: 8pt 0 0 0; font-size: 10pt; line-height: 1.5;">
+    <div style="background: #e5e7eb; padding: 10pt; border: 1px solid #9ca3af; margin-top: 30pt; border-radius: 4pt;">
+      <p style="margin: 0; font-size: 10pt; font-weight: bold;">หมายเหตุ:</p>
+      <p style="margin: 6pt 0 0 0; font-size: 9pt; line-height: 1.4;">
         เอกสารนี้เป็นเพียงแบบสัญญาเบื้องต้น เจ้าของหอพักควรปรับแก้ไขให้เหมาะสมกับข้อเท็จจริงและตรวจสอบให้สอดคล้องกับกฎหมายที่ใช้บังคับ 
         หรือขอคำปรึกษาจากผู้เชี่ยวชาญทางกฎหมายก่อนนำไปใช้งานจริง
       </p>
@@ -878,7 +872,7 @@ export default function ContractEditor() {
     }
     
     const additionalRulesHtml = formData.additional_rules.length > 0
-      ? formData.additional_rules.map((rule) => `<p style="margin-left: 2em; margin-bottom: 5pt; font-size: 11pt;">${rule}</p>`).join('\n')
+      ? formData.additional_rules.map((rule) => `<p style="margin-left: 2em; margin-bottom: 4pt; font-size: 10pt;">${rule}</p>`).join('\n')
       : '';
 
     const clauses = formData.contract_clauses.length > 0 ? formData.contract_clauses : getDefaultClauses();
@@ -886,52 +880,46 @@ export default function ContractEditor() {
     const template = `
 <div style="font-family: 'TH Sarabun New', 'Sarabun', sans-serif; font-size: 12pt; line-height: 1.6;">
   
-  <div class="contract-page" style="position: relative; min-height: 29.7cm; padding: 1.2cm 1.2cm 1.2cm 1.8cm; page-break-after: always;">
-    <div style="text-align: center; margin-bottom: 12pt;">
-      <h3 style="margin: 0; font-size: 15pt; font-weight: bold;">แบบสัญญาเช่าที่พักอาศัย</h3>
-      <p style="margin: 5pt 0 0 0; font-size: 12pt;">เรื่อง ให้ผู้เช่ารักษากฎการเช่าอาศัยตามสัญญา</p>
+  <div class="contract-page" style="position: relative; min-height: 29.7cm; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always;">
+    <div style="text-align: center; margin-bottom: 10pt;">
+      <h3 style="margin: 0; font-size: 14pt; font-weight: bold;">แบบสัญญาเช่าที่พักอาศัย</h3>
+      <p style="margin: 3pt 0 0 0; font-size: 11pt;">เรื่อง ให้ผู้เช่ารักษากฎการเช่าอาศัยตามสัญญา</p>
     </div>
 
-    <div style="text-align: right; margin-bottom: 10pt;">
-      <p style="margin: 0; font-size: 11pt;">วันที่ {วันที่ทำสัญญา} พ.ศ. ........</p>
+    <div style="text-align: right; margin-bottom: 8pt;">
+      <p style="margin: 0; font-size: 10pt;">วันที่ {วันที่ทำสัญญา} พ.ศ. ........</p>
     </div>
 
-    <p style="text-indent: 2em; margin-bottom: 8pt; font-size: 11pt;">
+    <p style="text-indent: 2em; margin-bottom: 6pt; font-size: 10pt;">
       สัญญาเช่าอาคารฉบับนี้ ทำขึ้นระหว่าง
     </p>
 
-    <p style="margin-left: 2em; margin-bottom: 8pt; font-size: 11pt;">
-      (ก) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 150px; display: inline-block;">{ชื่อผู้ให้เช่า}</span> (ผู้มีอำนาจในการทำสัญญา)
+    <p style="margin-left: 2em; margin-bottom: 6pt; font-size: 10pt;">
+      (ก) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 120px; display: inline-block;">{ชื่อผู้ให้เช่า}</span> (ผู้มีอำนาจในการทำสัญญา)
     </p>
-    <p style="margin-left: 2em; margin-bottom: 5pt; font-size: 11pt;">
-      อยู่ <span style="border-bottom: 1px dotted #333; min-width: 200px; display: inline-block;">{ที่อยู่ผู้ให้เช่า}</span>
+    <p style="margin-left: 2em; margin-bottom: 4pt; font-size: 10pt;">
+      อยู่ <span style="border-bottom: 1px dotted #333; min-width: 180px; display: inline-block;">{ที่อยู่ผู้ให้เช่า}</span>
     </p>
-    <p style="margin-left: 2em; margin-bottom: 8pt; font-size: 11pt;">
-      หมายเลขโทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้ให้เช่า}</span>
-    </p>
-    <p style="margin-left: 2em; margin-bottom: 12pt; font-size: 11pt;">
-      ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้ให้เช่า" ฝ่ายหนึ่งกับ
+    <p style="margin-left: 2em; margin-bottom: 10pt; font-size: 10pt;">
+      หมายเลขโทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้ให้เช่า}</span> ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้ให้เช่า" ฝ่ายหนึ่งกับ
     </p>
 
-    <p style="margin-left: 2em; margin-bottom: 8pt; font-size: 11pt;">
-      (ข) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 150px; display: inline-block;"><strong>{ชื่อผู้เช่า}</strong></span> อายุ ......... ปี
+    <p style="margin-left: 2em; margin-bottom: 6pt; font-size: 10pt;">
+      (ข) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 120px; display: inline-block;"><strong>{ชื่อผู้เช่า}</strong></span> อายุ ......... ปี
     </p>
-    <p style="margin-left: 2em; margin-bottom: 5pt; font-size: 11pt;">
+    <p style="margin-left: 2em; margin-bottom: 4pt; font-size: 10pt;">
       เลขบัตรประชาชน <span style="border-bottom: 1px dotted #333; display: inline-block;">{เลขบัตรประชาชนผู้เช่า}</span> เบอร์โทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้เช่า}</span>
     </p>
-    <p style="margin-left: 2em; margin-bottom: 8pt; font-size: 11pt;">
-      ที่อยู่ <span style="border-bottom: 1px dotted #333; min-width: 200px; display: inline-block;">{ที่อยู่ผู้เช่า}</span>
-    </p>
-    <p style="margin-left: 2em; margin-bottom: 12pt; font-size: 11pt;">
-      ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้เช่า" อีกฝ่ายหนึ่ง
+    <p style="margin-left: 2em; margin-bottom: 10pt; font-size: 10pt;">
+      ที่อยู่ <span style="border-bottom: 1px dotted #333; min-width: 180px; display: inline-block;">{ที่อยู่ผู้เช่า}</span> ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้เช่า" อีกฝ่ายหนึ่ง
     </p>
 
-    <p style="text-indent: 2em; margin-top: 12pt; margin-bottom: 8pt; font-size: 11pt;">
+    <p style="text-indent: 2em; margin-top: 10pt; margin-bottom: 6pt; font-size: 10pt;">
       ทั้งสองฝ่ายตกลงทำสัญญาเช่าที่พักอาศัยกันโดยมีสาระสำคัญดังต่อไปนี้
     </p>
 
     ${clauses.slice(0, 8).map(clause => `
-    <p style="margin-bottom: 10pt; margin-top: 12pt; font-size: 12pt; line-height: 1.6;">
+    <p style="margin-bottom: 8pt; margin-top: 8pt; font-size: 10pt; line-height: 1.5;">
       <strong>ข้อ ${clause.clause_number}.</strong> ${clause.title ? ` ${clause.title}:` : ''} ${clause.content}
     </p>
     `).join('')}
@@ -939,16 +927,16 @@ export default function ContractEditor() {
     <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๑/๓</div>
   </div>
 
-  <div class="contract-page" style="position: relative; min-height: 29.7cm; padding: 1.2cm 1.2cm 1.2cm 1.8cm; page-break-after: always;">
+  <div class="contract-page" style="position: relative; min-height: 29.7cm; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always;">
     
     ${clauses.slice(8).map(clause => `
-    <p style="margin-bottom: 10pt; margin-top: 12pt; font-size: 12pt; line-height: 1.6;">
+    <p style="margin-bottom: 8pt; margin-top: 8pt; font-size: 10pt; line-height: 1.5;">
       <strong>ข้อ ${clause.clause_number}.</strong> ${clause.title ? ` ${clause.title}:` : ''} ${clause.content}
     </p>
     `).join('')}
 
     ${additionalRulesHtml ? `
-    <p style="margin-left: 2em; margin-bottom: 8pt; font-size: 11pt; margin-top: 15pt;">
+    <p style="margin-left: 2em; margin-bottom: 6pt; font-size: 10pt; margin-top: 12pt;">
       <strong>กฎเพิ่มเติม:</strong>
     </p>
     ${additionalRulesHtml}
@@ -957,75 +945,75 @@ export default function ContractEditor() {
     <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๒/๓</div>
   </div>
 
-  <div class="contract-page" style="position: relative; min-height: 29.7cm; padding: 1.2cm 1.2cm 1.2cm 1.8cm;">
+  <div class="contract-page" style="position: relative; min-height: 29.7cm; padding: 1.5cm 1.5cm 2cm 1.5cm;">
     
-    <p style="text-align: center; font-size: 12pt; font-weight: bold; margin-bottom: 40pt;">
+    <p style="text-align: center; font-size: 11pt; font-weight: bold; margin-bottom: 30pt;">
       ลงลายมือชื่อเพื่อเป็นสัญญา
     </p>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40pt; margin-bottom: 50pt;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30pt; margin-bottom: 40pt;">
       <div style="text-align: center;">
-        <div id="tenant-signature-placeholder" style="height: 70pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
+        <div id="tenant-signature-placeholder" style="height: 60pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
           
         </div>
-        <div style="display: flex; justify-content: center; align-items: baseline; gap: 5pt; margin-bottom: 5pt;">
-          <span style="font-size: 12pt;">ลงชื่อ</span>
-          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 180px; min-height: 1em; display: inline-block;"></span>
-          <span style="font-size: 12pt;">ผู้เช่า</span>
+        <div style="display: flex; justify-content: center; align-items: baseline; gap: 4pt; margin-bottom: 4pt;">
+          <span style="font-size: 10pt;">ลงชื่อ</span>
+          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 150px; min-height: 1em; display: inline-block;"></span>
+          <span style="font-size: 10pt;">ผู้เช่า</span>
         </div>
-        <p style="margin: 5pt 0 0 0; font-size: 12pt;">
+        <p style="margin: 4pt 0 0 0; font-size: 10pt;">
           ({ชื่อผู้เช่า})
         </p>
       </div>
 
       <div style="text-align: center;">
-        <div id="landlord-signature-placeholder" style="height: 70pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
+        <div id="landlord-signature-placeholder" style="height: 60pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
           
         </div>
-        <div style="display: flex; justify-content: center; align-items: baseline; gap: 5pt; margin-bottom: 5pt;">
-          <span style="font-size: 12pt;">ลงชื่อ</span>
-          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 180px; min-height: 1em; display: inline-block;"></span>
-          <span style="font-size: 12pt;">ผู้ให้เช่า</span>
+        <div style="display: flex; justify-content: center; align-items: baseline; gap: 4pt; margin-bottom: 4pt;">
+          <span style="font-size: 10pt;">ลงชื่อ</span>
+          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 150px; min-height: 1em; display: inline-block;"></span>
+          <span style="font-size: 10pt;">ผู้ให้เช่า</span>
         </div>
-        <p style="margin: 5pt 0 0 0; font-size: 12pt;">
+        <p style="margin: 4pt 0 0 0; font-size: 10pt;">
           ({ชื่อผู้ให้เช่า})
         </p>
       </div>
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40pt; margin-bottom: 50pt;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30pt; margin-bottom: 40pt;">
       <div style="text-align: center;">
-        <div id="witness1-signature-placeholder" style="height: 70pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
+        <div id="witness1-signature-placeholder" style="height: 60pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
           
         </div>
-        <div style="display: flex; justify-content: center; align-items: baseline; gap: 5pt; margin-bottom: 5pt;">
-          <span style="font-size: 12pt;">ลงชื่อ</span>
-          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 180px; min-height: 1em; display: inline-block;"></span>
-          <span style="font-size: 12pt;">พยาน</span>
+        <div style="display: flex; justify-content: center; align-items: baseline; gap: 4pt; margin-bottom: 4pt;">
+          <span style="font-size: 10pt;">ลงชื่อ</span>
+          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 150px; min-height: 1em; display: inline-block;"></span>
+          <span style="font-size: 10pt;">พยาน</span>
         </div>
-        <p style="margin: 5pt 0 0 0; font-size: 12pt;">
+        <p style="margin: 4pt 0 0 0; font-size: 10pt;">
           ({ชื่อพยาน1})
         </p>
       </div>
 
       <div style="text-align: center;">
-        <div id="witness2-signature-placeholder" style="height: 70pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
+        <div id="witness2-signature-placeholder" style="height: 60pt; display: flex; align-items: center; justify-content: center; margin-bottom: 0pt;">
           
         </div>
-        <div style="display: flex; justify-content: center; align-items: baseline; gap: 5pt; margin-bottom: 5pt;">
-          <span style="font-size: 12pt;">ลงชื่อ</span>
-          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 180px; min-height: 1em; display: inline-block;"></span>
-          <span style="font-size: 12pt;">พยาน</span>
+        <div style="display: flex; justify-content: center; align-items: baseline; gap: 4pt; margin-bottom: 4pt;">
+          <span style="font-size: 10pt;">ลงชื่อ</span>
+          <span style="border-bottom: 1px dotted #333; flex: 1; max-width: 150px; min-height: 1em; display: inline-block;"></span>
+          <span style="font-size: 10pt;">พยาน</span>
         </div>
-        <p style="margin: 5pt 0 0 0; font-size: 12pt;">
+        <p style="margin: 4pt 0 0 0; font-size: 10pt;">
           ({ชื่อพยาน2})
         </p>
       </div>
     </div>
 
-    <div style="background: #e5e7eb; padding: 12pt; border: 1px solid #9ca3af; margin-top: 40pt; border-radius: 4pt;">
-      <p style="margin: 0; font-size: 11pt; font-weight: bold;">หมายเหตุ:</p>
-      <p style="margin: 8pt 0 0 0; font-size: 10pt; line-height: 1.5;">
+    <div style="background: #e5e7eb; padding: 10pt; border: 1px solid #9ca3af; margin-top: 30pt; border-radius: 4pt;">
+      <p style="margin: 0; font-size: 10pt; font-weight: bold;">หมายเหตุ:</p>
+      <p style="margin: 6pt 0 0 0; font-size: 9pt; line-height: 1.4;">
         เอกสารนี้เป็นเพียงแบบสัญญาเบื้องต้น เจ้าของหอพักควรปรับแก้ไขให้เหมาะสมกับข้อเท็จจริงและตรวจสอบให้สอดคล้องกับกฎหมายที่ใช้บังคับ 
         หรือขอคำปรึกษาจากผู้เชี่ยวชาญทางกฎหมายก่อนนำไปใช้งานจริง
       </p>
@@ -2360,6 +2348,8 @@ export default function ContractEditor() {
             .contract-page {
               page-break-after: always;
               page-break-inside: avoid;
+              height: 29.7cm;
+              max-height: 29.7cm;
             }
             .contract-page:last-child {
               page-break-after: auto;
@@ -2377,6 +2367,7 @@ export default function ContractEditor() {
             background: white;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            min-height: 29.7cm;
           }
 
           .contract-print p,
