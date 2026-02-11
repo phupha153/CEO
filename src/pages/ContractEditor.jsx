@@ -2343,17 +2343,34 @@ export default function ContractEditor() {
               margin: 0 !important; 
               padding: 0 !important;
               width: 100% !important;
-              height: 100% !important;
             }
             
-            #root, main, div:not(.contract-page) { 
-              all: unset !important;
-              display: contents !important;
+            .no-print, 
+            [class*="no-print"],
+            aside, 
+            nav, 
+            [role="navigation"], 
+            [data-sidebar], 
+            .sidebar, 
+            header,
+            .ql-toolbar,
+            .ql-container,
+            div:not(.contract-print):not(.contract-page):not([dangerouslySetInnerHTML]) {
+              display: none !important;
+              visibility: hidden !important;
+              height: 0 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              border: 0 !important;
             }
             
-            .no-print { display: none !important; }
-            .ql-toolbar, .ql-container .ql-tooltip { display: none !important; }
-            aside, nav, [role="navigation"], [data-sidebar], .sidebar, header { display: none !important; }
+            #root, main { 
+              display: block !important;
+              margin: 0 !important; 
+              padding: 0 !important; 
+              background: white !important;
+              width: 100% !important;
+            }
             
             .contract-print {
               display: block !important;
