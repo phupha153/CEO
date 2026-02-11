@@ -2363,7 +2363,6 @@ export default function ContractEditor() {
             
             .contract-print {
               display: block !important;
-              width: 21cm !important;
               margin: 0 !important;
               padding: 0 !important;
               background: white !important;
