@@ -2339,34 +2339,28 @@ export default function ContractEditor() {
               print-color-adjust: exact !important;
             }
             
-            body { 
+            html, body { 
               margin: 0 !important; 
               padding: 0 !important;
               width: 100% !important;
-              overflow-y: visible !important;
+              height: 100% !important;
             }
             
-            ::-webkit-scrollbar { display: none !important; }
+            #root, main, div:not(.contract-page) { 
+              all: unset !important;
+              display: contents !important;
+            }
             
             .no-print { display: none !important; }
             .ql-toolbar, .ql-container .ql-tooltip { display: none !important; }
             aside, nav, [role="navigation"], [data-sidebar], .sidebar, header { display: none !important; }
             
-            html, #root, main { 
-              margin: 0 !important; 
-              padding: 0 !important; 
-              background: white !important;
-              overflow: visible !important;
-              height: auto !important;
-              width: 100% !important;
-            }
-            
             .contract-print {
               display: block !important;
+              width: 100% !important;
               margin: 0 !important;
               padding: 0 !important;
               background: white !important;
-              overflow: visible !important;
             }
             
             .contract-page {
@@ -2374,15 +2368,17 @@ export default function ContractEditor() {
               page-break-inside: avoid !important;
               display: block !important;
               width: 21cm !important;
+              height: 29.7cm !important;
               margin: 0 !important;
               padding: 1.5cm !important;
               background: white !important;
-              overflow: visible !important;
-              height: auto !important;
+              box-sizing: border-box !important;
+              overflow: hidden !important;
             }
             
             .contract-page:last-child {
-              page-break-after: auto !important;
+              page-break-after: avoid !important;
+              height: auto !important;
             }
           }
           
