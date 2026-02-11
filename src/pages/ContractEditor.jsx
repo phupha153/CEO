@@ -235,7 +235,7 @@ export default function ContractEditor() {
 
   useEffect(() => {
     if (formData.tenant_id && formData.room_id && !formData.contract_content) {
-      generateTemplate();
+      setTimeout(() => generateTemplate(), 300);
     }
   }, [formData.tenant_id, formData.room_id]);
 
@@ -2367,15 +2367,14 @@ export default function ContractEditor() {
               display: block !important;
               visibility: visible !important;
               opacity: 1 !important;
-              height: 29.7cm !important;
-              min-height: 29.7cm !important;
-              max-height: none !important;
               width: 21cm !important;
               margin: 0 !important;
               padding: 1.5cm !important;
               box-shadow: none !important;
               background: white !important;
               overflow: visible !important;
+              height: auto !important;
+              min-height: auto !important;
             }
             
             .contract-page:last-child {
