@@ -1970,7 +1970,29 @@ ${JSON.stringify(roomsWithAC, null, 2)}
         await queryClient.invalidateQueries(['rooms', selectedBranchId, 'v2']);
         await queryClient.refetchQueries(['rooms', selectedBranchId, 'v2']);
         
-        // Log activity
+        // 📝 สร้างรายละเอียด changes สำหรับแต่ละห้อง
+        const roomChangesDetail = {};
+        roomIds.forEach(id => {
+          const room = rooms.find(r => r.id === id);
+          if (!room) return;
+          
+          const oldValues = {};
+          const newValues = {};
+          
+          // บันทึกค่าเดิมและค่าใหม่ของแต่ละฟิลด์
+          Object.keys(changes).forEach(field => {
+            oldValues[field] = room[field];
+            newValues[field] = changes[field];
+          });
+          
+          roomChangesDetail[`ห้อง ${room.room_number}`] = {
+            room_id: id,
+            old: oldValues,
+            new: newValues
+          };
+        });
+        
+        // Log activity พร้อมรายละเอียดทุกห้อง
         await base44.entities.ActivityLog.create({
           branch_id: selectedBranchId,
           action_type: 'update',
@@ -1979,7 +2001,15 @@ ${JSON.stringify(roomsWithAC, null, 2)}
           entity_name: `แก้ไข ${updatedCount} ห้อง`,
           user_email: currentUser?.email,
           user_name: currentUser?.full_name,
-          description: `แก้ไข ${aiAction.field_label} เป็น ${aiAction.new_value} บาท ให้ห้อง: ${updatedRooms.join(', ')}${aiAction.except_rooms?.length > 0 ? ` (ยกเว้น ${aiAction.except_rooms.join(', ')})` : ''}`
+          description: `แก้ไข ${aiAction.field_label} → ${aiAction.new_value}\n\n📋 รายการห้อง: ${updatedRooms.join(', ')}${aiAction.except_rooms?.length > 0 ? `\n❌ ยกเว้น: ${aiAction.except_rooms.join(', ')}` : ''}`,
+          changes: {
+            action: 'bulk_update',
+            field_updated: aiAction.field_label,
+            new_value: aiAction.new_value,
+            total_rooms: updatedCount,
+            room_details: roomChangesDetail,
+            timestamp: new Date().toISOString()
+          }
         });
         
         toast.success(`✅ แก้ไข ${aiAction.field_label} สำเร็จ ${updatedCount} ห้อง\n\nห้องที่แก้ไข: ${updatedRooms.join(', ')}`, {
