@@ -2335,24 +2335,33 @@ export default function ContractEditor() {
           
           @media print {
             .no-print { display: none !important; }
-            body { 
+            .ql-toolbar { display: none !important; }
+            html, body { 
               margin: 0; 
               padding: 0; 
               background: white;
+              overflow: hidden;
             }
             .contract-print {
               width: 21cm;
               margin: 0;
               background: white;
+              font-size: 9pt;
             }
             .contract-page {
-              page-break-after: always;
+              page-break-after: avoid;
               page-break-inside: avoid;
-              height: 29.7cm;
-              max-height: 29.7cm;
+              height: auto;
+              max-height: none;
+              margin-bottom: 0;
+              padding: 0.8cm;
+              box-shadow: none;
             }
             .contract-page:last-child {
               page-break-after: auto;
+            }
+            .contract-print p {
+              margin: 2pt 0;
             }
           }
           
@@ -2367,7 +2376,7 @@ export default function ContractEditor() {
             background: white;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             margin-bottom: 20px;
-            min-height: 29.7cm;
+            min-height: auto;
           }
 
           .contract-print p,
