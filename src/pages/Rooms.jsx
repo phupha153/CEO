@@ -481,57 +481,21 @@ export default function RoomsPage() {
       // Check for numeric values
       const valueMatch1 = query.match(/(?:เป็น|=|เท่ากับ)\s*(\d+(?:\.\d+)?)/);
       const valueMatch2 = query.match(/(\d+(?:\.\d+)?)\s*(?:บาท)?$/);
-      const valueMatch3 = query.match(/(?:ค่าส่วนกลาง|ส่วนกลาง|ค่าไฟ|ค่าน้ำ|ราคา|เหมาจ่าย|เหมา)\s*(\d+(?:\.\d+)?)/);
+      const valueMatch3 = query.match(/(?:ค่าส่วนกลาง|ส่วนกลาง|ค่าไฟ|ค่าน้ำ|ราคา)\s*(\d+(?:\.\d+)?)/);
       if (valueMatch1) newValue = valueMatch1[1];
       else if (valueMatch3) newValue = valueMatch3[1];
       else if (valueMatch2) newValue = valueMatch2[1];
 
-      // ⭐⭐⭐ ตรวจจับ "เหมา" ก่อนเช็คฟิลด์ใดๆ (ป้องกัน electricity_rate แย่ง priority)
-      const isFlatRateCommand = query.includes('เหมาจ่าย') || 
-                                 query.includes('เหมา') || 
-                                 query.includes('แบบเหมา') ||
-                                 query.includes('เป็นเหมา') ||
-                                 (query.includes('ปรับ') && /เป็น.*เหมา|แบบ.*เหมา/.test(query));
-      
-      console.log('🔍 [AI Parser Debug Step 1 - Flat Rate Detection]', {
-        query,
-        isFlatRateCommand,
-        matchedPatterns: {
-          'เหมาจ่าย': query.includes('เหมาจ่าย'),
-          'เหมา': query.includes('เหมา'),
-          'แบบเหมา': query.includes('แบบเหมา'),
-          'เป็นเหมา': query.includes('เป็นเหมา'),
-          'ปรับ+เป็นเหมา': query.includes('ปรับ') && /เป็น.*เหมา|แบบ.*เหมา/.test(query)
-        }
-      });
-      
-      // ⚡⚡⚡ CRITICAL FIX: ตรวจจับฟิลด์ไฟ/น้ำ หลังจาก detect "เหมา" แล้ว
       // Check for field type based on keywords
       if (query.includes('ค่าส่วนกลาง') || query.includes('ส่วนกลาง')) {
         fieldToUpdate = 'common_fee';
         fieldLabel = 'ค่าส่วนกลาง';
-      } else if (query.includes('ค่าไฟ') || query.includes('ไฟฟ้า') || query.includes('ไฟ')) {
-        // ⭐ ถ้า detect "เหมา" = ต้องเป็น flat_rate เสมอ
-        if (isFlatRateCommand) {
-          fieldToUpdate = 'flat_rate_electricity';
-          fieldLabel = 'ค่าไฟเหมาจ่าย';
-          console.log('✅ [Flat Rate Electricity] Detected!');
-        } else {
-          fieldToUpdate = 'electricity_rate';
-          fieldLabel = 'ค่าไฟต่อหน่วย';
-          console.log('📊 [Per Unit Electricity] Detected');
-        }
-      } else if (query.includes('ค่าน้ำ') || query.includes('น้ำ')) {
-        // ⭐ ถ้า detect "เหมา" = ต้องเป็น flat_rate เสมอ
-        if (isFlatRateCommand) {
-          fieldToUpdate = 'flat_rate_water';
-          fieldLabel = 'ค่าน้ำเหมาจ่าย';
-          console.log('✅ [Flat Rate Water] Detected!');
-        } else {
-          fieldToUpdate = 'water_rate';
-          fieldLabel = 'ค่าน้ำต่อหน่วย';
-          console.log('📊 [Per Unit Water] Detected');
-        }
+      } else if (query.includes('ค่าไฟ') || query.includes('ไฟฟ้า')) {
+        fieldToUpdate = 'electricity_rate';
+        fieldLabel = 'ค่าไฟต่อหน่วย';
+      } else if (query.includes('ค่าน้ำ')) {
+        fieldToUpdate = 'water_rate';
+        fieldLabel = 'ค่าน้ำต่อหน่วย';
       } else if (query.includes('ราคา') || query.includes('ค่าเช่า')) {
         fieldToUpdate = 'price';
         fieldLabel = 'ราคาห้อง';
@@ -549,13 +513,6 @@ export default function RoomsPage() {
             newValueIsString = true;
         }
       }
-      
-      console.log('✅ [AI Parser Final Result]', { 
-        fieldToUpdate, 
-        fieldLabel, 
-        isFlatRateCommand,
-        newValue 
-      });
       
       // ตรวจสอบว่าต้องการแก้ไขห้องรายวันหรือรายเดือน
       const isFilterByRoomType = query.includes('รายวัน') || query.includes('รายเดือน');
@@ -592,30 +549,17 @@ export default function RoomsPage() {
         }
         
         const bulkChanges = {};
-        
-        // ⭐ ถ้าเป็นคำสั่งเหมาจ่าย ต้อง set ทั้ง is_flat_rate และ amount
-        if (fieldToUpdate === 'flat_rate_water') {
-          bulkChanges['is_flat_rate_water'] = true;
-          bulkChanges['flat_rate_water_amount'] = parseFloat(newValue);
-        } else if (fieldToUpdate === 'flat_rate_electricity') {
-          bulkChanges['is_flat_rate_electricity'] = true;
-          bulkChanges['flat_rate_electricity_amount'] = parseFloat(newValue);
-        } else {
-          bulkChanges[fieldToUpdate] = newValueIsString ? newValue : parseFloat(newValue);
-        }
+        bulkChanges[fieldToUpdate] = newValueIsString ? newValue : parseFloat(newValue);
         
         const roomsList = roomsToUpdate.map(r => ({
           room_id: r.id,
           room_number: r.room_number,
           floor: r.floor,
-          old_value: fieldToUpdate.includes('flat_rate') 
-            ? (r[fieldToUpdate.replace('flat_rate_', 'is_flat_rate_')] ? `เหมา ${r[fieldToUpdate] || 0} บาท` : 'คิดต่อหน่วย')
-            : (r[fieldToUpdate] !== undefined && r[fieldToUpdate] !== null ? r[fieldToUpdate] : 'ไม่ได้ตั้งค่า')
+          old_value: r[fieldToUpdate] !== undefined && r[fieldToUpdate] !== null ? r[fieldToUpdate] : 'ไม่ได้ตั้งค่า'
         }));
         
         const roomTypeText = targetRoomType ? (targetRoomType === 'daily' ? 'ห้องรายวัน' : 'ห้องรายเดือน') : '';
-        const displayValue = fieldToUpdate.includes('flat_rate') ? `เหมา ${newValue} บาท/เดือน` : `${newValue}${newValueIsString ? '' : ' บาท'}`;
-        const resultText = `พบ ${roomsToUpdate.length} ${roomTypeText}ที่ต้องแก้ไข ${exceptRoomNumbers.length > 0 ? ` (ยกเว้น ${exceptRoomNumbers.join(', ')})` : ''}\n📝 เปลี่ยน: ${fieldLabel} → ${displayValue}`;
+        const resultText = `พบ ${roomsToUpdate.length} ${roomTypeText}ที่ต้องแก้ไข ${exceptRoomNumbers.length > 0 ? ` (ยกเว้น ${exceptRoomNumbers.join(', ')})` : ''}\n📝 เปลี่ยน: ${fieldLabel} → ${newValue}${newValueIsString ? '' : ' บาท'}`;
         
         setAiResult({
           answer: resultText,
@@ -623,24 +567,12 @@ export default function RoomsPage() {
           rooms: roomsList
         });
         
-        // ⭐ สร้าง display changes สำหรับแสดงใน confirmation dialog
-        const displayChanges = { ...bulkChanges };
-        
-        console.log('🚀 [SET AI ACTION]', {
-          action_type: 'bulk_update',
-          field_label: fieldLabel,
-          new_value: displayValue,
-          changes: bulkChanges,
-          isFlatRate: fieldToUpdate.includes('flat_rate')
-        });
-        
         setAiAction({
           action_type: 'bulk_update',
           room_ids: roomsToUpdate.map(r => r.id),
           changes: bulkChanges,
-          display_changes: displayChanges,
           field_label: fieldLabel,
-          new_value: displayValue,
+          new_value: newValue,
           rooms_list: roomsList,
           except_rooms: exceptRoomNumbers,
           target_floor: targetFloor,
@@ -713,23 +645,8 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 3. **ถ้าเป็นคำสั่งแก้ไขหลายห้อง** (เช่น \"แก้ห้อง 101, 102 เป็นว่าง\"):
    - action_type = \"bulk_update\"
    - room_ids = array ของ ID ห้อง
-   - changes = object ของการเปลี่ยนแปลง
+   - changes = object ของการเปลี่ยนแปลง, e.g. {\"status\": \"available\"}
    - rooms_list = array ของ object ที่มี room_id, room_number, old_value
-
-⚡⚡⚡ **คำสั่งพิเศษ - ค่าเหมาจ่าย:**
-- ถ้าคำสั่งมีคำว่า "เหมา", "เหมาจ่าย", "แบบเหมา", "เป็นเหมา" + "ค่าไฟ" = ต้อง set:
-  * is_flat_rate_electricity: true
-  * flat_rate_electricity_amount: ตัวเลขที่ระบุ
-  * ❌ ห้าม set electricity_rate
-- ถ้าคำสั่งมีคำว่า "เหมา", "เหมาจ่าย", "แบบเหมา", "เป็นเหมา" + "ค่าน้ำ" = ต้อง set:
-  * is_flat_rate_water: true
-  * flat_rate_water_amount: ตัวเลขที่ระบุ
-  * ❌ ห้าม set water_rate
-
-ตัวอย่าง:
-- "ปรับค่าไฟเป็นแบบเหมา 200 บาท" → changes: {"is_flat_rate_electricity": true, "flat_rate_electricity_amount": 200}
-- "ปรับค่าน้ำห้อง 101 เป็นเหมา 150" → changes: {"is_flat_rate_water": true, "flat_rate_water_amount": 150}
-- "แก้ค่าไฟห้อง 201 เป็น 8" (ไม่มีคำว่า "เหมา") → changes: {"electricity_rate": 8}
 
 ⚠️ **สำคัญมาก:**
 - ถ้าคำสั่งระบุเลขห้องหลายห้อง ให้ใช้ action_type = \"bulk_update\"
@@ -1970,29 +1887,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
         await queryClient.invalidateQueries(['rooms', selectedBranchId, 'v2']);
         await queryClient.refetchQueries(['rooms', selectedBranchId, 'v2']);
         
-        // 📝 สร้างรายละเอียด changes สำหรับแต่ละห้อง
-        const roomChangesDetail = {};
-        roomIds.forEach(id => {
-          const room = rooms.find(r => r.id === id);
-          if (!room) return;
-          
-          const oldValues = {};
-          const newValues = {};
-          
-          // บันทึกค่าเดิมและค่าใหม่ของแต่ละฟิลด์
-          Object.keys(changes).forEach(field => {
-            oldValues[field] = room[field];
-            newValues[field] = changes[field];
-          });
-          
-          roomChangesDetail[`ห้อง ${room.room_number}`] = {
-            room_id: id,
-            old: oldValues,
-            new: newValues
-          };
-        });
-        
-        // Log activity พร้อมรายละเอียดทุกห้อง
+        // Log activity
         await base44.entities.ActivityLog.create({
           branch_id: selectedBranchId,
           action_type: 'update',
@@ -2001,15 +1896,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
           entity_name: `แก้ไข ${updatedCount} ห้อง`,
           user_email: currentUser?.email,
           user_name: currentUser?.full_name,
-          description: `แก้ไข ${aiAction.field_label} → ${aiAction.new_value}\n\n📋 รายการห้อง: ${updatedRooms.join(', ')}${aiAction.except_rooms?.length > 0 ? `\n❌ ยกเว้น: ${aiAction.except_rooms.join(', ')}` : ''}`,
-          changes: {
-            action: 'bulk_update',
-            field_updated: aiAction.field_label,
-            new_value: aiAction.new_value,
-            total_rooms: updatedCount,
-            room_details: roomChangesDetail,
-            timestamp: new Date().toISOString()
-          }
+          description: `แก้ไข ${aiAction.field_label} เป็น ${aiAction.new_value} บาท ให้ห้อง: ${updatedRooms.join(', ')}${aiAction.except_rooms?.length > 0 ? ` (ยกเว้น ${aiAction.except_rooms.join(', ')})` : ''}`
         });
         
         toast.success(`✅ แก้ไข ${aiAction.field_label} สำเร็จ ${updatedCount} ห้อง\n\nห้องที่แก้ไข: ${updatedRooms.join(', ')}`, {
