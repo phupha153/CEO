@@ -2404,7 +2404,6 @@ export default function ContractEditor() {
             background: white;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             margin-bottom: 20px;
-            min-height: auto;
           }
 
           .contract-print p,
