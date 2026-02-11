@@ -945,7 +945,7 @@ export default function ContractEditor() {
     <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๒/๓</div>
   </div>
 
-  <div class="contract-page" style="position: relative; min-height: 29.7cm; padding: 1.5cm 1.5cm 2cm 1.5cm;">
+  <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm;">
     
     <p style="text-align: center; font-size: 11pt; font-weight: bold; margin-bottom: 30pt;">
       ลงลายมือชื่อเพื่อเป็นสัญญา
