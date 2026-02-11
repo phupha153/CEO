@@ -113,7 +113,7 @@ export default function RoomsPage() {
       document.removeEventListener('keydown', handleEscape);
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isSelectionMode]);
+  }, [isSelectionMode, showBulkEditDialog, showDialog, showDetailDialog, showReservationDialog]);
 
   const [displayLimit, setDisplayLimit] = useState(50);
   const [searchQuery, setSearchQuery] = useState('');
