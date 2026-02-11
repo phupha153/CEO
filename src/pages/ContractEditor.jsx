@@ -2334,31 +2334,47 @@ export default function ContractEditor() {
           }
           
           @media print {
+            * { 
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
             .no-print { display: none !important; }
             .ql-toolbar { display: none !important; }
-            [class*="sidebar"] { display: none !important; }
-            header { display: none !important; }
+            aside, nav, [role="navigation"] { display: none !important; }
             html, body { 
-              margin: 0; 
-              padding: 0; 
-              background: white;
+              margin: 0 !important; 
+              padding: 0 !important; 
+              background: white !important;
+              overflow: visible !important;
+              width: 100% !important;
+              height: auto !important;
+            }
+            main {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
             }
             .contract-print {
-              width: 21cm;
-              margin: 0;
-              background: white;
+              display: block !important;
+              width: 21cm !important;
+              margin: 0 auto !important;
+              background: white !important;
+              position: relative !important;
+              overflow: visible !important;
             }
             .contract-page {
-              page-break-after: always;
-              page-break-inside: avoid;
-              height: auto;
-              max-height: none;
-              margin-bottom: 0;
-              padding: 1.5cm;
-              box-shadow: none;
+              page-break-after: always !important;
+              page-break-inside: avoid !important;
+              display: block !important;
+              height: auto !important;
+              max-height: none !important;
+              margin: 0 !important;
+              padding: 1.5cm !important;
+              box-shadow: none !important;
+              background: white !important;
             }
             .contract-page:last-child {
-              page-break-after: auto;
+              page-break-after: auto !important;
             }
           }
           
