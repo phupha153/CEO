@@ -703,7 +703,7 @@ export default function ContractEditor() {
       const template = `
       <div style="font-family: 'TH Sarabun New', 'Sarabun', sans-serif; font-size: 12pt; line-height: 1.6;">
 
-      <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always;">
+      <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always; min-height: 29.7cm; display: block;">
       <div style="text-align: center; margin-bottom: 10pt;">
         <h3 style="margin: 0; font-size: 14pt; font-weight: bold;">แบบสัญญาเช่าที่พักอาศัย</h3>
         <p style="margin: 3pt 0 0 0; font-size: 11pt;">เรื่อง ให้ผู้เช่ารักษากฎการเช่าอาศัยตามสัญญา</p>
@@ -747,10 +747,10 @@ export default function ContractEditor() {
       </p>
       `).join('')}
 
-      <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๑/๓</div>
       </div>
 
-      <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always;">
+      <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always; min-height: 29.7cm; display: block;">
+      <p style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt; margin: 0;">หน้า ๑/๓</p>
 
       ${clauses.slice(8).map(clause => `
       <p style="margin-bottom: 8pt; margin-top: 8pt; font-size: 10pt; line-height: 1.5;">
@@ -765,10 +765,10 @@ export default function ContractEditor() {
       ${additionalRulesHtml}
       ` : ''}
 
-      <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๒/๓</div>
       </div>
 
-      <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm;">
+      <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: avoid; min-height: 29.7cm; display: block;">
+      <p style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt; margin: 0;">หน้า ๒/๓</p>
     
     <p style="text-align: center; font-size: 11pt; font-weight: bold; margin-bottom: 30pt;">
       ลงลายมือชื่อเพื่อเป็นสัญญา
