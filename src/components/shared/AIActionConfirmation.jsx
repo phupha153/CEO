@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Check, X, AlertTriangle, ArrowRight, Loader2, Upload, Edit2, Save, Trash2 } from "lucide-react";
+import { Check, X, AlertTriangle, ArrowRight, Loader2, Upload, Edit2, Save, Trash2, Zap, Droplet } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function AIActionConfirmation({ 
