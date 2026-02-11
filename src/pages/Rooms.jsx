@@ -2411,7 +2411,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
               {isSelectionMode ? (
                 <><X className="w-4 h-4 mr-2" /> ยกเลิกการเลือก</>
               ) : (
-                <><CheckSquare className="w-4 h-4 mr-2" /> เลือกหลายห้อง</>
+                <><CheckSquare className="w-4 h-4 mr-2" /> แก้ไขหลายรายการ</>
               )}
             </Button>
           </div>
