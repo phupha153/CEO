@@ -5008,7 +5008,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit2 className="w-5 h-5 text-blue-600" />
-              แก้ไขข้อมูล {selectedRooms.length} ห้องพร้อมกัน
+              {selectedRooms.length > 0 ? `แก้ไขข้อมูล ${selectedRooms.length} ห้องพร้อมกัน` : 'แก้ไขข้อมูลหลายห้อง'}
             </DialogTitle>
           </DialogHeader>
 
