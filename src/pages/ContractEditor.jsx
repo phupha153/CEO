@@ -2338,41 +2338,46 @@ export default function ContractEditor() {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
-            .no-print { display: none !important; }
-            .ql-toolbar { display: none !important; }
-            aside, nav, [role="navigation"] { display: none !important; }
-            html, body { 
+            .no-print, .ql-toolbar, .ql-container .ql-tooltip { display: none !important; }
+            aside, nav, [role="navigation"], [data-sidebar], .sidebar { display: none !important; }
+            
+            html, body, #root, main, main > div { 
               margin: 0 !important; 
               padding: 0 !important; 
               background: white !important;
               overflow: visible !important;
-              width: 100% !important;
               height: auto !important;
+              max-height: none !important;
+              width: 100% !important;
             }
-            main {
-              margin: 0 !important;
-              padding: 0 !important;
-              background: white !important;
-            }
+            
             .contract-print {
               display: block !important;
               width: 21cm !important;
-              margin: 0 auto !important;
+              margin: 0 !important;
+              padding: 0 !important;
               background: white !important;
-              position: relative !important;
+              position: static !important;
               overflow: visible !important;
             }
+            
             .contract-page {
               page-break-after: always !important;
               page-break-inside: avoid !important;
               display: block !important;
-              height: auto !important;
+              visibility: visible !important;
+              opacity: 1 !important;
+              height: 29.7cm !important;
+              min-height: 29.7cm !important;
               max-height: none !important;
+              width: 21cm !important;
               margin: 0 !important;
               padding: 1.5cm !important;
               box-shadow: none !important;
               background: white !important;
+              overflow: visible !important;
             }
+            
             .contract-page:last-child {
               page-break-after: auto !important;
             }
