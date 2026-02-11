@@ -91,6 +91,9 @@ export default function RoomsPage() {
     };
 
     const handleClickOutside = (e) => {
+      // ⭐ ถ้า dialog ใดๆ เปิดอยู่ ไม่ต้อง clear
+      if (showBulkEditDialog || showDialog || showDetailDialog || showReservationDialog) return;
+      
       // ถ้าคลิกที่ปุ่มหรือ checkbox ให้ข้ามไป
       if (e.target.closest('[data-selection-control]')) return;
       
