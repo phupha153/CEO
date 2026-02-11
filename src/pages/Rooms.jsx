@@ -578,11 +578,14 @@ export default function RoomsPage() {
           room_id: r.id,
           room_number: r.room_number,
           floor: r.floor,
-          old_value: r[fieldToUpdate] !== undefined && r[fieldToUpdate] !== null ? r[fieldToUpdate] : 'ไม่ได้ตั้งค่า'
+          old_value: fieldToUpdate.includes('flat_rate') 
+            ? (r[fieldToUpdate.replace('flat_rate_', 'is_flat_rate_')] ? `เหมา ${r[fieldToUpdate] || 0} บาท` : 'คิดต่อหน่วย')
+            : (r[fieldToUpdate] !== undefined && r[fieldToUpdate] !== null ? r[fieldToUpdate] : 'ไม่ได้ตั้งค่า')
         }));
         
         const roomTypeText = targetRoomType ? (targetRoomType === 'daily' ? 'ห้องรายวัน' : 'ห้องรายเดือน') : '';
-        const resultText = `พบ ${roomsToUpdate.length} ${roomTypeText}ที่ต้องแก้ไข ${exceptRoomNumbers.length > 0 ? ` (ยกเว้น ${exceptRoomNumbers.join(', ')})` : ''}\n📝 เปลี่ยน: ${fieldLabel} → ${newValue}${newValueIsString ? '' : ' บาท'}`;
+        const displayValue = fieldToUpdate.includes('flat_rate') ? `เหมา ${newValue} บาท/เดือน` : `${newValue}${newValueIsString ? '' : ' บาท'}`;
+        const resultText = `พบ ${roomsToUpdate.length} ${roomTypeText}ที่ต้องแก้ไข ${exceptRoomNumbers.length > 0 ? ` (ยกเว้น ${exceptRoomNumbers.join(', ')})` : ''}\n📝 เปลี่ยน: ${fieldLabel} → ${displayValue}`;
         
         setAiResult({
           answer: resultText,
