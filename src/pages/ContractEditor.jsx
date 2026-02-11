@@ -2382,17 +2382,14 @@ export default function ContractEditor() {
               page-break-inside: avoid !important;
               display: block !important;
               width: 21cm !important;
-              height: 29.7cm !important;
               margin: 0 !important;
               padding: 1.5cm !important;
               background: white !important;
               box-sizing: border-box !important;
-              overflow: hidden !important;
             }
             
             .contract-page:last-child {
               page-break-after: avoid !important;
-              height: auto !important;
             }
           }
           
