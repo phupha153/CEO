@@ -2338,17 +2338,26 @@ export default function ContractEditor() {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
-            .no-print { display: none !important; visibility: hidden !important; height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
-            .ql-toolbar, .ql-container .ql-tooltip { display: none !important; }
-            aside, nav, [role="navigation"], [data-sidebar], .sidebar, header, [class*="header"] { display: none !important; }
             
-            html, body, #root, main { 
+            body { 
+              margin: 0 !important; 
+              padding: 0 !important;
+              width: 100% !important;
+              overflow-y: visible !important;
+            }
+            
+            ::-webkit-scrollbar { display: none !important; }
+            
+            .no-print { display: none !important; }
+            .ql-toolbar, .ql-container .ql-tooltip { display: none !important; }
+            aside, nav, [role="navigation"], [data-sidebar], .sidebar, header { display: none !important; }
+            
+            html, #root, main { 
               margin: 0 !important; 
               padding: 0 !important; 
               background: white !important;
               overflow: visible !important;
               height: auto !important;
-              max-height: none !important;
               width: 100% !important;
             }
             
@@ -2358,7 +2367,6 @@ export default function ContractEditor() {
               margin: 0 !important;
               padding: 0 !important;
               background: white !important;
-              position: static !important;
               overflow: visible !important;
             }
             
@@ -2366,16 +2374,12 @@ export default function ContractEditor() {
               page-break-after: always !important;
               page-break-inside: avoid !important;
               display: block !important;
-              visibility: visible !important;
-              opacity: 1 !important;
               width: 21cm !important;
               margin: 0 !important;
               padding: 1.5cm !important;
-              box-shadow: none !important;
               background: white !important;
               overflow: visible !important;
               height: auto !important;
-              min-height: auto !important;
             }
             
             .contract-page:last-child {
