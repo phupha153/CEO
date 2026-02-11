@@ -174,9 +174,25 @@ export default function AIActionConfirmation({
                   <div>
                     <h3 className="text-xl font-bold">แก้ไข {currentAction.rooms_list.length} ห้อง</h3>
                     <p className="text-sm text-white/80">
-                      {currentAction.field_label} → {currentAction.new_value}
-                      {currentAction.except_rooms?.length > 0 && ` (ยกเว้น ${currentAction.except_rooms.join(', ')})`}
+                    เปลี่ยน{currentAction.field_label} → {currentAction.new_value}
+                    {currentAction.except_rooms?.length > 0 && ` (ยกเว้น ${currentAction.except_rooms.join(', ')})`}
                     </p>
+                    {currentAction.changes && (currentAction.changes.is_flat_rate_electricity || currentAction.changes.is_flat_rate_water) && (
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                      {currentAction.changes.is_flat_rate_electricity && (
+                        <Badge className="bg-orange-400/30 text-white border-white/40">
+                          <Zap className="w-3 h-3 mr-1" />
+                          ค่าไฟเหมา {currentAction.changes.flat_rate_electricity_amount} บาท/เดือน
+                        </Badge>
+                      )}
+                      {currentAction.changes.is_flat_rate_water && (
+                        <Badge className="bg-blue-400/30 text-white border-white/40">
+                          <Droplet className="w-3 h-3 mr-1" />
+                          ค่าน้ำเหมา {currentAction.changes.flat_rate_water_amount} บาท/เดือน
+                        </Badge>
+                      )}
+                    </div>
+                    )}
                   </div>
                 </div>
               </div>
