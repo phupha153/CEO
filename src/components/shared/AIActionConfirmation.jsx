@@ -198,17 +198,29 @@ export default function AIActionConfirmation({
               </div>
               
               <h5 className="font-semibold text-slate-700 text-sm">📋 รายการห้องที่จะแก้ไข:</h5>
-              <div className="bg-white rounded-xl p-4 border-2 border-slate-200 max-h-64 overflow-y-auto">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {currentAction.rooms_list.map((room) => (
-                    <div key={room.room_id} className="p-2 bg-slate-50 rounded-lg text-center">
-                      <p className="font-bold text-slate-800">ห้อง {room.room_number}</p>
-                      <p className="text-xs text-slate-500">ชั้น {room.floor}</p>
-                      <p className="text-xs">
-                        <span className="text-red-600 line-through">{room.old_value}</span>
-                        {' → '}
-                        <span className="text-green-600 font-bold">{currentAction.new_value}</span>
-                      </p>
+              <div className="bg-white rounded-xl p-3 border-2 border-slate-200 max-h-80 overflow-y-auto">
+                <div className="space-y-2">
+                  {currentAction.rooms_list
+                    .sort((a, b) => {
+                      // เรียงตามชั้นก่อน จากน้อยไปมาก
+                      if (a.floor !== b.floor) return a.floor - b.floor;
+                      // จากนั้นเรียงตามหมายเลขห้อง
+                      return a.room_number.localeCompare(b.room_number, 'th');
+                    })
+                    .map((room) => (
+                    <div key={room.room_id} className="p-3 bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg border border-slate-200 hover:border-blue-400 hover:shadow-sm transition-all">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-blue-100 text-blue-700 rounded-lg px-3 py-1 font-bold min-w-fit">
+                            ห้อง {room.room_number}
+                          </div>
+                          <span className="text-xs text-slate-500">ชั้น {room.floor}</span>
+                        </div>
+                        <div className="text-right text-xs">
+                          <p className="text-slate-600 line-through mb-0.5">{room.old_value || 'ไม่มีค่า'}</p>
+                          <p className="text-green-600 font-bold">{currentAction.new_value}</p>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
