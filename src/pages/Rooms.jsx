@@ -593,12 +593,16 @@ export default function RoomsPage() {
           rooms: roomsList
         });
         
+        // ⭐ สร้าง display changes สำหรับแสดงใน confirmation dialog
+        const displayChanges = { ...bulkChanges };
+        
         setAiAction({
           action_type: 'bulk_update',
           room_ids: roomsToUpdate.map(r => r.id),
           changes: bulkChanges,
+          display_changes: displayChanges, // ส่งข้อมูลที่จะแสดงใน UI
           field_label: fieldLabel,
-          new_value: newValue,
+          new_value: displayValue, // ใช้ displayValue แทน newValue
           rooms_list: roomsList,
           except_rooms: exceptRoomNumbers,
           target_floor: targetFloor,
