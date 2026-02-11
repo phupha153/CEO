@@ -2336,32 +2336,29 @@ export default function ContractEditor() {
           @media print {
             .no-print { display: none !important; }
             .ql-toolbar { display: none !important; }
+            [class*="sidebar"] { display: none !important; }
+            header { display: none !important; }
             html, body { 
               margin: 0; 
               padding: 0; 
               background: white;
-              overflow: hidden;
             }
             .contract-print {
               width: 21cm;
               margin: 0;
               background: white;
-              font-size: 9pt;
             }
             .contract-page {
-              page-break-after: avoid;
+              page-break-after: always;
               page-break-inside: avoid;
               height: auto;
               max-height: none;
               margin-bottom: 0;
-              padding: 0.8cm;
+              padding: 1.5cm;
               box-shadow: none;
             }
             .contract-page:last-child {
               page-break-after: auto;
-            }
-            .contract-print p {
-              margin: 2pt 0;
             }
           }
           
