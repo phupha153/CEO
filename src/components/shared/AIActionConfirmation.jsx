@@ -174,7 +174,7 @@ export default function AIActionConfirmation({
                   <div>
                     <h3 className="text-xl font-bold">แก้ไข {currentAction.rooms_list.length} ห้อง</h3>
                     <p className="text-sm text-white/80">
-                      {currentAction.field_label} → {currentAction.new_value} บาท
+                      {currentAction.field_label} → {currentAction.new_value}
                       {currentAction.except_rooms?.length > 0 && ` (ยกเว้น ${currentAction.except_rooms.join(', ')})`}
                     </p>
                   </div>
