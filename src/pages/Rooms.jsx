@@ -4731,53 +4731,40 @@ ${JSON.stringify(roomsWithAC, null, 2)}
 
                     {!bulkAIResult ? (
                       <div className="flex flex-col gap-3">
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.3 }}
+                        <Button
+                          onClick={() => setShowBulkEditDialog(true)}
+                          className="w-full bg-slate-700 hover:bg-slate-800 text-white shadow-md hover:shadow-lg transition-all duration-200 py-5 font-semibold"
                         >
-                          <Button
-                            onClick={() => setShowBulkEditDialog(true)}
-                            className="w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 hover:from-blue-600 hover:via-indigo-600 hover:to-purple-700 shadow-xl hover:shadow-2xl transform hover:scale-[1.02] transition-all duration-300 py-6 text-base font-bold relative overflow-hidden group"
-                          >
-                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                            <div className="flex items-center justify-center gap-3 relative z-10">
-                              <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-                                <Edit2 className="w-5 h-5" />
-                              </div>
-                              <span>แก้ไขข้อมูล {selectedRooms.length} ห้องพร้อมกัน</span>
-                            </div>
-                          </Button>
-                        </motion.div>
+                          <Edit2 className="w-4 h-4 mr-2" />
+                          แก้ไขข้อมูล {selectedRooms.length} ห้อง
+                        </Button>
 
                         <div className="flex items-center gap-2">
-                          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-300 to-transparent" />
-                          <span className="text-xs text-slate-500 font-medium">หรือ</span>
-                          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-300 to-transparent" />
+                          <div className="h-px flex-1 bg-slate-200" />
+                          <span className="text-xs text-slate-500">หรือ</span>
+                          <div className="h-px flex-1 bg-slate-200" />
                         </div>
 
                         <div className="flex gap-2">
                           <div className="relative flex-1">
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text">
-                              <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
-                            </div>
+                            <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <Input 
                               placeholder="ใช้ AI... (เช่น ลบห้องทั้งหมด, แก้ราคาเป็น 4500)" 
                               value={bulkAIQuery}
                               onChange={e => setBulkAIQuery(e.target.value)}
                               onKeyDown={e => e.key === 'Enter' && handleBulkAIRequest()}
-                              className="pl-10 bg-white border-slate-300 shadow-md focus:ring-2 focus:ring-purple-400 transition-all"
+                              className="pl-10 bg-white border-slate-300"
                             />
                           </div>
                           <Button 
                             onClick={handleBulkAIRequest} 
                             disabled={aiSearching || !bulkAIQuery.trim()}
-                            className="bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 text-white hover:from-purple-700 hover:via-pink-700 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-300 px-6"
+                            className="bg-slate-600 hover:bg-slate-700 text-white px-5"
                           >
                             {aiSearching ? (
-                              <Loader2 className="w-5 h-5 animate-spin" />
+                              <Loader2 className="w-4 h-4 animate-spin" />
                             ) : (
-                              <Sparkles className="w-5 h-5" />
+                              <Sparkles className="w-4 h-4" />
                             )}
                           </Button>
                         </div>
