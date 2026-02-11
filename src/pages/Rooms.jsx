@@ -481,21 +481,34 @@ export default function RoomsPage() {
       // Check for numeric values
       const valueMatch1 = query.match(/(?:เป็น|=|เท่ากับ)\s*(\d+(?:\.\d+)?)/);
       const valueMatch2 = query.match(/(\d+(?:\.\d+)?)\s*(?:บาท)?$/);
-      const valueMatch3 = query.match(/(?:ค่าส่วนกลาง|ส่วนกลาง|ค่าไฟ|ค่าน้ำ|ราคา)\s*(\d+(?:\.\d+)?)/);
+      const valueMatch3 = query.match(/(?:ค่าส่วนกลาง|ส่วนกลาง|ค่าไฟ|ค่าน้ำ|ราคา|เหมาจ่าย|เหมา)\s*(\d+(?:\.\d+)?)/);
       if (valueMatch1) newValue = valueMatch1[1];
       else if (valueMatch3) newValue = valueMatch3[1];
       else if (valueMatch2) newValue = valueMatch2[1];
 
+      // ⭐ ตรวจจับคำสั่ง "เหมาจ่าย" ก่อน
+      const isFlatRateCommand = query.includes('เหมาจ่าย') || query.includes('เหมา');
+      
       // Check for field type based on keywords
       if (query.includes('ค่าส่วนกลาง') || query.includes('ส่วนกลาง')) {
         fieldToUpdate = 'common_fee';
         fieldLabel = 'ค่าส่วนกลาง';
       } else if (query.includes('ค่าไฟ') || query.includes('ไฟฟ้า')) {
-        fieldToUpdate = 'electricity_rate';
-        fieldLabel = 'ค่าไฟต่อหน่วย';
-      } else if (query.includes('ค่าน้ำ')) {
-        fieldToUpdate = 'water_rate';
-        fieldLabel = 'ค่าน้ำต่อหน่วย';
+        if (isFlatRateCommand) {
+          fieldToUpdate = 'flat_rate_electricity';
+          fieldLabel = 'ค่าไฟเหมาจ่าย';
+        } else {
+          fieldToUpdate = 'electricity_rate';
+          fieldLabel = 'ค่าไฟต่อหน่วย';
+        }
+      } else if (query.includes('ค่าน้ำ') || query.includes('น้ำ')) {
+        if (isFlatRateCommand) {
+          fieldToUpdate = 'flat_rate_water';
+          fieldLabel = 'ค่าน้ำเหมาจ่าย';
+        } else {
+          fieldToUpdate = 'water_rate';
+          fieldLabel = 'ค่าน้ำต่อหน่วย';
+        }
       } else if (query.includes('ราคา') || query.includes('ค่าเช่า')) {
         fieldToUpdate = 'price';
         fieldLabel = 'ราคาห้อง';
@@ -549,7 +562,17 @@ export default function RoomsPage() {
         }
         
         const bulkChanges = {};
-        bulkChanges[fieldToUpdate] = newValueIsString ? newValue : parseFloat(newValue);
+        
+        // ⭐ ถ้าเป็นคำสั่งเหมาจ่าย ต้อง set ทั้ง is_flat_rate และ amount
+        if (fieldToUpdate === 'flat_rate_water') {
+          bulkChanges['is_flat_rate_water'] = true;
+          bulkChanges['flat_rate_water_amount'] = parseFloat(newValue);
+        } else if (fieldToUpdate === 'flat_rate_electricity') {
+          bulkChanges['is_flat_rate_electricity'] = true;
+          bulkChanges['flat_rate_electricity_amount'] = parseFloat(newValue);
+        } else {
+          bulkChanges[fieldToUpdate] = newValueIsString ? newValue : parseFloat(newValue);
+        }
         
         const roomsList = roomsToUpdate.map(r => ({
           room_id: r.id,
