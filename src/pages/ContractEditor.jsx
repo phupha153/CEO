@@ -701,74 +701,74 @@ export default function ContractEditor() {
       const clauses = updatedFormData.contract_clauses.length > 0 ? updatedFormData.contract_clauses : getDefaultClauses();
 
       const template = `
-    <div style="font-family: 'TH Sarabun New', 'Sarabun', sans-serif; font-size: 12pt; line-height: 1.6;">
+      <div style="font-family: 'TH Sarabun New', 'Sarabun', sans-serif; font-size: 12pt; line-height: 1.6;">
 
-    <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always;">
-    <div style="text-align: center; margin-bottom: 10pt;">
-    <h3 style="margin: 0; font-size: 14pt; font-weight: bold;">แบบสัญญาเช่าที่พักอาศัย</h3>
-    <p style="margin: 3pt 0 0 0; font-size: 11pt;">เรื่อง ให้ผู้เช่ารักษากฎการเช่าอาศัยตามสัญญา</p>
-    </div>
+      <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always;">
+      <div style="text-align: center; margin-bottom: 10pt;">
+        <h3 style="margin: 0; font-size: 14pt; font-weight: bold;">แบบสัญญาเช่าที่พักอาศัย</h3>
+        <p style="margin: 3pt 0 0 0; font-size: 11pt;">เรื่อง ให้ผู้เช่ารักษากฎการเช่าอาศัยตามสัญญา</p>
+      </div>
 
-    <div style="text-align: right; margin-bottom: 8pt;">
-    <p style="margin: 0; font-size: 10pt;">วันที่ {วันที่ทำสัญญา} พ.ศ. ........</p>
-    </div>
+      <div style="text-align: right; margin-bottom: 8pt;">
+        <p style="margin: 0; font-size: 10pt;">วันที่ {วันที่ทำสัญญา} พ.ศ. ........</p>
+      </div>
 
-    <p style="text-indent: 2em; margin-bottom: 6pt; font-size: 10pt;">
-    สัญญาเช่าอาคารฉบับนี้ ทำขึ้นระหว่าง
-    </p>
+      <p style="text-indent: 2em; margin-bottom: 6pt; font-size: 10pt;">
+        สัญญาเช่าอาคารฉบับนี้ ทำขึ้นระหว่าง
+      </p>
 
-    <p style="margin-left: 2em; margin-bottom: 6pt; font-size: 10pt;">
-    (ก) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 120px; display: inline-block;">{ชื่อผู้ให้เช่า}</span> (ผู้มีอำนาจในการทำสัญญา)
-    </p>
-    <p style="margin-left: 2em; margin-bottom: 4pt; font-size: 10pt;">
-    อยู่ <span style="border-bottom: 1px dotted #333; min-width: 180px; display: inline-block;">{ที่อยู่ผู้ให้เช่า}</span>
-    </p>
-    <p style="margin-left: 2em; margin-bottom: 10pt; font-size: 10pt;">
-    หมายเลขโทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้ให้เช่า}</span> ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้ให้เช่า" ฝ่ายหนึ่งกับ
-    </p>
+      <p style="margin-left: 2em; margin-bottom: 6pt; font-size: 10pt;">
+        (ก) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 120px; display: inline-block;">{ชื่อผู้ให้เช่า}</span> (ผู้มีอำนาจในการทำสัญญา)
+      </p>
+      <p style="margin-left: 2em; margin-bottom: 4pt; font-size: 10pt;">
+        อยู่ <span style="border-bottom: 1px dotted #333; min-width: 180px; display: inline-block;">{ที่อยู่ผู้ให้เช่า}</span>
+      </p>
+      <p style="margin-left: 2em; margin-bottom: 10pt; font-size: 10pt;">
+        หมายเลขโทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้ให้เช่า}</span> ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้ให้เช่า" ฝ่ายหนึ่งกับ
+      </p>
 
-    <p style="margin-left: 2em; margin-bottom: 6pt; font-size: 10pt;">
-    (ข) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 120px; display: inline-block;"><strong>{ชื่อผู้เช่า}</strong></span> อายุ ......... ปี
-    </p>
-    <p style="margin-left: 2em; margin-bottom: 4pt; font-size: 10pt;">
-    เลขบัตรประชาชน <span style="border-bottom: 1px dotted #333; display: inline-block;">{เลขบัตรประชาชนผู้เช่า}</span> เบอร์โทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้เช่า}</span>
-    </p>
-    <p style="margin-left: 2em; margin-bottom: 10pt; font-size: 10pt;">
-    ที่อยู่ <span style="border-bottom: 1px dotted #333; min-width: 180px; display: inline-block;">{ที่อยู่ผู้เช่า}</span> ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้เช่า" อีกฝ่ายหนึ่ง
-    </p>
+      <p style="margin-left: 2em; margin-bottom: 6pt; font-size: 10pt;">
+        (ข) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 120px; display: inline-block;"><strong>{ชื่อผู้เช่า}</strong></span> อายุ ......... ปี
+      </p>
+      <p style="margin-left: 2em; margin-bottom: 4pt; font-size: 10pt;">
+        เลขบัตรประชาชน <span style="border-bottom: 1px dotted #333; display: inline-block;">{เลขบัตรประชาชนผู้เช่า}</span> เบอร์โทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้เช่า}</span>
+      </p>
+      <p style="margin-left: 2em; margin-bottom: 10pt; font-size: 10pt;">
+        ที่อยู่ <span style="border-bottom: 1px dotted #333; min-width: 180px; display: inline-block;">{ที่อยู่ผู้เช่า}</span> ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้เช่า" อีกฝ่ายหนึ่ง
+      </p>
 
-    <p style="text-indent: 2em; margin-top: 10pt; margin-bottom: 6pt; font-size: 10pt;">
-    ทั้งสองฝ่ายตกลงทำสัญญาเช่าที่พักอาศัยกันโดยมีสาระสำคัญดังต่อไปนี้
-    </p>
+      <p style="text-indent: 2em; margin-top: 10pt; margin-bottom: 6pt; font-size: 10pt;">
+        ทั้งสองฝ่ายตกลงทำสัญญาเช่าที่พักอาศัยกันโดยมีสาระสำคัญดังต่อไปนี้
+      </p>
 
-    ${clauses.slice(0, 8).map(clause => `
-    <p style="margin-bottom: 8pt; margin-top: 8pt; font-size: 10pt; line-height: 1.5;">
-    <strong>ข้อ ${clause.clause_number}.</strong> ${clause.title ? ` ${clause.title}:` : ''} ${clause.content}
-    </p>
-    `).join('')}
+      ${clauses.slice(0, 8).map(clause => `
+      <p style="margin-bottom: 8pt; margin-top: 8pt; font-size: 10pt; line-height: 1.5;">
+        <strong>ข้อ ${clause.clause_number}.</strong> ${clause.title ? ` ${clause.title}:` : ''} ${clause.content}
+      </p>
+      `).join('')}
 
-    <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๑/๓</div>
-    </div>
+      <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๑/๓</div>
+      </div>
 
-    <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always;">
+      <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always;">
 
-    ${clauses.slice(8).map(clause => `
-    <p style="margin-bottom: 8pt; margin-top: 8pt; font-size: 10pt; line-height: 1.5;">
-    <strong>ข้อ ${clause.clause_number}.</strong> ${clause.title ? ` ${clause.title}:` : ''} ${clause.content}
-    </p>
-    `).join('')}
+      ${clauses.slice(8).map(clause => `
+      <p style="margin-bottom: 8pt; margin-top: 8pt; font-size: 10pt; line-height: 1.5;">
+        <strong>ข้อ ${clause.clause_number}.</strong> ${clause.title ? ` ${clause.title}:` : ''} ${clause.content}
+      </p>
+      `).join('')}
 
-    ${additionalRulesHtml ? `
-    <p style="margin-left: 2em; margin-bottom: 6pt; font-size: 10pt; margin-top: 12pt;">
-    <strong>กฎเพิ่มเติม:</strong>
-    </p>
-    ${additionalRulesHtml}
-    ` : ''}
+      ${additionalRulesHtml ? `
+      <p style="margin-left: 2em; margin-bottom: 6pt; font-size: 10pt; margin-top: 12pt;">
+        <strong>กฎเพิ่มเติม:</strong>
+      </p>
+      ${additionalRulesHtml}
+      ` : ''}
 
-    <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๒/๓</div>
-    </div>
+      <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๒/๓</div>
+      </div>
 
-    <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm;">
+      <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm;">
     
     <p style="text-align: center; font-size: 11pt; font-weight: bold; margin-bottom: 30pt;">
       ลงลายมือชื่อเพื่อเป็นสัญญา
