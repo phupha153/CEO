@@ -2338,7 +2338,8 @@ export default function ContractEditor() {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
-            .no-print, .ql-toolbar, .ql-container .ql-tooltip { display: none !important; }
+            .no-print { display: none !important; visibility: hidden !important; height: 0 !important; margin: 0 !important; padding: 0 !important; }
+            .ql-toolbar, .ql-container .ql-tooltip { display: none !important; }
             aside, nav, [role="navigation"], [data-sidebar], .sidebar { display: none !important; }
             
             html, body, #root, main, main > div { 
