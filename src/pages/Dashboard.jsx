@@ -956,54 +956,56 @@ export default function Dashboard() {
             </motion.div>
           </div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }}>
-            <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
-              <CardHeader className="pb-3 md:pb-4">
-                <CardTitle className="text-sm md:text-lg font-bold text-slate-800 flex items-center gap-2">
-                  <Link2 className="w-5 h-5 text-blue-600" />
-                  ลิงก์จองห้องออนไลน์
-                </CardTitle>
-                <p className="text-xs text-slate-600 mt-1">แชร์ลิงก์นี้ให้ผู้ที่สนใจเข้าพัก</p>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-slate-500 mb-2 font-semibold">URL จองห้องพัก</p>
-                      <p className="text-sm font-mono text-slate-700 break-all bg-white/70 px-3 py-2 rounded-lg">
-                        {window.location.origin}/PublicBooking?branchId={selectedBranchId}
-                      </p>
+          {userRole === 'developer' && (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }}>
+              <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
+                <CardHeader className="pb-3 md:pb-4">
+                  <CardTitle className="text-sm md:text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <Link2 className="w-5 h-5 text-blue-600" />
+                    ลิงก์จองห้องออนไลน์
+                  </CardTitle>
+                  <p className="text-xs text-slate-600 mt-1">แชร์ลิงก์นี้ให้ผู้ที่สนใจเข้าพัก</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-slate-500 mb-2 font-semibold">URL จองห้องพัก</p>
+                        <p className="text-sm font-mono text-slate-700 break-all bg-white/70 px-3 py-2 rounded-lg">
+                          {window.location.origin}/PublicBooking?branchId={selectedBranchId}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-4">
+                      <Button
+                        onClick={() => {
+                          const url = `${window.location.origin}/PublicBooking?branchId=${selectedBranchId}`;
+                          navigator.clipboard.writeText(url);
+                          toast.success('📋 คัดลอกลิงก์สำเร็จ!');
+                        }}
+                        size="sm"
+                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        คัดลอกลิงก์
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          navigate(`/PublicBooking?branchId=${selectedBranchId}`);
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        เปิดดู
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-2 mt-4">
-                    <Button
-                      onClick={() => {
-                        const url = `${window.location.origin}/PublicBooking?branchId=${selectedBranchId}`;
-                        navigator.clipboard.writeText(url);
-                        toast.success('📋 คัดลอกลิงก์สำเร็จ!');
-                      }}
-                      size="sm"
-                      className="flex-1 bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Copy className="w-4 h-4 mr-2" />
-                      คัดลอกลิงก์
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        navigate(`/PublicBooking?branchId=${selectedBranchId}`);
-                      }}
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      เปิดดู
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
             <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
