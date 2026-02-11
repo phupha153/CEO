@@ -2383,10 +2383,12 @@ export default function ContractEditor() {
               display: block !important;
               width: 21cm !important;
               height: auto !important;
+              min-height: unset !important;
               margin: 0 !important;
-              padding: 1.5cm !important;
+              padding: 1.5cm 1.5cm 2cm 1.5cm !important;
               background: white !important;
               box-sizing: border-box !important;
+              overflow: visible !important;
             }
             
             .contract-page:last-child {
