@@ -2338,11 +2338,11 @@ export default function ContractEditor() {
               -webkit-print-color-adjust: exact !important;
               print-color-adjust: exact !important;
             }
-            .no-print { display: none !important; visibility: hidden !important; height: 0 !important; margin: 0 !important; padding: 0 !important; }
+            .no-print { display: none !important; visibility: hidden !important; height: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
             .ql-toolbar, .ql-container .ql-tooltip { display: none !important; }
-            aside, nav, [role="navigation"], [data-sidebar], .sidebar { display: none !important; }
+            aside, nav, [role="navigation"], [data-sidebar], .sidebar, header, [class*="header"] { display: none !important; }
             
-            html, body, #root, main, main > div { 
+            html, body, #root, main { 
               margin: 0 !important; 
               padding: 0 !important; 
               background: white !important;
