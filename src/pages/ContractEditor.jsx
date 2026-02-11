@@ -924,10 +924,10 @@ export default function ContractEditor() {
     </p>
     `).join('')}
 
-    <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๑/๓</div>
+    <p style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt; margin: 0;">หน้า ๑/๓</p>
   </div>
 
-  <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always;">
+  <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm; page-break-after: always; min-height: 29.7cm; display: block;">
     
     ${clauses.slice(8).map(clause => `
     <p style="margin-bottom: 8pt; margin-top: 8pt; font-size: 10pt; line-height: 1.5;">
@@ -942,10 +942,10 @@ export default function ContractEditor() {
     ${additionalRulesHtml}
     ` : ''}
 
-    <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๒/๓</div>
+    <p style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt; margin: 0;">หน้า ๒/๓</p>
   </div>
 
-  <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm;">
+  <div class="contract-page" style="position: relative; padding: 1.5cm 1.5cm 2cm 1.5cm; min-height: 29.7cm; display: block;">
     
     <p style="text-align: center; font-size: 11pt; font-weight: bold; margin-bottom: 30pt;">
       ลงลายมือชื่อเพื่อเป็นสัญญา
@@ -1019,7 +1019,7 @@ export default function ContractEditor() {
       </p>
     </div>
 
-    <div style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt;">หน้า ๓/๓</div>
+    <p style="position: absolute; bottom: 1cm; right: 1.2cm; font-size: 11pt; margin: 0;">หน้า ๓/๓</p>
   </div>
 
 </div>
