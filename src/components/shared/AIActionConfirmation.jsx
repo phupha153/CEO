@@ -197,20 +197,44 @@ export default function AIActionConfirmation({
                 </div>
               </div>
               
-              <h5 className="font-semibold text-slate-700 text-sm">📋 รายการห้องที่จะแก้ไข:</h5>
-              <div className="bg-white rounded-xl p-4 border-2 border-slate-200 max-h-64 overflow-y-auto">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {currentAction.rooms_list.map((room) => (
-                    <div key={room.room_id} className="p-2 bg-slate-50 rounded-lg text-center">
-                      <p className="font-bold text-slate-800">ห้อง {room.room_number}</p>
-                      <p className="text-xs text-slate-500">ชั้น {room.floor}</p>
-                      <p className="text-xs">
-                        <span className="text-red-600 line-through">{room.old_value}</span>
-                        {' → '}
-                        <span className="text-green-600 font-bold">{currentAction.new_value}</span>
-                      </p>
+              <h5 className="font-semibold text-slate-700 text-sm flex items-center justify-between">
+                <span>📋 รายการห้องที่จะแก้ไข ({currentAction.rooms_list.length} ห้อง):</span>
+                <Badge className="bg-purple-100 text-purple-700 text-xs">
+                  ระบบจะบันทึกการเปลี่ยนแปลงทุกห้อง
+                </Badge>
+              </h5>
+              <div className="bg-white rounded-xl p-4 border-2 border-slate-200 max-h-80 overflow-y-auto">
+                <div className="space-y-2">
+                  {currentAction.rooms_list.map((room, idx) => (
+                    <div key={room.room_id} className="p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-all border border-slate-200">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-blue-500 text-white text-xs w-7 h-7 flex items-center justify-center rounded-full">
+                            {idx + 1}
+                          </Badge>
+                          <div>
+                            <p className="font-bold text-slate-800">ห้อง {room.room_number}</p>
+                            <p className="text-xs text-slate-500">ชั้น {room.floor}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-slate-500 mb-1">ค่าเดิม → ค่าใหม่</p>
+                          <p className="text-sm">
+                            <span className="text-red-600 line-through font-medium">{room.old_value}</span>
+                            {' → '}
+                            <span className="text-green-600 font-bold">{currentAction.new_value}</span>
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   ))}
+                </div>
+                
+                <div className="mt-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <p className="text-xs text-purple-800 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>การเปลี่ยนแปลงนี้จะถูกบันทึกใน "ประวัติการจัดการ" พร้อมรายละเอียดทุกห้อง</span>
+                  </p>
                 </div>
               </div>
             </div>
