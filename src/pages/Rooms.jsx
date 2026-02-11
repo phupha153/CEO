@@ -61,6 +61,13 @@ export default function RoomsPage() {
   const [isFlatRateElectricity, setIsFlatRateElectricity] = useState(false);
   const [showEditBookingDialog, setShowEditBookingDialog] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
+  const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
+  const [bulkEditData, setBulkEditData] = useState({
+    field: '',
+    value: '',
+    isFlatRate: false,
+    flatRateAmount: ''
+  });
   
   // Bulk Selection State
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -4720,25 +4727,35 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                     </div>
 
                     {!bulkAIResult ? (
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500" />
-                          <Input 
-                            placeholder="บอก AI ว่าจะทำอะไร... (เช่น ลบห้องทั้งหมด, แก้ราคาเป็น 4500, เปลี่ยนเป็นว่าง)" 
-                            value={bulkAIQuery}
-                            onChange={e => setBulkAIQuery(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && handleBulkAIRequest()}
-                            className="pl-10 bg-slate-50 border-slate-200"
-                            autoFocus
-                          />
+                      <div className="flex flex-col gap-2">
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => setShowBulkEditDialog(true)}
+                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 flex-1"
+                          >
+                            <Edit2 className="w-4 h-4 mr-2" />
+                            แก้ไขข้อมูล {selectedRooms.length} ห้อง
+                          </Button>
                         </div>
-                        <Button 
-                          onClick={handleBulkAIRequest} 
-                          disabled={aiSearching || !bulkAIQuery.trim()}
-                          className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
-                        >
-                          {aiSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4 mr-2" /> AI แก้ไข</>}
-                        </Button>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-500" />
+                            <Input 
+                              placeholder="หรือใช้ AI... (เช่น ลบห้องทั้งหมด, แก้ราคาเป็น 4500)" 
+                              value={bulkAIQuery}
+                              onChange={e => setBulkAIQuery(e.target.value)}
+                              onKeyDown={e => e.key === 'Enter' && handleBulkAIRequest()}
+                              className="pl-10 bg-slate-50 border-slate-200"
+                            />
+                          </div>
+                          <Button 
+                            onClick={handleBulkAIRequest} 
+                            disabled={aiSearching || !bulkAIQuery.trim()}
+                            className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
+                          >
+                            {aiSearching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                          </Button>
+                        </div>
                       </div>
                     ) : (
                       <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
@@ -4983,6 +5000,197 @@ ${JSON.stringify(roomsWithAC, null, 2)}
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showBulkEditDialog} onOpenChange={setShowBulkEditDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit2 className="w-5 h-5 text-blue-600" />
+              แก้ไขข้อมูล {selectedRooms.length} ห้องพร้อมกัน
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            
+            if (!bulkEditData.field) {
+              toast.error('กรุณาเลือกข้อมูลที่ต้องการแก้ไข');
+              return;
+            }
+
+            const updates = {};
+            
+            if (bulkEditData.field === 'flat_rate_water') {
+              updates.is_flat_rate_water = true;
+              updates.flat_rate_water_amount = parseFloat(bulkEditData.flatRateAmount);
+            } else if (bulkEditData.field === 'flat_rate_electricity') {
+              updates.is_flat_rate_electricity = true;
+              updates.flat_rate_electricity_amount = parseFloat(bulkEditData.flatRateAmount);
+            } else if (bulkEditData.field === 'disable_flat_rate_water') {
+              updates.is_flat_rate_water = false;
+              updates.flat_rate_water_amount = null;
+            } else if (bulkEditData.field === 'disable_flat_rate_electricity') {
+              updates.is_flat_rate_electricity = false;
+              updates.flat_rate_electricity_amount = null;
+            } else {
+              updates[bulkEditData.field] = 
+                ['price', 'water_rate', 'electricity_rate', 'common_fee'].includes(bulkEditData.field)
+                  ? parseFloat(bulkEditData.value)
+                  : bulkEditData.value;
+            }
+
+            if (confirm(`ยืนยันแก้ไข ${selectedRooms.length} ห้อง?`)) {
+              bulkUpdateMutation.mutate({ roomIds: selectedRooms, updates });
+              setShowBulkEditDialog(false);
+              setBulkEditData({ field: '', value: '', isFlatRate: false, flatRateAmount: '' });
+            }
+          }} className="space-y-4 py-4">
+            <div>
+              <Label className="mb-2 block font-semibold">เลือกข้อมูลที่ต้องการแก้ไข</Label>
+              <Select 
+                value={bulkEditData.field} 
+                onValueChange={(value) => setBulkEditData({ ...bulkEditData, field: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกรายการ..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="price">💰 ราคาห้อง</SelectItem>
+                  <SelectItem value="status">🚪 สถานะห้อง</SelectItem>
+                  <SelectItem value="water_rate">💧 ค่าน้ำต่อหน่วย</SelectItem>
+                  <SelectItem value="electricity_rate">⚡ ค่าไฟต่อหน่วย</SelectItem>
+                  <SelectItem value="common_fee">🏢 ค่าส่วนกลาง</SelectItem>
+                  <SelectItem value="flat_rate_water">💧 ตั้งค่าน้ำเหมาจ่าย</SelectItem>
+                  <SelectItem value="flat_rate_electricity">⚡ ตั้งค่าไฟเหมาจ่าย</SelectItem>
+                  <SelectItem value="disable_flat_rate_water">❌ ปิดค่าน้ำเหมา (กลับเป็นคิดตามหน่วย)</SelectItem>
+                  <SelectItem value="disable_flat_rate_electricity">❌ ปิดค่าไฟเหมา (กลับเป็นคิดตามหน่วย)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {bulkEditData.field && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                {bulkEditData.field === 'status' ? (
+                  <div>
+                    <Label className="mb-2 block">สถานะใหม่</Label>
+                    <Select 
+                      value={bulkEditData.value} 
+                      onValueChange={(value) => setBulkEditData({ ...bulkEditData, value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกสถานะ..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="available">ว่าง</SelectItem>
+                        <SelectItem value="occupied">มีผู้เช่า</SelectItem>
+                        <SelectItem value="reserved">จอง</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : bulkEditData.field === 'flat_rate_water' || bulkEditData.field === 'flat_rate_electricity' ? (
+                  <div>
+                    <Label className="mb-2 block">
+                      {bulkEditData.field === 'flat_rate_water' ? '💧 ค่าน้ำเหมาจ่าย (บาท/เดือน)' : '⚡ ค่าไฟเหมาจ่าย (บาท/เดือน)'}
+                    </Label>
+                    <Input
+                      type="number"
+                      placeholder="เช่น 100"
+                      value={bulkEditData.flatRateAmount}
+                      onChange={(e) => setBulkEditData({ ...bulkEditData, flatRateAmount: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
+                      required
+                    />
+                    <p className="text-xs text-slate-500 mt-2">
+                      ✅ เมื่อตั้งค่าเหมา จะไม่คิดตามหน่วยอีกต่อไป
+                    </p>
+                  </div>
+                ) : bulkEditData.field === 'disable_flat_rate_water' || bulkEditData.field === 'disable_flat_rate_electricity' ? (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-slate-600">
+                      ⚠️ จะปิดการคิดค่าเหมา และกลับไปคิดตามหน่วยแทน
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <Label className="mb-2 block">
+                      {bulkEditData.field === 'price' ? 'ราคาใหม่ (บาท)' :
+                       bulkEditData.field === 'water_rate' ? 'ค่าน้ำต่อหน่วย (บาท)' :
+                       bulkEditData.field === 'electricity_rate' ? 'ค่าไฟต่อหน่วย (บาท)' :
+                       bulkEditData.field === 'common_fee' ? 'ค่าส่วนกลาง (บาท)' :
+                       'ค่าใหม่'}
+                    </Label>
+                    <Input
+                      type="number"
+                      placeholder="ใส่ตัวเลข..."
+                      value={bulkEditData.value}
+                      onChange={(e) => setBulkEditData({ ...bulkEditData, value: e.target.value })}
+                      onWheel={(e) => e.target.blur()}
+                      required
+                    />
+                  </div>
+                )}
+
+                <div className="mt-4 bg-white rounded-lg p-3 border">
+                  <p className="text-xs font-semibold text-slate-700 mb-2">ห้องที่จะแก้ไข ({selectedRooms.length} ห้อง):</p>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                    {selectedRooms.slice(0, 20).map(roomId => {
+                      const room = rooms.find(r => r.id === roomId);
+                      return room ? (
+                        <Badge key={roomId} variant="outline" className="bg-blue-50 text-blue-700">
+                          {room.room_number}
+                        </Badge>
+                      ) : null;
+                    })}
+                    {selectedRooms.length > 20 && (
+                      <Badge variant="outline" className="bg-slate-50">
+                        +{selectedRooms.length - 20} ห้อง
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setShowBulkEditDialog(false);
+                  setBulkEditData({ field: '', value: '', isFlatRate: false, flatRateAmount: '' });
+                }}
+              >
+                ยกเลิก
+              </Button>
+              <Button 
+                type="submit"
+                className="bg-green-600 hover:bg-green-700"
+                disabled={
+                  bulkUpdateMutation.isPending || 
+                  !bulkEditData.field ||
+                  (bulkEditData.field !== 'disable_flat_rate_water' && 
+                   bulkEditData.field !== 'disable_flat_rate_electricity' &&
+                   ((bulkEditData.field === 'flat_rate_water' || bulkEditData.field === 'flat_rate_electricity') 
+                     ? !bulkEditData.flatRateAmount 
+                     : !bulkEditData.value))
+                }
+              >
+                {bulkUpdateMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    กำลังอัปเดต...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    ยืนยันการแก้ไข
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
