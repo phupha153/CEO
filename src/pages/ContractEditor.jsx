@@ -721,10 +721,10 @@ export default function ContractEditor() {
       (ก) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 150px; display: inline-block;">{ชื่อผู้ให้เช่า}</span> (ผู้มีอำนาจในการทำสัญญา)
     </p>
     <p style="margin-left: 2em; margin-bottom: 5pt; font-size: 11pt;">
-      อยู่บ้านเลขที่ .......... หมู่ที่ ........ ถนน .................................. ตำบล/แขวง ..................................
+      อยู่ <span style="border-bottom: 1px dotted #333; min-width: 200px; display: inline-block;">{ที่อยู่ผู้ให้เช่า}</span>
     </p>
     <p style="margin-left: 2em; margin-bottom: 8pt; font-size: 11pt;">
-      อำเภอ/เขต ................................. จังหวัด ................................. หมายเลขโทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้ให้เช่า}</span>
+      หมายเลขโทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้ให้เช่า}</span>
     </p>
     <p style="margin-left: 2em; margin-bottom: 12pt; font-size: 11pt;">
       ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้ให้เช่า" ฝ่ายหนึ่งกับ
@@ -904,10 +904,10 @@ export default function ContractEditor() {
       (ก) นาย/นาง/นางสาว <span style="border-bottom: 1px dotted #333; min-width: 150px; display: inline-block;">{ชื่อผู้ให้เช่า}</span> (ผู้มีอำนาจในการทำสัญญา)
     </p>
     <p style="margin-left: 2em; margin-bottom: 5pt; font-size: 11pt;">
-      อยู่บ้านเลขที่ .......... หมู่ที่ ........ ถนน .................................. ตำบล/แขวง ..................................
+      อยู่ <span style="border-bottom: 1px dotted #333; min-width: 200px; display: inline-block;">{ที่อยู่ผู้ให้เช่า}</span>
     </p>
     <p style="margin-left: 2em; margin-bottom: 8pt; font-size: 11pt;">
-      อำเภอ/เขต ................................. จังหวัด ................................. หมายเลขโทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้ให้เช่า}</span>
+      หมายเลขโทรศัพท์ <span style="border-bottom: 1px dotted #333; display: inline-block;">{เบอร์โทรผู้ให้เช่า}</span>
     </p>
     <p style="margin-left: 2em; margin-bottom: 12pt; font-size: 11pt;">
       ซึ่งต่อไปสัญญาฉบับนี้ จะเรียกว่า "ผู้ให้เช่า" ฝ่ายหนึ่งกับ

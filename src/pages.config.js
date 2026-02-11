@@ -82,9 +82,11 @@ import NoPackagePage from './pages/NoPackagePage';
 import NotificationSettings from './pages/NotificationSettings';
 import OwnerAI from './pages/OwnerAI';
 import PackagePaymentPage from './pages/PackagePaymentPage';
+import PackageSelection from './pages/PackageSelection';
 import Payments from './pages/Payments';
 import PrintReceipts from './pages/PrintReceipts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import PublicBooking from './pages/PublicBooking';
 import PublicInvoice from './pages/PublicInvoice';
 import PublicReceipt from './pages/PublicReceipt';
 import Receipt from './pages/Receipt';
@@ -104,8 +106,6 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import PackageSelection from './pages/PackageSelection';
-import PublicBooking from './pages/PublicBooking';
 import __Layout from './Layout.jsx';
 
 
@@ -145,9 +145,11 @@ export const PAGES = {
     "NotificationSettings": NotificationSettings,
     "OwnerAI": OwnerAI,
     "PackagePaymentPage": PackagePaymentPage,
+    "PackageSelection": PackageSelection,
     "Payments": Payments,
     "PrintReceipts": PrintReceipts,
     "PrivacyPolicy": PrivacyPolicy,
+    "PublicBooking": PublicBooking,
     "PublicInvoice": PublicInvoice,
     "PublicReceipt": PublicReceipt,
     "Receipt": Receipt,
@@ -167,8 +169,6 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "PackageSelection": PackageSelection,
-    "PublicBooking": PublicBooking,
 }
 
 export const pagesConfig = {
