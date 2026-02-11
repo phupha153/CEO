@@ -4733,7 +4733,7 @@ ${JSON.stringify(roomsWithAC, null, 2)}
                       <div className="flex flex-col gap-3">
                         <Button
                           onClick={() => setShowBulkEditDialog(true)}
-                          className="w-full bg-slate-700 hover:bg-slate-800 text-white shadow-md hover:shadow-lg transition-all duration-200 py-5 font-semibold"
+                          className="w-full bg-slate-600 hover:bg-slate-700 text-white py-4 font-medium"
                         >
                           <Edit2 className="w-4 h-4 mr-2" />
                           แก้ไขข้อมูล {selectedRooms.length} ห้อง
