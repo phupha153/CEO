@@ -1403,25 +1403,23 @@ export default function MeterReadings() {
                 </Button>
 
                 {canAdd && (
-                  <ExcelUploader
-                    entityName="มิเตอร์"
-                    schema={{
-                      type: "object",
-                      properties: {
-                        "หมายเลขห้อง": { type: "string" },
-                        "ชั้น": { type: "string" },
-                        "ผู้เช่า": { type: "string" },
-                        "มิเตอร์น้ำครั้งก่อน": { type: "number" },
-                        "มิเตอร์น้ำปัจจุบัน": { type: "number" },
-                        "มิเตอร์ไฟครั้งก่อน": { type: "number" },
-                        "มิเตอร์ไฟปัจจุบัน": { type: "number" }
-                      }
-                    }}
-                    onImport={handleImportData}
-                    buttonVariant="outline"
-                    buttonClassName="border-blue-600 text-blue-600 hover:bg-blue-50"
-                    hideDownloadTemplate={true}
-                  />
+                  <>
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileImport}
+                      className="hidden"
+                      id="csv-upload-meter"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById('csv-upload-meter').click()}
+                      className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      อัปโหลด CSV
+                    </Button>
+                  </>
                 )}
               </>
             )}
