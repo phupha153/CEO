@@ -319,68 +319,118 @@ export default function MeterReadings() {
     toast.success('ดาวน์โหลดไฟล์สำเร็จ');
   };
 
-  // ✅ Import จาก Excel
-  const handleImportData = async (data) => {
+  // ✅ Import จาก CSV โดยตรง (ไม่ใช้ ExtractDataFromUploadedFile)
+  const handleFileImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     if (!canAdd) {
       toast.error('คุณไม่มีสิทธิ์บันทึกมิเตอร์');
       return;
     }
 
-    let successCount = 0;
-    let errorCount = 0;
+    try {
+      toast.info('กำลังอ่านไฟล์...');
 
-    for (const row of data) {
-      const roomNumber = row['หมายเลขห้อง'];
-      const waterCurrent = parseFloat(row['มิเตอร์น้ำปัจจุบัน']);
-      const electricityCurrent = parseFloat(row['มิเตอร์ไฟปัจจุบัน']);
-
-      // ข้ามถ้าไม่มีข้อมูล
-      if (!roomNumber || isNaN(waterCurrent) || isNaN(electricityCurrent)) {
-        continue;
+      // อ่านไฟล์ CSV
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        toast.error('ไฟล์ CSV ไม่มีข้อมูล');
+        return;
       }
 
-      // หาห้อง
-      const room = rooms.find(r => r.room_number === roomNumber);
-      if (!room) {
-        errorCount++;
-        continue;
-      }
+      // Parse header และข้อมูล
+      const headers = lines[0].split(',').map(h => h.trim().replace(/^\ufeff/, ''));
+      const data = [];
 
-      // หาค่าก่อนหน้า
-      const latest = getLatestReading(room.id);
-      const waterPrevious = latest?.water_current || 0;
-      const electricityPrevious = latest?.electricity_current || 0;
-
-      const waterUnits = waterCurrent - waterPrevious;
-      const electricityUnits = electricityCurrent - electricityPrevious;
-
-      try {
-        await base44.entities.MeterReading.create({
-          room_id: room.id,
-          reading_date: new Date().toISOString().split('T')[0],
-          water_previous: waterPrevious,
-          water_current: waterCurrent,
-          electricity_previous: electricityPrevious,
-          electricity_current: electricityCurrent,
-          water_units: waterUnits,
-          electricity_units: electricityUnits,
-          branch_id: selectedBranchId,
-          notes: 'นำเข้าจาก Excel'
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',');
+        const row = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index]?.trim() || '';
         });
-        successCount++;
-      } catch (e) {
-        errorCount++;
+        data.push(row);
       }
+
+      console.log('📊 Parsed CSV:', { headers, rowCount: data.length });
+
+      let successCount = 0;
+      let errorCount = 0;
+      const errors = [];
+
+      for (const row of data) {
+        const roomNumber = row['หมายเลขห้อง'];
+        const waterCurrent = parseFloat(row['มิเตอร์น้ำปัจจุบัน']);
+        const electricityCurrent = parseFloat(row['มิเตอร์ไฟปัจจุบัน']);
+        const waterPrevFromFile = parseFloat(row['มิเตอร์น้ำครั้งก่อน']);
+        const elecPrevFromFile = parseFloat(row['มิเตอร์ไฟครั้งก่อน']);
+
+        // ข้ามถ้าไม่มีข้อมูล
+        if (!roomNumber || (isNaN(waterCurrent) && isNaN(electricityCurrent))) {
+          continue;
+        }
+
+        // หาห้อง
+        const room = rooms.find(r => r.room_number === roomNumber);
+        if (!room) {
+          errorCount++;
+          errors.push(`ไม่พบห้อง ${roomNumber}`);
+          continue;
+        }
+
+        // ใช้ค่าจากไฟล์ CSV ก่อน ถ้าไม่มีค่อยดึงจากประวัติ
+        let waterPrevious = !isNaN(waterPrevFromFile) ? waterPrevFromFile : 0;
+        let electricityPrevious = !isNaN(elecPrevFromFile) ? elecPrevFromFile : 0;
+
+        // ถ้าไฟล์ไม่ระบุค่าก่อนหน้า ให้ดึงจากประวัติล่าสุด
+        if (isNaN(waterPrevFromFile)) {
+          const latest = getLatestReading(room.id);
+          waterPrevious = latest?.water_current || 0;
+        }
+        if (isNaN(elecPrevFromFile)) {
+          const latest = getLatestReading(room.id);
+          electricityPrevious = latest?.electricity_current || 0;
+        }
+
+        const waterUnits = !isNaN(waterCurrent) ? (waterCurrent - waterPrevious) : 0;
+        const electricityUnits = !isNaN(electricityCurrent) ? (electricityCurrent - electricityPrevious) : 0;
+
+        try {
+          await base44.entities.MeterReading.create({
+            room_id: room.id,
+            reading_date: new Date().toISOString().split('T')[0],
+            water_previous: waterPrevious,
+            water_current: !isNaN(waterCurrent) ? waterCurrent : waterPrevious,
+            electricity_previous: electricityPrevious,
+            electricity_current: !isNaN(electricityCurrent) ? electricityCurrent : electricityPrevious,
+            water_units: waterUnits,
+            electricity_units: electricityUnits,
+            branch_id: selectedBranchId,
+            notes: 'นำเข้าจาก CSV'
+          });
+          successCount++;
+        } catch (e) {
+          errorCount++;
+          errors.push(`ห้อง ${roomNumber}: ${e.message}`);
+        }
+      }
+
+      queryClient.invalidateQueries(['meterReadings', selectedBranchId]);
+      
+      if (successCount > 0) {
+        toast.success(`✅ นำเข้าสำเร็จ ${successCount} ห้อง`);
+      }
+      if (errorCount > 0) {
+        toast.error(`❌ ไม่สามารถนำเข้าได้ ${errorCount} ห้อง\n${errors.slice(0, 3).join('\n')}`);
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      toast.error('เกิดข้อผิดพลาด: ' + error.message);
     }
 
-    queryClient.invalidateQueries(['meterReadings', selectedBranchId]);
-    
-    if (successCount > 0) {
-      toast.success(`นำเข้าสำเร็จ ${successCount} ห้อง`);
-    }
-    if (errorCount > 0) {
-      toast.error(`ไม่สามารถนำเข้าได้ ${errorCount} ห้อง`);
-    }
+    e.target.value = '';
   };
 
 
