@@ -296,7 +296,7 @@ Deno.serve(async (req) => {
             }
         }
 
-        // 5. ส่งข้อความ
+        // 5. ส่งข้อความ - ส่ง Flex Message โดยตรงไป LINE API
         let sentCount = 0;
         let sendErrors = [];
         const successfulPaymentIds = new Set();
@@ -307,101 +307,76 @@ Deno.serve(async (req) => {
         console.log(`📊 Recipients: ${lineRecipients.length} LINE, ${facebookRecipients.length} Facebook`);
 
         if (recipients.length > 0) {
-            if (testLineUserId) {
-                console.log(`🧪 TEST MODE: Sending sample to ${testLineUserId}`);
-                const sample = recipients[0];
+            // LINE - ส่ง Flex Message โดยตรง
+            if (lineRecipients.length > 0) {
+                console.log(`📤 Sending ${lineRecipients.length} LINE Flex Messages...`);
                 
-                try {
-                    const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                        recipients: [{
-                            lineUserId: testLineUserId,
-                            message: sample.message,
-                            metadata: { ...sample.metadata, testMode: true }
-                        }],
-                        options: { batchSize: 1, retryAttempts: 2 }
-                    });
-
-                    sentCount = batchResult.data.success || 0;
-                    if (sentCount > 0) successfulPaymentIds.add(sample.metadata.paymentId);
-                    console.log(`✅ Test sent: ${sentCount}`);
-                } catch (error) {
-                    console.error('❌ Test error:', error);
-                    sendErrors.push(`Test: ${error.message}`);
-                }
-            } else {
-                // LINE
-                if (lineRecipients.length > 0) {
-                    console.log(`📤 Sending ${lineRecipients.length} LINE messages...`);
-                    
-                    const CHUNK_SIZE = 50;
-                    const chunks = [];
-                    for (let i = 0; i < lineRecipients.length; i += CHUNK_SIZE) {
-                        chunks.push(lineRecipients.slice(i, i + CHUNK_SIZE));
-                    }
-
-                    for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
-                        const chunk = chunks[chunkIdx];
-                        console.log(`📤 Chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} msgs)`);
-
+                // ดึง LINE token
+                const lineTokenConfig = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
+                const lineToken = lineTokenConfig?.value || Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+                
+                if (!lineToken) {
+                    console.error('❌ LINE token not found');
+                    sendErrors.push('LINE token not configured');
+                } else {
+                    for (const recipient of lineRecipients) {
                         try {
-                            const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                                recipients: chunk,
-                                options: {
-                                    batchSize: 10,
-                                    delayBetweenBatches: 2000,
-                                    delayBetweenMessages: 150,
-                                    retryAttempts: 3
-                                }
+                            const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${lineToken}`
+                                },
+                                body: JSON.stringify({
+                                    to: testLineUserId || recipient.lineUserId,
+                                    messages: [recipient.message]
+                                })
                             });
 
-                            const result = batchResult.data;
-                            sentCount += result.success || 0;
-                            
-                            const failedPaymentIds = new Set();
-                            if (result.errors && result.errors.length > 0) {
-                                result.errors.slice(0, 5).forEach(err => {
-                                    sendErrors.push(`ห้อง ${err.metadata?.roomNumber || 'N/A'}: ${err.error}`);
-                                    if (err.metadata?.paymentId) failedPaymentIds.add(err.metadata.paymentId);
-                                });
+                            if (lineResponse.ok) {
+                                sentCount++;
+                                successfulPaymentIds.add(recipient.metadata.paymentId);
+                                console.log(`✅ Sent to ${recipient.metadata.tenantName} (ห้อง ${recipient.metadata.roomNumber})`);
+                            } else {
+                                const errorData = await lineResponse.json();
+                                sendErrors.push(`ห้อง ${recipient.metadata.roomNumber}: ${errorData.message || 'LINE API error'}`);
+                                console.error(`❌ LINE error:`, errorData);
                             }
                             
-                            chunk.forEach(r => {
-                                if (!failedPaymentIds.has(r.metadata.paymentId)) {
-                                    successfulPaymentIds.add(r.metadata.paymentId);
-                                }
-                            });
-
-                            console.log(`✅ Chunk ${chunkIdx + 1}: sent ${result.success || 0}/${chunk.length}`);
-
+                            await new Promise(r => setTimeout(r, 200));
+                            
+                            if (testLineUserId) break;
                         } catch (error) {
-                            console.error(`❌ Chunk ${chunkIdx + 1} error:`, error.message);
-                            sendErrors.push(`Chunk ${chunkIdx + 1}: ${error.message}`);
-                        }
-
-                        if (chunkIdx < chunks.length - 1) {
-                            await new Promise(r => setTimeout(r, 1000));
+                            console.error(`❌ Send error:`, error);
+                            sendErrors.push(`ห้อง ${recipient.metadata.roomNumber}: ${error.message}`);
                         }
                     }
                 }
+            }
 
-                // Facebook
-                if (facebookRecipients.length > 0) {
-                    console.log(`📤 Sending ${facebookRecipients.length} Facebook messages...`);
+            // Facebook - ส่ง text ปกติ (ยังไม่รองรับ template)
+            if (facebookRecipients.length > 0 && !testLineUserId) {
+                console.log(`📤 Sending ${facebookRecipients.length} Facebook messages...`);
 
-                    for (const recipient of facebookRecipients) {
-                        try {
-                            await base44.asServiceRole.functions.invoke('sendFacebookMessage', {
-                                to: recipient.facebookUserId,
-                                message: recipient.message,
-                                branch_id: recipient.metadata.branchId
-                            });
-                            sentCount++;
-                            successfulPaymentIds.add(recipient.metadata.paymentId);
-                            console.log(`✅ Facebook → ${recipient.metadata.tenantName}`);
-                        } catch (error) {
-                            console.error(`❌ Facebook error:`, error);
-                            sendErrors.push(`Facebook ห้อง ${recipient.metadata.roomNumber}: ${error.message}`);
-                        }
+                for (const recipient of facebookRecipients) {
+                    try {
+                        // แปลง Flex Message กลับเป็น text สำหรับ Facebook
+                        let textMessage = `⏰ วันนี้ครบกำหนดชำระ\n\n`;
+                        textMessage += `ห้อง ${recipient.metadata.roomNumber}\n`;
+                        textMessage += `ยอดชำระ: ${recipient.message.contents.body.contents.find(c => c.layout === 'horizontal')?.contents[1]?.text || 'N/A'}\n\n`;
+                        textMessage += `📸 ส่งสลิปหลังโอนเงิน`;
+                        
+                        await base44.asServiceRole.functions.invoke('sendFacebookMessage', {
+                            to: recipient.facebookUserId,
+                            message: textMessage,
+                            branch_id: recipient.metadata.branchId
+                        });
+                        sentCount++;
+                        successfulPaymentIds.add(recipient.metadata.paymentId);
+                        console.log(`✅ Facebook → ${recipient.metadata.tenantName}`);
+                    } catch (error) {
+                        console.error(`❌ Facebook error:`, error);
+                        sendErrors.push(`Facebook ห้อง ${recipient.metadata.roomNumber}: ${error.message}`);
                     }
                 }
             }
