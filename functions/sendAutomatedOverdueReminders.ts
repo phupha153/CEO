@@ -696,7 +696,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                 paymentId: latestPayment.id,
                 roomNumber: roomNumber,
                 tenantName: tenant.full_name,
-                messageLength: message.length,
+                messageType: hasLine ? 'flex' : 'text',
                 lateFee: lateFee,
                 totalAmount: totalWithLateFee,
                 channels: {
