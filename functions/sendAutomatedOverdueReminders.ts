@@ -797,6 +797,8 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
 
                             for (const recipient of chunk) {
                                 try {
+                                    console.log(`📤 Sending overdue to ${recipient.metadata.tenantName} (${recipient.metadata.roomNumber})...`);
+                                    
                                     const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
                                         method: 'POST',
                                         headers: {
@@ -812,17 +814,20 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                                     if (lineResponse.ok) {
                                         chunkSuccess++;
                                         successfulPaymentIds.add(recipient.metadata.paymentId);
+                                        console.log(`✅ Sent successfully`);
                                     } else {
                                         const errorData = await lineResponse.json();
+                                        console.error(`❌ LINE API Error:`, errorData);
                                         chunkFailed++;
                                         chunkErrors.push({
                                             metadata: recipient.metadata,
-                                            error: errorData.message || 'Unknown error'
+                                            error: errorData.message || JSON.stringify(errorData)
                                         });
                                     }
 
                                     await delay(150);
                                 } catch (err) {
+                                    console.error(`❌ Send error for ${recipient.metadata.roomNumber}:`, err);
                                     chunkFailed++;
                                     chunkErrors.push({
                                         metadata: recipient.metadata,

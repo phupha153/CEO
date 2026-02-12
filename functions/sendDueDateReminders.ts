@@ -442,6 +442,8 @@ Deno.serve(async (req) => {
 
                             for (const recipient of chunk) {
                                 try {
+                                    console.log(`📤 Sending to ${recipient.metadata.tenantName} (${recipient.metadata.roomNumber})...`);
+                                    
                                     const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
                                         method: 'POST',
                                         headers: {
@@ -457,17 +459,20 @@ Deno.serve(async (req) => {
                                     if (lineResponse.ok) {
                                         chunkSuccess++;
                                         successfulPaymentIds.add(recipient.metadata.paymentId);
+                                        console.log(`✅ Sent successfully`);
                                     } else {
                                         const errorData = await lineResponse.json();
+                                        console.error(`❌ LINE API Error:`, errorData);
                                         chunkFailed++;
                                         chunkErrors.push({
                                             metadata: recipient.metadata,
-                                            error: errorData.message || 'Unknown error'
+                                            error: errorData.message || JSON.stringify(errorData)
                                         });
                                     }
 
                                     await new Promise(r => setTimeout(r, 150));
                                 } catch (err) {
+                                    console.error(`❌ Send error for ${recipient.metadata.roomNumber}:`, err);
                                     chunkFailed++;
                                     chunkErrors.push({
                                         metadata: recipient.metadata,
