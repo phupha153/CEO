@@ -557,27 +557,30 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                 { type: "text", text: "👤 ข้อมูลผู้เช่า", size: "sm", color: "#aaaaaa", margin: "md" },
                 { type: "text", text: tenant.full_name, size: "lg", weight: "bold", color: "#111111", margin: "sm" },
                 { type: "text", text: `ห้อง ${roomNumber}`, size: "sm", color: "#555555" },
-                { type: "separator", margin: "lg" },
-                {
-                    type: "box",
-                    layout: "vertical",
-                    margin: "lg",
-                    backgroundColor: "#fef2f2",
-                    paddingAll: "12px",
-                    contents: [
-                        { type: "text", text: `⚠️ เกินกำหนดมาแล้ว ${daysOverdue} วัน`, size: "sm", color: "#dc2626", weight: "bold", align: "center" }
-                    ]
-                },
-                {
-                    type: "box",
-                    layout: "horizontal",
-                    margin: "lg",
-                    contents: [
-                        { type: "text", text: "ยอดเดิม", size: "sm", color: "#555555", flex: 0 },
-                        { type: "text", text: `${originalAmount.toLocaleString()} บาท`, size: "sm", color: "#111111", align: "end" }
-                    ]
-                }
+                { type: "separator", margin: "lg" }
             ];
+            
+            bodyContents.push({
+                type: "box",
+                layout: "vertical",
+                margin: "lg",
+                contents: [
+                    { type: "text", text: `⚠️ เกินกำหนดมาแล้ว ${daysOverdue} วัน`, size: "sm", color: "#dc2626", weight: "bold", align: "center" }
+                ],
+                backgroundColor: "#fef2f2",
+                cornerRadius: "md",
+                paddingAll: "12px"
+            });
+            
+            bodyContents.push({
+                type: "box",
+                layout: "horizontal",
+                margin: "lg",
+                contents: [
+                    { type: "text", text: "ยอดเดิม", size: "sm", color: "#555555", flex: 0 },
+                    { type: "text", text: `${originalAmount.toLocaleString()} บาท`, size: "sm", color: "#111111", align: "end" }
+                ]
+            });
             
             if (lateFee > 0) {
                 bodyContents.push({
