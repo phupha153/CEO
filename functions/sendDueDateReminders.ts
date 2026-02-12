@@ -220,15 +220,12 @@ Deno.serve(async (req) => {
                 const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
                 const tiersEnabled = tiersEnabledConfig?.value === 'true';
 
-                // ⭐ ข้อความสั้นกระชับ - วันครบกำหนดชำระ
-                let message = `⏰ วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
-                message += `🏠 ${branchBuildingName}\n`;
-                message += `👤 คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n`;
-                message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
+                // ⭐ สร้าง Flex Message แบบครบกำหนดชำระ
+                const roomNumber = room?.room_number || 'N/A';
                 
-                // ⭐ แจ้งค่าปรับตามการตั้งค่า (เช็ค tiersEnabled ก่อน)
+                // เตรียมข้อมูลค่าปรับ
+                let lateFeeText = '';
                 if (tiersEnabled) {
-                    // ใช้ระบบขั้นบันได
                     const lateFeeStructureConfig = configs.find(c => 
                         c.key === 'late_fee_tiers' && c.branch_id === paymentBranchId
                     );
@@ -240,34 +237,136 @@ Deno.serve(async (req) => {
                     }
 
                     if (lateFeeStructure && Array.isArray(lateFeeStructure) && lateFeeStructure.length > 0) {
-                        message += `⚠️ ค่าปรับชำระล่าช้า:\n`;
+                        lateFeeText = 'ค่าปรับชำระล่าช้า:\n';
                         lateFeeStructure.forEach((tier) => {
                             if (tier.days_from !== undefined && tier.days_to !== undefined) {
                                 if (tier.days_to >= 999) {
-                                    message += `   วันที่ ${tier.days_from} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
+                                    lateFeeText += `วันที่ ${tier.days_from}+ : ${tier.fee_per_day}฿/วัน\n`;
                                 } else {
-                                    message += `   วันที่ ${tier.days_from}-${tier.days_to}: ${tier.fee_per_day} บาท/วัน\n`;
+                                    lateFeeText += `วันที่ ${tier.days_from}-${tier.days_to}: ${tier.fee_per_day}฿/วัน\n`;
                                 }
-                            } else if (tier.days_from !== undefined) {
-                                message += `   วันที่ ${tier.days_from} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
                             }
                         });
-                        message += `\n`;
                     }
                 } else if (branchLateFeePerDay > 0) {
-                    // ใช้ค่าปรับรายวันปกติ
-                    message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน\n\n`;
+                    lateFeeText = `หากชำระหลังวันนี้\nค่าปรับ ${branchLateFeePerDay}฿/วัน`;
                 }
-                
-                message += `💳 โอนเงินได้ที่:\n`;
-                message += `${branchBankName} ${branchBankAccountNumber}\n`;
-                message += `ชื่อ: ${branchBankAccountName}\n\n`;
-                message += `📸 ส่งสลิปหลังโอนค่ะ`;
+
+                const flexMessage = {
+                    type: "flex",
+                    altText: `⏰ ครบกำหนดชำระวันนี้ - ห้อง ${roomNumber} (${payment.total_amount.toLocaleString()}฿)`,
+                    contents: {
+                        type: "bubble",
+                        header: {
+                            type: "box",
+                            layout: "vertical",
+                            contents: [
+                                {
+                                    type: "text",
+                                    text: "⏰ ครบกำหนดชำระวันนี้",
+                                    weight: "bold",
+                                    size: "xl",
+                                    color: "#F59E0B"
+                                },
+                                {
+                                    type: "text",
+                                    text: branchBuildingName,
+                                    size: "sm",
+                                    color: "#64748B",
+                                    margin: "sm"
+                                }
+                            ],
+                            backgroundColor: "#FFFBEB",
+                            paddingAll: "15px"
+                        },
+                        body: {
+                            type: "box",
+                            layout: "vertical",
+                            contents: [
+                                {
+                                    type: "box",
+                                    layout: "baseline",
+                                    contents: [
+                                        { type: "text", text: "ผู้เช่า", size: "sm", color: "#64748B", flex: 3 },
+                                        { type: "text", text: tenant.full_name, size: "sm", weight: "bold", flex: 5, wrap: true }
+                                    ],
+                                    margin: "md"
+                                },
+                                {
+                                    type: "box",
+                                    layout: "baseline",
+                                    contents: [
+                                        { type: "text", text: "ห้อง", size: "sm", color: "#64748B", flex: 3 },
+                                        { type: "text", text: roomNumber, size: "sm", weight: "bold", flex: 5 }
+                                    ],
+                                    margin: "sm"
+                                },
+                                { type: "separator", margin: "lg" },
+                                {
+                                    type: "box",
+                                    layout: "baseline",
+                                    contents: [
+                                        { type: "text", text: "ยอดชำระ", size: "md", weight: "bold", flex: 3 },
+                                        { type: "text", text: `${payment.total_amount.toLocaleString()} ฿`, size: "xl", weight: "bold", color: "#2563EB", flex: 5, align: "end" }
+                                    ],
+                                    margin: "md"
+                                },
+                                ...(lateFeeText ? [{
+                                    type: "box",
+                                    layout: "vertical",
+                                    contents: [
+                                        { type: "text", text: lateFeeText, size: "xxs", color: "#DC2626", wrap: true }
+                                    ],
+                                    backgroundColor: "#FEF2F2",
+                                    cornerRadius: "8px",
+                                    paddingAll: "8px",
+                                    margin: "md"
+                                }] : [])
+                            ],
+                            paddingAll: "15px"
+                        },
+                        footer: {
+                            type: "box",
+                            layout: "vertical",
+                            contents: [
+                                {
+                                    type: "text",
+                                    text: "💳 ข้อมูลการโอน",
+                                    weight: "bold",
+                                    size: "sm",
+                                    color: "#1E293B"
+                                },
+                                {
+                                    type: "box",
+                                    layout: "vertical",
+                                    contents: [
+                                        { type: "text", text: `${branchBankName} ${branchBankAccountNumber}`, size: "xs", color: "#475569" },
+                                        { type: "text", text: branchBankAccountName, size: "xs", color: "#475569" }
+                                    ],
+                                    margin: "sm",
+                                    backgroundColor: "#F1F5F9",
+                                    cornerRadius: "6px",
+                                    paddingAll: "10px"
+                                },
+                                {
+                                    type: "text",
+                                    text: "📸 ส่งสลิปหลังโอนค่ะ 🙏",
+                                    size: "xs",
+                                    color: "#64748B",
+                                    margin: "md"
+                                }
+                            ],
+                            paddingAll: "15px",
+                            backgroundColor: "#F8FAFC"
+                        }
+                    }
+                };
 
                 recipients.push({
                     lineUserId: hasLine ? tenant.line_user_id : null,
                     facebookUserId: hasFacebook ? tenant.facebook_user_id : null,
-                    message: message,
+                    flexMessage: hasLine ? flexMessage : null,
+                    message: hasFacebook ? `⏰ วันนี้ครบกำหนดชำระค่าเช่า\n\n🏠 ${branchBuildingName}\n👤 คุณ ${tenant.full_name} ห้อง ${roomNumber}\n💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n${lateFeeText ? `⚠️ ${lateFeeText}\n\n` : ''}💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อ: ${branchBankAccountName}\n\n📸 ส่งสลิปหลังโอนค่ะ` : null,
                     metadata: {
                         paymentId: payment.id,
                         tenantId: tenant.id,
@@ -331,15 +430,59 @@ Deno.serve(async (req) => {
                         console.log(`📤 Chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} msgs)`);
 
                         try {
-                            const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                                recipients: chunk,
-                                options: {
-                                    batchSize: 10,
-                                    delayBetweenBatches: 2000,
-                                    delayBetweenMessages: 150,
-                                    retryAttempts: 3
+                            // ⭐ ส่ง Flex Message แทนข้อความธรรมดา
+                            const lineAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+                            if (!lineAccessToken) {
+                                throw new Error('LINE_CHANNEL_ACCESS_TOKEN not set');
+                            }
+
+                            let chunkSuccess = 0;
+                            let chunkFailed = 0;
+                            const chunkErrors = [];
+
+                            for (const recipient of chunk) {
+                                try {
+                                    const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Authorization': `Bearer ${lineAccessToken}`
+                                        },
+                                        body: JSON.stringify({
+                                            to: recipient.lineUserId,
+                                            messages: [recipient.flexMessage]
+                                        })
+                                    });
+
+                                    if (lineResponse.ok) {
+                                        chunkSuccess++;
+                                        successfulPaymentIds.add(recipient.metadata.paymentId);
+                                    } else {
+                                        const errorData = await lineResponse.json();
+                                        chunkFailed++;
+                                        chunkErrors.push({
+                                            metadata: recipient.metadata,
+                                            error: errorData.message || 'Unknown error'
+                                        });
+                                    }
+
+                                    await new Promise(r => setTimeout(r, 150));
+                                } catch (err) {
+                                    chunkFailed++;
+                                    chunkErrors.push({
+                                        metadata: recipient.metadata,
+                                        error: err.message
+                                    });
                                 }
-                            });
+                            }
+
+                            const batchResult = {
+                                data: {
+                                    success: chunkSuccess,
+                                    failed: chunkFailed,
+                                    errors: chunkErrors
+                                }
+                            };
 
                             const result = batchResult.data;
                             sentCount += result.success || 0;
