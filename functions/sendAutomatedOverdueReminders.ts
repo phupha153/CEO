@@ -552,7 +552,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             console.log(`   - latestPayment.total_amount: ${latestPayment.total_amount || 0} บาท`);
             console.log(`   - latestPayment.invoice_image_url: ${latestPayment.invoice_image_url ? '✅ มี' : '❌ ไม่มี'}`);
 
-            // ⭐ สร้าง Flex Message แทน text
+            // ⭐ สร้าง Flex Message (ใช้ enum values ที่ LINE รองรับเท่านั้น)
             const bodyContents = [
                 { type: "text", text: "👤 ข้อมูลผู้เช่า", size: "sm", color: "#aaaaaa", margin: "md" },
                 { type: "text", text: tenant.full_name, size: "lg", weight: "bold", color: "#111111", margin: "sm" },
@@ -563,8 +563,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                     layout: "vertical",
                     margin: "lg",
                     backgroundColor: "#fef2f2",
-                    cornerRadius: "md",
-                    paddingAll: "12px",
+                    paddingAll: "md",
                     contents: [
                         { type: "text", text: `⚠️ เกินกำหนดมาแล้ว ${daysOverdue} วัน`, size: "sm", color: "#dc2626", weight: "bold", align: "center" }
                     ]
@@ -620,13 +619,13 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                             { type: "text", text: branchBuildingName, color: "#ffffff", size: "sm", align: "center", margin: "md" }
                         ],
                         backgroundColor: "#dc2626",
-                        paddingAll: "20px"
+                        paddingAll: "lg"
                     },
                     body: {
                         type: "box",
                         layout: "vertical",
                         contents: bodyContents,
-                        paddingAll: "20px"
+                        paddingAll: "lg"
                     }
                 }
             };
