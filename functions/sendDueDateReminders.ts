@@ -324,16 +324,20 @@ Deno.serve(async (req) => {
                 } else {
                     for (const recipient of lineRecipients) {
                         try {
+                            const payload = {
+                                to: testLineUserId || recipient.lineUserId,
+                                messages: [recipient.message]
+                            };
+                            
+                            console.log(`🔍 Sending to ${recipient.metadata.tenantName}:`, JSON.stringify(payload, null, 2));
+                            
                             const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
                                     'Authorization': `Bearer ${lineToken}`
                                 },
-                                body: JSON.stringify({
-                                    to: testLineUserId || recipient.lineUserId,
-                                    messages: [recipient.message]
-                                })
+                                body: JSON.stringify(payload)
                             });
 
                             if (lineResponse.ok) {
@@ -341,9 +345,15 @@ Deno.serve(async (req) => {
                                 successfulPaymentIds.add(recipient.metadata.paymentId);
                                 console.log(`✅ Sent to ${recipient.metadata.tenantName} (ห้อง ${recipient.metadata.roomNumber})`);
                             } else {
-                                const errorData = await lineResponse.json();
-                                sendErrors.push(`ห้อง ${recipient.metadata.roomNumber}: ${errorData.message || 'LINE API error'}`);
-                                console.error(`❌ LINE error:`, errorData);
+                                const errorText = await lineResponse.text();
+                                let errorData;
+                                try {
+                                    errorData = JSON.parse(errorText);
+                                } catch {
+                                    errorData = { message: errorText };
+                                }
+                                sendErrors.push(`ห้อง ${recipient.metadata.roomNumber}: ${errorData.message || errorData.details || 'LINE API error'}`);
+                                console.error(`❌ LINE error (${lineResponse.status}):`, errorData);
                             }
                             
                             await new Promise(r => setTimeout(r, 200));
