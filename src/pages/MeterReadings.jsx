@@ -38,6 +38,8 @@ export default function MeterReadings() {
   const [editingPreviousForRoom, setEditingPreviousForRoom] = useState(null); // room_id ที่กำลังแก้ไขค่าก่อน
   const [showAddMoreFormForRoom, setShowAddMoreFormForRoom] = useState(null); // room_id ที่กำลังแสดงฟอร์มบันทึกเพิ่ม
   const [meterTypeSelection, setMeterTypeSelection] = useState({}); // room_id -> 'water' | 'electricity' | 'both'
+  const [previewData, setPreviewData] = useState([]);
+  const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [formData, setFormData] = useState({
     room_id: '',
     reading_date: new Date().toISOString().split('T')[0],
@@ -319,8 +321,8 @@ export default function MeterReadings() {
     toast.success('ดาวน์โหลดไฟล์สำเร็จ');
   };
 
-  // ✅ Import จาก CSV โดยตรง (ไม่ใช้ ExtractDataFromUploadedFile)
-  const handleFileImport = async (e) => {
+  // ✅ STEP 1: อ่าน CSV และแสดงตัวอย่าง
+  const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -332,7 +334,6 @@ export default function MeterReadings() {
     try {
       toast.info('กำลังอ่านไฟล์...');
 
-      // อ่านไฟล์ CSV
       const text = await file.text();
       const lines = text.split('\n').filter(line => line.trim());
       
@@ -341,9 +342,8 @@ export default function MeterReadings() {
         return;
       }
 
-      // Parse header และข้อมูล
       const headers = lines[0].split(',').map(h => h.trim().replace(/^\ufeff/, ''));
-      const data = [];
+      const parsedData = [];
 
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',');
@@ -351,86 +351,110 @@ export default function MeterReadings() {
         headers.forEach((header, index) => {
           row[header] = values[index]?.trim() || '';
         });
-        data.push(row);
+        parsedData.push(row);
       }
 
-      console.log('📊 Parsed CSV:', { headers, rowCount: data.length });
-
-      let successCount = 0;
-      let errorCount = 0;
-      const errors = [];
-
-      for (const row of data) {
+      // สร้าง preview data พร้อมข้อมูลเพิ่มเติม
+      const preview = [];
+      
+      for (const row of parsedData) {
         const roomNumber = row['หมายเลขห้อง'];
         const waterCurrent = parseFloat(row['มิเตอร์น้ำปัจจุบัน']);
         const electricityCurrent = parseFloat(row['มิเตอร์ไฟปัจจุบัน']);
         const waterPrevFromFile = parseFloat(row['มิเตอร์น้ำครั้งก่อน']);
         const elecPrevFromFile = parseFloat(row['มิเตอร์ไฟครั้งก่อน']);
 
-        // ข้ามถ้าไม่มีข้อมูล
-        if (!roomNumber || (isNaN(waterCurrent) && isNaN(electricityCurrent))) {
-          continue;
-        }
+        if (!roomNumber) continue;
 
-        // หาห้อง
         const room = rooms.find(r => r.room_number === roomNumber);
-        if (!room) {
-          errorCount++;
-          errors.push(`ไม่พบห้อง ${roomNumber}`);
-          continue;
-        }
+        const booking = room ? getActiveBooking(room.id) : null;
+        const tenant = booking ? getTenantInfo(booking.tenant_id) : null;
+        const latest = room ? getLatestReading(room.id) : null;
 
-        // ใช้ค่าจากไฟล์ CSV ก่อน ถ้าไม่มีค่อยดึงจากประวัติ
-        let waterPrevious = !isNaN(waterPrevFromFile) ? waterPrevFromFile : 0;
-        let electricityPrevious = !isNaN(elecPrevFromFile) ? elecPrevFromFile : 0;
-
-        // ถ้าไฟล์ไม่ระบุค่าก่อนหน้า ให้ดึงจากประวัติล่าสุด
-        if (isNaN(waterPrevFromFile)) {
-          const latest = getLatestReading(room.id);
-          waterPrevious = latest?.water_current || 0;
-        }
-        if (isNaN(elecPrevFromFile)) {
-          const latest = getLatestReading(room.id);
-          electricityPrevious = latest?.electricity_current || 0;
-        }
+        let waterPrevious = !isNaN(waterPrevFromFile) ? waterPrevFromFile : (latest?.water_current || 0);
+        let electricityPrevious = !isNaN(elecPrevFromFile) ? elecPrevFromFile : (latest?.electricity_current || 0);
 
         const waterUnits = !isNaN(waterCurrent) ? (waterCurrent - waterPrevious) : 0;
         const electricityUnits = !isNaN(electricityCurrent) ? (electricityCurrent - electricityPrevious) : 0;
+
+        preview.push({
+          roomNumber,
+          tenantName: tenant?.full_name || '-',
+          waterPrevious,
+          waterCurrent: !isNaN(waterCurrent) ? waterCurrent : waterPrevious,
+          waterUnits,
+          electricityPrevious,
+          electricityCurrent: !isNaN(electricityCurrent) ? electricityCurrent : electricityPrevious,
+          electricityUnits,
+          status: room ? 'ready' : 'error',
+          errorMessage: room ? null : 'ไม่พบห้องในระบบ'
+        });
+      }
+
+      setPreviewData(preview);
+      setShowPreviewDialog(true);
+      toast.success(`✅ อ่านไฟล์สำเร็จ ${preview.length} รายการ`);
+
+    } catch (error) {
+      console.error('File read error:', error);
+      toast.error('เกิดข้อผิดพลาด: ' + error.message);
+    }
+
+    e.target.value = '';
+  };
+
+  // ✅ STEP 2: ยืนยันและนำเข้าข้อมูล
+  const handleConfirmImport = async () => {
+    try {
+      const readyToImport = previewData.filter(d => d.status === 'ready');
+      
+      if (readyToImport.length === 0) {
+        toast.error('ไม่มีข้อมูลที่สามารถนำเข้าได้');
+        return;
+      }
+
+      toast.info(`กำลังนำเข้า ${readyToImport.length} รายการ...`);
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const item of readyToImport) {
+        const room = rooms.find(r => r.room_number === item.roomNumber);
+        if (!room) continue;
 
         try {
           await base44.entities.MeterReading.create({
             room_id: room.id,
             reading_date: new Date().toISOString().split('T')[0],
-            water_previous: waterPrevious,
-            water_current: !isNaN(waterCurrent) ? waterCurrent : waterPrevious,
-            electricity_previous: electricityPrevious,
-            electricity_current: !isNaN(electricityCurrent) ? electricityCurrent : electricityPrevious,
-            water_units: waterUnits,
-            electricity_units: electricityUnits,
+            water_previous: item.waterPrevious,
+            water_current: item.waterCurrent,
+            electricity_previous: item.electricityPrevious,
+            electricity_current: item.electricityCurrent,
+            water_units: item.waterUnits,
+            electricity_units: item.electricityUnits,
             branch_id: selectedBranchId,
             notes: 'นำเข้าจาก CSV'
           });
           successCount++;
         } catch (e) {
           errorCount++;
-          errors.push(`ห้อง ${roomNumber}: ${e.message}`);
         }
       }
 
       queryClient.invalidateQueries(['meterReadings', selectedBranchId]);
+      setShowPreviewDialog(false);
+      setPreviewData([]);
       
       if (successCount > 0) {
         toast.success(`✅ นำเข้าสำเร็จ ${successCount} ห้อง`);
       }
       if (errorCount > 0) {
-        toast.error(`❌ ไม่สามารถนำเข้าได้ ${errorCount} ห้อง\n${errors.slice(0, 3).join('\n')}`);
+        toast.error(`❌ ไม่สามารถนำเข้าได้ ${errorCount} ห้อง`);
       }
     } catch (error) {
       console.error('Import error:', error);
       toast.error('เกิดข้อผิดพลาด: ' + error.message);
     }
-
-    e.target.value = '';
   };
 
 
@@ -1407,7 +1431,7 @@ export default function MeterReadings() {
                     <input
                       type="file"
                       accept=".csv"
-                      onChange={handleFileImport}
+                      onChange={handleFileSelect}
                       className="hidden"
                       id="csv-upload-meter"
                     />
@@ -3105,6 +3129,93 @@ export default function MeterReadings() {
       )}
 
       <ScrollToTopButton />
+
+      {/* Preview Dialog */}
+      <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-blue-600" />
+              ตรวจสอบข้อมูลก่อนนำเข้า ({previewData.length} รายการ)
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-100 sticky top-0">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-700">ห้อง</th>
+                    <th className="px-3 py-2 text-left font-semibold text-slate-700">ผู้เช่า</th>
+                    <th className="px-3 py-2 text-center font-semibold text-blue-700">น้ำก่อน</th>
+                    <th className="px-3 py-2 text-center font-semibold text-blue-700">น้ำปัจจุบัน</th>
+                    <th className="px-3 py-2 text-center font-semibold text-blue-700">ใช้</th>
+                    <th className="px-3 py-2 text-center font-semibold text-yellow-700">ไฟก่อน</th>
+                    <th className="px-3 py-2 text-center font-semibold text-yellow-700">ไฟปัจจุบัน</th>
+                    <th className="px-3 py-2 text-center font-semibold text-yellow-700">ใช้</th>
+                    <th className="px-3 py-2 text-center font-semibold text-slate-700">สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {previewData.map((item, idx) => (
+                    <tr key={idx} className={item.status === 'error' ? 'bg-red-50' : 'hover:bg-slate-50'}>
+                      <td className="px-3 py-2 font-medium text-slate-800">{item.roomNumber}</td>
+                      <td className="px-3 py-2 text-slate-600">{item.tenantName}</td>
+                      <td className="px-3 py-2 text-center text-slate-600">{item.waterPrevious.toFixed(1)}</td>
+                      <td className="px-3 py-2 text-center font-bold text-blue-600">{item.waterCurrent.toFixed(1)}</td>
+                      <td className="px-3 py-2 text-center">
+                        <Badge className="bg-blue-100 text-blue-700">{item.waterUnits.toFixed(1)}</Badge>
+                      </td>
+                      <td className="px-3 py-2 text-center text-slate-600">{item.electricityPrevious.toFixed(1)}</td>
+                      <td className="px-3 py-2 text-center font-bold text-yellow-600">{item.electricityCurrent.toFixed(1)}</td>
+                      <td className="px-3 py-2 text-center">
+                        <Badge className="bg-yellow-100 text-yellow-700">{item.electricityUnits.toFixed(1)}</Badge>
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {item.status === 'ready' ? (
+                          <Badge className="bg-green-100 text-green-700">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            พร้อม
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-red-100 text-red-700">
+                            <AlertTriangle className="w-3 h-3 mr-1" />
+                            ผิดพลาด
+                          </Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="border-t pt-4 flex justify-between items-center">
+            <div className="text-sm text-slate-600">
+              พร้อมนำเข้า: <span className="font-bold text-green-600">{previewData.filter(d => d.status === 'ready').length}</span> รายการ
+              {previewData.filter(d => d.status === 'error').length > 0 && (
+                <span className="ml-3">
+                  ข้อผิดพลาด: <span className="font-bold text-red-600">{previewData.filter(d => d.status === 'error').length}</span>
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowPreviewDialog(false)}>
+                ยกเลิก
+              </Button>
+              <Button 
+                onClick={handleConfirmImport}
+                className="bg-gradient-to-r from-green-600 to-emerald-600"
+                disabled={previewData.filter(d => d.status === 'ready').length === 0}
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                ยืนยันนำเข้า ({previewData.filter(d => d.status === 'ready').length})
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
