@@ -1355,7 +1355,18 @@ export default function MeterReadings() {
                 {canAdd && (
                   <ExcelUploader
                     entityName="มิเตอร์"
-                    templateFields={['หมายเลขห้อง', 'มิเตอร์น้ำปัจจุบัน', 'มิเตอร์ไฟปัจจุบัน']}
+                    schema={{
+                      type: "object",
+                      properties: {
+                        "หมายเลขห้อง": { type: "string" },
+                        "ชั้น": { type: "string" },
+                        "ผู้เช่า": { type: "string" },
+                        "มิเตอร์น้ำครั้งก่อน": { type: "number" },
+                        "มิเตอร์น้ำปัจจุบัน": { type: "number" },
+                        "มิเตอร์ไฟครั้งก่อน": { type: "number" },
+                        "มิเตอร์ไฟปัจจุบัน": { type: "number" }
+                      }
+                    }}
                     onImport={handleImportData}
                     buttonVariant="outline"
                     buttonClassName="border-blue-600 text-blue-600 hover:bg-blue-50"
