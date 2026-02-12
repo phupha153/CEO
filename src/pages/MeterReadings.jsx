@@ -40,6 +40,7 @@ export default function MeterReadings() {
   const [meterTypeSelection, setMeterTypeSelection] = useState({}); // room_id -> 'water' | 'electricity' | 'both'
   const [previewData, setPreviewData] = useState([]);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const [formData, setFormData] = useState({
     room_id: '',
     reading_date: new Date().toISOString().split('T')[0],
@@ -413,6 +414,7 @@ export default function MeterReadings() {
         return;
       }
 
+      setIsImporting(true);
       toast.info(`กำลังนำเข้า ${readyToImport.length} รายการ...`);
 
       let successCount = 0;
@@ -454,6 +456,8 @@ export default function MeterReadings() {
     } catch (error) {
       console.error('Import error:', error);
       toast.error('เกิดข้อผิดพลาด: ' + error.message);
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -3207,10 +3211,19 @@ export default function MeterReadings() {
               <Button 
                 onClick={handleConfirmImport}
                 className="bg-gradient-to-r from-green-600 to-emerald-600"
-                disabled={previewData.filter(d => d.status === 'ready').length === 0}
+                disabled={previewData.filter(d => d.status === 'ready').length === 0 || isImporting}
               >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                ยืนยันนำเข้า ({previewData.filter(d => d.status === 'ready').length})
+                {isImporting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    กำลังนำเข้า...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    ยืนยันนำเข้า ({previewData.filter(d => d.status === 'ready').length})
+                  </>
+                )}
               </Button>
             </div>
           </div>
