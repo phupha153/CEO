@@ -553,6 +553,59 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             console.log(`   - latestPayment.invoice_image_url: ${latestPayment.invoice_image_url ? '✅ มี' : '❌ ไม่มี'}`);
 
             // ⭐ สร้าง Flex Message แทน text
+            const bodyContents = [
+                { type: "text", text: "👤 ข้อมูลผู้เช่า", size: "sm", color: "#aaaaaa", margin: "md" },
+                { type: "text", text: tenant.full_name, size: "lg", weight: "bold", color: "#111111", margin: "sm" },
+                { type: "text", text: `ห้อง ${roomNumber}`, size: "sm", color: "#555555" },
+                { type: "separator", margin: "lg" },
+                {
+                    type: "box",
+                    layout: "vertical",
+                    margin: "lg",
+                    backgroundColor: "#fef2f2",
+                    cornerRadius: "md",
+                    paddingAll: "12px",
+                    contents: [
+                        { type: "text", text: `⚠️ เกินกำหนดมาแล้ว ${daysOverdue} วัน`, size: "sm", color: "#dc2626", weight: "bold", align: "center" }
+                    ]
+                },
+                {
+                    type: "box",
+                    layout: "horizontal",
+                    margin: "lg",
+                    contents: [
+                        { type: "text", text: "ยอดเดิม", size: "sm", color: "#555555", flex: 0 },
+                        { type: "text", text: `${originalAmount.toLocaleString()} บาท`, size: "sm", color: "#111111", align: "end" }
+                    ]
+                }
+            ];
+            
+            if (lateFee > 0) {
+                bodyContents.push({
+                    type: "box",
+                    layout: "horizontal",
+                    margin: "sm",
+                    contents: [
+                        { type: "text", text: "ค่าปรับล่าช้า", size: "sm", color: "#dc2626", flex: 0 },
+                        { type: "text", text: `${lateFee.toLocaleString()} บาท`, size: "sm", color: "#dc2626", align: "end", weight: "bold" }
+                    ]
+                });
+            }
+            
+            bodyContents.push({ type: "separator", margin: "lg" });
+            bodyContents.push({
+                type: "box",
+                layout: "horizontal",
+                margin: "lg",
+                contents: [
+                    { type: "text", text: "รวมทั้งสิ้น", size: "md", color: "#111111", weight: "bold", flex: 0 },
+                    { type: "text", text: `${totalWithLateFee.toLocaleString()} บาท`, size: "xl", color: "#dc2626", weight: "bold", align: "end" }
+                ]
+            });
+            bodyContents.push({ type: "separator", margin: "lg" });
+            bodyContents.push({ type: "text", text: "⚠️ กรุณาชำระเพื่อหยุดค่าปรับที่เพิ่มขึ้น", size: "xs", color: "#991b1b", align: "center", margin: "lg", wrap: true });
+            bodyContents.push({ type: "text", text: "📸 ส่งสลิปหลังโอนเงิน", size: "sm", color: "#10b981", align: "center", margin: "md", weight: "bold" });
+
             const flexMessage = {
                 type: "flex",
                 altText: `🔴 เกินกำหนดชำระ ${daysOverdue} วัน - ห้อง ${roomNumber}`,
@@ -564,7 +617,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                         layout: "vertical",
                         contents: [
                             { type: "text", text: "🔴 เกินกำหนดชำระ", color: "#ffffff", size: "xl", weight: "bold", align: "center" },
-                            { type: "text", text: branchBuildingName, color: "#ffe4e6", size: "sm", align: "center", margin: "md" }
+                            { type: "text", text: branchBuildingName, color: "#ffffff", size: "sm", align: "center", margin: "md" }
                         ],
                         backgroundColor: "#dc2626",
                         paddingAll: "20px"
@@ -572,64 +625,8 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                     body: {
                         type: "box",
                         layout: "vertical",
-                        contents: [
-                            { type: "text", text: "👤 ข้อมูลผู้เช่า", size: "sm", color: "#aaaaaa", margin: "md" },
-                            { type: "text", text: tenant.full_name, size: "lg", weight: "bold", color: "#111111", margin: "sm" },
-                            { type: "text", text: `ห้อง ${roomNumber}`, size: "sm", color: "#555555" },
-                            { type: "separator", margin: "lg" },
-                            {
-                                type: "box",
-                                layout: "vertical",
-                                margin: "lg",
-                                backgroundColor: "#fef2f2",
-                                cornerRadius: "md",
-                                paddingAll: "12px",
-                                contents: [
-                                    { type: "text", text: `⚠️ เกินกำหนดมาแล้ว ${daysOverdue} วัน`, size: "sm", color: "#dc2626", weight: "bold", align: "center" }
-                                ]
-                            },
-                            {
-                                type: "box",
-                                layout: "vertical",
-                                margin: "lg",
-                                spacing: "sm",
-                                contents: [
-                                    {
-                                        type: "box",
-                                        layout: "horizontal",
-                                        contents: [
-                                            { type: "text", text: "ยอดเดิม", size: "sm", color: "#555555", flex: 0 },
-                                            { type: "text", text: `${originalAmount.toLocaleString()} บาท`, size: "sm", color: "#111111", align: "end" }
-                                        ]
-                                    },
-                                    ...(lateFee > 0 ? [{
-                                        type: "box",
-                                        layout: "horizontal",
-                                        contents: [
-                                            { type: "text", text: "ค่าปรับล่าช้า", size: "sm", color: "#dc2626", flex: 0 },
-                                            { type: "text", text: `${lateFee.toLocaleString()} บาท`, size: "sm", color: "#dc2626", align: "end", weight: "bold" }
-                                        ]
-                                    }] : [])
-                                ]
-                            },
-                            { type: "separator", margin: "lg" },
-                            {
-                                type: "box",
-                                layout: "horizontal",
-                                margin: "lg",
-                                contents: [
-                                    { type: "text", text: "รวมทั้งสิ้น", size: "md", color: "#111111", weight: "bold", flex: 0 },
-                                    { type: "text", text: `${totalWithLateFee.toLocaleString()} บาท`, size: "xl", color: "#dc2626", weight: "bold", align: "end" }
-                                ]
-                            },
-                            { type: "separator", margin: "lg" },
-                            { type: "text", text: "⚠️ กรุณาชำระเพื่อหยุดค่าปรับที่เพิ่มขึ้น", size: "xs", color: "#991b1b", align: "center", margin: "lg", wrap: true },
-                            { type: "text", text: "📸 ส่งสลิปหลังโอนเงิน", size: "sm", color: "#10b981", align: "center", margin: "md", weight: "bold" }
-                        ],
+                        contents: bodyContents,
                         paddingAll: "20px"
-                    },
-                    styles: {
-                        footer: { separator: false }
                     }
                 }
             };

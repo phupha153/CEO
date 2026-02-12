@@ -221,6 +221,40 @@ Deno.serve(async (req) => {
                 const tiersEnabled = tiersEnabledConfig?.value === 'true';
 
                 // ⭐ สร้าง Flex Message แทน text
+                const bodyContents = [
+                    { type: "text", text: "👤 ข้อมูลผู้เช่า", size: "sm", color: "#aaaaaa", margin: "md" },
+                    { type: "text", text: tenant.full_name, size: "lg", weight: "bold", color: "#111111", margin: "sm" },
+                    { type: "text", text: `ห้อง ${room?.room_number || 'N/A'}`, size: "sm", color: "#555555" },
+                    { type: "separator", margin: "lg" },
+                    {
+                        type: "box",
+                        layout: "horizontal",
+                        margin: "lg",
+                        contents: [
+                            { type: "text", text: "💰 ยอดชำระวันนี้", size: "sm", color: "#555555", flex: 0 },
+                            { type: "text", text: `${payment.total_amount.toLocaleString()} บาท`, size: "xl", color: "#f59e0b", weight: "bold", align: "end" }
+                        ]
+                    }
+                ];
+                
+                if (tiersEnabled || branchLateFeePerDay > 0) {
+                    bodyContents.push({
+                        type: "box",
+                        layout: "vertical",
+                        margin: "lg",
+                        backgroundColor: "#fef2f2",
+                        cornerRadius: "md",
+                        paddingAll: "12px",
+                        contents: [
+                            { type: "text", text: "⚠️ ค่าปรับชำระล่าช้า", size: "sm", color: "#dc2626", weight: "bold" },
+                            { type: "text", text: branchLateFeePerDay > 0 ? `${branchLateFeePerDay} บาท/วัน` : "ตามขั้นบันได", size: "xs", color: "#991b1b", margin: "sm" }
+                        ]
+                    });
+                }
+                
+                bodyContents.push({ type: "separator", margin: "lg" });
+                bodyContents.push({ type: "text", text: "📸 ส่งสลิปหลังโอนเงิน", size: "sm", color: "#10b981", align: "center", margin: "lg", weight: "bold" });
+
                 const flexMessage = {
                     type: "flex",
                     altText: `⏰ ครบกำหนดชำระวันนี้ - ห้อง ${room?.room_number || 'N/A'}`,
@@ -232,7 +266,7 @@ Deno.serve(async (req) => {
                             layout: "vertical",
                             contents: [
                                 { type: "text", text: "⏰ ครบกำหนดชำระ", color: "#ffffff", size: "xl", weight: "bold", align: "center" },
-                                { type: "text", text: branchBuildingName, color: "#e0e7ff", size: "sm", align: "center", margin: "md" }
+                                { type: "text", text: branchBuildingName, color: "#ffffff", size: "sm", align: "center", margin: "md" }
                             ],
                             backgroundColor: "#f59e0b",
                             paddingAll: "20px"
@@ -240,39 +274,8 @@ Deno.serve(async (req) => {
                         body: {
                             type: "box",
                             layout: "vertical",
-                            contents: [
-                                { type: "text", text: "👤 ข้อมูลผู้เช่า", size: "sm", color: "#aaaaaa", margin: "md" },
-                                { type: "text", text: tenant.full_name, size: "lg", weight: "bold", color: "#111111", margin: "sm" },
-                                { type: "text", text: `ห้อง ${room?.room_number || 'N/A'}`, size: "sm", color: "#555555" },
-                                { type: "separator", margin: "lg" },
-                                {
-                                    type: "box",
-                                    layout: "horizontal",
-                                    margin: "lg",
-                                    contents: [
-                                        { type: "text", text: "💰 ยอดชำระวันนี้", size: "sm", color: "#555555", flex: 0 },
-                                        { type: "text", text: `${payment.total_amount.toLocaleString()} บาท`, size: "xl", color: "#f59e0b", weight: "bold", align: "end" }
-                                    ]
-                                },
-                                ...(tiersEnabled || branchLateFeePerDay > 0 ? [{
-                                    type: "box",
-                                    layout: "vertical",
-                                    margin: "lg",
-                                    backgroundColor: "#fef2f2",
-                                    cornerRadius: "md",
-                                    paddingAll: "12px",
-                                    contents: [
-                                        { type: "text", text: "⚠️ ค่าปรับชำระล่าช้า", size: "sm", color: "#dc2626", weight: "bold" },
-                                        { type: "text", text: branchLateFeePerDay > 0 ? `${branchLateFeePerDay} บาท/วัน` : "ตามขั้นบันได", size: "xs", color: "#991b1b", margin: "sm" }
-                                    ]
-                                }] : []),
-                                { type: "separator", margin: "lg" },
-                                { type: "text", text: "📸 ส่งสลิปหลังโอนเงิน", size: "sm", color: "#10b981", align: "center", margin: "lg", weight: "bold" }
-                            ],
+                            contents: bodyContents,
                             paddingAll: "20px"
-                        },
-                        styles: {
-                            footer: { separator: false }
                         }
                     }
                 };
