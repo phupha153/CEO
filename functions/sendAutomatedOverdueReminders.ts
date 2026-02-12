@@ -552,151 +552,28 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             console.log(`   - latestPayment.total_amount: ${latestPayment.total_amount || 0} บาท`);
             console.log(`   - latestPayment.invoice_image_url: ${latestPayment.invoice_image_url ? '✅ มี' : '❌ ไม่มี'}`);
 
-            // ⭐ สร้าง Flex Message แบบเกินกำหนด
-            const flexMessage = {
-                type: "flex",
-                altText: `🔴 เกินกำหนดชำระ - ห้อง ${roomNumber} (${totalWithLateFee.toLocaleString()}฿)`,
-                contents: {
-                    type: "bubble",
-                    header: {
-                        type: "box",
-                        layout: "vertical",
-                        contents: [
-                            {
-                                type: "text",
-                                text: "🔴 เกินกำหนดชำระ",
-                                weight: "bold",
-                                size: "xl",
-                                color: "#DC2626"
-                            },
-                            {
-                                type: "text",
-                                text: branchBuildingName,
-                                size: "sm",
-                                color: "#64748B",
-                                margin: "sm"
-                            }
-                        ],
-                        backgroundColor: "#FEF2F2",
-                        paddingAll: "15px"
-                    },
-                    body: {
-                        type: "box",
-                        layout: "vertical",
-                        contents: [
-                            {
-                                type: "box",
-                                layout: "baseline",
-                                contents: [
-                                    { type: "text", text: "ผู้เช่า", size: "sm", color: "#64748B", flex: 3 },
-                                    { type: "text", text: tenant.full_name, size: "sm", weight: "bold", flex: 5, wrap: true }
-                                ],
-                                margin: "md"
-                            },
-                            {
-                                type: "box",
-                                layout: "baseline",
-                                contents: [
-                                    { type: "text", text: "ห้อง", size: "sm", color: "#64748B", flex: 3 },
-                                    { type: "text", text: roomNumber, size: "sm", weight: "bold", flex: 5 }
-                                ],
-                                margin: "sm"
-                            },
-                            { type: "separator", margin: "lg" },
-                            {
-                                type: "box",
-                                layout: "baseline",
-                                contents: [
-                                    { type: "text", text: "ยอดเงินต้น", size: "sm", color: "#64748B", flex: 3 },
-                                    { type: "text", text: `${originalAmount.toLocaleString()} ฿`, size: "sm", flex: 5 }
-                                ],
-                                margin: "lg"
-                            },
-                            ...(lateFee > 0 ? [{
-                                type: "box",
-                                layout: "baseline",
-                                contents: [
-                                    { type: "text", text: "ค่าปรับล่าช้า", size: "sm", color: "#DC2626", flex: 3 },
-                                    { type: "text", text: `+${lateFee.toLocaleString()} ฿`, size: "sm", color: "#DC2626", weight: "bold", flex: 5 }
-                                ],
-                                margin: "sm"
-                            }] : []),
-                            { type: "separator", margin: "md" },
-                            {
-                                type: "box",
-                                layout: "baseline",
-                                contents: [
-                                    { type: "text", text: "รวมทั้งสิ้น", size: "md", weight: "bold", flex: 3 },
-                                    { type: "text", text: `${totalWithLateFee.toLocaleString()} ฿`, size: "xl", weight: "bold", color: "#DC2626", flex: 5 }
-                                ],
-                                margin: "md"
-                            },
-                            {
-                                type: "box",
-                                layout: "vertical",
-                                contents: [
-                                    { type: "text", text: `เกินกำหนดมาแล้ว ${daysOverdue} วัน`, size: "xs", color: "#DC2626", align: "center", weight: "bold" }
-                                ],
-                                backgroundColor: "#FEE2E2",
-                                cornerRadius: "8px",
-                                paddingAll: "8px",
-                                margin: "md"
-                            }
-                        ],
-                        paddingAll: "15px"
-                    },
-                    footer: {
-                        type: "box",
-                        layout: "vertical",
-                        contents: [
-                            {
-                                type: "text",
-                                text: "💳 ข้อมูลการโอน",
-                                weight: "bold",
-                                size: "sm",
-                                color: "#1E293B"
-                            },
-                            {
-                                type: "box",
-                                layout: "vertical",
-                                contents: [
-                                    { type: "text", text: `${branchBankName} ${branchBankAccountNumber}`, size: "xs", color: "#475569" },
-                                    { type: "text", text: branchBankAccountName, size: "xs", color: "#475569" }
-                                ],
-                                margin: "sm",
-                                backgroundColor: "#F1F5F9",
-                                cornerRadius: "6px",
-                                paddingAll: "10px"
-                            },
-                            {
-                                type: "text",
-                                text: "⚠️ กรุณาชำระด่วน เพื่อหยุดค่าปรับเพิ่มเติม",
-                                size: "xxs",
-                                color: "#DC2626",
-                                margin: "md",
-                                wrap: true
-                            },
-                            {
-                                type: "text",
-                                text: "📸 ส่งสลิปหลังโอนค่ะ 🙏",
-                                size: "xs",
-                                color: "#64748B",
-                                margin: "sm"
-                            }
-                        ],
-                        paddingAll: "15px",
-                        backgroundColor: "#F8FAFC"
-                    }
-                }
-            };
+            // สร้างข้อความแบบเดียวกับ sendPaymentReminder template='overdue'
+            let message = `📢 แจ้งเตือนค่าเช่าเกินกำหนด\n\n`;
+            message += `${branchBuildingName}\n`;
+            message += `คุณ ${tenant.full_name} ห้อง ${roomNumber}\n`;
+            message += `ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
+            if (lateFee > 0) {
+                message += `\nค่าปรับล่าช้า: ${lateFee.toLocaleString()} บาท`;
+            }
+            message += `\nรวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
+            message += `\nเกินกำหนดมาแล้ว ${daysOverdue} วัน\n\n`;
+            message += `⚠️ ดำเนินการชำระยอดคงค้างดังกล่าว เพื่อเป็นการหยุดการคำนวณค่าปรับล่าช้าที่จะเพิ่มขึ้น\n\n`;
+            message += `💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อบัญชี: ${branchBankAccountName}\n\n`;
+            message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ 🙏`;
 
-            console.log(`   📏 Flex message created for payment ${latestPayment.id.substring(0,8)}`);
+            console.log(`   📏 Final message length: ${message.length} chars`);
+            console.log(`   📄 Message preview:\n${message.substring(0, 200)}...\n`);
 
             messageCreationDetails.push({
                 paymentId: latestPayment.id,
                 roomNumber: roomNumber,
                 tenantName: tenant.full_name,
-                messageType: hasLine ? 'flex' : 'text',
+                messageLength: message.length,
                 lateFee: lateFee,
                 totalAmount: totalWithLateFee,
                 channels: {
@@ -708,8 +585,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             recipients.push({
                 lineUserId: hasLine ? tenant.line_user_id : null,
                 facebookUserId: hasFacebook ? tenant.facebook_user_id : null,
-                flexMessage: hasLine ? flexMessage : null,
-                message: hasFacebook ? `📢 แจ้งเตือนค่าเช่าเกินกำหนด\n\n${branchBuildingName}\nคุณ ${tenant.full_name} ห้อง ${roomNumber}\nยอดเงิน: ${originalAmount.toLocaleString()} บาท${lateFee > 0 ? `\nค่าปรับล่าช้า: ${lateFee.toLocaleString()} บาท` : ''}\nรวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท\nเกินกำหนดมาแล้ว ${daysOverdue} วัน\n\n⚠️ ดำเนินการชำระยอดคงค้างดังกล่าว เพื่อเป็นการหยุดการคำนวณค่าปรับล่าช้าที่จะเพิ่มขึ้น\n\n💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อบัญชี: ${branchBankAccountName}\n\nกรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ 🙏` : null,
+                message: message,
                 metadata: {
                     paymentId: latestPayment.id,
                     tenantId: tenant.id,
@@ -734,7 +610,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             console.log(`   💰 Late Fee: ${detail.lateFee} บาท`);
             console.log(`   💰 Total: ${detail.totalAmount} บาท`);
             console.log(`   📱 Channels: LINE=${detail.channels.line ? '✅' : '❌'}, FB=${detail.channels.facebook ? '✅' : '❌'}`);
-            console.log(`   📄 Type: ${recipient?.flexMessage ? 'Flex Message' : 'Text Message'}`);
+            console.log(`   📄 Message:\n${recipient?.message || 'N/A'}\n`);
         });
 
         // 6. ส่งข้อความ
@@ -785,64 +661,15 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                         console.log(`📤 Chunk ${chunkIdx + 1}/${chunks.length} (${chunk.length} msgs)`);
 
                         try {
-                            // ⭐ ส่ง Flex Message แทนข้อความธรรมดา
-                            const lineAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
-                            if (!lineAccessToken) {
-                                throw new Error('LINE_CHANNEL_ACCESS_TOKEN not set');
-                            }
-
-                            let chunkSuccess = 0;
-                            let chunkFailed = 0;
-                            const chunkErrors = [];
-
-                            for (const recipient of chunk) {
-                                try {
-                                    console.log(`📤 Sending overdue to ${recipient.metadata.tenantName} (${recipient.metadata.roomNumber})...`);
-                                    
-                                    const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
-                                        method: 'POST',
-                                        headers: {
-                                            'Content-Type': 'application/json',
-                                            'Authorization': `Bearer ${lineAccessToken}`
-                                        },
-                                        body: JSON.stringify({
-                                            to: recipient.lineUserId,
-                                            messages: [recipient.flexMessage]
-                                        })
-                                    });
-
-                                    if (lineResponse.ok) {
-                                        chunkSuccess++;
-                                        successfulPaymentIds.add(recipient.metadata.paymentId);
-                                        console.log(`✅ Sent successfully`);
-                                    } else {
-                                        const errorData = await lineResponse.json();
-                                        console.error(`❌ LINE API Error:`, errorData);
-                                        chunkFailed++;
-                                        chunkErrors.push({
-                                            metadata: recipient.metadata,
-                                            error: errorData.message || JSON.stringify(errorData)
-                                        });
-                                    }
-
-                                    await delay(150);
-                                } catch (err) {
-                                    console.error(`❌ Send error for ${recipient.metadata.roomNumber}:`, err);
-                                    chunkFailed++;
-                                    chunkErrors.push({
-                                        metadata: recipient.metadata,
-                                        error: err.message
-                                    });
+                            const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                                recipients: chunk,
+                                options: {
+                                    batchSize: 10,
+                                    delayBetweenBatches: 2000,
+                                    delayBetweenMessages: 150,
+                                    retryAttempts: 3
                                 }
-                            }
-
-                            const batchResult = {
-                                data: {
-                                    success: chunkSuccess,
-                                    failed: chunkFailed,
-                                    errors: chunkErrors
-                                }
-                            };
+                            });
 
                             const result = batchResult.data;
                             sentCount += result.success || 0;
