@@ -242,12 +242,13 @@ Deno.serve(async (req) => {
                         type: "box",
                         layout: "vertical",
                         margin: "lg",
-                        backgroundColor: "#fef2f2",
-                        paddingAll: "12px",
                         contents: [
                             { type: "text", text: "⚠️ ค่าปรับชำระล่าช้า", size: "sm", color: "#dc2626", weight: "bold" },
                             { type: "text", text: branchLateFeePerDay > 0 ? `${branchLateFeePerDay} บาท/วัน` : "ตามขั้นบันได", size: "xs", color: "#991b1b", margin: "sm" }
-                        ]
+                        ],
+                        backgroundColor: "#fef2f2",
+                        cornerRadius: "md",
+                        paddingAll: "12px"
                     });
                 }
                 
