@@ -605,7 +605,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                             { type: "separator", margin: "lg" },
                             {
                                 type: "box",
-                                layout: "baseline",
+                                layout: "horizontal",
                                 contents: [
                                     { type: "text", text: "ยอดเงินต้น", size: "sm", color: "#64748B", flex: 3 },
                                     { type: "text", text: `${originalAmount.toLocaleString()} ฿`, size: "sm", flex: 5, align: "end" }
@@ -614,7 +614,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                             },
                             ...(lateFee > 0 ? [{
                                 type: "box",
-                                layout: "baseline",
+                                layout: "horizontal",
                                 contents: [
                                     { type: "text", text: "ค่าปรับล่าช้า", size: "sm", color: "#DC2626", flex: 3 },
                                     { type: "text", text: `+${lateFee.toLocaleString()} ฿`, size: "sm", color: "#DC2626", weight: "bold", flex: 5, align: "end" }
@@ -624,7 +624,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                             { type: "separator", margin: "md" },
                             {
                                 type: "box",
-                                layout: "baseline",
+                                layout: "horizontal",
                                 contents: [
                                     { type: "text", text: "รวมทั้งสิ้น", size: "md", weight: "bold", flex: 3 },
                                     { type: "text", text: `${totalWithLateFee.toLocaleString()} ฿`, size: "xl", weight: "bold", color: "#DC2626", flex: 5, align: "end" }
