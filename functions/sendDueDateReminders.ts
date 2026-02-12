@@ -304,10 +304,10 @@ Deno.serve(async (req) => {
                                 { type: "separator", margin: "lg" },
                                 {
                                     type: "box",
-                                    layout: "horizontal",
+                                    layout: "baseline",
                                     contents: [
                                         { type: "text", text: "ยอดชำระ", size: "md", weight: "bold", flex: 3 },
-                                        { type: "text", text: `${payment.total_amount.toLocaleString()} ฿`, size: "xl", weight: "bold", color: "#2563EB", flex: 5, align: "end" }
+                                        { type: "text", text: `${payment.total_amount.toLocaleString()} ฿`, size: "xl", weight: "bold", color: "#2563EB", flex: 5 }
                                     ],
                                     margin: "md"
                                 },
