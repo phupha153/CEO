@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
                 const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
                 const tiersEnabled = tiersEnabledConfig?.value === 'true';
 
-                // ⭐ สร้าง Flex Message (ใช้ enum values ที่ LINE รองรับเท่านั้น)
+                // ⭐ สร้าง Flex Message (ใช้โครงสร้างเดียวกับ sendReceipt)
                 const bodyContents = [
                     { type: "text", text: "👤 ข้อมูลผู้เช่า", size: "sm", color: "#aaaaaa", margin: "md" },
                     { type: "text", text: tenant.full_name, size: "lg", weight: "bold", color: "#111111", margin: "sm" },
@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
                         layout: "vertical",
                         margin: "lg",
                         backgroundColor: "#fef2f2",
-                        paddingAll: "md",
+                        paddingAll: "12px",
                         contents: [
                             { type: "text", text: "⚠️ ค่าปรับชำระล่าช้า", size: "sm", color: "#dc2626", weight: "bold" },
                             { type: "text", text: branchLateFeePerDay > 0 ? `${branchLateFeePerDay} บาท/วัน` : "ตามขั้นบันได", size: "xs", color: "#991b1b", margin: "sm" }
@@ -264,17 +264,23 @@ Deno.serve(async (req) => {
                             type: "box",
                             layout: "vertical",
                             contents: [
-                                { type: "text", text: "⏰ ครบกำหนดชำระ", color: "#ffffff", size: "xl", weight: "bold", align: "center" },
-                                { type: "text", text: branchBuildingName, color: "#ffffff", size: "sm", align: "center", margin: "md" }
+                                {
+                                    type: "box",
+                                    layout: "vertical",
+                                    contents: [
+                                        { type: "text", text: "⏰ ครบกำหนดชำระ", color: "#ffffff", size: "xl", weight: "bold", align: "center" },
+                                        { type: "text", text: branchBuildingName, color: "#ffffff", size: "sm", align: "center", margin: "md" }
+                                    ]
+                                }
                             ],
                             backgroundColor: "#f59e0b",
-                            paddingAll: "lg"
+                            paddingTop: "20px",
+                            paddingBottom: "20px"
                         },
                         body: {
                             type: "box",
                             layout: "vertical",
-                            contents: bodyContents,
-                            paddingAll: "lg"
+                            contents: bodyContents
                         }
                     }
                 };
