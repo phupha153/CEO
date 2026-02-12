@@ -443,6 +443,7 @@ Deno.serve(async (req) => {
                             for (const recipient of chunk) {
                                 try {
                                     console.log(`📤 Sending to ${recipient.metadata.tenantName} (${recipient.metadata.roomNumber})...`);
+                                    console.log(`📋 Flex Message:`, JSON.stringify(recipient.flexMessage, null, 2));
                                     
                                     const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
                                         method: 'POST',
@@ -461,12 +462,18 @@ Deno.serve(async (req) => {
                                         successfulPaymentIds.add(recipient.metadata.paymentId);
                                         console.log(`✅ Sent successfully`);
                                     } else {
-                                        const errorData = await lineResponse.json();
-                                        console.error(`❌ LINE API Error:`, errorData);
+                                        const errorText = await lineResponse.text();
+                                        console.error(`❌ LINE API Error (${lineResponse.status}):`, errorText);
+                                        let errorData;
+                                        try {
+                                            errorData = JSON.parse(errorText);
+                                        } catch {
+                                            errorData = { message: errorText };
+                                        }
                                         chunkFailed++;
                                         chunkErrors.push({
                                             metadata: recipient.metadata,
-                                            error: errorData.message || JSON.stringify(errorData)
+                                            error: errorData.message || errorText
                                         });
                                     }
 
