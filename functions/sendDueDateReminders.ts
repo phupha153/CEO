@@ -220,54 +220,67 @@ Deno.serve(async (req) => {
                 const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
                 const tiersEnabled = tiersEnabledConfig?.value === 'true';
 
-                // ⭐ ข้อความสั้นกระชับ - วันครบกำหนดชำระ
-                let message = `⏰ วันนี้ครบกำหนดชำระค่าเช่า\n\n`;
-                message += `🏠 ${branchBuildingName}\n`;
-                message += `👤 คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n`;
-                message += `💰 ยอดชำระ: ${payment.total_amount.toLocaleString()} บาท\n\n`;
-                
-                // ⭐ แจ้งค่าปรับตามการตั้งค่า (เช็ค tiersEnabled ก่อน)
-                if (tiersEnabled) {
-                    // ใช้ระบบขั้นบันได
-                    const lateFeeStructureConfig = configs.find(c => 
-                        c.key === 'late_fee_tiers' && c.branch_id === paymentBranchId
-                    );
-                    let lateFeeStructure = null;
-                    if (lateFeeStructureConfig?.value) {
-                        try {
-                            lateFeeStructure = JSON.parse(lateFeeStructureConfig.value);
-                        } catch {}
+                // ⭐ สร้าง Flex Message แทน text
+                const flexMessage = {
+                    type: "flex",
+                    altText: `⏰ ครบกำหนดชำระวันนี้ - ห้อง ${room?.room_number || 'N/A'}`,
+                    contents: {
+                        type: "bubble",
+                        size: "mega",
+                        header: {
+                            type: "box",
+                            layout: "vertical",
+                            contents: [
+                                { type: "text", text: "⏰ ครบกำหนดชำระ", color: "#ffffff", size: "xl", weight: "bold", align: "center" },
+                                { type: "text", text: branchBuildingName, color: "#e0e7ff", size: "sm", align: "center", margin: "md" }
+                            ],
+                            backgroundColor: "#f59e0b",
+                            paddingAll: "20px"
+                        },
+                        body: {
+                            type: "box",
+                            layout: "vertical",
+                            contents: [
+                                { type: "text", text: "👤 ข้อมูลผู้เช่า", size: "sm", color: "#aaaaaa", margin: "md" },
+                                { type: "text", text: tenant.full_name, size: "lg", weight: "bold", color: "#111111", margin: "sm" },
+                                { type: "text", text: `ห้อง ${room?.room_number || 'N/A'}`, size: "sm", color: "#555555" },
+                                { type: "separator", margin: "lg" },
+                                {
+                                    type: "box",
+                                    layout: "horizontal",
+                                    margin: "lg",
+                                    contents: [
+                                        { type: "text", text: "💰 ยอดชำระวันนี้", size: "sm", color: "#555555", flex: 0 },
+                                        { type: "text", text: `${payment.total_amount.toLocaleString()} บาท`, size: "xl", color: "#f59e0b", weight: "bold", align: "end" }
+                                    ]
+                                },
+                                ...(tiersEnabled || branchLateFeePerDay > 0 ? [{
+                                    type: "box",
+                                    layout: "vertical",
+                                    margin: "lg",
+                                    backgroundColor: "#fef2f2",
+                                    cornerRadius: "md",
+                                    paddingAll: "12px",
+                                    contents: [
+                                        { type: "text", text: "⚠️ ค่าปรับชำระล่าช้า", size: "sm", color: "#dc2626", weight: "bold" },
+                                        { type: "text", text: branchLateFeePerDay > 0 ? `${branchLateFeePerDay} บาท/วัน` : "ตามขั้นบันได", size: "xs", color: "#991b1b", margin: "sm" }
+                                    ]
+                                }] : []),
+                                { type: "separator", margin: "lg" },
+                                { type: "text", text: "📸 ส่งสลิปหลังโอนเงิน", size: "sm", color: "#10b981", align: "center", margin: "lg", weight: "bold" }
+                            ],
+                            paddingAll: "20px"
+                        },
+                        styles: {
+                            footer: { separator: false }
+                        }
                     }
-
-                    if (lateFeeStructure && Array.isArray(lateFeeStructure) && lateFeeStructure.length > 0) {
-                        message += `⚠️ ค่าปรับชำระล่าช้า:\n`;
-                        lateFeeStructure.forEach((tier) => {
-                            if (tier.days_from !== undefined && tier.days_to !== undefined) {
-                                if (tier.days_to >= 999) {
-                                    message += `   วันที่ ${tier.days_from} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
-                                } else {
-                                    message += `   วันที่ ${tier.days_from}-${tier.days_to}: ${tier.fee_per_day} บาท/วัน\n`;
-                                }
-                            } else if (tier.days_from !== undefined) {
-                                message += `   วันที่ ${tier.days_from} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
-                            }
-                        });
-                        message += `\n`;
-                    }
-                } else if (branchLateFeePerDay > 0) {
-                    // ใช้ค่าปรับรายวันปกติ
-                    message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน\n\n`;
-                }
-                
-                message += `💳 โอนเงินได้ที่:\n`;
-                message += `${branchBankName} ${branchBankAccountNumber}\n`;
-                message += `ชื่อ: ${branchBankAccountName}\n\n`;
-                message += `📸 ส่งสลิปหลังโอนค่ะ`;
+                };
 
                 recipients.push({
                     lineUserId: hasLine ? tenant.line_user_id : null,
                     facebookUserId: hasFacebook ? tenant.facebook_user_id : null,
-                    message: message,
+                    message: flexMessage,
                     metadata: {
                         paymentId: payment.id,
                         tenantId: tenant.id,

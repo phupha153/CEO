@@ -552,28 +552,95 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             console.log(`   - latestPayment.total_amount: ${latestPayment.total_amount || 0} บาท`);
             console.log(`   - latestPayment.invoice_image_url: ${latestPayment.invoice_image_url ? '✅ มี' : '❌ ไม่มี'}`);
 
-            // สร้างข้อความแบบเดียวกับ sendPaymentReminder template='overdue'
-            let message = `📢 แจ้งเตือนค่าเช่าเกินกำหนด\n\n`;
-            message += `${branchBuildingName}\n`;
-            message += `คุณ ${tenant.full_name} ห้อง ${roomNumber}\n`;
-            message += `ยอดเงิน: ${originalAmount.toLocaleString()} บาท`;
-            if (lateFee > 0) {
-                message += `\nค่าปรับล่าช้า: ${lateFee.toLocaleString()} บาท`;
-            }
-            message += `\nรวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท`;
-            message += `\nเกินกำหนดมาแล้ว ${daysOverdue} วัน\n\n`;
-            message += `⚠️ ดำเนินการชำระยอดคงค้างดังกล่าว เพื่อเป็นการหยุดการคำนวณค่าปรับล่าช้าที่จะเพิ่มขึ้น\n\n`;
-            message += `💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อบัญชี: ${branchBankAccountName}\n\n`;
-            message += `กรุณาส่งหลักฐานการโอนหลังชำระเงิน\nขอบคุณครับ 🙏`;
+            // ⭐ สร้าง Flex Message แทน text
+            const flexMessage = {
+                type: "flex",
+                altText: `🔴 เกินกำหนดชำระ ${daysOverdue} วัน - ห้อง ${roomNumber}`,
+                contents: {
+                    type: "bubble",
+                    size: "mega",
+                    header: {
+                        type: "box",
+                        layout: "vertical",
+                        contents: [
+                            { type: "text", text: "🔴 เกินกำหนดชำระ", color: "#ffffff", size: "xl", weight: "bold", align: "center" },
+                            { type: "text", text: branchBuildingName, color: "#ffe4e6", size: "sm", align: "center", margin: "md" }
+                        ],
+                        backgroundColor: "#dc2626",
+                        paddingAll: "20px"
+                    },
+                    body: {
+                        type: "box",
+                        layout: "vertical",
+                        contents: [
+                            { type: "text", text: "👤 ข้อมูลผู้เช่า", size: "sm", color: "#aaaaaa", margin: "md" },
+                            { type: "text", text: tenant.full_name, size: "lg", weight: "bold", color: "#111111", margin: "sm" },
+                            { type: "text", text: `ห้อง ${roomNumber}`, size: "sm", color: "#555555" },
+                            { type: "separator", margin: "lg" },
+                            {
+                                type: "box",
+                                layout: "vertical",
+                                margin: "lg",
+                                backgroundColor: "#fef2f2",
+                                cornerRadius: "md",
+                                paddingAll: "12px",
+                                contents: [
+                                    { type: "text", text: `⚠️ เกินกำหนดมาแล้ว ${daysOverdue} วัน`, size: "sm", color: "#dc2626", weight: "bold", align: "center" }
+                                ]
+                            },
+                            {
+                                type: "box",
+                                layout: "vertical",
+                                margin: "lg",
+                                spacing: "sm",
+                                contents: [
+                                    {
+                                        type: "box",
+                                        layout: "horizontal",
+                                        contents: [
+                                            { type: "text", text: "ยอดเดิม", size: "sm", color: "#555555", flex: 0 },
+                                            { type: "text", text: `${originalAmount.toLocaleString()} บาท`, size: "sm", color: "#111111", align: "end" }
+                                        ]
+                                    },
+                                    ...(lateFee > 0 ? [{
+                                        type: "box",
+                                        layout: "horizontal",
+                                        contents: [
+                                            { type: "text", text: "ค่าปรับล่าช้า", size: "sm", color: "#dc2626", flex: 0 },
+                                            { type: "text", text: `${lateFee.toLocaleString()} บาท`, size: "sm", color: "#dc2626", align: "end", weight: "bold" }
+                                        ]
+                                    }] : [])
+                                ]
+                            },
+                            { type: "separator", margin: "lg" },
+                            {
+                                type: "box",
+                                layout: "horizontal",
+                                margin: "lg",
+                                contents: [
+                                    { type: "text", text: "รวมทั้งสิ้น", size: "md", color: "#111111", weight: "bold", flex: 0 },
+                                    { type: "text", text: `${totalWithLateFee.toLocaleString()} บาท`, size: "xl", color: "#dc2626", weight: "bold", align: "end" }
+                                ]
+                            },
+                            { type: "separator", margin: "lg" },
+                            { type: "text", text: "⚠️ กรุณาชำระเพื่อหยุดค่าปรับที่เพิ่มขึ้น", size: "xs", color: "#991b1b", align: "center", margin: "lg", wrap: true },
+                            { type: "text", text: "📸 ส่งสลิปหลังโอนเงิน", size: "sm", color: "#10b981", align: "center", margin: "md", weight: "bold" }
+                        ],
+                        paddingAll: "20px"
+                    },
+                    styles: {
+                        footer: { separator: false }
+                    }
+                }
+            };
 
-            console.log(`   📏 Final message length: ${message.length} chars`);
-            console.log(`   📄 Message preview:\n${message.substring(0, 200)}...\n`);
+            console.log(`   📏 Flex Message created`);
 
             messageCreationDetails.push({
                 paymentId: latestPayment.id,
                 roomNumber: roomNumber,
                 tenantName: tenant.full_name,
-                messageLength: message.length,
+                messageType: 'flex',
                 lateFee: lateFee,
                 totalAmount: totalWithLateFee,
                 channels: {
@@ -585,7 +652,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             recipients.push({
                 lineUserId: hasLine ? tenant.line_user_id : null,
                 facebookUserId: hasFacebook ? tenant.facebook_user_id : null,
-                message: message,
+                message: flexMessage,
                 metadata: {
                     paymentId: latestPayment.id,
                     tenantId: tenant.id,
