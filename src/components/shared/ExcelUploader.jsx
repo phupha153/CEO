@@ -396,7 +396,7 @@ export default function ExcelUploader({
                     <div className="bg-slate-50 p-3 border-b">
                       <h4 className="font-semibold text-slate-800">ตัวอย่างข้อมูล (5 รายการแรก)</h4>
                     </div>
-                    <div className="overflow-x-auto overflow-y-auto max-h-60">
+                    <div className="overflow-x-auto overflow-y-auto max-h-96">
                       <table className="w-full">
                         <thead className="bg-slate-100 sticky top-0">
                           <tr>
@@ -408,7 +408,7 @@ export default function ExcelUploader({
                           </tr>
                         </thead>
                         <tbody>
-                          {extractedData.slice(0, 5).map((row, index) => (
+                          {extractedData.map((row, index) => (
                             <tr key={index} className="border-b hover:bg-slate-50">
                               {Object.values(row).map((value, i) => (
                                 <td key={i} className="px-4 py-3 text-sm text-slate-600">
@@ -420,11 +420,6 @@ export default function ExcelUploader({
                         </tbody>
                       </table>
                     </div>
-                    {extractedData.length > 5 && (
-                      <div className="p-3 bg-slate-50 border-t text-center text-sm text-slate-500">
-                        และอีก {extractedData.length - 5} รายการ...
-                      </div>
-                    )}
                   </div>
 
                   <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
