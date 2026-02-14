@@ -216,23 +216,19 @@ export default function RoomsPage() {
   };
 
   const { data: rooms = [], isLoading: roomsLoading, isFetching: roomsFetching } = useQuery({
-    queryKey: ['rooms', selectedBranchId, 'secure'],
+    queryKey: ['rooms', selectedBranchId],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Room',
-        filters: { branch_id: selectedBranchId },
-        sort: '-room_number',
-        limit: 10000
-      });
-      return response.data.data;
+      if (!selectedBranchId) return [];
+      return await base44.entities.Room.filter({ branch_id: selectedBranchId }, '-room_number', 1000);
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
     retryDelay: 1000,
-    staleTime: 3 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: "stale", // ⚡ โหลดครั้งแรก เก็บ cache หลังจากนั้น
+    refetchOnMount: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: allRooms = [] } = useQuery({
@@ -265,86 +261,74 @@ export default function RoomsPage() {
   });
 
   const { data: bookings = [] } = useQuery({
-    queryKey: ['bookings', selectedBranchId, 'secure'],
+    queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Booking',
-        filters: { branch_id: selectedBranchId },
-        limit: 5000
-      });
-      return response.data.data;
+      if (!selectedBranchId) return [];
+      return await base44.entities.Booking.filter({ branch_id: selectedBranchId, status: 'active' }, '-created_date', 1000);
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: "stale", // ⚡ โหลดครั้งแรก เก็บ cache หลังจากนั้น
+    refetchOnMount: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: temporaryBookings = [] } = useQuery({
-    queryKey: ['temporaryBookings', selectedBranchId, 'secure'],
+    queryKey: ['temporaryBookings', selectedBranchId],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'TemporaryBooking',
-        filters: { branch_id: selectedBranchId },
-        limit: 5000
-      });
-      return response.data.data;
+      if (!selectedBranchId) return [];
+      return await base44.entities.TemporaryBooking.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: "stale",
+    refetchOnMount: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: tenants = [] } = useQuery({
-    queryKey: ['tenants', selectedBranchId, 'secure'],
+    queryKey: ['tenants', selectedBranchId],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Tenant',
-        filters: { branch_id: selectedBranchId },
-        limit: 5000
-      });
-      return response.data.data;
+      if (!selectedBranchId) return [];
+      return await base44.entities.Tenant.filter({ branch_id: selectedBranchId, status: 'active' }, '-created_date', 1000);
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 60 * 60 * 1000,
+    gcTime: 120 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: "stale", // ⚡ โหลดครั้งแรก เก็บ cache หลังจากนั้น
+    refetchOnMount: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: payments = [] } = useQuery({
-    queryKey: ['payments', selectedBranchId, 'secure'],
+    queryKey: ['payments', selectedBranchId],
     queryFn: async () => {
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Payment',
-        filters: { branch_id: selectedBranchId },
-        limit: 5000
-      });
-      return response.data.data;
+      if (!selectedBranchId) return [];
+      return await base44.entities.Payment.filter({ branch_id: selectedBranchId }, '-due_date', 1000);
     },
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 3 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: "stale", // ⚡ โหลดครั้งแรก เก็บ cache หลังจากนั้น
+    refetchOnMount: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const { data: maintenanceRequests = [] } = useQuery({
     queryKey: ['maintenanceRequests', selectedBranchId],
-    queryFn: () => base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
-    enabled: canView && !!selectedBranchId,
-    retry: 2,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: "stale", // ⚡ โหลดครั้งแรก เก็บ cache หลังจากนั้น
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      return await base44.entities.MaintenanceRequest.filter({ branch_id: selectedBranchId }, '-created_date', 1000);
+    },
+    enabled: false,
+    staleTime: 60 * 60 * 1000,
+    gcTime: 120 * 60 * 1000,
   });
 
   const { data: meterReadings = [] } = useQuery({
