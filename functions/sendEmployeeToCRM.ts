@@ -1,4 +1,4 @@
-import { createClientFromRequest, createClient } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest, createClient } from 'npm:@base44/sdk@0.8.6';
 
 // ฟังก์ชันกำหนดสิทธิ์เริ่มต้นตามบทบาท
 const getDefaultPermissions = (role) => {
