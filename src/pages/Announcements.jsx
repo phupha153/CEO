@@ -1160,47 +1160,7 @@ export default function Announcements() {
             </Card>
           </div>
 
-          {/* Result */}
-          {result && (
-            <Card className={`${result.failed === 0 ? 'bg-green-50 border-green-200' : 'bg-orange-50 border-orange-200'}`}>
-              <CardContent className="p-6">
-                <div className="flex items-start gap-3">
-                  {result.failed === 0 ? (
-                    <CheckCircle className="w-6 h-6 text-green-600 mt-1" />
-                  ) : (
-                    <AlertTriangle className="w-6 h-6 text-orange-600 mt-1" />
-                  )}
-                  <div className="flex-1">
-                    <h3 className="font-bold text-lg mb-2">ผลการส่งข้อความ</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                        <span className="text-green-800">ส่งสำเร็จ: <strong>{result.success}</strong> คน</span>
-                      </div>
-                      {result.failed > 0 && (
-                        <>
-                          <div className="flex items-center gap-2">
-                            <XCircle className="w-5 h-5 text-red-600" />
-                            <span className="text-red-800">ส่งไม่สำเร็จ: <strong>{result.failed}</strong> คน</span>
-                          </div>
-                          {result.errors.length > 0 && (
-                            <div className="mt-3 p-3 bg-white rounded-lg border border-orange-300">
-                              <p className="text-sm font-semibold text-slate-700 mb-2">รายละเอียดข้อผิดพลาด:</p>
-                              <ul className="text-xs text-slate-600 space-y-1 max-h-32 overflow-y-auto">
-                                {result.errors.map((error, index) => (
-                                  <li key={index}>• {error.lineUserId ? `${error.lineUserId}: ${error.reason}` : error}</li> // Adjust based on actual error structure from backend
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+
 
           {/* Info Card - กระชับสำหรับมือถือ */}
           <Card className="bg-blue-50 border-blue-200">
