@@ -447,8 +447,8 @@ export default function Announcements() {
           }
         });
 
-        totalSuccess += lineResponse.data?.successfulSends || 0;
-        totalFailed += lineResponse.data?.failedSends || 0;
+        totalSuccess += lineResponse.data?.success || 0;
+        totalFailed += lineResponse.data?.failed || 0;
         if (lineResponse.data?.errors) allErrors.push(...lineResponse.data.errors);
       }
 
