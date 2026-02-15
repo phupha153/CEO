@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { differenceInMinutes, parseISO } from 'npm:date-fns@3.6.0';
 
 // ตรวจสอบและส่งการแจ้งเตือนเมื่อ Cron Jobs มีปัญหา
