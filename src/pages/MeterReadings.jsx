@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import PageHeader from "../components/shared/PageHeader";
 import ExcelUploader from "../components/shared/ExcelUploader";
 import ScrollToTopButton from "../components/shared/ScrollToTopButton";
+import * as XLSX from "xlsx";
 
 export default function MeterReadings() {
   const [showDialog, setShowDialog] = useState(false);
@@ -322,7 +323,7 @@ export default function MeterReadings() {
     toast.success('ดาวน์โหลดไฟล์สำเร็จ');
   };
 
-  // ✅ STEP 1: อ่าน CSV และแสดงตัวอย่าง
+  // ✅ STEP 1: อ่าน CSV/Excel และแสดงตัวอย่าง
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -335,11 +336,25 @@ export default function MeterReadings() {
     try {
       toast.info('กำลังอ่านไฟล์...');
 
-      const text = await file.text();
+      // ⭐ Check if Excel file
+      const isExcel = file.name.endsWith('.xlsx') || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      
+      let text = '';
+      if (isExcel) {
+        console.log('📊 Reading Excel file...');
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        text = XLSX.utils.sheet_to_csv(worksheet);
+      } else {
+        text = await file.text();
+      }
+      
       const lines = text.split('\n').filter(line => line.trim());
       
       if (lines.length < 2) {
-        toast.error('ไฟล์ CSV ไม่มีข้อมูล');
+        toast.error('ไฟล์ไม่มีข้อมูล');
         return;
       }
 
@@ -1434,7 +1449,7 @@ export default function MeterReadings() {
                   <>
                     <input
                       type="file"
-                      accept=".csv"
+                      accept=".csv,.xlsx"
                       onChange={handleFileSelect}
                       className="hidden"
                       id="csv-upload-meter"
@@ -1445,7 +1460,7 @@ export default function MeterReadings() {
                       className="border-blue-600 text-blue-600 hover:bg-blue-50"
                     >
                       <Upload className="w-4 h-4 mr-2" />
-                      อัปโหลด CSV
+                      อัปโหลดไฟล์
                     </Button>
                   </>
                 )}
