@@ -873,7 +873,14 @@ export default function ChatWindow({
                   size="sm"
                   className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
                   disabled={analyzingChat || messages.length === 0}
-                  onClick={handleAnalyzeChat}
+                  onClick={() => {
+                    console.log('🆕 Add Tenant clicked, messages count:', messages.length);
+                    if (messages.length === 0) {
+                      toast.error('ยังไม่มีข้อความให้วิเคราะห์');
+                      return;
+                    }
+                    handleAnalyzeChat();
+                  }}
                 >
                   {analyzingChat ? (
                     <>
