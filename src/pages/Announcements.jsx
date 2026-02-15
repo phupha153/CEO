@@ -502,12 +502,12 @@ export default function Announcements() {
       };
 
       console.log('📬 Batch Send Result:', apiResult);
-
-      // ✅ FIX: เช็คทั้ง apiResult และ successfulSends/failedSends
-      if (!apiResult || (apiResult.successfulSends === undefined && apiResult.failedSends === undefined)) {
-        toast.error('ไม่ได้รับข้อมูลผลลัพธ์จากเซิร์ฟเวอร์');
-        return;
-      }
+      console.log('🔍 Result Details:', {
+        successfulSends: apiResult.successfulSends,
+        failedSends: apiResult.failedSends,
+        hasApiResult: !!apiResult,
+        apiResultType: typeof apiResult
+      });
 
       setResult({
         success: apiResult.successfulSends || 0,
@@ -537,9 +537,11 @@ export default function Announcements() {
         console.error('Failed to save announcement history:', historyError);
       }
 
-      // ✅ FIX: แจ้งเตือนชัดเจนทุกกรณี
+      // ✅ แจ้งเตือนตามผลลัพธ์จริง
       const successCount = apiResult.successfulSends || 0;
       const failedCount = apiResult.failedSends || 0;
+      
+      console.log('📊 Final Toast Decision:', { successCount, failedCount });
       
       if (successCount > 0 && failedCount === 0) {
         toast.success(`✅ ส่งสำเร็จทั้งหมด ${successCount} คน`, {
@@ -556,8 +558,11 @@ export default function Announcements() {
         toast.warning(`⚠️ ส่งสำเร็จบางส่วน: ${successCount} คน | ล้มเหลว: ${failedCount} คน`, {
           duration: 5000
         });
+      } else if (successCount === 0 && failedCount === 0) {
+        // ⚠️ กรณีที่ไม่มี success หรือ failed เลย
+        toast.warning('ไม่มีผู้รับที่ส่งได้ กรุณาตรวจสอบว่าผู้เช่ามี LINE/Facebook หรือไม่');
       } else {
-        toast.error('ไม่สามารถส่งข้อความได้');
+        toast.error('ไม่สามารถส่งข้อความได้ กรุณาลองใหม่');
       }
 
     } catch (error) {
