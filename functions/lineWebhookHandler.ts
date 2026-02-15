@@ -279,7 +279,15 @@ Deno.serve(async (req) => {
         });
     }
 
-    // ⭐ ไม่บังคับ branch_id อีกต่อไป (จะหาจาก destination แทน)
+    if (!queryBranchId) {
+        return new Response(JSON.stringify({ 
+            success: false, 
+            error: 'branch_id required' 
+        }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
 
     if (req.method !== 'POST') {
         return new Response(JSON.stringify({ message: 'OK' }), {
@@ -307,23 +315,8 @@ Deno.serve(async (req) => {
             
             if (events.length === 0) return;
             
-            // ⭐ ใช้ branch_id จาก query parameter ก่อน ถ้าไม่มีให้หาจาก destination
-            let destinationBranchId = queryBranchId;
-            
-            if (!destinationBranchId) {
-                // ⭐ หา branch จาก destination (LINE OA User ID)
-                const destination = body.destination;
-                if (destination) {
-                    destinationBranchId = await getBranchIdFromDestination(base44, destination);
-                    console.log(`📍 Found branch from destination: ${destinationBranchId || 'null'}`);
-                }
-            }
-            
-            // ⭐ ถ้ายังไม่มี branch ให้ข้ามการประมวลผล (ไม่ error)
-            if (!destinationBranchId) {
-                console.log('⚠️ No branch_id found - skipping event processing');
-                return;
-            }
+            // ⭐ ใช้ branch_id จาก query parameter แทน destination
+            const destinationBranchId = queryBranchId;
 
             for (const event of events) {
                 const lineUserId = event.source?.userId;
