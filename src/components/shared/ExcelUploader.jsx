@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Upload, Download, FileSpreadsheet, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import * as XLSX from "xlsx";
 
 export default function ExcelUploader({ 
   entityName, 
@@ -68,13 +69,32 @@ export default function ExcelUploader({
     setErrorMessage(null);
 
     try {
+      // ⭐ NEW: Check if file is Excel (.xlsx)
+      const isExcel = file.name.endsWith('.xlsx') || file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+      // ⭐ Read Excel file and convert to CSV text
+      let csv_text = '';
+      if (isExcel) {
+        console.log('📊 Reading Excel file...');
+        toast.info('กำลังอ่านไฟล์ Excel...');
+
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+
+        // Convert to CSV
+        csv_text = XLSX.utils.sheet_to_csv(worksheet);
+        console.log('✅ Excel converted to CSV, length:', csv_text.length);
+      } else {
+        // Read CSV directly
+        csv_text = await file.text();
+        console.log('CSV text length:', csv_text.length);
+      }
+
       // ⭐ FIX: For Tenant CSV imports, use custom flexible parser instead of strict API
       if (entityName === 'Tenant') {
         console.log('🔧 Using flexible CSV parser for Tenants...');
-
-        // Read file as text
-        const csv_text = await file.text();
-        console.log('CSV text length:', csv_text.length);
 
         // Use custom import function to PARSE (not import yet)
         const result = await base44.functions.invoke('flexibleTenantImport', {
@@ -313,7 +333,7 @@ export default function ExcelUploader({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileSpreadsheet className="w-5 h-5" />
-              นำเข้าข้อมูลจาก CSV
+              นำเข้าข้อมูลจาก CSV / Excel
             </DialogTitle>
           </DialogHeader>
 
@@ -323,10 +343,9 @@ export default function ExcelUploader({
               <div className="text-sm text-amber-800">
                 <p className="font-semibold mb-1">ข้อควรทราบ:</p>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>ระบบรองรับเฉพาะไฟล์ <strong>CSV (.csv)</strong> เท่านั้น</li>
+                  <li>ระบบรองรับไฟล์ <strong>CSV (.csv)</strong> และ <strong>Excel (.xlsx)</strong></li>
                   <li>ควรดาวน์โหลด Template และกรอกข้อมูลตามรูปแบบที่กำหนด</li>
                   <li>ตรวจสอบให้แน่ใจว่าข้อมูลครบถ้วนและถูกต้องก่อนอัปโหลด</li>
-                  <li>ไฟล์ CSV ต้องใช้เครื่องหมายจุลภาค (,) เป็นตัวคั่นคอลัมน์</li>
                 </ul>
               </div>
             </div>
@@ -334,7 +353,7 @@ export default function ExcelUploader({
             <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center">
               <input
                 type="file"
-                accept=".csv"
+                accept=".csv,.xlsx"
                 onChange={handleFileUpload}
                 className="hidden"
                 id="excel-upload"
@@ -352,10 +371,10 @@ export default function ExcelUploader({
                   )}
                   <div>
                     <p className="text-lg font-semibold text-slate-700">
-                      {uploading ? 'กำลังอ่านไฟล์...' : 'คลิกเพื่อเลือกไฟล์ CSV'}
+                      {uploading ? 'กำลังอ่านไฟล์...' : 'คลิกเพื่อเลือกไฟล์'}
                     </p>
                     <p className="text-sm text-slate-500 mt-1">
-                      รองรับเฉพาะไฟล์ .csv
+                      รองรับ CSV (.csv) และ Excel (.xlsx)
                     </p>
                   </div>
                 </div>
