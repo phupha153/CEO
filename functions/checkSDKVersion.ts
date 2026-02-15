@@ -27,41 +27,25 @@ Deno.serve(async (req) => {
     // เปรียบเทียบเวอร์ชัน
     const needsUpdate = latestVersion !== currentVersion;
 
-    // ถ้ามีเวอร์ชันใหม่ → ส่ง LINE แจ้งเตือน
+    // ถ้ามีเวอร์ชันใหม่ → ส่งอีเมลแจ้งเตือน
     if (needsUpdate) {
-      const configs = await base44.asServiceRole.entities.Config.list();
-      const lineToken = configs.find(c => c.key === 'line_channel_access_token')?.value || 
-                        Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
       const adminEmail = Deno.env.get('admin_email');
 
-      if (lineToken && adminEmail) {
-        // ดึง admin user's LINE ID
-        const admins = await base44.asServiceRole.entities.User.filter({ 
-          email: adminEmail,
-          role: 'admin' 
+      if (adminEmail) {
+        const emailBody = `🚨 ตรวจพบ @base44/sdk เวอร์ชันใหม่!\n\n` +
+                         `📦 เวอร์ชันปัจจุบัน: ${currentVersion}\n` +
+                         `✨ เวอร์ชันล่าสุด: ${latestVersion}\n\n` +
+                         `คำสั่งสำหรับ Base44 AI:\n"อัปเดต SDK เป็น ${latestVersion}"\n\n` +
+                         `---\n` +
+                         `ตรวจสอบเมื่อ: ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`;
+
+        await base44.integrations.Core.SendEmail({
+          to: adminEmail,
+          subject: `🔔 @base44/sdk เวอร์ชันใหม่: ${latestVersion}`,
+          body: emailBody
         });
-        const adminLineId = admins[0]?.line_user_id;
 
-        if (adminLineId) {
-          const message = `🚨 มี SDK เวอร์ชันใหม่!\n\n` +
-                         `📦 ปัจจุบัน: ${currentVersion}\n` +
-                         `✨ ล่าสุด: ${latestVersion}\n\n` +
-                         `แจ้ง Base44 AI เพื่ออัปเดท:\n"อัปเดต SDK เป็น ${latestVersion}"`;
-
-          await fetch('https://api.line.me/v2/bot/message/push', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${lineToken}`
-            },
-            body: JSON.stringify({
-              to: adminLineId,
-              messages: [{ type: 'text', text: message }]
-            })
-          });
-
-          console.log('✅ Sent LINE notification to admin');
-        }
+        console.log('✅ Sent email notification to admin');
       }
     }
 
