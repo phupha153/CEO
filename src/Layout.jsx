@@ -547,94 +547,11 @@ export default function Layout({ children, currentPageName }) {
     throwOnError: false,
   });
 
-  // เช็คสิทธิ์กับ CRM (sync role ทุกครั้งที่ currentUser เปลี่ยน)
-  const { data: crmAccess, isLoading: crmAccessLoading, error: crmAccessError, refetch: refetchCRMAccess } = useQuery({
-    queryKey: ['crmAccess', currentUser?.email],
-    queryFn: async () => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      try {
-        const response = await base44.functions.invoke('checkCRMAccess', {}, {
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        const data = response.data;
-
-        // 🔒 FAIL-CLOSED: ถ้ามี error/timeout → DENY
-        if (!data || data.error || data.timeout) {
-          console.error('❌ CRM check failed - DENYING access');
-          const welcomeUrl = window.location.origin + '/Welcome';
-          base44.auth.logout(welcomeUrl);
-          return { hasAccess: false, reason: data?.error || 'CRM timeout' };
-        }
-
-        // ⚡ INSTANT LOGOUT: ถ้า deny → logout + redirect
-        if (data.hasAccess === false && currentUser) {
-          console.warn('🚫 CRM Access denied - Immediate logout:', currentUser.email);
-          const welcomeUrl = window.location.origin + '/Welcome';
-          base44.auth.logout(welcomeUrl);
-          return data;
-        }
-
-        // ⭐ Sync role + accessible_branches จาก CRM
-        if (data.hasAccess && currentUser) {
-          // ⭐ Admin users ใน Base44 = developer เสมอ ไม่ sync จาก CRM
-          if (currentUser.role === 'admin') {
-            return data;
-          }
-
-          const currentRole = currentUser.custom_role || null;
-          const currentBranches = currentUser.accessible_branches || [];
-          const crmRole = data.role?.trim();
-          const crmBranches = data.accessible_branches || [];
-
-          // ⭐ MERGE branches: สาขาเก่า (สร้างเอง) + สาขาใหม่ (ชวนเข้า)
-          const mergedBranches = Array.from(new Set([...currentBranches, ...crmBranches]));
-
-          // ⭐ อัพเดทเฉพาะเมื่อ role หรือ branches ไม่ตรงกัน
-          const needsUpdate = (currentRole !== crmRole) || 
-                             (JSON.stringify(currentBranches.sort()) !== JSON.stringify(mergedBranches.sort()));
-
-          if (needsUpdate) {
-            try {
-              await base44.auth.updateMe({ 
-                custom_role: crmRole,
-                accessible_branches: mergedBranches  // ⭐ MERGE แทน OVERWRITE
-              });
-              await queryClient.invalidateQueries(['currentUser']);
-              await new Promise(resolve => setTimeout(resolve, 500));
-              window.location.reload();
-            } catch (error) {
-              console.error('❌ Role/Branches update failed:', error.message);
-              console.error('Full error:', error);
-            }
-          }
-        }
-
-        return data;
-      } catch (error) {
-        clearTimeout(timeoutId);
-
-        if (error.name === 'AbortError') {
-          return { hasAccess: true, timeout: true, cached: true };
-        }
-
-        console.error('❌ CRM check error:', error);
-        return { hasAccess: true, error: error.message, cached: true };
-      }
-    },
-    enabled: !isLoading && !!currentUser?.email && isOnline && !isPublicPage,
-    staleTime: 1 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchInterval: false,
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true,
-    refetchOnMount: true,
-    refetchOnReconnect: true,
-    retry: 1,
-    throwOnError: false,
-  });
+  // ⚠️ DISABLED: CRM check ถูกปิดชั่วคราวเพราะ function ไม่มี
+  const crmAccess = { hasAccess: true, cached: true, disabled: true };
+  const crmAccessLoading = false;
+  const crmAccessError = null;
+  const refetchCRMAccess = async () => {};
 
   const { data: appSubscriptions = [] } = useQuery({
     queryKey: ['appSubscriptions', currentUser?.email],
