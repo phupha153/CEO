@@ -1,5 +1,29 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
+// ⭐ ดึง LINE token เฉพาะสาขา
+async function getLineToken(base44, branchId = null) {
+    try {
+        const configs = await base44.asServiceRole.entities.Config.list();
+
+        if (branchId) {
+            const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
+            if (branchToken?.value?.trim()) {
+                return branchToken.value.trim();
+            }
+        }
+
+        const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
+        if (globalToken?.value?.trim()) {
+            return globalToken.value.trim();
+        }
+
+        return null;
+    } catch (error) {
+        console.error('❌ Error fetching LINE token:', error);
+        return null;
+    }
+}
+
 Deno.serve(async (req) => {
     const startTime = Date.now();
     
