@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
 // Public API สำหรับดึงข้อมูลใบแจ้งหนี้ (ไม่ต้อง login)
 Deno.serve(async (req) => {
