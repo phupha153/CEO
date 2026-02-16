@@ -330,16 +330,45 @@ Deno.serve(async (req) => {
 
             if (lineRecipientsCleaned.length > 0) {
                 try {
-                    // ⭐ ส่งผ่าน sendBatchLineMessages (เหมือน sendPaymentReminder)
-                    const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                        recipients: lineRecipientsCleaned,
-                        options: {
-                            batchSize: 10,
-                            delayBetweenBatches: 2000,
-                            delayBetweenMessages: 200,
-                            retryAttempts: 2
+                    // ⭐ ส่งโดยตรงไป LINE API (ไม่ผ่าน sendBatchLineMessages)
+                    const lineToken = await getLineToken(base44, lineRecipientsCleaned[0].branchId);
+
+                    if (!lineToken) {
+                        throw new Error('No LINE token found for branch');
+                    }
+
+                    let lineSuccess = 0;
+                    const lineErrors = [];
+
+                    for (const recipient of lineRecipientsCleaned) {
+                        try {
+                            const response = await fetch('https://api.line.me/v2/bot/message/push', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${lineToken}`
+                                },
+                                body: JSON.stringify({
+                                    to: recipient.lineUserId,
+                                    messages: [{ type: 'text', text: recipient.message }]
+                                })
+                            });
+
+                            if (response.ok) {
+                                lineSuccess++;
+                                successfulPaymentIds.add(recipient.metadata.paymentId);
+                            } else {
+                                const errorData = await response.json();
+                                lineErrors.push({ lineUserId: recipient.lineUserId, error: errorData.message || `HTTP ${response.status}` });
+                            }
+
+                            await new Promise(r => setTimeout(r, 200));
+                        } catch (err) {
+                            lineErrors.push({ lineUserId: recipient.lineUserId, error: err.message });
                         }
-                    });
+                    }
+
+                    const batchResult = { data: { success: lineSuccess, failed: lineErrors.length, errors: lineErrors } };
 
                     const result = batchResult.data;
                     sentCount += result.success || 0;
