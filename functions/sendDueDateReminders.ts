@@ -300,17 +300,24 @@ Deno.serve(async (req) => {
 
             if (lineRecipientsCleaned.length > 0) {
                 try {
-                    const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                        recipients: lineRecipientsCleaned,
-                        options: {
-                            batchSize: 10,
-                            delayBetweenBatches: 2000,
-                            delayBetweenMessages: 200,
-                            retryAttempts: 2
-                        }
+                    // ⭐ Call sendBatchLineMessages via HTTP (workaround for automation context)
+                    const response = await fetch(`${Deno.env.get('FRONTEND_URL')}/api/functions/sendBatchLineMessages`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            recipients: lineRecipientsCleaned,
+                            options: {
+                                batchSize: 10,
+                                delayBetweenBatches: 2000,
+                                delayBetweenMessages: 200,
+                                retryAttempts: 2
+                            }
+                        })
                     });
 
-                    const result = batchResult.data;
+                    const result = await response.json();
                     sentCount += result.success || 0;
                     
                     if (result.errors) {
