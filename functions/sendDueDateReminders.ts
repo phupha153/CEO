@@ -7,11 +7,10 @@ function getThailandTimestamp() {
     return thailandTime.toISOString();
 }
 
-// ⭐ ดึง LINE token เฉพาะสาขา (ไม่ fallback global/env)
-async function getLineToken(configsList, branchId = null) {
+// ⭐ ดึง LINE token เฉพาะสาขา (รับ configs จากนอก ไม่ query ใหม่)
+async function getLineToken(configs, branchId = null) {
     try {
-        // configsList ส่งมาพร้อมแล้ว ไม่ต้อง query ใหม่
-        const configs = configsList;
+        // configs ส่งมาพร้อมแล้ว ไม่ต้อง query ใหม่
 
         if (branchId) {
             const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
@@ -333,7 +332,7 @@ Deno.serve(async (req) => {
 
             if (lineRecipientsCleaned.length > 0) {
                 try {
-                    // ⭐ ส่งโดยตรงไป LINE API (ไม่ผ่าน sendBatchLineMessages)
+                    // ⭐ ส่งโดยตรงไป LINE API (ใช้ configs ที่ fetch ไปแล้ว)
                     const lineToken = await getLineToken(configs, lineRecipientsCleaned[0].branchId);
 
                     if (!lineToken) {
