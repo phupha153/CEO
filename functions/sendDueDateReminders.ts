@@ -251,7 +251,10 @@ Deno.serve(async (req) => {
                     });
                     message += `\n`;
                 } else if (branchLateFeePerDay > 0) {
-                    message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน`;
+                    message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน\n\n`;
+                }
+                
+                message += `📸 รบกวนส่งสลิปหลังโอนไปทางแชทนี้ด้วยค่ะ`;
 
                 recipients.push({
                     lineUserId: hasLine ? tenant.line_user_id : null,
