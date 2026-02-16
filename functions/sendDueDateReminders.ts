@@ -300,7 +300,6 @@ Deno.serve(async (req) => {
 
             if (lineRecipientsCleaned.length > 0) {
                 try {
-                    // ⭐ Call sendBatchLineMessages via HTTP (workaround for automation context)
                     const response = await fetch(`${Deno.env.get('FRONTEND_URL')}/api/functions/sendBatchLineMessages`, {
                         method: 'POST',
                         headers: {
@@ -319,14 +318,13 @@ Deno.serve(async (req) => {
 
                     const result = await response.json();
                     sentCount += result.success || 0;
-                    
+
                     if (result.errors) {
                         result.errors.forEach(err => {
                             sendErrors.push(`ห้อง ${err.lineUserId || 'N/A'}: ${err.error || 'Unknown error'}`);
                         });
                     }
-                    
-                    // เพิ่ม payment IDs ที่ส่งสำเร็จ
+
                     lineRecipientsCleaned.slice(0, result.success || 0).forEach(r => {
                         successfulPaymentIds.add(r.metadata.paymentId);
                     });
