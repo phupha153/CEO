@@ -8,9 +8,10 @@ function getThailandTimestamp() {
 }
 
 // ⭐ ดึง LINE token เฉพาะสาขา (ไม่ fallback global/env)
-async function getLineToken(base44, branchId = null) {
+async function getLineToken(configsList, branchId = null) {
     try {
-        const configs = await base44.asServiceRole.entities.Config.list();
+        // configsList ส่งมาพร้อมแล้ว ไม่ต้อง query ใหม่
+        const configs = configsList;
 
         if (branchId) {
             const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
