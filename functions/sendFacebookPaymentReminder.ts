@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
 function numberToThaiText(number) {
     if (!number || number === 0) return 'ศูนย์บาทถ้วน';
