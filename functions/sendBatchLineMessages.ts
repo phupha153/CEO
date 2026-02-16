@@ -27,33 +27,37 @@ const retryOperation = async (fn, maxRetries = 5, baseDelay = 2000) => {
 };
 
 async function getLineToken(base44, configs, branchId = null) {
-    try {
-        // 1. ลองหา token เฉพาะสาขา
-        if (branchId) {
-            const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
-            if (branchToken?.value?.trim()) {
-                return branchToken.value.trim();
-            }
-        }
-        
-        // 2. หา global token
-        const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
-        if (globalToken?.value?.trim()) {
-            return globalToken.value.trim();
-        }
-        
-        // 3. Fallback environment variable
-        const envToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
-        if (envToken?.trim()) {
-            return envToken.trim();
-        }
-        
-        return null;
-    } catch (error) {
-        console.error('❌ Error fetching LINE token:', error);
-        return null;
-    }
-}
+          try {
+              // 1. ลองหา token เฉพาะสาขา
+              if (branchId) {
+                  const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
+                  if (branchToken?.value?.trim()) {
+                      console.log(`✅ Found branch-specific LINE token for ${branchId.substring(0,8)}...`);
+                      return branchToken.value.trim();
+                  }
+              }
+
+              // 2. หา global token
+              const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
+              if (globalToken?.value?.trim()) {
+                  console.log(`✅ Found global LINE token`);
+                  return globalToken.value.trim();
+              }
+
+              // 3. Fallback environment variable
+              const envToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+              if (envToken?.trim()) {
+                  console.log(`✅ Found LINE_CHANNEL_ACCESS_TOKEN from environment`);
+                  return envToken.trim();
+              }
+
+              console.error(`❌ No LINE token found for branch ${branchId || 'global'}`);
+              return null;
+          } catch (error) {
+              console.error('❌ Error fetching LINE token:', error);
+              return null;
+          }
+      }
 
 Deno.serve(async (req) => {
     try {
