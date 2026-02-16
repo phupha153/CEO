@@ -359,9 +359,12 @@ Deno.serve(async (req) => {
                             if (response.ok) {
                                 lineSuccess++;
                                 successfulPaymentIds.add(recipient.metadata.paymentId);
+                                console.log(`✅ LINE sent to ${recipient.lineUserId.substring(0, 10)}...`);
                             } else {
                                 const errorData = await response.json();
-                                lineErrors.push({ lineUserId: recipient.lineUserId, error: errorData.message || `HTTP ${response.status}` });
+                                const errorMsg = errorData.message || `HTTP ${response.status}`;
+                                console.error(`❌ LINE API Error: ${errorMsg}`, errorData);
+                                lineErrors.push({ lineUserId: recipient.lineUserId, error: errorMsg });
                             }
 
                             await new Promise(r => setTimeout(r, 200));
