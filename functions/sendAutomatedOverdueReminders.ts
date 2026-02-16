@@ -239,8 +239,8 @@ Deno.serve(async (req) => {
         // Parse request body
         let targetBranchId = null;
         let testLineUserId = null;
-        let limit = 30; // ⚡ ลดจาก 100 → 30 เพื่อป้องกัน timeout
-        const TIMEOUT_LIMIT_MS = 75000; // 🛡️ หยุดที่ 75 วินาที (ป้องกัน 502)
+        let limit = 50; // ⚡ ปรับเป็น 50 บิลต่อรอบ (3 นาที timeout)
+        const TIMEOUT_LIMIT_MS = 150000; // 🛡️ หยุดที่ 150 วินาที (2.5 นาที - ปล่อย buffer 30 วิ)
         
         try {
             const text = await req.text();
