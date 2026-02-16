@@ -497,12 +497,11 @@ Deno.serve(async (req) => {
                 }
             });
 
-            const branches = await base44.asServiceRole.entities.Branch.list();
+            // ⭐ ไม่ query branches เพื่อหลีกเลี่ยง auth error ใน cron mode
             Object.entries(branchStats).forEach(([branchId, stats]) => {
-                const branch = branches.find(b => b.id === branchId);
                 branchResults.push({
                     branch_id: branchId,
-                    branch_name: branch?.branch_name || 'Unknown',
+                    branch_name: branchId.substring(0, 8) + '...',
                     status: stats.failed > 0 ? 'partial' : 'success',
                     sent: stats.sent,
                     failed: stats.failed
