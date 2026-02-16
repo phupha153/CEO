@@ -281,18 +281,7 @@ Deno.serve(async (req) => {
                     });
                     message += `\n`;
                 } else if (branchLateFeePerDay > 0) {
-                    message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน\n\n`;
-                }
-
-                // ⭐ ดึงลิงค์ Public Invoice
-                const frontendUrl = getConfigValue('frontend_url', null, paymentBranchId) || Deno.env.get('FRONTEND_URL');
-                const invoiceLink = frontendUrl ? `${frontendUrl}/publicinvoice?id=${payment.id}` : null;
-
-                message += `💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อ: ${branchBankAccountName}\n\n`;
-                if (invoiceLink) {
-                    message += `📄 ดูเอกสาร: ${invoiceLink}\n\n`;
-                }
-                message += `📸 กรุณาส่งหลักฐานการโอนหลังชำระเงินค่ะ\nขอบคุณค่ะ 🙏`;
+                    message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน`;
 
                 recipients.push({
                     lineUserId: hasLine ? tenant.line_user_id : null,
