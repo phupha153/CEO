@@ -593,12 +593,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                         message += `   วันที่ ${tier.days_from}-${tier.days_to}: ${tier.fee_per_day} บาท/วัน\n`;
                     }
                 });
-                message += `\n`;
             }
-            
-            message += `💳 โอนเงินได้ที่:\n`;
-            message += `ไทยพาณิชย์ ${branchBankAccountNumber}\n`;
-            message += `ชื่อบัญชี: ${branchBankAccountName}`;
 
             console.log(`   📏 Text message created`);
 
