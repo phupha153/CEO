@@ -84,12 +84,12 @@ Deno.serve(async (req) => {
             roomsByFloor[floor].push(room);
         }
 
-        // ส่งข้อความแจ้งเตือน
-        const lineAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
+        // ⭐ ดึง LINE token เฉพาะสาขา
+        const lineAccessToken = await getLineToken(base44, branch_id);
         if (!lineAccessToken) {
             return Response.json({ 
                 success: false, 
-                error: 'ไม่พบ LINE_CHANNEL_ACCESS_TOKEN' 
+                error: 'ไม่พบ LINE token สำหรับสาขานี้' 
             });
         }
 
