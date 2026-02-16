@@ -1,29 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
-// ⭐ ดึง LINE token เฉพาะสาขา
-async function getLineToken(base44, branchId = null) {
-    try {
-        const configs = await base44.asServiceRole.entities.Config.list();
-
-        if (branchId) {
-            const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
-            if (branchToken?.value?.trim()) {
-                return branchToken.value.trim();
-            }
-        }
-
-        const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
-        if (globalToken?.value?.trim()) {
-            return globalToken.value.trim();
-        }
-
-        return null;
-    } catch (error) {
-        console.error('❌ Error fetching LINE token:', error);
-        return null;
-    }
-}
-
 Deno.serve(async (req) => {
     const startTime = Date.now();
     
@@ -85,12 +61,12 @@ Deno.serve(async (req) => {
         const allRooms = await base44.asServiceRole.entities.Room.list();
         const allTenants = await base44.asServiceRole.entities.Tenant.list();
 
-        // ⭐ ดึง LINE token เฉพาะสาขา
-        const lineAccessToken = await getLineToken(base44, branch_id);
+        // ส่งข้อความแจ้งเตือน
+        const lineAccessToken = Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
         if (!lineAccessToken) {
             return Response.json({ 
                 success: false, 
-                error: 'ไม่พบ LINE token สำหรับสาขานี้' 
+                error: 'ไม่พบ LINE_CHANNEL_ACCESS_TOKEN' 
             });
         }
 

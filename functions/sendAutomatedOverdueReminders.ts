@@ -10,36 +10,6 @@ function getThailandTimestamp() {
     return thailandTime.toISOString();
 }
 
-// ⭐ ดึง LINE token เฉพาะสาขา (รับ configs จากนอก ไม่ query ใหม่)
-async function getLineToken(configs, branchId = null) {
-    try {
-        // configs ส่งมาพร้อมแล้ว ไม่ต้อง query ใหม่
-
-        if (branchId) {
-            const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
-            if (branchToken?.value?.trim()) {
-                console.log(`✅ Using branch-specific token for branch: ${branchId.substring(0, 8)}...`);
-                return branchToken.value.trim();
-            }
-
-            console.warn(`⚠️ No LINE token found for branch: ${branchId.substring(0, 8)}...`);
-            return null;
-        }
-
-        const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
-        if (globalToken?.value?.trim()) {
-            console.log('✅ Using global token from Config database');
-            return globalToken.value.trim();
-        }
-
-        console.warn('⚠️ No LINE token found');
-        return null;
-    } catch (error) {
-        console.error('❌ Error fetching LINE token:', error);
-        return null;
-    }
-}
-
 // ⭐ สร้าง hash จากข้อมูลบิล เพื่อตรวจจับการเปลี่ยนแปลง
 function generatePaymentHash(payment) {
     const dataToHash = {
@@ -239,16 +209,14 @@ Deno.serve(async (req) => {
         // Parse request body
         let targetBranchId = null;
         let testLineUserId = null;
-        let limit = 50; // ⚡ ปรับเป็น 50 บิลต่อรอบ (3 นาที timeout)
-        const TIMEOUT_LIMIT_MS = 150000; // 🛡️ หยุดที่ 150 วินาที (2.5 นาที - ปล่อย buffer 30 วิ)
-        
+        let limit = 100; // จำนวนบิลสูงสุดที่จะส่งต่อครั้ง (default 100)
         try {
             const text = await req.text();
             if (text) {
                 const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
                 testLineUserId = body.test_line_user_id || null;
-                limit = body.limit || 30;
+                limit = body.limit || 100;
             }
         } catch (parseError) {
             console.log('⚠️ No body or parse error:', parseError.message);
@@ -522,7 +490,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             payment.status = 'overdue';
             payment.late_fee_last_calculated = thailandTime;
 
-            // ⚡ ลบ delay ออก - ไม่จำเป็นสำหรับ calculation
+            await delay(200);
         }
         
         console.log(`\n📊 LATE FEE CALCULATION SUMMARY:`);
@@ -537,12 +505,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
         const recipients = [];
         const messageCreationDetails = [];
 
-        // 🛡️ Timeout Guard - หยุดถ้าใกล้ time limit
         for (const payment of paymentsToProcess) {
-            if (Date.now() - startTime > TIMEOUT_LIMIT_MS) {
-                console.warn(`⚠️ TIMEOUT GUARD: Stopping message creation at ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
-                break;
-            }
             // ⭐ ใช้ payment ปัจจุบัน (ไม่ต้อง refresh เพราะไม่มีการสร้างรูป)
             const latestPayment = payment;
             
@@ -706,51 +669,15 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
 
             if (lineRecipientsCleaned.length > 0) {
                 try {
-                    // ⭐ ส่งโดยตรงไป LINE API (ใช้ configs ที่ fetch ไปแล้ว)
-                    const lineToken = await getLineToken(configs, lineRecipientsCleaned[0].branchId);
-
-                    if (!lineToken) {
-                        throw new Error('No LINE token found for branch');
-                    }
-
-                    let lineSuccess = 0;
-                    const lineErrors = [];
-
-                    for (const recipient of lineRecipientsCleaned) {
-                        // 🛡️ Timeout Guard
-                        if (Date.now() - startTime > TIMEOUT_LIMIT_MS) {
-                            console.warn(`⚠️ TIMEOUT: Stopping LINE sends at ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
-                            break;
+                    const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                        recipients: lineRecipientsCleaned,
+                        options: {
+                            batchSize: 10,
+                            delayBetweenBatches: 2000,
+                            delayBetweenMessages: 200,
+                            retryAttempts: 2
                         }
-
-                        try {
-                            const response = await fetch('https://api.line.me/v2/bot/message/push', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${lineToken}`
-                                },
-                                body: JSON.stringify({
-                                    to: recipient.lineUserId,
-                                    messages: [{ type: 'text', text: recipient.message }]
-                                })
-                            });
-
-                            if (response.ok) {
-                                lineSuccess++;
-                                successfulPaymentIds.add(recipient.metadata.paymentId);
-                            } else {
-                                const errorData = await response.json();
-                                lineErrors.push({ lineUserId: recipient.lineUserId, error: errorData.message || `HTTP ${response.status}` });
-                            }
-
-                            await new Promise(r => setTimeout(r, 100)); // ⚡ ลดจาก 200ms → 100ms
-                        } catch (err) {
-                            lineErrors.push({ lineUserId: recipient.lineUserId, error: err.message });
-                        }
-                    }
-
-                    const batchResult = { data: { success: lineSuccess, failed: lineErrors.length, errors: lineErrors } };
+                    });
 
                     const result = batchResult.data;
                     sentCount += result.success || 0;
@@ -800,20 +727,13 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             }
         }
 
-        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ
+        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ - ลด batch size เพื่อหลีกเลี่ยง rate limit
         console.log(`📝 Updating sent_date for ${successfulPaymentIds.size} successful payments...`);
         const now_iso = getThailandTimestamp();
-        const updateBatchSize = 50; // ⚡ ลดเป็น 50 เพื่อความปลอดภัย
+        const updateBatchSize = 100; // เพิ่มเป็น 100 เพื่อเพิ่มประสิทธิภาพ
         const paymentIdsArray = Array.from(successfulPaymentIds);
         
         for (let i = 0; i < paymentIdsArray.length; i += updateBatchSize) {
-            // 🛡️ Timeout Guard
-            if (Date.now() - startTime > TIMEOUT_LIMIT_MS) {
-                console.warn(`⚠️ TIMEOUT: Stopping DB updates at ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
-                console.warn(`   Updated: ${i}/${paymentIdsArray.length} payments`);
-                break;
-            }
-
             const batch = paymentIdsArray.slice(i, i + updateBatchSize);
             await Promise.all(
                 batch.map(id => 
@@ -826,9 +746,9 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             );
             console.log(`✅ Updated ${Math.min(i + updateBatchSize, paymentIdsArray.length)}/${paymentIdsArray.length}`);
             
-            // ⚡ ลด delay จาก 500ms → 200ms
+            // ⭐ เพิ่ม delay ระหว่าง batch
             if (i + updateBatchSize < paymentIdsArray.length) {
-                await new Promise(r => setTimeout(r, 200));
+                await new Promise(r => setTimeout(r, 500));
             }
         }
 

@@ -105,7 +105,6 @@ Deno.serve(async (req) => {
         
         // ⭐ รับ paymentId จาก request body (optional)
         let paymentId = null;
-        let isManualCall = false;
         try {
             const body = await req.json();
             paymentId = body?.paymentId || null;
@@ -113,19 +112,10 @@ Deno.serve(async (req) => {
             // ไม่มี body = รันแบบปกติกับทุกบิล
         }
 
-        // ⭐ เช็ค authentication เฉพาะเมื่อมี user (manual call)
-        // Cron jobs จะไม่มี user session
-        const user = await base44.auth.me().catch(() => null);
-        
-        if (user) {
-            // ถ้ามี user = manual call → ต้อง admin
-            isManualCall = true;
-            if (user.role !== 'admin') {
-                return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
-            }
-            console.log(`👤 Manual call by admin: ${user.email}`);
-        } else {
-            console.log(`🤖 Automated cron job (no user session)`);
+        const user = await base44.auth.me();
+
+        if (user?.role !== 'admin') {
+            return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
         }
 
         console.log('🔒 [Lock Late Fees] Starting job...', paymentId ? `(Single payment: ${paymentId.substring(0, 12)}...)` : '(All payments)');

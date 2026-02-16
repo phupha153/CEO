@@ -7,36 +7,6 @@ function getThailandTimestamp() {
     return thailandTime.toISOString();
 }
 
-// ⭐ ดึง LINE token เฉพาะสาขา (รับ configs จากนอก ไม่ query ใหม่)
-async function getLineToken(configs, branchId = null) {
-    try {
-        // configs ส่งมาพร้อมแล้ว ไม่ต้อง query ใหม่
-
-        if (branchId) {
-            const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
-            if (branchToken?.value?.trim()) {
-                console.log(`✅ Using branch-specific token for branch: ${branchId.substring(0, 8)}...`);
-                return branchToken.value.trim();
-            }
-
-            console.warn(`⚠️ No LINE token found for branch: ${branchId.substring(0, 8)}...`);
-            return null;
-        }
-
-        const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
-        if (globalToken?.value?.trim()) {
-            console.log('✅ Using global token from Config database');
-            return globalToken.value.trim();
-        }
-
-        console.warn('⚠️ No LINE token found');
-        return null;
-    } catch (error) {
-        console.error('❌ Error fetching LINE token:', error);
-        return null;
-    }
-}
-
 // Due date reminder function - sends LINE notifications on payment due dates
 // Version: 2025-11-27 - Added tracking for sent reminders
 Deno.serve(async (req) => {
@@ -268,11 +238,10 @@ Deno.serve(async (req) => {
                 message += `${branchBuildingName}\n`;
                 message += `คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n\n`;
                 message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n\n`;
-                message += `💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อ: ${branchBankAccountName}`;
                 
                 // แจ้งค่าปรับ
                 if (lateFeeStructure && Array.isArray(lateFeeStructure) && lateFeeStructure.length > 0) {
-                    message += `\n\n⚠️ ค่าปรับชำระล่าช้า:\n`;
+                    message += `⚠️ ค่าปรับชำระล่าช้า:\n`;
                     lateFeeStructure.forEach((tier) => {
                         if (tier.days_to >= 999) {
                             message += `   วันที่ ${tier.days_from} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
@@ -280,10 +249,9 @@ Deno.serve(async (req) => {
                             message += `   วันที่ ${tier.days_from}-${tier.days_to}: ${tier.fee_per_day} บาท/วัน\n`;
                         }
                     });
+                    message += `\n`;
                 } else if (branchLateFeePerDay > 0) {
-                    message += `\n\n⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน`;
-                }
-                message += `\n\nขอบคุณค่ะ 🙏`;
+                    message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน`;
 
                 recipients.push({
                     lineUserId: hasLine ? tenant.line_user_id : null,
@@ -332,53 +300,15 @@ Deno.serve(async (req) => {
 
             if (lineRecipientsCleaned.length > 0) {
                 try {
-                    // ⭐ ส่งโดยตรงไป LINE API (ใช้ configs ที่ fetch ไปแล้ว)
-                    const lineToken = await getLineToken(configs, lineRecipientsCleaned[0].branchId);
-
-                    if (!lineToken) {
-                        throw new Error('No LINE token found for branch');
-                    }
-
-                    let lineSuccess = 0;
-                    const lineErrors = [];
-
-                    for (const recipient of lineRecipientsCleaned) {
-                        try {
-                            console.log(`📤 [CRON DEBUG] Sending to ${recipient.lineUserId?.substring(0, 10)}... | Token length: ${lineToken?.length || 0} | Branch: ${recipient.branchId?.substring(0, 8)}...`);
-                            
-                            const response = await fetch('https://api.line.me/v2/bot/message/push', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${lineToken}`
-                                },
-                                body: JSON.stringify({
-                                    to: recipient.lineUserId,
-                                    messages: [{ type: 'text', text: recipient.message }]
-                                })
-                            });
-
-                            console.log(`📥 [CRON DEBUG] Response: ${response.status} (${response.ok ? '✅' : '❌'})`);
-
-                            if (response.ok) {
-                                lineSuccess++;
-                                successfulPaymentIds.add(recipient.metadata.paymentId);
-                                console.log(`✅ LINE sent to ${recipient.lineUserId.substring(0, 10)}...`);
-                            } else {
-                                const errorData = await response.json();
-                                const errorMsg = errorData.message || `HTTP ${response.status}`;
-                                console.error(`❌ LINE API Error: ${errorMsg}`, errorData);
-                                lineErrors.push({ lineUserId: recipient.lineUserId, error: errorMsg });
-                            }
-
-                            await new Promise(r => setTimeout(r, 200));
-                        } catch (err) {
-                            console.error(`❌ [CRON DEBUG] Exception: ${err.message}`);
-                            lineErrors.push({ lineUserId: recipient.lineUserId, error: err.message });
+                    const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                        recipients: lineRecipientsCleaned,
+                        options: {
+                            batchSize: 10,
+                            delayBetweenBatches: 2000,
+                            delayBetweenMessages: 200,
+                            retryAttempts: 2
                         }
-                    }
-
-                    const batchResult = { data: { success: lineSuccess, failed: lineErrors.length, errors: lineErrors } };
+                    });
 
                     const result = batchResult.data;
                     sentCount += result.success || 0;
@@ -507,11 +437,12 @@ Deno.serve(async (req) => {
                 }
             });
 
-            // ⭐ ไม่ query branches เพื่อหลีกเลี่ยง auth error ใน cron mode
+            const branches = await base44.asServiceRole.entities.Branch.list();
             Object.entries(branchStats).forEach(([branchId, stats]) => {
+                const branch = branches.find(b => b.id === branchId);
                 branchResults.push({
                     branch_id: branchId,
-                    branch_name: branchId.substring(0, 8) + '...',
+                    branch_name: branch?.branch_name || 'Unknown',
                     status: stats.failed > 0 ? 'partial' : 'success',
                     sent: stats.sent,
                     failed: stats.failed

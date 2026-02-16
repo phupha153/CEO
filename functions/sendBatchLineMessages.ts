@@ -26,7 +26,7 @@ const retryOperation = async (fn, maxRetries = 5, baseDelay = 2000) => {
   throw lastError;
 };
 
-async function getLineToken(configs, branchId = null) {
+async function getLineToken(base44, configs, branchId = null) {
     try {
         // 1. ลองหา token เฉพาะสาขา
         if (branchId) {
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
 
         // Process by Branch
          for (const [branchId, branchRecipients] of recipientsByBranch) {
-              const token = await getLineToken(configs, branchId);
+              const token = await getLineToken(base44, configs, branchId);
               console.log(`🔍 getLineToken check: branchId=${branchId.substring(0, 8)}... | token exists? ${!!token} | token length=${token?.length || 0}`);
 
               if (!token) {
