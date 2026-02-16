@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.19';
 
 // Helper function สำหรับดึงข้อมูลแบบ pagination
 async function fetchAllEntities(entity, batchSize = 1000) {

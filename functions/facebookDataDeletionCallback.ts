@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@base44/sdk@0.8.4';
+import { createClient } from 'npm:@base44/sdk@0.8.19';
 import { createHmac } from "node:crypto";
 
 Deno.serve(async (req) => {
@@ -26,6 +26,7 @@ Deno.serve(async (req) => {
         // Initialize Base44 SDK
         const base44 = createClient({
             appId: Deno.env.get('BASE44_APP_ID'),
+            serviceRoleKey: Deno.env.get('BASE44_SERVICE_ROLE_KEY')
         });
 
         // Find and delete user data associated with this Facebook User ID

@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@base44/sdk@0.8.4';
+import { createClient } from 'npm:@base44/sdk@0.8.19';
 
 Deno.serve(async (req) => {
     try {
@@ -104,6 +104,7 @@ Deno.serve(async (req) => {
 async function savePageToken(branchId, page) {
     const base44 = createClient({
         appId: Deno.env.get('BASE44_APP_ID'),
+        serviceRoleKey: Deno.env.get('BASE44_SERVICE_ROLE_KEY')
     });
 
     // หา Config ที่มีอยู่แล้ว
