@@ -334,7 +334,7 @@ Deno.serve(async (req) => {
             if (lineRecipientsCleaned.length > 0) {
                 try {
                     // ⭐ ส่งโดยตรงไป LINE API (ไม่ผ่าน sendBatchLineMessages)
-                    const lineToken = await getLineToken(base44.asServiceRole, lineRecipientsCleaned[0].branchId);
+                    const lineToken = await getLineToken(configs, lineRecipientsCleaned[0].branchId);
 
                     if (!lineToken) {
                         throw new Error('No LINE token found for branch');
