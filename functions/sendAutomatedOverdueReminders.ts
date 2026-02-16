@@ -552,100 +552,61 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             console.log(`   - latestPayment.total_amount: ${latestPayment.total_amount || 0} บาท`);
             console.log(`   - latestPayment.invoice_image_url: ${latestPayment.invoice_image_url ? '✅ มี' : '❌ ไม่มี'}`);
 
-            // ⭐ สร้าง Flex Message (ใช้โครงสร้างเดียวกับ sendReceipt)
-            const bodyContents = [
-                { type: "text", text: "👤 ข้อมูลผู้เช่า", size: "sm", color: "#aaaaaa", margin: "md" },
-                { type: "text", text: tenant.full_name, size: "lg", weight: "bold", color: "#111111", margin: "sm" },
-                { type: "text", text: `ห้อง ${roomNumber}`, size: "sm", color: "#555555" },
-                { type: "separator", margin: "lg" }
-            ];
+            // ⭐ สร้าง Text Message แบบเดียวกับ sendPaymentReminder
+            const branchTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && c.branch_id === paymentBranchId);
+            const globalTiersEnabledConfig = configs.find(c => c.key === 'late_fee_tiers_enabled' && !c.branch_id);
+            const tiersEnabledConfig = branchTiersEnabledConfig || globalTiersEnabledConfig;
+            const tiersEnabled = tiersEnabledConfig?.value === 'true';
+
+            // ⭐ ดึง late fee tiers
+            let lateFeeStructure = null;
+            if (tiersEnabled) {
+                const branchTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && c.branch_id === paymentBranchId);
+                const globalTiersConfig = configs.find(c => c.key === 'late_fee_tiers' && !c.branch_id);
+                const tiersConfig = branchTiersConfig || globalTiersConfig;
+                if (tiersConfig?.value) {
+                    try {
+                        lateFeeStructure = JSON.parse(tiersConfig.value);
+                    } catch {}
+                }
+            }
+
+            // สร้างข้อความ
+            let message = `🔴 เกินกำหนดชำระ (${daysOverdue} วัน)\n\n`;
+            message += `${branchBuildingName}\n`;
+            message += `คุณ ${tenant.full_name} ห้อง ${roomNumber}\n\n`;
             
-            bodyContents.push({
-                type: "box",
-                layout: "vertical",
-                margin: "lg",
-                contents: [
-                    { type: "text", text: `⚠️ เกินกำหนดมาแล้ว ${daysOverdue} วัน`, size: "sm", color: "#dc2626", weight: "bold", align: "center" }
-                ],
-                backgroundColor: "#fef2f2",
-                cornerRadius: "md",
-                paddingAll: "12px"
-            });
-            
-            bodyContents.push({
-                type: "box",
-                layout: "horizontal",
-                margin: "lg",
-                contents: [
-                    { type: "text", text: "ยอดเดิม", size: "sm", color: "#555555", flex: 0 },
-                    { type: "text", text: `${originalAmount.toLocaleString()} บาท`, size: "sm", color: "#111111", align: "end" }
-                ]
-            });
-            
+            // แสดงยอดเดิมและค่าปรับ
+            message += `💰 ยอดเดิม: ${originalAmount.toLocaleString()} บาท\n`;
             if (lateFee > 0) {
-                bodyContents.push({
-                    type: "box",
-                    layout: "horizontal",
-                    margin: "sm",
-                    contents: [
-                        { type: "text", text: "ค่าปรับล่าช้า", size: "sm", color: "#dc2626", flex: 0 },
-                        { type: "text", text: `${lateFee.toLocaleString()} บาท`, size: "sm", color: "#dc2626", align: "end", weight: "bold" }
-                    ]
+                message += `⚠️ ค่าปรับล่าช้า: ${lateFee.toLocaleString()} บาท\n`;
+            }
+            message += `💰 รวมทั้งสิ้น: ${totalWithLateFee.toLocaleString()} บาท\n\n`;
+            
+            // แจ้งค่าปรับต่อไป
+            if (lateFeeStructure && Array.isArray(lateFeeStructure) && lateFeeStructure.length > 0) {
+                message += `⚠️ ค่าปรับชำระล่าช้า:\n`;
+                lateFeeStructure.forEach((tier) => {
+                    if (tier.days_to >= 999) {
+                        message += `   วันที่ ${tier.days_from} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
+                    } else {
+                        message += `   วันที่ ${tier.days_from}-${tier.days_to}: ${tier.fee_per_day} บาท/วัน\n`;
+                    }
                 });
+                message += `\n`;
             }
             
-            bodyContents.push({ type: "separator", margin: "lg" });
-            bodyContents.push({
-                type: "box",
-                layout: "horizontal",
-                margin: "lg",
-                contents: [
-                    { type: "text", text: "รวมทั้งสิ้น", size: "md", color: "#111111", weight: "bold", flex: 0 },
-                    { type: "text", text: `${totalWithLateFee.toLocaleString()} บาท`, size: "xl", color: "#dc2626", weight: "bold", align: "end" }
-                ]
-            });
-            bodyContents.push({ type: "separator", margin: "lg" });
-            bodyContents.push({ type: "text", text: "⚠️ กรุณาชำระเพื่อหยุดค่าปรับที่เพิ่มขึ้น", size: "xs", color: "#991b1b", align: "center", margin: "lg", wrap: true });
-            bodyContents.push({ type: "text", text: "📸 ส่งสลิปหลังโอนเงิน", size: "sm", color: "#10b981", align: "center", margin: "md", weight: "bold" });
+            message += `💳 โอนเงินได้ที่:\n`;
+            message += `ไทยพาณิชย์ ${branchBankAccountNumber}\n`;
+            message += `ชื่อบัญชี: ${branchBankAccountName}`;
 
-            const flexMessage = {
-                type: "flex",
-                altText: `🔴 เกินกำหนดชำระ ${daysOverdue} วัน - ห้อง ${roomNumber}`,
-                contents: {
-                    type: "bubble",
-                    size: "mega",
-                    header: {
-                        type: "box",
-                        layout: "vertical",
-                        contents: [
-                            {
-                                type: "box",
-                                layout: "vertical",
-                                contents: [
-                                    { type: "text", text: "🔴 เกินกำหนดชำระ", color: "#ffffff", size: "xl", weight: "bold", align: "center" },
-                                    { type: "text", text: branchBuildingName, color: "#ffffff", size: "sm", align: "center", margin: "md" }
-                                ]
-                            }
-                        ],
-                        backgroundColor: "#dc2626",
-                        paddingTop: "20px",
-                        paddingBottom: "20px"
-                    },
-                    body: {
-                        type: "box",
-                        layout: "vertical",
-                        contents: bodyContents
-                    }
-                }
-            };
-
-            console.log(`   📏 Flex Message created`);
+            console.log(`   📏 Text message created`);
 
             messageCreationDetails.push({
                 paymentId: latestPayment.id,
                 roomNumber: roomNumber,
                 tenantName: tenant.full_name,
-                messageType: 'flex',
+                messageType: 'text',
                 lateFee: lateFee,
                 totalAmount: totalWithLateFee,
                 channels: {
@@ -657,7 +618,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             recipients.push({
                 lineUserId: hasLine ? tenant.line_user_id : null,
                 facebookUserId: hasFacebook ? tenant.facebook_user_id : null,
-                message: flexMessage,
+                message: message,
                 metadata: {
                     paymentId: latestPayment.id,
                     tenantId: tenant.id,
@@ -696,79 +657,77 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
         console.log(`📊 Recipients: ${lineRecipients.length} LINE, ${facebookRecipients.length} Facebook`);
 
         if (recipients.length > 0) {
-            // LINE - ส่ง Flex Message โดยตรง
-            if (lineRecipients.length > 0) {
-                console.log(`📤 Sending ${lineRecipients.length} LINE Flex Messages...`);
-                
-                // ดึง LINE token
-                const lineTokenConfig = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
-                const lineToken = lineTokenConfig?.value || Deno.env.get('LINE_CHANNEL_ACCESS_TOKEN');
-                
-                if (!lineToken) {
-                    console.error('❌ LINE token not found');
-                    sendErrors.push('LINE token not configured');
-                } else {
-                    for (const recipient of lineRecipients) {
-                        try {
-                            const lineResponse = await fetch('https://api.line.me/v2/bot/message/push', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${lineToken}`
-                                },
-                                body: JSON.stringify({
-                                    to: testLineUserId || recipient.lineUserId,
-                                    messages: [recipient.message]
-                                })
-                            });
+            // ⭐ ส่งผ่าน sendBatchLineMessages และ sendFacebookPaymentReminder
+            const lineRecipientsCleaned = lineRecipients.map(r => ({
+                lineUserId: testLineUserId || r.lineUserId,
+                message: r.message,
+                branchId: r.metadata.branchId,
+                metadata: {
+                    paymentId: r.metadata.paymentId,
+                    tenantId: r.metadata.tenantId,
+                    tenantName: r.metadata.tenantName,
+                    roomNumber: r.metadata.roomNumber,
+                    branchId: r.metadata.branchId,
+                    platform: 'line'
+                }
+            }));
 
-                            if (lineResponse.ok) {
-                                sentCount++;
-                                successfulPaymentIds.add(recipient.metadata.paymentId);
-                                console.log(`✅ Sent to ${recipient.metadata.tenantName} (ห้อง ${recipient.metadata.roomNumber})`);
-                            } else {
-                                const errorData = await lineResponse.json();
-                                sendErrors.push(`ห้อง ${recipient.metadata.roomNumber}: ${errorData.message || 'LINE API error'}`);
-                                console.error(`❌ LINE error:`, errorData);
-                            }
-                            
-                            await delay(200);
-                            
-                            if (testLineUserId) break;
-                        } catch (error) {
-                            console.error(`❌ Send error:`, error);
-                            sendErrors.push(`ห้อง ${recipient.metadata.roomNumber}: ${error.message}`);
+            if (lineRecipientsCleaned.length > 0) {
+                try {
+                    const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                        recipients: lineRecipientsCleaned,
+                        options: {
+                            batchSize: 10,
+                            delayBetweenBatches: 2000,
+                            delayBetweenMessages: 200,
+                            retryAttempts: 2
                         }
+                    });
+
+                    const result = batchResult.data;
+                    sentCount += result.success || 0;
+                    
+                    if (result.errors) {
+                        result.errors.forEach(err => {
+                            sendErrors.push(`ห้อง ${err.lineUserId || 'N/A'}: ${err.error || 'Unknown error'}`);
+                        });
                     }
+                    
+                    lineRecipientsCleaned.slice(0, result.success || 0).forEach(r => {
+                        successfulPaymentIds.add(r.metadata.paymentId);
+                    });
+
+                    console.log(`✅ LINE: ${result.success}/${lineRecipientsCleaned.length} sent`);
+                } catch (lineError) {
+                    console.error('❌ LINE batch send failed:', lineError);
+                    sendErrors.push(`LINE batch error: ${lineError.message}`);
                 }
             }
 
-            // Facebook - ส่ง text ปกติ
+            // Facebook
             if (facebookRecipients.length > 0 && !testLineUserId) {
-                console.log(`📤 Sending ${facebookRecipients.length} Facebook reminders...`);
+                try {
+                    const fbResult = await base44.asServiceRole.functions.invoke('sendFacebookPaymentReminder', {
+                        recipients: facebookRecipients
+                    });
 
-                for (const recipient of facebookRecipients) {
-                    try {
-                        // แปลง Flex Message กลับเป็น text สำหรับ Facebook
-                        let textMessage = `🔴 เกินกำหนดชำระ\n\n`;
-                        textMessage += `ห้อง ${recipient.metadata.roomNumber}\n`;
-                        textMessage += `ยอดชำระ: ${recipient.message.contents.body.contents.find(c => c.layout === 'horizontal')?.contents[1]?.text || 'N/A'}\n\n`;
-                        textMessage += `📸 ส่งสลิปหลังโอนเงิน`;
-                        
-                        await base44.asServiceRole.functions.invoke('sendFacebookMessage', {
-                            to: recipient.facebookUserId,
-                            message: textMessage,
-                            branch_id: recipient.metadata.branchId
+                    const result = fbResult.data;
+                    sentCount += result.success || 0;
+                    
+                    if (result.errors) {
+                        result.errors.forEach(err => {
+                            sendErrors.push(`Facebook: ${err.error || 'Unknown error'}`);
                         });
-                        sentCount++;
-                        successfulPaymentIds.add(recipient.metadata.paymentId);
-                        console.log(`✅ Facebook → ${recipient.metadata.tenantName}`);
-
-                        await delay(300);
-                    } catch (error) {
-                        console.error(`❌ Facebook error:`, error);
-                        sendErrors.push(`Facebook ห้อง ${recipient.metadata.roomNumber}: ${error.message}`);
                     }
+                    
+                    facebookRecipients.slice(0, result.success || 0).forEach(r => {
+                        successfulPaymentIds.add(r.metadata.paymentId);
+                    });
+
+                    console.log(`✅ Facebook: ${result.success}/${facebookRecipients.length} sent`);
+                } catch (fbError) {
+                    console.error('❌ Facebook batch send failed:', fbError);
+                    sendErrors.push(`Facebook batch error: ${fbError.message}`);
                 }
             }
         }
