@@ -268,10 +268,11 @@ Deno.serve(async (req) => {
                 message += `${branchBuildingName}\n`;
                 message += `คุณ ${tenant.full_name} ห้อง ${room?.room_number || 'N/A'}\n\n`;
                 message += `💰 รวมทั้งสิ้น: ${payment.total_amount.toLocaleString()} บาท\n\n`;
+                message += `💳 โอนเงินได้ที่:\n${branchBankName} ${branchBankAccountNumber}\nชื่อ: ${branchBankAccountName}`;
                 
                 // แจ้งค่าปรับ
                 if (lateFeeStructure && Array.isArray(lateFeeStructure) && lateFeeStructure.length > 0) {
-                    message += `⚠️ ค่าปรับชำระล่าช้า:\n`;
+                    message += `\n\n⚠️ ค่าปรับชำระล่าช้า:\n`;
                     lateFeeStructure.forEach((tier) => {
                         if (tier.days_to >= 999) {
                             message += `   วันที่ ${tier.days_from} เป็นต้นไป: ${tier.fee_per_day} บาท/วัน\n`;
@@ -279,9 +280,10 @@ Deno.serve(async (req) => {
                             message += `   วันที่ ${tier.days_from}-${tier.days_to}: ${tier.fee_per_day} บาท/วัน\n`;
                         }
                     });
-                    message += `\n`;
                 } else if (branchLateFeePerDay > 0) {
-                    message += `⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน`;
+                    message += `\n\n⚠️ หากชำระหลังวันนี้ มีค่าปรับ ${branchLateFeePerDay} บาท/วัน`;
+                }
+                message += `\n\nขอบคุณค่ะ 🙏`;
 
                 recipients.push({
                     lineUserId: hasLine ? tenant.line_user_id : null,
