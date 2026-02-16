@@ -10,6 +10,36 @@ function getThailandTimestamp() {
     return thailandTime.toISOString();
 }
 
+// ⭐ ดึง LINE token เฉพาะสาขา (ไม่ fallback global/env)
+async function getLineToken(base44, branchId = null) {
+    try {
+        const configs = await base44.asServiceRole.entities.Config.list();
+
+        if (branchId) {
+            const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
+            if (branchToken?.value?.trim()) {
+                console.log(`✅ Using branch-specific token for branch: ${branchId.substring(0, 8)}...`);
+                return branchToken.value.trim();
+            }
+
+            console.warn(`⚠️ No LINE token found for branch: ${branchId.substring(0, 8)}...`);
+            return null;
+        }
+
+        const globalToken = configs.find(c => c.key === 'line_channel_access_token' && !c.branch_id);
+        if (globalToken?.value?.trim()) {
+            console.log('✅ Using global token from Config database');
+            return globalToken.value.trim();
+        }
+
+        console.warn('⚠️ No LINE token found');
+        return null;
+    } catch (error) {
+        console.error('❌ Error fetching LINE token:', error);
+        return null;
+    }
+}
+
 // ⭐ สร้าง hash จากข้อมูลบิล เพื่อตรวจจับการเปลี่ยนแปลง
 function generatePaymentHash(payment) {
     const dataToHash = {
@@ -669,15 +699,45 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
 
             if (lineRecipientsCleaned.length > 0) {
                 try {
-                    const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                        recipients: lineRecipientsCleaned,
-                        options: {
-                            batchSize: 10,
-                            delayBetweenBatches: 2000,
-                            delayBetweenMessages: 200,
-                            retryAttempts: 2
+                    // ⭐ ส่งโดยตรงไป LINE API (ไม่ผ่าน sendBatchLineMessages)
+                    const lineToken = await getLineToken(base44, lineRecipientsCleaned[0].branchId);
+
+                    if (!lineToken) {
+                        throw new Error('No LINE token found for branch');
+                    }
+
+                    let lineSuccess = 0;
+                    const lineErrors = [];
+
+                    for (const recipient of lineRecipientsCleaned) {
+                        try {
+                            const response = await fetch('https://api.line.me/v2/bot/message/push', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${lineToken}`
+                                },
+                                body: JSON.stringify({
+                                    to: recipient.lineUserId,
+                                    messages: [{ type: 'text', text: recipient.message }]
+                                })
+                            });
+
+                            if (response.ok) {
+                                lineSuccess++;
+                                successfulPaymentIds.add(recipient.metadata.paymentId);
+                            } else {
+                                const errorData = await response.json();
+                                lineErrors.push({ lineUserId: recipient.lineUserId, error: errorData.message || `HTTP ${response.status}` });
+                            }
+
+                            await new Promise(r => setTimeout(r, 200));
+                        } catch (err) {
+                            lineErrors.push({ lineUserId: recipient.lineUserId, error: err.message });
                         }
-                    });
+                    }
+
+                    const batchResult = { data: { success: lineSuccess, failed: lineErrors.length, errors: lineErrors } };
 
                     const result = batchResult.data;
                     sentCount += result.success || 0;
