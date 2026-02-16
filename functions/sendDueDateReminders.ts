@@ -344,6 +344,8 @@ Deno.serve(async (req) => {
 
                     for (const recipient of lineRecipientsCleaned) {
                         try {
+                            console.log(`📤 [CRON DEBUG] Sending to ${recipient.lineUserId?.substring(0, 10)}... | Token length: ${lineToken?.length || 0} | Branch: ${recipient.branchId?.substring(0, 8)}...`);
+                            
                             const response = await fetch('https://api.line.me/v2/bot/message/push', {
                                 method: 'POST',
                                 headers: {
@@ -355,6 +357,8 @@ Deno.serve(async (req) => {
                                     messages: [{ type: 'text', text: recipient.message }]
                                 })
                             });
+
+                            console.log(`📥 [CRON DEBUG] Response: ${response.status} (${response.ok ? '✅' : '❌'})`);
 
                             if (response.ok) {
                                 lineSuccess++;
@@ -369,6 +373,7 @@ Deno.serve(async (req) => {
 
                             await new Promise(r => setTimeout(r, 200));
                         } catch (err) {
+                            console.error(`❌ [CRON DEBUG] Exception: ${err.message}`);
                             lineErrors.push({ lineUserId: recipient.lineUserId, error: err.message });
                         }
                     }
