@@ -239,14 +239,16 @@ Deno.serve(async (req) => {
         // Parse request body
         let targetBranchId = null;
         let testLineUserId = null;
-        let limit = 100; // จำนวนบิลสูงสุดที่จะส่งต่อครั้ง (default 100)
+        let limit = 30; // ⚡ ลดจาก 100 → 30 เพื่อป้องกัน timeout
+        const TIMEOUT_LIMIT_MS = 75000; // 🛡️ หยุดที่ 75 วินาที (ป้องกัน 502)
+        
         try {
             const text = await req.text();
             if (text) {
                 const body = JSON.parse(text);
                 targetBranchId = body.branch_id || null;
                 testLineUserId = body.test_line_user_id || null;
-                limit = body.limit || 100;
+                limit = body.limit || 30;
             }
         } catch (parseError) {
             console.log('⚠️ No body or parse error:', parseError.message);
@@ -520,7 +522,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             payment.status = 'overdue';
             payment.late_fee_last_calculated = thailandTime;
 
-            await delay(200);
+            // ⚡ ลบ delay ออก - ไม่จำเป็นสำหรับ calculation
         }
         
         console.log(`\n📊 LATE FEE CALCULATION SUMMARY:`);
@@ -535,7 +537,12 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
         const recipients = [];
         const messageCreationDetails = [];
 
+        // 🛡️ Timeout Guard - หยุดถ้าใกล้ time limit
         for (const payment of paymentsToProcess) {
+            if (Date.now() - startTime > TIMEOUT_LIMIT_MS) {
+                console.warn(`⚠️ TIMEOUT GUARD: Stopping message creation at ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+                break;
+            }
             // ⭐ ใช้ payment ปัจจุบัน (ไม่ต้อง refresh เพราะไม่มีการสร้างรูป)
             const latestPayment = payment;
             
@@ -710,6 +717,12 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                     const lineErrors = [];
 
                     for (const recipient of lineRecipientsCleaned) {
+                        // 🛡️ Timeout Guard
+                        if (Date.now() - startTime > TIMEOUT_LIMIT_MS) {
+                            console.warn(`⚠️ TIMEOUT: Stopping LINE sends at ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+                            break;
+                        }
+
                         try {
                             const response = await fetch('https://api.line.me/v2/bot/message/push', {
                                 method: 'POST',
@@ -731,7 +744,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
                                 lineErrors.push({ lineUserId: recipient.lineUserId, error: errorData.message || `HTTP ${response.status}` });
                             }
 
-                            await new Promise(r => setTimeout(r, 200));
+                            await new Promise(r => setTimeout(r, 100)); // ⚡ ลดจาก 200ms → 100ms
                         } catch (err) {
                             lineErrors.push({ lineUserId: recipient.lineUserId, error: err.message });
                         }
@@ -787,13 +800,20 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             }
         }
 
-        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ - ลด batch size เพื่อหลีกเลี่ยง rate limit
+        // ⭐ อัปเดต sent_date เฉพาะที่ส่งสำเร็จ
         console.log(`📝 Updating sent_date for ${successfulPaymentIds.size} successful payments...`);
         const now_iso = getThailandTimestamp();
-        const updateBatchSize = 100; // เพิ่มเป็น 100 เพื่อเพิ่มประสิทธิภาพ
+        const updateBatchSize = 50; // ⚡ ลดเป็น 50 เพื่อความปลอดภัย
         const paymentIdsArray = Array.from(successfulPaymentIds);
         
         for (let i = 0; i < paymentIdsArray.length; i += updateBatchSize) {
+            // 🛡️ Timeout Guard
+            if (Date.now() - startTime > TIMEOUT_LIMIT_MS) {
+                console.warn(`⚠️ TIMEOUT: Stopping DB updates at ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+                console.warn(`   Updated: ${i}/${paymentIdsArray.length} payments`);
+                break;
+            }
+
             const batch = paymentIdsArray.slice(i, i + updateBatchSize);
             await Promise.all(
                 batch.map(id => 
@@ -806,9 +826,9 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             );
             console.log(`✅ Updated ${Math.min(i + updateBatchSize, paymentIdsArray.length)}/${paymentIdsArray.length}`);
             
-            // ⭐ เพิ่ม delay ระหว่าง batch
+            // ⚡ ลด delay จาก 500ms → 200ms
             if (i + updateBatchSize < paymentIdsArray.length) {
-                await new Promise(r => setTimeout(r, 500));
+                await new Promise(r => setTimeout(r, 200));
             }
         }
 
