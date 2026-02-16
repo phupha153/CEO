@@ -300,19 +300,6 @@ Deno.serve(async (req) => {
 
             if (lineRecipientsCleaned.length > 0) {
                 try {
-                    // ⭐ ตรวจสอบ LINE token ก่อนส่ง
-                    const lineToken = configs.find(c => c.key === 'line_channel_access_token')?.value;
-                    if (!lineToken || lineToken.trim() === '') {
-                        console.error('❌ CRITICAL: No LINE token configured globally. Cannot send messages.');
-                        sendErrors.push('ไม่มี LINE token ตั้งค่าในระบบ');
-                        return Response.json({
-                            success: false,
-                            message: 'ไม่มี LINE token ตั้งค่าในระบบ กรุณาตั้งค่าใน Dashboard > Settings',
-                            sent: 0,
-                            errors: sendErrors
-                        });
-                    }
-
                     const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
                         recipients: lineRecipientsCleaned,
                         options: {
@@ -324,8 +311,7 @@ Deno.serve(async (req) => {
                     });
 
                     const result = batchResult.data;
-                    console.log(`📤 LINE batch response:`, result);
-                    sentCount += result.success || result.sent || 0;
+                    sentCount += result.success || 0;
                     
                     if (result.errors) {
                         result.errors.forEach(err => {
