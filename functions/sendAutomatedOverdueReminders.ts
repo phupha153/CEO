@@ -10,10 +10,10 @@ function getThailandTimestamp() {
     return thailandTime.toISOString();
 }
 
-// ⭐ ดึง LINE token เฉพาะสาขา (ไม่ fallback global/env)
-async function getLineToken(base44, branchId = null) {
+// ⭐ ดึง LINE token เฉพาะสาขา (รับ configs จากนอก ไม่ query ใหม่)
+async function getLineToken(configs, branchId = null) {
     try {
-        const configs = await base44.asServiceRole.entities.Config.list();
+        // configs ส่งมาพร้อมแล้ว ไม่ต้อง query ใหม่
 
         if (branchId) {
             const branchToken = configs.find(c => c.key === 'line_channel_access_token' && c.branch_id === branchId);
@@ -706,8 +706,8 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
 
             if (lineRecipientsCleaned.length > 0) {
                 try {
-                    // ⭐ ส่งโดยตรงไป LINE API (ไม่ผ่าน sendBatchLineMessages)
-                    const lineToken = await getLineToken(base44, lineRecipientsCleaned[0].branchId);
+                    // ⭐ ส่งโดยตรงไป LINE API (ใช้ configs ที่ fetch ไปแล้ว)
+                    const lineToken = await getLineToken(configs, lineRecipientsCleaned[0].branchId);
 
                     if (!lineToken) {
                         throw new Error('No LINE token found for branch');
