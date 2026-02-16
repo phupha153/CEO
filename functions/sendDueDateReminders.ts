@@ -300,31 +300,26 @@ Deno.serve(async (req) => {
 
             if (lineRecipientsCleaned.length > 0) {
                 try {
-                    const response = await fetch(`${Deno.env.get('FRONTEND_URL')}/api/functions/sendBatchLineMessages`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            recipients: lineRecipientsCleaned,
-                            options: {
-                                batchSize: 10,
-                                delayBetweenBatches: 2000,
-                                delayBetweenMessages: 200,
-                                retryAttempts: 2
-                            }
-                        })
+                    const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                        recipients: lineRecipientsCleaned,
+                        options: {
+                            batchSize: 10,
+                            delayBetweenBatches: 2000,
+                            delayBetweenMessages: 200,
+                            retryAttempts: 2
+                        }
                     });
 
-                    const result = await response.json();
+                    const result = batchResult.data;
                     sentCount += result.success || 0;
-
+                    
                     if (result.errors) {
                         result.errors.forEach(err => {
                             sendErrors.push(`ห้อง ${err.lineUserId || 'N/A'}: ${err.error || 'Unknown error'}`);
                         });
                     }
-
+                    
+                    // เพิ่ม payment IDs ที่ส่งสำเร็จ
                     lineRecipientsCleaned.slice(0, result.success || 0).forEach(r => {
                         successfulPaymentIds.add(r.metadata.paymentId);
                     });

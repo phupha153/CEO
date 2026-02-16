@@ -669,23 +669,17 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
 
             if (lineRecipientsCleaned.length > 0) {
                 try {
-                    const response = await fetch(`${Deno.env.get('FRONTEND_URL')}/api/functions/sendBatchLineMessages`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            recipients: lineRecipientsCleaned,
-                            options: {
-                                batchSize: 10,
-                                delayBetweenBatches: 2000,
-                                delayBetweenMessages: 200,
-                                retryAttempts: 2
-                            }
-                        })
+                    const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                        recipients: lineRecipientsCleaned,
+                        options: {
+                            batchSize: 10,
+                            delayBetweenBatches: 2000,
+                            delayBetweenMessages: 200,
+                            retryAttempts: 2
+                        }
                     });
 
-                    const result = await response.json();
+                    const result = batchResult.data;
                     sentCount += result.success || 0;
                     
                     if (result.errors) {
