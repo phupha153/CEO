@@ -1694,7 +1694,7 @@ export default function Layout({ children, currentPageName }) {
                           <Popover open={showConnectedDataOptions} onOpenChange={setShowConnectedDataOptions}>
                             <PopoverTrigger asChild>
                               <SidebarMenuButton
-                                className="group hover:bg-gradient-to-r hover:from-green-50/80 hover:to-emerald-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 bg-gradient-to-r from-green-500 to-emerald-500 text-white"
+                                className="group hover:bg-gradient-to-r hover:from-green-50/80 hover:to-emerald-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white"
                                 title={item.title}
                               >
                                 <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -1745,7 +1745,7 @@ export default function Layout({ children, currentPageName }) {
                                }
                              }}
                              disabled={deleteTestDataMutation.isPending}
-                             className={`group hover:bg-gradient-to-r hover:from-red-50/80 hover:to-orange-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 ${
+                             className={`group hover:bg-gradient-to-r hover:from-red-50/80 hover:to-orange-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-2 ${
                                deleteTestDataMutation.isPending ? 'bg-red-500 opacity-70' : 'bg-red-600 hover:bg-red-700'
                              } text-white`}
                              title={item.title}
@@ -1768,7 +1768,7 @@ export default function Layout({ children, currentPageName }) {
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                           onClick={() => navigate(item.url)}
-                          className={`group hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 ${
+                          className={`group hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-2 ${
                             isActive ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30' : ''
                           }`}
                           title={item.title}
@@ -1802,7 +1802,7 @@ export default function Layout({ children, currentPageName }) {
                         <SidebarMenuItem key={item.title}>
                           <SidebarMenuButton
                             onClick={() => navigate(item.url)}
-                            className={`hover:bg-gradient-to-r hover:from-purple-50/80 hover:to-pink-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 ${
+                            className={`hover:bg-gradient-to-r hover:from-purple-50/80 hover:to-pink-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-2 ${
                               isActive ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30' : ''
                             }`}
                             title={item.title}
