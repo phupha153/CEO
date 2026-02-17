@@ -2820,26 +2820,16 @@ const tenantSchema = {
                 <h3 className="text-xl font-semibold text-slate-700 mb-2">ยังไม่มีผู้เช่าในสาขานี้</h3>
                 <p className="text-slate-500 mb-4">เริ่มต้นเพิ่มผู้เช่าคนแรกของคุณ</p>
                 {canAdd && (
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-                    <Button
-                      onClick={() => {
-                        resetForm();
-                        setShowDialog(true);
-                      }}
-                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      เพิ่มผู้เช่าทีละคน
-                    </Button>
-                    <Button
-                      onClick={() => setShowBulkTenantGenerator(true)}
-                      variant="outline"
-                      className="border-green-600 text-green-600 hover:bg-green-50"
-                    >
-                      <Users className="w-4 h-4 mr-2" />
-                      เพิ่มผู้เช่าตามเลขห้อง
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={() => {
+                      resetForm();
+                      setShowDialog(true);
+                    }}
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    เพิ่มผู้เช่า
+                  </Button>
                 )}
               </CardContent>
             </Card>
