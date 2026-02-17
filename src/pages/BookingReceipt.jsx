@@ -439,10 +439,10 @@ export default function BookingReceiptPage() {
       </Dialog>
 
       {/* Receipt Content */}
-      <div className="booking-container mx-auto p-2 md:p-4 lg:p-8 print:p-0 w-full md:w-auto md:max-w-[900px]">
+      <div className="booking-container mx-auto p-3 md:p-6 lg:p-8 print:p-0">
         <div 
           ref={printRef}
-          className="booking-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden"
+          className="booking-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden p-3 md:p-4 lg:p-6"
           style={{ 
             fontFamily: 'TH Sarabun New, Sarabun, sans-serif'
           }}
@@ -803,6 +803,7 @@ export default function BookingReceiptPage() {
         @media screen {
           .booking-container {
             width: 100%;
+            max-width: none;
           }
         }
         
