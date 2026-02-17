@@ -710,12 +710,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-blue-100">
+    <div className="min-h-screen bg-slate-50">
       <ScrollToTopButton />
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-purple-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }} />
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-400/10 to-pink-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s' }} />
-      </div>
 
       <PageHeader 
         title="แดชบอร์ด" 
@@ -723,7 +719,7 @@ export default function Dashboard() {
         icon={LayoutDashboard}
       />
 
-      <div className="px-4 md:px-8 py-6 relative z-10">
+      <div className="px-4 md:px-8 py-6">
         <div className="max-w-7xl mx-auto space-y-6">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-3xl overflow-hidden">
