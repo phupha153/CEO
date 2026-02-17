@@ -822,29 +822,29 @@ export default function BookingReceiptPage() {
           }
           
           /* ลดขนาด font ทั้งหมด */
-          h1 { font-size: 16px !important; line-height: 1.05 !important; margin: 2px 0 !important; }
-          h2 { font-size: 13px !important; line-height: 1.05 !important; margin: 2px 0 !important; }
-          h3 { font-size: 11px !important; line-height: 1.1 !important; margin: 2px 0 !important; }
-          .text-3xl { font-size: 15px !important; }
-          .text-2xl { font-size: 13px !important; }
-          .text-xl { font-size: 11px !important; }
-          .text-lg { font-size: 10px !important; }
-          .text-base, p, span, td, th, li { font-size: 9px !important; }
-          .text-sm { font-size: 8px !important; }
-          .text-xs { font-size: 7px !important; }
+          h1 { font-size: 17px !important; line-height: 1.08 !important; margin: 3px 0 !important; }
+          h2 { font-size: 14px !important; line-height: 1.08 !important; margin: 3px 0 !important; }
+          h3 { font-size: 12px !important; line-height: 1.15 !important; margin: 3px 0 !important; }
+          .text-3xl { font-size: 16px !important; }
+          .text-2xl { font-size: 14px !important; }
+          .text-xl { font-size: 12px !important; }
+          .text-lg { font-size: 11px !important; }
+          .text-base, p, span, td, th, li { font-size: 10px !important; }
+          .text-sm { font-size: 9px !important; }
+          .text-xs { font-size: 8px !important; }
           
-          /* ลดระยะห่าง padding */
-          .p-8 { padding: 8px !important; }
-          .p-6 { padding: 6px !important; }
-          .p-4 { padding: 5px !important; }
-          .p-3 { padding: 4px !important; }
-          .p-2 { padding: 2px !important; }
-          .px-8 { padding-left: 8px !important; padding-right: 8px !important; }
-          .px-6 { padding-left: 6px !important; padding-right: 6px !important; }
-          .px-4 { padding-left: 5px !important; padding-right: 5px !important; }
-          .py-6 { padding-top: 6px !important; padding-bottom: 6px !important; }
-          .py-4 { padding-top: 5px !important; padding-bottom: 5px !important; }
-          .py-2 { padding-top: 3px !important; padding-bottom: 3px !important; }
+          /* ลดระยะห่าง padding ให้สมดุล */
+          .p-8 { padding: 10px !important; }
+          .p-6 { padding: 8px !important; }
+          .p-4 { padding: 6px !important; }
+          .p-3 { padding: 5px !important; }
+          .p-2 { padding: 3px !important; }
+          .px-8 { padding-left: 10px !important; padding-right: 10px !important; }
+          .px-6 { padding-left: 8px !important; padding-right: 8px !important; }
+          .px-4 { padding-left: 6px !important; padding-right: 6px !important; }
+          .py-6 { padding-top: 8px !important; padding-bottom: 8px !important; }
+          .py-4 { padding-top: 6px !important; padding-bottom: 6px !important; }
+          .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
           
           /* ลดระยะห่าง margin */
           .mb-8, .mt-8 { margin-bottom: 4px !important; margin-top: 4px !important; }
@@ -855,9 +855,9 @@ export default function BookingReceiptPage() {
           .mb-12, .mt-12 { margin-bottom: 4px !important; margin-top: 4px !important; }
           .mb-16 { margin-bottom: 4px !important; }
           
-          /* ลด gap */
-          .gap-8 { gap: 6px !important; }
-          .gap-6 { gap: 5px !important; }
+          /* ลด gap ให้สมดุล */
+          .gap-8 { gap: 8px !important; }
+          .gap-6 { gap: 6px !important; }
           .gap-4 { gap: 4px !important; }
           .gap-3 { gap: 3px !important; }
           .gap-2 { gap: 2px !important; }
@@ -866,10 +866,10 @@ export default function BookingReceiptPage() {
           .h-20 { height: 40px !important; }
           
           /* space ระหว่างบรรทัด */
-          .space-y-4 > * + * { margin-top: 2px !important; }
-          .space-y-3 > * + * { margin-top: 1px !important; }
-          .space-y-2 > * + * { margin-top: 1px !important; }
-          .space-y-1 > * + * { margin-top: 0px !important; }
+          .space-y-4 > * + * { margin-top: 3px !important; }
+          .space-y-3 > * + * { margin-top: 2px !important; }
+          .space-y-2 > * + * { margin-top: 2px !important; }
+          .space-y-1 > * + * { margin-top: 1px !important; }
           
           /* list */
           ol, ul { 
