@@ -752,23 +752,40 @@ export default function BookingReceiptPage() {
       {/* Print Styles */}
       <style>{`
         @media print {
-          /* ⭐ ซ่อน sidebar และ Layout elements */
-          aside, nav, .sidebar, [data-sidebar], header:not([role="banner"]) {
+          /* ⭐ ซ่อนทุก element ที่ไม่ใช่เนื้อหา */
+          aside, nav, .sidebar, [class*="sidebar"], header, .print\\:hidden {
             display: none !important;
+            width: 0 !important;
+            height: 0 !important;
           }
           
-          /* ⭐ ทำให้ main content เต็มหน้ากระดาษ */
-          main, body > div {
+          /* ⭐ ทำให้ SidebarProvider ไม่มี layout */
+          div[class*="SidebarProvider"], div[style*="flex"] {
+            display: block !important;
+            flex-direction: unset !important;
+          }
+          
+          /* ⭐ ให้ body, main, root เต็มหน้า */
+          html, body, #root {
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
-            max-width: 100% !important;
+            height: 100% !important;
+            background: white !important;
+          }
+          
+          main {
+            position: static !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: white !important;
+            overflow: visible !important;
           }
           
           body, html {
             background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
             font-size: 11px !important;
@@ -776,7 +793,7 @@ export default function BookingReceiptPage() {
           
           @page {
             size: A4;
-            margin: 12mm 15mm;
+            margin: 10mm 10mm;
           }
           
           .print\\:hidden {
