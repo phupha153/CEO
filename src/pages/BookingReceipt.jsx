@@ -438,7 +438,7 @@ export default function BookingReceiptPage() {
       <div className="w-full print:w-full p-4 print:p-0 print:space-y-0 print:m-0">
         <div 
           ref={printRef}
-          className="max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:break-after-page p-8 print:max-w-none print:mx-0 print:p-5"
+          className="max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:break-after-page p-8 print:max-w-none print:mx-0 print:p-2"
           style={{ 
             fontFamily: 'TH Sarabun New, Sarabun, sans-serif'
           }}
@@ -824,23 +824,23 @@ export default function BookingReceiptPage() {
           }
           
           /* ลดขนาด font ทั้งหมด */
-          h1 { font-size: 18px !important; line-height: 1.1 !important; margin: 4px 0 !important; }
-          h2 { font-size: 15px !important; line-height: 1.1 !important; margin: 4px 0 !important; }
-          h3 { font-size: 13px !important; line-height: 1.2 !important; margin: 4px 0 !important; }
-          .text-3xl { font-size: 17px !important; }
-          .text-2xl { font-size: 15px !important; }
-          .text-xl { font-size: 13px !important; }
-          .text-lg { font-size: 12px !important; }
-          .text-base, p, span, td, th, li { font-size: 11px !important; }
-          .text-sm { font-size: 10px !important; }
-          .text-xs { font-size: 9px !important; }
+          h1 { font-size: 20px !important; line-height: 1.15 !important; margin: 3px 0 !important; }
+          h2 { font-size: 17px !important; line-height: 1.15 !important; margin: 3px 0 !important; }
+          h3 { font-size: 15px !important; line-height: 1.25 !important; margin: 3px 0 !important; }
+          .text-3xl { font-size: 19px !important; }
+          .text-2xl { font-size: 17px !important; }
+          .text-xl { font-size: 15px !important; }
+          .text-lg { font-size: 14px !important; }
+          .text-base, p, span, td, th, li { font-size: 13px !important; }
+          .text-sm { font-size: 12px !important; }
+          .text-xs { font-size: 11px !important; }
           
           /* ลดระยะห่าง padding ให้สมดุล */
-          .p-8 { padding: 12px !important; }
-          .p-6 { padding: 10px !important; }
-          .p-4 { padding: 8px !important; }
-          .p-3 { padding: 6px !important; }
-          .p-2 { padding: 4px !important; }
+          .p-8 { padding: 6px !important; }
+          .p-6 { padding: 5px !important; }
+          .p-4 { padding: 4px !important; }
+          .p-3 { padding: 3px !important; }
+          .p-2 { padding: 2px !important; }
           .px-8 { padding-left: 10px !important; padding-right: 10px !important; }
           .px-6 { padding-left: 8px !important; padding-right: 8px !important; }
           .px-4 { padding-left: 6px !important; padding-right: 6px !important; }
@@ -849,13 +849,13 @@ export default function BookingReceiptPage() {
           .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
           
           /* ลดระยะห่าง margin */
-          .mb-8, .mt-8 { margin-bottom: 6px !important; margin-top: 6px !important; }
-          .mb-6, .mt-6 { margin-bottom: 5px !important; margin-top: 5px !important; }
-          .mb-4, .mt-4 { margin-bottom: 3px !important; margin-top: 3px !important; }
-          .mb-3, .mt-3 { margin-bottom: 2px !important; margin-top: 2px !important; }
-          .mb-2, .mt-2 { margin-bottom: 1px !important; margin-top: 1px !important; }
-          .mb-12, .mt-12 { margin-bottom: 6px !important; margin-top: 6px !important; }
-          .mb-16 { margin-bottom: 6px !important; }
+          .mb-8, .mt-8 { margin-bottom: 2px !important; margin-top: 2px !important; }
+          .mb-6, .mt-6 { margin-bottom: 2px !important; margin-top: 2px !important; }
+          .mb-4, .mt-4 { margin-bottom: 1px !important; margin-top: 1px !important; }
+          .mb-3, .mt-3 { margin-bottom: 1px !important; margin-top: 1px !important; }
+          .mb-2, .mt-2 { margin-bottom: 0px !important; margin-top: 0px !important; }
+          .mb-12, .mt-12 { margin-bottom: 2px !important; margin-top: 2px !important; }
+          .mb-16 { margin-bottom: 2px !important; }
           
           /* ลด gap ให้สมดุล */
           .gap-8 { gap: 8px !important; }
@@ -868,10 +868,10 @@ export default function BookingReceiptPage() {
           .h-20 { height: 40px !important; }
           
           /* space ระหว่างบรรทัด */
-          .space-y-4 > * + * { margin-top: 3px !important; }
-          .space-y-3 > * + * { margin-top: 2px !important; }
-          .space-y-2 > * + * { margin-top: 2px !important; }
-          .space-y-1 > * + * { margin-top: 1px !important; }
+          .space-y-4 > * + * { margin-top: 1px !important; }
+          .space-y-3 > * + * { margin-top: 1px !important; }
+          .space-y-2 > * + * { margin-top: 0px !important; }
+          .space-y-1 > * + * { margin-top: 0px !important; }
           
           /* list */
           ol, ul { 
@@ -883,8 +883,8 @@ export default function BookingReceiptPage() {
           li { margin-bottom: 2px !important; }
           
           /* table */
-          table { font-size: 11px !important; }
-          td, th { padding: 4px !important; line-height: 1.2 !important; }
+          table { font-size: 13px !important; }
+          td, th { padding: 2px !important; line-height: 1.1 !important; }
           tr { page-break-inside: avoid !important; }
         }
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
