@@ -456,34 +456,34 @@ export default function BookingReceiptPage() {
           )}
 
           {/* Header with Logo */}
-          <div className="text-center mb-2">
+          <div className="text-center mb-1">
             {/* Logo */}
             {buildingLogo && (
-              <div className="mb-2">
+              <div className="mb-1">
                 <img 
                   src={buildingLogo} 
                   alt={buildingName}
-                  className="h-14 mx-auto object-contain"
+                  className="h-10 mx-auto object-contain"
                 />
               </div>
             )}
             
-            <h1 className="text-xl font-bold text-blue-800">{buildingName}</h1>
+            <h1 className="text-base font-bold text-blue-800 leading-tight">{buildingName}</h1>
             
             {buildingAddress && (
-              <p className="text-xs text-slate-600 mt-0.5">{buildingAddress}</p>
+              <p className="text-[10px] text-slate-600 mt-0.5 leading-tight">{buildingAddress}</p>
             )}
             {buildingPhone && (
-              <p className="text-xs text-slate-600">โทร. {buildingPhone}</p>
+              <p className="text-[10px] text-slate-600 leading-tight">โทร. {buildingPhone}</p>
             )}
           </div>
 
           {/* Title */}
-          <div className="text-center mb-3">
-            <h2 className="text-lg font-bold border-b border-slate-300 pb-1 inline-block px-4">
+          <div className="text-center mb-2">
+            <h2 className="text-sm font-bold border-b border-slate-300 pb-0.5 inline-block px-2">
               ใบจองห้องเช่า
             </h2>
-            <div className="text-right mt-1 text-sm">
+            <div className="text-right mt-0.5 text-xs leading-tight">
               <span className="font-semibold">เลขที่ </span>
               <span className="text-blue-700 font-bold">{booking.booking_no || format(parseISO(booking.created_date || new Date().toISOString()), 'dd-MM-yy')}</span>
             </div>
