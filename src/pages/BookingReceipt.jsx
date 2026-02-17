@@ -756,16 +756,51 @@ export default function BookingReceiptPage() {
       {/* Print Styles */}
       <style>{`
         @media print {
-          @page {
-            size: A4;
-            margin: 0;
-          }
-          body {
+          body, html {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
+          
+          @page {
+            size: A4;
+            margin: 15mm;
+          }
+          
           .print\\:hidden {
             display: none !important;
+          }
+          
+          .print\\:shadow-none {
+            box-shadow: none !important;
+          }
+          
+          .print\\:max-w-none {
+            max-width: none !important;
+          }
+          
+          .print\\:p-0 {
+            padding: 0 !important;
+          }
+          
+          /* ปรับขนาดให้เหมาะกับกระดาษ A4 */
+          .bg-white {
+            background: white !important;
+          }
+          
+          .shadow-lg, .shadow-sm, .shadow-xl {
+            box-shadow: none !important;
+          }
+          
+          /* เก็บสีพื้นหลังและกรอบในโหมดพิมพ์ */
+          .bg-blue-600, .bg-blue-800, .bg-blue-700,
+          .bg-slate-300, .bg-slate-200, .bg-blue-50,
+          .bg-red-50, .border-slate-300, .border-slate-200,
+          .border-red-200, .border-blue-200 {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
         }
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
