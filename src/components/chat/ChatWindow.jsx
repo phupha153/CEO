@@ -90,22 +90,22 @@ export default function ChatWindow({
 
   const userRole = currentUser?.custom_role || (currentUser?.role === 'admin' ? 'developer' : 'employee');
 
-  // ✅ Auto-refresh ทุก 10 วินาที (ช่วงเวลายาวขึ้นเพื่อหลีกเลี่ยง rate limit)
-  useEffect(() => {
-    if (!conversation || !onRefresh || showAddTenantDialog || sending) return;
+  // ⭐ ปิด Auto-refresh เพื่อป้องกัน Rate Limit (รอให้ user refresh ด้วยตัวเอง)
+  // useEffect(() => {
+  //   if (!conversation || !onRefresh || showAddTenantDialog || sending) return;
 
-    refreshIntervalRef.current = setInterval(async () => {
-      try {
-        await onRefresh();
-      } catch (error) {
-        console.warn('Auto-refresh failed:', error);
-      }
-    }, 10000); // เปลี่ยนจาก 2500ms เป็น 10000ms
+  //   refreshIntervalRef.current = setInterval(async () => {
+  //     try {
+  //       await onRefresh();
+  //     } catch (error) {
+  //       console.warn('Auto-refresh failed:', error);
+  //     }
+  //   }, 30000); // 30 วินาที
 
-    return () => {
-      if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
-    };
-  }, [conversation, onRefresh, showAddTenantDialog, sending]);
+  //   return () => {
+  //     if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current);
+  //   };
+  // }, [conversation, onRefresh, showAddTenantDialog, sending]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
