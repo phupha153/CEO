@@ -169,15 +169,25 @@ export default function BookingReceiptPage() {
       // รอให้ render พร้อมก่อน
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      const canvas = await html2canvas(element, {
+      // Clone element เพื่อหลีกเลี่ยง DOM manipulation
+      const clone = element.cloneNode(true);
+      document.body.appendChild(clone);
+
+      // ปรับ style ให้ตรงกับ print view
+      const originalStyle = clone.getAttribute('style') || '';
+      clone.setAttribute('style', originalStyle + '; width: 210mm; padding: 0; margin: 0;');
+
+      const canvas = await html2canvas(clone, {
         scale: 2,
         logging: false,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        windowWidth: 800,
-        windowHeight: 1000
+        windowWidth: 794  // A4 width in px (210mm)
       });
+
+      // ลบ clone
+      document.body.removeChild(clone);
 
       const pdf = new jsPDF({
         orientation: 'portrait',
