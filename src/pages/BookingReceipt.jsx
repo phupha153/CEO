@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Printer, ArrowLeft, Edit2, Save, Sparkles, Loader2, X } from "lucide-react";
+import { Printer, ArrowLeft, Edit2, Save, Sparkles, Loader2, X, Download } from "lucide-react";
+import html2canvas from "html2canvas";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -147,6 +148,30 @@ export default function BookingReceiptPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadImage = async () => {
+    const element = printRef.current;
+    if (!element) return;
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        logging: false,
+        useCORS: true
+      });
+
+      const link = document.createElement('a');
+      link.download = `ใบจอง_${room?.room_number || 'booking'}_${format(new Date(), 'yyyy-MM-dd')}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      toast.success('บันทึกรูปภาพสำเร็จ');
+    } catch (error) {
+      console.error('Error generating image:', error);
+      toast.error('เกิดข้อผิดพลาดในการบันทึกรูป');
+    }
   };
 
   // Initialize edit form when booking loads
@@ -379,6 +404,10 @@ export default function BookingReceiptPage() {
                 แก้ไข
               </Button>
             )}
+            <Button onClick={handleDownloadImage} variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
+              <Download className="w-4 h-4 mr-2" />
+              บันทึกเป็นรูป
+            </Button>
             <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700">
               <Printer className="w-4 h-4 mr-2" />
               พิมพ์ใบจอง
