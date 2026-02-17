@@ -82,6 +82,7 @@ export default function BookingReceiptPage() {
   const [showAIDialog, setShowAIDialog] = useState(false);
   const [aiQuery, setAiQuery] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const { data: booking, isLoading: bookingLoading } = useQuery({
     queryKey: ['booking', bookingId, tempBookingId],
@@ -152,6 +153,12 @@ export default function BookingReceiptPage() {
   };
 
   const handleDownload = async () => {
+    if (isEditing) {
+      toast.error('❌ โปรดบันทึกการแก้ไขก่อน');
+      return;
+    }
+
+    setIsDownloading(true);
     try {
       const element = printRef.current;
       if (!element) {
@@ -159,11 +166,17 @@ export default function BookingReceiptPage() {
         return;
       }
 
+      // รอให้ render พร้อมก่อน
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       const canvas = await html2canvas(element, {
         scale: 2,
         logging: false,
         useCORS: true,
-        allowTaint: true
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        windowWidth: 800,
+        windowHeight: 1000
       });
 
       const pdf = new jsPDF({
@@ -195,6 +208,8 @@ export default function BookingReceiptPage() {
     } catch (error) {
       console.error('Download Error:', error);
       toast.error('❌ เกิดข้อผิดพลาดในการดาวโหลด');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -428,9 +443,22 @@ export default function BookingReceiptPage() {
                 แก้ไข
               </Button>
             )}
-            <Button onClick={handleDownload} className="bg-green-600 hover:bg-green-700">
-              <Download className="w-4 h-4 mr-2" />
-              ดาวโหลด PDF
+            <Button 
+              onClick={handleDownload} 
+              disabled={isDownloading || isEditing}
+              className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  กำลังสร้าง...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  ดาวโหลด PDF
+                </>
+              )}
             </Button>
             <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700">
               <Printer className="w-4 h-4 mr-2" />
