@@ -106,8 +106,29 @@ export default function MeterReadings() {
     retryDelay: 0,
   };
 
+  // ✅ Shared query key for cache sharing
+  const { data: rooms = [], isLoading: roomsLoading } = useQuery({
+    queryKey: ['rooms', selectedBranchId],
+    queryFn: async () => {
+      if (!selectedBranchId) return [];
+      const response = await base44.functions.invoke('getSecureData', {
+        entity: 'Room',
+        filters: { branch_id: selectedBranchId },
+        sort: 'room_number',
+        limit: 1000
+      });
+      return response.data.data;
+    },
+    enabled: canView && !!selectedBranchId,
+    retry: 2,
+    staleTime: 1 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    placeholderData: (previousData) => previousData,
+  });
+
   // ✅ Backend filtering + Pagination - รองรับ 1M records (SaaS Standard)
-  const { data: meterReadings = [], isLoading: readingsLoading } = useQuery({
+  const { data: rawMeterReadings = [], isLoading: readingsLoading } = useQuery({
     queryKey: ['meterReadings', selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
@@ -131,14 +152,10 @@ export default function MeterReadings() {
         if (skip >= 1000000) hasMore = false; // ✅ Circuit breaker - 1M records
       }
       
-      // ⭐ Filter orphan readings - เก็บเฉพาะมิเตอร์ที่ห้องยังมีอยู่
-      const validRoomIds = new Set(rooms.map(r => r.id));
-      const filteredData = allData.filter(reading => validRoomIds.has(reading.room_id));
-      
-      console.log(`📊 MeterReadings - Loaded ${allData.length} readings (${filteredData.length} valid) for branch ${selectedBranchId}`);
-      return filteredData;
+      console.log(`📊 MeterReadings - Loaded ${allData.length} readings for branch ${selectedBranchId}`);
+      return allData;
     },
-    enabled: canView && !!selectedBranchId && rooms.length > 0,
+    enabled: canView && !!selectedBranchId,
     ...retryConfig,
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
@@ -147,6 +164,17 @@ export default function MeterReadings() {
     refetchOnReconnect: false,
     placeholderData: (previousData) => previousData,
   });
+
+  // ⭐ Filter orphan readings - เก็บเฉพาะมิเตอร์ที่ห้องยังมีอยู่
+  const meterReadings = useMemo(() => {
+    if (!rooms.length || !rawMeterReadings.length) return rawMeterReadings;
+    
+    const validRoomIds = new Set(rooms.map(r => r.id));
+    const filtered = rawMeterReadings.filter(reading => validRoomIds.has(reading.room_id));
+    
+    console.log(`🧹 Filtered ${rawMeterReadings.length - filtered.length} orphan meter readings`);
+    return filtered;
+  }, [rawMeterReadings, rooms]);
 
   // ✅ Shared query key for cache sharing
   const { data: rooms = [], isLoading: roomsLoading } = useQuery({
