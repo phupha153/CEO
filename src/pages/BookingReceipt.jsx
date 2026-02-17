@@ -460,16 +460,16 @@ export default function BookingReceiptPage() {
             
             {/* Logo */}
             {buildingLogo && (
-              <div className="mt-4">
+              <div className="mt-2">
                 <img 
                   src={buildingLogo} 
                   alt={buildingName}
-                  className="h-20 mx-auto object-contain"
+                  className="h-12 mx-auto object-contain"
                 />
               </div>
             )}
             
-            <h1 className="text-3xl font-bold text-blue-800 mt-2">{buildingName}</h1>
+            <h1 className="text-xl font-bold text-blue-800 mt-1">{buildingName}</h1>
             
             {buildingAddress && (
               <p className="text-sm text-slate-600 mt-1">{buildingAddress}</p>
