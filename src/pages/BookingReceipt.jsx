@@ -707,20 +707,33 @@ export default function BookingReceiptPage() {
           </div>
 
           {/* Required Documents */}
-          <div className="mb-1.5 bg-slate-50 p-1.5 rounded border border-slate-200">
-            <h3 className="font-bold text-xs mb-0.5 text-blue-800">เอกสารที่ต้องนำมา</h3>
-            <ol className="list-decimal list-inside text-[10px] space-y-0.5 pl-2">
-              <li>บัตรประชาชน ตัวจริง + สำเนา ของผู้เช่าและผู้อาศัยทั้งหมด</li>
-              <li>ทำสัญญาภายในวันที่ <span className="text-red-600 font-bold">{formatThaiDate(contractDeadline || checkInDate)}</span></li>
+          <div className="mb-2 bg-blue-50 p-2 rounded border border-blue-200">
+            <h3 className="font-bold text-sm text-blue-900 mb-1">📋 เอกสารที่ต้องนำมา</h3>
+            <ol className="list-decimal list-inside text-[11px] space-y-0.5 pl-1">
+              <li>บัตรประชาชน ตัวจริง + สำเนา (3 ชุด) ของผู้เช่าและผู้อาศัยทั้งหมด</li>
+              <li>ใบเสร็จรับเงิน/หลักฐานการโอนเงิน</li>
+              <li>สำเนาหนังสือเดินทาง (หากเป็นชาวต่างประเทศ)</li>
+              <li><span className="font-bold">ต้องทำสัญญาเช่าและชำระเงินให้ครบถ้วน ภายในวันที่ <span className="text-red-700 text-sm">{formatThaiDate(contractDeadline || checkInDate)}</span></span></li>
             </ol>
           </div>
 
-          {/* Important Notes */}
-          <div className="mb-1.5 border border-red-300 bg-red-50 p-1.5 rounded">
-            <h3 className="font-bold text-red-700 text-xs mb-0.5">หมายเหตุ</h3>
-            <p className="text-[10px] leading-snug">
-              เงินจองเป็นส่วนหักลดมัดจำวันทำสัญญา หากสละสิทธิ์ไม่คืนเงิน
-            </p>
+          {/* Important Notes - Legal */}
+          <div className="mb-1.5 border-2 border-red-400 bg-red-50 p-2.5 rounded">
+            <h3 className="font-bold text-red-700 text-sm mb-1.5">⚠️ หมายเหตุสำคัญ (ตามกฏหมาย)</h3>
+            <div className="text-[11px] leading-relaxed space-y-1.5 text-slate-800">
+              <p>
+                <span className="font-semibold">1. เงินจองห้อง</span><br/>
+                เงินจองเป็นส่วนหักลดหย่อมมัดจำ/ค่าใช้จ่ายอื่นๆ เมื่อทำสัญญาเช่า หากผู้จองสละสิทธิ์ไม่ทำสัญญา ผู้ให้เช่ามีสิทธิ์ไม่คืนเงินจองตามกฏหมาย
+              </p>
+              <p>
+                <span className="font-semibold">2. กำหนดทำสัญญา</span><br/>
+                หากผู้จองไม่มาทำสัญญาเช่า หรือ ไม่ชำระเงินค่าใช้จ่ายอื่นๆ ให้ครบถ้วน ภายในวันที่ <span className="text-red-700 font-bold">{formatThaiDate(contractDeadline || checkInDate)}</span> ให้ถือว่าสละสิทธิ์ และผู้ให้เช่ามีสิทธิ์ริบเงินจองทั้งจำนวน
+              </p>
+              <p>
+                <span className="font-semibold">3. การเข้าพัก</span><br/>
+                ผู้เช่าสามารถเข้าพักได้หลังจากทำสัญญาเช่าและชำระเงินค่าใช้จ่ายทั้งหมดแล้วเท่านั้น
+              </p>
+            </div>
           </div>
 
           {/* Signatures */}
