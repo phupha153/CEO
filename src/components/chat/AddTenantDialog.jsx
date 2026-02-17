@@ -24,6 +24,7 @@ export default function AddTenantDialog({
     national_id: '',
   });
   const [bookings, setBookings] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
 
   // เมื่อ AI ส่งข้อมูลมา ให้กรอกในฟอร์มอัตโนมัติ
   useEffect(() => {
@@ -72,6 +73,7 @@ export default function AddTenantDialog({
     onSubmit({
       tenantData: formData,
       bookings: bookings,
+      vehicles: vehicles,
     });
   };
 
@@ -85,6 +87,18 @@ export default function AddTenantDialog({
 
   const updateBooking = (index, field, value) => {
     setBookings(bookings.map((b, i) => i === index ? { ...b, [field]: value } : b));
+  };
+
+  const addVehicle = () => {
+    setVehicles([...vehicles, { type: 'motorcycle', plate: '', brand: '' }]);
+  };
+
+  const removeVehicle = (index) => {
+    setVehicles(vehicles.filter((_, i) => i !== index));
+  };
+
+  const updateVehicle = (index, field, value) => {
+    setVehicles(vehicles.map((v, i) => i === index ? { ...v, [field]: value } : v));
   };
 
   return (
@@ -277,6 +291,80 @@ export default function AddTenantDialog({
                           value={booking.deposit_amount}
                           onChange={(e) => updateBooking(index, 'deposit_amount', e.target.value)}
                           placeholder="5000"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ข้อมูลยานพาหนะ */}
+          <div className="border-t pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2" />
+                  <circle cx="7" cy="17" r="2" />
+                  <path d="M9 17h6" />
+                  <circle cx="17" cy="17" r="2" />
+                </svg>
+                ยานพาหนะ
+              </h3>
+              <Button
+                type="button"
+                size="sm"
+                onClick={addVehicle}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                เพิ่มรถ
+              </Button>
+            </div>
+
+            {vehicles.length > 0 && (
+              <div className="space-y-3">
+                {vehicles.map((vehicle, index) => (
+                  <div key={index} className="space-y-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200 relative">
+                    <button
+                      type="button"
+                      onClick={() => removeVehicle(index)}
+                      className="absolute top-2 right-2 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                    <p className="text-xs font-semibold text-emerald-800">รถคันที่ {index + 1}</p>
+                    
+                    <div>
+                      <Label>ประเภท *</Label>
+                      <select
+                        value={vehicle.type}
+                        onChange={(e) => updateVehicle(index, 'type', e.target.value)}
+                        className="w-full text-sm border rounded-lg px-3 py-2"
+                        required
+                      >
+                        <option value="motorcycle">🏍️ มอเตอร์ไซค์</option>
+                        <option value="car">🚗 รถยนต์</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>ทะเบียนรถ *</Label>
+                        <Input
+                          value={vehicle.plate}
+                          onChange={(e) => updateVehicle(index, 'plate', e.target.value)}
+                          placeholder="กก 1234"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>ยี่ห้อ/รุ่น</Label>
+                        <Input
+                          value={vehicle.brand}
+                          onChange={(e) => updateVehicle(index, 'brand', e.target.value)}
+                          placeholder="Honda Wave"
                         />
                       </div>
                     </div>

@@ -241,7 +241,7 @@ export default function ChatWindow({
     }
   };
 
-  const handleSubmitTenant = async ({ tenantData, bookings }) => {
+  const handleSubmitTenant = async ({ tenantData, bookings, vehicles }) => {
     setSubmittingTenant(true);
     try {
       const branchId = localStorage.getItem('selected_branch_id');
@@ -253,7 +253,8 @@ export default function ChatWindow({
         // อัปเดตผู้เช่าที่มีอยู่
         await base44.entities.Tenant.update(tenant.id, {
           ...tenantData,
-          branch_id: branchId
+          branch_id: branchId,
+          vehicles: vehicles || []
         });
         toast.success('อัปเดตข้อมูลผู้เช่าสำเร็จ');
       } else {
@@ -261,7 +262,8 @@ export default function ChatWindow({
         const newTenant = await base44.entities.Tenant.create({
           ...tenantData,
           branch_id: branchId,
-          status: 'active'
+          status: 'active',
+          vehicles: vehicles || []
         });
         tenantId = newTenant.id;
         toast.success('เพิ่มผู้เช่าใหม่สำเร็จ');
