@@ -480,11 +480,11 @@ export default function BookingReceiptPage() {
           </div>
 
           {/* Title */}
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold border-b-2 border-slate-300 pb-2 inline-block px-8">
-              ใบจองห้องเช่า {buildingName}
+          <div className="text-center mb-3">
+            <h2 className="text-lg font-bold border-b-2 border-slate-300 pb-1 inline-block px-4">
+              ใบจองห้องเช่า
             </h2>
-            <div className="text-right mt-2 text-lg">
+            <div className="text-right mt-1 text-sm">
               <span className="font-semibold">เลขที่ใบจอง </span>
               <span className="text-blue-700 font-bold">{booking.booking_no || format(parseISO(booking.created_date || new Date().toISOString()), 'dd-MM-yy')}</span>
             </div>
