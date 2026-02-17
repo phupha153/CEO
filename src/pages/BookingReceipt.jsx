@@ -452,9 +452,11 @@ export default function BookingReceiptPage() {
 
           {/* Header with Stamp */}
           <div className="text-center mb-6 relative">
-            <div className="inline-block bg-blue-600 text-white px-6 py-2 text-lg font-bold">
-              {isCopy ? 'สำเนา' : 'ต้นฉบับ'}
-            </div>
+            {isCopy && (
+              <div className="inline-block bg-blue-600 text-white px-6 py-2 text-lg font-bold mb-4">
+                สำเนา
+              </div>
+            )}
             
             {/* Logo */}
             {buildingLogo && (
