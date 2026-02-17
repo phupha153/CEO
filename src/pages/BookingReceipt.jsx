@@ -665,8 +665,8 @@ export default function BookingReceiptPage() {
                 </div>
               </div>
             ) : (
-              <div className="text-[10px] space-y-1 pl-1.5">
-                <div className="grid grid-cols-2 gap-1.5">
+              <div className="text-[12px] space-y-2 pl-2">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p><span className="font-semibold">วันที่:</span> {formatThaiDate(checkInDate)}</p>
                     <p><span className="font-semibold">ห้อง:</span> {room?.room_number || '-'} ชั้น {room?.floor || '-'}</p>
