@@ -2455,30 +2455,41 @@ const tenantSchema = {
                   <span className="hidden md:inline">นำเข้าข้อมูล</span>
                 </Button>
                 {canAdd && (
-                  <>
-                    <Button
-                      onClick={() => {
-                        setEditingTenant(null);
-                        resetForm();
-                        setShowDialog(true);
-                      }}
-                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
-                      data-onboarding="add-tenant-button"
-                    >
-                      <Plus className="w-5 h-5 md:mr-2" />
-                      <span className="hidden md:inline">เพิ่มผู้เช่า</span>
-                    </Button>
-                    <Button
-                      onClick={() => setShowBulkTenantGenerator(true)}
-                      variant="outline"
-                      size="sm"
-                      className="border-blue-600 text-blue-600 hover:bg-blue-50 shadow-md"
-                      title="เพิ่มผู้เช่าตามเลขห้อง"
-                    >
-                      <Users className="w-4 h-4 md:mr-1" />
-                      <span className="hidden md:inline text-xs">เพิ่มหลายคน</span>
-                    </Button>
-                  </>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
+                        data-onboarding="add-tenant-button"
+                      >
+                        <Plus className="w-5 h-5 md:mr-2" />
+                        <span className="hidden md:inline">เพิ่มผู้เช่า</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2" align="end">
+                      <div className="space-y-1">
+                        <Button
+                          onClick={() => {
+                            setEditingTenant(null);
+                            resetForm();
+                            setShowDialog(true);
+                          }}
+                          variant="ghost"
+                          className="w-full justify-start hover:bg-blue-50"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          เพิ่มผู้เช่าทีละคน
+                        </Button>
+                        <Button
+                          onClick={() => setShowBulkTenantGenerator(true)}
+                          variant="ghost"
+                          className="w-full justify-start hover:bg-green-50 text-green-700"
+                        >
+                          <Users className="w-4 h-4 mr-2" />
+                          เพิ่มหลายคนตามห้อง
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                 )}
               </>
             )}
