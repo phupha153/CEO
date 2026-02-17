@@ -1694,7 +1694,7 @@ export default function Layout({ children, currentPageName }) {
                           <Popover open={showConnectedDataOptions} onOpenChange={setShowConnectedDataOptions}>
                             <PopoverTrigger asChild>
                               <SidebarMenuButton
-                                className="group hover:bg-gradient-to-r hover:from-green-50/80 hover:to-emerald-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white"
+                                className="group hover:bg-gradient-to-r hover:from-green-50/80 hover:to-emerald-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 bg-gradient-to-r from-green-500 to-emerald-500 text-white"
                                 title={item.title}
                               >
                                 <item.icon className="w-5 h-5 flex-shrink-0" />
@@ -1745,7 +1745,7 @@ export default function Layout({ children, currentPageName }) {
                                }
                              }}
                              disabled={deleteTestDataMutation.isPending}
-                             className={`group hover:bg-gradient-to-r hover:from-red-50/80 hover:to-orange-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-2 ${
+                             className={`group hover:bg-gradient-to-r hover:from-red-50/80 hover:to-orange-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 ${
                                deleteTestDataMutation.isPending ? 'bg-red-500 opacity-70' : 'bg-red-600 hover:bg-red-700'
                              } text-white`}
                              title={item.title}
@@ -1768,7 +1768,7 @@ export default function Layout({ children, currentPageName }) {
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                           onClick={() => navigate(item.url)}
-                          className={`group hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-2 ${
+                          className={`group hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 ${
                             isActive ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30' : ''
                           }`}
                           title={item.title}
@@ -1802,7 +1802,7 @@ export default function Layout({ children, currentPageName }) {
                         <SidebarMenuItem key={item.title}>
                           <SidebarMenuButton
                             onClick={() => navigate(item.url)}
-                            className={`hover:bg-gradient-to-r hover:from-purple-50/80 hover:to-pink-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-2 ${
+                            className={`hover:bg-gradient-to-r hover:from-purple-50/80 hover:to-pink-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 ${
                               isActive ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30' : ''
                             }`}
                             title={item.title}
@@ -1867,16 +1867,14 @@ export default function Layout({ children, currentPageName }) {
           </div>
 
           {/* Subscription Status Banner - Top */}
-          <div className="print:hidden">
-            {renderSubscriptionBanner()}
-          </div>
+          {renderSubscriptionBanner()}
 
           {/* Desktop Notification Bell */}
           <div className="hidden md:block absolute top-4 right-6 z-40">
             {currentUser && <NotificationsPanel />}
           </div>
 
-          <header className="print:hidden relative z-30 bg-white/40 backdrop-blur-2xl border-b border-white/40 px-3 py-3 md:hidden shadow-sm flex-shrink-0">
+          <header className="relative z-30 bg-white/40 backdrop-blur-2xl border-b border-white/40 px-3 py-3 md:hidden shadow-sm flex-shrink-0">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <SidebarTrigger className="hover:bg-white/50 p-1.5 rounded-xl transition-all duration-300 z-40 flex-shrink-0" />

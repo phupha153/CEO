@@ -357,7 +357,7 @@ export default function Receipt() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-slate-50 print:bg-white">
       {/* Debug Dialog - Developer Only */}
       {isDeveloper && (
         <Dialog open={showDebug} onOpenChange={setShowDebug}>
@@ -584,7 +584,7 @@ export default function Receipt() {
 
       {/* Receipt Content - Responsive: มือถือ 380px, คอม 800px */}
       <div className="receipt-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px]">
-        <div ref={receiptRef} className="receipt-card bg-white rounded-lg shadow-sm border border-slate-200 print:shadow-none print:border-0 overflow-hidden">
+        <div ref={receiptRef} className="receipt-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden">
           <div className="p-3 md:p-8 print:p-5">
             {/* Header Section - Responsive */}
             <div className="mb-2 md:mb-4 pb-2 md:pb-3 border-b border-slate-200">

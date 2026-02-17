@@ -283,7 +283,7 @@ export default function Invoice() {
   const buildingName = invoiceData?.recipient?.building_name || '';
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-slate-50 print:bg-white">
       {/* Print Styles - ปรับปรุงสำหรับ A4 */}
       <style>{`
         @media print {
@@ -409,7 +409,7 @@ export default function Invoice() {
 
       {/* Invoice Content - ปรับให้พอดี A4 */}
       <div className="invoice-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px]">
-        <div className="invoice-card bg-white rounded-lg shadow-sm border border-slate-200 print:shadow-none print:border-0 overflow-hidden" ref={invoiceRef}>
+        <div className="invoice-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden" ref={invoiceRef}>
           <div className="p-3 md:p-8 print:p-5">
             {/* Header Section */}
             <div className="mb-2 md:mb-4 pb-2 md:pb-3 border-b border-slate-200">
