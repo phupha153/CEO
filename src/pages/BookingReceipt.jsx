@@ -812,6 +812,21 @@ export default function BookingReceiptPage() {
             print-color-adjust: exact !important;
           }
           
+          /* ซ่อนกรอบพิมพ์ */
+          * {
+            border: none !important;
+          }
+          
+          /* เก็บกรอบที่จำเป็น */
+          .border, .border-2, .border-t, .border-b, .border-l, .border-r {
+            border: 1px solid currentColor !important;
+          }
+          
+          img {
+            border: none !important;
+            box-shadow: none !important;
+          }
+          
           /* ลดขนาด font ทั้งหมด */
           h1 { font-size: 18px !important; line-height: 1.1 !important; }
           h2 { font-size: 15px !important; line-height: 1.1 !important; }
