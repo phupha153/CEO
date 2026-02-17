@@ -440,13 +440,6 @@ export default function BookingReceiptPage() {
           id="print-area"
           ref={printRef}
           className="bg-white shadow-lg print:shadow-none print:m-0"
-          style={{ 
-            width: '210mm', 
-            minHeight: '297mm',
-            padding: '15mm',
-            margin: '0 auto',
-            fontFamily: 'TH Sarabun New, Sarabun, sans-serif'
-          }}
         >
           {/* Copy Watermark */}
           {isCopy && (
@@ -789,10 +782,7 @@ export default function BookingReceiptPage() {
             padding: 15mm !important;
             background: white !important;
             box-shadow: none !important;
-          }
-          button, input, select, textarea, img.hidden, .print\\:hidden {
-            display: none !important;
-            visibility: hidden !important;
+            font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
           }
         }
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
