@@ -787,6 +787,11 @@ export default function BookingReceiptPage() {
           .print\\:p-0 {
             padding: 0 !important;
           }
+
+          /* Remove all padding from receipt container */
+          div[ref] {
+            padding: 0 !important;
+          }
           
           .print\\:break-after-page {
             break-after: page;
