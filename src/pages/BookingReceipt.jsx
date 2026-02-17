@@ -668,7 +668,7 @@ export default function BookingReceiptPage() {
                 </div>
               </div>
             ) : (
-              <div className="text-lg space-y-2 pl-4">
+              <div className="text-xs space-y-1 pl-3">
                 <p>
                   <span className="font-semibold">วันที่ </span>
                   <span className="text-blue-700">{formatThaiDate(checkInDate)}</span>
