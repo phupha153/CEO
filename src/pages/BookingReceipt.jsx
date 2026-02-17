@@ -472,10 +472,10 @@ export default function BookingReceiptPage() {
             <h1 className="text-xl font-bold text-blue-800 mt-1">{buildingName}</h1>
             
             {buildingAddress && (
-              <p className="text-sm text-slate-600 mt-1">{buildingAddress}</p>
+              <p className="text-xs text-slate-600 mt-0.5">{buildingAddress}</p>
             )}
             {buildingPhone && (
-              <p className="text-sm text-slate-600">โทร. {buildingPhone}</p>
+              <p className="text-xs text-slate-600">โทร. {buildingPhone}</p>
             )}
           </div>
 
