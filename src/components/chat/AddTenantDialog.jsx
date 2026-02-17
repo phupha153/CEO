@@ -90,15 +90,15 @@ export default function AddTenantDialog({
   };
 
   const addVehicle = () => {
-    setVehicles([...vehicles, { type: 'motorcycle', plate: '', brand: '' }]);
+    setVehicles(prev => [...prev, { type: 'motorcycle', plate: '', brand: '' }]);
   };
 
   const removeVehicle = (index) => {
-    setVehicles(vehicles.filter((_, i) => i !== index));
+    setVehicles(prev => prev.filter((_, i) => i !== index));
   };
 
   const updateVehicle = (index, field, value) => {
-    setVehicles(vehicles.map((v, i) => i === index ? { ...v, [field]: value } : v));
+    setVehicles(prev => prev.map((v, i) => i === index ? { ...v, [field]: value } : v));
   };
 
   return (
