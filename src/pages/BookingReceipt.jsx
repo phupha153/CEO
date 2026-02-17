@@ -435,10 +435,10 @@ export default function BookingReceiptPage() {
       </Dialog>
 
       {/* Receipt Content */}
-      <div className="w-full print:w-full p-4 print:p-0 print:space-y-0 print:m-0 print:overflow-hidden">
+      <div className="w-full print:w-full p-4 print:p-0 print:space-y-0 print:m-0">
         <div 
           ref={printRef}
-          className="max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:break-after-page p-8 print:p-2 print:max-w-full print:mx-0"
+          className="max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:break-after-page p-8 print:p-4 print:max-w-full print:mx-0"
           style={{ 
             fontFamily: 'TH Sarabun New, Sarabun, sans-serif'
           }}
@@ -731,7 +731,7 @@ export default function BookingReceiptPage() {
               เงินจองห้องนี้เป็นส่วนหนึ่งในการหักลดค่ามัดจำห้องเช่าในวันทำสัญญาเช่าห้อง หากผู้เช่าห้องสละสิทธิ์หรือไม่ประสงค์ที่จะเช่าห้องที่จองไว้ เงินจำนวนนี้ไม่มีการคืนให้ไม่ว่ากรณีใดๆ ทั้งสิ้น
             </p>
             <p className="text-lg mt-2">
-              ใบจองห้องทำขึ้น 2 เพื่อให้ผู้รับจองห้อง 1 และผู้จองห้อง 1
+              ใบจองห้องทำขึ้น 2 ฉบับ เพื่อให้ผู้รับจองห้อง 1 ฉบับ และผู้จองห้อง 1 ฉบับ
             </p>
           </div>
 
@@ -769,7 +769,7 @@ export default function BookingReceiptPage() {
           
           @page {
             size: A4;
-            margin: 8mm;
+            margin: 10mm 10mm;
           }
           
           .print\\:hidden {
@@ -810,21 +810,6 @@ export default function BookingReceiptPage() {
           .border-t-2, .border-b-2, .border-2 {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-          }
-          
-          /* ซ่อนกรอบพิมพ์ */
-          * {
-            border: none !important;
-          }
-          
-          /* เก็บกรอบที่จำเป็น */
-          .border, .border-2, .border-t, .border-b, .border-l, .border-r {
-            border: 1px solid currentColor !important;
-          }
-          
-          img {
-            border: none !important;
-            box-shadow: none !important;
           }
           
           /* ลดขนาด font ทั้งหมด */
