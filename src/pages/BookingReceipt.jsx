@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Printer, ArrowLeft, Edit2, Save, Sparkles, Loader2, X, Download } from "lucide-react";
-import html2canvas from "html2canvas";
+import { Printer, ArrowLeft, Edit2, Save, Sparkles, Loader2, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -148,30 +147,6 @@ export default function BookingReceiptPage() {
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const handleDownloadImage = async () => {
-    const element = printRef.current;
-    if (!element) return;
-
-    try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        logging: false,
-        useCORS: true
-      });
-
-      const link = document.createElement('a');
-      link.download = `ใบจอง_${room?.room_number || 'booking'}_${format(new Date(), 'yyyy-MM-dd')}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      
-      toast.success('บันทึกรูปภาพสำเร็จ');
-    } catch (error) {
-      console.error('Error generating image:', error);
-      toast.error('เกิดข้อผิดพลาดในการบันทึกรูป');
-    }
   };
 
   // Initialize edit form when booking loads
@@ -362,7 +337,7 @@ export default function BookingReceiptPage() {
   const checkInDate = isEditing ? editForm.check_in_date : booking.check_in_date;
 
   return (
-    <div className="min-h-screen bg-slate-100 booking-print-container">
+    <div className="min-h-screen bg-slate-100">
       {/* Print Controls - Hidden on print */}
       <div className="print:hidden bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -404,10 +379,6 @@ export default function BookingReceiptPage() {
                 แก้ไข
               </Button>
             )}
-            <Button onClick={handleDownloadImage} variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
-              <Download className="w-4 h-4 mr-2" />
-              บันทึกเป็นรูป
-            </Button>
             <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700">
               <Printer className="w-4 h-4 mr-2" />
               พิมพ์ใบจอง
@@ -464,11 +435,17 @@ export default function BookingReceiptPage() {
       </Dialog>
 
       {/* Receipt Content */}
-      <div className="max-w-4xl mx-auto p-4 print:p-0 print:max-w-none print:m-0">
+      <div className="max-w-4xl mx-auto p-4 print:p-0 print:max-w-none">
         <div 
-          id="print-area"
           ref={printRef}
-          className="bg-white shadow-lg print:shadow-none print:m-0"
+          className="bg-white shadow-lg print:shadow-none"
+          style={{ 
+            width: '210mm', 
+            minHeight: '297mm',
+            padding: '15mm',
+            margin: '0 auto',
+            fontFamily: 'TH Sarabun New, Sarabun, sans-serif'
+          }}
         >
           {/* Copy Watermark */}
           {isCopy && (
@@ -783,35 +760,12 @@ export default function BookingReceiptPage() {
             size: A4;
             margin: 0;
           }
-          * {
+          body {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-            width: 210mm !important;
-            height: 297mm !important;
-          }
-          body * {
-            visibility: hidden !important;
-          }
-          #print-area,
-          #print-area * {
-            visibility: visible !important;
-          }
-          #print-area {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 210mm !important;
-            min-height: 297mm !important;
-            margin: 0 !important;
-            padding: 15mm !important;
-            background: white !important;
-            box-shadow: none !important;
-            font-family: 'TH Sarabun New', 'Sarabun', sans-serif !important;
+          .print\\:hidden {
+            display: none !important;
           }
         }
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
