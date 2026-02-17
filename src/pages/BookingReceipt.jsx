@@ -774,9 +774,15 @@ export default function BookingReceiptPage() {
           }
           
           @page {
-            size: A4;
-            margin: 0mm;
-          }
+              size: A4;
+              margin: 0;
+              padding: 0;
+            }
+
+            * {
+              margin: 0 !important;
+              padding: 0 !important;
+            }
           
           .print\\:hidden {
             display: none !important;
@@ -795,8 +801,9 @@ export default function BookingReceiptPage() {
           }
 
           /* Remove all padding from receipt container */
-          div[ref] {
+          [ref], div[style*="fontFamily"] {
             padding: 0 !important;
+            margin: 0 !important;
           }
           
           .print\\:break-after-page {
