@@ -1247,23 +1247,27 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
   });
 
   const bulkDeleteMutation = useMutation({
-    mutationFn: async (tenantIds) => {
-      const chunkSize = 10;
-      for (let i = 0; i < tenantIds.length; i += chunkSize) {
-        const chunk = tenantIds.slice(i, i + chunkSize);
-        // This is a simplified delete, might need to handle related data like in single deleteMutation
-        const promises = chunk.map(id => base44.entities.Tenant.delete(id));
-        await Promise.all(promises);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(['tenants', selectedBranchId]);
-      setSelectedTenants([]);
-      setBulkAIResult(null);
-      setBulkAIQuery('');
-      toast.success('ลบผู้เช่าที่เลือกสำเร็จ');
-    },
-    onError: (error) => toast.error('เกิดข้อผิดพลาด: ' + error.message)
+    mutationFn: async (tenantIds) => {
+      // ✅ ใช้ backend function สำหรับลบหลายคนพร้อมกัน (มี rate limit protection)
+      const response = await base44.functions.invoke('bulkDeleteTenants', {
+        tenant_ids: tenantIds,
+        branch_id: selectedBranchId
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries(['tenants', selectedBranchId]);
+      queryClient.invalidateQueries(['bookings', selectedBranchId]);
+      queryClient.invalidateQueries(['rooms', selectedBranchId]);
+      queryClient.invalidateQueries(['payments', selectedBranchId]);
+      queryClient.invalidateQueries(['tenantRatings', selectedBranchId]);
+      setSelectedTenants([]);
+      setIsSelectionMode(false);
+      setBulkAIResult(null);
+      setBulkAIQuery('');
+      toast.success(data.message || `ลบผู้เช่าสำเร็จ ${data.deleted} คน`);
+    },
+    onError: (error) => toast.error('เกิดข้อผิดพลาด: ' + error.message)
   });
 
   const getTenantBookings = useCallback((tenantId) => {
@@ -1658,27 +1662,24 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
   };
 
   const handleBulkDelete = async () => {
-    if (selectedTenants.length === 0) {
-      toast.error('กรุณาเลือกผู้เช่าที่ต้องการลบ');
-      return;
-    }
+    if (selectedTenants.length === 0) {
+      toast.error('กรุณาเลือกผู้เช่าที่ต้องการลบ');
+      return;
+    }
 
-    const confirmDelete = window.confirm(`คุณแน่ใจว่าต้องการลบผู้เช่า ${selectedTenants.length} คน?\n\n⚠️ การกระทำนี้จะลบข้อมูลทั้งหมดของผู้เช่าที่เลือกอย่างถาวร`);
-    if (!confirmDelete) return;
+    const confirmDelete = window.confirm(`คุณแน่ใจว่าต้องการลบผู้เช่า ${selectedTenants.length} คน?\n\n⚠️ การกระทำนี้จะลบข้อมูลทั้งหมดของผู้เช่าที่เลือกอย่างถาวร (รวมสัญญา, การชำระเงิน, คะแนน)`);
+    if (!confirmDelete) return;
 
-    setIsBulkExecuting(true);
-    try {
-      for (const tenantId of selectedTenants) {
-        await deleteMutation.mutateAsync(tenantId);
-      }
-      setSelectedTenants([]);
-      setBulkDeleteMode(false);
-      toast.success(`ลบผู้เช่า ${selectedTenants.length} คนสำเร็จ`);
-    } catch (error) {
-      toast.error('เกิดข้อผิดพลาดในการลบ');
-    } finally {
-      setIsBulkExecuting(false);
-    }
+    setIsBulkExecuting(true);
+    toast.info(`กำลังลบผู้เช่า ${selectedTenants.length} คน...`);
+
+    try {
+      await bulkDeleteMutation.mutateAsync(selectedTenants);
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+    } finally {
+      setIsBulkExecuting(false);
+    }
   };
 
   const handleAIBulkRequest = async () => {
