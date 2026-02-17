@@ -1627,7 +1627,7 @@ export default function Layout({ children, currentPageName }) {
 
       <div className="min-h-screen flex w-full h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
         <Sidebar collapsible="icon" className="border-r-0 bg-transparent flex-shrink-0 z-50 transition-all duration-300 ease-in-out" style={{ '--sidebar-width': '240px', '--sidebar-width-icon': '48px', 'width': '240px' }} data-state="expanded">
-          <div className="absolute inset-0 bg-white/70 backdrop-blur-2xl border-r border-white/50" />
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-2xl border-r border-white/50 group-data-[collapsible=icon]:bg-white/40" />
           
           <SidebarHeader className="relative z-10 border-b border-white/40 p-2 group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:pl-2 bg-gradient-to-br from-white/30 to-white/20 flex-shrink-0">
             <div className="flex items-center justify-between gap-2 mb-1 group-data-[collapsible=icon]:mb-0 group-data-[collapsible=icon]:justify-start">
@@ -1635,12 +1635,12 @@ export default function Layout({ children, currentPageName }) {
             </div>
 
             <motion.div 
-              className="flex flex-col items-center gap-1.5 group-data-[collapsible=icon]:items-start group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:ml-0"
+              className="flex flex-col items-center gap-1.5 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:ml-0"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
             >
-              <div className="relative w-10 h-10 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:ml-0.5 flex items-center justify-center transition-all flex-shrink-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl blur-lg opacity-30" />
+              <div className="relative w-10 h-10 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 flex items-center justify-center transition-all flex-shrink-0">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 rounded-2xl blur-lg opacity-30 group-data-[collapsible=icon]:blur-md" />
                 <img
                   src={buildingLogo}
                   alt={`${buildingName} Logo`}
