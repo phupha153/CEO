@@ -726,9 +726,8 @@ export default function Dashboard() {
       <div className="px-4 md:px-8 py-6 relative z-10">
         <div className="max-w-7xl mx-auto space-y-6">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-            <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-3xl overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
-              <CardContent className="p-4 md:p-6 relative">
+            <Card className="bg-white border border-slate-200 shadow-md">
+              <CardContent className="p-4 md:p-6">
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-wrap items-end gap-2">
                     <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
@@ -824,18 +823,12 @@ export default function Dashboard() {
           </motion.div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} whileHover={{ scale: 1.02, y: -4 }} transition={{ duration: 0.3, delay: 0.2 }}>
-              <Card className="relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 opacity-5" />
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400 to-indigo-500 opacity-10 blur-3xl" />
-                
-                <CardContent className="p-4 md:p-6 relative">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.2 }}>
+              <Card className="bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-4 md:p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl blur-md opacity-30" />
-                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg">
-                        <DoorOpen className="w-6 h-6 text-white" />
-                      </div>
+                    <div className="p-2 bg-slate-100 rounded-lg">
+                      <DoorOpen className="w-5 h-5 text-slate-600" />
                     </div>
                   </div>
                   <p className="text-sm font-medium text-slate-500 mb-1">ห้องทั้งหมด</p>
@@ -854,18 +847,12 @@ export default function Dashboard() {
               </Card>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} whileHover={{ scale: 1.02, y: -4 }} transition={{ duration: 0.3, delay: 0.3 }}>
-              <Card className="relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600 opacity-5" />
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-green-400 to-emerald-500 opacity-10 blur-3xl" />
-                
-                <CardContent className="p-4 md:p-6 relative">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.3 }}>
+              <Card className="bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-4 md:p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl blur-md opacity-30" />
-                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg">
-                        <TrendingUp className="w-6 h-6 text-white" />
-                      </div>
+                    <div className="p-2 bg-slate-100 rounded-lg">
+                      <TrendingUp className="w-5 h-5 text-slate-600" />
                     </div>
                   </div>
                   <p className="text-sm font-medium text-slate-500 mb-1">อัตราการเข้าพัก</p>
@@ -882,18 +869,12 @@ export default function Dashboard() {
               </Card>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} whileHover={{ scale: 1.02, y: -4 }} transition={{ duration: 0.3, delay: 0.4 }}>
-              <Card className="relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 opacity-5" />
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-400 to-teal-500 opacity-10 blur-3xl" />
-                
-                <CardContent className="p-4 md:p-6 relative">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.4 }}>
+              <Card className="bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-4 md:p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl blur-md opacity-30" />
-                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg">
-                        <Wallet className="w-6 h-6 text-white" />
-                      </div>
+                    <div className="p-2 bg-slate-100 rounded-lg">
+                      <Wallet className="w-5 h-5 text-slate-600" />
                     </div>
                     {compareEnabled && compareStats && (
                       <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${
@@ -927,18 +908,12 @@ export default function Dashboard() {
               </Card>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} whileHover={{ scale: 1.02, y: -4 }} transition={{ duration: 0.3, delay: 0.45 }}>
-              <Card className="relative overflow-hidden bg-white/60 backdrop-blur-xl border-white/50 shadow-xl hover:shadow-2xl transition-all duration-300">
-                <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-600 opacity-5" />
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-red-400 to-red-500 opacity-10 blur-3xl" />
-                
-                <CardContent className="p-4 md:p-6 relative">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.45 }}>
+              <Card className="bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-4 md:p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl blur-md opacity-30" />
-                      <div className="relative p-3 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 shadow-lg">
-                        <CreditCard className="w-6 h-6 text-white" />
-                      </div>
+                    <div className="p-2 bg-slate-100 rounded-lg">
+                      <CreditCard className="w-5 h-5 text-slate-600" />
                     </div>
                   </div>
                   <p className="text-sm font-medium text-slate-500 mb-1">ค้างชำระ (รวมค่าปรับ)</p>
@@ -958,16 +933,16 @@ export default function Dashboard() {
 
           {userRole === 'developer' && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }}>
-              <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
+              <Card className="bg-white border border-slate-200 shadow-sm">
                 <CardHeader className="pb-3 md:pb-4">
-                  <CardTitle className="text-sm md:text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <Link2 className="w-5 h-5 text-blue-600" />
+                  <CardTitle className="text-sm md:text-base font-semibold text-slate-800 flex items-center gap-2">
+                    <Link2 className="w-4 h-4 text-slate-600" />
                     ลิงก์จองห้องออนไลน์
                   </CardTitle>
                   <p className="text-xs text-slate-600 mt-1">แชร์ลิงก์นี้ให้ผู้ที่สนใจเข้าพัก</p>
                 </CardHeader>
                 <CardContent>
-                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 border border-blue-200">
+                  <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
                     <div className="flex items-start gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-slate-500 mb-2 font-semibold">URL จองห้องพัก</p>
@@ -981,10 +956,10 @@ export default function Dashboard() {
                         onClick={() => {
                           const url = `${window.location.origin}/PublicBooking?branchId=${selectedBranchId}`;
                           navigator.clipboard.writeText(url);
-                          toast.success('📋 คัดลอกลิงก์สำเร็จ!');
+                          toast.success('คัดลอกลิงก์สำเร็จ');
                         }}
                         size="sm"
-                        className="flex-1 bg-blue-600 hover:bg-blue-700"
+                        className="flex-1 bg-slate-800 hover:bg-slate-700"
                       >
                         <Copy className="w-4 h-4 mr-2" />
                         คัดลอกลิงก์
@@ -1008,9 +983,9 @@ export default function Dashboard() {
           )}
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-            <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
+            <Card className="bg-white border border-slate-200 shadow-sm">
               <CardHeader className="pb-3 md:pb-4">
-                <CardTitle className="text-sm md:text-lg font-bold text-slate-800">สถานะการชำระเงิน</CardTitle>
+                <CardTitle className="text-sm md:text-base font-semibold text-slate-800">สถานะการชำระเงิน</CardTitle>
                 <p className="text-xs text-slate-600 mt-1 font-medium">
                   {viewMode === 'all' ? 'ทุกประเภท' : viewMode === 'daily' ? 'รายวัน' : 'รายเดือน'} - คลิกที่การ์ดเพื่อดูรายละเอียด
                 </p>
@@ -1019,38 +994,38 @@ export default function Dashboard() {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
                   <button
                     onClick={() => handlePaymentCardClick('all')}
-                    className="bg-blue-50 rounded-xl p-3 md:p-4 border border-blue-200 hover:shadow-lg hover:scale-105 transition-all cursor-pointer text-left"
+                    className="bg-slate-50 rounded-lg p-3 md:p-4 border border-slate-200 hover:shadow-sm transition-shadow cursor-pointer text-left"
                   >
-                    <p className="text-xs text-blue-600 font-semibold mb-1">ทั้งหมด</p>
-                    <p className="text-2xl md:text-3xl font-bold text-blue-700">{stats.allPayments}</p>
-                    <p className="text-xs text-blue-600 mt-1">รายการ</p>
+                    <p className="text-xs text-slate-600 font-medium mb-1">ทั้งหมด</p>
+                    <p className="text-2xl md:text-3xl font-bold text-slate-800">{stats.allPayments}</p>
+                    <p className="text-xs text-slate-500 mt-1">รายการ</p>
                   </button>
 
                   <button
                     onClick={() => handlePaymentCardClick('pending')}
-                    className="bg-orange-50 rounded-xl p-3 md:p-4 border border-orange-200 hover:shadow-lg hover:scale-105 transition-all cursor-pointer text-left"
+                    className="bg-slate-50 rounded-lg p-3 md:p-4 border border-slate-200 hover:shadow-sm transition-shadow cursor-pointer text-left"
                   >
-                    <p className="text-xs text-orange-600 font-semibold mb-1">รอชำระ</p>
-                    <p className="text-2xl md:text-3xl font-bold text-orange-700">{stats.pendingPayments}</p>
-                    <p className="text-xs text-orange-600 mt-1">รายการ</p>
+                    <p className="text-xs text-slate-600 font-medium mb-1">รอชำระ</p>
+                    <p className="text-2xl md:text-3xl font-bold text-slate-800">{stats.pendingPayments}</p>
+                    <p className="text-xs text-slate-500 mt-1">รายการ</p>
                   </button>
 
                   <button
                     onClick={() => handlePaymentCardClick('overdue')}
-                    className="bg-red-50 rounded-xl p-3 md:p-4 border border-red-200 hover:shadow-lg hover:scale-105 transition-all cursor-pointer text-left"
+                    className="bg-slate-50 rounded-lg p-3 md:p-4 border border-slate-200 hover:shadow-sm transition-shadow cursor-pointer text-left"
                   >
-                    <p className="text-xs text-red-600 font-semibold mb-1">เกินกำหนด</p>
-                    <p className="text-2xl md:text-3xl font-bold text-red-700">{stats.overduePayments}</p>
-                    <p className="text-xs text-red-600 mt-1">รายการ</p>
+                    <p className="text-xs text-slate-600 font-medium mb-1">เกินกำหนด</p>
+                    <p className="text-2xl md:text-3xl font-bold text-slate-800">{stats.overduePayments}</p>
+                    <p className="text-xs text-slate-500 mt-1">รายการ</p>
                   </button>
 
                   <button
                     onClick={() => handlePaymentCardClick('paid')}
-                    className="bg-green-50 rounded-xl p-3 md:p-4 border border-green-200 hover:shadow-lg hover:scale-105 transition-all cursor-pointer text-left"
+                    className="bg-slate-50 rounded-lg p-3 md:p-4 border border-slate-200 hover:shadow-sm transition-shadow cursor-pointer text-left"
                   >
-                    <p className="text-xs text-green-600 font-semibold mb-1">ชำระแล้ว ({dateRangeLabel()})</p>
-                    <p className="text-2xl md:text-3xl font-bold text-green-700">{stats.paidPayments}</p>
-                    <p className="text-xs text-green-600 mt-1">รายการ</p>
+                    <p className="text-xs text-slate-600 font-medium mb-1">ชำระแล้ว ({dateRangeLabel()})</p>
+                    <p className="text-2xl md:text-3xl font-bold text-slate-800">{stats.paidPayments}</p>
+                    <p className="text-xs text-slate-500 mt-1">รายการ</p>
                   </button>
                 </div>
               </CardContent>
@@ -1059,12 +1034,11 @@ export default function Dashboard() {
 
           <div className="grid lg:grid-cols-2 gap-4 md:gap-6">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 }}>
-              <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden h-full">
-                <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-48 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
-                <CardHeader className="relative pb-3 md:pb-4">
-                  <CardTitle className="text-sm md:text-lg font-bold text-slate-800">สถานะห้องพัก</CardTitle>
+              <Card className="bg-white border border-slate-200 shadow-sm h-full">
+                <CardHeader className="pb-3 md:pb-4">
+                  <CardTitle className="text-sm md:text-base font-semibold text-slate-800">สถานะห้องพัก</CardTitle>
                 </CardHeader>
-                <CardContent className="relative flex flex-col h-[calc(100%-60px)]">
+                <CardContent className="flex flex-col h-[calc(100%-60px)]">
                   <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
                       <Pie
@@ -1105,12 +1079,11 @@ export default function Dashboard() {
             </motion.div>
 
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }}>
-              <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden h-full">
-                <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-48 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
-                <CardHeader className="relative pb-3 md:pb-4">
-                  <CardTitle className="text-sm md:text-lg font-bold text-slate-800">การชำระเงินล่าสุด</CardTitle>
+              <Card className="bg-white border border-slate-200 shadow-sm h-full">
+                <CardHeader className="pb-3 md:pb-4">
+                  <CardTitle className="text-sm md:text-base font-semibold text-slate-800">การชำระเงินล่าสุด</CardTitle>
                 </CardHeader>
-                <CardContent className="relative flex-1 flex flex-col overflow-hidden">
+                <CardContent className="flex-1 flex flex-col overflow-hidden">
                   {paymentsLoading ? (
                       <div className="space-y-3 animate-pulse">
                         {[...Array(5)].map((_, i) => (
@@ -1130,7 +1103,7 @@ export default function Dashboard() {
                         recentPayments.map((payment) => {
                                       const room = rooms.find(r => r.id === payment.room_id);
                                       return (
-                                        <div key={payment.id} className="flex justify-between items-center p-2 md:p-3 bg-white/70 backdrop-blur-sm rounded-xl border border-blue-100/50 shadow-sm">
+                                        <div key={payment.id} className="flex justify-between items-center p-2 md:p-3 bg-slate-50 rounded-lg border border-slate-200">
                                           <div>
                                             <p className="font-medium text-slate-800 text-sm md:text-base">ห้อง {room?.room_number || 'N/A'}</p>
                                             <p className="text-xs text-slate-500">
@@ -1196,17 +1169,16 @@ export default function Dashboard() {
 
             {showMaintenance && pendingMaintenance.length > 0 && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
-              <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
-                <div className="absolute top-0 right-0 w-48 md:w-64 h-48 md:h-48 bg-gradient-to-br from-blue-200/20 to-sky-200/15 rounded-full blur-3xl" />
-                <CardHeader className="relative pb-3 md:pb-4">
-                  <CardTitle className="text-sm md:text-lg font-bold text-slate-800">คำขอซ่อมที่รอดำเนินการ</CardTitle>
+              <Card className="bg-white border border-slate-200 shadow-sm">
+                <CardHeader className="pb-3 md:pb-4">
+                  <CardTitle className="text-sm md:text-base font-semibold text-slate-800">คำขอซ่อมที่รอดำเนินการ</CardTitle>
                 </CardHeader>
-                <CardContent className="relative">
+                <CardContent>
                   <div className="space-y-2 md:space-y-3">
                     {pendingMaintenance.map((request) => {
                       const room = rooms.find(r => r.id === request.room_id);
                       return (
-                        <div key={request.id} className="flex justify-between items-center p-3 md:p-4 bg-white/70 backdrop-blur-sm rounded-xl border border-blue-100/50 shadow-sm">
+                        <div key={request.id} className="flex justify-between items-center p-3 md:p-4 bg-slate-50 rounded-lg border border-slate-200">
                           <div>
                             <p className="font-medium text-slate-800 text-sm md:text-base">{request.title}</p>
                             <p className="text-xs md:text-sm text-slate-500">ห้อง {room?.room_number || 'N/A'}</p>
@@ -1248,10 +1220,10 @@ export default function Dashboard() {
 
           {userRole === 'developer' && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
-              <Card className="bg-white/60 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-2xl md:rounded-3xl overflow-hidden">
+              <Card className="bg-white border border-slate-200 shadow-sm">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm md:text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <Database className="w-5 h-5 text-purple-600" />
+                  <CardTitle className="text-sm md:text-base font-semibold text-slate-800 flex items-center gap-2">
+                    <Database className="w-4 h-4 text-slate-600" />
                     เครื่องมือจัดการข้อมูลทดสอบ
                   </CardTitle>
                 </CardHeader>
@@ -1262,7 +1234,7 @@ export default function Dashboard() {
                         <Button
                           disabled={generateConnectedTestDataMutation.isPending}
                           size="sm"
-                          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+                          className="bg-slate-700 hover:bg-slate-800"
                           data-onboarding="create-test-data-button"
                         >
                           {generateConnectedTestDataMutation.isPending ? (
@@ -1321,7 +1293,7 @@ export default function Dashboard() {
                       }}
                       disabled={generateTestDataMutation.isPending}
                       size="sm"
-                      className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
+                      className="bg-slate-700 hover:bg-slate-800"
                     >
                       {generateTestDataMutation.isPending ? (
                         <>
@@ -1387,7 +1359,7 @@ export default function Dashboard() {
                     <Button
                       onClick={() => setShowDebugDialog(true)}
                       size="sm"
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                      className="bg-slate-700 hover:bg-slate-800"
                     >
                       <Bug className="w-4 h-4 mr-2" />
                       Debug เวลา
