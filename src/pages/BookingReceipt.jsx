@@ -693,45 +693,39 @@ export default function BookingReceiptPage() {
                 </div>
               </div>
             ) : (
-              <div className="text-lg space-y-2 pl-4">
-                <p>
-                  <span className="font-semibold">วันที่ </span>
-                  <span className="text-blue-700">{formatThaiDate(checkInDate)}</span>
-                  <span className="ml-4">ได้วางเงินจองห้องไว้ </span>
-                  <span className="text-blue-700 font-bold">{depositAmount.toLocaleString()}</span>
-                  <span> บาท</span>
-                </p>
-                <p>
-                  <span className="font-semibold">เงื่อนไขสัญญา: </span>
-                  <span>สัญญาระยะ </span>
-                  <span className="text-blue-700">{contractDuration}</span>
-                </p>
+              <div className="text-xs space-y-1 pl-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <p><span className="font-semibold">วันที่:</span> {formatThaiDate(checkInDate)}</p>
+                    <p><span className="font-semibold">ห้อง:</span> {room?.room_number || '-'} ชั้น {room?.floor || '-'}</p>
+                  </div>
+                  <div>
+                    <p><span className="font-semibold">เงินจอง:</span> {depositAmount.toLocaleString()} บาท</p>
+                    <p><span className="font-semibold">สัญญา:</span> {contractDuration}</p>
+                  </div>
+                </div>
                 
                 {/* Payment Details Table */}
-                <div className="mt-4 border border-slate-300 rounded">
-                  <table className="w-full text-lg">
+                <div className="mt-1 border border-slate-300 rounded">
+                  <table className="w-full text-xs">
                     <tbody>
                       <tr className="border-b border-slate-200">
-                        <td className="p-2 font-semibold">เงินประกันห้อง</td>
-                        <td className="p-2 text-right text-blue-700">{securityDeposit.toLocaleString()} บาท</td>
+                        <td className="px-1 py-1 font-semibold">เงินประกัน</td>
+                        <td className="px-1 py-1 text-right text-blue-700 font-semibold">{securityDeposit.toLocaleString()}</td>
                       </tr>
                       <tr className="border-b border-slate-200">
-                        <td className="p-2 font-semibold">ค่าเช่าล่วงหน้า</td>
-                        <td className="p-2 text-right text-blue-700">{advanceRent.toLocaleString()} บาท</td>
+                        <td className="px-1 py-1 font-semibold">ค่าเช่าล่วงหน้า</td>
+                        <td className="px-1 py-1 text-right text-blue-700 font-semibold">{advanceRent.toLocaleString()}</td>
                       </tr>
                       {commonFeeIncluded > 0 && (
                         <tr className="border-b border-slate-200">
-                          <td className="p-2 font-semibold">รวมส่วนกลาง</td>
-                          <td className="p-2 text-right text-blue-700">{commonFeeIncluded.toLocaleString()} บาท</td>
+                          <td className="px-1 py-1 font-semibold">ส่วนกลาง</td>
+                          <td className="px-1 py-1 text-right text-blue-700 font-semibold">{commonFeeIncluded.toLocaleString()}</td>
                         </tr>
                       )}
-                      <tr className="border-b border-slate-200 bg-blue-50">
-                        <td className="p-2 font-bold">รวมสุทธิ</td>
-                        <td className="p-2 text-right text-blue-700 font-bold">{totalBookingAmount.toLocaleString()} บาท</td>
-                      </tr>
-                      <tr className="bg-green-50">
-                        <td className="p-2 font-bold text-green-700">* คงเหลือชำระทีหลัง</td>
-                        <td className="p-2 text-right text-green-700 font-bold">{remainingAmount.toLocaleString()} บาท</td>
+                      <tr className="bg-blue-50">
+                        <td className="px-1 py-1 font-bold">รวมสุทธิ</td>
+                        <td className="px-1 py-1 text-right text-blue-700 font-bold">{totalBookingAmount.toLocaleString()}</td>
                       </tr>
                     </tbody>
                   </table>
