@@ -3,6 +3,23 @@ import { differenceInDays, parseISO, startOfDay } from 'npm:date-fns@3.6.0';
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// ⭐ Retry wrapper with exponential backoff
+async function retryWithBackoff(fn, maxRetries = 3, baseDelay = 1000) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`🔄 Attempt ${attempt}/${maxRetries}...`);
+            return await fn();
+        } catch (error) {
+            if (attempt === maxRetries) {
+                throw error; // ส่งข้อผิดพลาดครั้งสุดท้าย
+            }
+            const delayMs = baseDelay * Math.pow(2, attempt - 1); // Exponential: 1s, 2s, 4s
+            console.warn(`⚠️ Attempt ${attempt} failed (${error.message}), retrying in ${delayMs}ms...`);
+            await delay(delayMs);
+        }
+    }
+}
+
 // ⭐ สร้าง timestamp เวลาไทย (UTC+7)
 function getThailandTimestamp() {
     const now = new Date();
