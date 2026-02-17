@@ -762,18 +762,19 @@ export default function BookingReceiptPage() {
             padding: 0 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            font-size: 12px !important;
           }
           
           @page {
             size: A4;
-            margin: 15mm;
+            margin: 10mm;
           }
           
           .print\\:hidden {
             display: none !important;
           }
           
-          .print\\:shadow-none {
+          .print\\:shadow-none, .shadow-lg, .shadow-sm, .shadow-xl, .shadow-2xl {
             box-shadow: none !important;
           }
           
@@ -785,23 +786,86 @@ export default function BookingReceiptPage() {
             padding: 0 !important;
           }
           
+          /* ลบ border-radius ทั้งหมดในโหมดพิมพ์ */
+          .rounded, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-full {
+            border-radius: 4px !important;
+          }
+          
           /* ปรับขนาดให้เหมาะกับกระดาษ A4 */
-          .bg-white {
+          .bg-white, .bg-slate-100 {
             background: white !important;
           }
           
-          .shadow-lg, .shadow-sm, .shadow-xl {
-            box-shadow: none !important;
-          }
-          
           /* เก็บสีพื้นหลังและกรอบในโหมดพิมพ์ */
-          .bg-blue-600, .bg-blue-800, .bg-blue-700,
-          .bg-slate-300, .bg-slate-200, .bg-blue-50,
-          .bg-red-50, .border-slate-300, .border-slate-200,
-          .border-red-200, .border-blue-200 {
+          .bg-blue-600, .bg-blue-800, .bg-blue-700, .bg-blue-50,
+          .bg-slate-300, .bg-slate-200, .bg-slate-50,
+          .bg-red-50, .bg-green-50,
+          .border-slate-300, .border-slate-200, .border-slate-400,
+          .border-red-200, .border-blue-200, .border-blue-300,
+          .border-t-2, .border-b-2, .border-2 {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
+          
+          /* ลดขนาด font ทั้งหมด */
+          h1 { font-size: 22px !important; line-height: 1.2 !important; }
+          h2 { font-size: 18px !important; line-height: 1.2 !important; }
+          h3 { font-size: 15px !important; line-height: 1.3 !important; }
+          .text-3xl { font-size: 20px !important; }
+          .text-2xl { font-size: 17px !important; }
+          .text-xl { font-size: 15px !important; }
+          .text-lg { font-size: 13px !important; }
+          .text-base, p, span, td, th, li { font-size: 11px !important; }
+          .text-sm { font-size: 10px !important; }
+          .text-xs { font-size: 9px !important; }
+          
+          /* ลดระยะห่าง padding/margin */
+          .p-8 { padding: 12px !important; }
+          .p-6 { padding: 10px !important; }
+          .p-4 { padding: 8px !important; }
+          .p-3 { padding: 6px !important; }
+          .p-2 { padding: 4px !important; }
+          .px-8 { padding-left: 12px !important; padding-right: 12px !important; }
+          .px-6 { padding-left: 10px !important; padding-right: 10px !important; }
+          .px-4 { padding-left: 8px !important; padding-right: 8px !important; }
+          .py-6 { padding-top: 10px !important; padding-bottom: 10px !important; }
+          .py-4 { padding-top: 8px !important; padding-bottom: 8px !important; }
+          .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
+          
+          .mb-8, .mt-8 { margin-bottom: 10px !important; margin-top: 10px !important; }
+          .mb-6, .mt-6 { margin-bottom: 8px !important; margin-top: 8px !important; }
+          .mb-4, .mt-4 { margin-bottom: 6px !important; margin-top: 6px !important; }
+          .mb-3, .mt-3 { margin-bottom: 5px !important; margin-top: 5px !important; }
+          .mb-2, .mt-2 { margin-bottom: 4px !important; margin-top: 4px !important; }
+          .mb-12, .mt-12 { margin-bottom: 14px !important; margin-top: 14px !important; }
+          .mb-16 { margin-bottom: 20px !important; }
+          
+          .gap-8 { gap: 10px !important; }
+          .gap-6 { gap: 8px !important; }
+          .gap-4 { gap: 6px !important; }
+          .gap-3 { gap: 5px !important; }
+          .gap-2 { gap: 4px !important; }
+          
+          /* ปรับขนาดรูป/โลโก้ */
+          .h-20 { height: 50px !important; }
+          
+          /* ลด space ระหว่างบรรทัด */
+          .space-y-4 > * + * { margin-top: 6px !important; }
+          .space-y-3 > * + * { margin-top: 5px !important; }
+          .space-y-2 > * + * { margin-top: 4px !important; }
+          .space-y-1 > * + * { margin-top: 2px !important; }
+          
+          /* ปรับขนาด ordered list */
+          ol, ul { 
+            font-size: 11px !important;
+            line-height: 1.4 !important;
+          }
+          
+          li { margin-bottom: 3px !important; }
+          
+          /* ปรับ table */
+          table { font-size: 11px !important; }
+          td, th { padding: 5px !important; }
         }
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
       `}</style>

@@ -54,6 +54,7 @@ import ActivityLog from './pages/ActivityLog';
 import AllBranchesDashboard from './pages/AllBranchesDashboard';
 import Announcements from './pages/Announcements';
 import BannerManagement from './pages/BannerManagement';
+import BookingReceipt from './pages/BookingReceipt';
 import Bookings from './pages/Bookings';
 import BranchManagement from './pages/BranchManagement';
 import BranchSelection from './pages/BranchSelection';
@@ -63,6 +64,7 @@ import Contracts from './pages/Contracts';
 import CronJobDashboard from './pages/CronJobDashboard';
 import CronJobSettings from './pages/CronJobSettings';
 import CustomTestDataGenerator from './pages/CustomTestDataGenerator';
+import Dashboard from './pages/Dashboard';
 import DataArchive from './pages/DataArchive';
 import DataLists from './pages/DataLists';
 import DeveloperGuide from './pages/DeveloperGuide';
@@ -71,6 +73,7 @@ import FacebookScreencastGuide from './pages/FacebookScreencastGuide';
 import FacebookSetupGuide from './pages/FacebookSetupGuide';
 import FacebookTestDemo from './pages/FacebookTestDemo';
 import Home from './pages/Home';
+import Invoice from './pages/Invoice';
 import LineConnect from './pages/LineConnect';
 import Maintenance from './pages/Maintenance';
 import Materials from './pages/Materials';
@@ -86,6 +89,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import PublicBooking from './pages/PublicBooking';
 import PublicInvoice from './pages/PublicInvoice';
 import PublicReceipt from './pages/PublicReceipt';
+import Receipt from './pages/Receipt';
 import Rooms from './pages/Rooms';
 import Settings from './pages/Settings';
 import SupportTickets from './pages/SupportTickets';
@@ -102,10 +106,6 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import Receipt from './pages/Receipt';
-import Dashboard from './pages/Dashboard';
-import Invoice from './pages/Invoice';
-import BookingReceipt from './pages/BookingReceipt';
 import __Layout from './Layout.jsx';
 
 
@@ -117,6 +117,7 @@ export const PAGES = {
     "AllBranchesDashboard": AllBranchesDashboard,
     "Announcements": Announcements,
     "BannerManagement": BannerManagement,
+    "BookingReceipt": BookingReceipt,
     "Bookings": Bookings,
     "BranchManagement": BranchManagement,
     "BranchSelection": BranchSelection,
@@ -126,6 +127,7 @@ export const PAGES = {
     "CronJobDashboard": CronJobDashboard,
     "CronJobSettings": CronJobSettings,
     "CustomTestDataGenerator": CustomTestDataGenerator,
+    "Dashboard": Dashboard,
     "DataArchive": DataArchive,
     "DataLists": DataLists,
     "DeveloperGuide": DeveloperGuide,
@@ -134,6 +136,7 @@ export const PAGES = {
     "FacebookSetupGuide": FacebookSetupGuide,
     "FacebookTestDemo": FacebookTestDemo,
     "Home": Home,
+    "Invoice": Invoice,
     "LineConnect": LineConnect,
     "Maintenance": Maintenance,
     "Materials": Materials,
@@ -149,6 +152,7 @@ export const PAGES = {
     "PublicBooking": PublicBooking,
     "PublicInvoice": PublicInvoice,
     "PublicReceipt": PublicReceipt,
+    "Receipt": Receipt,
     "Rooms": Rooms,
     "Settings": Settings,
     "SupportTickets": SupportTickets,
@@ -165,10 +169,6 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "Receipt": Receipt,
-    "Dashboard": Dashboard,
-    "Invoice": Invoice,
-    "BookingReceipt": BookingReceipt,
 }
 
 export const pagesConfig = {
