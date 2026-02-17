@@ -830,11 +830,11 @@ export default function BookingReceiptPage() {
           .text-xs { font-size: 8px !important; }
           
           /* ลดระยะห่าง padding */
-          .p-8 { padding: 8px !important; }
-          .p-6 { padding: 6px !important; }
-          .p-4 { padding: 5px !important; }
-          .p-3 { padding: 4px !important; }
-          .p-2 { padding: 3px !important; }
+          .p-8 { padding: 6px !important; }
+          .p-6 { padding: 5px !important; }
+          .p-4 { padding: 4px !important; }
+          .p-3 { padding: 3px !important; }
+          .p-2 { padding: 2px !important; }
           .px-8 { padding-left: 8px !important; padding-right: 8px !important; }
           .px-6 { padding-left: 6px !important; padding-right: 6px !important; }
           .px-4 { padding-left: 5px !important; padding-right: 5px !important; }
