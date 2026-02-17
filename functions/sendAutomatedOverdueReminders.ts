@@ -686,15 +686,19 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
 
             if (lineRecipientsCleaned.length > 0) {
                 try {
-                    const batchResult = await base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
-                        recipients: lineRecipientsCleaned,
-                        options: {
-                            batchSize: 10,
-                            delayBetweenBatches: 2000,
-                            delayBetweenMessages: 200,
-                            retryAttempts: 2
-                        }
-                    });
+                    const batchResult = await retryWithBackoff(
+                        () => base44.asServiceRole.functions.invoke('sendBatchLineMessages', {
+                            recipients: lineRecipientsCleaned,
+                            options: {
+                                batchSize: 10,
+                                delayBetweenBatches: 2000,
+                                delayBetweenMessages: 200,
+                                retryAttempts: 2
+                            }
+                        }),
+                        3, // 3 retries
+                        1000 // 1s base delay
+                    );
 
                     const result = batchResult.data;
                     sentCount += result.success || 0;
@@ -711,8 +715,8 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
 
                     console.log(`✅ LINE: ${result.success}/${lineRecipientsCleaned.length} sent`);
                 } catch (lineError) {
-                    console.error('❌ LINE batch send failed:', lineError);
-                    sendErrors.push(`LINE batch error: ${lineError.message}`);
+                    console.error('❌ LINE batch send failed after 3 retries:', lineError);
+                    sendErrors.push(`LINE batch error (after retries): ${lineError.message}`);
                 }
             }
 
