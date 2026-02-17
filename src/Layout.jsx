@@ -1867,7 +1867,9 @@ export default function Layout({ children, currentPageName }) {
           </div>
 
           {/* Subscription Status Banner - Top */}
-          {renderSubscriptionBanner()}
+          <div className="print:hidden">
+            {renderSubscriptionBanner()}
+          </div>
 
           {/* Desktop Notification Bell */}
           <div className="hidden md:block absolute top-4 right-6 z-40">
