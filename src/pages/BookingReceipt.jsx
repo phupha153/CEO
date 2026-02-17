@@ -769,7 +769,7 @@ export default function BookingReceiptPage() {
           
           @page {
             size: A4;
-            margin: 0;
+            margin: 10mm;
           }
           
           .print\\:hidden {
