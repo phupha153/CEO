@@ -849,17 +849,17 @@ export default function BookingReceiptPage() {
           .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
           
           /* ลดระยะห่าง margin */
-          .mb-8, .mt-8 { margin-bottom: 2px !important; margin-top: 2px !important; }
-          .mb-6, .mt-6 { margin-bottom: 2px !important; margin-top: 2px !important; }
-          .mb-4, .mt-4 { margin-bottom: 1px !important; margin-top: 1px !important; }
-          .mb-3, .mt-3 { margin-bottom: 1px !important; margin-top: 1px !important; }
-          .mb-2, .mt-2 { margin-bottom: 0px !important; margin-top: 0px !important; }
-          .mb-12, .mt-12 { margin-bottom: 2px !important; margin-top: 2px !important; }
-          .mb-16 { margin-bottom: 2px !important; }
+          .mb-8, .mt-8 { margin-bottom: 5px !important; margin-top: 5px !important; }
+          .mb-6, .mt-6 { margin-bottom: 4px !important; margin-top: 4px !important; }
+          .mb-4, .mt-4 { margin-bottom: 3px !important; margin-top: 3px !important; }
+          .mb-3, .mt-3 { margin-bottom: 2px !important; margin-top: 2px !important; }
+          .mb-2, .mt-2 { margin-bottom: 1px !important; margin-top: 1px !important; }
+          .mb-12, .mt-12 { margin-bottom: 5px !important; margin-top: 5px !important; }
+          .mb-16 { margin-bottom: 5px !important; }
           
           /* ลด gap ให้สมดุล */
-          .gap-8 { gap: 8px !important; }
-          .gap-6 { gap: 6px !important; }
+          .gap-8 { gap: 6px !important; }
+          .gap-6 { gap: 5px !important; }
           .gap-4 { gap: 4px !important; }
           .gap-3 { gap: 3px !important; }
           .gap-2 { gap: 2px !important; }
@@ -868,19 +868,19 @@ export default function BookingReceiptPage() {
           .h-20 { height: 40px !important; }
           
           /* space ระหว่างบรรทัด */
-          .space-y-4 > * + * { margin-top: 1px !important; }
-          .space-y-3 > * + * { margin-top: 1px !important; }
-          .space-y-2 > * + * { margin-top: 0px !important; }
-          .space-y-1 > * + * { margin-top: 0px !important; }
+          .space-y-4 > * + * { margin-top: 3px !important; }
+          .space-y-3 > * + * { margin-top: 2px !important; }
+          .space-y-2 > * + * { margin-top: 1px !important; }
+          .space-y-1 > * + * { margin-top: 1px !important; }
           
           /* list */
           ol, ul { 
-            font-size: 10px !important;
-            line-height: 1.2 !important;
+            font-size: 13px !important;
+            line-height: 1.4 !important;
             margin-left: 10px !important;
           }
           
-          li { margin-bottom: 2px !important; }
+          li { margin-bottom: 3px !important; }
           
           /* table */
           table { font-size: 13px !important; }
