@@ -1694,7 +1694,7 @@ export default function Layout({ children, currentPageName }) {
                           <Popover open={showConnectedDataOptions} onOpenChange={setShowConnectedDataOptions}>
                             <PopoverTrigger asChild>
                               <SidebarMenuButton
-                                className="group hover:bg-gradient-to-r hover:from-green-50/80 hover:to-emerald-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white"
+                                className="group hover:bg-gradient-to-r hover:from-green-50/80 hover:to-emerald-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 bg-gradient-to-r from-green-500 to-emerald-500 text-white"
                                 title={item.title}
                               >
                                 <item.icon className="w-5 h-5 flex-shrink-0" />
