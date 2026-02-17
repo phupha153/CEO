@@ -313,8 +313,8 @@ export default function BookingReceiptPage() {
           {/* Content */}
           <div className="px-8 py-6 space-y-6">
             {/* Section 1: Guest Info */}
-            <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-5">
-              <h3 className="font-bold text-lg text-blue-900 mb-4">📋 ข้อมูลผู้จอง</h3>
+            <div className="border-2 border-slate-300 rounded-lg p-5">
+              <h3 className="font-bold text-base text-slate-800 mb-4">ข้อมูลผู้จอง</h3>
               
               {isEditing ? (
                 <div className="space-y-4">
