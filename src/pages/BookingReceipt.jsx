@@ -438,7 +438,7 @@ export default function BookingReceiptPage() {
       <div className="w-full print:w-full p-4 print:p-0 print:space-y-0 print:m-0">
         <div 
           ref={printRef}
-          className="max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:break-after-page p-8 print:p-4 print:max-w-full print:mx-0"
+          className="max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:break-after-page p-8 print:max-w-none print:mx-0 print:p-3"
           style={{ 
             fontFamily: 'TH Sarabun New, Sarabun, sans-serif'
           }}
@@ -764,6 +764,8 @@ export default function BookingReceiptPage() {
             print-color-adjust: exact !important;
             margin: 0 !important;
             padding: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
           }
           
           /* ซ่อน sidebar + header เท่านั้น */
@@ -773,7 +775,7 @@ export default function BookingReceiptPage() {
           
           @page {
             size: A4;
-            margin: 5mm;
+            margin: 0mm;
           }
           
           .print\\:hidden {
