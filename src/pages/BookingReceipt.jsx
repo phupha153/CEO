@@ -435,15 +435,11 @@ export default function BookingReceiptPage() {
       </Dialog>
 
       {/* Receipt Content */}
-      <div className="max-w-4xl mx-auto p-4 print:p-0 print:max-w-none">
+      <div className="max-w-4xl mx-auto p-4 print:p-0 print:max-w-none print:space-y-0">
         <div 
           ref={printRef}
-          className="bg-white shadow-lg print:shadow-none"
+          className="bg-white shadow-lg print:shadow-none print:break-after-page"
           style={{ 
-            width: '210mm', 
-            minHeight: '297mm',
-            padding: '15mm',
-            margin: '0 auto',
             fontFamily: 'TH Sarabun New, Sarabun, sans-serif'
           }}
         >
@@ -762,12 +758,12 @@ export default function BookingReceiptPage() {
             padding: 0 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            font-size: 12px !important;
+            font-size: 11px !important;
           }
           
           @page {
             size: A4;
-            margin: 10mm;
+            margin: 8mm;
           }
           
           .print\\:hidden {
@@ -786,18 +782,21 @@ export default function BookingReceiptPage() {
             padding: 0 !important;
           }
           
-          /* ลบ border-radius ทั้งหมดในโหมดพิมพ์ */
-          .rounded, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-full {
-            border-radius: 4px !important;
+          .print\\:break-after-page {
+            break-after: page;
           }
           
-          /* ปรับขนาดให้เหมาะกับกระดาษ A4 */
-          .bg-white, .bg-slate-100 {
-            background: white !important;
+          .print\\:space-y-0 > * + * {
+            margin-top: 0 !important;
+          }
+          
+          /* ลบ border-radius ทั้งหมด */
+          .rounded, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-full {
+            border-radius: 0 !important;
           }
           
           /* เก็บสีพื้นหลังและกรอบในโหมดพิมพ์ */
-          .bg-blue-600, .bg-blue-800, .bg-blue-700, .bg-blue-50,
+          .bg-white, .bg-blue-600, .bg-blue-800, .bg-blue-700, .bg-blue-50,
           .bg-slate-300, .bg-slate-200, .bg-slate-50,
           .bg-red-50, .bg-green-50,
           .border-slate-300, .border-slate-200, .border-slate-400,
@@ -808,64 +807,68 @@ export default function BookingReceiptPage() {
           }
           
           /* ลดขนาด font ทั้งหมด */
-          h1 { font-size: 22px !important; line-height: 1.2 !important; }
-          h2 { font-size: 18px !important; line-height: 1.2 !important; }
-          h3 { font-size: 15px !important; line-height: 1.3 !important; }
-          .text-3xl { font-size: 20px !important; }
-          .text-2xl { font-size: 17px !important; }
-          .text-xl { font-size: 15px !important; }
-          .text-lg { font-size: 13px !important; }
-          .text-base, p, span, td, th, li { font-size: 11px !important; }
-          .text-sm { font-size: 10px !important; }
-          .text-xs { font-size: 9px !important; }
+          h1 { font-size: 18px !important; line-height: 1.1 !important; }
+          h2 { font-size: 15px !important; line-height: 1.1 !important; }
+          h3 { font-size: 13px !important; line-height: 1.2 !important; }
+          .text-3xl { font-size: 16px !important; }
+          .text-2xl { font-size: 14px !important; }
+          .text-xl { font-size: 12px !important; }
+          .text-lg { font-size: 11px !important; }
+          .text-base, p, span, td, th, li { font-size: 10px !important; }
+          .text-sm { font-size: 9px !important; }
+          .text-xs { font-size: 8px !important; }
           
-          /* ลดระยะห่าง padding/margin */
-          .p-8 { padding: 12px !important; }
-          .p-6 { padding: 10px !important; }
-          .p-4 { padding: 8px !important; }
-          .p-3 { padding: 6px !important; }
-          .p-2 { padding: 4px !important; }
-          .px-8 { padding-left: 12px !important; padding-right: 12px !important; }
-          .px-6 { padding-left: 10px !important; padding-right: 10px !important; }
-          .px-4 { padding-left: 8px !important; padding-right: 8px !important; }
-          .py-6 { padding-top: 10px !important; padding-bottom: 10px !important; }
-          .py-4 { padding-top: 8px !important; padding-bottom: 8px !important; }
-          .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
+          /* ลดระยะห่าง padding */
+          .p-8 { padding: 8px !important; }
+          .p-6 { padding: 6px !important; }
+          .p-4 { padding: 5px !important; }
+          .p-3 { padding: 4px !important; }
+          .p-2 { padding: 3px !important; }
+          .px-8 { padding-left: 8px !important; padding-right: 8px !important; }
+          .px-6 { padding-left: 6px !important; padding-right: 6px !important; }
+          .px-4 { padding-left: 5px !important; padding-right: 5px !important; }
+          .py-6 { padding-top: 6px !important; padding-bottom: 6px !important; }
+          .py-4 { padding-top: 5px !important; padding-bottom: 5px !important; }
+          .py-2 { padding-top: 3px !important; padding-bottom: 3px !important; }
           
-          .mb-8, .mt-8 { margin-bottom: 10px !important; margin-top: 10px !important; }
-          .mb-6, .mt-6 { margin-bottom: 8px !important; margin-top: 8px !important; }
-          .mb-4, .mt-4 { margin-bottom: 6px !important; margin-top: 6px !important; }
-          .mb-3, .mt-3 { margin-bottom: 5px !important; margin-top: 5px !important; }
-          .mb-2, .mt-2 { margin-bottom: 4px !important; margin-top: 4px !important; }
-          .mb-12, .mt-12 { margin-bottom: 14px !important; margin-top: 14px !important; }
-          .mb-16 { margin-bottom: 20px !important; }
+          /* ลดระยะห่าง margin */
+          .mb-8, .mt-8 { margin-bottom: 6px !important; margin-top: 6px !important; }
+          .mb-6, .mt-6 { margin-bottom: 5px !important; margin-top: 5px !important; }
+          .mb-4, .mt-4 { margin-bottom: 3px !important; margin-top: 3px !important; }
+          .mb-3, .mt-3 { margin-bottom: 2px !important; margin-top: 2px !important; }
+          .mb-2, .mt-2 { margin-bottom: 2px !important; margin-top: 2px !important; }
+          .mb-12, .mt-12 { margin-bottom: 8px !important; margin-top: 8px !important; }
+          .mb-16 { margin-bottom: 10px !important; }
           
-          .gap-8 { gap: 10px !important; }
-          .gap-6 { gap: 8px !important; }
-          .gap-4 { gap: 6px !important; }
-          .gap-3 { gap: 5px !important; }
-          .gap-2 { gap: 4px !important; }
+          /* ลด gap */
+          .gap-8 { gap: 6px !important; }
+          .gap-6 { gap: 5px !important; }
+          .gap-4 { gap: 4px !important; }
+          .gap-3 { gap: 3px !important; }
+          .gap-2 { gap: 2px !important; }
           
-          /* ปรับขนาดรูป/โลโก้ */
-          .h-20 { height: 50px !important; }
+          /* ลดขนาดรูป */
+          .h-20 { height: 40px !important; }
           
-          /* ลด space ระหว่างบรรทัด */
-          .space-y-4 > * + * { margin-top: 6px !important; }
-          .space-y-3 > * + * { margin-top: 5px !important; }
-          .space-y-2 > * + * { margin-top: 4px !important; }
-          .space-y-1 > * + * { margin-top: 2px !important; }
+          /* space ระหว่างบรรทัด */
+          .space-y-4 > * + * { margin-top: 3px !important; }
+          .space-y-3 > * + * { margin-top: 2px !important; }
+          .space-y-2 > * + * { margin-top: 2px !important; }
+          .space-y-1 > * + * { margin-top: 1px !important; }
           
-          /* ปรับขนาด ordered list */
+          /* list */
           ol, ul { 
-            font-size: 11px !important;
-            line-height: 1.4 !important;
+            font-size: 10px !important;
+            line-height: 1.2 !important;
+            margin-left: 10px !important;
           }
           
-          li { margin-bottom: 3px !important; }
+          li { margin-bottom: 2px !important; }
           
-          /* ปรับ table */
-          table { font-size: 11px !important; }
-          td, th { padding: 5px !important; }
+          /* table */
+          table { font-size: 10px !important; }
+          td, th { padding: 3px !important; line-height: 1.1 !important; }
+          tr { page-break-inside: avoid !important; }
         }
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
       `}</style>
