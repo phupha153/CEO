@@ -818,16 +818,16 @@ export default function BookingReceiptPage() {
           }
           
           /* ลดขนาด font ทั้งหมด */
-          h1 { font-size: 18px !important; line-height: 1.1 !important; }
-          h2 { font-size: 15px !important; line-height: 1.1 !important; }
-          h3 { font-size: 13px !important; line-height: 1.2 !important; }
-          .text-3xl { font-size: 16px !important; }
-          .text-2xl { font-size: 14px !important; }
-          .text-xl { font-size: 12px !important; }
-          .text-lg { font-size: 11px !important; }
-          .text-base, p, span, td, th, li { font-size: 10px !important; }
-          .text-sm { font-size: 9px !important; }
-          .text-xs { font-size: 8px !important; }
+           h1 { font-size: 14px !important; line-height: 1 !important; }
+           h2 { font-size: 12px !important; line-height: 1 !important; }
+           h3 { font-size: 11px !important; line-height: 1 !important; }
+           .text-3xl { font-size: 12px !important; }
+           .text-2xl { font-size: 11px !important; }
+           .text-xl { font-size: 10px !important; }
+           .text-lg { font-size: 9px !important; }
+           .text-base, p, span, td, th, li { font-size: 8.5px !important; }
+           .text-sm { font-size: 8px !important; }
+           .text-xs { font-size: 7px !important; }
           
           /* ลดระยะห่าง padding */
           .p-8 { padding: 8px !important; }
