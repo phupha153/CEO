@@ -22,6 +22,7 @@ export default function AddTenantDialog({
     phone: '',
     address: '',
     national_id: '',
+    parking_fee_amount: ''
   });
   const [bookings, setBookings] = useState([]);
   const [vehicles, setVehicles] = useState([]);
@@ -34,6 +35,7 @@ export default function AddTenantDialog({
         phone: aiData.phone || '',
         address: aiData.address || '',
         national_id: aiData.national_id || '',
+        parking_fee_amount: aiData.parking_fee_amount || ''
       });
       
       // ถ้า AI ส่ง room_numbers มา (หลายห้อง) ให้สร้าง bookings array
@@ -222,6 +224,17 @@ export default function AddTenantDialog({
                 placeholder="123 ถนน..."
                 rows={2}
               />
+            </div>
+
+            <div>
+              <Label>ค่าที่จอดรถรายเดือน (บาท)</Label>
+              <Input
+                type="number"
+                value={formData.parking_fee_amount}
+                onChange={(e) => setFormData({ ...formData, parking_fee_amount: e.target.value })}
+                placeholder="0"
+              />
+              <p className="text-xs text-slate-500 mt-1">ค่าจอดรถต่อเดือน (ถ้ามี)</p>
             </div>
           </div>
 
