@@ -707,32 +707,35 @@ export default function BookingReceiptPage() {
           </div>
 
           {/* Required Documents */}
-          <div className="mb-2 bg-blue-50 p-2 rounded border border-blue-200">
-            <h3 className="font-bold text-sm text-blue-900 mb-1">📋 เอกสารที่ต้องนำมา</h3>
-            <ol className="list-decimal list-inside text-[11px] space-y-0.5 pl-1">
+          <div className="mb-2.5 bg-blue-50 p-3 rounded border-2 border-blue-300">
+            <h3 className="font-bold text-sm text-blue-900 mb-2">📋 เอกสารที่ต้องเตรียม</h3>
+            <ol className="list-decimal list-inside text-[12px] space-y-1 pl-1">
               <li>บัตรประชาชน ตัวจริง + สำเนา (3 ชุด) ของผู้เช่าและผู้อาศัยทั้งหมด</li>
-              <li>ใบเสร็จรับเงิน/หลักฐานการโอนเงิน</li>
-              <li>สำเนาหนังสือเดินทาง (หากเป็นชาวต่างประเทศ)</li>
-              <li><span className="font-bold">ต้องทำสัญญาเช่าและชำระเงินให้ครบถ้วน ภายในวันที่ <span className="text-red-700 text-sm">{formatThaiDate(contractDeadline || checkInDate)}</span></span></li>
+              <li>สำเนาสมุดบัญชีธนาคาร (หน้าแรก)</li>
+              <li>หนังสือขอมติจากสหกรณ์ (หากมี)</li>
             </ol>
           </div>
 
           {/* Important Notes - Legal */}
-          <div className="mb-1.5 border-2 border-red-400 bg-red-50 p-2.5 rounded">
-            <h3 className="font-bold text-red-700 text-sm mb-1.5">⚠️ หมายเหตุสำคัญ (ตามกฏหมาย)</h3>
-            <div className="text-[11px] leading-relaxed space-y-1.5 text-slate-800">
-              <p>
-                <span className="font-semibold">1. เงินจองห้อง</span><br/>
-                เงินจองเป็นส่วนหักลดหย่อมมัดจำ/ค่าใช้จ่ายอื่นๆ เมื่อทำสัญญาเช่า หากผู้จองสละสิทธิ์ไม่ทำสัญญา ผู้ให้เช่ามีสิทธิ์ไม่คืนเงินจองตามกฏหมาย
-              </p>
-              <p>
-                <span className="font-semibold">2. กำหนดทำสัญญา</span><br/>
-                หากผู้จองไม่มาทำสัญญาเช่า หรือ ไม่ชำระเงินค่าใช้จ่ายอื่นๆ ให้ครบถ้วน ภายในวันที่ <span className="text-red-700 font-bold">{formatThaiDate(contractDeadline || checkInDate)}</span> ให้ถือว่าสละสิทธิ์ และผู้ให้เช่ามีสิทธิ์ริบเงินจองทั้งจำนวน
-              </p>
-              <p>
-                <span className="font-semibold">3. การเข้าพัก</span><br/>
-                ผู้เช่าสามารถเข้าพักได้หลังจากทำสัญญาเช่าและชำระเงินค่าใช้จ่ายทั้งหมดแล้วเท่านั้น
-              </p>
+          <div className="mb-0 border-2 border-red-500 bg-red-50 p-3 rounded">
+            <h3 className="font-bold text-red-800 text-sm mb-2.5">⚠️ เงื่อนไขสำคัญและกำหนดเวลา (ตามกฏหมายไทย)</h3>
+            <div className="text-[12px] leading-relaxed space-y-2 text-slate-900">
+              <div className="border-l-4 border-red-600 pl-3 py-1.5 bg-red-100 rounded-r">
+                <p className="font-bold text-red-700 mb-1">🔴 ต้องทำสัญญาเช่าและชำระเงินค่าใช้จ่ายครบถ้วนภายในวันที่:</p>
+                <p className="text-lg font-bold text-red-800 bg-white px-3 py-2 rounded mt-1">{formatThaiDate(contractDeadline || checkInDate)}</p>
+              </div>
+              <div>
+                <p className="font-semibold text-slate-900 mb-1">1. เงินจองห้อง</p>
+                <p className="text-[11px] text-slate-800 leading-relaxed">เงินจองจะถูกหักจากค่าใช้จ่ายต่างๆ (มัดจำ ค่าเช่าล่วงหน้า ส่วนกลาง) เมื่อทำสัญญาเช่าแล้ว</p>
+              </div>
+              <div>
+                <p className="font-semibold text-slate-900 mb-1">2. สละสิทธิ์ - ไม่คืนเงิน</p>
+                <p className="text-[11px] text-slate-800 leading-relaxed">หากผู้จองไม่มาทำสัญญาเช่า หรือไม่ชำระเงินค่าใช้จ่ายให้ครบถ้วนภายในวันกำหนด ผู้จองจะถือว่าสละสิทธิ์ และผู้ให้เช่ามีสิทธิ์ <span className="font-bold text-red-700">ริบเงินจองทั้งจำนวนตามกฏหมายการเช่า</span></p>
+              </div>
+              <div>
+                <p className="font-semibold text-slate-900 mb-1">3. เข้าพักได้เมื่อ</p>
+                <p className="text-[11px] text-slate-800 leading-relaxed">ผู้เช่าสามารถเข้าพักได้เฉพาะหลังจากทำสัญญาเช่า ตรวจสอบห้องแล้ว และชำระเงินค่าใช้จ่ายทั้งหมดเรียบร้อยเท่านั้น</p>
+              </div>
             </div>
           </div>
 
