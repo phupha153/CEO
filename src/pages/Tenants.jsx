@@ -107,22 +107,23 @@ export default function TenantsPage() {
   const itemsPerPage = 50;
 
   const [formData, setFormData] = useState({
-    full_name: '',
-    phone: '',
-    gender: '',
-    age: '',
-    line_id: '',
-    national_id: '',
-    email: '',
-    address: '',
-    emergency_contact: '',
-    id_card_image: '',
-    vehicles: [],
-    notes: '',
-    create_booking: false,
-    room_id: '',
-    check_in_date: '',
-    deposit_amount: ''
+    full_name: '',
+    phone: '',
+    gender: '',
+    age: '',
+    line_id: '',
+    national_id: '',
+    email: '',
+    address: '',
+    emergency_contact: '',
+    id_card_image: '',
+    vehicles: [],
+    parking_fee_amount: '',
+    notes: '',
+    create_booking: false,
+    room_id: '',
+    check_in_date: '',
+    deposit_amount: ''
   });
 
   const [newVehicle, setNewVehicle] = useState({
@@ -639,17 +640,18 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     mutationFn: async (data) => {
       if (!canAdd) throw new Error('คุณไม่มีสิทธิ์เพิ่มผู้เช่า');
       const tenantData = {
-        full_name: data.full_name,
-        phone: data.phone,
-        line_id: data.line_id,
-        national_id: data.national_id,
-        email: data.email,
-        address: data.address,
-        emergency_contact: data.emergency_contact,
-        id_card_image: data.id_card_image,
-        vehicles: data.vehicles,
-        notes: data.notes,
-        branch_id: selectedBranchId
+        full_name: data.full_name,
+        phone: data.phone,
+        line_id: data.line_id,
+        national_id: data.national_id,
+        email: data.email,
+        address: data.address,
+        emergency_contact: data.emergency_contact,
+        id_card_image: data.id_card_image,
+        vehicles: data.vehicles,
+        parking_fee_amount: data.parking_fee_amount ? parseFloat(data.parking_fee_amount) : 0,
+        notes: data.notes,
+        branch_id: selectedBranchId
       };
 
       const tenant = await base44.entities.Tenant.create(tenantData);
@@ -1425,6 +1427,7 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
     emergency_contact: formData.emergency_contact,
     id_card_image: formData.id_card_image,
     vehicles: formData.vehicles,
+    parking_fee_amount: formData.parking_fee_amount ? parseFloat(formData.parking_fee_amount) : 0,
     notes: formData.notes
     };
 
@@ -1487,24 +1490,25 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
 
     setEditingTenant(tenant);
     setFormData({
-      full_name: tenant.full_name || '',
-      phone: tenant.phone || '',
-      gender: tenant.gender || '',
-      age: tenant.age?.toString() || '',
-      line_id: tenant.line_id || '',
-      national_id: tenant.national_id || '',
-      email: tenant.email || '',
-      address: tenant.address || '',
-      emergency_contact: tenant.emergency_contact || '',
-      id_card_image: tenant.id_card_image || '',
-      vehicles: tenant.vehicles || [],
-      notes: tenant.notes || '',
-      create_booking: false,
-      room_id: '',
-      check_in_date: '',
-      check_out_date: '',
-      deposit_amount: '',
-      payment_timing: 'stay_first'
+      full_name: tenant.full_name || '',
+      phone: tenant.phone || '',
+      gender: tenant.gender || '',
+      age: tenant.age?.toString() || '',
+      line_id: tenant.line_id || '',
+      national_id: tenant.national_id || '',
+      email: tenant.email || '',
+      address: tenant.address || '',
+      emergency_contact: tenant.emergency_contact || '',
+      id_card_image: tenant.id_card_image || '',
+      vehicles: tenant.vehicles || [],
+      parking_fee_amount: tenant.parking_fee_amount?.toString() || '',
+      notes: tenant.notes || '',
+      create_booking: false,
+      room_id: '',
+      check_in_date: '',
+      check_out_date: '',
+      deposit_amount: '',
+      payment_timing: 'stay_first'
     });
     setShowDialog(true);
   };
@@ -1542,24 +1546,25 @@ ${JSON.stringify(paymentsData.slice(0, 30), null, 2)}
   const resetForm = () => {
     setEditingTenant(null);
     setFormData({
-      full_name: '',
-      phone: '',
-      gender: '',
-      age: '',
-      line_id: '',
-      national_id: '',
-      email: '',
-      address: '',
-      emergency_contact: '',
-      id_card_image: '',
-      vehicles: [],
-      notes: '',
-      create_booking: false,
-      room_id: '',
-      check_in_date: '',
-      check_out_date: '',
-      deposit_amount: '',
-      payment_timing: 'stay_first'
+      full_name: '',
+      phone: '',
+      gender: '',
+      age: '',
+      line_id: '',
+      national_id: '',
+      email: '',
+      address: '',
+      emergency_contact: '',
+      id_card_image: '',
+      vehicles: [],
+      parking_fee_amount: '',
+      notes: '',
+      create_booking: false,
+      room_id: '',
+      check_in_date: '',
+      check_out_date: '',
+      deposit_amount: '',
+      payment_timing: 'stay_first'
     });
     setNewVehicle({ type: 'car', plate: '', brand: '' });
   };
@@ -4426,12 +4431,23 @@ const tenantSchema = {
                 </div>
 
                 <div>
-                  <Label>หมายเหตุ</Label>
-                  <Textarea
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    rows={2}
-                  />
+                  <Label>ค่าที่จอดรถรายเดือน (บาท)</Label>
+                  <Input
+                    type="number"
+                    value={formData.parking_fee_amount}
+                    onChange={(e) => setFormData({ ...formData, parking_fee_amount: e.target.value })}
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-slate-500 mt-1">ค่าจอดรถต่อเดือน (ถ้ามี)</p>
+                </div>
+
+                <div>
+                  <Label>หมายเหตุ</Label>
+                  <Textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows={2}
+                  />
                 </div>
 
                 {!editingTenant && canAddContract && (
