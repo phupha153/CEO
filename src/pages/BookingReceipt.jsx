@@ -450,7 +450,7 @@ export default function BookingReceiptPage() {
         >
           {/* Copy Watermark */}
           {isCopy && (
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-blue-200 text-9xl font-bold rotate-[-30deg] opacity-30 pointer-events-none print:opacity-20">
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-blue-200 text-8xl font-bold rotate-[-30deg] opacity-25 pointer-events-none print:opacity-20">
               สำเนา
             </div>
           )}
