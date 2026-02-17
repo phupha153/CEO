@@ -408,11 +408,11 @@ export default function Invoice() {
       </div>
 
       {/* Invoice Content - ปรับให้พอดี A4 */}
-      <div className="invoice-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px]">
+      <div className="invoice-container mx-auto p-1 md:p-4 print:p-0 max-w-[380px] md:max-w-[800px]">
         <div className="invoice-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden" ref={invoiceRef}>
-          <div className="p-2 md:p-6 print:p-4">
+          <div className="p-1.5 md:p-4 print:p-3">
             {/* Header Section */}
-            <div className="mb-1.5 md:mb-3 pb-1.5 md:pb-2 border-b border-slate-200">
+            <div className="mb-1 md:mb-2 pb-1 md:pb-1.5 border-b border-slate-200">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-1 md:gap-1.5">
                   <img
@@ -436,7 +436,7 @@ export default function Invoice() {
               </div>
               
               {/* ข้อมูลบริษัทใต้โลโก้ */}
-              <div className="text-[8px] md:text-[10px] text-slate-600 mt-1 md:mt-1.5 space-y-0">
+              <div className="text-[7.5px] md:text-[9px] text-slate-600 mt-0.5 md:mt-1 space-y-0 leading-tight">
                 {invoiceData.recipient?.company_name ? (
                   <>
                     <p className="font-medium text-slate-800">{invoiceData.recipient.company_name}</p>
@@ -462,7 +462,7 @@ export default function Invoice() {
             </div>
 
             {/* Invoice Info */}
-            <div className="grid grid-cols-2 gap-1.5 md:gap-2 mb-1.5 md:mb-3 p-1.5 md:p-2 bg-slate-50 rounded">
+            <div className="grid grid-cols-2 gap-1 md:gap-1.5 mb-1 md:mb-2 p-1 md:p-1.5 bg-slate-50 rounded">
               <div>
                 <p className="text-[8px] md:text-[9px] text-slate-500 mb-0 md:mb-0.5">เลขที่ใบแจ้งหนี้</p>
                 <p className="font-bold text-[10px] md:text-sm text-slate-800">{invoiceNumber}</p>
@@ -476,7 +476,7 @@ export default function Invoice() {
 
 
             {/* Payer & Payee Info */}
-            <div className="grid grid-cols-2 gap-1 md:gap-2 mb-1.5 md:mb-3">
+            <div className="grid grid-cols-2 gap-1 md:gap-1.5 mb-1 md:mb-2">
               {/* ผู้รับเงิน */}
               <div className="border border-slate-200 rounded p-1 md:p-1.5">
                 <h3 className="font-semibold text-slate-700 text-[8px] md:text-[9px] mb-0.5">ผู้รับเงิน</h3>
@@ -509,8 +509,8 @@ export default function Invoice() {
             </div>
 
             {/* Invoice Items Table */}
-            <div className="mb-1.5 md:mb-3">
-              <table className="w-full text-[8px] md:text-xs border-collapse">
+            <div className="mb-1 md:mb-2">
+              <table className="w-full text-[7.5px] md:text-[9px] border-collapse">
                 <thead>
                   <tr className="bg-slate-100 border-b border-slate-300">
                     <th className="text-left py-0.5 md:py-1.5 px-1 md:px-1.5 font-bold text-slate-700 w-5 md:w-10">ลำดับ</th>
@@ -533,7 +533,7 @@ export default function Invoice() {
             </div>
 
             {/* Total Amount & Stamp */}
-            <div className="mb-1.5 md:mb-3 border-t border-slate-300 pt-1.5 md:pt-2">
+            <div className="mb-1 md:mb-1.5 border-t border-slate-300 pt-1 md:pt-1.5">
               <div className="flex justify-between items-center gap-2">
                 <div className="text-[8px] md:text-xs text-slate-600">
                   <span className="font-medium">ยอดเงินสุทธิ</span>
@@ -562,7 +562,7 @@ export default function Invoice() {
             </div>
 
             {/* Payment Method & Notes - แบบเรียบง่าย */}
-            <div className="mb-1.5 md:mb-2 text-[7px] md:text-[8px] text-slate-500 leading-tight">
+            <div className="mb-1 md:mb-1.5 text-[7px] md:text-[8px] text-slate-500 leading-tight">
               <span className="font-medium text-slate-600">ชำระผ่าน:</span> {invoiceData.bank?.name || '-'}
               {invoiceData.bank?.account_number && (
                 <span> | {invoiceData.bank.account_number}</span>
@@ -573,7 +573,7 @@ export default function Invoice() {
             </div>
 
             {/* Signature Section */}
-            <div className="grid grid-cols-3 gap-1 md:gap-2 mt-1.5 md:mt-3 pt-1.5 md:pt-2 border-t border-slate-200">
+            <div className="grid grid-cols-3 gap-0.5 md:gap-1 mt-1 md:mt-2 pt-1 md:pt-1.5 border-t border-slate-200">
               <div className="text-center">
                 <div className="h-4 md:h-8 border-b border-slate-300 mb-0.5"></div>
                 <p className="text-[7px] md:text-[8px] text-slate-600">ผู้จัดทำ</p>
@@ -589,8 +589,8 @@ export default function Invoice() {
             </div>
 
             {/* Footer */}
-            <div className="pt-1 md:pt-2 text-center">
-              <p className="text-[7px] md:text-[8px] text-slate-500">ขอบคุณที่ใช้บริการ <span className="hidden md:inline text-[7px]">{invoiceData.recipient?.building_name || buildingName}</span></p>
+            <div className="pt-0.5 md:pt-1 text-center">
+              <p className="text-[7px] text-slate-500">ขอบคุณที่ใช้บริการ <span className="hidden md:inline">{invoiceData.recipient?.building_name || buildingName}</span></p>
             </div>
           </div>
         </div>
