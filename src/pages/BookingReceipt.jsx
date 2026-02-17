@@ -439,7 +439,7 @@ export default function BookingReceiptPage() {
       </Dialog>
 
       {/* Receipt Content */}
-      <div className="booking-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px]">
+      <div className="booking-container mx-auto p-2 md:p-4 lg:p-8 print:p-0 w-full md:w-auto md:max-w-[900px]">
         <div 
           ref={printRef}
           className="booking-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden"
@@ -802,7 +802,6 @@ export default function BookingReceiptPage() {
         /* สำหรับหน้าจอ - ให้เห็นเป็น A4 */
         @media screen {
           .booking-container {
-            max-width: 800px;
             width: 100%;
           }
         }
