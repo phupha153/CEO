@@ -441,10 +441,13 @@ export default function BookingReceiptPage() {
           className="bg-white shadow-lg print:shadow-none"
           style={{ 
             width: '210mm', 
-            minHeight: '297mm',
-            padding: '15mm',
+            height: '297mm',
+            padding: '20mm',
             margin: '0 auto',
-            fontFamily: 'TH Sarabun New, Sarabun, sans-serif'
+            fontFamily: 'TH Sarabun New, Sarabun, sans-serif',
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column'
           }}
         >
           {/* Copy Watermark */}
@@ -454,15 +457,11 @@ export default function BookingReceiptPage() {
             </div>
           )}
 
-          {/* Header with Stamp */}
+          {/* Header with Logo */}
           <div className="text-center mb-6 relative">
-            <div className="inline-block bg-blue-600 text-white px-6 py-2 text-lg font-bold">
-              {isCopy ? 'สำเนา' : 'ต้นฉบับ'}
-            </div>
-            
             {/* Logo */}
             {buildingLogo && (
-              <div className="mt-4">
+              <div className="mb-4">
                 <img 
                   src={buildingLogo} 
                   alt={buildingName}
@@ -471,7 +470,7 @@ export default function BookingReceiptPage() {
               </div>
             )}
             
-            <h1 className="text-3xl font-bold text-blue-800 mt-2">{buildingName}</h1>
+            <h1 className="text-3xl font-bold text-blue-800">{buildingName}</h1>
             
             {buildingAddress && (
               <p className="text-sm text-slate-600 mt-1">{buildingAddress}</p>

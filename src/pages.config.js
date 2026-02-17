@@ -54,7 +54,6 @@ import ActivityLog from './pages/ActivityLog';
 import AllBranchesDashboard from './pages/AllBranchesDashboard';
 import Announcements from './pages/Announcements';
 import BannerManagement from './pages/BannerManagement';
-import BookingReceipt from './pages/BookingReceipt';
 import Bookings from './pages/Bookings';
 import BranchManagement from './pages/BranchManagement';
 import BranchSelection from './pages/BranchSelection';
@@ -93,6 +92,7 @@ import Receipt from './pages/Receipt';
 import Rooms from './pages/Rooms';
 import Settings from './pages/Settings';
 import SupportTickets from './pages/SupportTickets';
+import Tenants from './pages/Tenants';
 import TestInvoiceGeneration from './pages/TestInvoiceGeneration';
 import TestLine from './pages/TestLine';
 import TestingAdmin from './pages/TestingAdmin';
@@ -105,7 +105,7 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
-import Tenants from './pages/Tenants';
+import BookingReceipt from './pages/BookingReceipt';
 import __Layout from './Layout.jsx';
 
 
@@ -117,7 +117,6 @@ export const PAGES = {
     "AllBranchesDashboard": AllBranchesDashboard,
     "Announcements": Announcements,
     "BannerManagement": BannerManagement,
-    "BookingReceipt": BookingReceipt,
     "Bookings": Bookings,
     "BranchManagement": BranchManagement,
     "BranchSelection": BranchSelection,
@@ -156,6 +155,7 @@ export const PAGES = {
     "Rooms": Rooms,
     "Settings": Settings,
     "SupportTickets": SupportTickets,
+    "Tenants": Tenants,
     "TestInvoiceGeneration": TestInvoiceGeneration,
     "TestLine": TestLine,
     "TestingAdmin": TestingAdmin,
@@ -168,7 +168,7 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
-    "Tenants": Tenants,
+    "BookingReceipt": BookingReceipt,
 }
 
 export const pagesConfig = {
