@@ -339,7 +339,7 @@ export default function BookingReceiptPage() {
   return (
     <div className="min-h-screen bg-slate-100">
       {/* Print Controls - Hidden on print */}
-      <div className="print:hidden bg-white border-b shadow-sm sticky top-0 z-50">
+      <div className="print:hidden print:fixed print:hidden bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <Button variant="ghost" onClick={() => navigate(createPageUrl('Bookings'))}>
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -435,7 +435,7 @@ export default function BookingReceiptPage() {
       </Dialog>
 
       {/* Receipt Content */}
-      <div className="max-w-4xl mx-auto p-4 print:p-0 print:max-w-none print:space-y-0">
+      <div className="w-full print:w-full p-4 print:p-0 print:space-y-0">
         <div 
           ref={printRef}
           className="bg-white shadow-lg print:shadow-none print:break-after-page"
@@ -766,8 +766,10 @@ export default function BookingReceiptPage() {
             margin: 8mm;
           }
           
-          .print\\:hidden {
+          .print\\:hidden, .print\\:fixed {
             display: none !important;
+            position: static !important;
+            visibility: hidden !important;
           }
           
           .print\\:shadow-none, .shadow-lg, .shadow-sm, .shadow-xl, .shadow-2xl {
