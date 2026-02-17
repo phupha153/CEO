@@ -410,33 +410,33 @@ export default function Invoice() {
       {/* Invoice Content - ปรับให้พอดี A4 */}
       <div className="invoice-container mx-auto p-2 md:p-8 print:p-0 max-w-[380px] md:max-w-[800px]">
         <div className="invoice-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden" ref={invoiceRef}>
-          <div className="p-3 md:p-8 print:p-5">
+          <div className="p-2 md:p-6 print:p-4">
             {/* Header Section */}
-            <div className="mb-2 md:mb-4 pb-2 md:pb-3 border-b border-slate-200">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-1.5 md:gap-2">
+            <div className="mb-1.5 md:mb-3 pb-1.5 md:pb-2 border-b border-slate-200">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-1 md:gap-1.5">
                   <img
                     src={buildingLogo}
                     alt={`${buildingName} Logo`}
-                    className="w-7 h-7 md:w-10 md:h-10 object-contain"
+                    className="w-6 h-6 md:w-8 md:h-8 object-contain"
                     onError={(e) => {
                       e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
                     }}
                   />
-                  <h1 className="text-sm md:text-lg font-bold text-slate-800">{buildingName}</h1>
+                  <h1 className="text-xs md:text-base font-bold text-slate-800">{buildingName}</h1>
                 </div>
                 <div className="text-right">
-                  <h2 className="text-sm md:text-lg font-bold text-orange-600">
+                  <h2 className="text-xs md:text-base font-bold text-orange-600">
                     ใบแจ้งหนี้
                   </h2>
-                  <p className="text-[9px] md:text-xs text-orange-600">
+                  <p className="text-[8px] md:text-[10px] text-orange-600">
                     Invoice
                   </p>
                 </div>
               </div>
               
               {/* ข้อมูลบริษัทใต้โลโก้ */}
-              <div className="text-[9px] md:text-xs text-slate-600 mt-1.5 md:mt-2 space-y-0 md:space-y-0.5">
+              <div className="text-[8px] md:text-[10px] text-slate-600 mt-1 md:mt-1.5 space-y-0">
                 {invoiceData.recipient?.company_name ? (
                   <>
                     <p className="font-medium text-slate-800">{invoiceData.recipient.company_name}</p>
@@ -462,25 +462,25 @@ export default function Invoice() {
             </div>
 
             {/* Invoice Info */}
-            <div className="grid grid-cols-2 gap-2 md:gap-3 mb-2 md:mb-5 p-2 md:p-3 bg-slate-50 rounded-lg">
+            <div className="grid grid-cols-2 gap-1.5 md:gap-2 mb-1.5 md:mb-3 p-1.5 md:p-2 bg-slate-50 rounded">
               <div>
-                <p className="text-[9px] md:text-xs text-slate-500 mb-0.5 md:mb-1">เลขที่ใบแจ้งหนี้</p>
-                <p className="font-bold text-[11px] md:text-base text-slate-800">{invoiceNumber}</p>
+                <p className="text-[8px] md:text-[9px] text-slate-500 mb-0 md:mb-0.5">เลขที่ใบแจ้งหนี้</p>
+                <p className="font-bold text-[10px] md:text-sm text-slate-800">{invoiceNumber}</p>
               </div>
               <div className="text-right">
-                <p className="text-[9px] md:text-xs text-slate-500 mb-0.5 md:mb-1">วันครบกำหนด</p>
-                <p className="font-bold text-[11px] md:text-base text-slate-800">{dueDate}</p>
+                <p className="text-[8px] md:text-[9px] text-slate-500 mb-0 md:mb-0.5">วันครบกำหนด</p>
+                <p className="font-bold text-[10px] md:text-sm text-slate-800">{dueDate}</p>
               </div>
             </div>
 
 
 
             {/* Payer & Payee Info */}
-            <div className="grid grid-cols-2 gap-1.5 md:gap-3 mb-2 md:mb-4">
+            <div className="grid grid-cols-2 gap-1 md:gap-2 mb-1.5 md:mb-3">
               {/* ผู้รับเงิน */}
-              <div className="border border-slate-200 rounded p-1.5 md:p-2">
-                <h3 className="font-semibold text-slate-700 text-[9px] md:text-xs mb-0.5 md:mb-1">ผู้รับเงิน</h3>
-                <div className="text-[8px] md:text-xs text-slate-600 space-y-0 md:space-y-0.5">
+              <div className="border border-slate-200 rounded p-1 md:p-1.5">
+                <h3 className="font-semibold text-slate-700 text-[8px] md:text-[9px] mb-0.5">ผู้รับเงิน</h3>
+                <div className="text-[7px] md:text-[8px] text-slate-600 space-y-0">
                   {invoiceData.recipient?.company_name ? (
                     <>
                       <p className="font-medium text-slate-800">{invoiceData.recipient.company_name}</p>
@@ -498,9 +498,9 @@ export default function Invoice() {
               </div>
 
               {/* ผู้จ่ายเงิน */}
-              <div className="border border-slate-200 rounded p-1.5 md:p-2">
-                <h3 className="font-semibold text-slate-700 text-[9px] md:text-xs mb-0.5 md:mb-1">ผู้จ่ายเงิน</h3>
-                <div className="text-[8px] md:text-xs text-slate-600 space-y-0 md:space-y-0.5">
+              <div className="border border-slate-200 rounded p-1 md:p-1.5">
+                <h3 className="font-semibold text-slate-700 text-[8px] md:text-[9px] mb-0.5">ผู้จ่ายเงิน</h3>
+                <div className="text-[7px] md:text-[8px] text-slate-600 space-y-0">
                   <p className="font-medium text-slate-800">{invoiceData.tenant?.full_name || 'ไม่ระบุ'}</p>
                   <p>ห้อง: {invoiceData.room?.room_number || 'N/A'} | โทร: {invoiceData.tenant?.phone || 'ไม่ระบุ'}</p>
                   <p>ที่อยู่: {invoiceData.tenant?.address && invoiceData.tenant.address !== 'ไม่ระบุ' && invoiceData.tenant.address !== '-' ? invoiceData.tenant.address : 'ไม่ระบุ'}</p>
@@ -509,21 +509,21 @@ export default function Invoice() {
             </div>
 
             {/* Invoice Items Table */}
-            <div className="mb-2 md:mb-5">
-              <table className="w-full text-[9px] md:text-sm border-collapse">
+            <div className="mb-1.5 md:mb-3">
+              <table className="w-full text-[8px] md:text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-100 border-b md:border-b-2 border-slate-300">
-                    <th className="text-left py-1 md:py-2.5 px-1 md:px-2 font-bold text-slate-700 w-6 md:w-12">ลำดับ</th>
-                    <th className="text-left py-1 md:py-2.5 px-1 md:px-2 font-bold text-slate-700">รายการ</th>
-                    <th className="text-right py-1 md:py-2.5 px-1 md:px-2 font-bold text-slate-700">จำนวนเงิน</th>
+                  <tr className="bg-slate-100 border-b border-slate-300">
+                    <th className="text-left py-0.5 md:py-1.5 px-1 md:px-1.5 font-bold text-slate-700 w-5 md:w-10">ลำดับ</th>
+                    <th className="text-left py-0.5 md:py-1.5 px-1 md:px-1.5 font-bold text-slate-700">รายการ</th>
+                    <th className="text-right py-0.5 md:py-1.5 px-1 md:px-1.5 font-bold text-slate-700">จำนวนเงิน</th>
                   </tr>
                 </thead>
                 <tbody>
                   {lineItems.map((item, index) => (
-                    <tr key={index} className="border-b border-slate-200 md:hover:bg-slate-50">
-                      <td className="py-1 md:py-2 px-1 md:px-2 text-center text-slate-600">{index + 1}</td>
-                      <td className="py-1 md:py-2 px-1 md:px-2 text-slate-800">{item.name}</td>
-                      <td className="py-1 md:py-2 px-1 md:px-2 text-right font-bold text-slate-800">
+                    <tr key={index} className="border-b border-slate-200">
+                      <td className="py-0.5 md:py-1 px-1 md:px-1.5 text-center text-slate-600 text-[7px] md:text-[8px]">{index + 1}</td>
+                      <td className="py-0.5 md:py-1 px-1 md:px-1.5 text-slate-800 text-[7px] md:text-[8px]">{item.name}</td>
+                      <td className="py-0.5 md:py-1 px-1 md:px-1.5 text-right font-bold text-slate-800 text-[7px] md:text-[8px]">
                         {(item.total || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
@@ -533,42 +533,36 @@ export default function Invoice() {
             </div>
 
             {/* Total Amount & Stamp */}
-            <div className="mb-2 md:mb-4 border-t-2 border-slate-300 pt-2 md:pt-3">
-              <div className="flex justify-between items-center">
-                <div className="text-[9px] md:text-sm text-slate-600">
+            <div className="mb-1.5 md:mb-3 border-t border-slate-300 pt-1.5 md:pt-2">
+              <div className="flex justify-between items-center gap-2">
+                <div className="text-[8px] md:text-xs text-slate-600">
                   <span className="font-medium">ยอดเงินสุทธิ</span>
                 </div>
-                <div className="flex items-center gap-2 md:gap-3">
-                  <span className="text-sm md:text-lg font-bold text-slate-800">
+                <div className="flex items-center gap-1.5 md:gap-2">
+                  <span className="text-[9px] md:text-sm font-bold text-slate-800">
                     {(invoiceData.total_amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}
                   </span>
                   {/* ตราประทับ */}
                   {isPaid ? (
-                    <div className="border-2 border-green-600 rounded px-1.5 md:px-2.5 py-0.5 md:py-1 text-center transform rotate-[-3deg]">
-                      <p className="text-[9px] md:text-xs font-bold text-green-700">✓ ชำระ<span className="hidden md:inline">แล้ว</span></p>
-                      <p className="text-[8px] md:text-[9px] text-green-600 hidden md:block">{paymentDate}</p>
+                    <div className="border border-green-600 rounded px-1 md:px-2 py-0.5 text-center text-[8px] md:text-[9px] transform rotate-[-3deg]">
+                      <p className="font-bold text-green-700">✓ ชำระ</p>
                     </div>
                   ) : isOverdue ? (
-                    <div className="border-2 border-red-500 rounded px-1.5 md:px-2.5 py-0.5 md:py-1 text-center transform rotate-[-3deg]">
-                      <p className="text-[9px] md:text-xs font-bold text-red-600 flex items-center gap-0.5 md:gap-1">
-                        <AlertCircle className="w-2.5 h-2.5 md:w-3 md:h-3" /> เกิน
-                      </p>
-                      <p className="text-[8px] md:text-[9px] text-red-500 hidden md:block">{daysOverdue} วัน</p>
+                    <div className="border border-red-500 rounded px-1 md:px-2 py-0.5 text-center text-[8px] md:text-[9px] transform rotate-[-3deg]">
+                      <p className="font-bold text-red-600">เกิน</p>
                     </div>
                   ) : (
-                    <div className="border-2 border-orange-500 rounded px-1.5 md:px-2.5 py-0.5 md:py-1 text-center transform rotate-[-3deg]">
-                      <p className="text-[9px] md:text-xs font-bold text-orange-600 flex items-center gap-0.5 md:gap-1">
-                        <Clock className="w-2.5 h-2.5 md:w-3 md:h-3" /> รอชำระ
-                      </p>
+                    <div className="border border-orange-500 rounded px-1 md:px-2 py-0.5 text-center text-[8px] md:text-[9px] transform rotate-[-3deg]">
+                      <p className="font-bold text-orange-600">รอชำระ</p>
                     </div>
                   )}
-                </div>
-              </div>
-              <p className="text-[8px] md:text-xs text-slate-500 mt-1 md:mt-0 md:inline md:ml-2">({numberToThaiText(invoiceData.total_amount || 0)})</p>
+                  </div>
+                  </div>
+                  <p className="text-[7px] md:text-[8px] text-slate-500 mt-0.5">({numberToThaiText(invoiceData.total_amount || 0)})</p>
             </div>
 
             {/* Payment Method & Notes - แบบเรียบง่าย */}
-            <div className="mb-2 md:mb-3 text-[8px] md:text-xs text-slate-500 leading-tight">
+            <div className="mb-1.5 md:mb-2 text-[7px] md:text-[8px] text-slate-500 leading-tight">
               <span className="font-medium text-slate-600">ชำระผ่าน:</span> {invoiceData.bank?.name || '-'}
               {invoiceData.bank?.account_number && (
                 <span> | {invoiceData.bank.account_number}</span>
@@ -579,24 +573,24 @@ export default function Invoice() {
             </div>
 
             {/* Signature Section */}
-            <div className="grid grid-cols-3 gap-2 md:gap-4 mt-2 md:mt-5 pt-2 md:pt-3 border-t border-slate-200">
+            <div className="grid grid-cols-3 gap-1 md:gap-2 mt-1.5 md:mt-3 pt-1.5 md:pt-2 border-t border-slate-200">
               <div className="text-center">
-                <div className="h-6 md:h-12 border-b border-slate-300 mb-0.5 md:mb-1"></div>
-                <p className="text-[8px] md:text-xs text-slate-600">ผู้จัดทำ</p>
+                <div className="h-4 md:h-8 border-b border-slate-300 mb-0.5"></div>
+                <p className="text-[7px] md:text-[8px] text-slate-600">ผู้จัดทำ</p>
               </div>
               <div className="text-center">
-                <div className="h-6 md:h-12 border-b border-slate-300 mb-0.5 md:mb-1"></div>
-                <p className="text-[8px] md:text-xs text-slate-600">ผู้อนุมัติ</p>
+                <div className="h-4 md:h-8 border-b border-slate-300 mb-0.5"></div>
+                <p className="text-[7px] md:text-[8px] text-slate-600">ผู้อนุมัติ</p>
               </div>
               <div className="text-center">
-                <div className="h-6 md:h-12 border-b border-slate-300 mb-0.5 md:mb-1"></div>
-                <p className="text-[8px] md:text-xs text-slate-600">ผู้รับเงิน</p>
+                <div className="h-4 md:h-8 border-b border-slate-300 mb-0.5"></div>
+                <p className="text-[7px] md:text-[8px] text-slate-600">ผู้รับเงิน</p>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="pt-2 md:pt-4 text-center">
-              <p className="text-[8px] md:text-xs text-slate-500">ขอบคุณที่ใช้บริการ <span className="hidden md:inline">{invoiceData.recipient?.building_name || buildingName}</span></p>
+            <div className="pt-1 md:pt-2 text-center">
+              <p className="text-[7px] md:text-[8px] text-slate-500">ขอบคุณที่ใช้บริการ <span className="hidden md:inline text-[7px]">{invoiceData.recipient?.building_name || buildingName}</span></p>
             </div>
           </div>
         </div>
