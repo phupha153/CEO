@@ -313,8 +313,8 @@ export default function BookingReceiptPage() {
           {/* Content */}
           <div className="px-8 py-6 space-y-6">
             {/* Section 1: Guest Info */}
-            <div className="border-2 border-slate-300 rounded-lg p-5">
-              <h3 className="font-bold text-base text-slate-800 mb-4">ข้อมูลผู้จอง</h3>
+            <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-5">
+              <h3 className="font-bold text-lg text-blue-900 mb-4">📋 ข้อมูลผู้จอง</h3>
               
               {isEditing ? (
                 <div className="space-y-4">
@@ -371,7 +371,7 @@ export default function BookingReceiptPage() {
 
             {/* Section 2: Booking Details */}
             <div className="border-2 border-slate-300 rounded-lg p-5">
-              <h3 className="font-bold text-base text-slate-800 mb-4">รายละเอียดการจอง</h3>
+              <h3 className="font-bold text-lg text-slate-800 mb-4">💰 รายละเอียดการจอง</h3>
               
               {isEditing ? (
                 <div className="space-y-4">
@@ -420,53 +420,53 @@ export default function BookingReceiptPage() {
                     <span className="font-semibold text-slate-700">ระยะสัญญา:</span>
                     <span className="font-bold text-blue-700">{contractDuration}</span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 p-3 rounded mt-3 border border-slate-200">
+                  <div className="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded mt-3 border border-slate-200">
                     <div>
                       <p className="text-xs text-slate-600">เงินจอง</p>
-                      <p className="font-bold text-lg text-slate-900">{depositAmount.toLocaleString()}</p>
+                      <p className="font-bold text-lg text-blue-700">{depositAmount.toLocaleString()}</p>
                       <p className="text-xs text-slate-500 mt-1">{numberToThaiText(depositAmount)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-600">มัดจำ</p>
-                      <p className="font-bold text-lg text-slate-900">{securityDeposit.toLocaleString()}</p>
+                      <p className="font-bold text-lg text-slate-800">{securityDeposit.toLocaleString()}</p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-600">ล่วงหน้า</p>
-                      <p className="font-bold text-lg text-slate-900">{advanceRent.toLocaleString()}</p>
+                      <p className="font-bold text-lg text-slate-800">{advanceRent.toLocaleString()}</p>
                     </div>
                   </div>
                   {commonFeeIncluded > 0 && (
-                    <div className="grid grid-cols-2 mt-3 p-3 rounded border border-slate-300">
+                    <div className="grid grid-cols-2 mt-3 bg-amber-50 p-3 rounded border border-amber-200">
                       <span className="font-semibold text-slate-700">ส่วนกลาง:</span>
-                      <span className="font-bold text-slate-900">{commonFeeIncluded.toLocaleString()} บาท</span>
+                      <span className="font-bold text-amber-700">{commonFeeIncluded.toLocaleString()} บาท</span>
                     </div>
                   )}
-                  <div className="grid grid-cols-2 mt-3 p-3 rounded border-2 border-slate-400 bg-slate-50">
-                    <span className="font-bold text-slate-900">รวมจำนวนเงิน:</span>
-                    <span className="font-bold text-2xl text-slate-900">{totalAmount.toLocaleString()}</span>
+                  <div className="grid grid-cols-2 mt-3 bg-blue-100 p-3 rounded border-2 border-blue-400">
+                    <span className="font-bold text-blue-900">รวมจำนวนเงิน:</span>
+                    <span className="font-bold text-2xl text-blue-700">{totalAmount.toLocaleString()}</span>
                   </div>
-                  <div className="grid grid-cols-2 mt-2 p-3 rounded border border-slate-300">
-                    <span className="font-semibold text-slate-700">กำหนดทำสัญญา:</span>
-                    <span className="font-bold text-slate-900">{formatThaiDate(contractDeadline || checkInDate)}</span>
+                  <div className="grid grid-cols-2 mt-2 bg-red-50 p-3 rounded border border-red-300">
+                    <span className="font-semibold text-red-800">กำหนดทำสัญญา:</span>
+                    <span className="font-bold text-red-700">{formatThaiDate(contractDeadline || checkInDate)}</span>
                   </div>
                 </div>
               )}
             </div>
 
             {/* Section 3: Conditions */}
-            <div className="border-2 border-slate-400 rounded-lg p-5">
-              <h3 className="font-bold text-base text-slate-800 mb-3">เงื่อนไขสำคัญ</h3>
+            <div className="border-2 border-red-400 bg-red-50 rounded-lg p-5">
+              <h3 className="font-bold text-base text-red-800 mb-3">⚠️ เงื่อนไขสำคัญ</h3>
               <ul className="text-sm space-y-2 text-slate-900">
                 <li className="flex gap-2">
-                  <span className="font-bold text-slate-700 flex-shrink-0">1.</span>
+                  <span className="font-bold text-red-700 flex-shrink-0">1.</span>
                   <span>เงินจองจะหักลดจากมัดจำ/ค่าเช่าล่วงหน้า/ส่วนกลาง เมื่อทำสัญญา</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="font-bold text-slate-700 flex-shrink-0">2.</span>
+                  <span className="font-bold text-red-700 flex-shrink-0">2.</span>
                   <span>หากไม่ทำสัญญา หรือชำระเงินให้ครบถ้วนภายในวันกำหนด ถือว่าสละสิทธิ์ เงินไม่คืน</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="font-bold text-slate-700 flex-shrink-0">3.</span>
+                  <span className="font-bold text-red-700 flex-shrink-0">3.</span>
                   <span>เข้าพักได้หลังจากทำสัญญา ตรวจห้อง และชำระเงินครบถ้วนเท่านั้น</span>
                 </li>
               </ul>
