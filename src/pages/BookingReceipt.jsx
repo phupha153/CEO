@@ -490,7 +490,7 @@ export default function BookingReceiptPage() {
           </div>
 
           {/* Guest Info Box */}
-          <div className="border border-slate-300 rounded p-1.5 mb-2 text-xs">
+          <div className="border border-slate-400 rounded p-2 mb-3 text-[11px]">
             {isEditing ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
