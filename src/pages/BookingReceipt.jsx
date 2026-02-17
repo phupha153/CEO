@@ -439,12 +439,13 @@ export default function BookingReceiptPage() {
       </Dialog>
 
       {/* Receipt Content */}
-      <div className="booking-container mx-auto p-3 md:p-6 lg:p-8 print:p-0">
+      <div className="booking-container mx-auto print:m-0 print:p-0">
         <div 
           ref={printRef}
-          className="booking-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden p-3 md:p-4 lg:p-6"
+          className="booking-card bg-white rounded-lg shadow-xl print:shadow-none overflow-hidden"
           style={{ 
-            fontFamily: 'TH Sarabun New, Sarabun, sans-serif'
+            fontFamily: 'TH Sarabun New, Sarabun, sans-serif',
+            padding: 'var(--receipt-padding)'
           }}
         >
           {/* Copy Watermark */}
@@ -742,7 +743,29 @@ export default function BookingReceiptPage() {
 
       {/* Print Styles */}
       <style>{`
+        :root {
+          --receipt-padding: 12px;
+        }
+        
+        @media screen and (min-width: 768px) {
+          :root {
+            --receipt-padding: 24px;
+          }
+        }
+        
+        @media screen and (min-width: 1024px) {
+          :root {
+            --receipt-padding: 32px;
+          }
+        }
+        
         @media print {
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
           body, html {
             background: white !important;
             margin: 0 !important;
@@ -764,7 +787,6 @@ export default function BookingReceiptPage() {
           }
           
           .booking-container {
-            max-width: 100% !important;
             width: 100% !important;
             margin: 0 !important;
             padding: 0 !important;
@@ -776,10 +798,8 @@ export default function BookingReceiptPage() {
             box-shadow: none !important;
             border-radius: 0 !important;
             padding: 0 !important;
-          }
-          
-          .booking-card > div {
-            padding: 10px !important;
+            margin: 0 !important;
+            width: 100% !important;
           }
           
           /* ลดขนาด font ทั้งหมด */
@@ -793,18 +813,12 @@ export default function BookingReceiptPage() {
           /* ลดระยะห่าง */
           .mb-4, .mb-5 { margin-bottom: 8px !important; }
           .mb-3, .mb-2 { margin-bottom: 6px !important; }
+          .mb-1 { margin-bottom: 4px !important; }
           .p-3 { padding: 6px !important; }
           .p-2 { padding: 4px !important; }
+          .px-4, .px-2 { padding-left: 4px !important; padding-right: 4px !important; }
           .gap-3 { gap: 6px !important; }
           .gap-4 { gap: 8px !important; }
-        }
-        
-        /* สำหรับหน้าจอ - ให้เห็นเป็น A4 */
-        @media screen {
-          .booking-container {
-            width: 100%;
-            max-width: none;
-          }
         }
         
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
