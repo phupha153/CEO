@@ -438,7 +438,7 @@ export default function BookingReceiptPage() {
       <div className="w-full print:w-full p-4 print:p-0 print:space-y-0 print:m-0">
         <div 
           ref={printRef}
-          className="max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:break-after-page p-8 print:p-4 print:max-w-full print:mx-0"
+          className="max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:break-after-page p-8 print:p-8 print:max-w-full print:mx-0"
           style={{ 
             fontFamily: 'TH Sarabun New, Sarabun, sans-serif'
           }}
@@ -773,7 +773,7 @@ export default function BookingReceiptPage() {
           
           @page {
             size: A4;
-            margin: 5mm;
+            margin: 0;
           }
           
           .print\\:hidden {
@@ -834,10 +834,10 @@ export default function BookingReceiptPage() {
           .text-xs { font-size: 7px !important; }
           
           /* ลดระยะห่าง padding */
-          .p-8 { padding: 8px !important; }
-          .p-6 { padding: 6px !important; }
-          .p-4 { padding: 5px !important; }
-          .p-3 { padding: 4px !important; }
+          .p-8 { padding: 6px !important; }
+          .p-6 { padding: 5px !important; }
+          .p-4 { padding: 4px !important; }
+          .p-3 { padding: 3px !important; }
           .p-2 { padding: 2px !important; }
           .px-8 { padding-left: 8px !important; padding-right: 8px !important; }
           .px-6 { padding-left: 6px !important; padding-right: 6px !important; }
