@@ -435,7 +435,7 @@ export default function BookingReceiptPage() {
       </Dialog>
 
       {/* Receipt Content */}
-      <div className="w-full print:w-full p-4 print:p-0 print:space-y-0 print:m-0">
+      <div className="w-screen print:w-screen p-4 print:p-0 print:space-y-0 print:m-0 print:overflow-hidden">
         <div 
           ref={printRef}
           className="max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:break-after-page p-8 print:max-w-none print:mx-0 print:p-1 print:w-full"
@@ -766,6 +766,14 @@ export default function BookingReceiptPage() {
             padding: 0 !important;
             width: 100% !important;
             height: 100% !important;
+            border: 0 !important;
+          }
+
+          main, main > div {
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+            width: 100% !important;
           }
           
           /* ซ่อน sidebar + header เท่านั้น */
