@@ -371,7 +371,7 @@ export default function BookingReceiptPage() {
 
             {/* Section 2: Booking Details */}
             <div className="border-2 border-slate-300 rounded-lg p-5">
-              <h3 className="font-bold text-lg text-slate-800 mb-4">💰 รายละเอียดการจอง</h3>
+              <h3 className="font-bold text-base text-slate-800 mb-4">รายละเอียดการจอง</h3>
               
               {isEditing ? (
                 <div className="space-y-4">
