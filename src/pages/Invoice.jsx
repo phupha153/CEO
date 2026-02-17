@@ -423,10 +423,10 @@ export default function Invoice() {
                       e.target.src = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6904ea5ce861be65483eff6e/337bb050d_image.jpeg';
                     }}
                   />
-                  <h1 className="text-xs md:text-base font-bold text-slate-800">{buildingName}</h1>
+                  <h1 className="text-[9px] md:text-sm font-bold text-slate-800 truncate">{buildingName}</h1>
                 </div>
                 <div className="text-right">
-                  <h2 className="text-xs md:text-base font-bold text-orange-600">
+                  <h2 className="text-[9px] md:text-sm font-bold text-orange-600">
                     ใบแจ้งหนี้
                   </h2>
                   <p className="text-[8px] md:text-[10px] text-orange-600">
@@ -439,17 +439,16 @@ export default function Invoice() {
               <div className="text-[7.5px] md:text-[9px] text-slate-600 mt-0.5 md:mt-1 space-y-0 leading-tight">
                 {invoiceData.recipient?.company_name ? (
                   <>
-                    <p className="font-medium text-slate-800">{invoiceData.recipient.company_name}</p>
-                    {invoiceData.recipient.tax_id && <p>เลขที่ผู้เสียภาษี: {invoiceData.recipient.tax_id}</p>}
-                    {invoiceData.recipient.company_registration_number && <p>เลขทะเบียนนิติบุคคล: {invoiceData.recipient.company_registration_number}</p>}
-                    <p>{invoiceData.recipient?.company_address || invoiceData.recipient?.building_address}</p>
-                    {invoiceData.recipient?.company_phone && <p>เบอร์ติดต่อ: {invoiceData.recipient.company_phone}</p>}
+                    <p className="font-medium text-slate-800 truncate text-[7.5px] md:text-[9px]">{invoiceData.recipient.company_name}</p>
+                      {invoiceData.recipient.tax_id && <p className="text-[7.5px] md:text-[9px]">ผู้เสียภาษี: {invoiceData.recipient.tax_id}</p>}
+                      {invoiceData.recipient.company_registration_number && <p className="text-[7.5px] md:text-[9px]">ทะเบียน: {invoiceData.recipient.company_registration_number}</p>}
+                      <p className="text-[7.5px] md:text-[9px] line-clamp-1">{invoiceData.recipient?.company_address || invoiceData.recipient?.building_address}</p>
                   </>
                 ) : invoiceData.recipient?.lessor_name ? (
                   <>
-                    <p className="font-medium text-slate-800">{invoiceData.recipient.lessor_name}</p>
-                    {invoiceData.recipient.lessor_id && <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.lessor_id}</p>}
-                    <p>{invoiceData.recipient?.lessor_address || invoiceData.recipient?.building_address}</p>
+                    <p className="font-medium text-slate-800 truncate text-[7.5px] md:text-[9px]">{invoiceData.recipient.lessor_name}</p>
+                    {invoiceData.recipient.lessor_id && <p className="text-[7.5px] md:text-[9px]">ผู้เสียภาษี: {invoiceData.recipient.lessor_id}</p>}
+                    <p className="text-[7.5px] md:text-[9px] line-clamp-1">{invoiceData.recipient?.lessor_address || invoiceData.recipient?.building_address}</p>
                     {invoiceData.recipient?.building_phone && <p>เบอร์ติดต่อ: {invoiceData.recipient.building_phone}</p>}
                   </>
                 ) : invoiceData.recipient?.building_address ? (
@@ -464,12 +463,12 @@ export default function Invoice() {
             {/* Invoice Info */}
             <div className="grid grid-cols-2 gap-1 md:gap-1.5 mb-1 md:mb-2 p-1 md:p-1.5 bg-slate-50 rounded">
               <div>
-                <p className="text-[8px] md:text-[9px] text-slate-500 mb-0 md:mb-0.5">เลขที่ใบแจ้งหนี้</p>
-                <p className="font-bold text-[10px] md:text-sm text-slate-800">{invoiceNumber}</p>
+                <p className="text-[7.5px] md:text-[8px] text-slate-500 mb-0">เลขที่ใบแจ้งหนี้</p>
+                <p className="font-bold text-[9px] md:text-xs text-slate-800">{invoiceNumber}</p>
               </div>
               <div className="text-right">
-                <p className="text-[8px] md:text-[9px] text-slate-500 mb-0 md:mb-0.5">วันครบกำหนด</p>
-                <p className="font-bold text-[10px] md:text-sm text-slate-800">{dueDate}</p>
+                <p className="text-[7.5px] md:text-[8px] text-slate-500 mb-0">วันครบกำหนด</p>
+                <p className="font-bold text-[9px] md:text-xs text-slate-800 line-clamp-1">{dueDate}</p>
               </div>
             </div>
 
@@ -483,15 +482,15 @@ export default function Invoice() {
                 <div className="text-[7px] md:text-[8px] text-slate-600 space-y-0">
                   {invoiceData.recipient?.company_name ? (
                     <>
-                      <p className="font-medium text-slate-800">{invoiceData.recipient.company_name}</p>
-                      {invoiceData.recipient.tax_id && <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.tax_id}</p>}
-                      <p>{invoiceData.recipient?.company_address || invoiceData.recipient?.building_address}</p>
+                      <p className="font-medium text-slate-800 truncate text-[7px]">{invoiceData.recipient.company_name}</p>
+                      {invoiceData.recipient.tax_id && <p className="text-[7px]">ผู้เสียภาษี: {invoiceData.recipient.tax_id}</p>}
+                      <p className="text-[7px] line-clamp-1">{invoiceData.recipient?.company_address || invoiceData.recipient?.building_address}</p>
                     </>
                   ) : (
                     <>
-                      <p className="font-medium text-slate-800">{invoiceData.recipient?.lessor_name || invoiceData.recipient?.building_name}</p>
-                      {invoiceData.recipient?.lessor_id && <p>เลขประจำตัวผู้เสียภาษี: {invoiceData.recipient.lessor_id}</p>}
-                      <p>{invoiceData.recipient?.lessor_address || invoiceData.recipient?.building_address}</p>
+                      <p className="font-medium text-slate-800 truncate text-[7px]">{invoiceData.recipient?.lessor_name || invoiceData.recipient?.building_name}</p>
+                      {invoiceData.recipient?.lessor_id && <p className="text-[7px]">ผู้เสียภาษี: {invoiceData.recipient.lessor_id}</p>}
+                      <p className="text-[7px] line-clamp-1">{invoiceData.recipient?.lessor_address || invoiceData.recipient?.building_address}</p>
                     </>
                   )}
                 </div>
@@ -501,9 +500,9 @@ export default function Invoice() {
               <div className="border border-slate-200 rounded p-1 md:p-1.5">
                 <h3 className="font-semibold text-slate-700 text-[8px] md:text-[9px] mb-0.5">ผู้จ่ายเงิน</h3>
                 <div className="text-[7px] md:text-[8px] text-slate-600 space-y-0">
-                  <p className="font-medium text-slate-800">{invoiceData.tenant?.full_name || 'ไม่ระบุ'}</p>
-                  <p>ห้อง: {invoiceData.room?.room_number || 'N/A'} | โทร: {invoiceData.tenant?.phone || 'ไม่ระบุ'}</p>
-                  <p>ที่อยู่: {invoiceData.tenant?.address && invoiceData.tenant.address !== 'ไม่ระบุ' && invoiceData.tenant.address !== '-' ? invoiceData.tenant.address : 'ไม่ระบุ'}</p>
+                  <p className="font-medium text-slate-800 truncate text-[7px]">{invoiceData.tenant?.full_name || 'ไม่ระบุ'}</p>
+                  <p className="text-[7px]">ห้อง: {invoiceData.room?.room_number || '-'} | โทร: {invoiceData.tenant?.phone || '-'}</p>
+                  <p className="text-[7px] line-clamp-1">ที่อยู่: {invoiceData.tenant?.address && invoiceData.tenant.address !== 'ไม่ระบุ' && invoiceData.tenant.address !== '-' ? invoiceData.tenant.address : '-'}</p>
                 </div>
               </div>
             </div>
