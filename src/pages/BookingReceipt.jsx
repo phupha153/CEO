@@ -726,16 +726,16 @@ export default function BookingReceiptPage() {
           </div>
 
           {/* Signatures */}
-          <div className="grid grid-cols-2 gap-2 mt-2 flex-grow">
+          <div className="grid grid-cols-2 gap-1.5 mt-1.5 flex-grow">
             <div className="text-center flex flex-col justify-end">
-              <p className="mb-4 text-xs">ลงชื่อ........................</p>
-              <p className="text-xs leading-tight">({lessorName ? lessorName.split(' ')[0] : 'ผู้รับจอง'})</p>
-              <p className="font-semibold text-xs">ผู้รับจองห้อง</p>
+              <p className="mb-3 text-[10px] leading-tight">ลงชื่อ........................</p>
+              <p className="text-[10px] leading-tight">({lessorName ? lessorName.split(' ')[0] : 'ผู้รับจอง'})</p>
+              <p className="font-semibold text-[10px]">ผู้รับจองห้อง</p>
             </div>
             <div className="text-center flex flex-col justify-end">
-              <p className="mb-4 text-xs">ลงชื่อ........................</p>
-              <p className="text-xs leading-tight">({guestName.split(' ')[0] || 'ผู้จอง'})</p>
-              <p className="font-semibold text-xs">ผู้จองห้อง</p>
+              <p className="mb-3 text-[10px] leading-tight">ลงชื่อ........................</p>
+              <p className="text-[10px] leading-tight">({guestName.split(' ')[0] || 'ผู้จอง'})</p>
+              <p className="font-semibold text-[10px]">ผู้จองห้อง</p>
             </div>
           </div>
         </div>
