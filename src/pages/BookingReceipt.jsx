@@ -822,16 +822,16 @@ export default function BookingReceiptPage() {
           }
           
           /* ลดขนาด font ทั้งหมด */
-          h1 { font-size: 18px !important; line-height: 1.1 !important; }
-          h2 { font-size: 15px !important; line-height: 1.1 !important; }
-          h3 { font-size: 13px !important; line-height: 1.2 !important; }
-          .text-3xl { font-size: 16px !important; }
-          .text-2xl { font-size: 14px !important; }
-          .text-xl { font-size: 12px !important; }
-          .text-lg { font-size: 11px !important; }
-          .text-base, p, span, td, th, li { font-size: 10px !important; }
-          .text-sm { font-size: 9px !important; }
-          .text-xs { font-size: 8px !important; }
+          h1 { font-size: 16px !important; line-height: 1.05 !important; margin: 2px 0 !important; }
+          h2 { font-size: 13px !important; line-height: 1.05 !important; margin: 2px 0 !important; }
+          h3 { font-size: 11px !important; line-height: 1.1 !important; margin: 2px 0 !important; }
+          .text-3xl { font-size: 15px !important; }
+          .text-2xl { font-size: 13px !important; }
+          .text-xl { font-size: 11px !important; }
+          .text-lg { font-size: 10px !important; }
+          .text-base, p, span, td, th, li { font-size: 9px !important; }
+          .text-sm { font-size: 8px !important; }
+          .text-xs { font-size: 7px !important; }
           
           /* ลดระยะห่าง padding */
           .p-8 { padding: 8px !important; }
@@ -847,13 +847,13 @@ export default function BookingReceiptPage() {
           .py-2 { padding-top: 3px !important; padding-bottom: 3px !important; }
           
           /* ลดระยะห่าง margin */
-          .mb-8, .mt-8 { margin-bottom: 6px !important; margin-top: 6px !important; }
-          .mb-6, .mt-6 { margin-bottom: 5px !important; margin-top: 5px !important; }
-          .mb-4, .mt-4 { margin-bottom: 3px !important; margin-top: 3px !important; }
-          .mb-3, .mt-3 { margin-bottom: 2px !important; margin-top: 2px !important; }
-          .mb-2, .mt-2 { margin-bottom: 2px !important; margin-top: 2px !important; }
-          .mb-12, .mt-12 { margin-bottom: 8px !important; margin-top: 8px !important; }
-          .mb-16 { margin-bottom: 10px !important; }
+          .mb-8, .mt-8 { margin-bottom: 4px !important; margin-top: 4px !important; }
+          .mb-6, .mt-6 { margin-bottom: 3px !important; margin-top: 3px !important; }
+          .mb-4, .mt-4 { margin-bottom: 2px !important; margin-top: 2px !important; }
+          .mb-3, .mt-3 { margin-bottom: 1px !important; margin-top: 1px !important; }
+          .mb-2, .mt-2 { margin-bottom: 1px !important; margin-top: 1px !important; }
+          .mb-12, .mt-12 { margin-bottom: 4px !important; margin-top: 4px !important; }
+          .mb-16 { margin-bottom: 4px !important; }
           
           /* ลด gap */
           .gap-8 { gap: 6px !important; }
@@ -866,10 +866,10 @@ export default function BookingReceiptPage() {
           .h-20 { height: 40px !important; }
           
           /* space ระหว่างบรรทัด */
-          .space-y-4 > * + * { margin-top: 3px !important; }
-          .space-y-3 > * + * { margin-top: 2px !important; }
-          .space-y-2 > * + * { margin-top: 2px !important; }
-          .space-y-1 > * + * { margin-top: 1px !important; }
+          .space-y-4 > * + * { margin-top: 2px !important; }
+          .space-y-3 > * + * { margin-top: 1px !important; }
+          .space-y-2 > * + * { margin-top: 1px !important; }
+          .space-y-1 > * + * { margin-top: 0px !important; }
           
           /* list */
           ol, ul { 
@@ -881,8 +881,8 @@ export default function BookingReceiptPage() {
           li { margin-bottom: 2px !important; }
           
           /* table */
-          table { font-size: 10px !important; }
-          td, th { padding: 3px !important; line-height: 1.1 !important; }
+          table { font-size: 9px !important; }
+          td, th { padding: 2px !important; line-height: 1 !important; }
           tr { page-break-inside: avoid !important; }
         }
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
