@@ -351,6 +351,7 @@ export default function Layout({ children, currentPageName }) {
   const isPublicPage = currentPageName === 'Welcome' || 
                        currentPageName === 'Invoice' || 
                        currentPageName === 'Receipt' || 
+                       currentPageName === 'BookingReceipt' ||
                        currentPageName === 'PrintReceipts' || 
                        currentPageName === 'PublicInvoice' ||
                        currentPageName === 'PublicReceipt' ||
