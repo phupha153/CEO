@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Printer, ArrowLeft, Edit2, Save, Sparkles, Loader2, X } from "lucide-react";
+import { Printer, Download, ArrowLeft, Edit2, Save, Sparkles, Loader2, X } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -147,6 +149,50 @@ export default function BookingReceiptPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownload = async () => {
+    try {
+      const element = printRef.current;
+      if (!element) return;
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        allowTaint: true
+      });
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const imgData = canvas.toDataURL('image/png');
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= 297;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= 297;
+      }
+
+      const fileName = `booking-receipt-${booking.booking_no || format(parseISO(booking.created_date || new Date().toISOString()), 'dd-MM-yy')}.pdf`;
+      pdf.save(fileName);
+      toast.success('✅ ดาวโหลดสำเร็จ');
+    } catch (error) {
+      console.error('Download Error:', error);
+      toast.error('❌ เกิดข้อผิดพลาดในการดาวโหลด');
+    }
   };
 
   // Initialize edit form when booking loads
@@ -379,6 +425,10 @@ export default function BookingReceiptPage() {
                 แก้ไข
               </Button>
             )}
+            <Button onClick={handleDownload} className="bg-green-600 hover:bg-green-700">
+              <Download className="w-4 h-4 mr-2" />
+              ดาวโหลด PDF
+            </Button>
             <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700">
               <Printer className="w-4 h-4 mr-2" />
               พิมพ์ใบจอง
