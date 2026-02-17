@@ -10,10 +10,9 @@ import { motion } from "framer-motion";
 export default function BulkTenantGenerator({ open, onOpenChange, rooms, onConfirm, isLoading }) {
   const [selectedRoomIds, setSelectedRoomIds] = useState([]);
 
-  // กรองเฉพาะห้องว่าง (available)
-  const availableRooms = useMemo(() => {
+  // แสดงทุกห้อง แต่เรียงตามชั้น
+  const sortedRooms = useMemo(() => {
     return rooms
-      .filter(room => room.status === 'available')
       .sort((a, b) => {
         if (a.floor !== b.floor) return a.floor - b.floor;
         return a.room_number.localeCompare(b.room_number);
@@ -22,13 +21,13 @@ export default function BulkTenantGenerator({ open, onOpenChange, rooms, onConfi
 
   // จัดกลุ่มห้องตามชั้น
   const roomsByFloor = useMemo(() => {
-    return availableRooms.reduce((acc, room) => {
+    return sortedRooms.reduce((acc, room) => {
       const floor = room.floor || 1;
       if (!acc[floor]) acc[floor] = [];
       acc[floor].push(room);
       return acc;
     }, {});
-  }, [availableRooms]);
+  }, [sortedRooms]);
 
   const floors = Object.keys(roomsByFloor).sort((a, b) => parseInt(a) - parseInt(b));
 
@@ -41,7 +40,8 @@ export default function BulkTenantGenerator({ open, onOpenChange, rooms, onConfi
   };
 
   const selectAll = () => {
-    setSelectedRoomIds(availableRooms.map(r => r.id));
+    const availableRoomIds = sortedRooms.filter(r => r.status === 'available').map(r => r.id);
+    setSelectedRoomIds(availableRoomIds);
   };
 
   const deselectAll = () => {
@@ -92,9 +92,15 @@ export default function BulkTenantGenerator({ open, onOpenChange, rooms, onConfi
 
           {/* ปุ่ม Select All / Deselect All */}
           <div className="flex items-center justify-between">
-            <p className="text-sm text-slate-600">
-              ห้องว่างทั้งหมด: <strong>{availableRooms.length}</strong> ห้อง
-            </p>
+            <div className="text-sm text-slate-600 space-y-1">
+              <p>ห้องทั้งหมด: <strong>{rooms.length}</strong> ห้อง</p>
+              <p className="text-xs">
+                <span className="inline-block w-3 h-3 rounded bg-green-500 mr-1"></span>
+                ว่าง: <strong>{rooms.filter(r => r.status === 'available').length}</strong> ห้อง
+                <span className="ml-3 inline-block w-3 h-3 rounded bg-blue-500 mr-1"></span>
+                มีผู้เช่า: <strong>{rooms.filter(r => r.status === 'occupied').length}</strong> ห้อง
+              </p>
+            </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -103,7 +109,7 @@ export default function BulkTenantGenerator({ open, onOpenChange, rooms, onConfi
                 className="border-blue-300 text-blue-600 hover:bg-blue-50"
               >
                 <CheckSquare className="w-4 h-4 mr-1" />
-                เลือกทั้งหมด ({availableRooms.length})
+                เลือกห้องว่างทั้งหมด
               </Button>
               <Button
                 variant="outline"
@@ -156,6 +162,8 @@ export default function BulkTenantGenerator({ open, onOpenChange, rooms, onConfi
                   <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                     {roomsByFloor[floor].map(room => {
                       const isSelected = selectedRoomIds.includes(room.id);
+                      const isAvailable = room.status === 'available';
+                      const isOccupied = room.status === 'occupied';
                       
                       return (
                         <motion.div
@@ -164,37 +172,51 @@ export default function BulkTenantGenerator({ open, onOpenChange, rooms, onConfi
                           whileTap={{ scale: 0.95 }}
                         >
                           <Card
-                            className={`cursor-pointer transition-all ${
+                            className={`cursor-pointer transition-all relative overflow-hidden ${
                               isSelected 
                                 ? 'border-2 border-blue-500 bg-blue-50 shadow-lg' 
-                                : 'border border-slate-200 bg-white hover:border-blue-300 hover:shadow-md'
+                                : isOccupied
+                                ? 'border border-blue-300 bg-blue-50/50 opacity-60 cursor-not-allowed'
+                                : 'border border-green-300 bg-green-50/30 hover:border-green-400 hover:shadow-md'
                             }`}
-                            onClick={() => toggleRoom(room.id)}
+                            onClick={() => isAvailable && toggleRoom(room.id)}
                           >
+                            {/* สถานะห้อง - แถบสี */}
+                            <div className={`absolute top-0 left-0 right-0 h-1 ${
+                              isOccupied ? 'bg-gradient-to-r from-blue-500 to-indigo-600' : 'bg-gradient-to-r from-green-500 to-emerald-600'
+                            }`} />
+                            
                             <CardContent className="p-3 relative">
-                              {/* Checkbox */}
-                              <div className="absolute top-2 right-2">
-                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                  isSelected 
-                                    ? 'bg-blue-600 border-blue-600' 
-                                    : 'bg-white border-slate-300'
-                                }`}>
-                                  {isSelected && (
-                                    <CheckSquare className="w-4 h-4 text-white" />
-                                  )}
+                              {/* Checkbox - แสดงเฉพาะห้องว่าง */}
+                              {isAvailable && (
+                                <div className="absolute top-2 right-2">
+                                  <div className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                    isSelected 
+                                      ? 'bg-blue-600 border-blue-600' 
+                                      : 'bg-white border-slate-300'
+                                  }`}>
+                                    {isSelected && (
+                                      <CheckSquare className="w-4 h-4 text-white" />
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
+                              )}
 
                               {/* Room Number */}
-                              <div className="text-center">
+                              <div className="text-center pt-1">
                                 <div className={`font-bold text-lg mb-1 ${
-                                  isSelected ? 'text-blue-700' : 'text-slate-800'
+                                  isSelected ? 'text-blue-700' : isOccupied ? 'text-blue-600' : 'text-slate-800'
                                 }`}>
                                   {room.room_number}
                                 </div>
-                                <Badge variant="outline" className="text-xs">
+                                <Badge variant="outline" className={`text-xs ${
+                                  isOccupied ? 'bg-blue-100 text-blue-700 border-blue-300' : 'bg-white'
+                                }`}>
                                   {room.price?.toLocaleString()}฿
                                 </Badge>
+                                {isOccupied && (
+                                  <p className="text-[10px] text-blue-600 font-medium mt-1">มีผู้เช่า</p>
+                                )}
                               </div>
                             </CardContent>
                           </Card>
