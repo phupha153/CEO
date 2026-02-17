@@ -482,41 +482,41 @@ export default function BookingReceiptPage() {
           )}
 
           {/* Header with Logo */}
-          <div className="text-center mb-6 relative">
+          <div className="text-center mb-2">
             {/* Logo */}
             {buildingLogo && (
-              <div className="mb-4">
+              <div className="mb-2">
                 <img 
                   src={buildingLogo} 
                   alt={buildingName}
-                  className="h-20 mx-auto object-contain"
+                  className="h-14 mx-auto object-contain"
                 />
               </div>
             )}
             
-            <h1 className="text-3xl font-bold text-blue-800">{buildingName}</h1>
+            <h1 className="text-xl font-bold text-blue-800">{buildingName}</h1>
             
             {buildingAddress && (
-              <p className="text-sm text-slate-600 mt-1">{buildingAddress}</p>
+              <p className="text-xs text-slate-600 mt-0.5">{buildingAddress}</p>
             )}
             {buildingPhone && (
-              <p className="text-sm text-slate-600">โทร. {buildingPhone}</p>
+              <p className="text-xs text-slate-600">โทร. {buildingPhone}</p>
             )}
           </div>
 
           {/* Title */}
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-bold border-b-2 border-slate-300 pb-2 inline-block px-8">
-              ใบจองห้องเช่า {buildingName}
+          <div className="text-center mb-3">
+            <h2 className="text-lg font-bold border-b border-slate-300 pb-1 inline-block px-4">
+              ใบจองห้องเช่า
             </h2>
-            <div className="text-right mt-2 text-lg">
-              <span className="font-semibold">เลขที่ใบจอง </span>
+            <div className="text-right mt-1 text-sm">
+              <span className="font-semibold">เลขที่ </span>
               <span className="text-blue-700 font-bold">{booking.booking_no || format(parseISO(booking.created_date || new Date().toISOString()), 'dd-MM-yy')}</span>
             </div>
           </div>
 
           {/* Guest Info Box */}
-          <div className="border-2 border-slate-300 rounded-lg p-4 mb-6 text-lg">
+          <div className="border border-slate-300 rounded p-2 mb-3 text-sm">
             {isEditing ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -607,8 +607,8 @@ export default function BookingReceiptPage() {
           </div>
 
           {/* Detail Section */}
-          <div className="mb-6">
-            <h3 className="font-bold text-lg mb-3 text-blue-800 border-b border-blue-200 pb-1">รายละเอียดเพิ่มเติม</h3>
+          <div className="mb-2">
+            <h3 className="font-bold text-base mb-1 text-blue-800 border-b border-blue-200 pb-0.5">รายละเอียด</h3>
             {isEditing ? (
               <div className="space-y-4 pl-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -741,36 +741,33 @@ export default function BookingReceiptPage() {
           </div>
 
           {/* Required Documents */}
-          <div className="mb-6 bg-slate-50 p-4 rounded border border-slate-200">
-            <h3 className="font-bold text-lg mb-2 text-blue-800">สิ่งที่ต้องนำมาด้วยในวันทำสัญญาเข้าห้อง</h3>
-            <ol className="list-decimal list-inside text-lg space-y-1 pl-4">
-              <li>บัตรประจำตัวประชาชน ตัวจริง พร้อมสำเนาบัตรประชาชน ของผู้เช่าและผู้อาศัยทั้งหมด</li>
-              <li>กำหนดให้ผู้จองห้องมาทำสัญญาเช่าภายในวันที่ <span className="text-red-600 font-bold">{formatThaiDate(contractDeadline || checkInDate)}</span> หากพ้นกำหนดนี้ถือว่าสละสิทธิ์</li>
+          <div className="mb-2 bg-slate-50 p-2 rounded border border-slate-200">
+            <h3 className="font-bold text-xs mb-1 text-blue-800">เอกสารที่ต้องนำมา</h3>
+            <ol className="list-decimal list-inside text-xs space-y-0.5 pl-2">
+              <li>บัตรประชาชน ตัวจริง + สำเนา ของผู้เช่าและผู้อาศัยทั้งหมด</li>
+              <li>ทำสัญญาภายในวันที่ <span className="text-red-600 font-bold">{formatThaiDate(contractDeadline || checkInDate)}</span></li>
             </ol>
           </div>
 
           {/* Important Notes */}
-          <div className="mb-8 border-2 border-red-200 bg-red-50 p-4 rounded">
-            <h3 className="font-bold text-red-700 mb-2">หมายเหตุ</h3>
-            <p className="text-lg">
-              เงินจองห้องนี้เป็นส่วนหนึ่งในการหักลดค่ามัดจำห้องเช่าในวันทำสัญญาเช่าห้อง หากผู้เช่าห้องสละสิทธิ์หรือไม่ประสงค์ที่จะเช่าห้องที่จองไว้ เงินจำนวนนี้ไม่มีการคืนให้ไม่ว่ากรณีใดๆ ทั้งสิ้น
-            </p>
-            <p className="text-lg mt-2">
-              ใบจองห้องทำขึ้น 2 ฉบับ เพื่อให้ผู้รับจองห้อง 1 ฉบับ และผู้จองห้อง 1 ฉบับ
+          <div className="mb-2 border border-red-300 bg-red-50 p-2 rounded">
+            <h3 className="font-bold text-red-700 text-xs mb-1">หมายเหตุ</h3>
+            <p className="text-xs leading-tight">
+              เงินจองเป็นส่วนหักลดมัดจำวันทำสัญญา หากสละสิทธิ์ไม่คืนเงิน
             </p>
           </div>
 
           {/* Signatures */}
-          <div className="grid grid-cols-2 gap-8 mt-12">
-            <div className="text-center">
-              <p className="mb-16 text-lg">ลงชื่อ..............................................</p>
-              <p className="text-lg">({lessorName || '..........................................'})</p>
-              <p className="font-semibold text-lg mt-1">ผู้รับจองห้อง</p>
+          <div className="grid grid-cols-2 gap-2 mt-2 flex-grow">
+            <div className="text-center flex flex-col justify-end">
+              <p className="mb-4 text-xs">ลงชื่อ........................</p>
+              <p className="text-xs leading-tight">({lessorName ? lessorName.split(' ')[0] : 'ผู้รับจอง'})</p>
+              <p className="font-semibold text-xs">ผู้รับจองห้อง</p>
             </div>
-            <div className="text-center">
-              <p className="mb-16 text-lg">ลงชื่อ..............................................</p>
-              <p className="text-lg">({guestName})</p>
-              <p className="font-semibold text-lg mt-1">ผู้จองห้อง</p>
+            <div className="text-center flex flex-col justify-end">
+              <p className="mb-4 text-xs">ลงชื่อ........................</p>
+              <p className="text-xs leading-tight">({guestName.split(' ')[0] || 'ผู้จอง'})</p>
+              <p className="font-semibold text-xs">ผู้จองห้อง</p>
             </div>
           </div>
         </div>

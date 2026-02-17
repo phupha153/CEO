@@ -72,7 +72,6 @@ import FacebookScreencastGuide from './pages/FacebookScreencastGuide';
 import FacebookSetupGuide from './pages/FacebookSetupGuide';
 import FacebookTestDemo from './pages/FacebookTestDemo';
 import Home from './pages/Home';
-import Invoice from './pages/Invoice';
 import LineConnect from './pages/LineConnect';
 import Maintenance from './pages/Maintenance';
 import Materials from './pages/Materials';
@@ -106,6 +105,7 @@ import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
 import BookingReceipt from './pages/BookingReceipt';
+import Invoice from './pages/Invoice';
 import __Layout from './Layout.jsx';
 
 
@@ -135,7 +135,6 @@ export const PAGES = {
     "FacebookSetupGuide": FacebookSetupGuide,
     "FacebookTestDemo": FacebookTestDemo,
     "Home": Home,
-    "Invoice": Invoice,
     "LineConnect": LineConnect,
     "Maintenance": Maintenance,
     "Materials": Materials,
@@ -169,6 +168,7 @@ export const PAGES = {
     "f12": f12,
     "reports": reports,
     "BookingReceipt": BookingReceipt,
+    "Invoice": Invoice,
 }
 
 export const pagesConfig = {
