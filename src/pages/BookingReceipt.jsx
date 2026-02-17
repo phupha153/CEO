@@ -450,43 +450,45 @@ export default function BookingReceiptPage() {
             </div>
           )}
 
-          {/* Header with Stamp */}
-          <div className="text-center mb-6 relative">
-            {isCopy && (
-              <div className="inline-block bg-blue-600 text-white px-6 py-2 text-lg font-bold mb-4">
-                สำเนา
-              </div>
-            )}
-            
-            {/* Logo */}
-            {buildingLogo && (
-              <div className="mt-2">
-                <img 
-                  src={buildingLogo} 
-                  alt={buildingName}
-                  className="h-12 mx-auto object-contain"
-                />
-              </div>
-            )}
-            
-            <h1 className="text-xl font-bold text-blue-800 mt-1">{buildingName}</h1>
-            
-            {buildingAddress && (
-              <p className="text-xs text-slate-600 mt-0.5">{buildingAddress}</p>
-            )}
-            {buildingPhone && (
-              <p className="text-xs text-slate-600">โทร. {buildingPhone}</p>
-            )}
-          </div>
+          {/* Header - Logo & Name on Left, Receipt Title on Right */}
+          <div className="flex justify-between items-start mb-4 gap-4">
+            {/* Left: Logo & Building Name */}
+            <div className="flex-1">
+              {/* Logo */}
+              {buildingLogo && (
+                <div className="mb-2">
+                  <img 
+                    src={buildingLogo} 
+                    alt={buildingName}
+                    className="h-10 object-contain"
+                  />
+                </div>
+              )}
 
-          {/* Title */}
-          <div className="text-center mb-3">
-            <h2 className="text-lg font-bold border-b-2 border-slate-300 pb-1 inline-block px-4">
-              ใบจองห้องเช่า
-            </h2>
-            <div className="text-right mt-1 text-sm">
-              <span className="font-semibold">เลขที่ใบจอง </span>
-              <span className="text-blue-700 font-bold">{booking.booking_no || format(parseISO(booking.created_date || new Date().toISOString()), 'dd-MM-yy')}</span>
+              <h1 className="text-lg font-bold text-blue-800">{buildingName}</h1>
+
+              {buildingAddress && (
+                <p className="text-xs text-slate-600 mt-0.5">{buildingAddress}</p>
+              )}
+              {buildingPhone && (
+                <p className="text-xs text-slate-600">โทร. {buildingPhone}</p>
+              )}
+            </div>
+
+            {/* Right: Receipt Title & Number */}
+            <div className="flex-1 text-right">
+              {isCopy && (
+                <div className="inline-block bg-blue-600 text-white px-4 py-1 text-sm font-bold mb-2">
+                  สำเนา
+                </div>
+              )}
+              <h2 className="text-lg font-bold text-blue-800 border-b-2 border-slate-300 pb-1 inline-block px-3">
+                ใบจองห้องเช่า
+              </h2>
+              <div className="mt-2 text-sm">
+                <p className="font-semibold">เลขที่ใบจอง</p>
+                <p className="text-blue-700 font-bold">{booking.booking_no || format(parseISO(booking.created_date || new Date().toISOString()), 'dd-MM-yy')}</p>
+              </div>
             </div>
           </div>
 
