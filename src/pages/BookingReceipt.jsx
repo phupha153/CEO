@@ -458,15 +458,15 @@ export default function BookingReceiptPage() {
               <h3 className="font-bold text-base text-slate-800 mb-3">เงื่อนไขสำคัญ</h3>
               <ul className="text-sm space-y-2 text-slate-900">
                 <li className="flex gap-2">
-                  <span className="font-bold text-red-700 flex-shrink-0">1.</span>
+                  <span className="font-bold text-slate-700 flex-shrink-0">1.</span>
                   <span>เงินจองจะหักลดจากมัดจำ/ค่าเช่าล่วงหน้า/ส่วนกลาง เมื่อทำสัญญา</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="font-bold text-red-700 flex-shrink-0">2.</span>
+                  <span className="font-bold text-slate-700 flex-shrink-0">2.</span>
                   <span>หากไม่ทำสัญญา หรือชำระเงินให้ครบถ้วนภายในวันกำหนด ถือว่าสละสิทธิ์ เงินไม่คืน</span>
                 </li>
                 <li className="flex gap-2">
-                  <span className="font-bold text-red-700 flex-shrink-0">3.</span>
+                  <span className="font-bold text-slate-700 flex-shrink-0">3.</span>
                   <span>เข้าพักได้หลังจากทำสัญญา ตรวจห้อง และชำระเงินครบถ้วนเท่านั้น</span>
                 </li>
               </ul>
