@@ -715,24 +715,26 @@ export default function BookingReceiptPage() {
             )}
           </div>
 
-          {/* Required Documents */}
-          <div className="mb-6 bg-slate-50 p-4 rounded border border-slate-200">
-            <h3 className="font-bold text-lg mb-2 text-blue-800">สิ่งที่ต้องนำมาด้วยในวันทำสัญญาเข้าห้อง</h3>
-            <ol className="list-decimal list-inside text-lg space-y-1 pl-4">
-              <li>บัตรประจำตัวประชาชน ตัวจริง พร้อมสำเนาบัตรประชาชน ของผู้เช่าและผู้อาศัยทั้งหมด</li>
-              <li>กำหนดให้ผู้จองห้องมาทำสัญญาเช่าภายในวันที่ <span className="text-red-600 font-bold">{formatThaiDate(contractDeadline || checkInDate)}</span> หากพ้นกำหนดนี้ถือว่าสละสิทธิ์</li>
-            </ol>
-          </div>
+          {/* Required Documents & Notes */}
+          <div className="mb-4 space-y-3">
+            {/* Documents Required */}
+            <div className="bg-slate-50 p-3 rounded border border-slate-200">
+              <h3 className="font-bold text-xs mb-1 text-blue-800">สิ่งที่ต้องนำมาด้วยในวันทำสัญญา</h3>
+              <ol className="list-decimal list-inside text-xs space-y-0.5 pl-2">
+                <li>บัตรประชาชน ตัวจริง พร้อมสำเนา (ผู้เช่า + ผู้อาศัยทั้งหมด)</li>
+                <li>กำหนดทำสัญญา: <span className="text-red-600 font-bold">{formatThaiDate(contractDeadline || checkInDate)}</span></li>
+                <li>อื่นๆ ตามที่ผู้ให้เช่าระบุ</li>
+              </ol>
+            </div>
 
-          {/* Important Notes */}
-          <div className="mb-8 border-2 border-red-200 bg-red-50 p-4 rounded">
-            <h3 className="font-bold text-red-700 mb-2">หมายเหตุ</h3>
-            <p className="text-lg">
-              เงินจองห้องนี้เป็นส่วนหนึ่งในการหักลดค่ามัดจำห้องเช่าในวันทำสัญญาเช่าห้อง หากผู้เช่าห้องสละสิทธิ์หรือไม่ประสงค์ที่จะเช่าห้องที่จองไว้ เงินจำนวนนี้ไม่มีการคืนให้ไม่ว่ากรณีใดๆ ทั้งสิ้น
-            </p>
-            <p className="text-lg mt-2">
-              ใบจองห้องทำขึ้น 2 ฉบับ เพื่อให้ผู้รับจองห้อง 1 ฉบับ และผู้จองห้อง 1 ฉบับ
-            </p>
+            {/* Important Notes */}
+            <div className="border-2 border-red-200 bg-red-50 p-3 rounded">
+              <h3 className="font-bold text-xs text-red-700 mb-1">หมายเหตุสำคัญ</h3>
+              <ul className="text-xs space-y-0.5 pl-2">
+                <li>• เงินจองเป็นส่วนหักลดค่ามัดจำ ไม่มีการคืนหากสละสิทธิ์</li>
+                <li>• ใบจองทำ 2 ฉบับ (ผู้ให้เช่า + ผู้จอง)</li>
+              </ul>
+            </div>
           </div>
 
           {/* Signatures */}
