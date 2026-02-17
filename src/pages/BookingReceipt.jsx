@@ -799,18 +799,10 @@ export default function BookingReceiptPage() {
           .gap-4 { gap: 8px !important; }
         }
         
-        /* สำหรับ desktop */
-        @media screen and (min-width: 768px) {
+        /* สำหรับหน้าจอ - ให้เห็นเป็น A4 */
+        @media screen {
           .booking-container {
             max-width: 800px;
-            width: 100%;
-          }
-        }
-        
-        /* สำหรับ mobile */
-        @media screen and (max-width: 767px) {
-          .booking-container {
-            max-width: 380px;
             width: 100%;
           }
         }

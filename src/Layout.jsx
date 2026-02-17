@@ -1867,16 +1867,14 @@ export default function Layout({ children, currentPageName }) {
           </div>
 
           {/* Subscription Status Banner - Top */}
-          <div className="print:hidden">
-            {renderSubscriptionBanner()}
-          </div>
+          {renderSubscriptionBanner()}
 
           {/* Desktop Notification Bell */}
           <div className="hidden md:block absolute top-4 right-6 z-40">
             {currentUser && <NotificationsPanel />}
           </div>
 
-          <header className="print:hidden relative z-30 bg-white/40 backdrop-blur-2xl border-b border-white/40 px-3 py-3 md:hidden shadow-sm flex-shrink-0">
+          <header className="relative z-30 bg-white/40 backdrop-blur-2xl border-b border-white/40 px-3 py-3 md:hidden shadow-sm flex-shrink-0">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <SidebarTrigger className="hover:bg-white/50 p-1.5 rounded-xl transition-all duration-300 z-40 flex-shrink-0" />
