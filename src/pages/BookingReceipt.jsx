@@ -435,10 +435,11 @@ export default function BookingReceiptPage() {
       </Dialog>
 
       {/* Receipt Content */}
-      <div className="max-w-4xl mx-auto p-4 print:p-0 print:max-w-none">
+      <div className="max-w-4xl mx-auto p-4 print:p-0 print:max-w-none print:m-0">
         <div 
+          id="print-area"
           ref={printRef}
-          className="bg-white shadow-lg print:shadow-none"
+          className="bg-white shadow-lg print:shadow-none print:m-0"
           style={{ 
             width: '210mm', 
             minHeight: '297mm',
@@ -760,9 +761,29 @@ export default function BookingReceiptPage() {
             size: A4;
             margin: 0;
           }
-          body {
+          html, body {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            background: white !important;
+          }
+          body * {
+            visibility: hidden;
+          }
+          #print-area, #print-area * {
+            visibility: visible;
+          }
+          #print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 210mm;
+            height: 297mm;
+            margin: 0;
+            padding: 15mm;
+            background: white;
           }
           .print\\:hidden {
             display: none !important;
