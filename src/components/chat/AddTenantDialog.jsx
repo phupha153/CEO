@@ -57,8 +57,8 @@ export default function AddTenantDialog({
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.full_name || !formData.phone) {
-      toast.error('กรุณากรอกชื่อและเบอร์โทรศัพท์');
+    if (!formData.full_name) {
+      toast.error('กรุณากรอกชื่อ-นามสกุล');
       return;
     }
 
@@ -195,12 +195,11 @@ export default function AddTenantDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>เบอร์โทรศัพท์ *</Label>
+                <Label>เบอร์โทรศัพท์</Label>
                 <Input
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="0812345678"
-                  required
                 />
               </div>
               <div>
