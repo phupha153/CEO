@@ -490,7 +490,7 @@ const todayDateStr = thaiDateForCalc.toISOString().split('T')[0];
             payment.status = 'overdue';
             payment.late_fee_last_calculated = thailandTime;
 
-            await delay(200);
+            // ⚡ Removed delay - not needed for performance
         }
         
         console.log(`\n📊 LATE FEE CALCULATION SUMMARY:`);
