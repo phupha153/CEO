@@ -438,7 +438,7 @@ export default function BookingReceiptPage() {
       <div className="w-full print:w-full p-4 print:p-0 print:space-y-0">
         <div 
           ref={printRef}
-          className="bg-white shadow-lg print:shadow-none print:break-after-page"
+          className="max-w-4xl mx-auto bg-white shadow-lg print:shadow-none print:break-after-page p-8 print:p-6"
           style={{ 
             fontFamily: 'TH Sarabun New, Sarabun, sans-serif'
           }}
