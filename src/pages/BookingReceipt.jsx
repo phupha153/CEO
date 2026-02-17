@@ -678,8 +678,8 @@ export default function BookingReceiptPage() {
                 </div>
                 
                 {/* Payment Details Table */}
-                <div className="mt-1 border border-slate-300 rounded">
-                  <table className="w-full text-xs">
+                <div className="mt-2 border border-slate-300 rounded">
+                  <table className="w-full text-[11px]">
                     <tbody>
                       <tr className="border-b border-slate-200">
                         <td className="px-1 py-1 font-semibold">เงินประกัน</td>
