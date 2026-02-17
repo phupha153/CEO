@@ -709,9 +709,9 @@ export default function BookingReceiptPage() {
           </div>
 
           {/* Required Documents */}
-          <div className="mb-2 bg-slate-50 p-2 rounded border border-slate-200">
-            <h3 className="font-bold text-xs mb-1 text-blue-800">เอกสารที่ต้องนำมา</h3>
-            <ol className="list-decimal list-inside text-xs space-y-0.5 pl-2">
+          <div className="mb-1.5 bg-slate-50 p-1.5 rounded border border-slate-200">
+            <h3 className="font-bold text-xs mb-0.5 text-blue-800">เอกสารที่ต้องนำมา</h3>
+            <ol className="list-decimal list-inside text-[10px] space-y-0.5 pl-2">
               <li>บัตรประชาชน ตัวจริง + สำเนา ของผู้เช่าและผู้อาศัยทั้งหมด</li>
               <li>ทำสัญญาภายในวันที่ <span className="text-red-600 font-bold">{formatThaiDate(contractDeadline || checkInDate)}</span></li>
             </ol>
