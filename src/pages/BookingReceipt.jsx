@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 // แปลงตัวเลขเป็นข้อความภาษาไทย
 const numberToThaiText = (num) => {
