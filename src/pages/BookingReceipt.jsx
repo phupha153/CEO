@@ -761,35 +761,38 @@ export default function BookingReceiptPage() {
             size: A4;
             margin: 0;
           }
-          html, body {
+          * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
+          }
+          html, body {
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
-          }
-          body > *:not(.booking-print-container) {
-            display: none !important;
-          }
-          .booking-print-container {
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-          }
-          .booking-print-container > *:not(#print-area) {
-            display: none !important;
-          }
-          #print-area {
             width: 210mm !important;
             height: 297mm !important;
+          }
+          body * {
+            visibility: hidden !important;
+          }
+          #print-area,
+          #print-area * {
+            visibility: visible !important;
+          }
+          #print-area {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 210mm !important;
+            min-height: 297mm !important;
             margin: 0 !important;
             padding: 15mm !important;
             background: white !important;
             box-shadow: none !important;
-            page-break-after: avoid !important;
           }
-          .print\\:hidden {
+          button, input, select, textarea, img.hidden, .print\\:hidden {
             display: none !important;
+            visibility: hidden !important;
           }
         }
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
