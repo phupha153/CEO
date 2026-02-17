@@ -6,12 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Printer, ArrowLeft, Edit2, Save, Sparkles, Loader2, X } from "lucide-react";
+import { Printer, ArrowLeft, Edit2, Save, Sparkles, Loader2, X, Download } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 // แปลงตัวเลขเป็นข้อความภาษาไทย
 const numberToThaiText = (num) => {
