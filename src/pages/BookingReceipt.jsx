@@ -740,16 +740,16 @@ export default function BookingReceiptPage() {
           </div>
 
           {/* Signatures */}
-          <div className="grid grid-cols-2 gap-8 mt-12">
+          <div className="grid grid-cols-2 gap-8 mt-8">
             <div className="text-center">
-              <p className="mb-16 text-lg">ลงชื่อ..............................................</p>
+              <p className="mb-4 text-lg">ลงชื่อ..............................................</p>
               <p className="text-lg">({lessorName || '..........................................'})</p>
-              <p className="font-semibold text-lg mt-1">ผู้รับจองห้อง</p>
+              <p className="font-semibold text-lg">ผู้รับจองห้อง</p>
             </div>
             <div className="text-center">
-              <p className="mb-16 text-lg">ลงชื่อ..............................................</p>
+              <p className="mb-4 text-lg">ลงชื่อ..............................................</p>
               <p className="text-lg">({guestName})</p>
-              <p className="font-semibold text-lg mt-1">ผู้จองห้อง</p>
+              <p className="font-semibold text-lg">ผู้จองห้อง</p>
             </div>
           </div>
         </div>
