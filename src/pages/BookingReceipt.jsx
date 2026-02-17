@@ -823,6 +823,33 @@ export default function BookingReceiptPage() {
         
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
       `}</style>
+
+      {/* A4 Preview Styles */}
+      <style>{`
+        @media screen {
+          html {
+            background: #f3f4f6;
+          }
+          
+          .booking-container {
+            max-width: 210mm;
+            width: 100%;
+            margin: 20px auto;
+            padding: 20px;
+          }
+          
+          .booking-card {
+            width: 100%;
+            height: 297mm;
+            background: white;
+            border: 1px solid #d1d5db;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+          }
+        }
+      `}</style>
     </div>
   );
 }
