@@ -170,13 +170,14 @@ export default function BookingReceiptPage() {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const canvas = await html2canvas(element, {
-        scale: 2,
+        scale: 1.5,
         logging: false,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        windowWidth: 800,
-        windowHeight: 1000
+        windowWidth: 210 * 3.78, // A4 width in pixels (210mm = 793px at 96dpi)
+        windowHeight: 297 * 3.78, // A4 height in pixels
+        removeContainer: true
       });
 
       const pdf = new jsPDF({
@@ -845,149 +846,143 @@ export default function BookingReceiptPage() {
             print-color-adjust: exact !important;
             margin: 0 !important;
             padding: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            border: 0 !important;
           }
 
           main, main > div {
             margin: 0 !important;
             padding: 0 !important;
-            border: 0 !important;
-            width: 100% !important;
           }
           
-          /* ซ่อน sidebar + header เท่านั้น */
+          /* ซ่อน sidebar + header */
           aside, nav, .sidebar, [data-sidebar], header, .print\\:hidden {
             display: none !important;
           }
           
           @page {
-              size: A4;
-              margin: 0;
-              padding: 0;
-            }
-
-
+            size: A4;
+            margin: 5mm;
+          }
           
+          /* ลบ padding ที่ไม่จำเป็น */
           .print\\:hidden {
             display: none !important;
           }
           
-          .print\\:shadow-none, .shadow-lg, .shadow-sm, .shadow-xl, .shadow-2xl {
+          .shadow-lg, .shadow-sm, .shadow-xl, .shadow-2xl {
             box-shadow: none !important;
           }
           
-          .print\\:max-w-none {
-            max-width: 100% !important;
-          }
-
-          .max-w-4xl {
-            max-width: 100% !important;
-          }
-
-          .mx-auto {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-          }
-          
-          .print\\:p-0 {
-            padding: 0 !important;
-          }
-
-          /* Remove all padding from receipt container */
-          [ref], div[style*="fontFamily"] {
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          
-          .print\\:break-after-page {
-            break-after: page;
-          }
-          
-          .print\\:space-y-0 > * + * {
-            margin-top: 0 !important;
-          }
-          
-          /* ลบ border-radius ทั้งหมด */
           .rounded, .rounded-lg, .rounded-xl, .rounded-2xl, .rounded-full {
             border-radius: 0 !important;
           }
           
-          /* เก็บสีพื้นหลังและกรอบในโหมดพิมพ์ */
-          .bg-white, .bg-blue-600, .bg-blue-800, .bg-blue-700, .bg-blue-50,
-          .bg-slate-300, .bg-slate-200, .bg-slate-50,
-          .bg-red-50, .bg-green-50,
-          .border-slate-300, .border-slate-200, .border-slate-400,
-          .border-red-200, .border-blue-200, .border-blue-300,
-          .border-t-2, .border-b-2, .border-2 {
+          /* เก็บสี & border */
+          * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
           
-          /* ลดขนาด font ทั้งหมด */
-          h1 { font-size: 20px !important; line-height: 1.4 !important; margin: 4px 0 !important; }
-          h2 { font-size: 17px !important; line-height: 1.4 !important; margin: 4px 0 !important; }
-          h3 { font-size: 15px !important; line-height: 1.5 !important; margin: 4px 0 !important; }
-          .text-3xl { font-size: 19px !important; line-height: 1.4 !important; }
-          .text-2xl { font-size: 17px !important; line-height: 1.4 !important; }
-          .text-xl { font-size: 15px !important; line-height: 1.4 !important; }
-          .text-lg { font-size: 14px !important; line-height: 1.5 !important; }
-          .text-base, p, span, td, th, li { font-size: 13px !important; line-height: 1.5 !important; }
-          .text-sm { font-size: 12px !important; line-height: 1.5 !important; }
-          .text-xs { font-size: 11px !important; line-height: 1.5 !important; }
-          
-          /* ลดระยะห่าง padding ให้สมดุล */
-          .p-8 { padding: 8px !important; }
-          .p-6 { padding: 7px !important; }
-          .p-4 { padding: 6px !important; }
-          .p-3 { padding: 5px !important; }
-          .p-2 { padding: 4px !important; }
-          .px-8 { padding-left: 10px !important; padding-right: 10px !important; }
-          .px-6 { padding-left: 8px !important; padding-right: 8px !important; }
-          .px-4 { padding-left: 6px !important; padding-right: 6px !important; }
-          .py-6 { padding-top: 8px !important; padding-bottom: 8px !important; }
-          .py-4 { padding-top: 6px !important; padding-bottom: 6px !important; }
-          .py-2 { padding-top: 4px !important; padding-bottom: 4px !important; }
-          
-          /* ลดระยะห่าง margin */
-          .mb-8, .mt-8 { margin-bottom: 8px !important; margin-top: 8px !important; }
-          .mb-6, .mt-6 { margin-bottom: 7px !important; margin-top: 7px !important; }
-          .mb-4, .mt-4 { margin-bottom: 5px !important; margin-top: 5px !important; }
-          .mb-3, .mt-3 { margin-bottom: 4px !important; margin-top: 4px !important; }
-          .mb-2, .mt-2 { margin-bottom: 2px !important; margin-top: 2px !important; }
-          .mb-12, .mt-12 { margin-bottom: 8px !important; margin-top: 8px !important; }
-          .mb-16 { margin-bottom: 8px !important; }
-          
-          /* ลด gap ให้สมดุล */
-          .gap-8 { gap: 6px !important; }
-          .gap-6 { gap: 5px !important; }
-          .gap-4 { gap: 4px !important; }
-          .gap-3 { gap: 3px !important; }
-          .gap-2 { gap: 2px !important; }
-          
-          /* ลดขนาดรูป */
-          .h-20 { height: 40px !important; }
-          
-          /* space ระหว่างบรรทัด */
-          .space-y-4 > * + * { margin-top: 3px !important; }
-          .space-y-3 > * + * { margin-top: 2px !important; }
-          .space-y-2 > * + * { margin-top: 1px !important; }
-          .space-y-1 > * + * { margin-top: 1px !important; }
-          
-          /* list */
-          ol, ul { 
-            font-size: 13px !important;
-            line-height: 1.4 !important;
-            margin-left: 10px !important;
+          /* ตั้งค่า font ให้เหมาะสมสำหรับ PDF */
+          body, html, p, span, div, td, th, li {
+            font-family: 'TH Sarabun New', Sarabun, sans-serif !important;
+            font-size: 12pt !important;
+            line-height: 1.3 !important;
+            color: #000 !important;
           }
           
-          li { margin-bottom: 3px !important; }
+          h1, h2, h3, h4, h5, h6 {
+            font-family: 'TH Sarabun New', Sarabun, sans-serif !important;
+            color: #000 !important;
+          }
           
-          /* table */
-          table { font-size: 13px !important; }
-          td, th { padding: 2px !important; line-height: 1.1 !important; }
+          h1 { font-size: 14pt !important; line-height: 1.3 !important; margin: 4pt 0 !important; font-weight: bold !important; }
+          h2 { font-size: 13pt !important; line-height: 1.3 !important; margin: 4pt 0 !important; font-weight: bold !important; }
+          h3 { font-size: 12pt !important; line-height: 1.3 !important; margin: 3pt 0 !important; font-weight: bold !important; }
+          
+          p { margin: 2pt 0 !important; }
+          
+          /* Spacing - ลดแต่ไม่ลดมากเกิน */
+          .p-8 { padding: 3mm !important; }
+          .p-6 { padding: 2.5mm !important; }
+          .p-4 { padding: 2mm !important; }
+          .p-3 { padding: 1.5mm !important; }
+          .p-2 { padding: 1mm !important; }
+          .p-1 { padding: 0.5mm !important; }
+          
+          .px-8 { padding-left: 3mm !important; padding-right: 3mm !important; }
+          .px-6 { padding-left: 2.5mm !important; padding-right: 2.5mm !important; }
+          .px-4 { padding-left: 2mm !important; padding-right: 2mm !important; }
+          .px-2 { padding-left: 1mm !important; padding-right: 1mm !important; }
+          
+          .py-6 { padding-top: 2.5mm !important; padding-bottom: 2.5mm !important; }
+          .py-4 { padding-top: 2mm !important; padding-bottom: 2mm !important; }
+          .py-2 { padding-top: 1mm !important; padding-bottom: 1mm !important; }
+          .py-1 { padding-top: 0.5mm !important; padding-bottom: 0.5mm !important; }
+          
+          /* Margins */
+          .mb-8, .mt-8 { margin-bottom: 3mm !important; margin-top: 3mm !important; }
+          .mb-6, .mt-6 { margin-bottom: 2.5mm !important; margin-top: 2.5mm !important; }
+          .mb-4, .mt-4 { margin-bottom: 2mm !important; margin-top: 2mm !important; }
+          .mb-3, .mt-3 { margin-bottom: 1.5mm !important; margin-top: 1.5mm !important; }
+          .mb-2, .mt-2 { margin-bottom: 1mm !important; margin-top: 1mm !important; }
+          .mb-1, .mt-1 { margin-bottom: 0.5mm !important; margin-top: 0.5mm !important; }
+          
+          /* Gaps */
+          .gap-8 { gap: 3mm !important; }
+          .gap-6 { gap: 2.5mm !important; }
+          .gap-4 { gap: 2mm !important; }
+          .gap-3 { gap: 1.5mm !important; }
+          .gap-2 { gap: 1mm !important; }
+          
+          /* Space between lines */
+          .space-y-4 > * + * { margin-top: 1.5mm !important; }
+          .space-y-3 > * + * { margin-top: 1mm !important; }
+          .space-y-2 > * + * { margin-top: 0.8mm !important; }
+          .space-y-1 > * + * { margin-top: 0.5mm !important; }
+          
+          /* Lists */
+          ol, ul { 
+            font-size: 12pt !important;
+            line-height: 1.3 !important;
+            margin-left: 5mm !important;
+            padding-left: 0 !important;
+          }
+          
+          li { 
+            margin-bottom: 2pt !important;
+            page-break-inside: avoid !important;
+          }
+          
+          /* Tables */
+          table { 
+            font-size: 12pt !important;
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
+          
+          td, th { 
+            padding: 2pt 3pt !important;
+            line-height: 1.2 !important;
+            text-align: left !important;
+            page-break-inside: avoid !important;
+          }
+          
           tr { page-break-inside: avoid !important; }
+          
+          /* Border & Lines - เก็บ dotted border */
+          .border-b { border-bottom: 1px dotted !important; }
+          .border-t { border-top: 1px solid !important; }
+          .border { border: 1px solid !important; }
+          .border-2 { border: 2px solid !important; }
+          .border-dotted { border-style: dotted !important; }
+          
+          /* Image sizing */
+          img { max-width: 100% !important; height: auto !important; }
+          
+          /* Fix inline-block for dotted lines */
+          .inline-block { display: inline-block !important; }
+          .min-w-\\[200px\\] { min-width: 80px !important; }
+          .min-w-\\[300px\\] { min-width: 120px !important; }
         }
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
       `}</style>
