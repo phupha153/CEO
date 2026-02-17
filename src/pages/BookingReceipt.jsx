@@ -718,9 +718,9 @@ export default function BookingReceiptPage() {
           </div>
 
           {/* Important Notes */}
-          <div className="mb-2 border border-red-300 bg-red-50 p-2 rounded">
-            <h3 className="font-bold text-red-700 text-xs mb-1">หมายเหตุ</h3>
-            <p className="text-xs leading-tight">
+          <div className="mb-1.5 border border-red-300 bg-red-50 p-1.5 rounded">
+            <h3 className="font-bold text-red-700 text-xs mb-0.5">หมายเหตุ</h3>
+            <p className="text-[10px] leading-snug">
               เงินจองเป็นส่วนหักลดมัดจำวันทำสัญญา หากสละสิทธิ์ไม่คืนเงิน
             </p>
           </div>
