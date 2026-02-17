@@ -170,14 +170,17 @@ export default function BookingReceiptPage() {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const canvas = await html2canvas(element, {
-        scale: 1.5,
+        scale: 2,
         logging: false,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        windowWidth: 210 * 3.78, // A4 width in pixels (210mm = 793px at 96dpi)
-        windowHeight: 297 * 3.78, // A4 height in pixels
-        removeContainer: true
+        windowWidth: 793, // A4 width: 210mm @ 96dpi = 793px
+        windowHeight: 1122, // A4 height: 297mm @ 96dpi = 1122px
+        removeContainer: true,
+        ignoreElements: (el) => el.classList?.contains('print:hidden'),
+        imageTimeout: 10000,
+        proxy: null
       });
 
       const pdf = new jsPDF({
