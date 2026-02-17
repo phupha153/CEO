@@ -169,17 +169,23 @@ export default function BookingReceiptPage() {
       // รอให้ render พร้อมก่อน
       await new Promise(resolve => setTimeout(resolve, 500));
 
+      // Reset margin/padding ก่อน render เพื่อลบ whitespace
+      element.style.margin = '0';
+      element.style.padding = '0';
+
       const canvas = await html2canvas(element, {
         scale: 2,
+        x: 0,
+        y: 0,
         logging: false,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        windowWidth: 793, // A4 width: 210mm @ 96dpi = 793px
-        windowHeight: 1122, // A4 height: 297mm @ 96dpi = 1122px
-        removeContainer: true,
+        windowWidth: element.offsetWidth || 793,
+        windowHeight: element.offsetHeight || 1122,
+        removeContainer: false,
         ignoreElements: (el) => el.classList?.contains('print:hidden'),
-        imageTimeout: 10000,
+        imageTimeout: 15000,
         proxy: null
       });
 
