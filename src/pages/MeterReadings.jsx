@@ -131,10 +131,14 @@ export default function MeterReadings() {
         if (skip >= 1000000) hasMore = false; // ✅ Circuit breaker - 1M records
       }
       
-      console.log(`📊 MeterReadings - Loaded ${allData.length} readings for branch ${selectedBranchId}`);
-      return allData;
+      // ⭐ Filter orphan readings - เก็บเฉพาะมิเตอร์ที่ห้องยังมีอยู่
+      const validRoomIds = new Set(rooms.map(r => r.id));
+      const filteredData = allData.filter(reading => validRoomIds.has(reading.room_id));
+      
+      console.log(`📊 MeterReadings - Loaded ${allData.length} readings (${filteredData.length} valid) for branch ${selectedBranchId}`);
+      return filteredData;
     },
-    enabled: canView && !!selectedBranchId,
+    enabled: canView && !!selectedBranchId && rooms.length > 0,
     ...retryConfig,
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
