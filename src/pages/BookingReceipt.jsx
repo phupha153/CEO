@@ -541,44 +541,42 @@ export default function BookingReceiptPage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="mb-2">
-                      <span className="font-semibold">ได้รับเงินจองห้อง </span>
-                      <span className="border-b border-dotted border-slate-400 px-2">{room?.room_number || '-'}</span>
-                      <span className="ml-2">ชั้น</span>
-                      <span className="border-b border-dotted border-slate-400 px-2">{room?.floor || '-'}</span>
-                    </p>
-                    <p className="mb-2">
-                      <span className="font-semibold">ให้เป็นจำนวนเงิน </span>
-                      <span className="border-b border-dotted border-slate-400 px-2 text-blue-700 font-bold">{depositAmount.toLocaleString()}</span>
-                      <span className="ml-2">บาท</span>
-                      <span className="ml-2 text-slate-500">({numberToThaiText(depositAmount)})</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="mt-4 border-t border-slate-200 pt-4">
-                  <p className="mb-2">
-                    <span className="font-semibold">น.ส./นาย/นาง </span>
-                    <span className="border-b border-dotted border-slate-400 px-2 min-w-[200px] inline-block">{guestName}</span>
-                  </p>
-                  <p className="mb-2">
-                    <span className="font-semibold">เลขที่บัตรประชาชน </span>
-                    <span className="border-b border-dotted border-slate-400 px-2">{guestNationalId}</span>
-                  </p>
-                  <p className="mb-2">
-                    <span className="font-semibold">ที่อยู่ </span>
-                    <span className="border-b border-dotted border-slate-400 px-2 min-w-[300px] inline-block">{guestAddress}</span>
+                <div className="bg-blue-50 -mx-2 -mt-2 p-2 mb-2 border-b border-blue-200">
+                  <p className="mb-1">
+                    <span className="font-bold text-blue-900">✓ ได้รับเงินจองห้อง</span>
+                    <span className="ml-4 font-bold text-blue-700">{room?.room_number || '-'}</span>
+                    <span className="ml-4">ชั้น {room?.floor || '-'}</span>
                   </p>
                   <p>
-                    <span className="font-semibold">โทร. </span>
-                    <span className="border-b border-dotted border-slate-400 px-2">{guestPhone}</span>
+                    <span className="font-bold text-blue-900">✓ จำนวนเงิน</span>
+                    <span className="ml-4 text-lg font-bold text-blue-700">{depositAmount.toLocaleString()} บาท</span>
                   </p>
+                  <p className="text-[10px] text-slate-600 mt-1">({numberToThaiText(depositAmount)})</p>
+                </div>
+
+                <div className="space-y-1.5 mt-3">
+                  <div>
+                    <p className="text-[10px] font-semibold text-slate-600 mb-0.5">ชื่อผู้จอง</p>
+                    <p className="font-bold text-sm border-b-2 border-dotted border-slate-300 pb-0.5 py-1">{guestName}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <p className="text-[10px] font-semibold text-slate-600 mb-0.5">เลขบัตรประชาชน</p>
+                      <p className="text-[11px] border-b-2 border-dotted border-slate-300 pb-0.5 py-1">{guestNationalId}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-semibold text-slate-600 mb-0.5">เบอร์โทร</p>
+                      <p className="text-[11px] border-b-2 border-dotted border-slate-300 pb-0.5 py-1">{guestPhone}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-semibold text-slate-600 mb-0.5">ที่อยู่</p>
+                    <p className="text-[11px] border-b-2 border-dotted border-slate-300 pb-0.5 py-1">{guestAddress}</p>
+                  </div>
                 </div>
               </>
-            )}
-          </div>
+              )}
+              </div>
 
           {/* Detail Section */}
           <div className="mb-1.5">
