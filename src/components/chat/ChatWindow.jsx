@@ -241,7 +241,7 @@ export default function ChatWindow({
     }
   };
 
-  const handleSubmitTenant = async ({ tenantData, createBooking }) => {
+  const handleSubmitTenant = async ({ tenantData, bookings }) => {
     setSubmittingTenant(true);
     try {
       const branchId = localStorage.getItem('selected_branch_id');
@@ -274,28 +274,30 @@ export default function ChatWindow({
       
       await base44.entities.Tenant.update(tenantId, platformId);
       
-      // สร้าง Booking ถ้าเลือก
-      if (createBooking && tenantData.room_number) {
-        const selectedRoom = rooms.find(r => r.room_number === tenantData.room_number);
-        
-        if (selectedRoom) {
-          await base44.entities.Booking.create({
-            branch_id: branchId,
-            room_id: selectedRoom.id,
-            tenant_id: tenantId,
-            check_in_date: tenantData.check_in_date || new Date().toISOString().split('T')[0],
-            booking_type: selectedRoom.room_type || 'monthly',
-            status: 'active',
-            deposit_amount: parseFloat(tenantData.deposit_amount) || 0,
-          });
+      // ⭐ สร้าง Booking หลายห้อง (รองรับ array)
+      if (bookings && bookings.length > 0) {
+        for (const bookingData of bookings) {
+          const selectedRoom = rooms.find(r => r.room_number === bookingData.room_number);
+          
+          if (selectedRoom) {
+            await base44.entities.Booking.create({
+              branch_id: branchId,
+              room_id: selectedRoom.id,
+              tenant_id: tenantId,
+              check_in_date: bookingData.check_in_date || new Date().toISOString().split('T')[0],
+              booking_type: selectedRoom.room_type || 'monthly',
+              status: 'active',
+              deposit_amount: parseFloat(bookingData.deposit_amount) || 0,
+            });
 
-          // อัปเดตสถานะห้องเป็น occupied
-          await base44.entities.Room.update(selectedRoom.id, {
-            status: 'occupied'
-          });
-
-          toast.success('สร้างสัญญาเช่าสำเร็จ');
+            // อัปเดตสถานะห้องเป็น occupied
+            await base44.entities.Room.update(selectedRoom.id, {
+              status: 'occupied'
+            });
+          }
         }
+        
+        toast.success(`สร้างสัญญาเช่าสำเร็จ ${bookings.length} ห้อง`);
       }
 
       setShowAddTenantDialog(false);
