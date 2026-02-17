@@ -5,14 +5,53 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Printer, ArrowLeft, Edit2, Save, X, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Printer, ArrowLeft, Edit2, Save, Sparkles, Loader2, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { th } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
 
-// Format Thai Date
+// แปลงตัวเลขเป็นข้อความภาษาไทย
+const numberToThaiText = (num) => {
+  if (!num || num === 0) return 'ศูนย์บาทถ้วน';
+  
+  const units = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+  const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+  
+  const convertGroup = (n) => {
+    if (n === 0) return '';
+    let result = '';
+    const str = n.toString();
+    const len = str.length;
+    
+    for (let i = 0; i < len; i++) {
+      const digit = parseInt(str[i]);
+      const pos = len - i - 1;
+      
+      if (digit !== 0) {
+        if (pos === 1 && digit === 1) {
+          result += 'สิบ';
+        } else if (pos === 1 && digit === 2) {
+          result += 'ยี่สิบ';
+        } else if (pos === 0 && digit === 1 && len > 1) {
+          result += 'เอ็ด';
+        } else {
+          result += units[digit] + positions[pos];
+        }
+      }
+    }
+    return result;
+  };
+  
+  const intPart = Math.floor(num);
+  const result = convertGroup(intPart);
+  
+  return result + 'บาทถ้วน';
+};
+
+// แปลงวันที่เป็นภาษาไทย
 const formatThaiDate = (dateStr) => {
   if (!dateStr) return '-';
   try {
@@ -26,34 +65,6 @@ const formatThaiDate = (dateStr) => {
   }
 };
 
-// Convert number to Thai text
-const numberToThaiText = (num) => {
-  if (!num || num === 0) return 'ศูนย์บาทถ้วน';
-  const units = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
-  const positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
-  
-  const convertGroup = (n) => {
-    if (n === 0) return '';
-    let result = '';
-    const str = n.toString();
-    const len = str.length;
-    
-    for (let i = 0; i < len; i++) {
-      const digit = parseInt(str[i]);
-      const pos = len - i - 1;
-      if (digit !== 0) {
-        if (pos === 1 && digit === 1) result += 'สิบ';
-        else if (pos === 1 && digit === 2) result += 'ยี่สิบ';
-        else if (pos === 0 && digit === 1 && len > 1) result += 'เอ็ด';
-        else result += units[digit] + positions[pos];
-      }
-    }
-    return result;
-  };
-  
-  return convertGroup(Math.floor(num)) + 'บาทถ้วน';
-};
-
 export default function BookingReceiptPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -62,11 +73,14 @@ export default function BookingReceiptPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const bookingId = urlParams.get('id');
   const tempBookingId = urlParams.get('tempId');
+  const isCopy = urlParams.get('copy') === 'true';
   
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
+  const [showAIDialog, setShowAIDialog] = useState(false);
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
-  // Fetch booking
   const { data: booking, isLoading: bookingLoading } = useQuery({
     queryKey: ['booking', bookingId, tempBookingId],
     queryFn: async () => {
@@ -82,7 +96,6 @@ export default function BookingReceiptPage() {
     enabled: !!(bookingId || tempBookingId)
   });
 
-  // Fetch room
   const { data: room } = useQuery({
     queryKey: ['room', booking?.room_id],
     queryFn: async () => {
@@ -92,7 +105,6 @@ export default function BookingReceiptPage() {
     enabled: !!booking?.room_id
   });
 
-  // Fetch tenant
   const { data: tenant } = useQuery({
     queryKey: ['tenant', booking?.tenant_id],
     queryFn: async () => {
@@ -103,7 +115,6 @@ export default function BookingReceiptPage() {
     enabled: !!booking?.tenant_id
   });
 
-  // Fetch branch
   const { data: branch } = useQuery({
     queryKey: ['branch', booking?.branch_id],
     queryFn: async () => {
@@ -113,7 +124,6 @@ export default function BookingReceiptPage() {
     enabled: !!booking?.branch_id
   });
 
-  // Fetch configs
   const { data: configs = [] } = useQuery({
     queryKey: ['configs', booking?.branch_id],
     queryFn: () => base44.entities.Config.list(),
@@ -135,7 +145,11 @@ export default function BookingReceiptPage() {
   const buildingLogo = getConfigValue('building_logo', '');
   const lessorName = getConfigValue('lessor_name', '');
 
-  // Initialize edit form
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // Initialize edit form when booking loads
   React.useEffect(() => {
     if (booking) {
       setEditForm({
@@ -150,6 +164,7 @@ export default function BookingReceiptPage() {
         security_deposit: booking.security_deposit?.toString() || '0',
         advance_rent: booking.advance_rent?.toString() || '0',
         common_fee_included: booking.common_fee_included?.toString() || '0',
+        notes: booking.notes || ''
       });
     }
   }, [booking]);
@@ -173,17 +188,92 @@ export default function BookingReceiptPage() {
       });
     },
     onSuccess: () => {
-      queryClient.refetchQueries(['booking', bookingId]);
+      queryClient.invalidateQueries(['booking', bookingId]);
       setIsEditing(false);
-      toast.success('บันทึกสำเร็จ');
+      toast.success('บันทึกการแก้ไขสำเร็จ');
     },
     onError: (error) => {
-      toast.error(error.message || 'เกิดข้อผิดพลาด');
+      toast.error(error.message || 'เกิดข้อผิดพลาดในการบันทึก');
     }
   });
 
-  const handlePrint = () => window.print();
-  const handleSave = () => updateMutation.mutate(editForm);
+  // AI Edit handler
+  const handleAIEdit = async () => {
+    if (!aiQuery.trim()) {
+      toast.error('กรุณาใส่คำสั่งแก้ไข');
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `คุณเป็นผู้ช่วยแก้ไขใบจองห้องเช่า วิเคราะห์คำสั่งและแก้ไขข้อมูลตามที่ผู้ใช้ต้องการ
+
+ข้อมูลใบจองปัจจุบัน:
+- ชื่อผู้จอง: ${editForm.guest_name}
+- เบอร์โทร: ${editForm.guest_phone}
+- เลขบัตรประชาชน: ${editForm.guest_national_id}
+- ที่อยู่: ${editForm.guest_address}
+- วันที่จอง: ${editForm.check_in_date}
+- ระยะเวลาสัญญา: ${editForm.contract_duration}
+- กำหนดทำสัญญา: ${editForm.contract_deadline}
+- เงินจองห้อง: ${editForm.deposit_amount} บาท
+- เงินประกันห้อง: ${editForm.security_deposit} บาท
+- ค่าเช่าล่วงหน้า: ${editForm.advance_rent} บาท
+- รวมส่วนกลาง: ${editForm.common_fee_included} บาท
+- หมายเหตุ: ${editForm.notes}
+
+คำสั่งจากผู้ใช้: "${aiQuery}"
+
+กรุณาส่งคืนข้อมูลที่แก้ไขแล้ว พร้อมอธิบายสิ่งที่เปลี่ยนแปลง`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            updated_data: {
+              type: "object",
+              properties: {
+                guest_name: { type: "string" },
+                guest_phone: { type: "string" },
+                guest_national_id: { type: "string" },
+                guest_address: { type: "string" },
+                check_in_date: { type: "string" },
+                contract_duration: { type: "string" },
+                contract_deadline: { type: "string" },
+                deposit_amount: { type: "string" },
+                security_deposit: { type: "string" },
+                advance_rent: { type: "string" },
+                common_fee_included: { type: "string" },
+                notes: { type: "string" }
+              }
+            },
+            explanation: { type: "string" }
+          },
+          required: ["updated_data", "explanation"]
+        }
+      });
+
+      if (response.updated_data) {
+        setEditForm(prev => ({
+          ...prev,
+          ...response.updated_data
+        }));
+        toast.success(response.explanation || 'แก้ไขข้อมูลตามคำสั่งแล้ว');
+      }
+      setShowAIDialog(false);
+      setAiQuery('');
+      setIsEditing(true);
+    } catch (error) {
+      console.error('AI Edit Error:', error);
+      toast.error('เกิดข้อผิดพลาดในการวิเคราะห์คำสั่ง');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleSave = () => {
+    updateMutation.mutate(editForm);
+  };
+
   const handleCancelEdit = () => {
     if (booking) {
       setEditForm({
@@ -198,6 +288,7 @@ export default function BookingReceiptPage() {
         security_deposit: booking.security_deposit?.toString() || '0',
         advance_rent: booking.advance_rent?.toString() || '0',
         common_fee_included: booking.common_fee_included?.toString() || '0',
+        notes: booking.notes || ''
       });
     }
     setIsEditing(false);
@@ -208,7 +299,7 @@ export default function BookingReceiptPage() {
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-600">กำลังโหลด...</p>
+          <p className="text-slate-600">กำลังโหลดข้อมูล...</p>
         </div>
       </div>
     );
@@ -218,24 +309,25 @@ export default function BookingReceiptPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
         <div className="text-center">
-          <p className="text-slate-600 mb-4">ไม่พบข้อมูล</p>
+          <p className="text-slate-600 mb-4">ไม่พบข้อมูลใบจอง</p>
           <Button onClick={() => navigate(createPageUrl('Bookings'))}>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            กลับ
+            กลับหน้าการจอง
           </Button>
         </div>
       </div>
     );
   }
 
-  // Calculate amounts
+  // คำนวณยอดเงินต่างๆ - ใช้จาก editForm ถ้ากำลังแก้ไข
   const depositAmount = isEditing ? (parseFloat(editForm.deposit_amount) || 0) : (booking.deposit_amount || 0);
   const securityDeposit = isEditing ? (parseFloat(editForm.security_deposit) || 0) : (booking.security_deposit || 0);
   const advanceRent = isEditing ? (parseFloat(editForm.advance_rent) || 0) : (booking.advance_rent || 0);
   const commonFeeIncluded = isEditing ? (parseFloat(editForm.common_fee_included) || 0) : (booking.common_fee_included || 0);
-  const totalAmount = depositAmount + securityDeposit + advanceRent + commonFeeIncluded;
+  const totalBookingAmount = depositAmount + securityDeposit + advanceRent + commonFeeIncluded;
+  const remainingAmount = securityDeposit + advanceRent + commonFeeIncluded;
 
-  // Get display values
+  // ข้อมูลผู้จอง - ใช้จาก editForm ถ้ากำลังแก้ไข
   const guestName = isEditing ? editForm.guest_name : (booking.guest_name || tenant?.full_name || '-');
   const guestPhone = isEditing ? editForm.guest_phone : (booking.guest_phone || tenant?.phone || '-');
   const guestNationalId = isEditing ? editForm.guest_national_id : (booking.guest_national_id || tenant?.national_id || '-');
@@ -246,7 +338,7 @@ export default function BookingReceiptPage() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      {/* Control Bar */}
+      {/* Print Controls - Hidden on print */}
       <div className="print:hidden bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <Button variant="ghost" onClick={() => navigate(createPageUrl('Bookings'))}>
@@ -254,6 +346,14 @@ export default function BookingReceiptPage() {
             กลับ
           </Button>
           <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAIDialog(true)}
+              className="border-purple-300 text-purple-600 hover:bg-purple-50"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              AI แก้ไข
+            </Button>
             {isEditing ? (
               <>
                 <Button variant="outline" onClick={handleCancelEdit}>
@@ -281,233 +381,388 @@ export default function BookingReceiptPage() {
             )}
             <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700">
               <Printer className="w-4 h-4 mr-2" />
-              พิมพ์
+              พิมพ์ใบจอง
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Receipt */}
-      <div className="max-w-4xl mx-auto print:max-w-none p-4 print:p-0">
+      {/* AI Edit Dialog */}
+      <Dialog open={showAIDialog} onOpenChange={setShowAIDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              แก้ไขด้วย AI
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              พิมพ์คำสั่งเช่น "เปลี่ยนระยะสัญญาเป็น 2 ปี" หรือ "เพิ่มเงินมัดจำเป็น 5000"
+            </p>
+            <Input
+              placeholder="เช่น: เปลี่ยนระยะสัญญาเป็น 6 เดือน..."
+              value={aiQuery}
+              onChange={(e) => setAiQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !aiLoading) handleAIEdit();
+              }}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowAIDialog(false)}>
+                ยกเลิก
+              </Button>
+              <Button 
+                onClick={handleAIEdit} 
+                disabled={aiLoading || !aiQuery.trim()}
+                className="bg-purple-600 hover:bg-purple-700"
+              >
+                {aiLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    กำลังวิเคราะห์...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    ดำเนินการ
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Content */}
+      <div className="max-w-4xl mx-auto p-4 print:p-0 print:max-w-none">
         <div 
           ref={printRef}
-          className="bg-white rounded-lg shadow-xl print:shadow-none print:rounded-none"
-          style={{ fontFamily: 'TH Sarabun New, Sarabun, sans-serif', width: '210mm', margin: '0 auto' }}
+          className="bg-white shadow-lg print:shadow-none"
+          style={{ 
+            width: '210mm', 
+            minHeight: '297mm',
+            padding: '15mm',
+            margin: '0 auto',
+            fontFamily: 'TH Sarabun New, Sarabun, sans-serif'
+          }}
         >
-          {/* Header */}
-          <div className="border-b-2 border-slate-300 pb-4 pt-6 px-8 text-center">
+          {/* Copy Watermark */}
+          {isCopy && (
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-blue-200 text-9xl font-bold rotate-[-30deg] opacity-30 pointer-events-none print:opacity-20">
+              สำเนา
+            </div>
+          )}
+
+          {/* Header with Stamp */}
+          <div className="text-center mb-6 relative">
+            <div className="inline-block bg-blue-600 text-white px-6 py-2 text-lg font-bold">
+              {isCopy ? 'สำเนา' : 'ต้นฉบับ'}
+            </div>
+            
+            {/* Logo */}
             {buildingLogo && (
-              <img src={buildingLogo} alt={buildingName} className="h-16 mx-auto mb-3 object-contain" />
+              <div className="mt-4">
+                <img 
+                  src={buildingLogo} 
+                  alt={buildingName}
+                  className="h-20 mx-auto object-contain"
+                />
+              </div>
             )}
-            <h1 className="text-2xl font-bold text-slate-800">{buildingName}</h1>
-            {buildingAddress && <p className="text-sm text-slate-600 mt-1">{buildingAddress}</p>}
-            {buildingPhone && <p className="text-sm text-slate-600">โทร. {buildingPhone}</p>}
+            
+            <h1 className="text-3xl font-bold text-blue-800 mt-2">{buildingName}</h1>
+            
+            {buildingAddress && (
+              <p className="text-sm text-slate-600 mt-1">{buildingAddress}</p>
+            )}
+            {buildingPhone && (
+              <p className="text-sm text-slate-600">โทร. {buildingPhone}</p>
+            )}
           </div>
 
           {/* Title */}
-          <div className="text-center py-4 border-b border-slate-200">
-            <h2 className="text-xl font-bold text-blue-800">ใบจองห้องเช่า</h2>
-            <p className="text-sm text-slate-600 mt-1">เลขที่ {booking.booking_no || format(parseISO(booking.created_date || new Date().toISOString()), 'dd-MM-yy')}</p>
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold border-b-2 border-slate-300 pb-2 inline-block px-8">
+              ใบจองห้องเช่า {buildingName}
+            </h2>
+            <div className="text-right mt-2 text-lg">
+              <span className="font-semibold">เลขที่ใบจอง </span>
+              <span className="text-blue-700 font-bold">{booking.booking_no || format(parseISO(booking.created_date || new Date().toISOString()), 'dd-MM-yy')}</span>
+            </div>
           </div>
 
-          {/* Content */}
-          <div className="px-8 py-6 space-y-6">
-            {/* Section 1: Guest Info */}
-            <div className="border-2 border-slate-300 rounded-lg p-5">
-              <h3 className="font-bold text-base text-slate-800 mb-4">ข้อมูลผู้จอง</h3>
-              
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm">ชื่อ-สกุล</Label>
-                      <Input value={editForm.guest_name} onChange={(e) => setEditForm({...editForm, guest_name: e.target.value})} className="mt-1" />
-                    </div>
-                    <div>
-                      <Label className="text-sm">เบอร์โทร</Label>
-                      <Input value={editForm.guest_phone} onChange={(e) => setEditForm({...editForm, guest_phone: e.target.value})} className="mt-1" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm">เลขบัตรประชาชน</Label>
-                      <Input value={editForm.guest_national_id} onChange={(e) => setEditForm({...editForm, guest_national_id: e.target.value})} className="mt-1" />
-                    </div>
-                    <div>
-                      <Label className="text-sm">ห้อง / ชั้น</Label>
-                      <Input value={`${room?.room_number || '-'} / ชั้น ${room?.floor || '-'}`} disabled className="mt-1" />
-                    </div>
+          {/* Guest Info Box */}
+          <div className="border-2 border-slate-300 rounded-lg p-4 mb-6 text-lg">
+            {isEditing ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm">ชื่อผู้จอง</Label>
+                    <Input
+                      value={editForm.guest_name}
+                      onChange={(e) => setEditForm({...editForm, guest_name: e.target.value})}
+                      className="mt-1"
+                    />
                   </div>
                   <div>
-                    <Label className="text-sm">ที่อยู่ปัจจุบัน</Label>
-                    <Input value={editForm.guest_address} onChange={(e) => setEditForm({...editForm, guest_address: e.target.value})} className="mt-1" />
+                    <Label className="text-sm">เบอร์โทร</Label>
+                    <Input
+                      value={editForm.guest_phone}
+                      onChange={(e) => setEditForm({...editForm, guest_phone: e.target.value})}
+                      className="mt-1"
+                    />
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-3 text-sm">
-                  <div className="grid grid-cols-2">
-                    <span className="font-semibold text-slate-700">ชื่อ-สกุล:</span>
-                    <span className="text-slate-900 font-bold">{guestName}</span>
-                  </div>
-                  <div className="grid grid-cols-2">
-                    <span className="font-semibold text-slate-700">เบอร์โทร:</span>
-                    <span className="text-slate-900">{guestPhone}</span>
-                  </div>
-                  <div className="grid grid-cols-2">
-                    <span className="font-semibold text-slate-700">เลขบัตรประชาชน:</span>
-                    <span className="text-slate-900">{guestNationalId}</span>
-                  </div>
-                  <div className="grid grid-cols-2">
-                    <span className="font-semibold text-slate-700">ห้อง / ชั้น:</span>
-                    <span className="text-slate-900 font-bold">{room?.room_number || '-'} / ชั้น {room?.floor || '-'}</span>
-                  </div>
-                  <div className="grid grid-cols-2">
-                    <span className="font-semibold text-slate-700">ที่อยู่ปัจจุบัน:</span>
-                    <span className="text-slate-900">{guestAddress}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Section 2: Booking Details */}
-            <div className="border-2 border-slate-300 rounded-lg p-5">
-              <h3 className="font-bold text-base text-slate-800 mb-4">รายละเอียดการจอง</h3>
-              
-              {isEditing ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm">วันที่จอง</Label>
-                      <Input type="date" value={editForm.check_in_date} onChange={(e) => setEditForm({...editForm, check_in_date: e.target.value})} className="mt-1" />
-                    </div>
-                    <div>
-                      <Label className="text-sm">ระยะสัญญา</Label>
-                      <Input value={editForm.contract_duration} onChange={(e) => setEditForm({...editForm, contract_duration: e.target.value})} className="mt-1" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm">เงินจองห้อง (บาท)</Label>
-                      <Input type="number" value={editForm.deposit_amount} onChange={(e) => setEditForm({...editForm, deposit_amount: e.target.value})} className="mt-1" />
-                    </div>
-                    <div>
-                      <Label className="text-sm">มัดจำห้อง (บาท)</Label>
-                      <Input type="number" value={editForm.security_deposit} onChange={(e) => setEditForm({...editForm, security_deposit: e.target.value})} className="mt-1" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-sm">ค่าเช่าล่วงหน้า (บาท)</Label>
-                      <Input type="number" value={editForm.advance_rent} onChange={(e) => setEditForm({...editForm, advance_rent: e.target.value})} className="mt-1" />
-                    </div>
-                    <div>
-                      <Label className="text-sm">ส่วนกลาง (บาท)</Label>
-                      <Input type="number" value={editForm.common_fee_included} onChange={(e) => setEditForm({...editForm, common_fee_included: e.target.value})} className="mt-1" />
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm">เลขบัตรประชาชน</Label>
+                    <Input
+                      value={editForm.guest_national_id}
+                      onChange={(e) => setEditForm({...editForm, guest_national_id: e.target.value})}
+                      className="mt-1"
+                    />
                   </div>
                   <div>
-                    <Label className="text-sm">กำหนดทำสัญญา</Label>
-                    <Input type="date" value={editForm.contract_deadline} onChange={(e) => setEditForm({...editForm, contract_deadline: e.target.value})} className="mt-1" />
+                    <Label className="text-sm">เงินจองห้อง (บาท)</Label>
+                    <Input
+                      type="number"
+                      value={editForm.deposit_amount}
+                      onChange={(e) => setEditForm({...editForm, deposit_amount: e.target.value})}
+                      className="mt-1"
+                    />
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-2 text-sm">
-                  <div className="grid grid-cols-2">
-                    <span className="font-semibold text-slate-700">วันที่จอง:</span>
-                    <span>{formatThaiDate(checkInDate)}</span>
-                  </div>
-                  <div className="grid grid-cols-2">
-                    <span className="font-semibold text-slate-700">ระยะสัญญา:</span>
-                    <span className="font-bold text-blue-700">{contractDuration}</span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 p-3 rounded mt-3 border border-slate-200">
-                    <div>
-                      <p className="text-xs text-slate-600">เงินจอง</p>
-                      <p className="font-bold text-lg text-slate-900">{depositAmount.toLocaleString()}</p>
-                      <p className="text-xs text-slate-500 mt-1">{numberToThaiText(depositAmount)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-600">มัดจำ</p>
-                      <p className="font-bold text-lg text-slate-900">{securityDeposit.toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-600">ล่วงหน้า</p>
-                      <p className="font-bold text-lg text-slate-900">{advanceRent.toLocaleString()}</p>
-                    </div>
-                  </div>
-                  {commonFeeIncluded > 0 && (
-                    <div className="grid grid-cols-2 mt-3 p-3 rounded border border-slate-300">
-                      <span className="font-semibold text-slate-700">ส่วนกลาง:</span>
-                      <span className="font-bold text-slate-900">{commonFeeIncluded.toLocaleString()} บาท</span>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 mt-3 p-3 rounded border-2 border-slate-400 bg-slate-50">
-                    <span className="font-bold text-slate-900">รวมจำนวนเงิน:</span>
-                    <span className="font-bold text-2xl text-slate-900">{totalAmount.toLocaleString()}</span>
-                  </div>
-                  <div className="grid grid-cols-2 mt-2 p-3 rounded border border-slate-300">
-                    <span className="font-semibold text-slate-700">กำหนดทำสัญญา:</span>
-                    <span className="font-bold text-slate-900">{formatThaiDate(contractDeadline || checkInDate)}</span>
+                <div>
+                  <Label className="text-sm">ที่อยู่</Label>
+                  <Input
+                    value={editForm.guest_address}
+                    onChange={(e) => setEditForm({...editForm, guest_address: e.target.value})}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="mb-2">
+                      <span className="font-semibold">ได้รับเงินจองห้อง </span>
+                      <span className="border-b border-dotted border-slate-400 px-2">{room?.room_number || '-'}</span>
+                      <span className="ml-2">ชั้น</span>
+                      <span className="border-b border-dotted border-slate-400 px-2">{room?.floor || '-'}</span>
+                    </p>
+                    <p className="mb-2">
+                      <span className="font-semibold">ให้เป็นจำนวนเงิน </span>
+                      <span className="border-b border-dotted border-slate-400 px-2 text-blue-700 font-bold">{depositAmount.toLocaleString()}</span>
+                      <span className="ml-2">บาท</span>
+                      <span className="ml-2 text-slate-500">({numberToThaiText(depositAmount)})</span>
+                    </p>
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Section 3: Conditions */}
-            <div className="border-2 border-slate-400 rounded-lg p-5">
-              <h3 className="font-bold text-base text-slate-800 mb-3">เงื่อนไขสำคัญ</h3>
-              <ul className="text-sm space-y-2 text-slate-900">
-                <li className="flex gap-2">
-                  <span className="font-bold text-slate-700 flex-shrink-0">1.</span>
-                  <span>เงินจองจะหักลดจากมัดจำ/ค่าเช่าล่วงหน้า/ส่วนกลาง เมื่อทำสัญญา</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="font-bold text-slate-700 flex-shrink-0">2.</span>
-                  <span>หากไม่ทำสัญญา หรือชำระเงินให้ครบถ้วนภายในวันกำหนด ถือว่าสละสิทธิ์ เงินไม่คืน</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="font-bold text-slate-700 flex-shrink-0">3.</span>
-                  <span>เข้าพักได้หลังจากทำสัญญา ตรวจห้อง และชำระเงินครบถ้วนเท่านั้น</span>
-                </li>
-              </ul>
-            </div>
+                <div className="mt-4 border-t border-slate-200 pt-4">
+                  <p className="mb-2">
+                    <span className="font-semibold">น.ส./นาย/นาง </span>
+                    <span className="border-b border-dotted border-slate-400 px-2 min-w-[200px] inline-block">{guestName}</span>
+                  </p>
+                  <p className="mb-2">
+                    <span className="font-semibold">เลขที่บัตรประชาชน </span>
+                    <span className="border-b border-dotted border-slate-400 px-2">{guestNationalId}</span>
+                  </p>
+                  <p className="mb-2">
+                    <span className="font-semibold">ที่อยู่ </span>
+                    <span className="border-b border-dotted border-slate-400 px-2 min-w-[300px] inline-block">{guestAddress}</span>
+                  </p>
+                  <p>
+                    <span className="font-semibold">โทร. </span>
+                    <span className="border-b border-dotted border-slate-400 px-2">{guestPhone}</span>
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
 
-            {/* Section 4: Signatures */}
-            <div className="flex justify-between items-end pt-8 gap-8">
-              <div className="text-center flex-1">
-                <div className="border-t-2 border-slate-400 pt-2 h-20" />
-                <p className="font-semibold text-sm text-slate-800 mt-2">ผู้รับจองห้อง</p>
-                <p className="text-xs text-slate-600">{lessorName || '(...........................)'}</p>
+          {/* Detail Section */}
+          <div className="mb-6">
+            <h3 className="font-bold text-lg mb-3 text-blue-800 border-b border-blue-200 pb-1">รายละเอียดเพิ่มเติม</h3>
+            {isEditing ? (
+              <div className="space-y-4 pl-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm">วันที่จอง</Label>
+                    <Input
+                      type="date"
+                      value={editForm.check_in_date}
+                      onChange={(e) => setEditForm({...editForm, check_in_date: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm">ระยะเวลาสัญญา</Label>
+                    <Select
+                      value={editForm.contract_duration}
+                      onValueChange={(value) => setEditForm({...editForm, contract_duration: value})}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1 เดือน">1 เดือน</SelectItem>
+                        <SelectItem value="3 เดือน">3 เดือน</SelectItem>
+                        <SelectItem value="6 เดือน">6 เดือน</SelectItem>
+                        <SelectItem value="1 ปี">1 ปี</SelectItem>
+                        <SelectItem value="2 ปี">2 ปี</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm">เงินประกันห้อง (บาท)</Label>
+                    <Input
+                      type="number"
+                      value={editForm.security_deposit}
+                      onChange={(e) => setEditForm({...editForm, security_deposit: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm">ค่าเช่าล่วงหน้า (บาท)</Label>
+                    <Input
+                      type="number"
+                      value={editForm.advance_rent}
+                      onChange={(e) => setEditForm({...editForm, advance_rent: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm">รวมส่วนกลาง (บาท)</Label>
+                    <Input
+                      type="number"
+                      value={editForm.common_fee_included}
+                      onChange={(e) => setEditForm({...editForm, common_fee_included: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm">กำหนดทำสัญญาภายในวันที่</Label>
+                    <Input
+                      type="date"
+                      value={editForm.contract_deadline}
+                      onChange={(e) => setEditForm({...editForm, contract_deadline: e.target.value})}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                
+                {/* Summary Box */}
+                <div className="mt-4 border border-blue-300 rounded bg-blue-50 p-4">
+                  <h4 className="font-semibold text-blue-800 mb-2">สรุปยอดเงิน (คำนวณอัตโนมัติ)</h4>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <span>รวมสุทธิ:</span>
+                    <span className="text-right font-bold text-blue-700">{totalBookingAmount.toLocaleString()} บาท</span>
+                    <span>คงเหลือชำระทีหลัง:</span>
+                    <span className="text-right font-bold text-green-700">{remainingAmount.toLocaleString()} บาท</span>
+                  </div>
+                </div>
               </div>
-              <div className="text-center flex-1">
-                <div className="border-t-2 border-slate-400 pt-2 h-20" />
-                <p className="font-semibold text-sm text-slate-800 mt-2">ผู้จองห้อง</p>
-                <p className="text-xs text-slate-600">{guestName.split(' ')[0] || '(...........................)'}</p>
+            ) : (
+              <div className="text-lg space-y-2 pl-4">
+                <p>
+                  <span className="font-semibold">วันที่ </span>
+                  <span className="text-blue-700">{formatThaiDate(checkInDate)}</span>
+                  <span className="ml-4">ได้วางเงินจองห้องไว้ </span>
+                  <span className="text-blue-700 font-bold">{depositAmount.toLocaleString()}</span>
+                  <span> บาท</span>
+                </p>
+                <p>
+                  <span className="font-semibold">เงื่อนไขสัญญา: </span>
+                  <span>สัญญาระยะ </span>
+                  <span className="text-blue-700">{contractDuration}</span>
+                </p>
+                
+                {/* Payment Details Table */}
+                <div className="mt-4 border border-slate-300 rounded">
+                  <table className="w-full text-lg">
+                    <tbody>
+                      <tr className="border-b border-slate-200">
+                        <td className="p-2 font-semibold">เงินประกันห้อง</td>
+                        <td className="p-2 text-right text-blue-700">{securityDeposit.toLocaleString()} บาท</td>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <td className="p-2 font-semibold">ค่าเช่าล่วงหน้า</td>
+                        <td className="p-2 text-right text-blue-700">{advanceRent.toLocaleString()} บาท</td>
+                      </tr>
+                      {commonFeeIncluded > 0 && (
+                        <tr className="border-b border-slate-200">
+                          <td className="p-2 font-semibold">รวมส่วนกลาง</td>
+                          <td className="p-2 text-right text-blue-700">{commonFeeIncluded.toLocaleString()} บาท</td>
+                        </tr>
+                      )}
+                      <tr className="border-b border-slate-200 bg-blue-50">
+                        <td className="p-2 font-bold">รวมสุทธิ</td>
+                        <td className="p-2 text-right text-blue-700 font-bold">{totalBookingAmount.toLocaleString()} บาท</td>
+                      </tr>
+                      <tr className="bg-green-50">
+                        <td className="p-2 font-bold text-green-700">* คงเหลือชำระทีหลัง</td>
+                        <td className="p-2 text-right text-green-700 font-bold">{remainingAmount.toLocaleString()} บาท</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
+          </div>
 
-            {/* Date */}
-            <div className="text-center text-sm text-slate-600 pt-6 border-t border-slate-200">
-              <p>วันที่ทำใบจอง: {formatThaiDate(booking.created_date)}</p>
+          {/* Required Documents */}
+          <div className="mb-6 bg-slate-50 p-4 rounded border border-slate-200">
+            <h3 className="font-bold text-lg mb-2 text-blue-800">สิ่งที่ต้องนำมาด้วยในวันทำสัญญาเข้าห้อง</h3>
+            <ol className="list-decimal list-inside text-lg space-y-1 pl-4">
+              <li>บัตรประจำตัวประชาชน ตัวจริง พร้อมสำเนาบัตรประชาชน ของผู้เช่าและผู้อาศัยทั้งหมด</li>
+              <li>กำหนดให้ผู้จองห้องมาทำสัญญาเช่าภายในวันที่ <span className="text-red-600 font-bold">{formatThaiDate(contractDeadline || checkInDate)}</span> หากพ้นกำหนดนี้ถือว่าสละสิทธิ์</li>
+            </ol>
+          </div>
+
+          {/* Important Notes */}
+          <div className="mb-8 border-2 border-red-200 bg-red-50 p-4 rounded">
+            <h3 className="font-bold text-red-700 mb-2">หมายเหตุ</h3>
+            <p className="text-lg">
+              เงินจองห้องนี้เป็นส่วนหนึ่งในการหักลดค่ามัดจำห้องเช่าในวันทำสัญญาเช่าห้อง หากผู้เช่าห้องสละสิทธิ์หรือไม่ประสงค์ที่จะเช่าห้องที่จองไว้ เงินจำนวนนี้ไม่มีการคืนให้ไม่ว่ากรณีใดๆ ทั้งสิ้น
+            </p>
+            <p className="text-lg mt-2">
+              ใบจองห้องทำขึ้น 2 ฉบับ เพื่อให้ผู้รับจองห้อง 1 ฉบับ และผู้จองห้อง 1 ฉบับ
+            </p>
+          </div>
+
+          {/* Signatures */}
+          <div className="grid grid-cols-2 gap-8 mt-12">
+            <div className="text-center">
+              <p className="mb-16 text-lg">ลงชื่อ..............................................</p>
+              <p className="text-lg">({lessorName || '..........................................'})</p>
+              <p className="font-semibold text-lg mt-1">ผู้รับจองห้อง</p>
+            </div>
+            <div className="text-center">
+              <p className="mb-16 text-lg">ลงชื่อ..............................................</p>
+              <p className="text-lg">({guestName})</p>
+              <p className="font-semibold text-lg mt-1">ผู้จองห้อง</p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Print Styles */}
       <style>{`
         @media print {
-          * {
-            margin: 0 !important;
-            padding: 0 !important;
-            box-sizing: border-box !important;
-          }
-          body, html {
-            background: white !important;
-            font-size: 13px !important;
-          }
           @page {
             size: A4;
-            margin: 10mm;
+            margin: 0;
+          }
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           .print\\:hidden {
             display: none !important;
