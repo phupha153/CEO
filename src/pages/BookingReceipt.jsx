@@ -154,7 +154,10 @@ export default function BookingReceiptPage() {
   const handleDownload = async () => {
     try {
       const element = printRef.current;
-      if (!element) return;
+      if (!element) {
+        toast.error('❌ ไม่พบข้อมูลที่จะดาวโหลด');
+        return;
+      }
 
       const canvas = await html2canvas(element, {
         scale: 2,
