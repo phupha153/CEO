@@ -779,10 +779,7 @@ export default function BookingReceiptPage() {
               padding: 0;
             }
 
-            * {
-              margin: 0 !important;
-              padding: 0 !important;
-            }
+
           
           .print\\:hidden {
             display: none !important;
@@ -793,7 +790,16 @@ export default function BookingReceiptPage() {
           }
           
           .print\\:max-w-none {
-            max-width: none !important;
+            max-width: 100% !important;
+          }
+
+          .max-w-4xl {
+            max-width: 100% !important;
+          }
+
+          .mx-auto {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
           }
           
           .print\\:p-0 {
