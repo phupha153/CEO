@@ -337,7 +337,7 @@ export default function BookingReceiptPage() {
   const checkInDate = isEditing ? editForm.check_in_date : booking.check_in_date;
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-100 booking-print-container">
       {/* Print Controls - Hidden on print */}
       <div className="print:hidden bg-white border-b shadow-sm sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -766,24 +766,27 @@ export default function BookingReceiptPage() {
             print-color-adjust: exact !important;
             margin: 0 !important;
             padding: 0 !important;
-            overflow: visible !important;
             background: white !important;
           }
-          body * {
-            visibility: hidden;
+          body > *:not(.booking-print-container) {
+            display: none !important;
           }
-          #print-area, #print-area * {
-            visibility: visible;
+          .booking-print-container {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+          }
+          .booking-print-container > *:not(#print-area) {
+            display: none !important;
           }
           #print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 210mm;
-            height: 297mm;
-            margin: 0;
-            padding: 15mm;
-            background: white;
+            width: 210mm !important;
+            height: 297mm !important;
+            margin: 0 !important;
+            padding: 15mm !important;
+            background: white !important;
+            box-shadow: none !important;
+            page-break-after: avoid !important;
           }
           .print\\:hidden {
             display: none !important;
