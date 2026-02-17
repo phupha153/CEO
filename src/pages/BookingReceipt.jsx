@@ -12,7 +12,7 @@ import { th } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { toast } from "sonner";
-import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 // แปลงตัวเลขเป็นข้อความภาษาไทย
 const numberToThaiText = (num) => {
@@ -152,20 +152,32 @@ export default function BookingReceiptPage() {
 
   const handleDownloadImage = async () => {
     try {
-      const canvas = await html2canvas(printRef.current, {
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      const element = printRef.current;
+      const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff'
       });
-      const link = document.createElement('a');
-      link.href = canvas.toDataURL('image/png');
-      link.download = `booking-${booking.booking_no || format(parseISO(booking.created_date || new Date().toISOString()), 'dd-MM-yy')}.png`;
-      link.click();
-      toast.success('ดาวน์โหลดรูปสำเร็จ');
+
+      const imgWidth = 210;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const imgData = canvas.toDataURL('image/png');
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      
+      const fileName = `booking-${booking.booking_no || format(parseISO(booking.created_date || new Date().toISOString()), 'dd-MM-yy')}.pdf`;
+      pdf.save(fileName);
+      toast.success('ดาวน์โหลด PDF สำเร็จ');
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('ดาวน์โหลดรูปไม่สำเร็จ');
+      toast.error('ดาวน์โหลด PDF ไม่สำเร็จ');
     }
   };
 
@@ -401,7 +413,7 @@ export default function BookingReceiptPage() {
             )}
             <Button onClick={handleDownloadImage} variant="outline" className="border-green-300 text-green-600 hover:bg-green-50">
               <Download className="w-4 h-4 mr-2" />
-              ดาวน์โหลดรูป
+              ดาวน์โหลด PDF
             </Button>
             <Button onClick={handlePrint} className="bg-blue-600 hover:bg-blue-700">
               <Printer className="w-4 h-4 mr-2" />
