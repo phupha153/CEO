@@ -191,7 +191,7 @@ export default function BookingReceiptPage() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['booking', bookingId]);
+      queryClient.refetchQueries(['booking', bookingId]);
       setIsEditing(false);
       toast.success('บันทึกการแก้ไขสำเร็จ');
     },
