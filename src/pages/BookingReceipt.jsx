@@ -151,6 +151,62 @@ export default function BookingReceiptPage() {
     window.print();
   };
 
+  const handleDownloadPDF = async () => {
+    try {
+      toast.loading('กำลังสร้าง PDF...');
+      
+      const element = printRef.current;
+      if (!element) {
+        toast.error('ไม่พบข้อมูลใบจอง');
+        return;
+      }
+
+      // สร้าง Canvas จาก HTML
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+
+      // สร้าง PDF
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      const pdf = new jsPDF('p', 'mm', 'A4');
+      let position = 0;
+
+      // เพิ่มหลายหน้าถ้าจำเป็น
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeightPdf = pdf.internal.pageSize.getHeight();
+
+      const imgData = canvas.toDataURL('image/png');
+      let heightLeftPdf = imgHeight;
+
+      while (heightLeftPdf >= 0) {
+        pdf.addImage(imgData, 'PNG', 0, position, pageWidth, imgHeight);
+        heightLeftPdf -= pageHeightPdf;
+        position = heightLeftPdf;
+
+        if (heightLeftPdf > 0) {
+          pdf.addPage();
+        }
+      }
+
+      // ชื่อไฟล์
+      const bookingNo = booking.booking_no || format(parseISO(booking.created_date || new Date().toISOString()), 'ddMMyy');
+      const filename = `ใบจองห้อง_${bookingNo}_${format(new Date(), 'ddMMyy')}.pdf`;
+
+      pdf.save(filename);
+      toast.success('ดาวน์โหลด PDF สำเร็จ');
+    } catch (error) {
+      console.error('PDF Error:', error);
+      toast.error('เกิดข้อผิดพลาดในการสร้าง PDF');
+    }
+  };
+
   // Initialize edit form when booking loads
   React.useEffect(() => {
     if (booking) {
