@@ -768,19 +768,6 @@ export default function BookingReceiptPage() {
           
           .print\\:hidden {
             display: none !important;
-            visibility: hidden !important;
-            height: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            border: 0 !important;
-          }
-          
-          .sticky {
-            position: static !important;
-          }
-          
-          .z-50 {
-            z-index: auto !important;
           }
           
           .print\\:shadow-none, .shadow-lg, .shadow-sm, .shadow-xl, .shadow-2xl {
