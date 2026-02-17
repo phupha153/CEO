@@ -582,8 +582,8 @@ export default function BookingReceiptPage() {
           </div>
 
           {/* Detail Section */}
-          <div className="mb-6">
-            <h3 className="font-bold text-lg mb-3 text-blue-800 border-b border-blue-200 pb-1">รายละเอียดเพิ่มเติม</h3>
+          <div className="mb-3">
+            <h3 className="font-bold text-sm mb-2 text-blue-800 border-b border-blue-200 pb-0.5">รายละเอียดเพิ่มเติม</h3>
             {isEditing ? (
               <div className="space-y-4 pl-4">
                 <div className="grid grid-cols-2 gap-4">
