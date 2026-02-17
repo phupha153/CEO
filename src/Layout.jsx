@@ -1626,12 +1626,12 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       <div className="min-h-screen flex w-full h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
-        <Sidebar collapsible="icon" className="border-r-0 bg-transparent flex-shrink-0 z-50 transition-all duration-300 ease-in-out" style={{ '--sidebar-width': '240px', '--sidebar-width-icon': '48px', 'width': '240px' }} data-state="expanded">
-          <div className="absolute inset-0 bg-white/70 backdrop-blur-2xl border-r border-white/50 group-data-[collapsible=icon]:bg-white/40" />
+        <Sidebar collapsible="icon" className="border-r-0 bg-transparent flex-shrink-0 z-50 transition-all duration-300 ease-in-out">
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-2xl border-r border-white/50 group-data-[collapsible=icon]:bg-white/90" />
           
-          <SidebarHeader className="relative z-10 border-b border-white/40 p-2 group-data-[collapsible=icon]:p-1 group-data-[collapsible=icon]:pl-2 bg-gradient-to-br from-white/30 to-white/20 flex-shrink-0">
-            <div className="flex items-center justify-between gap-2 mb-1 group-data-[collapsible=icon]:mb-0 group-data-[collapsible=icon]:justify-start">
-              <SidebarTrigger className="hover:bg-blue-100/50 p-1.5 rounded-xl transition-all duration-300 group-data-[collapsible=icon]:ml-0 group-data-[collapsible=icon]:p-1" />
+          <SidebarHeader className="relative z-10 border-b border-white/40 p-2 group-data-[collapsible=icon]:p-2 bg-gradient-to-br from-white/30 to-white/20 flex-shrink-0">
+            <div className="flex items-center justify-between gap-2 mb-1 group-data-[collapsible=icon]:mb-0 group-data-[collapsible=icon]:justify-center">
+              <SidebarTrigger className="hover:bg-blue-100/50 p-1.5 rounded-xl transition-all duration-300 group-data-[collapsible=icon]:p-1.5" />
             </div>
 
             <motion.div 
@@ -1677,7 +1677,7 @@ export default function Layout({ children, currentPageName }) {
             </motion.div>
           </SidebarHeader>
 
-          <SidebarContent className="relative z-10 p-3 overflow-y-auto flex-1 group-data-[collapsible=icon]:overflow-y-auto group-data-[collapsible=icon]:px-1">
+          <SidebarContent className="relative z-10 p-3 overflow-y-auto flex-1 group-data-[collapsible=icon]:overflow-y-auto group-data-[collapsible=icon]:px-2">
             <SidebarGroup>
               <SidebarGroupLabel className="text-xs font-semibold text-slate-500 uppercase tracking-wider px-3 py-2 group-data-[collapsible=icon]:hidden">
                 เมนูหลัก
@@ -1745,7 +1745,7 @@ export default function Layout({ children, currentPageName }) {
                                }
                              }}
                              disabled={deleteTestDataMutation.isPending}
-                             className={`group hover:bg-gradient-to-r hover:from-red-50/80 hover:to-orange-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 ${
+                             className={`group hover:bg-gradient-to-r hover:from-red-50/80 hover:to-orange-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 ${
                                deleteTestDataMutation.isPending ? 'bg-red-500 opacity-70' : 'bg-red-600 hover:bg-red-700'
                              } text-white`}
                              title={item.title}
@@ -1768,7 +1768,7 @@ export default function Layout({ children, currentPageName }) {
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                           onClick={() => navigate(item.url)}
-                          className={`group hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 ${
+                          className={`group hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 ${
                             isActive ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30' : ''
                           }`}
                           title={item.title}
@@ -1802,7 +1802,7 @@ export default function Layout({ children, currentPageName }) {
                         <SidebarMenuItem key={item.title}>
                           <SidebarMenuButton
                             onClick={() => navigate(item.url)}
-                            className={`hover:bg-gradient-to-r hover:from-purple-50/80 hover:to-pink-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:pl-3 ${
+                            className={`hover:bg-gradient-to-r hover:from-purple-50/80 hover:to-pink-50/80 transition-all duration-200 rounded-2xl mb-1 cursor-pointer group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 ${
                               isActive ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30' : ''
                             }`}
                             title={item.title}
@@ -1828,7 +1828,7 @@ export default function Layout({ children, currentPageName }) {
 
           <SidebarFooter className="relative z-10 border-t border-white/40 p-4 group-data-[collapsible=icon]:p-2 bg-gradient-to-br from-white/30 to-white/20 flex-shrink-0">
             <div className="space-y-3">
-              <div className="flex items-center gap-3 px-2 group-data-[collapsible=icon]:justify-start group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:pl-1">
+              <div className="flex items-center gap-3 px-2 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
                 <div className="relative flex-shrink-0">
                   <div className={`absolute inset-0 bg-gradient-to-br ${getRoleBadge(userRole).color} rounded-full blur-md opacity-50`} />
                   <div className={`relative w-10 h-10 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 bg-gradient-to-br ${getRoleBadge(userRole).color} rounded-full flex items-center justify-center shadow-lg`}>
