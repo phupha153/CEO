@@ -718,7 +718,7 @@ export default function BookingReceiptPage() {
 
           {/* Important Notes - Legal */}
           <div className="mb-0 border-2 border-red-500 bg-red-50 p-3 rounded">
-            <h3 className="font-bold text-red-800 text-sm mb-2.5">⚠️ เงื่อนไขสำคัญและกำหนดเวลา (ตามกฏหมายไทย)</h3>
+            <h3 className="font-bold text-red-800 text-sm mb-2.5">⚠️ เงื่อนไขสำคัญและกำหนดเวลา</h3>
             <div className="text-[12px] leading-relaxed space-y-2 text-slate-900">
               <div className="border-l-4 border-red-600 pl-3 py-1.5 bg-red-100 rounded-r">
                 <p className="font-bold text-red-700 mb-1">🔴 ต้องทำสัญญาเช่าและชำระเงินค่าใช้จ่ายครบถ้วนภายในวันที่:</p>
