@@ -454,8 +454,8 @@ export default function BookingReceiptPage() {
             </div>
 
             {/* Section 3: Conditions */}
-            <div className="border-2 border-red-400 bg-red-50 rounded-lg p-5">
-              <h3 className="font-bold text-base text-red-800 mb-3">⚠️ เงื่อนไขสำคัญ</h3>
+            <div className="border-2 border-slate-400 rounded-lg p-5">
+              <h3 className="font-bold text-base text-slate-800 mb-3">เงื่อนไขสำคัญ</h3>
               <ul className="text-sm space-y-2 text-slate-900">
                 <li className="flex gap-2">
                   <span className="font-bold text-red-700 flex-shrink-0">1.</span>
