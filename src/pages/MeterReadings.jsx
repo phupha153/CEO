@@ -177,27 +177,6 @@ export default function MeterReadings() {
   }, [rawMeterReadings, rooms]);
 
   // ✅ Shared query key for cache sharing
-  const { data: rooms = [], isLoading: roomsLoading } = useQuery({
-    queryKey: ['rooms', selectedBranchId],
-    queryFn: async () => {
-      if (!selectedBranchId) return [];
-      const response = await base44.functions.invoke('getSecureData', {
-        entity: 'Room',
-        filters: { branch_id: selectedBranchId },
-        sort: 'room_number',
-        limit: 1000
-      });
-      return response.data.data;
-    },
-    enabled: canView && !!selectedBranchId,
-    retry: 2,
-    staleTime: 1 * 60 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    placeholderData: (previousData) => previousData,
-  });
-
-  // ✅ Shared query key for cache sharing
   const { data: bookings = [] } = useQuery({
     queryKey: ['bookings', selectedBranchId],
     queryFn: async () => {
