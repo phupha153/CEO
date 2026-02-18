@@ -148,10 +148,10 @@ export default function BookingsPage() {
     queryFn: () => base44.entities.TemporaryBooking.filter({ branch_id: selectedBranchId }, '-created_date', 5000),
     enabled: canView && !!selectedBranchId,
     retry: 2,
-    staleTime: 1 * 60 * 1000,
+    staleTime: 30 * 1000,
     gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: 'stale',
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
   });
 
   const { data: rooms = [] } = useQuery({
