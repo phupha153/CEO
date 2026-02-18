@@ -617,6 +617,7 @@ export default function PublicBooking() {
         if (!open) {
           setBookingStep(1);
           setDepositSlipUrl('');
+          setIsRoomSelected(false);
         }
       }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto mx-4 sm:mx-0">
