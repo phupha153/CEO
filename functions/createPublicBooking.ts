@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    if (booking_type === 'daily' && !check_out_date) {
+    if (booking_type === 'daily' && (!check_out_date || check_out_date.trim() === '')) {
       return Response.json({ 
         error: 'กรุณาระบุวันที่เช็คเอาท์สำหรับการจองรายวัน' 
       }, { status: 400 });
