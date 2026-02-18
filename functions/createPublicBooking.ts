@@ -60,7 +60,8 @@ Deno.serve(async (req) => {
       number_of_guests: number_of_guests || 1,
       status: 'active',
       booking_no: `TMP-${Date.now()}`,
-      deposit_amount: 200
+      deposit_amount: 200,
+      deposit_slip_url: payload.deposit_slip_url || ''
     };
 
     const booking = await base44.asServiceRole.entities.TemporaryBooking.create(bookingData);
