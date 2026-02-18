@@ -142,7 +142,7 @@ export default function PublicBooking() {
     },
     onSuccess: (data) => {
       setShowBookingForm(false);
-      setCreatedBooking(data);
+      setCreatedBooking({...data, room: selectedRoom});
       setShowSuccessDialog(true);
       setFormData({
         guest_name: '',
@@ -1094,11 +1094,11 @@ export default function PublicBooking() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-600">ห้อง:</span>
-                    <span className="font-semibold">{selectedRoom?.room_number} (ชั้น {selectedRoom?.floor})</span>
+                    <span className="font-semibold">{createdBooking.room?.room_number} (ชั้น {createdBooking.room?.floor})</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">ชื่อผู้จอง:</span>
-                    <span className="font-semibold">{formData.guest_name}</span>
+                    <span className="font-semibold">{createdBooking.room?.guest_name || formData.guest_name}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">วันเข้าพัก:</span>
