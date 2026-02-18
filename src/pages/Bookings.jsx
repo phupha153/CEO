@@ -872,6 +872,9 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
   const [bookingActionDialog, setBookingActionDialog] = useState(false);
   const [pendingActionBooking, setPendingActionBooking] = useState(null);
   
+  const [bookingDetailsDialog, setBookingDetailsDialog] = useState(false);
+  const [selectedBookingForDetails, setSelectedBookingForDetails] = useState(null);
+  
   const [confirmTenantDialog, setConfirmTenantDialog] = useState(false);
   const [pendingTempBooking, setPendingTempBooking] = useState(null);
   const [selectedTenant, setSelectedTenant] = useState(null);
