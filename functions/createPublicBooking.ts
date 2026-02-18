@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
       booking_no: `TMP-${Date.now()}`
     };
 
-    const booking = await base44.asServiceRole.entities.Booking.create(bookingData);
+    const booking = await base44.asServiceRole.entities.TemporaryBooking.create(bookingData);
 
     // 3. Update room status to reserved
     await base44.asServiceRole.entities.Room.update(room_id, {
