@@ -1059,6 +1059,7 @@ export default function PublicBooking() {
                     onClick={() => {
                       setSelectedRoom(detailRoom);
                       setFormData({ ...formData, check_in_date: searchDate });
+                      setIsRoomSelected(true);
                       setShowRoomDetails(false);
                       setShowBookingForm(true);
                     }}
