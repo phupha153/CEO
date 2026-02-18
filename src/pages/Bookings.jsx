@@ -1693,8 +1693,8 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                         e.stopPropagation();
 
                                         if (event.type === 'daily-booking' || event.type === 'monthly-booking') {
-                                          setPendingActionBooking(event.booking);
-                                          setBookingActionDialog(true);
+                                          setSelectedBookingForDetails(event.booking);
+                                          setBookingDetailsDialog(true);
                                         }
                                       }}
                                     >
