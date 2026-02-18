@@ -188,12 +188,12 @@ export default function PublicBooking() {
       return;
     }
 
-    if (formData.booking_type === 'daily' && !formData.check_out_date) {
-      toast.error('กรุณาระบุวันที่เช็คเอาท์สำหรับการจองรายวัน');
+    if (!formData.check_out_date) {
+      toast.error('กรุณาระบุวันที่เช็คเอาท์');
       return;
     }
 
-    if (formData.booking_type === 'daily' && formData.check_out_date <= formData.check_in_date) {
+    if (formData.check_out_date <= formData.check_in_date) {
       toast.error('วันที่เช็คเอาท์ต้องหลังจากวันที่เช็คอิน');
       return;
     }
