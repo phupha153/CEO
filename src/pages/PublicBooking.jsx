@@ -219,7 +219,11 @@ export default function PublicBooking() {
         <Card className="max-w-md">
           <CardHeader>
             <CardTitle className="text-red-600">❌ ไม่พบข้อมูลสาขา</CardTitle>
-            <CardDescription>กรุณาใช้ลิงก์ที่ถูกต้องจากทางสาขา</CardDescription>
+            <CardDescription className="space-y-2">
+              <p>ลิงก์นี้ไม่มีข้อมูลสาขา (branchId)</p>
+              <p className="text-xs text-slate-500">⚠️ ลิงก์ต้องอยู่ในรูป: ?branchId=xxxxx</p>
+              <p className="text-xs text-slate-500">กรุณาขอลิงก์ใหม่จากทางสาขา</p>
+            </CardDescription>
           </CardHeader>
         </Card>
       </div>
