@@ -1692,7 +1692,7 @@ ${monthlyNoEndDate.length > 0 ? monthlyNoEndDate.map(r =>
                                       onClick={(e) => {
                                         e.stopPropagation();
 
-                                        if (event.type === 'daily-booking' || event.type === 'monthly-booking') {
+                                        if (event.type === 'temporary-booking') {
                                           setSelectedBookingForDetails(event.booking);
                                           setBookingDetailsDialog(true);
                                         }
