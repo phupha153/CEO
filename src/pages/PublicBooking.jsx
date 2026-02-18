@@ -781,21 +781,19 @@ export default function PublicBooking() {
               <p className="text-xs text-slate-500 mt-1">💡 กดปุ่ม "เปลี่ยนเงื่อนไข" เพื่อเปลี่ยนวันที่</p>
             </div>
 
-            {formData.booking_type === 'daily' && (
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  📅 วันที่เช็คเอาท์ <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="date"
-                  value={formData.check_out_date}
-                  readOnly
-                  disabled
-                  className="bg-slate-100 cursor-not-allowed"
-                />
-                <p className="text-xs text-slate-500 mt-1">💡 กดปุ่ม "เปลี่ยนเงื่อนไข" เพื่อเปลี่ยนวันที่</p>
-              </div>
-            )}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                📅 วันที่เช็คเอาท์ <span className="text-red-500">*</span>
+              </label>
+              <Input
+                type="date"
+                value={formData.check_out_date}
+                onChange={(e) => setFormData({ ...formData, check_out_date: e.target.value })}
+                min={formData.check_in_date}
+                required
+              />
+              <p className="text-xs text-slate-500 mt-1">💡 เลือกวันที่เช็คเอาท์เพื่อเช็คการว่างของห้องในช่วงเวลานั้น</p>
+            </div>
 
             <div className="flex gap-3 pt-4">
               <Button 
