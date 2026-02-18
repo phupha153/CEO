@@ -634,22 +634,21 @@ export default function PublicBooking() {
               <label className="block text-sm font-medium mb-2">
                 ประเภทการจอง <span className="text-red-500">*</span>
               </label>
-              <Select 
-                value={formData.booking_type} 
-                onValueChange={(value) => setFormData({ 
-                  ...formData, 
-                  booking_type: value,
-                  check_out_date: value === 'monthly' ? '' : formData.check_out_date
-                })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">รายเดือน</SelectItem>
-                  <SelectItem value="daily">รายวัน</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="relative opacity-50 pointer-events-none cursor-not-allowed">
+                <Select 
+                  value={formData.booking_type} 
+                  disabled={true}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">รายเดือน</SelectItem>
+                    <SelectItem value="daily">รายวัน</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">⏭️ เลือกห้องใหม่เพื่อเปลี่ยนประเภทการจอง</p>
             </div>
 
             <div>
