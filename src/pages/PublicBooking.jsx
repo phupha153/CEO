@@ -203,13 +203,16 @@ export default function PublicBooking() {
       return;
     }
 
-    createBookingMutation.mutate({
+    const bookingPayload = {
       ...formData,
       room_id: selectedRoom.id,
       branch_id: branchId,
       deposit_slip_url: depositSlipUrl,
       deposit_amount: 200
-    });
+    };
+
+    console.log('📤 Sending booking data:', bookingPayload);
+    createBookingMutation.mutate(bookingPayload);
   };
 
   // Error/Loading states
