@@ -46,6 +46,7 @@ export default function PublicBooking() {
   const [tempSearchDate, setTempSearchDate] = useState(new Date().toISOString().split('T')[0]);
   const [tempCheckOutDate, setTempCheckOutDate] = useState('');
   const [tempNumberOfGuests, setTempNumberOfGuests] = useState(1);
+  const [isRoomSelected, setIsRoomSelected] = useState(false);
   const [formData, setFormData] = useState({
     guest_name: '',
     guest_phone: '',
