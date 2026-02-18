@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       }, { status: 400 });
     }
 
-    // 2. Create temporary booking (TemporaryBooking entity only, not Booking)
+    // 3. Create temporary booking (TemporaryBooking entity only, not Booking)
     const bookingData = {
       branch_id,
       room_id,
