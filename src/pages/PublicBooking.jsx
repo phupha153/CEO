@@ -170,7 +170,13 @@ export default function PublicBooking() {
       setSelectedRoom(null);
     },
     onError: (error) => {
-      toast.error(error.message || 'เกิดข้อผิดพลาดในการจอง');
+      console.error('❌ Booking error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      toast.error(error.response?.data?.error || error.message || 'เกิดข้อผิดพลาดในการจอง');
     }
   });
 
