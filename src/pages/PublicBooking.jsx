@@ -153,6 +153,8 @@ export default function PublicBooking() {
       if (branch) {
         localStorage.setItem('selected_branch_name', branch.branch_name);
       }
+      // ⭐ CRITICAL: บังคับล้าง cache ของ window อื่นด้วย storage event
+      window.dispatchEvent(new Event('storage'));
       setShowSuccessDialog(true);
       setFormData({
         guest_name: '',
