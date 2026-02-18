@@ -30,20 +30,52 @@ Deno.serve(async (req) => {
     }
 
     // ⚡ Use service role for backend operations
-    // 1. Check if room exists and is available
+    // 1. Check if room exists
     const rooms = await base44.asServiceRole.entities.Room.filter({
       id: room_id,
-      branch_id: branch_id,
-      status: 'available'
+      branch_id: branch_id
     });
 
     if (!rooms || rooms.length === 0) {
       return Response.json({ 
-        error: 'ห้องนี้ไม่ว่างหรือไม่พบในระบบ กรุณาเลือกห้องอื่น' 
+        error: 'ห้องไม่พบในระบบ กรุณาเลือกห้องอื่น' 
       }, { status: 400 });
     }
 
     const room = rooms[0];
+
+    // 2. Check actual availability by querying active bookings on the selected date
+    const searchDate = new Date(check_in_date);
+    const [activeBookings, tempBookings] = await Promise.all([
+      base44.asServiceRole.entities.Booking.filter({
+        room_id: room_id,
+        branch_id: branch_id,
+        status: 'active'
+      }),
+      base44.asServiceRole.entities.TemporaryBooking.filter({
+        room_id: room_id,
+        branch_id: branch_id
+      })
+    ]);
+
+    // Check if room is booked on the selected date
+    const allBookings = [...(activeBookings || []), ...(tempBookings || [])];
+    const isBooked = allBookings.some(booking => {
+      const checkIn = new Date(booking.check_in_date);
+      const checkOut = booking.check_out_date ? new Date(booking.check_out_date) : null;
+      
+      if (checkOut) {
+        return searchDate >= checkIn && searchDate < checkOut;
+      } else {
+        return booking.room_id === room_id;
+      }
+    });
+
+    if (isBooked) {
+      return Response.json({ 
+        error: 'ห้องนี้ไม่ว่างในวันที่เลือก กรุณาเลือกห้องหรือวันอื่น' 
+      }, { status: 400 });
+    }
 
     // 2. Create temporary booking (TemporaryBooking entity only, not Booking)
     const bookingData = {
