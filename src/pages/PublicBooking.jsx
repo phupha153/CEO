@@ -148,6 +148,11 @@ export default function PublicBooking() {
     onSuccess: (data) => {
       setShowBookingForm(false);
       setCreatedBooking({...data, room: selectedRoom});
+      // ตั้งค่า localStorage เพื่อให้ Bookings Management เห็นการจองนี้
+      localStorage.setItem('selected_branch_id', branchId);
+      if (branch) {
+        localStorage.setItem('selected_branch_name', branch.branch_name);
+      }
       setShowSuccessDialog(true);
       setFormData({
         guest_name: '',
