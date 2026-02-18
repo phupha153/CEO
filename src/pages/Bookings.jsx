@@ -139,8 +139,8 @@ export default function BookingsPage() {
     retry: 2,
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: 'stale',
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: temporaryBookings = [] } = useQuery({
@@ -150,8 +150,8 @@ export default function BookingsPage() {
     retry: 2,
     staleTime: 1 * 60 * 1000,
     gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: 'stale',
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const { data: rooms = [] } = useQuery({
