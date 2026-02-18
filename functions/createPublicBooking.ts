@@ -98,12 +98,12 @@ Deno.serve(async (req) => {
 
     const booking = await base44.asServiceRole.entities.TemporaryBooking.create(bookingData);
 
-    // 3. Update room status to reserved
+    // 4. Update room status to reserved
     await base44.asServiceRole.entities.Room.update(room_id, {
       status: 'reserved'
     });
 
-    // 4. Send notification to admins (optional - using service role for SendEmail)
+    // 5. Send notification to admins (optional - using service role for SendEmail)
     try {
       const branch = await base44.asServiceRole.entities.Branch.filter({ id: branch_id });
       const branchName = branch[0]?.branch_name || 'สาขา';
