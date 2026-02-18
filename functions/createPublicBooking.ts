@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
 
     const room = rooms[0];
 
-    // 2. Create temporary booking
+    // 2. Create temporary booking (TemporaryBooking entity only, not Booking)
     const bookingData = {
       branch_id,
       room_id,
@@ -58,10 +58,9 @@ Deno.serve(async (req) => {
       check_out_date: check_out_date || null,
       booking_type: booking_type || room.room_type,
       number_of_guests: number_of_guests || 1,
-      is_temporary_booking: true,
       status: 'active',
-      room_no: room.room_number,
-      booking_no: `TMP-${Date.now()}`
+      booking_no: `TMP-${Date.now()}`,
+      deposit_amount: 200
     };
 
     const booking = await base44.asServiceRole.entities.TemporaryBooking.create(bookingData);
