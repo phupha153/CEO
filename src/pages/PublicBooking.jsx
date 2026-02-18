@@ -104,11 +104,16 @@ export default function PublicBooking() {
     queryKey: ['publicBookings', branchId, searchDate],
     queryFn: async () => {
       if (!branchId || !searchDate) return [];
-      const bookings = await base44.entities.Booking.filter({ 
-        branch_id: branchId,
-        status: 'active'
-      });
-      return bookings || [];
+      const [bookings, tempBookings] = await Promise.all([
+        base44.entities.Booking.filter({ 
+          branch_id: branchId,
+          status: 'active'
+        }),
+        base44.entities.TemporaryBooking.filter({
+          branch_id: branchId
+        })
+      ]);
+      return [...(bookings || []), ...(tempBookings || [])];
     },
     enabled: !!branchId && !!searchDate && !showInitialDialog,
     staleTime: 30000

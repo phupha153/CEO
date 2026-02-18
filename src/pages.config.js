@@ -55,7 +55,6 @@ import AllBranchesDashboard from './pages/AllBranchesDashboard';
 import Announcements from './pages/Announcements';
 import BannerManagement from './pages/BannerManagement';
 import BookingReceipt from './pages/BookingReceipt';
-import Bookings from './pages/Bookings';
 import BranchManagement from './pages/BranchManagement';
 import BranchSelection from './pages/BranchSelection';
 import ContractEditor from './pages/ContractEditor';
@@ -86,7 +85,6 @@ import PackageSelection from './pages/PackageSelection';
 import Payments from './pages/Payments';
 import PrintReceipts from './pages/PrintReceipts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
-import PublicBooking from './pages/PublicBooking';
 import PublicInvoice from './pages/PublicInvoice';
 import PublicReceipt from './pages/PublicReceipt';
 import Receipt from './pages/Receipt';
@@ -106,6 +104,8 @@ import WebhookLogs from './pages/WebhookLogs';
 import Welcome from './pages/Welcome';
 import f12 from './pages/f12';
 import reports from './pages/reports';
+import Bookings from './pages/Bookings';
+import PublicBooking from './pages/PublicBooking';
 import __Layout from './Layout.jsx';
 
 
@@ -118,7 +118,6 @@ export const PAGES = {
     "Announcements": Announcements,
     "BannerManagement": BannerManagement,
     "BookingReceipt": BookingReceipt,
-    "Bookings": Bookings,
     "BranchManagement": BranchManagement,
     "BranchSelection": BranchSelection,
     "ContractEditor": ContractEditor,
@@ -149,7 +148,6 @@ export const PAGES = {
     "Payments": Payments,
     "PrintReceipts": PrintReceipts,
     "PrivacyPolicy": PrivacyPolicy,
-    "PublicBooking": PublicBooking,
     "PublicInvoice": PublicInvoice,
     "PublicReceipt": PublicReceipt,
     "Receipt": Receipt,
@@ -169,6 +167,8 @@ export const PAGES = {
     "Welcome": Welcome,
     "f12": f12,
     "reports": reports,
+    "Bookings": Bookings,
+    "PublicBooking": PublicBooking,
 }
 
 export const pagesConfig = {
