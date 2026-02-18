@@ -47,6 +47,7 @@ export default function PublicBooking() {
   const [tempCheckOutDate, setTempCheckOutDate] = useState('');
   const [tempNumberOfGuests, setTempNumberOfGuests] = useState(1);
   const [isRoomSelected, setIsRoomSelected] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState(null);
   const [formData, setFormData] = useState({
     guest_name: '',
     guest_phone: '',
@@ -139,8 +140,9 @@ export default function PublicBooking() {
       const response = await base44.functions.invoke('createPublicBooking', bookingData);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setShowBookingForm(false);
+      setCreatedBooking(data);
       setShowSuccessDialog(true);
       setFormData({
         guest_name: '',
@@ -1077,27 +1079,82 @@ export default function PublicBooking() {
 
       {/* Success Dialog */}
       <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
-        <DialogContent className="max-w-md text-center mx-4 sm:mx-0">
-          <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
-            <Check className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
-          </div>
-          <DialogHeader>
+        <DialogContent className="max-w-md mx-4 sm:mx-0">
+          <div className="text-center mb-4">
+            <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
+              <Check className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+            </div>
             <DialogTitle className="text-xl sm:text-2xl">จองสำเร็จ! 🎉</DialogTitle>
-            <DialogDescription className="text-sm sm:text-base mt-4 leading-relaxed">
-              ทางสาขาได้รับการจองของคุณแล้ว<br/>
-              และจะติดต่อกลับไปยังเบอร์โทรศัพท์ที่คุณให้ไว้<br/>
-              ภายใน 24 ชั่วโมง
-            </DialogDescription>
-          </DialogHeader>
-          <Button 
-            onClick={() => {
-              setShowSuccessDialog(false);
-              window.location.reload();
-            }}
-            className="w-full mt-6 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800"
-          >
-            ดูห้องอื่นๆ
-          </Button>
+          </div>
+
+          {createdBooking && (
+            <div className="space-y-4">
+              <div className="bg-gradient-to-br from-blue-50 to-sky-50 rounded-lg p-4 border border-blue-200">
+                <p className="text-sm text-slate-600 mb-2">รายละเอียดการจอง</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">ห้อง:</span>
+                    <span className="font-semibold">{selectedRoom?.room_number} (ชั้น {selectedRoom?.floor})</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">ชื่อผู้จอง:</span>
+                    <span className="font-semibold">{formData.guest_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">วันเข้าพัก:</span>
+                    <span className="font-semibold">
+                      {new Date(formData.check_in_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </span>
+                  </div>
+                  {formData.check_out_date && (
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">วันเช็คเอาท์:</span>
+                      <span className="font-semibold">
+                        {new Date(formData.check_out_date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-4 border border-indigo-200">
+                <p className="text-xs text-slate-600 mb-2">เงินมัดจำ</p>
+                <p className="text-2xl font-bold text-indigo-600">฿200</p>
+                <p className="text-xs text-slate-600 mt-2">กรุณาโอนเงินมัดจำตามบัญชีที่ปรากฎด้านบน</p>
+              </div>
+
+              <p className="text-xs text-slate-600 text-center">
+                เลขที่ใบจอง: <span className="font-semibold">{createdBooking.booking_no}</span>
+              </p>
+            </div>
+          )}
+
+          <DialogDescription className="text-sm text-center mt-4 leading-relaxed">
+            ทางสาขาได้รับการจองของคุณแล้ว และจะติดต่อกลับไปยังเบอร์โทรศัพท์ที่คุณให้ไว้ ภายใน 24 ชั่วโมง
+          </DialogDescription>
+
+          <div className="flex flex-col gap-2 pt-4">
+            {createdBooking && (
+              <Button 
+                onClick={() => {
+                  window.open(`${window.location.origin}/PublicBooking?viewBooking=${createdBooking.booking_id}`, '_blank');
+                }}
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              >
+                📄 ดูใบจอง
+              </Button>
+            )}
+            <Button 
+              onClick={() => {
+                setShowSuccessDialog(false);
+                window.location.reload();
+              }}
+              variant="outline"
+              className="w-full"
+            >
+              ดูห้องอื่นๆ
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
