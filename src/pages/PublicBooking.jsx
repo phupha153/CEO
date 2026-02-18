@@ -247,7 +247,12 @@ export default function PublicBooking() {
         <Card className="max-w-md">
           <CardHeader>
             <CardTitle className="text-red-600">❌ ไม่พบสาขานี้</CardTitle>
-            <CardDescription>สาขาที่คุณกำลังมองหาอาจถูกลบหรือไม่มีในระบบ</CardDescription>
+            <CardDescription className="space-y-2">
+              <p>สาขาที่คุณกำลังมองหาอาจถูกลบหรือไม่มีในระบบ</p>
+              <p className="text-xs text-slate-500">📌 branchId: <span className="font-mono">{branchId}</span></p>
+              <p className="text-xs text-slate-500">✅ ตรวจสอบให้แน่ใจว่าสาขายังคงใช้งานอยู่</p>
+              <p className="text-xs text-slate-500">📞 ติดต่อสาขาเพื่อขอลิงก์ใหม่</p>
+            </CardDescription>
           </CardHeader>
         </Card>
       </div>
